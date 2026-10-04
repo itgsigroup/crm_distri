@@ -1,0 +1,143 @@
+{
+  "project": "ARC — Agentic Relationship Core",
+  "owner": "Sam Setiadi (GSI)",
+  "phase_note": "Fase 1 (tahap 00–06): ARC-native, fokus WhatsApp → analisis → relasi & peta → pipeline → MCP. Fase 2 (07–13): brief, Odoo, Gmail, Kas, growth, hardening.",
+  "current_stage": 13,
+  "stages": [
+    {
+      "id": 0,
+      "name": "Bootstrap repo, ADR, tooling",
+      "status": "done",
+      "file": "docs/stages/00-bootstrap.md",
+      "finished_at": "2026-10-04",
+      "summary": "Repo Go (modul arc) + apps/web React + apps/wa-bridge; ADR 0003 (Go/React/PostgreSQL); Makefile dev/test/lint/seed/eval/perf; compose + Caddy; .env.example lengkap; gitleaks config.",
+      "notes": "Docker tidak tersedia di mesin dev: compose divalidasi sintaks saja."
+    },
+    {
+      "id": 1,
+      "name": "Domain model & storage (ARC-native)",
+      "status": "done",
+      "file": "docs/stages/01-domain-model.md",
+      "finished_at": "2026-10-04",
+      "summary": "Skema PostgreSQL (migrasi SQL tertanam, audit log append-only), seed fixture mockup idempoten, health v1 (RSUD 43).",
+      "notes": "Pengganti mypy strict: sistem tipe Go + go vet (ADR 0003)."
+    },
+    {
+      "id": 2,
+      "name": "WhatsApp bridge & capture (QR + Cloud API adapter, grup, nomor internal)",
+      "status": "done-with-mocks",
+      "file": "docs/stages/02-whatsapp-bridge.md",
+      "finished_at": "2026-10-04",
+      "summary": "wa-bridge whatsmeow multi-sesi (QR asli terbukti), riwayat, grup, profil, kirim hanya action approved (cek ulang HMAC), 20/jam + jeda 2–6 dtk, antrean file; webhook HMAC, privasi grup/internal, parser ekspor, Cloud API adapter, FakeTransport.",
+      "notes": "Uji kirim/terima dengan nomor cadangan belum (docs/testing/whatsapp.md)."
+    },
+    {
+      "id": 3,
+      "name": "Reasoning core: ekstraksi, identitas, memori",
+      "status": "done-with-mocks",
+      "file": "docs/stages/03-reasoning-core.md",
+      "finished_at": "2026-10-04",
+      "summary": "Capture (komitmen/sinyal/tugas + evidence), identitas inbound (rantai sumber), research tangga solusi + 5 pertanyaan, memori akun, hygiene, LLM router + masking PII + biaya, eval.",
+      "notes": "Tanpa ANTHROPIC_API_KEY: FakeProvider deterministik."
+    },
+    {
+      "id": 4,
+      "name": "Web v1: Chat, Relasi + peta stakeholder + Peta 3D, Pengaturan WA, Hari ini lite",
+      "status": "done-with-mocks",
+      "file": "docs/stages/04-web-v1.md",
+      "finished_at": "2026-10-04",
+      "summary": "Web React sesuai mockup: Hari ini, Chat, Relasi + peta stakeholder, Peta 3D (Three.js), Pengaturan WA; semua data dari API; 400 px tanpa scroll horizontal.",
+      "notes": "Uji manual QR→Chat≤5 dtk menunggu nomor cadangan."
+    },
+    {
+      "id": 5,
+      "name": "Pipeline & deal intelligence (ARC-native) + Prospek inbound + Action sheet",
+      "status": "done",
+      "file": "docs/stages/05-pipeline-intelligence.md",
+      "finished_at": "2026-10-04",
+      "summary": "Health & flag 8 opportunity, forecast commit/best/pipeline Rp 4,3/5,9/11,9 M + what-if, NBA table-driven (rules/nba.json), funnel 7 tahap, Prospek → lead, Action sheet."
+    },
+    {
+      "id": 6,
+      "name": "MCP server, AI API, Ask",
+      "status": "done",
+      "file": "docs/stages/06-mcp-api-ask.md",
+      "finished_at": "2026-10-04",
+      "summary": "MCP Streamable HTTP + OAuth 2.1 (PKCE, DCR), tools sesuai mockup, decide human-only, scoping cabang, REST /api/v1 + OpenAPI, Ask dengan evidence, API key + rate limit, webhook keluar HMAC."
+    },
+    {
+      "id": 7,
+      "name": "Brief harian, approval lengkap, kalibrasi, notifier",
+      "status": "done-with-mocks",
+      "file": "docs/stages/07-brief-approval.md",
+      "finished_at": "2026-10-04",
+      "summary": "Brief 06.45/16.00 (4 poin + evidence), approval penuh (approve/edit/opsi/tolak/tunda), suppress 14 hari, LearnedRule 3×, kalibrasi, notifier.",
+      "notes": "SMTP/Basecamp belum: FakeNotifier."
+    },
+    {
+      "id": 8,
+      "name": "Odoo read-only sync & penautan (Odoo jadi source of truth)",
+      "status": "done-with-mocks",
+      "file": "docs/stages/08-odoo-readonly.md",
+      "finished_at": "2026-10-04",
+      "summary": "Odoo XML-RPC read-only (stdlib), sync idempoten (write_date), penautan 6 otomatis + 2 usulan + create_in_odoo, L2C 6 kasus.",
+      "notes": "Tanpa kredensial Odoo: FakeOdoo."
+    },
+    {
+      "id": 9,
+      "name": "Gmail & Calendar capture",
+      "status": "done-with-mocks",
+      "file": "docs/stages/09-gmail-calendar.md",
+      "finished_at": "2026-10-04",
+      "summary": "Gmail/Calendar: 12 email → 9 tertaut/2 unresolved/1 diabaikan, tanpa kutipan, idempoten; meeting prep H-1.",
+      "notes": "Tanpa OAuth Google: fixture .eml + kalender."
+    },
+    {
+      "id": 10,
+      "name": "Odoo write-back (guarded)",
+      "status": "done-with-mocks",
+      "file": "docs/stages/10-odoo-writeback.md",
+      "finished_at": "2026-10-04",
+      "summary": "Writer Odoo terbatas (whitelist, tanpa stage_id/unlink): probability + note evidence, activity komitmen, konflik → Signal sync_conflict. Komitmen kami → mail.activity, terpenuhi → action_done (job odoo_activities).",
+      "notes": "FakeOdoo."
+    },
+    {
+      "id": 11,
+      "name": "Cash engine & Collection agent",
+      "status": "done-with-mocks",
+      "file": "docs/stages/11-cash-engine.md",
+      "finished_at": "2026-10-04",
+      "summary": "Cash engine: L2C per project vs benchmark, create_invoice/pengingat/ask_spm_documents/schedule_bast, prediksi kas Rp 2,4 M + what-if, aging, CSV.",
+      "notes": "Data invoice dari FakeOdoo."
+    },
+    {
+      "id": 12,
+      "name": "Growth: funnel & flywheel, tender radar, tim, renewal & ekspansi, denyut bisnis",
+      "status": "done-with-mocks",
+      "file": "docs/stages/12-growth.md",
+      "finished_at": "2026-10-04",
+      "summary": "Flywheel (verdict berbalik bila data dibalik), tender radar 92/84/71, renewal Amarta offer_maintenance, coaching tim (Fajar 0 lead/102 pesan).",
+      "notes": "LPSE: fixture + impor manual."
+    },
+    {
+      "id": 13,
+      "name": "Hardening & go-live",
+      "status": "done-with-mocks",
+      "file": "docs/stages/13-hardening-golive.md",
+      "finished_at": "2026-10-04",
+      "summary": "Validasi config production, watchdog sesi WA >10 mnt, alert job gagal 2× & biaya, /api/metrics, backup/restore pg_dump, perf 500 akun/10k interaksi p95 < 300 ms, Playwright smoke + e2e, runbook, go-live checklist, pelatihan sales.",
+      "notes": "Belum: restore di mesin bersih, 48 jam staging, tanda tangan Sam (docs/go-live-checklist.md)."
+    }
+  ],
+  "conventions": {
+    "status_values": [
+      "pending",
+      "in_progress",
+      "done",
+      "done-with-mocks",
+      "blocked"
+    ],
+    "commit_prefix": "feat(stage-NN):"
+  },
+  "stack": "Go 1.26 · PostgreSQL 17 · React + Vite (ADR 0003)"
+}
