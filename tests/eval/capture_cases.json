@@ -1,0 +1,23 @@
+{
+  "_comment": "Capture evaluation set (Stage 03). Each case lists the facts the Capture agent must find; extra findings count against precision. Based on the fixture chats from the approved mockup plus realistic variants.",
+  "cases": [
+    {"id": "wijaya-1", "thread_type": "cust", "direction": "in", "sender": "Pak Wijaya", "text": "Mas Andi, terima kasih pertemuannya tadi. Revisi harga struktur dan durasi maintenance ditunggu ya, hari Senin.", "expect": {}},
+    {"id": "wijaya-2", "thread_type": "cust", "direction": "out", "sender": "Andi", "text": "Siap Pak Wijaya, Senin kami kirim revisinya.", "expect": {"commitments": [{"who": "kami", "contains": "revisi Senin"}]}},
+    {"id": "wijaya-3", "thread_type": "cust", "direction": "in", "sender": "Pak Wijaya", "text": "Mas Andi, revisi penawarannya jadi hari ini ya? Pak Arif mau lihat sebelum rapat Rabu.", "expect": {}},
+    {"id": "yusuf-1", "thread_type": "cust", "direction": "in", "sender": "Pak Yusuf", "text": "Bu Dewi, kami ambil opsi B. PO menyusul Kamis.", "expect": {"commitments": [{"who": "mereka", "contains": "PO Kamis"}]}},
+    {"id": "yusuf-2", "thread_type": "cust", "direction": "out", "sender": "Dewi", "text": "Terima kasih Pak Yusuf! Kami tunggu PO-nya. Kick-off Selasa 29 Sep jam 09.00 tetap ya?", "expect": {}},
+    {"id": "hendra-1", "thread_type": "cust", "direction": "in", "sender": "Pak Hendra", "text": "Bu Dewi, ada vendor lain menawarkan harga lebih rendah untuk spek setara. Apakah masih ada ruang penyesuaian?", "expect": {"signals": ["competitor_mentioned"]}},
+    {"id": "hendra-2", "thread_type": "cust", "direction": "in", "sender": "Pak Hendra", "text": "Terima kasih Bu Dewi. Minggu depan saya kabari setelah rapat internal.", "expect": {"commitments": [{"who": "mereka", "contains": "feedback minggu depan"}]}},
+    {"id": "kartika-1", "thread_type": "cust", "direction": "in", "sender": "Bu Kartika", "text": "Pembayaran CCTV tahap akhir sudah kami transfer pagi ini ya Mas.", "expect": {"signals": ["payment_on_time"]}},
+    {"id": "ratna-1", "thread_type": "cust", "direction": "in", "sender": "Bu Ratna", "text": "Mulai Oktober saya di Dishub, nanti koordinasi dengan Pak Yoga ya.", "expect": {"signals": ["champion_moved"]}},
+    {"id": "sl-1", "thread_type": "gext", "direction": "in", "sender": "Bayu Pratama", "sender_internal": true, "text": "Bisa Pak, tim 4 orang. Butuh crane kecil, saya koordinasi vendor.", "expect": {"tasks": [{"contains": "crane", "assignee": "Bayu"}]}},
+    {"id": "sl-2", "thread_type": "gext", "direction": "in", "sender": "Pak Arif", "text": "Tolong BAST-nya nanti dilampirkan foto sebelum-sesudah ya.", "expect": {"tasks": [{"contains": "foto"}]}},
+    {"id": "sl-3", "thread_type": "gext", "direction": "in", "sender": "Sari Wulandari", "sender_internal": true, "text": "Update: struktur tiang sudah dikirim dari Jakarta, ETA Kamis pagi.", "expect": {}},
+    {"id": "pj-1", "thread_type": "gext", "direction": "in", "sender": "Gudang Surabaya", "sender_internal": true, "text": "Stok PTZ 12 unit, kurang 6 untuk 90 titik. Lead time supplier 3 minggu.", "expect": {"tasks": [{"contains": "PO"}], "signals": ["stock_risk"]}},
+    {"id": "pj-2", "thread_type": "gext", "direction": "out", "sender": "Rizky", "text": "Survey selesai, 4 titik tambahan di gudang B. Laporan menyusul 1 Okt.", "expect": {"commitments": [{"who": "kami", "contains": "laporan"}]}},
+    {"id": "int-1", "thread_type": "gint", "direction": "in", "sender": "Bayu Pratama", "sender_internal": true, "text": "Besok survey Kendal jam 9, siapa ikut?", "expect": {}},
+    {"id": "var-1", "thread_type": "cust", "direction": "in", "sender": "Pak Dimas", "text": "Pak, spek LED-nya kami kirim Jumat ya, sekalian data ruangannya.", "expect": {"commitments": [{"who": "mereka", "contains": "Jumat"}]}},
+    {"id": "var-2", "thread_type": "cust", "direction": "out", "sender": "Andi", "text": "Baik Bu, proposal revisinya kami kirim besok pagi.", "expect": {"commitments": [{"who": "kami", "contains": "proposal"}]}},
+    {"id": "var-3", "thread_type": "cust", "direction": "in", "sender": "Pak Bambang", "text": "Kami juga sedang menerima penawaran lain dari kompetitor untuk CCTV dermaga.", "expect": {"signals": ["competitor_mentioned"]}}
+  ]
+}
