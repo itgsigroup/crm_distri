@@ -1,0 +1,47 @@
+/* Design tokens copied verbatim from reference/arc-crm-mockup.html (light + dark). */
+:root{
+  --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#F7F7F9; --surface-3:#EFEFF3;
+  --line:rgba(20,20,40,.07); --line-strong:rgba(20,20,40,.13);
+  --text:#1D1D1F; --text-2:#6E6E73; --text-3:#A1A1A6; --on-accent:#FFFFFF;
+  --accent:#0071E3; --accent-soft:rgba(0,113,227,.10); --accent-line:rgba(0,113,227,.28);
+  --good:#28A745; --good-soft:rgba(52,199,89,.14);
+  --warn:#E08A00; --warn-soft:rgba(255,159,10,.16);
+  --bad:#E5342A; --bad-soft:rgba(255,59,48,.12);
+  --indigo:#5E5CE6; --indigo-soft:rgba(94,92,230,.12);
+  --ai-a:#FF9F5A; --ai-b:#F45D9C; --ai-c:#7B61FF;
+  --shadow:0 1px 2px rgba(20,20,40,.04),0 10px 30px -12px rgba(20,20,40,.10);
+  --shadow-lift:0 2px 4px rgba(20,20,40,.05),0 18px 40px -14px rgba(20,20,40,.18);
+  --r:18px; --r-sm:12px; --r-xs:8px;
+  --font-display:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;
+  --font-body:'Instrument Sans',-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --rail-w:236px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0F0F12; --surface:#1B1B1F; --surface-2:#232328; --surface-3:#2C2C32;
+    --line:rgba(255,255,255,.07); --line-strong:rgba(255,255,255,.14);
+    --text:#F5F5F7; --text-2:#A1A1A8; --text-3:#6E6E76; --on-accent:#FFFFFF;
+    --accent:#2E8CFF; --accent-soft:rgba(46,140,255,.16); --accent-line:rgba(46,140,255,.4);
+    --good:#3DD268; --good-soft:rgba(48,209,88,.16);
+    --warn:#FFB03A; --warn-soft:rgba(255,159,10,.18);
+    --bad:#FF5A50; --bad-soft:rgba(255,69,58,.16);
+    --indigo:#7D7BFF; --indigo-soft:rgba(125,123,255,.16);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -12px rgba(0,0,0,.6);
+    --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 18px 40px -14px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0F0F12; --surface:#1B1B1F; --surface-2:#232328; --surface-3:#2C2C32;
+  --line:rgba(255,255,255,.07); --line-strong:rgba(255,255,255,.14);
+  --text:#F5F5F7; --text-2:#A1A1A8; --text-3:#6E6E76; --on-accent:#FFFFFF;
+  --accent:#2E8CFF; --accent-soft:rgba(46,140,255,.16); --accent-line:rgba(46,140,255,.4);
+  --good:#3DD268; --good-soft:rgba(48,209,88,.16);
+  --warn:#FFB03A; --warn-soft:rgba(255,159,10,.18);
+  --bad:#FF5A50; --bad-soft:rgba(255,69,58,.16);
+  --indigo:#7D7BFF; --indigo-soft:rgba(125,123,255,.16);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -12px rgba(0,0,0,.6);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 18px 40px -14px rgba(0,0,0,.8);
+}
