@@ -2,6 +2,24 @@
 
 Diisi per tahap oleh Claude Code (format: `## Stage NN — nama (tanggal)` lalu poin perubahan).
 
+## WhatsApp: Baileys + anti-blokir (2026-10-04)
+- `apps/wa-bridge` ditulis ulang dengan **Node + TypeScript + Baileys 7.0.0-rc14** (ADR 0004); kontrak HTTP/HMAC dan `WaEvent` tidak berubah, auth state Baileys di PostgreSQL (`wa_bridge.arc_auth`).
+- Penjaga anti-blokir pada setiap kirim yang sudah di-approve:
+  - hanya membalas chat yang pernah menghubungi nomor itu;
+  - opt-out STOP/berhenti;
+  - teks identik ke > 3 chat/jam ditolak;
+  - jam tenang 21.00–07.00 WIB;
+  - 20/jam, 120/hari, 6/jam per chat, jeda ≥ 20 dtk per chat;
+  - pemanasan nomor baru 15 → 120/hari dalam 7 hari;
+  - jeda acak 2–6 dtk dan status "mengetik…";
+  - satu `action_id` tidak pernah terkirim dua kali.
+- Kebersihan koneksi:
+  - versi WA Web terbaru, tidak tampil online saat connect, riwayat terbaru saja;
+  - backoff reconnect 5 dtk → 10 mnt; berhenti setelah logout/forbidden/replaced;
+  - cache metadata grup, lookup profil dibatasi dan di-cache.
+- API menampilkan alasan penolakan bridge apa adanya (`BridgeError`); timeout panggilan bridge 90 dtk; `/health` bridge melaporkan pemakaian batas.
+- Test: 23 test vitest bridge (penjaga, pengirim, HTTP+HMAC, antrean, pemetaan pesan) + test Go penolakan bridge.
+
 ## Stage 13 — Hardening & go-live (2026-10-04)
 - Suite acceptance Go per tahap (`apps/api/internal/app/stage*_test.go`, DB `arc_test`), test bridge, vitest, Playwright — semua hijau.
 - Production menolak start dengan rahasia default, demo clock, atau URL non-https (`config.Validate`).

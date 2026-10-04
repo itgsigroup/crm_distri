@@ -1,5 +1,5 @@
 # ADR 0003 — Stack diganti: Go + React + PostgreSQL
-Status: diterima (tahap 00, 2026-10-04). Menggantikan bagian stack di ADR 0001 dan bagian implementasi bridge di ADR 0002. Prinsip produk, domain, dan perilaku tidak berubah.
+Status: diterima (tahap 00, 2026-10-04); baris WhatsApp bridge digantikan ADR 0004 (kembali ke Baileys). Menggantikan bagian stack di ADR 0001 dan bagian implementasi bridge di ADR 0002. Prinsip produk, domain, dan perilaku tidak berubah.
 
 ## Konteks
 Pemilik proyek meminta secara eksplisit: **backend Golang, frontend React, database PostgreSQL**, dengan fungsi dan tampilan tetap sama persis dengan build kit (prompt tahap + mockup). ADR 0001 memilih Python/FastAPI/SQLite; ADR 0002 memilih Node + Baileys untuk `wa-bridge`. CLAUDE.md §3 mewajibkan perubahan stack lewat ADR baru dengan persetujuan Sam — persetujuan itu adalah permintaan ini.
@@ -13,7 +13,7 @@ Pemilik proyek meminta secara eksplisit: **backend Golang, frontend React, datab
 | Validasi | Pydantic v2 | struct Go + JSON Schema untuk output LLM | Structured output Anthropic (`output_config.format`). |
 | LLM | Anthropic SDK Python | `anthropic-sdk-go` | Abstraksi provider, tier light/heavy/interactive, masking PII, pencatatan biaya tidak berubah. FakeProvider deterministik bila tanpa kunci. |
 | MCP | MCP Python SDK (FastMCP) | Implementasi Streamable HTTP JSON-RPC sendiri (`packages/mcp`) | Protokol 2025-06-18, OAuth 2.1 (PKCE S256, dynamic client registration, protected-resource metadata). Nama tool di wire `arc_accounts_list` (klien menolak titik), tampil `arc.accounts.list`. |
-| WhatsApp bridge | Node 20 + Baileys | **Go + whatsmeow** (`apps/wa-bridge`, modul Go terpisah) | Fitur sama: multi-sesi QR, riwayat N hari, grup + anggota, profil, kirim hanya untuk Action approved (dicek ulang ke API), ≤ 20/jam/sesi, jeda acak 2–6 dtk, antrean file saat API mati. |
+| WhatsApp bridge | Node 20 + Baileys | ~~Go + whatsmeow~~ → **Node + Baileys** lagi (ADR 0004) | Fitur sama: multi-sesi QR, riwayat N hari, grup + anggota, profil, kirim hanya untuk Action approved (dicek ulang ke API), ≤ 20/jam/sesi, jeda acak 2–6 dtk, antrean file saat API mati. |
 | Web | Vite + React + TS | Sama | CSS mockup disalin apa adanya; Three.js untuk Peta 3D. |
 | Lint | ruff + mypy strict | `go vet` + `gofmt` · `oxlint` + `tsc` | "mypy strict" (tahap 01) dipenuhi oleh sistem tipe Go + `go vet`. |
 | Aturan NBA | YAML | JSON (`packages/core/agents/rules/nba.json`, embed) | Menghindari dependensi YAML; tetap table-driven. |
@@ -21,7 +21,7 @@ Pemilik proyek meminta secara eksplisit: **backend Golang, frontend React, datab
 | Deploy | Compose + Caddy, backup SQLite ke Drive | Compose (postgres, api, wa-bridge, caddy) + `pg_dump` harian | `scripts/backup.sh` / `restore.sh`. |
 
 ## Penyimpanan auth-state WhatsApp
-whatsmeow menyimpan kunci perangkat di PostgreSQL skema `wa_bridge` (terpisah dari `public`, jadi `arc reset` tidak memutus HP yang sudah tertaut). Kunci ini setara akses ke akun WhatsApp: database harus di disk terenkripsi (LUKS di Mini PC / volume terenkripsi di VPS), akses DB hanya dari jaringan compose, dan dump backup diperlakukan rahasia. Token OAuth Google dienkripsi AES-256-GCM dengan `ARC_ENCRYPTION_KEY`.
+Bridge menyimpan kunci perangkat (auth state Baileys) di PostgreSQL skema `wa_bridge` (terpisah dari `public`, jadi `arc reset` tidak memutus HP yang sudah tertaut). Kunci ini setara akses ke akun WhatsApp: database harus di disk terenkripsi (LUKS di Mini PC / volume terenkripsi di VPS), akses DB hanya dari jaringan compose, dan dump backup diperlakukan rahasia. Token OAuth Google dienkripsi AES-256-GCM dengan `ARC_ENCRYPTION_KEY`.
 
 ## Konsekuensi
 - Domain (`packages/core`) tetap bebas dari HTTP/UI; konektor di `packages/connectors`, persis struktur CLAUDE.md §5 dengan Go menggantikan Python.

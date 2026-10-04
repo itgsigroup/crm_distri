@@ -28,7 +28,7 @@ Perintah lain:
 ## 2. Prinsip produk yang tidak boleh dilanggar
 - **AI mengusulkan, manusia memutuskan.** Tidak ada pesan/email/perubahan harga/pelepasan kredit yang sampai ke pelanggan tanpa keputusan manusia yang tercatat. Endpoint keputusan (`approve/reject/edit`) hanya untuk pengguna manusia.
 - **Dua fase.** Fase 1 (tahap 00–06) ARC berjalan **ARC-native**: akun, orang, opportunity, dan stage disimpan di ARC sendiri (nama stage diseed mengikuti Odoo: Baru / Berkualifikasi / Penawaran / Won / Lost, bisa diubah di Pengaturan) supaya WhatsApp → analisis → relasi → pipeline bisa diuji tanpa Odoo. Mulai tahap 08 **Odoo menjadi source of truth** untuk akun, opportunity, stage, SO, invoice, pembayaran: data ARC ditautkan/dimigrasi ke record Odoo, dan sejak itu ARC **tidak mengganti stage Odoo**. Tulis-balik ke Odoo hanya di tahap 10, selalu dengan catatan sumber. Desain skema sejak tahap 01 harus menyiapkan penautan ini (`source_system`, `source_id` nullable).
-- **WhatsApp** memakai dua transport di balik satu interface: `wa-bridge` (Go + whatsmeow, linked device via QR — mendukung grup & riwayat, tidak resmi, risiko blokir bila disalahgunakan) untuk uji coba dan pembacaan grup, dan Cloud API (resmi, tanpa grup) untuk nomor bisnis. Tidak pernah ada pengiriman otomatis dari kedua transport; setiap kirim = Action yang di-approve manusia.
+- **WhatsApp** memakai dua transport di balik satu interface: `wa-bridge` (Node + Baileys, linked device via QR — mendukung grup & riwayat, tidak resmi, risiko blokir dikurangi oleh penjaga anti-blokir di ADR 0004) untuk uji coba dan pembacaan grup, dan Cloud API (resmi, tanpa grup) untuk nomor bisnis. Tidak pernah ada pengiriman otomatis dari kedua transport; setiap kirim = Action yang di-approve manusia.
 - **Setiap klaim AI membawa provenance**: sumber (id interaksi/dokumen), waktu, confidence. Tanpa provenance = tidak disimpan.
 - **Idempoten**: menjalankan ulang job apa pun tidak boleh menggandakan data. Gunakan kunci unik (message-id, wa message id, odoo id + write_date).
 - **Privasi**: ikuti `docs/knowledge/04-policies-privacy.md`. Nomor internal dikenali; chat pribadi antar karyawan tidak dibaca; grup internal hanya jadwal/tugas; identifikasi nomor hanya untuk nomor inbound; PII dimasking sebelum ke provider LLM eksternal.
@@ -38,11 +38,11 @@ Perintah lain:
 Putuskan sendiri dan catat di ADR: pilihan library, struktur folder, skema DB, nama endpoint, format prompt LLM.
 Berhenti dan tanya (satu pertanyaan, opsi jelas) hanya untuk: menghapus/menimpa data Odoo, mengubah stack yang sudah ada di ADR, membeli layanan berbayar, mengirim apa pun ke pelanggan sungguhan, dan keputusan lain yang tidak bisa dibatalkan.
 
-## 4. Stack (lihat docs/adr/0003-stack-go-react-postgres.md; 0001/0002 untuk konteks awal)
-Go 1.26 (`net/http`, pgx/v5) · PostgreSQL 17 (migrasi SQL tertanam) · scheduler dalam proses · Anthropic SDK Go (provider abstraction) · MCP Streamable HTTP + OAuth 2.1 (`packages/mcp`) · Vite + React + TypeScript untuk web · `apps/wa-bridge` Go + whatsmeow (sidecar WhatsApp) · Docker Compose · Caddy. Target deploy: Ubuntu Mini PC / VPS kecil, single-tenant, ≤ 30 pengguna.
+## 4. Stack (lihat docs/adr/0003-stack-go-react-postgres.md dan 0004-wa-bridge-baileys-antiban.md; 0001/0002 untuk konteks awal)
+Go 1.26 (`net/http`, pgx/v5) · PostgreSQL 17 (migrasi SQL tertanam) · scheduler dalam proses · Anthropic SDK Go (provider abstraction) · MCP Streamable HTTP + OAuth 2.1 (`packages/mcp`) · Vite + React + TypeScript untuk web · `apps/wa-bridge` Node 20+ + TypeScript + Baileys (sidecar WhatsApp) · Docker Compose · Caddy. Target deploy: Ubuntu Mini PC / VPS kecil, single-tenant, ≤ 30 pengguna.
 
 ## 5. Konvensi
-- Struktur: `apps/api` (Go HTTP API + scheduler), `apps/web` (Vite), `apps/wa-bridge` (Go sidecar, modul terpisah), `packages/core` (domain, reasoning), `packages/connectors` (odoo, gmail, gcal, whatsapp, truecaller), `packages/mcp` (MCP server), `infra/` (compose, caddy), `docs/`, `tests/`.
+- Struktur: `apps/api` (Go HTTP API + scheduler), `apps/web` (Vite), `apps/wa-bridge` (Node + Baileys sidecar), `packages/core` (domain, reasoning), `packages/connectors` (odoo, gmail, gcal, whatsapp, truecaller), `packages/mcp` (MCP server), `infra/` (compose, caddy), `docs/`, `tests/`.
 - `make dev`, `make test`, `make lint`, `make seed` harus selalu ada dan jalan.
 - Test: `go test` untuk backend (integrasi ke DB `arc_test`, fixture data realistis dari `tests/fixtures/`), vitest + Playwright untuk web. Coverage bukan target; **kasus penting** yang harus ada tertulis di tiap prompt tahap.
 - Konfigurasi lewat `.env` (jangan commit) + `.env.example` (selalu lengkap).

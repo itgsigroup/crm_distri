@@ -28,7 +28,7 @@
       "status": "done-with-mocks",
       "file": "docs/stages/02-whatsapp-bridge.md",
       "finished_at": "2026-10-04",
-      "summary": "wa-bridge whatsmeow multi-sesi (QR asli terbukti), riwayat, grup, profil, kirim hanya action approved (cek ulang HMAC), 20/jam + jeda 2–6 dtk, antrean file; webhook HMAC, privasi grup/internal, parser ekspor, Cloud API adapter, FakeTransport.",
+      "summary": "wa-bridge Node + Baileys (ADR 0004) multi-sesi QR (QR asli terbukti), riwayat, grup, profil; kirim hanya action approved (cek ulang HMAC, idempoten per action) dan lolos penjaga anti-blokir (kontak dingin, opt-out, broadcast, jam tenang, 20/jam·120/hari, pemanasan, jeda + mengetik); antrean file; webhook HMAC, privasi grup/internal, parser ekspor, Cloud API adapter, FakeTransport.",
       "notes": "Uji kirim/terima dengan nomor cadangan belum (docs/testing/whatsapp.md)."
     },
     {
@@ -139,5 +139,5 @@
     ],
     "commit_prefix": "feat(stage-NN):"
   },
-  "stack": "Go 1.26 · PostgreSQL 17 · React + Vite (ADR 0003)"
+  "stack": "Go 1.26 · PostgreSQL 17 · React + Vite · Node + Baileys untuk wa-bridge (ADR 0003/0004)"
 }

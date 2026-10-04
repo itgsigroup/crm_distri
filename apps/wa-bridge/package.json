@@ -1,0 +1,29 @@
+{
+  "name": "arc-wa-bridge",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ARC WhatsApp sidecar (Baileys, linked device). Sends only human-approved actions.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "lint": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "baileys": "7.0.0-rc14",
+    "pg": "8.23.1",
+    "pino": "10.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.4",
+    "@types/pg": "8.23.1",
+    "tsx": "4.23.15",
+    "typescript": "6.0.2",
+    "vitest": "5.0.3"
+  }
+}

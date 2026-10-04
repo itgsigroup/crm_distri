@@ -5,10 +5,14 @@ NPM   ?= npm
 WEB   := apps/web
 BRIDGE := apps/wa-bridge
 
-.PHONY: help dev api bridge web build test test-go test-bridge test-web e2e perf lint fmt seed reset db-upgrade eval brief mcp-inspect backup restore compose-up compose-config
+.PHONY: help dev setup api bridge web build test test-go test-bridge test-web e2e perf lint fmt seed reset db-upgrade eval brief mcp-inspect backup restore compose-up compose-config
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
+
+setup: ## Install Node dependencies (web + bridge)
+	cd $(WEB) && $(NPM) ci
+	cd $(BRIDGE) && $(NPM) ci
 
 dev: ## API :8000 + wa-bridge :3001 + web :5173 (Ctrl-C stops all)
 	@scripts/dev.sh
@@ -16,15 +20,15 @@ dev: ## API :8000 + wa-bridge :3001 + web :5173 (Ctrl-C stops all)
 api: ## Run only the API
 	$(GO) run ./apps/api/cmd/arc serve
 
-bridge: ## Run only the WhatsApp bridge
-	cd $(BRIDGE) && $(GO) run .
+bridge: ## Run only the WhatsApp bridge (Baileys)
+	cd $(BRIDGE) && $(NPM) run dev
 
 web: ## Run only the web dev server
 	cd $(WEB) && $(NPM) run dev
 
-build: ## Build binaries (bin/arc, bin/wa-bridge) and the web bundle
+build: ## Build bin/arc, the bridge (apps/wa-bridge/dist) and the web bundle
 	$(GO) build -o bin/arc ./apps/api/cmd/arc
-	cd $(BRIDGE) && $(GO) build -o ../../bin/wa-bridge .
+	cd $(BRIDGE) && $(NPM) run build
 	cd $(WEB) && $(NPM) run build
 
 test: test-go test-bridge test-web ## All unit + integration tests
@@ -33,7 +37,7 @@ test-go: ## Backend tests (uses ARC_TEST_DATABASE_URL, default arc_test)
 	$(GO) test ./...
 
 test-bridge:
-	cd $(BRIDGE) && $(GO) test ./...
+	cd $(BRIDGE) && $(NPM) test
 
 test-web:
 	cd $(WEB) && npx vitest run
@@ -44,9 +48,9 @@ e2e: ## Playwright smoke (needs `make dev` running and a seeded DB)
 perf: ## Load check: 500 accounts, 10k interactions, p95 < 300 ms (uses ARC_PERF_DATABASE_URL, default arc_perf)
 	$(GO) run ./apps/api/cmd/arcperf
 
-lint: ## go vet + gofmt check + oxlint + tsc
+lint: ## go vet + gofmt check + tsc (bridge) + oxlint + tsc (web)
 	$(GO) vet ./...
-	cd $(BRIDGE) && $(GO) vet ./...
+	cd $(BRIDGE) && $(NPM) run lint
 	@out=$$(gofmt -l apps packages); if [ -n "$$out" ]; then echo "gofmt needed:"; echo "$$out"; exit 1; fi
 	cd $(WEB) && npx oxlint --deny-warnings src && npx tsc -b
 

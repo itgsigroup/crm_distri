@@ -8,6 +8,8 @@ infra/.env
 /bin/
 apps/web/dist/
 apps/web/node_modules/
+apps/wa-bridge/node_modules/
+apps/wa-bridge/dist/
 apps/web/test-results/
 apps/web/playwright-report/
 node_modules/

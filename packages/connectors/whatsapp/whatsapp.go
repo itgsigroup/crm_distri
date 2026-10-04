@@ -83,6 +83,15 @@ type Transport interface {
 	Profile(ctx context.Context, session, jid string) (Profile, error)
 }
 
+// BridgeError is a refusal explained by wa-bridge (e.g. anti-ban limits, quiet hours, opt-out).
+type BridgeError struct {
+	Status  int
+	Code    string
+	Message string
+}
+
+func (e *BridgeError) Error() string { return "WhatsApp: " + e.Message }
+
 // ErrNotApproved is returned when a send has no approved action.
 var ErrNotApproved = errors.New("whatsapp: kirim ditolak — action belum disetujui manusia")
 
@@ -111,7 +120,8 @@ type BridgeTransport struct {
 
 // NewBridge returns a bridge client.
 func NewBridge(url, secret string) *BridgeTransport {
-	return &BridgeTransport{URL: strings.TrimRight(url, "/"), Secret: secret, HTTP: &http.Client{Timeout: 20 * time.Second}}
+	// Generous timeout: the bridge paces sends like a person (typing + random gap, serialised per number).
+	return &BridgeTransport{URL: strings.TrimRight(url, "/"), Secret: secret, HTTP: &http.Client{Timeout: 90 * time.Second}}
 }
 
 func (b *BridgeTransport) Name() string { return "bridge" }
@@ -137,6 +147,14 @@ func (b *BridgeTransport) do(ctx context.Context, method, path string, body any,
 	defer resp.Body.Close()
 	data, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
 	if resp.StatusCode >= 300 {
+		// The bridge explains refusals (anti-ban guard, approval, linking) in Indonesian.
+		var e struct {
+			Error string `json:"error"`
+			Code  string `json:"code"`
+		}
+		if json.Unmarshal(data, &e) == nil && e.Error != "" {
+			return &BridgeError{Status: resp.StatusCode, Code: e.Code, Message: e.Error}
+		}
 		return fmt.Errorf("bridge %s %s: HTTP %d: %s", method, path, resp.StatusCode, strings.TrimSpace(string(data)))
 	}
 	if out != nil {

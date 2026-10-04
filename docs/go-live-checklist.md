@@ -11,7 +11,8 @@ Ditandatangani Sam (CEO) sebelum ARC dipakai tim. Isi kolom "Bukti" dengan tauta
 | 4 | 48 jam staging tanpa error; biaya AI tercatat (`/api/metrics`, `/api/llm/usage`) | | |
 | 5 | Backup harian terjadwal + salinan offsite | | |
 | 6 | Disk terenkripsi; port 3001/5432 tidak terbuka ke internet | | |
-| 7 | Uji WhatsApp nomor asli lolos (`docs/testing/whatsapp.md`) | | |
+| 7 | Uji WhatsApp nomor asli lolos (`docs/testing/whatsapp.md`), termasuk penolakan `first_contact`/`opted_out`/`quiet_hours` | | |
+| 7a | Nomor yang ditautkan adalah nomor kerja lama (bukan nomor baru); batas anti-blokir (ADR 0004) dikonfirmasi | | |
 | 8 | Playwright end-to-end lolos (`make e2e`) | | |
 | 9 | Kredensial Odoo/Google/Anthropic terisi dan sinkron pertama ditinjau | | |
 

@@ -15,6 +15,13 @@
 - **Kas**: invoice & pembayaran; pengingat bayar juga butuh persetujuan.
 - **Tanya ARC**: tanya bebas ("Deal mana yang berisiko?") — jawaban selalu menyertakan bukti yang bisa diklik.
 
+## WhatsApp: supaya nomor Anda tidak diblokir
+- ARC hanya mengirim WA ke kontak yang **pernah menghubungi Anda lebih dulu**. Untuk kontak baru: telepon/email dulu, atau minta mereka menyapa.
+- Jangan kirim teks yang sama ke banyak orang — personalisasi setiap pesan.
+- Tidak ada kiriman 21.00–07.00, maksimal 20 pesan/jam. Bila ditolak, alasannya muncul di layar; coba lagi nanti.
+- Kontak yang membalas "STOP"/"berhenti" tidak akan dikirimi lagi sampai mereka menghubungi Anda.
+- Tetap pakai HP seperti biasa; jangan menautkan nomor Anda ke aplikasi lain.
+
 ## Privasi
 - Chat pribadi Anda dengan rekan kerja **tidak dibaca**. Grup internal hanya diambil jadwal & tugas.
 - Grup pelanggan hanya dibaca bila sudah di-opt-in.

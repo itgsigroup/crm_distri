@@ -2,7 +2,7 @@
 Diisi Claude Code saat suatu tahap memakai mock atau butuh keputusan Sam. Format: tanggal · tahap · pertanyaan · dampak kalau tidak dijawab · default yang dipakai sementara.
 
 ## Kredensial (tahap selesai dengan mock sampai diisi di `.env`)
-- **2026-10-04 · 02/04 · Nomor WhatsApp cadangan untuk uji QR.** Bridge (whatsmeow) sudah diuji sampai QR asli terbit dari server WhatsApp; uji kirim/terima dari HP lain belum dilakukan. Dampak: latensi ≤ 5 detik belum terbukti di nomor asli. Default: FakeTransport + replay fixture. Langkah: `docs/testing/whatsapp.md`.
+- **2026-10-04 · 02/04 · Nomor WhatsApp cadangan untuk uji QR.** Bridge (Baileys 7.0.0-rc14) sudah diuji sampai QR asli terbit dari server WhatsApp; uji kirim/terima dari HP lain belum dilakukan. Dampak: latensi ≤ 5 detik belum terbukti di nomor asli. Default: FakeTransport + replay fixture. Langkah: `docs/testing/whatsapp.md`.
 - **2026-10-04 · 02 · WhatsApp Cloud API** (`WA_CLOUD_TOKEN`, `WA_CLOUD_PHONE_NUMBER_ID`, `WA_CLOUD_APP_SECRET`). Dampak: nomor bisnis resmi belum bisa dipakai; template di luar jendela 24 jam belum dibuat. Default: hanya transport bridge.
 - **2026-10-04 · 03 · `ANTHROPIC_API_KEY`.** Dampak: ekstraksi, identifikasi, brief, dan Ask memakai FakeProvider deterministik (jawaban dari fixture); eval provider asli belum dijalankan. Default: `ARC_LLM_PROVIDER=auto` → fake. Setelah diisi: `make eval` lagi dan bandingkan `docs/eval/capture-anthropic.md`.
 - **2026-10-04 · 03 · Truecaller Business API & penyedia web search** (`TRUECALLER_API_KEY`, `WEB_SEARCH_API_KEY`). Dampak: identifikasi nomor inbound memakai data fake `tests/fixtures/identity.json`. Pertanyaan: apakah GSI sudah punya kontrak Truecaller Business? (berbayar — perlu persetujuan Sam).
@@ -13,7 +13,10 @@ Diisi Claude Code saat suatu tahap memakai mock atau butuh keputusan Sam. Format
 - **2026-10-04 · 12 · LPSE / e-katalog.** Tender radar memakai 3 tender fixture + impor manual. Scraping LPSE otomatis belum dibuat (ketentuan situs & stabilitas). Keputusan: langganan agregator tender (berbayar) atau impor manual mingguan?
 - **2026-10-04 · 02 · Talenta (HR).** Registry nomor internal mendukung impor CSV ekspor Talenta; integrasi API belum. Default: CSV.
 
+- **2026-10-04 · 02 · Baileys masih release candidate (7.0.0-rc14).** Dipin persis; pantau rilis stabil 7.x dan ikuti prosedur upgrade di runbook. Default: rc14.
+
 ## Keputusan bisnis yang perlu dikonfirmasi
+- **Batas anti-blokir WhatsApp** (ADR 0004): 20/jam, 120/hari per nomor, jam tenang 21.00–07.00, hanya membalas kontak yang menghubungi lebih dulu. Konfirmasi apakah ada kebutuhan menghubungi kontak baru via WA (jika ya: Cloud API + template, bukan bridge).
 - **Policy awal** (Pengaturan → Policy): batas diskon tanpa persetujuan CEO, plafon kredit, ambang "sunyi" (hari), benchmark L2C per tahap, target kuartal berikut (fixture: Rp 4,6 M). Nilai fixture dipakai sampai dikonfirmasi.
 - **Grup WhatsApp opt-in**: daftar grup eksternal yang boleh dibaca ARC dan siapa yang menyetujui (go-live checklist).
 - **Penerima brief** pagi 06.45 / sore 16.00 (default: CEO).
