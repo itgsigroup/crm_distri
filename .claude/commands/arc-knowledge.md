@@ -1,0 +1,1 @@
+Muat ulang konteks proyek ARC tanpa mengubah apa pun: baca `CLAUDE.md`, `.arc/progress.json`, dan semua file di `docs/knowledge/`. Lalu ringkas dalam ≤ 15 baris: posisi tahap, prinsip yang paling relevan untuk tahap berikutnya, dan 3 risiko yang harus dijaga. Gunakan ini di awal sesi baru sebelum `/stage next`.
