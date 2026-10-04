@@ -1,0 +1,38 @@
+{
+  "today": [
+    "Hari ini",
+    "Senin, 28 September 2026 · Q3 tersisa 3 hari kerja"
+  ],
+  "ask": [
+    "Tanya ARC",
+    "Percakapan dengan seluruh relationship graph · setiap jawaban punya sumber"
+  ],
+  "chat": [
+    "Chat",
+    "WhatsApp 4 nomor sales + grup project · baca, balas, dan biarkan ARC mencatat"
+  ],
+  "rel": [
+    "Relasi",
+    "8 akun aktif · ingatan hidup, bukan record statis"
+  ],
+  "net": [
+    "Peta 3D",
+    "Koneksi WhatsApp: nomor sales ↔ kontak pelanggan · ukuran = intensitas, jarak = kedekatan"
+  ],
+  "pipe": [
+    "Penjualan",
+    "Stage dan field milik Odoo CRM · ARC menambah health, sinyal, tender, dan tim"
+  ],
+  "pros": [
+    "Penjualan",
+    "Calon pelanggan: siapa yang masuk, siapa mereka, solusi apa yang layak ditawarkan — dan apakah rodanya berputar"
+  ],
+  "cash": [
+    "Kas",
+    "Won → Lunas, umur piutang, dan prediksi kas masuk · di sinilah uang GSI tertahan"
+  ],
+  "conn": [
+    "Pengaturan",
+    "Sumber sinyal, WhatsApp, nomor internal, AI & model, MCP & API"
+  ]
+}

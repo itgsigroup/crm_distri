@@ -1,0 +1,25 @@
+[
+  {
+    "aid": "won_cakra",
+    "account": "PT Cakra Logistik Semarang",
+    "opp": "CCTV gudang 60 titik",
+    "value": 1900000000,
+    "owner": "Andi",
+    "won": "15 Sep",
+    "tags": [
+      "CCTV"
+    ]
+  },
+  {
+    "aid": "won_salatiga",
+    "account": "Pemkot Salatiga",
+    "opp": "Videotron alun-alun 4×3 m",
+    "value": 1200000000,
+    "owner": "Andi",
+    "won": "2 Sep",
+    "tags": [
+      "Videotron",
+      "Pemerintah"
+    ]
+  }
+]

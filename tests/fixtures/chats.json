@@ -1,0 +1,494 @@
+[
+  {
+    "id": "c-wijaya",
+    "type": "cust",
+    "name": "Pak Wijaya",
+    "sub": "Diskominfo Kota Semarang · Kabid Infra TIK",
+    "via": "Andi",
+    "acc": "semarang",
+    "time": "12.40",
+    "unread": 2,
+    "tag": {
+      "k": "accent",
+      "t": "Komitmen hari ini"
+    },
+    "sug": [
+      "Konfirmasi revisi dikirim besok 08.00",
+      "Terima kasih konfirmasi titik pemasangannya",
+      "Tanyakan agenda rapat Rabu"
+    ],
+    "msgs": [
+      {
+        "d": "Rabu, 24 Sep"
+      },
+      {
+        "f": "in",
+        "t": "Mas Andi, terima kasih pertemuannya tadi. Revisi harga struktur dan durasi maintenance ditunggu ya, hari Senin.",
+        "tm": "16.20"
+      },
+      {
+        "f": "out",
+        "t": "Siap Pak Wijaya, Senin kami kirim revisinya.",
+        "tm": "16.24",
+        "ann": {
+          "k": "accent",
+          "t": "Komitmen kita: revisi Senin → ledger"
+        }
+      },
+      {
+        "d": "Hari ini"
+      },
+      {
+        "f": "in",
+        "t": "Mas Andi, revisi penawarannya jadi hari ini ya? Pak Arif mau lihat sebelum rapat Rabu.",
+        "tm": "12.31",
+        "ann": {
+          "k": "warn",
+          "t": "Komitmen jatuh tempo · Pak Arif (PPK) menunggu"
+        }
+      },
+      {
+        "f": "in",
+        "t": "Sekalian konfirmasi: titik pemasangan sudah saya koordinasikan dengan Dishub, aman.",
+        "tm": "12.40",
+        "ann": {
+          "k": "good",
+          "t": "Komitmen mereka terpenuhi → ledger diperbarui"
+        }
+      }
+    ]
+  },
+  {
+    "id": "g-simpanglima",
+    "type": "gext",
+    "name": "Proyek Videotron Simpang Lima",
+    "sub": "5 anggota · 2 eksternal · 3 internal",
+    "via": "Andi",
+    "acc": "semarang",
+    "time": "16.02",
+    "unread": 3,
+    "tag": {
+      "k": "indigo",
+      "t": "2 tugas terdeteksi"
+    },
+    "project": {
+      "id": "PRJ-2026-041",
+      "stage": "Persiapan",
+      "next": "Pemasangan struktur · Kamis"
+    },
+    "members": [
+      {
+        "n": "Pak Wijaya",
+        "r": "Diskominfo",
+        "int": false
+      },
+      {
+        "n": "Pak Arif",
+        "r": "PPK",
+        "int": false
+      },
+      {
+        "n": "Andi",
+        "r": "Sales",
+        "int": true
+      },
+      {
+        "n": "Bayu Pratama",
+        "r": "Teknisi",
+        "int": true
+      },
+      {
+        "n": "Sari Wulandari",
+        "r": "Admin Project",
+        "int": true
+      }
+    ],
+    "summary": [
+      "Struktur tiang dikirim dari Jakarta, ETA Kamis; izin galian Dishub sudah keluar.",
+      "Pemasangan struktur dimulai Kamis, tim 4 orang, butuh crane kecil.",
+      "Pak Arif meminta foto sebelum-sesudah dilampirkan di BAST."
+    ],
+    "tasks": [
+      {
+        "t": "Sewa crane kecil untuk Kamis",
+        "who": "Bayu Pratama",
+        "src": "pesan 10.22"
+      },
+      {
+        "t": "Siapkan foto sebelum-sesudah untuk BAST",
+        "who": "Sari Wulandari",
+        "src": "pesan 15.50"
+      }
+    ],
+    "sug": [
+      "Konfirmasi pemasangan Kamis 08.00",
+      "Tanyakan jam akses lokasi",
+      "Bagikan jadwal 3 hari ke depan"
+    ],
+    "msgs": [
+      {
+        "d": "Hari ini"
+      },
+      {
+        "f": "in",
+        "who": "Sari Wulandari",
+        "int": true,
+        "t": "Update: struktur tiang sudah dikirim dari Jakarta, ETA Kamis pagi.",
+        "tm": "09.40"
+      },
+      {
+        "f": "in",
+        "who": "Pak Wijaya",
+        "t": "Kamis pemasangan struktur bisa mulai? Izin galian dari Dishub sudah keluar.",
+        "tm": "10.15",
+        "ann": {
+          "k": "good",
+          "t": "Milestone: izin galian terbit → project Odoo"
+        }
+      },
+      {
+        "f": "in",
+        "who": "Bayu Pratama",
+        "int": true,
+        "t": "Bisa Pak, tim 4 orang. Butuh crane kecil, saya koordinasi vendor.",
+        "tm": "10.22",
+        "ann": {
+          "k": "indigo",
+          "t": "Tugas → Bayu: sewa crane (Kamis)",
+          "act": "Kirim ke Basecamp"
+        }
+      },
+      {
+        "f": "in",
+        "who": "Pak Arif",
+        "t": "Tolong BAST-nya nanti dilampirkan foto sebelum-sesudah ya.",
+        "tm": "15.50",
+        "ann": {
+          "k": "indigo",
+          "t": "Syarat BAST dicatat · tugas → Sari",
+          "act": "Kirim ke Basecamp"
+        }
+      },
+      {
+        "f": "out",
+        "t": "Siap Pak Arif, kami siapkan.",
+        "tm": "16.02",
+        "ann": {
+          "k": "accent",
+          "t": "Komitmen kita: foto sebelum-sesudah di BAST"
+        }
+      }
+    ]
+  },
+  {
+    "id": "c-yusuf",
+    "type": "cust",
+    "name": "Pak Yusuf",
+    "sub": "Bank Sejahtera Daerah · Kepala Umum",
+    "via": "Dewi",
+    "acc": "bsd",
+    "time": "Kemarin",
+    "unread": 1,
+    "tag": {
+      "k": "warn",
+      "t": "PO lewat 3 hari"
+    },
+    "sug": [
+      "Konfirmasi kick-off besok 09.00",
+      "Tawarkan mulai survey tanpa menunggu PO",
+      "Tanyakan apakah ada yang bisa kami siapkan untuk Bu Dian"
+    ],
+    "msgs": [
+      {
+        "d": "Senin, 22 Sep"
+      },
+      {
+        "f": "in",
+        "t": "Bu Dewi, kami ambil opsi B. PO menyusul Kamis.",
+        "tm": "14.05",
+        "ann": {
+          "k": "good",
+          "t": "Stage → Verbal · komitmen mereka: PO 25 Sep"
+        }
+      },
+      {
+        "f": "out",
+        "t": "Terima kasih Pak Yusuf! Kami tunggu PO-nya. Kick-off Selasa 29 Sep jam 09.00 tetap ya?",
+        "tm": "14.12"
+      },
+      {
+        "d": "Kemarin"
+      },
+      {
+        "f": "in",
+        "t": "PO masih di meja Bu Dian, beliau kembali Rabu. Kick-off tetap jalan.",
+        "tm": "19.48",
+        "ann": {
+          "k": "warn",
+          "t": "Komitmen digeser → Rabu · alasan tercatat · masuk brief kick-off"
+        }
+      }
+    ]
+  },
+  {
+    "id": "g-pelabuhan",
+    "type": "gext",
+    "name": "CCTV Pelabuhan Jaya — Koordinasi",
+    "sub": "6 anggota · 2 eksternal · 4 internal",
+    "via": "Rizky",
+    "acc": "pelindo",
+    "time": "14.31",
+    "unread": 0,
+    "tag": {
+      "k": "bad",
+      "t": "Risiko stok PTZ"
+    },
+    "project": {
+      "id": "PRJ-2026-047",
+      "stage": "Survey",
+      "next": "Laporan survey + BoQ · 1 Okt"
+    },
+    "members": [
+      {
+        "n": "Pak Bambang",
+        "r": "Manajer Keamanan",
+        "int": false
+      },
+      {
+        "n": "Bu Tari",
+        "r": "Legal",
+        "int": false
+      },
+      {
+        "n": "Rizky",
+        "r": "Sales",
+        "int": true
+      },
+      {
+        "n": "Dedi Kurniawan",
+        "r": "Teknisi",
+        "int": true
+      },
+      {
+        "n": "Gudang Surabaya",
+        "r": "Gudang",
+        "int": true
+      },
+      {
+        "n": "Sari Wulandari",
+        "r": "Admin Project",
+        "int": true
+      }
+    ],
+    "summary": [
+      "Survey selesai; 4 titik tambahan di gudang B.",
+      "Akses dermaga 3 hanya malam (22.00–04.00) → instalasi 2 shift.",
+      "Stok PTZ kurang 6 unit, lead time 3 minggu — perlu PO ke supplier minggu ini."
+    ],
+    "tasks": [
+      {
+        "t": "Ajukan PO 6 unit PTZ (lead time 3 minggu)",
+        "who": "Purchasing",
+        "src": "pesan 14.31"
+      },
+      {
+        "t": "Susun jadwal 2 shift untuk dermaga 3",
+        "who": "Dedi Kurniawan",
+        "src": "pesan 14.10"
+      }
+    ],
+    "sug": [
+      "Konfirmasi jadwal malam dermaga 3",
+      "Kirim ringkasan survey ke Pak Bambang",
+      "Tanyakan PIC akses malam"
+    ],
+    "msgs": [
+      {
+        "d": "Hari ini"
+      },
+      {
+        "f": "out",
+        "who": "Rizky",
+        "t": "Survey selesai, 4 titik tambahan di gudang B. Laporan menyusul 1 Okt.",
+        "tm": "13.05"
+      },
+      {
+        "f": "in",
+        "who": "Pak Bambang",
+        "t": "Catatan: akses dermaga 3 hanya bisa malam, 22.00–04.00, karena bongkar muat.",
+        "tm": "13.40",
+        "ann": {
+          "k": "warn",
+          "t": "Kendala: akses malam → jadwal & lembur dicatat di project"
+        }
+      },
+      {
+        "f": "in",
+        "who": "Dedi Kurniawan",
+        "int": true,
+        "t": "Kalau malam butuh 2 shift, Mas.",
+        "tm": "14.10"
+      },
+      {
+        "f": "in",
+        "who": "Gudang Surabaya",
+        "int": true,
+        "t": "Stok PTZ 12 unit, kurang 6 untuk 90 titik. Lead time supplier 3 minggu.",
+        "tm": "14.31",
+        "ann": {
+          "k": "bad",
+          "t": "Risiko: kekurangan 6 PTZ · lead time 3 minggu",
+          "act": "Buat permintaan PO"
+        }
+      }
+    ]
+  },
+  {
+    "id": "c-hendra",
+    "type": "cust",
+    "name": "Pak Hendra",
+    "sub": "RSUD Kota Yogyakarta · Kabid Sarpras",
+    "via": "Dewi",
+    "acc": "rsud",
+    "time": "26 Sep",
+    "unread": 0,
+    "tag": {
+      "k": "bad",
+      "t": "Kompetitor disebut"
+    },
+    "sug": [
+      "Minta salinan penawaran vendor lain",
+      "Tawarkan demo VMS on-site",
+      "Ajukan pertemuan dengan dr. Lestari"
+    ],
+    "msgs": [
+      {
+        "d": "Jumat, 12 Sep"
+      },
+      {
+        "f": "out",
+        "t": "Pak Hendra, revisi penawaran rev.2 sudah saya kirim via email, dengan opsi pengurangan 20 titik. Mohon masukannya.",
+        "tm": "09.14",
+        "ann": {
+          "k": "good",
+          "t": "Komitmen kita terpenuhi"
+        }
+      },
+      {
+        "f": "in",
+        "t": "Terima kasih Bu Dewi. Minggu depan saya kabari setelah rapat internal.",
+        "tm": "10.02",
+        "ann": {
+          "k": "accent",
+          "t": "Komitmen mereka: feedback minggu depan → ledger"
+        }
+      },
+      {
+        "d": "Jumat, 26 Sep"
+      },
+      {
+        "f": "in",
+        "t": "Bu Dewi, ada vendor lain menawarkan harga lebih rendah untuk spek setara. Apakah masih ada ruang penyesuaian?",
+        "tm": "15.41",
+        "ann": {
+          "k": "bad",
+          "t": "Sinyal: kompetitor disebut · belum ada dokumen penawaran"
+        }
+      }
+    ]
+  },
+  {
+    "id": "c-kartika",
+    "type": "cust",
+    "name": "Bu Kartika",
+    "sub": "Hotel Amarta Semarang · General Manager",
+    "via": "Andi",
+    "acc": "amarta",
+    "time": "09.15",
+    "unread": 0,
+    "tag": {
+      "k": "good",
+      "t": "Pembayaran masuk"
+    },
+    "sug": [
+      "Ucapkan terima kasih & konfirmasi diterima",
+      "Tawarkan paket maintenance CCTV",
+      "Tanyakan estimasi PO signage"
+    ],
+    "msgs": [
+      {
+        "d": "Rabu, 24 Sep"
+      },
+      {
+        "f": "in",
+        "t": "Mas Andi, kami ambil paket 5 layar. PO menyusul dari kantor owner.",
+        "tm": "11.30",
+        "ann": {
+          "k": "good",
+          "t": "Stage → Verbal"
+        }
+      },
+      {
+        "f": "out",
+        "t": "Terima kasih Bu Kartika! Kami siapkan jadwal instalasinya.",
+        "tm": "11.34"
+      },
+      {
+        "d": "Hari ini"
+      },
+      {
+        "f": "in",
+        "t": "Pembayaran CCTV tahap akhir sudah kami transfer pagi ini ya Mas.",
+        "tm": "09.15",
+        "ann": {
+          "k": "good",
+          "t": "Cocok dengan pembayaran Rp 412 jt di Odoo 10.02 · pola bayar 100% tepat waktu"
+        }
+      }
+    ]
+  },
+  {
+    "id": "g-teknisi",
+    "type": "gint",
+    "name": "Teknisi Semarang",
+    "sub": "Grup internal · 7 anggota",
+    "via": "Andi",
+    "time": "15.20",
+    "unread": 0,
+    "tag": {
+      "k": "neutral",
+      "t": "Internal · koordinasi"
+    },
+    "msgs": [
+      {
+        "d": "Hari ini"
+      },
+      {
+        "f": "in",
+        "who": "Bayu Pratama",
+        "int": true,
+        "t": "Besok survey Kendal jam 9, siapa ikut?",
+        "tm": "15.20",
+        "ann": {
+          "k": "neutral",
+          "t": "Grup internal: dibaca untuk jadwal saja, tidak masuk analisis pelanggan"
+        }
+      }
+    ]
+  },
+  {
+    "id": "c-bayu",
+    "type": "internal",
+    "name": "Bayu Pratama",
+    "sub": "Teknisi · Semarang · internal",
+    "via": "Andi",
+    "time": "11.05",
+    "unread": 0,
+    "tag": {
+      "k": "neutral",
+      "t": "Tidak dibaca"
+    },
+    "private": true,
+    "msgs": []
+  }
+]

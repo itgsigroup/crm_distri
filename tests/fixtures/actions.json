@@ -1,0 +1,198 @@
+{
+  "rsud": {
+    "t": "Kirim surat pengantar ke Direktur Umum",
+    "btn": "Kirim",
+    "icon": "i-send",
+    "due": "Hari ini",
+    "why": "92% percakapan lewat Pak Hendra, kompetitor disebut, dan keputusan ada di dr. Lestari yang belum pernah kita temui. Undangan presentasi yang dijanjikan sejak Agustus tidak terjadi — kita yang harus membuka pintunya.",
+    "prep": "Draft email atas nama Dewi, cc Pak Hendra agar tidak melangkahi beliau. Lampiran: ringkasan 1 halaman + referensi 2 RS yang sudah pakai VMS kita.",
+    "preview": "Yth. dr. Lestari,\n\nMenindaklanjuti diskusi kami dengan Bapak Hendra mengenai pembaruan CCTV di tiga gedung RSUD, kami ingin memohon waktu 20 menit untuk memaparkan rancangan dan referensi implementasi kami di RS Panti Rapih dan RS Bethesda…",
+    "steps": [
+      "Email masuk antrean approval Anda",
+      "Setelah terkirim, ARC memantau balasan dan mengingatkan Dewi H+3",
+      "Stakeholder map diperbarui saat ada respons"
+    ]
+  },
+  "baja": {
+    "t": "Kirim perbandingan LCD vs LED sebelum presentasi besok",
+    "btn": "Siapkan",
+    "icon": "i-doc",
+    "due": "Besok 12.00",
+    "why": "Pak Iwan meminta perbandingan di meeting 26 Sep; presentasi besok 15.30. Deal videowall sebelumnya menang 2 dari 3 saat perbandingan dikirim sebelum presentasi.",
+    "prep": "Dokumen 2 halaman dari 3 proposal command center terdahulu, harga modul terkini dari Odoo, dan TCO 5 tahun untuk ruang 6×9 m.",
+    "steps": [
+      "Draft dokumen dibuat dari template + data Odoo",
+      "Rizky mereview, lalu ARC mengirim ke Pak Iwan cc Pak Ferdi",
+      "Ditambahkan ke meeting prep besok"
+    ]
+  },
+  "semarang": {
+    "t": "Kirim revisi penawaran ke Pak Wijaya",
+    "btn": "Kirim",
+    "icon": "i-send",
+    "due": "Hari ini",
+    "why": "Komitmen dari meeting 24 Sep jatuh tempo hari ini. Pak Wijaya menanggapi email dalam 1 hari kerja; jam terbaik 08.00–09.00.",
+    "prep": "Draft dalam gaya tulis Andi dengan lampiran Quotation Q-0912 rev.3 dari Odoo. Sudah ada di antrean Today.",
+    "preview": "Pak Wijaya, sesuai diskusi Rabu lalu, terlampir revisi penawaran videotron Simpang Lima 6×4 m dengan opsi pitch P4 outdoor dan garansi 3 tahun…",
+    "steps": [
+      "Dijadwalkan kirim besok 08.00",
+      "Komitmen ledger ditandai terpenuhi",
+      "ARC memantau balasan dan komitmen mereka soal titik pemasangan"
+    ]
+  },
+  "bsd": {
+    "t": "Angkat PO di kick-off besok lewat Pak Yusuf",
+    "btn": "Masukkan ke brief",
+    "icon": "i-cal",
+    "due": "Besok 09.00",
+    "why": "PO lewat 3 hari dari janji 25 Sep; tanda tangan ada di Bu Dian yang kembali Rabu. Besok Anda bertemu Pak Yusuf langsung — lebih efektif daripada pengingat tertulis.",
+    "prep": "Poin pembuka ditambahkan ke brief kick-off: status PO, apa yang dibutuhkan Bu Dian, dan tawaran mulai survey tanpa menunggu PO. Draft WhatsApp pengingat disiapkan sebagai cadangan kalau besok tidak terjawab.",
+    "steps": [
+      "Poin masuk ke meeting prep besok",
+      "Setelah meeting, ARC mengekstrak komitmen baru dari catatan Dewi",
+      "Kalau PO belum ada Kamis, draft pengingat naik ke antrean Anda"
+    ]
+  },
+  "sleman": {
+    "t": "Hubungi Pak Yoga sebagai champion baru",
+    "btn": "Siapkan telepon",
+    "icon": "i-phone",
+    "due": "Sebelum 1 Okt",
+    "why": "Bu Ratna mutasi 1 Okt dan presentasi ke Sekda 6 Okt masih atas nama beliau. Pak Yoga hadir di 3 meeting dan paling paham kebutuhan teknis — kandidat champion paling wajar.",
+    "prep": "Talking points untuk Dewi: ringkasan 12 kebutuhan dari workshop, status proposal, dan permintaan agar Pak Yoga yang membawa presentasi 6 Okt. Setelah telepon, Dewi cukup rekam voice memo; ARC yang mencatat.",
+    "steps": [
+      "Talking points dikirim ke Dewi",
+      "Undangan 6 Okt dikonfirmasi ulang atas nama Pak Yoga",
+      "Stakeholder map: Pak Yoga → champion, Bu Ratna → mantan"
+    ]
+  },
+  "pelindo": {
+    "t": "Kirim laporan survey + BoQ final",
+    "btn": "Susun laporan",
+    "icon": "i-doc",
+    "due": "1 Okt",
+    "why": "Legal butuh ±2 minggu setelah BoQ final. Makin cepat BoQ masuk, makin besar peluang tanda tangan sebelum pertengahan Oktober.",
+    "prep": "Laporan disusun dari voice memo Rizky hari ini (4 titik tambahan, 2 catatan akses dermaga) dan BoQ ditarik dari Odoo dengan harga modul terkini.",
+    "steps": [
+      "Draft laporan + BoQ dibuat malam ini",
+      "Rizky mereview besok pagi",
+      "Dikirim ke Pak Bambang cc Bu Tari untuk redline kontrak"
+    ]
+  },
+  "unmer": {
+    "t": "Sapa Pak Dimas soal jadwal e-katalog",
+    "btn": "Kirim WhatsApp",
+    "icon": "i-chat",
+    "due": "Hari ini",
+    "why": "Sunyi 21 hari; ritme normal akun ini 7 hari. Tender belum dibuka dan HPS belum disusun — momen yang tepat untuk membantu spesifikasi.",
+    "prep": "Draft WhatsApp singkat dari nomor Andi, menawarkan bantuan spesifikasi teknis untuk HPS. Sudah ada di antrean Today.",
+    "preview": "Pak Dimas, selamat sore. Menyusul diskusi kita bulan lalu soal LED auditorium, apakah jadwal e-katalognya sudah ada gambaran? Kalau butuh spesifikasi teknis untuk HPS, tim kami siap bantu.",
+    "steps": [
+      "Pesan dikirim dari nomor Andi",
+      "ARC memantau balasan; kalau sunyi 7 hari lagi, usulkan kunjungan"
+    ]
+  },
+  "amarta": {
+    "t": "Tawarkan paket maintenance CCTV",
+    "btn": "Buat penawaran",
+    "icon": "i-edit",
+    "due": "Minggu ini",
+    "why": "Pembayaran 100% tepat waktu, garansi CCTV 2024 habis November, dan Bu Kartika baru saja setuju signage — momentum hubungan sedang tinggi.",
+    "prep": "Draft penawaran maintenance 12 bulan dari template, harga dari Odoo, disesuaikan dengan 48 kamera terpasang. Dikirim ke Bu Kartika cc Pak Adi (Chief Engineer).",
+    "steps": [
+      "Quotation dibuat di Odoo sebagai draft",
+      "Email penawaran masuk antrean approval",
+      "Opportunity baru “Maintenance CCTV 2027” dibuat di stage Penawaran"
+    ]
+  },
+  "kendal": {
+    "t": "Jadwalkan discovery call",
+    "btn": "Pilih jadwal",
+    "icon": "i-cal",
+    "due": "Minggu ini",
+    "why": "Lead baru dari Research agent: anggaran DAK 2027 sudah ada, spesifikasi belum. Siapa yang membantu menyusun spek biasanya memenangkan tender.",
+    "prep": "3 slot kosong dari kalender Andi minggu ini dan email undangan discovery call 30 menit.",
+    "steps": [
+      "Andi memilih slot",
+      "Undangan terkirim ke Dinas Pendidikan Kendal",
+      "Lead dipindah ke Berkualifikasi setelah call tercatat"
+    ]
+  },
+  "won_cakra": {
+    "t": "Minta referensi & testimoni",
+    "btn": "Draf permintaan",
+    "icon": "i-edit",
+    "due": "Setelah BAST",
+    "why": "Deal Won 15 Sep, instalasi berjalan. Referensi dari logistik dibutuhkan untuk PT Pelabuhan Jaya dan PT Nusantara Baja yang sedang aktif.",
+    "prep": "Draft email permintaan testimoni + izin menyebut sebagai referensi, dikirim setelah BAST ditandatangani.",
+    "steps": [
+      "Draft disimpan, terkirim otomatis H+3 setelah BAST",
+      "Testimoni masuk library referensi"
+    ]
+  },
+  "won_salatiga": {
+    "t": "Jadwalkan serah terima & training",
+    "btn": "Pilih jadwal",
+    "icon": "i-cal",
+    "due": "Minggu depan",
+    "why": "Videotron Won 2 Sep; project di stage pemasangan. Serah terima yang terjadwal lebih awal memperpendek siklus BAST → invoice → lunas.",
+    "prep": "Usulan 2 slot serah terima + training operator, disinkronkan dengan jadwal teknisi dari project Odoo.",
+    "steps": [
+      "Undangan ke PPK Pemkot Salatiga",
+      "Checklist BAST disiapkan dari template"
+    ]
+  },
+  "l2c_panti": {
+    "t": "Buat invoice dari SO-2026-0745 sekarang",
+    "btn": "Buat invoice",
+    "icon": "i-doc",
+    "due": "Hari ini",
+    "why": "BAST clear sudah 6 hari, benchmark GSI 3 hari. Setiap hari tanpa invoice = 1 hari DSO tambahan pada Rp 720 jt. Termin 30 hari baru berjalan saat invoice diterima.",
+    "prep": "Draft invoice di Odoo dari SO dengan BAST terlampir, email pengantar ke bagian keuangan RS (Bu Ningsih) cc Pak Hendra Sarpras.",
+    "steps": [
+      "Invoice draft dibuat di Odoo · Anda/finance memvalidasi",
+      "Email pengantar + BAST terkirim",
+      "Collection agent mulai memantau; pengingat ramah H-3 jatuh tempo"
+    ]
+  },
+  "l2c_semen": {
+    "t": "Kirim pengingat pembayaran (nada ramah)",
+    "btn": "Kirim pengingat",
+    "icon": "i-mail",
+    "due": "Hari ini",
+    "why": "Invoice lewat 8 hari, tapi akun ini selalu bayar di hari ke-35 selama 2 tahun. Teguran akan merusak hubungan; konfirmasi jadwal sudah cukup.",
+    "prep": "Email singkat ke Bu Wati (AP) menanyakan jadwal pembayaran, dengan salinan invoice dan nomor rekening. Ditembuskan ke Rizky.",
+    "preview": "Bu Wati, semoga sehat selalu. Kami ingin mengonfirmasi jadwal pembayaran invoice INV/2026/0702 (Rp 1,45 M) yang jatuh tempo 20 Sep. Salinan invoice terlampir…",
+    "steps": [
+      "Email masuk antrean approval finance",
+      "Kalau tidak ada balasan H+5, Rizky diminta menelepon",
+      "Prediksi kas masuk diperbarui saat ada jawaban"
+    ]
+  },
+  "l2c_magelang": {
+    "t": "Tanyakan status SPM ke bendahara",
+    "btn": "Draf WhatsApp",
+    "icon": "i-chat",
+    "due": "Besok",
+    "why": "Piutang 71 hari, tapi ini pola termin anggaran daerah, bukan itikad buruk. Yang bisa dipercepat hanya kelengkapan dokumen di bendahara — dan itu sering tersangkut di hal kecil.",
+    "prep": "Draft WhatsApp ke Bu Endah (bendahara) dari nomor Dewi menanyakan apakah ada dokumen yang masih kurang untuk SPM. Checklist dokumen SPM disertakan.",
+    "steps": [
+      "Pesan masuk antrean approval Dewi",
+      "Jawaban diekstrak; dokumen yang kurang jadi tugas Sari",
+      "Prediksi kas Magelang diperbarui"
+    ]
+  },
+  "l2c_cakra": {
+    "t": "Kunci jadwal BAST minggu depan",
+    "btn": "Jadwalkan BAST",
+    "icon": "i-cal",
+    "due": "Jumat",
+    "why": "Pemasangan on track (hari ke-9 dari 14). BAST yang dijadwalkan sekarang membuat invoice termin 2 (Rp 570 jt) bisa terbit tanggal 7 Okt, bukan pertengahan bulan.",
+    "prep": "Usulan 2 slot BAST ke Pak Darto (PT Cakra) dan checklist BAST dari template CCTV; foto sebelum-sesudah dikumpulkan dari grup project.",
+    "steps": [
+      "Undangan BAST terkirim",
+      "Checklist BAST jadi tugas Bayu di Basecamp",
+      "Invoice termin 2 disiapkan otomatis saat BAST clear"
+    ]
+  }
+}

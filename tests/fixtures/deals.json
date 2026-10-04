@@ -1,0 +1,1019 @@
+[
+  {
+    "id": "rsud",
+    "odooStage": "Penawaran",
+    "signal": "Negosiasi",
+    "closing": "15 Okt 2026",
+    "tags": [
+      "CCTV",
+      "VMS",
+      "Pemerintah"
+    ],
+    "prio": 2,
+    "activity": "bad",
+    "account": "RSUD Kota Yogyakarta",
+    "sector": "Pemerintah · Kesehatan",
+    "branch": "Yogyakarta",
+    "owner": "Dewi",
+    "opp": "CCTV 240 titik + VMS",
+    "value": 2400000000,
+    "stage": "Negosiasi",
+    "health": 41,
+    "trend": -12,
+    "last": "16 hari lalu",
+    "lastVia": "email",
+    "stageWhy": "Revisi harga dikirim 12 Sep (email Dewi) dan tidak ada permintaan spek baru sejak itu.",
+    "manualProb": 70,
+    "memo": "RSUD mengganti CCTV analog di 3 gedung dengan anggaran DAK 2026 yang harus terserap sebelum Desember. Pak Hendra (Kabid Sarpras) adalah kontak utama; ia menyukai spesifikasi teknis yang detail dan menanggapi email dalam 1–2 hari. Keputusan akhir ada di Direktur Umum, dr. Lestari, yang belum pernah kita temui langsung. Di email 26 Sep Pak Hendra menyebut vendor lain dengan harga lebih rendah untuk spek setara — belum ada dokumen penawaran yang kita lihat. Bu Sinta (ULP) baru muncul sekali, menanyakan format HPS.",
+    "memoProv": [
+      "12 email",
+      "3 meeting",
+      "2 dokumen",
+      "diperbarui 2 jam lalu"
+    ],
+    "stakeholders": [
+      {
+        "n": "dr. Lestari",
+        "role": "Direktur Umum",
+        "tag": "decision",
+        "s": 0,
+        "note": "belum pernah kontak"
+      },
+      {
+        "n": "Pak Hendra",
+        "role": "Kabid Sarpras",
+        "tag": "champion",
+        "s": 3,
+        "note": "92% interaksi"
+      },
+      {
+        "n": "Bu Sinta",
+        "role": "ULP / Pengadaan",
+        "tag": "influencer",
+        "s": 1,
+        "note": "1 email"
+      },
+      {
+        "n": "Pak Bagus",
+        "role": "Kepala IT",
+        "tag": "user",
+        "s": 2,
+        "note": "2 meeting"
+      }
+    ],
+    "breakdown": [
+      [
+        "Engagement",
+        28
+      ],
+      [
+        "Multi-threading",
+        15
+      ],
+      [
+        "Momentum",
+        40
+      ],
+      [
+        "Kecocokan solusi",
+        85
+      ],
+      [
+        "Sentimen",
+        55
+      ]
+    ],
+    "flags": [
+      {
+        "t": "Kompetitor disebut",
+        "s": "Email 26 Sep · “harga lebih rendah untuk spek setara”",
+        "k": "bad",
+        "act": "Minta salinan penawaran"
+      },
+      {
+        "t": "Single-threaded",
+        "s": "92% interaksi lewat Pak Hendra",
+        "k": "warn",
+        "act": "Draf surat ke Direktur"
+      },
+      {
+        "t": "Sunyi 16 hari",
+        "s": "Ritme normal akun ini 5 hari",
+        "k": "warn",
+        "act": "Jadwalkan demo VMS"
+      }
+    ],
+    "commits": {
+      "kami": [
+        {
+          "t": "Kirim revisi harga",
+          "s": "12 Sep · Dewi",
+          "st": "done"
+        },
+        {
+          "t": "Demo VMS on-site",
+          "s": "Dijanjikan “setelah revisi” · belum dijadwalkan",
+          "st": "open"
+        }
+      ],
+      "mereka": [
+        {
+          "t": "Feedback revisi harga",
+          "s": "Dijanjikan Pak Hendra “minggu depan” dari 12 Sep",
+          "st": "late",
+          "d": "Lewat 9 hari"
+        },
+        {
+          "t": "Undang presentasi ke Direktur",
+          "s": "Dijanjikan Agustus · belum terjadi",
+          "st": "late",
+          "d": "Lewat 30+ hari"
+        }
+      ]
+    },
+    "timeline": [
+      {
+        "d": "26 Sep",
+        "via": "mail",
+        "who": "Pak Hendra → Dewi",
+        "t": "Menyampaikan ada vendor lain dengan harga lebih rendah untuk spek setara; menanyakan apakah ada ruang penyesuaian.",
+        "x": "Sinyal: kompetitor disebut · sentimen netral-negatif",
+        "hot": true
+      },
+      {
+        "d": "12 Sep",
+        "via": "mail",
+        "who": "Dewi → Pak Hendra",
+        "t": "Mengirim revisi harga rev.2 (Rp 2,4 M) dengan opsi pengurangan 20 titik.",
+        "x": "Komitmen kita terpenuhi · komitmen mereka “feedback minggu depan” dicatat"
+      },
+      {
+        "d": "3 Sep",
+        "via": "people",
+        "who": "Survey on-site",
+        "t": "Dewi, Pak Bagus, dan 2 teknisi survei 3 gedung; Pak Bagus minta integrasi dengan sistem parkir.",
+        "x": "Kebutuhan baru: integrasi parkir · Pak Bagus ditambahkan sebagai stakeholder"
+      },
+      {
+        "d": "20 Agu",
+        "via": "doc",
+        "who": "Proposal v1",
+        "t": "Proposal teknis + penawaran Rp 2,6 M dikirim sebagai lampiran email.",
+        "x": "Stage → Proposal (dari lampiran)"
+      },
+      {
+        "d": "14 Jul",
+        "via": "form",
+        "who": "Form web",
+        "t": "Pak Hendra mengisi form permintaan penawaran CCTV rumah sakit.",
+        "x": "Lead dibuat · Research agent: anggaran DAK 2026 teridentifikasi"
+      }
+    ]
+  },
+  {
+    "id": "baja",
+    "odooStage": "Berkualifikasi",
+    "signal": "",
+    "closing": "28 Nov 2026",
+    "tags": [
+      "Command center",
+      "Videowall"
+    ],
+    "prio": 1,
+    "activity": "good",
+    "account": "PT Nusantara Baja Tuban",
+    "sector": "Enterprise · Manufaktur",
+    "branch": "Surabaya",
+    "owner": "Rizky",
+    "opp": "Command center videowall 3×3",
+    "value": 3100000000,
+    "stage": "Kualifikasi",
+    "health": 64,
+    "trend": 6,
+    "last": "2 hari lalu",
+    "lastVia": "people",
+    "stageWhy": "Kebutuhan terkonfirmasi di 2 meeting, tapi belum ada permintaan proposal tertulis.",
+    "manualProb": 40,
+    "memo": "Pabrik baru di Tuban butuh ruang kendali terpadu untuk CCTV, SCADA, dan monitoring produksi. Pak Ferdi (GM Plant) yang mengundang kita; Bu Nadia (Procurement) dan Pak Iwan (IT) baru ikut di meeting terakhir. Mereka membandingkan videowall LCD dan LED fine-pitch; anggaran capex disetujui direksi untuk Q4.",
+    "memoProv": [
+      "5 email",
+      "2 meeting",
+      "1 dokumen",
+      "diperbarui kemarin"
+    ],
+    "stakeholders": [
+      {
+        "n": "Pak Ferdi",
+        "role": "GM Plant",
+        "tag": "champion",
+        "s": 3,
+        "note": "inisiator"
+      },
+      {
+        "n": "Bu Nadia",
+        "role": "Procurement",
+        "tag": "influencer",
+        "s": 1,
+        "note": "1 meeting"
+      },
+      {
+        "n": "Pak Iwan",
+        "role": "IT Manager",
+        "tag": "user",
+        "s": 1,
+        "note": "1 meeting"
+      },
+      {
+        "n": "Direksi",
+        "role": "Approval capex",
+        "tag": "decision",
+        "s": 0,
+        "note": "via Pak Ferdi"
+      }
+    ],
+    "breakdown": [
+      [
+        "Engagement",
+        70
+      ],
+      [
+        "Multi-threading",
+        60
+      ],
+      [
+        "Momentum",
+        65
+      ],
+      [
+        "Kecocokan solusi",
+        75
+      ],
+      [
+        "Sentimen",
+        72
+      ]
+    ],
+    "flags": [
+      {
+        "t": "Spek videowall belum final",
+        "s": "Presentasi besok butuh perbandingan LCD vs LED",
+        "k": "warn",
+        "act": "Siapkan perbandingan"
+      }
+    ],
+    "commits": {
+      "kami": [
+        {
+          "t": "Presentasi command center",
+          "s": "Besok 15.30 · Rizky",
+          "st": "open"
+        }
+      ],
+      "mereka": [
+        {
+          "t": "Kirim layout ruang kendali",
+          "s": "Dijanjikan Pak Iwan · diterima 25 Sep",
+          "st": "done"
+        }
+      ]
+    },
+    "timeline": [
+      {
+        "d": "26 Sep",
+        "via": "people",
+        "who": "Meeting online",
+        "t": "Diskusi kebutuhan dengan Pak Ferdi, Bu Nadia, Pak Iwan.",
+        "x": "2 stakeholder baru · health naik"
+      },
+      {
+        "d": "25 Sep",
+        "via": "doc",
+        "who": "Layout ruang",
+        "t": "Denah ruang kendali 6×9 m diterima.",
+        "x": "Komitmen mereka terpenuhi"
+      },
+      {
+        "d": "10 Sep",
+        "via": "mail",
+        "who": "Pak Ferdi",
+        "t": "Mengundang GSI presentasi setelah referensi dari PT Semen mitra.",
+        "x": "Lead dibuat · sumber: referensi"
+      }
+    ]
+  },
+  {
+    "id": "semarang",
+    "odooStage": "Penawaran",
+    "signal": "",
+    "closing": "10 Okt 2026",
+    "tags": [
+      "Videotron",
+      "Pemerintah"
+    ],
+    "prio": 2,
+    "activity": "warn",
+    "account": "Diskominfo Kota Semarang",
+    "sector": "Pemerintah · Kominfo",
+    "branch": "Semarang",
+    "owner": "Andi",
+    "opp": "Videotron Simpang Lima 6×4 m",
+    "value": 1850000000,
+    "stage": "Proposal",
+    "health": 72,
+    "trend": 3,
+    "last": "4 hari lalu",
+    "lastVia": "people",
+    "stageWhy": "Proposal + penawaran terdeteksi sebagai lampiran email 18 Sep; revisi diminta di meeting 24 Sep.",
+    "manualProb": 60,
+    "memo": "Pengadaan videotron baru di Simpang Lima menggantikan unit lama yang rusak. Pak Wijaya (Kabid Infrastruktur TIK) memimpin, dengan Pak Arif (PPK) yang akan menandatangani. Mereka menginginkan pitch P4 outdoor dan garansi 3 tahun; revisi harga struktur dijanjikan hari ini.",
+    "memoProv": [
+      "9 email",
+      "2 meeting",
+      "3 dokumen",
+      "diperbarui 3 jam lalu"
+    ],
+    "stakeholders": [
+      {
+        "n": "Pak Wijaya",
+        "role": "Kabid Infra TIK",
+        "tag": "champion",
+        "s": 3,
+        "note": "kontak utama"
+      },
+      {
+        "n": "Pak Arif",
+        "role": "PPK",
+        "tag": "decision",
+        "s": 2,
+        "note": "2 meeting"
+      },
+      {
+        "n": "Bu Mira",
+        "role": "Bendahara",
+        "tag": "influencer",
+        "s": 1,
+        "note": "1 email"
+      }
+    ],
+    "breakdown": [
+      [
+        "Engagement",
+        80
+      ],
+      [
+        "Multi-threading",
+        65
+      ],
+      [
+        "Momentum",
+        70
+      ],
+      [
+        "Kecocokan solusi",
+        80
+      ],
+      [
+        "Sentimen",
+        68
+      ]
+    ],
+    "flags": [
+      {
+        "t": "Komitmen jatuh tempo hari ini",
+        "s": "Revisi penawaran · draf menunggu approve",
+        "k": "warn",
+        "act": "Buka di Today"
+      }
+    ],
+    "commits": {
+      "kami": [
+        {
+          "t": "Kirim revisi penawaran (struktur + maintenance)",
+          "s": "Hari ini · Andi",
+          "st": "open"
+        }
+      ],
+      "mereka": [
+        {
+          "t": "Konfirmasi titik pemasangan dengan Dishub",
+          "s": "Dijanjikan Pak Wijaya · 24 Sep",
+          "st": "open"
+        }
+      ]
+    },
+    "timeline": [
+      {
+        "d": "24 Sep",
+        "via": "people",
+        "who": "Meeting di kantor Diskominfo",
+        "t": "Pembahasan revisi: harga struktur dan durasi maintenance.",
+        "x": "Komitmen kita “revisi hari Senin” dicatat"
+      },
+      {
+        "d": "18 Sep",
+        "via": "doc",
+        "who": "Proposal + Q-0912",
+        "t": "Proposal teknis dan penawaran dikirim.",
+        "x": "Stage → Proposal"
+      },
+      {
+        "d": "2 Sep",
+        "via": "phone",
+        "who": "Telepon Pak Wijaya",
+        "t": "Menanyakan opsi pitch dan kecerahan untuk outdoor.",
+        "x": "Transkripsi · kebutuhan: ≥ 6.000 nit"
+      }
+    ]
+  },
+  {
+    "id": "bsd",
+    "odooStage": "Penawaran",
+    "signal": "Verbal commit",
+    "closing": "30 Sep 2026",
+    "tags": [
+      "Fire alarm"
+    ],
+    "prio": 3,
+    "activity": "warn",
+    "account": "Bank Sejahtera Daerah",
+    "sector": "Enterprise · Perbankan",
+    "branch": "Yogyakarta",
+    "owner": "Dewi",
+    "opp": "Fire alarm addressable 4 gedung",
+    "value": 860000000,
+    "stage": "Verbal",
+    "health": 88,
+    "trend": 2,
+    "last": "kemarin",
+    "lastVia": "chat",
+    "stageWhy": "Pak Yusuf menyatakan setuju di WhatsApp 22 Sep dan menjanjikan PO 25 Sep.",
+    "manualProb": 90,
+    "memo": "Standarisasi fire alarm di 4 gedung kantor sebagai syarat audit OJK. Pak Yusuf (Kepala Umum) sudah setuju secara verbal; PO menunggu tanda tangan Direktur Operasional yang sedang dinas luar sampai Rabu. Kick-off besok pagi sudah dijadwalkan atas permintaan mereka.",
+    "memoProv": [
+      "7 email",
+      "4 WhatsApp",
+      "1 meeting",
+      "diperbarui kemarin"
+    ],
+    "stakeholders": [
+      {
+        "n": "Pak Yusuf",
+        "role": "Kepala Umum",
+        "tag": "champion",
+        "s": 3,
+        "note": "setuju verbal"
+      },
+      {
+        "n": "Bu Dian",
+        "role": "Direktur Operasional",
+        "tag": "decision",
+        "s": 1,
+        "note": "tanda tangan PO"
+      },
+      {
+        "n": "Pak Roni",
+        "role": "IT & Keamanan",
+        "tag": "user",
+        "s": 2,
+        "note": "kick-off besok"
+      }
+    ],
+    "breakdown": [
+      [
+        "Engagement",
+        90
+      ],
+      [
+        "Multi-threading",
+        75
+      ],
+      [
+        "Momentum",
+        85
+      ],
+      [
+        "Kecocokan solusi",
+        95
+      ],
+      [
+        "Sentimen",
+        90
+      ]
+    ],
+    "flags": [
+      {
+        "t": "PO lewat 3 hari",
+        "s": "Dijanjikan 25 Sep · pengingat halus terkirim",
+        "k": "warn",
+        "act": "Angkat di kick-off besok"
+      }
+    ],
+    "commits": {
+      "kami": [
+        {
+          "t": "Kick-off & jadwal instalasi",
+          "s": "Besok 09.00 · Dewi",
+          "st": "open"
+        }
+      ],
+      "mereka": [
+        {
+          "t": "Kirim PO",
+          "s": "Dijanjikan Pak Yusuf 25 Sep",
+          "st": "late",
+          "d": "Lewat 3 hari"
+        }
+      ]
+    },
+    "timeline": [
+      {
+        "d": "27 Sep",
+        "via": "chat",
+        "who": "Pak Yusuf",
+        "t": "“PO masih di meja Bu Dian, beliau kembali Rabu.”",
+        "x": "Komitmen mereka digeser · alasan tercatat"
+      },
+      {
+        "d": "22 Sep",
+        "via": "chat",
+        "who": "Pak Yusuf",
+        "t": "“Kami ambil opsi B, PO menyusul Kamis.”",
+        "x": "Stage → Verbal · komitmen PO 25 Sep"
+      },
+      {
+        "d": "15 Sep",
+        "via": "people",
+        "who": "Presentasi final",
+        "t": "Presentasi 2 opsi ke Pak Yusuf dan Pak Roni.",
+        "x": "Sentimen positif"
+      }
+    ]
+  },
+  {
+    "id": "sleman",
+    "odooStage": "Penawaran",
+    "signal": "",
+    "closing": "20 Okt 2026",
+    "tags": [
+      "Dashboard",
+      "Pemerintah"
+    ],
+    "prio": 1,
+    "activity": "warn",
+    "account": "Pemkab Sleman",
+    "sector": "Pemerintah · Setda",
+    "branch": "Yogyakarta",
+    "owner": "Dewi",
+    "opp": "Smart city dashboard ruang pimpinan",
+    "value": 1200000000,
+    "stage": "Proposal",
+    "health": 63,
+    "trend": -9,
+    "last": "3 hari lalu",
+    "lastVia": "chat",
+    "stageWhy": "Proposal dikirim 8 Sep; presentasi ke pimpinan dijadwalkan 6 Okt.",
+    "manualProb": 70,
+    "memo": "Ruang pimpinan Bupati akan dilengkapi dashboard terpadu (CCTV kota, laporan OPD, cuaca). Bu Ratna (Kabid Statistik) yang mengusung ide ini sejak Juni, tapi mutasi ke Dinas Perhubungan per 1 Okt. Pak Yoga (Kabid Aptika) hadir di 3 meeting dan paling paham kebutuhan teknis. Presentasi ke Sekda 6 Okt.",
+    "memoProv": [
+      "6 email",
+      "5 WhatsApp",
+      "3 meeting",
+      "diperbarui 3 hari lalu"
+    ],
+    "stakeholders": [
+      {
+        "n": "Bu Ratna",
+        "role": "Kabid Statistik · mutasi",
+        "tag": "ghost",
+        "s": 3,
+        "note": "pindah 1 Okt"
+      },
+      {
+        "n": "Pak Yoga",
+        "role": "Kabid Aptika",
+        "tag": "influencer",
+        "s": 2,
+        "note": "3 meeting"
+      },
+      {
+        "n": "Pak Sekda",
+        "role": "Sekretaris Daerah",
+        "tag": "decision",
+        "s": 0,
+        "note": "presentasi 6 Okt"
+      }
+    ],
+    "breakdown": [
+      [
+        "Engagement",
+        60
+      ],
+      [
+        "Multi-threading",
+        45
+      ],
+      [
+        "Momentum",
+        55
+      ],
+      [
+        "Kecocokan solusi",
+        85
+      ],
+      [
+        "Sentimen",
+        70
+      ]
+    ],
+    "flags": [
+      {
+        "t": "Champion mutasi",
+        "s": "Bu Ratna → Dishub per 1 Okt",
+        "k": "bad",
+        "act": "Angkat Pak Yoga"
+      },
+      {
+        "t": "Presentasi 6 Okt tanpa pengusung",
+        "s": "Undangan masih atas nama Bu Ratna",
+        "k": "warn",
+        "act": "Konfirmasi ulang undangan"
+      }
+    ],
+    "commits": {
+      "kami": [
+        {
+          "t": "Kirim mockup dashboard",
+          "s": "Dijanjikan 30 Sep · Dewi",
+          "st": "open"
+        }
+      ],
+      "mereka": [
+        {
+          "t": "Kirim daftar OPD sumber data",
+          "s": "Dijanjikan Bu Ratna 20 Sep",
+          "st": "late",
+          "d": "Lewat 8 hari"
+        }
+      ]
+    },
+    "timeline": [
+      {
+        "d": "25 Sep",
+        "via": "chat",
+        "who": "Bu Ratna",
+        "t": "“Mulai Oktober saya di Dishub, nanti koordinasi dengan Pak Yoga ya.”",
+        "x": "Sinyal: champion pindah · Pak Yoga disarankan sebagai champion",
+        "hot": true
+      },
+      {
+        "d": "8 Sep",
+        "via": "doc",
+        "who": "Proposal",
+        "t": "Proposal dashboard + penawaran Rp 1,2 M dikirim.",
+        "x": "Stage → Proposal"
+      },
+      {
+        "d": "28 Agu",
+        "via": "people",
+        "who": "Workshop kebutuhan",
+        "t": "Workshop dengan 4 OPD dipandu Bu Ratna.",
+        "x": "12 kebutuhan dicatat"
+      }
+    ]
+  },
+  {
+    "id": "pelindo",
+    "odooStage": "Penawaran",
+    "signal": "Kontrak",
+    "closing": "8 Okt 2026",
+    "tags": [
+      "CCTV",
+      "Analitik"
+    ],
+    "prio": 2,
+    "activity": "good",
+    "account": "PT Pelabuhan Jaya Surabaya",
+    "sector": "Enterprise · Logistik",
+    "branch": "Surabaya",
+    "owner": "Rizky",
+    "opp": "CCTV pelabuhan 90 titik",
+    "value": 1600000000,
+    "stage": "Negosiasi",
+    "health": 77,
+    "trend": 5,
+    "last": "hari ini",
+    "lastVia": "people",
+    "stageWhy": "Draf kontrak diterima 22 Sep; survey teknis hari ini sebagai syarat final.",
+    "manualProb": 75,
+    "memo": "Pengawasan area dermaga dan gudang dengan CCTV PTZ dan analitik plat nomor. Pak Bambang (Manajer Keamanan) dan Bu Tari (Legal) terlibat aktif; legal butuh ±2 minggu untuk finalisasi kontrak. Survey teknis hari ini berjalan lancar.",
+    "memoProv": [
+      "8 email",
+      "3 meeting",
+      "2 dokumen",
+      "diperbarui 1 jam lalu"
+    ],
+    "stakeholders": [
+      {
+        "n": "Pak Bambang",
+        "role": "Manajer Keamanan",
+        "tag": "champion",
+        "s": 3,
+        "note": "kontak utama"
+      },
+      {
+        "n": "Bu Tari",
+        "role": "Legal",
+        "tag": "influencer",
+        "s": 2,
+        "note": "draf kontrak"
+      },
+      {
+        "n": "Pak Gunawan",
+        "role": "GM Operasional",
+        "tag": "decision",
+        "s": 1,
+        "note": "1 meeting"
+      }
+    ],
+    "breakdown": [
+      [
+        "Engagement",
+        85
+      ],
+      [
+        "Multi-threading",
+        70
+      ],
+      [
+        "Momentum",
+        80
+      ],
+      [
+        "Kecocokan solusi",
+        80
+      ],
+      [
+        "Sentimen",
+        75
+      ]
+    ],
+    "flags": [
+      {
+        "t": "Siklus legal ±2 minggu",
+        "s": "Kemungkinan tanda tangan awal Oktober",
+        "k": "warn",
+        "act": "Geser ke Q4 forecast"
+      }
+    ],
+    "commits": {
+      "kami": [
+        {
+          "t": "Survey teknis 90 titik",
+          "s": "Hari ini · Rizky",
+          "st": "done"
+        },
+        {
+          "t": "Kirim laporan survey + BoQ final",
+          "s": "Dijanjikan 1 Okt",
+          "st": "open"
+        }
+      ],
+      "mereka": [
+        {
+          "t": "Kirim redline kontrak",
+          "s": "Dijanjikan Bu Tari · 30 Sep",
+          "st": "open"
+        }
+      ]
+    },
+    "timeline": [
+      {
+        "d": "28 Sep",
+        "via": "people",
+        "who": "Survey on-site",
+        "t": "Rizky dan 2 teknisi survei dermaga & gudang; 4 titik ditambah.",
+        "x": "Laporan diekstrak dari voice memo Rizky"
+      },
+      {
+        "d": "22 Sep",
+        "via": "doc",
+        "who": "Draf kontrak",
+        "t": "Draf kontrak diterima dari Legal.",
+        "x": "Stage → Negosiasi"
+      }
+    ]
+  },
+  {
+    "id": "unmer",
+    "odooStage": "Berkualifikasi",
+    "signal": "",
+    "closing": "30 Nov 2026",
+    "tags": [
+      "LED indoor",
+      "Tender"
+    ],
+    "prio": 0,
+    "activity": "bad",
+    "account": "Universitas Merdeka Semarang",
+    "sector": "Pendidikan · Swasta",
+    "branch": "Semarang",
+    "owner": "Andi",
+    "opp": "LED indoor auditorium",
+    "value": 540000000,
+    "stage": "Kualifikasi",
+    "health": 35,
+    "trend": -4,
+    "last": "21 hari lalu",
+    "lastVia": "chat",
+    "stageWhy": "Diskusi awal 7 Sep; belum ada permintaan proposal, tender e-katalog belum dibuka.",
+    "manualProb": 30,
+    "memo": "Auditorium baru butuh LED indoor P2.5 untuk wisuda dan seminar. Pak Dimas (Kabag Umum) satu-satunya kontak; ia menyebut pengadaan lewat e-katalog tapi HPS belum disusun. Sunyi sejak 7 Sep.",
+    "memoProv": [
+      "2 email",
+      "3 WhatsApp",
+      "1 meeting",
+      "diperbarui 21 hari lalu"
+    ],
+    "stakeholders": [
+      {
+        "n": "Pak Dimas",
+        "role": "Kabag Umum",
+        "tag": "influencer",
+        "s": 2,
+        "note": "satu-satunya kontak"
+      },
+      {
+        "n": "Wakil Rektor II",
+        "role": "Keuangan & Sarpras",
+        "tag": "decision",
+        "s": 0,
+        "note": "belum kontak"
+      }
+    ],
+    "breakdown": [
+      [
+        "Engagement",
+        25
+      ],
+      [
+        "Multi-threading",
+        10
+      ],
+      [
+        "Momentum",
+        30
+      ],
+      [
+        "Kecocokan solusi",
+        70
+      ],
+      [
+        "Sentimen",
+        60
+      ]
+    ],
+    "flags": [
+      {
+        "t": "Sunyi 21 hari",
+        "s": "Ritme normal 7 hari",
+        "k": "bad",
+        "act": "Kirim WhatsApp (draf siap)"
+      }
+    ],
+    "commits": {
+      "kami": [
+        {
+          "t": "Kirim referensi spek untuk HPS",
+          "s": "Ditawarkan 7 Sep · belum diminta",
+          "st": "open"
+        }
+      ],
+      "mereka": []
+    },
+    "timeline": [
+      {
+        "d": "7 Sep",
+        "via": "people",
+        "who": "Kunjungan",
+        "t": "Andi meninjau auditorium bersama Pak Dimas.",
+        "x": "Kebutuhan: LED P2.5 ± 24 m²"
+      }
+    ]
+  },
+  {
+    "id": "amarta",
+    "odooStage": "Penawaran",
+    "signal": "Verbal commit",
+    "closing": "3 Okt 2026",
+    "tags": [
+      "Signage"
+    ],
+    "prio": 1,
+    "activity": "good",
+    "account": "Hotel Amarta Semarang",
+    "sector": "Enterprise · Hospitality",
+    "branch": "Semarang",
+    "owner": "Andi",
+    "opp": "Digital signage lobby & ballroom",
+    "value": 320000000,
+    "stage": "Verbal",
+    "health": 82,
+    "trend": 4,
+    "last": "hari ini",
+    "lastVia": "box",
+    "stageWhy": "GM menyetujui via email 24 Sep; menunggu PO dari owner hotel.",
+    "manualProb": 85,
+    "memo": "Klien lama (CCTV 2024, dibayar tepat waktu). Signage untuk lobby dan 2 ballroom. Bu Kartika (GM) sudah setuju; PO dari kantor owner biasanya keluar 1 minggu setelah persetujuan GM. Pembayaran CCTV tahap akhir Rp 412 jt masuk hari ini — pola bayar 100% tepat waktu.",
+    "memoProv": [
+      "6 email",
+      "2 WhatsApp",
+      "2 pembayaran ERP",
+      "diperbarui hari ini"
+    ],
+    "stakeholders": [
+      {
+        "n": "Bu Kartika",
+        "role": "General Manager",
+        "tag": "champion",
+        "s": 3,
+        "note": "setuju verbal"
+      },
+      {
+        "n": "Kantor owner",
+        "role": "Penerbit PO",
+        "tag": "decision",
+        "s": 1,
+        "note": "via GM"
+      },
+      {
+        "n": "Pak Adi",
+        "role": "Chief Engineer",
+        "tag": "user",
+        "s": 2,
+        "note": "maintenance CCTV"
+      }
+    ],
+    "breakdown": [
+      [
+        "Engagement",
+        85
+      ],
+      [
+        "Multi-threading",
+        70
+      ],
+      [
+        "Momentum",
+        80
+      ],
+      [
+        "Kecocokan solusi",
+        85
+      ],
+      [
+        "Sentimen",
+        92
+      ]
+    ],
+    "flags": [
+      {
+        "t": "Peluang maintenance",
+        "s": "Pola bayar 100% tepat waktu · CCTV 2024 habis garansi Nov",
+        "k": "good",
+        "act": "Draf penawaran maintenance"
+      }
+    ],
+    "commits": {
+      "kami": [
+        {
+          "t": "Kirim jadwal instalasi signage",
+          "s": "Setelah PO · Andi",
+          "st": "open"
+        }
+      ],
+      "mereka": [
+        {
+          "t": "PO dari kantor owner",
+          "s": "Perkiraan 1 Okt",
+          "st": "open"
+        }
+      ]
+    },
+    "timeline": [
+      {
+        "d": "28 Sep",
+        "via": "box",
+        "who": "ERP · pembayaran",
+        "t": "Pembayaran tahap akhir CCTV Rp 412 jt diterima, tepat waktu.",
+        "x": "Sinyal: kesehatan pembayaran 100% · peluang maintenance"
+      },
+      {
+        "d": "24 Sep",
+        "via": "mail",
+        "who": "Bu Kartika",
+        "t": "“Kami ambil paket 5 layar, PO menyusul dari kantor owner.”",
+        "x": "Stage → Verbal"
+      }
+    ]
+  }
+]

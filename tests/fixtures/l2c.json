@@ -1,0 +1,79 @@
+[
+  {
+    "acc": "RS Panti Rapih",
+    "proj": "Fire alarm gedung C",
+    "so": "SO-2026-0745",
+    "value": 720000000,
+    "stage": 3,
+    "days": 6,
+    "bench": 3,
+    "owner": "Dewi",
+    "note": "BAST clear 6 hari, invoice belum dibuat — Rp 720 jt menganggur",
+    "aid": "l2c_panti",
+    "k": "bad"
+  },
+  {
+    "acc": "Dinas PU Kab. Magelang",
+    "proj": "CCTV jalan 24 titik",
+    "so": "SO-2026-0688",
+    "value": 980000000,
+    "stage": 5,
+    "days": 71,
+    "bench": 30,
+    "owner": "Dewi",
+    "note": "Termin akhir tahun anggaran · SPM diajukan 22 Sep",
+    "aid": "l2c_magelang",
+    "k": "bad"
+  },
+  {
+    "acc": "PT Semen Mitra Tuban",
+    "proj": "Videowall ruang kontrol",
+    "so": "SO-2026-0702",
+    "value": 1450000000,
+    "stage": 5,
+    "days": 38,
+    "bench": 30,
+    "owner": "Rizky",
+    "note": "Invoice lewat 8 hari · termin 30 · pola bayar mereka 35 hari",
+    "aid": "l2c_semen",
+    "k": "warn"
+  },
+  {
+    "acc": "Pemkot Salatiga",
+    "proj": "Videotron alun-alun 4×3 m",
+    "so": "SO-2026-0799",
+    "value": 1200000000,
+    "stage": 1,
+    "days": 26,
+    "bench": 14,
+    "owner": "Andi",
+    "note": "Struktur baru tiba Kamis · 12 hari lebih lama dari benchmark",
+    "aid": "won_salatiga",
+    "k": "warn"
+  },
+  {
+    "acc": "PT Cakra Logistik Semarang",
+    "proj": "CCTV gudang 60 titik",
+    "so": "SO-2026-0812",
+    "value": 1900000000,
+    "stage": 2,
+    "days": 9,
+    "bench": 14,
+    "owner": "Andi",
+    "note": "Hari ke-9 dari estimasi 14 · on track",
+    "aid": "l2c_cakra",
+    "k": "good"
+  },
+  {
+    "acc": "Hotel Amarta Semarang",
+    "proj": "CCTV 48 kamera",
+    "so": "SO-2026-0771",
+    "value": 412000000,
+    "stage": 6,
+    "days": 31,
+    "bench": 30,
+    "owner": "Andi",
+    "note": "Lunas hari ini · 31 hari dari invoice",
+    "k": "good"
+  }
+]

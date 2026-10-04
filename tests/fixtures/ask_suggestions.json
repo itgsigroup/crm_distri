@@ -1,0 +1,34 @@
+{
+  "today": [
+    "Apa satu hal yang paling mendesak hari ini?",
+    "Kenapa gap Q3 belum tertutup?"
+  ],
+  "chat": [
+    "Rangkum grup Simpang Lima minggu ini",
+    "Komitmen apa yang muncul dari chat hari ini?"
+  ],
+  "rel": [
+    "Apa yang harus saya tahu sebelum menelepon akun ini?",
+    "Siapa yang belum kita kenal di akun ini?"
+  ],
+  "pipe": [
+    "Deal mana yang layak masuk commit Q4?",
+    "Kenapa weighted ARC lebih rendah dari sales?"
+  ],
+  "pros": [
+    "Kenapa hanya 45% kontak masuk yang relevan?",
+    "Apa yang harus ditanyakan ke Pak Rudi dulu?"
+  ],
+  "cash": [
+    "Kenapa DSO turun 14 hari?",
+    "Kalau invoice Panti Rapih dibuat hari ini, kas Oktober jadi berapa?"
+  ],
+  "net": [
+    "Siapa yang harus dikenalkan ke siapa?",
+    "Kontak mana yang paling berisiko hilang?"
+  ],
+  "conn": [
+    "Data apa yang keluar ke provider AI?",
+    "Berapa biaya AI bulan ini dan apa yang bisa dihemat?"
+  ]
+}

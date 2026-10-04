@@ -1,0 +1,1778 @@
+{
+  "_comment": "Raw seed data transcribed from the static parts of reference/arc-crm-mockup.html. Dates use the mockup clock (mockup_now) and are shifted relative to the ARC clock at seed time.",
+  "mockup_now": "2026-09-28T17:02:00+07:00",
+  "users": [
+    {
+      "id": "sam",
+      "name": "Sam Setiadi",
+      "email": "sam@gsi.co.id",
+      "role": "ceo",
+      "branch": "Pusat",
+      "initials": "SR",
+      "wa": []
+    },
+    {
+      "id": "andi",
+      "name": "Andi",
+      "email": "andi@gsi.co.id",
+      "role": "sales",
+      "branch": "Semarang",
+      "initials": "AN",
+      "wa": [
+        "+62 812-3104-4471"
+      ]
+    },
+    {
+      "id": "dewi",
+      "name": "Dewi",
+      "email": "dewi@gsi.co.id",
+      "role": "sales",
+      "branch": "Yogyakarta",
+      "initials": "DW",
+      "wa": [
+        "+62 815-2207-9032"
+      ]
+    },
+    {
+      "id": "rizky",
+      "name": "Rizky",
+      "email": "rizky@gsi.co.id",
+      "role": "sales",
+      "branch": "Surabaya",
+      "initials": "RZ",
+      "wa": [
+        "+62 811-3390-2210"
+      ]
+    },
+    {
+      "id": "fajar",
+      "name": "Fajar",
+      "email": "fajar@gsi.co.id",
+      "role": "sales",
+      "branch": "Jakarta",
+      "initials": "FJ",
+      "wa": [
+        "+62 813-8812-7785"
+      ]
+    },
+    {
+      "id": "rina",
+      "name": "Bu Rina",
+      "email": "rina@gsi.co.id",
+      "role": "finance",
+      "branch": "Pusat",
+      "initials": "RN",
+      "wa": []
+    }
+  ],
+  "sales_user": {
+    "Andi": "andi",
+    "Dewi": "dewi",
+    "Rizky": "rizky",
+    "Fajar": "fajar"
+  },
+  "account_meta": {
+    "rsud": {
+      "rhythm": 5,
+      "gov": true,
+      "last_at": "2026-09-12T09:14",
+      "source": "inbound"
+    },
+    "baja": {
+      "rhythm": 6,
+      "gov": false,
+      "last_at": "2026-09-26T10:00",
+      "source": "referral"
+    },
+    "semarang": {
+      "rhythm": 6,
+      "gov": true,
+      "last_at": "2026-09-24T14:00",
+      "source": "tender"
+    },
+    "bsd": {
+      "rhythm": 5,
+      "gov": false,
+      "last_at": "2026-09-27T19:48",
+      "source": "inbound"
+    },
+    "sleman": {
+      "rhythm": 6,
+      "gov": true,
+      "last_at": "2026-09-25T16:00",
+      "source": "inbound"
+    },
+    "pelindo": {
+      "rhythm": 5,
+      "gov": false,
+      "last_at": "2026-09-28T13:40",
+      "source": "referral"
+    },
+    "unmer": {
+      "rhythm": 7,
+      "gov": false,
+      "last_at": "2026-09-07T11:00",
+      "source": "cold"
+    },
+    "amarta": {
+      "rhythm": 10,
+      "gov": false,
+      "last_at": "2026-09-28T09:15",
+      "source": "ekspansi"
+    }
+  },
+  "accounts_extra": [
+    {
+      "id": "panti",
+      "name": "RS Panti Rapih",
+      "sector": "Enterprise · Kesehatan",
+      "branch": "Yogyakarta",
+      "owner": "Dewi",
+      "gov": false
+    },
+    {
+      "id": "magelang",
+      "name": "Dinas PU Kab. Magelang",
+      "sector": "Pemerintah · PU",
+      "branch": "Yogyakarta",
+      "owner": "Dewi",
+      "gov": true
+    },
+    {
+      "id": "semen",
+      "name": "PT Semen Mitra Tuban",
+      "sector": "Enterprise · Manufaktur",
+      "branch": "Surabaya",
+      "owner": "Rizky",
+      "gov": false
+    },
+    {
+      "id": "salatiga",
+      "name": "Pemkot Salatiga",
+      "sector": "Pemerintah · Setda",
+      "branch": "Semarang",
+      "owner": "Andi",
+      "gov": true
+    },
+    {
+      "id": "cakra",
+      "name": "PT Cakra Logistik Semarang",
+      "sector": "Enterprise · Logistik",
+      "branch": "Semarang",
+      "owner": "Andi",
+      "gov": false
+    },
+    {
+      "id": "graha",
+      "name": "PT Graha Sentosa",
+      "sector": "Distribusi · Reseller",
+      "branch": "Jakarta",
+      "owner": "Fajar",
+      "gov": false
+    },
+    {
+      "id": "kendal",
+      "name": "Dinas Pendidikan Kab. Kendal",
+      "sector": "Pemerintah · Pendidikan",
+      "branch": "Semarang",
+      "owner": "Andi",
+      "gov": true
+    },
+    {
+      "id": "media_prima",
+      "name": "PT Media Prima Jakarta",
+      "sector": "Enterprise · Media",
+      "branch": "Jakarta",
+      "owner": "Fajar",
+      "gov": false
+    },
+    {
+      "id": "kemenkes",
+      "name": "Kemenkes · Biro Umum",
+      "sector": "Pemerintah · Kesehatan",
+      "branch": "Jakarta",
+      "owner": "Fajar",
+      "gov": true
+    }
+  ],
+  "contact_accounts": {
+    "teguh": "media_prima",
+    "wulan": "kemenkes",
+    "hasan": "graha"
+  },
+  "won": {
+    "won_cakra": {
+      "account": "cakra",
+      "won_at": "2026-09-15",
+      "source": "referral",
+      "lead_at": "2026-07-20"
+    },
+    "won_salatiga": {
+      "account": "salatiga",
+      "won_at": "2026-09-02",
+      "source": "tender",
+      "lead_at": "2026-06-10"
+    }
+  },
+  "lead": {
+    "kendal": {
+      "account": "kendal",
+      "lead_at": "2026-09-27",
+      "source": "inbound",
+      "deadline": "2027-03-31"
+    }
+  },
+  "deal_deadlines": {
+    "rsud": "2026-10-15",
+    "baja": "2026-11-28",
+    "semarang": "2026-10-10",
+    "bsd": "2026-09-30",
+    "sleman": "2026-10-20",
+    "pelindo": "2026-10-08",
+    "unmer": "2026-11-30",
+    "amarta": "2026-10-03"
+  },
+  "deal_lead_at": {
+    "rsud": "2026-07-14",
+    "baja": "2026-09-10",
+    "semarang": "2026-08-28",
+    "bsd": "2026-08-20",
+    "sleman": "2026-06-15",
+    "pelindo": "2026-08-05",
+    "unmer": "2026-09-07",
+    "amarta": "2026-09-05"
+  },
+  "today_commitments": {
+    "semarang:kami:0": {
+      "text": "Kirim revisi penawaran videotron ke Diskominfo Semarang",
+      "detail": "dijanjikan di meeting 24 Sep",
+      "due": "2026-09-28T23:00",
+      "draft_ready": true
+    },
+    "pelindo:kami:0": {
+      "text": "Survey teknis CCTV pelabuhan — Pelabuhan Jaya Surabaya",
+      "detail": "selesai 14.20, laporan sudah diekstrak",
+      "due": "2026-09-28T14:20"
+    },
+    "bsd:mereka:0": {
+      "text": "Bank Sejahtera Daerah kirim PO fire alarm 4 gedung",
+      "detail": "Dijanjikan Pak Yusuf 25 Sep · pengingat halus sudah dikirim pagi ini",
+      "due": "2026-09-25T17:00"
+    },
+    "semarang:mereka:0": {
+      "status": "done"
+    }
+  },
+  "signals_today": [
+    {
+      "key": "competitor_mentioned:rsud",
+      "type": "competitor_mentioned",
+      "severity": "bad",
+      "account": "rsud",
+      "opportunity": "rsud",
+      "title": "Kompetitor disebut",
+      "today_detail": "RSUD Kota Yogyakarta · email Pak Hendra, 26 Sep",
+      "detected_at": "2026-09-28T08:10"
+    },
+    {
+      "key": "champion_moved:sleman",
+      "type": "champion_moved",
+      "severity": "warn",
+      "account": "sleman",
+      "opportunity": "sleman",
+      "title": "Champion mutasi",
+      "today_detail": "Pemkab Sleman · WhatsApp Bu Ratna, 25 Sep",
+      "detected_at": "2026-09-28T08:12"
+    },
+    {
+      "key": "single_threaded:rsud",
+      "type": "single_threaded",
+      "severity": "warn",
+      "account": "rsud",
+      "opportunity": "rsud",
+      "title": "Single-threaded",
+      "today_detail": "RSUD Kota Yogyakarta · 92% interaksi lewat 1 orang",
+      "detected_at": "2026-09-28T08:15"
+    },
+    {
+      "key": "payment_on_time:amarta",
+      "type": "payment_on_time",
+      "severity": "good",
+      "account": "amarta",
+      "opportunity": null,
+      "title": "Pembayaran tepat waktu",
+      "today_detail": "Hotel Amarta Semarang · Rp 412 jt · peluang maintenance",
+      "detected_at": "2026-09-28T10:02"
+    },
+    {
+      "key": "inbound_high_value:in1",
+      "type": "inbound_high_value",
+      "severity": "accent",
+      "account": null,
+      "opportunity": null,
+      "title": "Nomor baru masuk · 1 bernilai tinggi",
+      "today_detail": "Rudi Wijaya, PT Prima Karya (skor 82) · potensi solusi lengkap Rp 2,4 M",
+      "detected_at": "2026-09-28T10:18"
+    }
+  ],
+  "flag_types": {
+    "Kompetitor disebut": "competitor_mentioned",
+    "Single-threaded": "single_threaded",
+    "Sunyi": "silent",
+    "Spek videowall belum final": "spec_pending",
+    "Komitmen jatuh tempo hari ini": "commitment_due",
+    "PO lewat 3 hari": "po_overdue",
+    "Champion mutasi": "champion_moved",
+    "Presentasi 6 Okt tanpa pengusung": "meeting_without_champion",
+    "Siklus legal ±2 minggu": "legal_cycle",
+    "Peluang maintenance": "expansion_maintenance"
+  },
+  "action_agents": {
+    "i-cal": "Meeting prep agent",
+    "i-doc": "Research agent",
+    "i-edit": "Research agent",
+    "default": "Follow-up agent",
+    "l2c_": "Collection agent"
+  },
+  "action_types": {
+    "rsud": "send_email",
+    "baja": "prepare_document",
+    "semarang": "send_email",
+    "bsd": "meeting_brief_point",
+    "sleman": "call_prep",
+    "pelindo": "prepare_document",
+    "unmer": "send_wa",
+    "amarta": "create_quotation",
+    "kendal": "schedule_meeting",
+    "won_cakra": "request_referral",
+    "won_salatiga": "schedule_bast",
+    "l2c_panti": "create_invoice",
+    "l2c_semen": "payment_reminder",
+    "l2c_magelang": "ask_spm_documents",
+    "l2c_cakra": "schedule_bast"
+  },
+  "action_payload": {
+    "unmer": {
+      "session": "s-andi",
+      "chat_jid": "6281390112233@s.whatsapp.net",
+      "to": "Pak Dimas"
+    },
+    "semarang": {
+      "to": "wijaya@semarangkota.go.id",
+      "from": "andi@gsi.co.id",
+      "mailbox": "andi"
+    },
+    "rsud": {
+      "to": "lestari@rsudjogja.go.id",
+      "from": "dewi@gsi.co.id",
+      "mailbox": "dewi"
+    },
+    "l2c_semen": {
+      "to": "wati@semenmitra.co.id",
+      "from": "rizky@gsi.co.id",
+      "mailbox": "rizky"
+    },
+    "l2c_magelang": {
+      "session": "s-dewi",
+      "chat_jid": "6281227334455@s.whatsapp.net",
+      "to": "Bu Endah"
+    }
+  },
+  "queue": {
+    "semarang": {
+      "kind": "send",
+      "button_label": "Kirim besok 08.00",
+      "summary": "Kita berjanji mengirim revisi hari ini (komitmen dari meeting 24 Sep). Draf memakai gaya tulis Andi; lampiran Quotation Q-0912 rev.3 dari ERP.",
+      "preview_from": "Kepada: wijaya@semarangkota.go.id · Dari: andi@gsi.co.id",
+      "preview": "Pak Wijaya, sesuai diskusi Rabu lalu, terlampir revisi penawaran videotron Simpang Lima 6×4 m dengan opsi pitch P4 outdoor dan garansi 3 tahun. Poin yang berubah: harga struktur dan durasi maintenance…",
+      "context_note": "Konteks: Pak Wijaya menanggapi email dalam 1 hari kerja rata-rata; jam terbaik kirim 08.00–09.00 besok. Saya jadwalkan otomatis kalau Anda approve sekarang.",
+      "result_text": "Dijadwalkan · Selasa 08.00 · komitmen ke Diskominfo ditandai terpenuhi",
+      "toast": "Dijadwalkan besok 08.00",
+      "tags": [
+        {
+          "k": "accent",
+          "t": "Follow-up agent"
+        },
+        {
+          "k": "neutral",
+          "t": "Diskominfo Kota Semarang"
+        }
+      ]
+    },
+    "unmer": {
+      "kind": "re",
+      "button_label": "Kirim",
+      "title": "Sapa kembali Universitas Merdeka Semarang",
+      "summary": "Ritme normal akun ini 7 hari. Tender e-katalog LED auditorium belum dibuka; saya siapkan pesan WhatsApp singkat ke Pak Dimas menanyakan jadwalnya.",
+      "preview_from": "WhatsApp · dari nomor Andi",
+      "result_text": "Terkirim · {time} · saya pantau balasannya",
+      "toast": "Terkirim ke Pak Dimas",
+      "tags": [
+        {
+          "k": "indigo",
+          "t": "Re-engagement"
+        },
+        {
+          "k": "bad",
+          "t": "Sunyi 21 hari"
+        }
+      ]
+    }
+  },
+  "extra_actions": [
+    {
+      "id": "pricing_rsud_7",
+      "agent": "Pricing agent",
+      "type": "discount_exception",
+      "kind": "policy",
+      "account": "rsud",
+      "opportunity": "rsud",
+      "title": "Diskon 7% untuk RSUD Kota Yogyakarta",
+      "icon": "i-shield",
+      "button_label": "Minta bukti dulu",
+      "due": "Hari ini",
+      "summary": "Dewi mengusulkan diskon 7% untuk menandingi vendor lain. Policy Anda: diskon di atas 5% butuh persetujuan CEO.",
+      "why": "Dewi mengajukan diskon 7% pukul 15:40 untuk menandingi vendor lain yang disebut Pak Hendra di email 26 Sep. Policy discount_max_without_ceo = 5%.",
+      "prep": "Perhitungan margin dari Odoo (harga modul terkini) dan riwayat 4 deal RS sebelumnya; tidak ada dokumen penawaran kompetitor yang terlampir.",
+      "context_note": "Kompetitor disebut, tapi belum ada penawaran tertulis yang kita lihat. Di 4 deal RS sebelumnya, diskon tanpa bukti penawaran tidak mempercepat keputusan. Pertimbangkan minta salinan penawaran lebih dulu.",
+      "impact": [
+        {
+          "label": "Nilai deal",
+          "value": "Rp 2,4 M"
+        },
+        {
+          "label": "Margin sekarang",
+          "value": "18,4%"
+        },
+        {
+          "label": "Margin setelah diskon",
+          "value": "12,1%",
+          "tone": "warn"
+        }
+      ],
+      "steps": [
+        "Keputusan dicatat di audit log dengan alasan",
+        "Dewi diberi tahu lewat Basecamp",
+        "Quotation direvisi otomatis bila disetujui"
+      ],
+      "options": [
+        {
+          "key": "approve_7",
+          "label": "Setujui 7%",
+          "primary": true,
+          "result": "Diskon 7% disetujui · Dewi diberi tahu, quotation direvisi otomatis",
+          "toast": "Keputusan dicatat di audit log & Odoo"
+        },
+        {
+          "key": "ask_evidence",
+          "label": "Minta bukti dulu",
+          "result": "Ditolak sementara · Dewi diminta meminta salinan penawaran kompetitor",
+          "toast": "Keputusan dicatat di audit log & Odoo"
+        }
+      ],
+      "tags": [
+        {
+          "k": "warn",
+          "t": "Pengecualian policy"
+        },
+        {
+          "k": "neutral",
+          "t": "Diajukan Dewi · 15:40"
+        }
+      ],
+      "confidence": 0.86,
+      "proposed_by": "dewi",
+      "created_at": "2026-09-28T15:40"
+    },
+    {
+      "id": "credit_graha_24cam",
+      "agent": "Credit guardrail",
+      "type": "credit_release",
+      "kind": "policy",
+      "account": "graha",
+      "opportunity": null,
+      "title": "Pelepasan barang kredit — PT Graha Sentosa",
+      "icon": "i-shield",
+      "button_label": "Setujui dengan DP 50%",
+      "due": "Hari ini",
+      "summary": "Fajar meminta rilis 24 unit kamera (Rp 180 jt) dengan termin 30 hari. Setelah rilis, exposure akun ini melewati limit kredit.",
+      "why": "Permintaan rilis barang distribusi dengan termin 30 hari membuat exposure melewati limit kredit akun.",
+      "prep": "Checklist SOP-SEC-001 dijalankan: verifikasi PO via telepon ke nomor kantor terdaftar dan pencocokan alamat kirim dengan 3 pengiriman sebelumnya.",
+      "context_note": "SOP-SEC-001: PO asli terverifikasi lewat telepon ke nomor kantor terdaftar ✓, alamat kirim sama dengan 3 pengiriman sebelumnya ✓. Risikonya bukan penipuan, tapi konsentrasi piutang: 1 invoice Rp 95 jt sudah lewat 17 hari. Usulan: rilis dengan DP 50% atau setelah invoice tersebut lunas.",
+      "impact": [
+        {
+          "label": "Piutang berjalan",
+          "value": "Rp 220 jt"
+        },
+        {
+          "label": "Limit kredit",
+          "value": "Rp 250 jt"
+        },
+        {
+          "label": "Setelah rilis",
+          "value": "Rp 400 jt",
+          "tone": "bad"
+        },
+        {
+          "label": "Rata-rata bayar",
+          "value": "47 hari",
+          "tone": "warn"
+        }
+      ],
+      "steps": [
+        "Keputusan dicatat di audit log",
+        "Fajar & gudang diberi tahu",
+        "SO di Odoo dibuat dengan syarat yang dipilih"
+      ],
+      "options": [
+        {
+          "key": "approve_with_dp",
+          "label": "Setujui dengan DP 50%",
+          "primary": true,
+          "result": "Disetujui dengan DP 50% · SO dibuat di Odoo dengan syarat DP, gudang menunggu bukti transfer",
+          "toast": "Keputusan dicatat di audit log & Odoo"
+        },
+        {
+          "key": "hold",
+          "label": "Tahan sampai invoice lunas",
+          "result": "Ditahan · Fajar diminta menagih invoice Rp 95 jt dulu; ARC memantau pembayarannya",
+          "toast": "Keputusan dicatat di audit log & Odoo"
+        }
+      ],
+      "tags": [
+        {
+          "k": "bad",
+          "t": "Credit guardrail"
+        },
+        {
+          "k": "neutral",
+          "t": "Diajukan Fajar · Jakarta · distribusi"
+        }
+      ],
+      "confidence": 0.9,
+      "proposed_by": "fajar",
+      "created_at": "2026-09-28T14:05",
+      "payload": {
+        "units": 24,
+        "amount": 180000000,
+        "term_days": 30
+      }
+    }
+  ],
+  "credit_profiles": [
+    {
+      "account": "graha",
+      "limit": 250000000,
+      "open": 220000000,
+      "avg_days": 47,
+      "overdue_note": "1 invoice Rp 95 jt lewat 17 hari",
+      "phone": "+62 21-5550-1188"
+    }
+  ],
+  "calendar": [
+    {
+      "id": "ev-bsd-kickoff",
+      "title": "Kick-off fire alarm — Bank Sejahtera Daerah",
+      "start": "2026-09-29T09:00",
+      "duration": 60,
+      "location": "Kantor pusat Yogyakarta",
+      "attendees": "Dewi, Pak Yusuf, tim IT",
+      "account": "bsd",
+      "owner": "dewi",
+      "prep": "ready",
+      "pills": [
+        {
+          "k": "good",
+          "t": "Prep siap",
+          "icon": "i-check"
+        },
+        {
+          "k": "neutral",
+          "t": "PO belum masuk — angkat di awal"
+        }
+      ]
+    },
+    {
+      "id": "ev-forecast-q4",
+      "title": "Review forecast Q4",
+      "start": "2026-09-29T13:30",
+      "duration": 45,
+      "location": "Internal",
+      "attendees": "4 kepala cabang",
+      "internal": true,
+      "owner": "sam",
+      "prep": "ready",
+      "pills": [
+        {
+          "k": "good",
+          "t": "Deck dari Forecast agent",
+          "icon": "i-check"
+        }
+      ]
+    },
+    {
+      "id": "ev-baja-presentasi",
+      "title": "Presentasi command center — PT Nusantara Baja",
+      "start": "2026-09-29T15:30",
+      "duration": 90,
+      "location": "Tuban · online",
+      "attendees": "Rizky",
+      "account": "baja",
+      "owner": "rizky",
+      "prep": "partial",
+      "pills": [
+        {
+          "k": "warn",
+          "t": "Prep 80% — menunggu spek videowall"
+        }
+      ]
+    }
+  ],
+  "invoices": [
+    {
+      "id": "inv-0702",
+      "number": "INV/2026/0702",
+      "so": "SO-2026-0702",
+      "account": "semen",
+      "amount": 1450000000,
+      "invoice_date": "2026-08-21",
+      "due": "2026-09-20",
+      "pattern": "tepat"
+    },
+    {
+      "id": "inv-0688",
+      "number": "INV/2026/0688",
+      "so": "SO-2026-0688",
+      "account": "magelang",
+      "amount": 980000000,
+      "invoice_date": "2026-06-19",
+      "due": "2026-07-19",
+      "pattern": "termin_anggaran",
+      "gov": true,
+      "spm": "2026-09-22"
+    },
+    {
+      "id": "inv-0812a",
+      "number": "INV/2026/0812-T1",
+      "so": "SO-2026-0812",
+      "account": "cakra",
+      "amount": 1330000000,
+      "invoice_date": "2026-09-18",
+      "due": "2026-11-17",
+      "label": "termin 1"
+    },
+    {
+      "id": "inv-0799a",
+      "number": "INV/2026/0799-DP",
+      "so": "SO-2026-0799",
+      "account": "salatiga",
+      "amount": 360000000,
+      "invoice_date": "2026-09-05",
+      "due": "2026-11-04",
+      "gov": true,
+      "label": "DP 30%"
+    },
+    {
+      "id": "inv-0731",
+      "number": "INV/2026/0731",
+      "so": "SO-2026-0731",
+      "account": "panti",
+      "amount": 350000000,
+      "invoice_date": "2026-09-10",
+      "due": "2026-11-09",
+      "label": "service tahunan"
+    },
+    {
+      "id": "inv-0744",
+      "number": "INV/2026/0744",
+      "so": "SO-2026-0744",
+      "account": "semen",
+      "amount": 250000000,
+      "invoice_date": "2026-09-14",
+      "due": "2026-11-13",
+      "label": "maintenance videowall"
+    },
+    {
+      "id": "inv-0760",
+      "number": "INV/2026/0760",
+      "so": "SO-2026-0760",
+      "account": "bsd",
+      "amount": 190000000,
+      "invoice_date": "2026-09-16",
+      "due": "2026-11-15",
+      "label": "service CCTV"
+    },
+    {
+      "id": "inv-0766",
+      "number": "INV/2026/0766",
+      "so": "SO-2026-0766",
+      "account": "amarta",
+      "amount": 120000000,
+      "invoice_date": "2026-09-21",
+      "due": "2026-11-20",
+      "label": "perluasan CCTV"
+    },
+    {
+      "id": "inv-g-0091",
+      "number": "INV/2026/D-0091",
+      "so": "SO-2026-D091",
+      "account": "graha",
+      "amount": 95000000,
+      "invoice_date": "2026-08-12",
+      "due": "2026-09-11",
+      "category": "distribusi"
+    },
+    {
+      "id": "inv-g-0102",
+      "number": "INV/2026/D-0102",
+      "so": "SO-2026-D102",
+      "account": "graha",
+      "amount": 125000000,
+      "invoice_date": "2026-09-08",
+      "due": "2026-10-08",
+      "category": "distribusi"
+    },
+    {
+      "id": "inv-0771",
+      "number": "INV/2026/0771",
+      "so": "SO-2026-0771",
+      "account": "amarta",
+      "amount": 412000000,
+      "invoice_date": "2026-08-28",
+      "due": "2026-09-27",
+      "paid": "2026-09-28"
+    }
+  ],
+  "cash_forecast_items": [
+    {
+      "id": "rcv-semen",
+      "kind": "invoice",
+      "invoice": "inv-0702",
+      "label": "PT Semen Mitra Tuban",
+      "account": "semen"
+    },
+    {
+      "id": "rcv-cakra-t2",
+      "kind": "expected",
+      "trigger": "after_bast",
+      "label": "PT Cakra Logistik — termin 2",
+      "account": "cakra",
+      "amount": 570000000,
+      "cash_item": "l2c-cakra",
+      "detail": "Rp 570 jt setelah BAST · BAST diperkirakan minggu depan"
+    },
+    {
+      "id": "rcv-magelang",
+      "kind": "invoice",
+      "invoice": "inv-0688",
+      "label": "Dinas PU Kab. Magelang",
+      "account": "magelang"
+    },
+    {
+      "id": "rcv-bsd-dp",
+      "kind": "expected",
+      "trigger": "after_po",
+      "label": "Bank Sejahtera — DP 30%",
+      "account": "bsd",
+      "amount": 258000000,
+      "detail": "Rp 258 jt setelah PO · PO menunggu Bu Dian (Rabu)"
+    },
+    {
+      "id": "rcv-panti",
+      "kind": "expected",
+      "trigger": "invoice_pending",
+      "label": "RS Panti Rapih",
+      "account": "panti",
+      "amount": 720000000,
+      "cash_item": "l2c-panti",
+      "detail": "Rp 720 jt · invoice belum dibuat — kalau dibuat hari ini, termin 30"
+    }
+  ],
+  "payment_history": [
+    {
+      "account": "semen",
+      "refs": [
+        [
+          "INV/2024/0410",
+          35
+        ],
+        [
+          "INV/2024/0911",
+          34
+        ],
+        [
+          "INV/2025/0302",
+          36
+        ],
+        [
+          "INV/2025/0815",
+          35
+        ],
+        [
+          "INV/2026/0201",
+          35
+        ]
+      ]
+    },
+    {
+      "account": "amarta",
+      "refs": [
+        [
+          "INV/2024/0505",
+          28
+        ],
+        [
+          "INV/2025/0120",
+          30
+        ],
+        [
+          "INV/2025/0710",
+          29
+        ],
+        [
+          "INV/2026/0771",
+          31
+        ]
+      ]
+    },
+    {
+      "account": "panti",
+      "refs": [
+        [
+          "INV/2025/0605",
+          27
+        ],
+        [
+          "INV/2026/0115",
+          33
+        ]
+      ]
+    },
+    {
+      "account": "magelang",
+      "refs": [
+        [
+          "INV/2024/0702",
+          88
+        ],
+        [
+          "INV/2025/0611",
+          79
+        ]
+      ]
+    },
+    {
+      "account": "bsd",
+      "refs": [
+        [
+          "INV/2023/1102",
+          30
+        ],
+        [
+          "INV/2024/0601",
+          29
+        ]
+      ]
+    },
+    {
+      "account": "graha",
+      "refs": [
+        [
+          "INV/2025/D-0040",
+          44
+        ],
+        [
+          "INV/2025/D-0061",
+          52
+        ],
+        [
+          "INV/2026/D-0077",
+          45
+        ]
+      ]
+    },
+    {
+      "account": "sleman",
+      "refs": [
+        [
+          "INV/2025/0901",
+          41
+        ],
+        [
+          "INV/2025/1120",
+          43
+        ]
+      ]
+    },
+    {
+      "account": "baja",
+      "refs": [
+        [
+          "INV/2025/0721",
+          28
+        ],
+        [
+          "INV/2026/0130",
+          27
+        ]
+      ]
+    },
+    {
+      "account": "rsud",
+      "refs": [
+        [
+          "INV/2025/0410",
+          35
+        ]
+      ]
+    }
+  ],
+  "l2c_meta": {
+    "l2c_panti": {
+      "id": "l2c-panti",
+      "account": "panti",
+      "project_id": "PRJ-2026-029"
+    },
+    "l2c_magelang": {
+      "id": "l2c-magelang",
+      "account": "magelang",
+      "project_id": "PRJ-2026-018",
+      "invoice": "inv-0688"
+    },
+    "l2c_semen": {
+      "id": "l2c-semen",
+      "account": "semen",
+      "project_id": "PRJ-2026-022",
+      "invoice": "inv-0702"
+    },
+    "won_salatiga": {
+      "id": "l2c-salatiga",
+      "account": "salatiga",
+      "project_id": "PRJ-2026-038"
+    },
+    "l2c_cakra": {
+      "id": "l2c-cakra",
+      "account": "cakra",
+      "project_id": "PRJ-2026-044"
+    },
+    "_amarta": {
+      "id": "l2c-amarta",
+      "account": "amarta",
+      "project_id": "PRJ-2026-024",
+      "invoice": "inv-0771"
+    }
+  },
+  "installed_extra": {
+    "panti": {
+      "inst": [
+        {
+          "s": "Fire alarm gedung A–B",
+          "y": "2023",
+          "w": "Garansi habis Des 2026",
+          "warranty_end": "2026-12-15",
+          "c": "Tanpa kontrak service"
+        }
+      ],
+      "ws": [
+        {
+          "p": "Fire alarm",
+          "st": "ada"
+        },
+        {
+          "p": "Maintenance",
+          "st": "peluang",
+          "v": 224000000,
+          "why": "Garansi habis Des · 2 gedung"
+        }
+      ]
+    },
+    "salatiga": {
+      "inst": [
+        {
+          "s": "Videotron alun-alun 4×3 m",
+          "y": "2026",
+          "w": "Garansi habis Jan 2027",
+          "warranty_end": "2027-01-10",
+          "c": "Tanpa kontrak service"
+        }
+      ],
+      "ws": [
+        {
+          "p": "Videotron",
+          "st": "ada"
+        },
+        {
+          "p": "Maintenance",
+          "st": "peluang",
+          "v": 200000000,
+          "why": "Garansi unit lama habis Jan · SLA layar outdoor"
+        }
+      ]
+    }
+  },
+  "warranty_ends": {
+    "amarta": "2026-11-20",
+    "bsd": "2026-03-31",
+    "semarang": "2019-12-31"
+  },
+  "tenders": [
+    {
+      "id": "tdr-kudus",
+      "title": "Pengadaan Videotron Alun-alun Kab. Kudus",
+      "agency": "Pemkab Kudus",
+      "source": "LPSE Kudus",
+      "hps": 2300000000,
+      "deadline": "2026-10-09",
+      "description": "P4 outdoor 6×4 m",
+      "keywords": [
+        "videotron",
+        "p4",
+        "outdoor"
+      ],
+      "reasons": "sama dengan portofolio Salatiga & Simpang Lima",
+      "research_score": 92
+    },
+    {
+      "id": "tdr-magelang",
+      "title": "CCTV Kota Cerdas Tahap 2 — Kota Magelang",
+      "agency": "Pemkot Magelang",
+      "source": "e-katalog",
+      "hps": 1700000000,
+      "deadline": "2026-10-15",
+      "description": "pemenang tahap 1 vendor lain",
+      "keywords": [
+        "cctv",
+        "kota cerdas"
+      ],
+      "reasons": "kita punya referensi Dinas PU Magelang",
+      "research_score": 84
+    },
+    {
+      "id": "tdr-wonosari",
+      "title": "Fire Alarm Addressable — RSUD Wonosari",
+      "agency": "RSUD Wonosari",
+      "source": "LPSE Gunungkidul",
+      "hps": 640000000,
+      "deadline": "2026-10-03",
+      "description": "butuh SBU fire alarm (ada) & referensi RS (Panti Rapih)",
+      "keywords": [
+        "fire alarm",
+        "addressable",
+        "rs"
+      ],
+      "reasons": "",
+      "research_score": 71
+    }
+  ],
+  "tender_keywords": [
+    "videotron",
+    "led",
+    "cctv",
+    "vms",
+    "fire alarm",
+    "addressable",
+    "videowall",
+    "command center",
+    "digital signage",
+    "kota cerdas",
+    "smart city",
+    "p4",
+    "outdoor",
+    "rs"
+  ],
+  "wa_sessions": [
+    {
+      "id": "s-andi",
+      "user": "andi",
+      "label": "Andi · Semarang",
+      "status": "connected",
+      "last_event_min": 5,
+      "messages_30d": 1240
+    },
+    {
+      "id": "s-dewi",
+      "user": "dewi",
+      "label": "Dewi · Yogyakarta",
+      "status": "connected",
+      "last_event_min": 2,
+      "messages_30d": 980
+    },
+    {
+      "id": "s-rizky",
+      "user": "rizky",
+      "label": "Rizky · Surabaya",
+      "status": "pairing",
+      "qr_seconds": 272,
+      "messages_30d": 0
+    },
+    {
+      "id": "s-fajar",
+      "user": "fajar",
+      "label": "Fajar · Jakarta",
+      "status": "unlinked",
+      "messages_30d": 0
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-simpanglima",
+      "jid": "120363041001@g.us",
+      "name": "Proyek Videotron Simpang Lima",
+      "type": "external",
+      "read": true,
+      "session": "s-andi",
+      "account": "semarang"
+    },
+    {
+      "id": "g-pelabuhan",
+      "jid": "120363041002@g.us",
+      "name": "CCTV Pelabuhan Jaya — Koordinasi",
+      "type": "external",
+      "read": true,
+      "session": "s-rizky",
+      "account": "pelindo"
+    },
+    {
+      "id": "g-teknisi",
+      "jid": "120363041003@g.us",
+      "name": "Teknisi Semarang",
+      "type": "internal",
+      "read": true,
+      "session": "s-andi",
+      "members": 7
+    },
+    {
+      "id": "g-gudang",
+      "jid": "120363041004@g.us",
+      "name": "Gudang & Purchasing",
+      "type": "internal",
+      "read": false,
+      "session": "s-rizky",
+      "members": 5
+    }
+  ],
+  "unlisted_groups": 5,
+  "privacy_rules": [
+    {
+      "id": "odoo_contacts_only",
+      "title": "Hanya chat dengan nomor yang ada di kontak Odoo",
+      "detail": "Nomor tak dikenal diabaikan sampai sales menautkannya ke akun",
+      "enabled": true
+    },
+    {
+      "id": "external_groups_full",
+      "title": "Grup eksternal (ada pelanggan) — dibaca penuh",
+      "detail": "Komitmen, tugas, kendala, sentimen · memengaruhi health akun",
+      "enabled": true
+    },
+    {
+      "id": "internal_groups_schedule",
+      "title": "Grup internal — dibaca untuk jadwal & tugas saja",
+      "detail": "Tidak memengaruhi health akun mana pun · tidak masuk peta Network",
+      "enabled": true
+    },
+    {
+      "id": "skip_internal_private",
+      "title": "Chat pribadi antar karyawan tidak dibaca",
+      "detail": "Nomor internal dikenali; percakapan 1:1 mereka dilewati, hanya grup yang dibaca",
+      "enabled": true
+    },
+    {
+      "id": "skip_marked_private",
+      "title": "Abaikan chat yang ditandai pribadi oleh sales",
+      "detail": "Sales bisa menandai kontak sebagai pribadi dari ponselnya",
+      "enabled": true
+    },
+    {
+      "id": "store_media",
+      "title": "Simpan media (foto, dokumen, voice note)",
+      "detail": "Teks saja bila mati; dokumen penawaran tetap diambil dari Drive",
+      "enabled": false
+    },
+    {
+      "id": "never_send",
+      "title": "ARC tidak pernah mengirim pesan sendiri",
+      "detail": "Setiap draft masuk antrean approval; ini tidak bisa dimatikan",
+      "enabled": true,
+      "locked": true
+    }
+  ],
+  "connectors": [
+    {
+      "id": "odoo",
+      "name": "Odoo CRM & Sales",
+      "sub": "gosyen-solusi-indonesia-2",
+      "logo": "odoo",
+      "color": "#714B67",
+      "grp": "source"
+    },
+    {
+      "id": "gmail",
+      "name": "Gmail",
+      "sub": "4 kotak masuk sales + Anda",
+      "logo": "M",
+      "color": "#D93025",
+      "grp": "source"
+    },
+    {
+      "id": "gcal",
+      "name": "Google Calendar",
+      "sub": "Meeting prep & komitmen",
+      "logo": "31",
+      "color": "#1A73E8",
+      "grp": "source"
+    },
+    {
+      "id": "gdrive",
+      "name": "Google Drive",
+      "sub": "Proposal, penawaran, BAST",
+      "logo": "▲",
+      "color": "#F9AB00",
+      "text": "#1D1D1F",
+      "grp": "source"
+    },
+    {
+      "id": "whatsapp",
+      "name": "WhatsApp",
+      "sub": "4 nomor sales · 3 grup project",
+      "logo": "WA",
+      "color": "#25D366",
+      "grp": "source"
+    },
+    {
+      "id": "basecamp",
+      "name": "Basecamp",
+      "sub": "Tujuan kirim Today brief",
+      "logo": "BC",
+      "color": "#1D2D35",
+      "grp": "source"
+    },
+    {
+      "id": "getcontact",
+      "name": "Getcontact",
+      "sub": "Tag nama dari buku kontak pengguna lain",
+      "logo": "GC",
+      "color": "#1E88E5",
+      "grp": "identity"
+    },
+    {
+      "id": "wa_profile",
+      "name": "Profil WhatsApp Business",
+      "sub": "Nama, deskripsi, foto — resmi via API",
+      "logo": "WA",
+      "color": "#25D366",
+      "grp": "identity"
+    },
+    {
+      "id": "truecaller",
+      "name": "Truecaller",
+      "sub": "Nama & label spam",
+      "logo": "TC",
+      "color": "#0087FF",
+      "grp": "identity"
+    },
+    {
+      "id": "web",
+      "name": "Web & berita publik",
+      "sub": "Profil perusahaan, cabang, kabar ekspansi",
+      "logo": "W",
+      "color": "var(--text-3)",
+      "grp": "identity"
+    }
+  ],
+  "ai_clients": [
+    {
+      "id": "claude",
+      "name": "Claude",
+      "logo": "C",
+      "color": "#D97757",
+      "desc": "Claude.ai & Claude Desktop · 3 pengguna · via MCP (OAuth)",
+      "users": 3,
+      "last": "2026-09-28T21:14"
+    },
+    {
+      "id": "chatgpt",
+      "name": "ChatGPT",
+      "logo": "G",
+      "color": "#10A37F",
+      "desc": "Connector MCP (Developer mode) + Custom GPT “ARC” · 2 pengguna",
+      "users": 2,
+      "last": "2026-09-28T19:02"
+    },
+    {
+      "id": "api",
+      "name": "Klien lain via ARC AI API",
+      "logo": "API",
+      "color": "#1D1D1F",
+      "desc": "n8n, Odoo automation, model self-hosted — dengan API key & scope",
+      "users": 0
+    }
+  ],
+  "api_keys": [
+    {
+      "id": "key-claude",
+      "name": "Claude · MCP",
+      "prefix": "arc_live_7f3k",
+      "scopes": [
+        "read",
+        "propose"
+      ],
+      "last": "2026-09-28T21:14",
+      "rpm": 60,
+      "calls": 3120
+    },
+    {
+      "id": "key-chatgpt",
+      "name": "ChatGPT · MCP",
+      "prefix": "arc_live_c91d",
+      "scopes": [
+        "read",
+        "propose"
+      ],
+      "last": "2026-09-28T19:02",
+      "rpm": 60,
+      "calls": 1842
+    },
+    {
+      "id": "key-n8n",
+      "name": "n8n · webhook",
+      "prefix": "arc_live_2ab0",
+      "scopes": [
+        "events",
+        "signals"
+      ],
+      "rpm": 120,
+      "calls": 1204
+    },
+    {
+      "id": "key-odoo",
+      "name": "Odoo automation",
+      "prefix": "arc_live_e77q",
+      "scopes": [
+        "read"
+      ],
+      "rpm": 30,
+      "calls": 640
+    }
+  ],
+  "calibration": [
+    {
+      "agent": "Collection agent",
+      "approved": 10,
+      "total": 11
+    },
+    {
+      "agent": "Follow-up agent",
+      "approved": 21,
+      "total": 25
+    },
+    {
+      "agent": "Meeting prep agent",
+      "approved": 8,
+      "total": 10
+    },
+    {
+      "agent": "Research agent",
+      "approved": 8,
+      "total": 13
+    },
+    {
+      "agent": "Pricing agent",
+      "approved": 2,
+      "total": 5
+    }
+  ],
+  "learned_rules": [
+    {
+      "agent": "Pricing agent",
+      "pattern": "pricing:discount:sector=kesehatan",
+      "text": "Saran diskon untuk akun RS dinonaktifkan setelah 3 penolakan “tidak sesuai kebijakan” — diganti “minta bukti penawaran”."
+    },
+    {
+      "agent": "Collection agent",
+      "pattern": "collection:payment_reminder:gov<30",
+      "text": "Pengingat piutang ke pemerintah tidak lagi diusulkan sebelum H+30; alasan Anda: termin anggaran."
+    },
+    {
+      "agent": "Meeting prep agent",
+      "pattern": "meeting_prep:internal<30m",
+      "text": "Meeting prep tidak dikirim untuk meeting internal < 30 menit (ditolak 4×: “tidak perlu”)."
+    }
+  ],
+  "coaching": {
+    "andi": "Dorong Pak Arif (PPK) masuk percakapan Simpang Lima sebelum rapat Rabu.",
+    "dewi": "2 dari 3 deal bertumpu satu orang; target minggu ini: 1 kontak baru di RSUD dan Sleman.",
+    "rizky": "Kirim BoQ Pelabuhan Jaya lebih awal; legal mereka lambat.",
+    "fajar": "{msgs} pesan WA dengan {contacts} kontak tanpa satu pun lead di Odoo. Buat lead Pak Hasan hari ini."
+  },
+  "team_stats": {
+    "andi": {
+      "response_min": 108,
+      "followup_on_time": 92
+    },
+    "dewi": {
+      "response_min": 246,
+      "followup_on_time": 78
+    },
+    "rizky": {
+      "response_min": 144,
+      "followup_on_time": 88
+    },
+    "fajar": {}
+  },
+  "agent_feed": [
+    {
+      "agent": "Capture",
+      "html": "<b>{interactions} interaksi</b> diproses, <b>{commitments} komitmen</b> baru terdeteksi, 0 perlu konfirmasi"
+    },
+    {
+      "agent": "Hygiene",
+      "html": "2 kontak duplikat digabung (Pak Bagus RSUD: WhatsApp ↔ email)"
+    },
+    {
+      "agent": "Research",
+      "html": "Lead baru <b>Dinas Pendidikan Kab. Kendal</b> dikualifikasi: anggaran DAK 2027, belum ada spek"
+    },
+    {
+      "agent": "Forecast",
+      "html": "Health <b>PT Nusantara Baja</b> naik 58 → 64 setelah 2 stakeholder baru ikut meeting"
+    },
+    {
+      "agent": "Meeting prep",
+      "html": "3 brief besok siap; 1 menunggu dokumen dari Rizky"
+    }
+  ],
+  "today_activity": {
+    "interactions": 23,
+    "commitments_new": 3,
+    "emails": 14,
+    "whatsapp": 6,
+    "meetings": 2,
+    "payments": 1
+  },
+  "policies": {
+    "discount_max_without_ceo": 5,
+    "quiet_threshold_days": 14,
+    "gov_reminder_min_days": 30,
+    "single_thread_share": 80,
+    "bast_benchmark_days": 3,
+    "prep_benchmark_days": 14,
+    "install_benchmark_days": 14,
+    "quarter_target": 5000000000,
+    "next_quarter_target": 4600000000,
+    "pipeline_coverage_target": 3,
+    "forecast_stage_weight": {
+      "Baru": 0.2,
+      "Berkualifikasi": 0.42,
+      "Penawaran": 0.78,
+      "verbal_commit": 1.0
+    },
+    "commit_min_health": 80,
+    "best_min_health": 75,
+    "maintenance_value_pct": 0.1,
+    "credit_limit_default": 250000000,
+    "wa_send_rate_per_hour": 20,
+    "identification_retention_days": 90,
+    "brief_slots": [
+      "06:45",
+      "16:00"
+    ]
+  },
+  "commit_accuracy": [
+    {
+      "q": "Q2 2026",
+      "committed": 4100000000,
+      "actual": 2500000000
+    },
+    {
+      "q": "Q3 2026",
+      "committed": 4300000000,
+      "actual": 3780000000
+    }
+  ],
+  "history": {
+    "_comment": "Closed deals of the last 24 months used for win rate by source, pulse metrics and flywheel. Generated deterministically by the seed.",
+    "sources": {
+      "ekspansi": [
+        11,
+        7
+      ],
+      "referral": [
+        11,
+        5
+      ],
+      "inbound": [
+        13,
+        4
+      ],
+      "tender": [
+        17,
+        3
+      ],
+      "cold": [
+        7,
+        1
+      ]
+    },
+    "customers": 37,
+    "referrers": 7,
+    "expansion_accounts": 10,
+    "lead_to_cash_after": [
+      51,
+      58,
+      63,
+      67,
+      71,
+      74,
+      79,
+      84,
+      92
+    ],
+    "lead_to_cash_before": [
+      70,
+      81,
+      88,
+      93,
+      96,
+      101,
+      108,
+      115,
+      124
+    ],
+    "won_to_invoice_after": [
+      5,
+      7,
+      8,
+      9,
+      10,
+      12,
+      14
+    ],
+    "won_to_invoice_before": [
+      12,
+      15,
+      17,
+      19,
+      22,
+      25,
+      28
+    ],
+    "dso_after": [
+      30,
+      35,
+      41,
+      44,
+      47,
+      52,
+      59
+    ],
+    "dso_before": [
+      42,
+      49,
+      55,
+      58,
+      61,
+      66,
+      75
+    ],
+    "response_min_after": [
+      60,
+      120,
+      180,
+      192,
+      230,
+      240,
+      322
+    ],
+    "response_min_before": [
+      480,
+      900,
+      1200,
+      1332,
+      1500,
+      1680,
+      2232
+    ],
+    "won_to_bast_recent": [
+      21,
+      26,
+      29,
+      31,
+      34,
+      38,
+      41
+    ]
+  },
+  "funnel": {
+    "month": "2026-09",
+    "counts": {
+      "masuk": 46,
+      "teridentifikasi": 31,
+      "relevan": 14,
+      "pain_point": 9,
+      "lead": 7,
+      "penawaran": 4,
+      "won": 1
+    },
+    "channels": [
+      "wa",
+      "form",
+      "telepon",
+      "tender",
+      "referral"
+    ],
+    "identify_minutes_after": 6,
+    "identify_minutes_before": 2880,
+    "ident_to_lead_days_after": 1.3,
+    "ident_to_lead_days_before": 5,
+    "avg_lead_value": 610000000,
+    "avg_lead_value_before": 290000000
+  },
+  "brief_counts": {
+    "emails": 14,
+    "whatsapp": 6,
+    "meetings": 2,
+    "payments": 1
+  },
+  "phones": {
+    "hendra": "+62 811-2650-1442",
+    "bagus": "+62 812-2701-3345",
+    "sinta": "+62 813-2788-0912",
+    "lestari": "+62 811-2600-7720",
+    "yusuf": "+62 812-2777-6611",
+    "roni": "+62 813-2655-4410",
+    "dian": "+62 811-2599-3001",
+    "ratna": "+62 812-2733-8891",
+    "yoga": "+62 813-2611-2045",
+    "sekda": "+62 811-2588-1000",
+    "wijaya": "+62 812-2901-5521",
+    "arif": "+62 813-2900-7310",
+    "mira": "+62 812-2955-1120",
+    "dimas": "+62 813-9011-2233",
+    "wr2": "+62 811-2900-4500",
+    "kartika": "+62 812-2811-3311",
+    "adi": "+62 813-2822-6610",
+    "ferdi": "+62 812-3301-4411",
+    "nadia": "+62 813-3322-7710",
+    "iwan": "+62 812-3355-2202",
+    "bambang": "+62 811-3301-9933",
+    "tari": "+62 812-3377-4455",
+    "gunawan": "+62 813-3388-1001",
+    "teguh": "+62 812-8890-3310",
+    "wulan": "+62 813-8811-4412",
+    "hasan": "+62 812-8877-6601"
+  },
+  "emails": {
+    "hendra": "hendra@rsudjogja.go.id",
+    "lestari": "lestari@rsudjogja.go.id",
+    "wijaya": "wijaya@semarangkota.go.id",
+    "kartika": "kartika@amartahotel.co.id",
+    "yusuf": "yusuf@banksejahtera.co.id",
+    "ferdi": "ferdi@nusantarabaja.co.id",
+    "bambang": "bambang@pelabuhanjaya.co.id"
+  },
+  "chat_threads": {
+    "c-wijaya": {
+      "session": "s-andi",
+      "person": "wijaya",
+      "unread": 2
+    },
+    "g-simpanglima": {
+      "session": "s-andi",
+      "group": "g-simpanglima",
+      "unread": 3
+    },
+    "c-yusuf": {
+      "session": "s-dewi",
+      "person": "yusuf",
+      "unread": 1
+    },
+    "g-pelabuhan": {
+      "session": "s-rizky",
+      "group": "g-pelabuhan",
+      "unread": 0
+    },
+    "c-hendra": {
+      "session": "s-dewi",
+      "person": "hendra",
+      "unread": 0
+    },
+    "c-kartika": {
+      "session": "s-andi",
+      "person": "kartika",
+      "unread": 0
+    },
+    "g-teknisi": {
+      "session": "s-andi",
+      "group": "g-teknisi",
+      "unread": 0
+    },
+    "c-bayu": {
+      "session": "s-andi",
+      "internal": "Bayu Pratama",
+      "unread": 0
+    }
+  },
+  "chat_days": {
+    "Rabu, 24 Sep": "2026-09-24",
+    "Hari ini": "2026-09-28",
+    "Senin, 22 Sep": "2026-09-22",
+    "Kemarin": "2026-09-27",
+    "Jumat, 12 Sep": "2026-09-12",
+    "Jumat, 26 Sep": "2026-09-26"
+  },
+  "internal_numbers_full": {
+    "Bayu Pratama": "+62 857-2211-1188",
+    "Sari Wulandari": "+62 812-2290-3390",
+    "Dedi Kurniawan": "+62 813-3410-7702",
+    "Gudang Surabaya": "+62 811-3300-0045",
+    "Bu Rina": "+62 816-1100-2231",
+    "Pak Hendro": "+62 812-1100-9900"
+  },
+  "suspects_full": {
+    "+62 838-••••-4412": "+62 838-2901-4412",
+    "+62 821-••••-0817": "+62 821-2933-0817"
+  },
+  "inbound_full": {
+    "in1": "+62 812-4410-5521",
+    "in3": "+62 821-4471-7764",
+    "in2": "+62 857-4402-0193",
+    "in4": "+62 813-4433-4402"
+  },
+  "inbound_received": {
+    "in1": "2026-09-28T10:12",
+    "in3": "2026-09-28T08:55",
+    "in2": "2026-09-27T15:40",
+    "in4": "2026-09-27T11:20"
+  },
+  "inbound_overview_role": {
+    "in1": "Procurement",
+    "in3": "—",
+    "in2": "Guru",
+    "in4": "Vendor"
+  },
+  "ask_seed": [
+    "Deal mana yang berisiko bulan ini dan kenapa?",
+    "Kalau PO Bank Sejahtera tidak masuk minggu ini, dampaknya ke target Q3?"
+  ],
+  "ask_extra": {
+    "Deal mana yang berisiko bulan ini dan kenapa?": {
+      "paragraphs": [
+        "Tiga deal berisiko, total <b class=\"num\">{total}</b>. Ketiganya punya pola yang sama: percakapan berhenti di satu orang, dan orang itu sedang tidak bisa menggerakkan keputusan."
+      ],
+      "followup": "Yang bisa saya kerjakan sekarang:"
+    },
+    "Kalau PO Bank Sejahtera tidak masuk minggu ini, dampaknya ke target Q3?": {
+      "paragraphs": [
+        "Commit turun dari {commit} ke <b class=\"num\">{without}</b>; gap ke target melebar jadi {gap}. Satu-satunya deal yang cukup besar untuk menutupnya adalah Pelabuhan Jaya (Rp 1,6 M, health {pelindo_health}), tapi legal mereka butuh ±2 minggu untuk kontrak, jadi realistisnya slip ke Q4."
+      ],
+      "followup": "Saran saya: eskalasi hari ini lewat Pak Yusuf — beliau yang berjanji 25 Sep, dan besok kalian bertemu di kick-off. Mau saya masukkan ke brief meeting besok sebagai poin pembuka?"
+    }
+  },
+  "action_summary": {
+    "l2c_semen": "Nada ramah: konfirmasi jadwal pembayaran, bukan teguran",
+    "l2c_magelang": "SPM diajukan 22 Sep; yang bisa dipercepat: kelengkapan dokumen di bendahara",
+    "l2c_panti": "BAST clear 6 hari, invoice belum dibuat — Rp 720 jt menganggur",
+    "l2c_cakra": "Pemasangan on track; jadwalkan BAST supaya termin 2 terbit awal bulan"
+  }
+}

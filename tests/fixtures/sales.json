@@ -1,0 +1,26 @@
+[
+  {
+    "id": "s-andi",
+    "n": "Andi",
+    "branch": "Semarang",
+    "no": "+62 812-••••-4471"
+  },
+  {
+    "id": "s-dewi",
+    "n": "Dewi",
+    "branch": "Yogyakarta",
+    "no": "+62 815-••••-9032"
+  },
+  {
+    "id": "s-rizky",
+    "n": "Rizky",
+    "branch": "Surabaya",
+    "no": "+62 811-••••-2210"
+  },
+  {
+    "id": "s-fajar",
+    "n": "Fajar",
+    "branch": "Jakarta",
+    "no": "+62 813-••••-7785"
+  }
+]

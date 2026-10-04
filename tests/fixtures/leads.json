@@ -1,0 +1,16 @@
+[
+  {
+    "aid": "kendal",
+    "account": "Dinas Pendidikan Kab. Kendal",
+    "opp": "LED ruang rapat + CCTV sekolah",
+    "value": 450000000,
+    "owner": "Andi",
+    "closing": "Q1 2027",
+    "tags": [
+      "Lead baru"
+    ],
+    "prio": 0,
+    "manualProb": 10,
+    "note": "Research agent: anggaran DAK 2027, belum ada spek"
+  }
+]

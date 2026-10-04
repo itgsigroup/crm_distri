@@ -1,0 +1,10 @@
+{
+  "truecaller": {
+    "6281244105521": {"name": "Rudi Wijaya", "spam_score": 0, "spam_count": 0},
+    "6281344334402": {"name": "Sales Iklan", "spam_score": 9, "spam_count": 231}
+  },
+  "web": {
+    "prima karya": [{"title": "PT Prima Karya Sejahtera", "url": "https://primakarya.co.id", "snippet": "distributor alat berat, HQ Semarang, 3 cabang Jateng; gudang baru Ungaran"}],
+    "banyumanik": [{"title": "SDN 3 Banyumanik", "url": "https://sdn3banyumanik.sch.id", "snippet": "Sekolah dasar negeri, Semarang"}]
+  }
+}

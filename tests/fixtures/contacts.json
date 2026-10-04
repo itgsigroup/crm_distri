@@ -1,0 +1,164 @@
+[
+  {
+    "id": "hendra",
+    "n": "Pak Hendra",
+    "role": "Kabid Sarpras",
+    "acc": "rsud"
+  },
+  {
+    "id": "bagus",
+    "n": "Pak Bagus",
+    "role": "Kepala IT",
+    "acc": "rsud"
+  },
+  {
+    "id": "sinta",
+    "n": "Bu Sinta",
+    "role": "ULP",
+    "acc": "rsud"
+  },
+  {
+    "id": "lestari",
+    "n": "dr. Lestari",
+    "role": "Direktur Umum",
+    "acc": "rsud",
+    "decision": true
+  },
+  {
+    "id": "yusuf",
+    "n": "Pak Yusuf",
+    "role": "Kepala Umum",
+    "acc": "bsd"
+  },
+  {
+    "id": "roni",
+    "n": "Pak Roni",
+    "role": "IT & Keamanan",
+    "acc": "bsd"
+  },
+  {
+    "id": "dian",
+    "n": "Bu Dian",
+    "role": "Dir. Operasional",
+    "acc": "bsd",
+    "decision": true
+  },
+  {
+    "id": "ratna",
+    "n": "Bu Ratna",
+    "role": "Kabid Statistik · mutasi",
+    "acc": "sleman"
+  },
+  {
+    "id": "yoga",
+    "n": "Pak Yoga",
+    "role": "Kabid Aptika",
+    "acc": "sleman"
+  },
+  {
+    "id": "sekda",
+    "n": "Pak Sekda",
+    "role": "Sekretaris Daerah",
+    "acc": "sleman",
+    "decision": true
+  },
+  {
+    "id": "wijaya",
+    "n": "Pak Wijaya",
+    "role": "Kabid Infra TIK",
+    "acc": "semarang"
+  },
+  {
+    "id": "arif",
+    "n": "Pak Arif",
+    "role": "PPK",
+    "acc": "semarang",
+    "decision": true
+  },
+  {
+    "id": "mira",
+    "n": "Bu Mira",
+    "role": "Bendahara",
+    "acc": "semarang"
+  },
+  {
+    "id": "dimas",
+    "n": "Pak Dimas",
+    "role": "Kabag Umum",
+    "acc": "unmer"
+  },
+  {
+    "id": "wr2",
+    "n": "Wakil Rektor II",
+    "role": "Keuangan & Sarpras",
+    "acc": "unmer",
+    "decision": true
+  },
+  {
+    "id": "kartika",
+    "n": "Bu Kartika",
+    "role": "General Manager",
+    "acc": "amarta"
+  },
+  {
+    "id": "adi",
+    "n": "Pak Adi",
+    "role": "Chief Engineer",
+    "acc": "amarta"
+  },
+  {
+    "id": "ferdi",
+    "n": "Pak Ferdi",
+    "role": "GM Plant",
+    "acc": "baja"
+  },
+  {
+    "id": "nadia",
+    "n": "Bu Nadia",
+    "role": "Procurement",
+    "acc": "baja"
+  },
+  {
+    "id": "iwan",
+    "n": "Pak Iwan",
+    "role": "IT Manager",
+    "acc": "baja"
+  },
+  {
+    "id": "bambang",
+    "n": "Pak Bambang",
+    "role": "Manajer Keamanan",
+    "acc": "pelindo"
+  },
+  {
+    "id": "tari",
+    "n": "Bu Tari",
+    "role": "Legal",
+    "acc": "pelindo"
+  },
+  {
+    "id": "gunawan",
+    "n": "Pak Gunawan",
+    "role": "GM Operasional",
+    "acc": "pelindo",
+    "decision": true
+  },
+  {
+    "id": "teguh",
+    "n": "Pak Teguh",
+    "role": "PT Media Prima Jakarta",
+    "acc": null
+  },
+  {
+    "id": "wulan",
+    "n": "Bu Wulan",
+    "role": "Kemenkes · Biro Umum",
+    "acc": null
+  },
+  {
+    "id": "hasan",
+    "n": "Pak Hasan",
+    "role": "PT Graha Sentosa",
+    "acc": null
+  }
+]

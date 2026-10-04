@@ -1,0 +1,217 @@
+[
+  {
+    "id": "in1",
+    "no": "+62 812-••••-5521",
+    "via": "Andi",
+    "when": "Hari ini 10.12",
+    "first": "Mas, minta penawaran videotron untuk lobby gedung kami. Ukuran sekitar 3×2 m.",
+    "status": "identified",
+    "score": 82,
+    "ident": {
+      "name": "Rudi Wijaya",
+      "role": "Procurement / GA (kemungkinan besar)",
+      "company": "PT Prima Karya Sejahtera",
+      "sources": [
+        {
+          "s": "Getcontact",
+          "c": "gc",
+          "v": "“Pak Rudi Prima Karya” · “Rudi Procurement PK” · “Rudi Wijaya GA” — 3 tag konsisten"
+        },
+        {
+          "s": "Profil WA Business",
+          "c": "wa",
+          "v": "Rudi W · “Procurement PT Prima Karya”"
+        },
+        {
+          "s": "Truecaller",
+          "c": "tc",
+          "v": "Rudi Wijaya · bukan spam"
+        },
+        {
+          "s": "Odoo",
+          "c": "od",
+          "v": "Tidak ada — perusahaan belum pernah jadi pelanggan"
+        },
+        {
+          "s": "Web & berita",
+          "c": "web",
+          "v": "primakarya.co.id — distributor alat berat, HQ Semarang, 3 cabang Jateng; gudang baru Ungaran (berita Jul 2026)"
+        }
+      ]
+    },
+    "overview": "Distributor alat berat dengan 3 cabang dan gudang baru di Ungaran. Permintaan videotron lobby kemungkinan bagian dari renovasi kantor pusat. Di perusahaan seukuran ini keputusan ada di GA/Procurement dengan persetujuan Direktur Operasional; siklus enterprise GSI ±54 hari. Yang membuatnya bernilai: gudang baru belum punya vendor keamanan, dan alat berat = risiko kehilangan & syarat asuransi.",
+    "solutions": [
+      {
+        "t": "Videotron lobby 3×2 m (yang diminta)",
+        "v": 280000000,
+        "k": "proses",
+        "why": "Permintaan langsung · pintu masuk, jawab cepat"
+      },
+      {
+        "t": "CCTV + analitik gudang baru Ungaran",
+        "v": 900000000,
+        "k": "peluang",
+        "why": "Gudang baru = belum ada vendor; alat berat = risiko kehilangan tinggi"
+      },
+      {
+        "t": "Fire alarm gudang (syarat asuransi)",
+        "v": 450000000,
+        "k": "peluang",
+        "why": "Asuransi alat berat mensyaratkan proteksi kebakaran"
+      },
+      {
+        "t": "Command center mini untuk 3 cabang",
+        "v": 600000000,
+        "k": "peluang",
+        "why": "Monitoring terpusat dari HQ Semarang"
+      },
+      {
+        "t": "Paket lengkap + maintenance 3 tahun",
+        "v": 2400000000,
+        "k": "paket",
+        "why": "Satu vendor, satu SLA — 8× nilai permintaan awal"
+      }
+    ],
+    "questions": [
+      {
+        "q": "Videotron ini bagian dari renovasi kantor pusat, atau ada kebutuhan serupa di cabang?",
+        "u": "Skala proyek · cabang"
+      },
+      {
+        "q": "Gudang baru di Ungaran sudah ada sistem CCTV dan fire alarm-nya, Pak?",
+        "u": "CCTV + fire alarm"
+      },
+      {
+        "q": "Bagaimana Bapak memantau 3 cabang sekarang — ada ruang monitoring terpusat?",
+        "u": "Command center"
+      },
+      {
+        "q": "Untuk alat berat, apakah pihak asuransi mensyaratkan proteksi tertentu di gudang?",
+        "u": "Kepatuhan → fire alarm"
+      },
+      {
+        "q": "Anggaran capex-nya tahunan atau per proyek, dan siapa yang biasanya menyetujui?",
+        "u": "Timing & pengambil keputusan"
+      }
+    ]
+  },
+  {
+    "id": "in3",
+    "no": "+62 821-••••-7764",
+    "via": "Dewi",
+    "when": "Hari ini 08.55",
+    "first": "Pagi Bu, boleh minta company profile GSI? Untuk kebutuhan kantor.",
+    "status": "unknown",
+    "score": null,
+    "ident": {
+      "name": "Belum teridentifikasi",
+      "role": "—",
+      "company": "—",
+      "sources": [
+        {
+          "s": "Getcontact",
+          "c": "gc",
+          "v": "Tidak ada tag"
+        },
+        {
+          "s": "Profil WA Business",
+          "c": "wa",
+          "v": "Nama kosong · foto logo tidak dikenal"
+        },
+        {
+          "s": "Truecaller",
+          "c": "tc",
+          "v": "—"
+        },
+        {
+          "s": "Odoo",
+          "c": "od",
+          "v": "Tidak ada"
+        }
+      ]
+    },
+    "overview": "Tidak ada sumber yang cocok. Jangan kirim company profile generik — jawaban pertama merekalah yang menentukan apakah ini prospek. Satu pertanyaan sopan cukup; kalau dijawab, identifikasi diulang otomatis.",
+    "solutions": [],
+    "questions": [
+      {
+        "q": "Terima kasih sudah menghubungi kami, Bu/Pak. Boleh tahu dari perusahaan mana dan kebutuhannya untuk gedung apa, supaya kami kirimkan profil yang relevan?",
+        "u": "Identitas & kebutuhan"
+      }
+    ]
+  },
+  {
+    "id": "in2",
+    "no": "+62 857-••••-0193",
+    "via": "Andi",
+    "when": "Kemarin 15.40",
+    "first": "Selamat siang, mau tanya harga LED untuk kelas, ukuran kecil saja.",
+    "status": "identified",
+    "score": 35,
+    "ident": {
+      "name": "Bu Nia (Kurnia)",
+      "role": "Guru / Sarpras",
+      "company": "SDN 3 Banyumanik",
+      "sources": [
+        {
+          "s": "Getcontact",
+          "c": "gc",
+          "v": "“Bu Nia SDN 3 Banyumanik” · “Nia guru”"
+        },
+        {
+          "s": "Profil WA Business",
+          "c": "wa",
+          "v": "Nia ✨ · tanpa deskripsi"
+        },
+        {
+          "s": "Odoo",
+          "c": "od",
+          "v": "Tidak ada"
+        }
+      ]
+    },
+    "overview": "Sekolah dasar negeri; pengadaan kecil lewat dana BOS, nilai umumnya < Rp 30 jt. Bukan target project, tapi tetap dijawab cepat dan sopan — arahkan ke distribusi/e-katalog. Sekolah yang puas sering mereferensikan ke dinas pendidikan.",
+    "solutions": [
+      {
+        "t": "Smart display kelas via distribusi",
+        "v": 25000000,
+        "k": "proses",
+        "why": "Nilai kecil · margin distribusi · jalur e-katalog"
+      }
+    ],
+    "questions": [
+      {
+        "q": "Untuk berapa kelas, Bu, dan pengadaannya lewat dana BOS atau e-katalog?",
+        "u": "Jalur & skala"
+      }
+    ]
+  },
+  {
+    "id": "in4",
+    "no": "+62 813-••••-4402",
+    "via": "Rizky",
+    "when": "Kemarin 11.20",
+    "first": "Halo, kami dari agensi periklanan, ada penawaran kerjasama billboard.",
+    "status": "notprospect",
+    "score": 5,
+    "ident": {
+      "name": "Sales agensi iklan",
+      "role": "Vendor",
+      "company": "—",
+      "sources": [
+        {
+          "s": "Getcontact",
+          "c": "gc",
+          "v": "“Spam” 14× · “Sales iklan” · “Telemarketing”"
+        },
+        {
+          "s": "Truecaller",
+          "c": "tc",
+          "v": "Ditandai spam oleh 231 pengguna"
+        }
+      ]
+    },
+    "overview": "Vendor, bukan prospek. Tidak dibuat lead dan tidak dihitung di funnel. Kalau ternyata relevan (misalnya butuh videotron untuk klien mereka), sales bisa membalikkan penandaan ini.",
+    "solutions": [],
+    "questions": []
+  }
+]

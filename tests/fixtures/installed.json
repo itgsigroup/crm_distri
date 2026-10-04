@@ -1,0 +1,293 @@
+{
+  "amarta": {
+    "inst": [
+      {
+        "s": "CCTV 48 kamera + NVR",
+        "y": "2024",
+        "w": "Garansi habis Nov 2026",
+        "c": "Tanpa kontrak service"
+      }
+    ],
+    "ws": [
+      {
+        "p": "CCTV",
+        "st": "ada"
+      },
+      {
+        "p": "Digital signage",
+        "st": "proses",
+        "v": 320000000
+      },
+      {
+        "p": "Fire alarm",
+        "st": "peluang",
+        "v": 450000000,
+        "why": "Wajib hotel bintang 4; sistem konvensional 2015"
+      },
+      {
+        "p": "Maintenance",
+        "st": "peluang",
+        "v": 96000000,
+        "why": "Garansi habis Nov · pola bayar 100%"
+      },
+      {
+        "p": "Videotron",
+        "st": "-"
+      },
+      {
+        "p": "Command center",
+        "st": "-"
+      }
+    ]
+  },
+  "bsd": {
+    "inst": [
+      {
+        "s": "CCTV 4 gedung · 96 kamera",
+        "y": "2023",
+        "w": "Garansi habis Mar 2026",
+        "c": "Tanpa kontrak service"
+      }
+    ],
+    "ws": [
+      {
+        "p": "CCTV",
+        "st": "ada"
+      },
+      {
+        "p": "Fire alarm",
+        "st": "proses",
+        "v": 860000000
+      },
+      {
+        "p": "Maintenance CCTV",
+        "st": "peluang",
+        "v": 120000000,
+        "why": "Garansi sudah habis; 96 kamera tanpa service"
+      },
+      {
+        "p": "Ruang monitoring",
+        "st": "peluang",
+        "v": 380000000,
+        "why": "Audit OJK meminta pemantauan terpusat"
+      },
+      {
+        "p": "Videotron",
+        "st": "-"
+      },
+      {
+        "p": "Signage",
+        "st": "-"
+      }
+    ]
+  },
+  "rsud": {
+    "inst": [],
+    "ws": [
+      {
+        "p": "CCTV + VMS",
+        "st": "proses",
+        "v": 2400000000
+      },
+      {
+        "p": "Fire alarm",
+        "st": "peluang",
+        "v": 900000000,
+        "why": "Standar akreditasi RS; gedung C belum addressable"
+      },
+      {
+        "p": "Nurse call / paging",
+        "st": "peluang",
+        "v": 350000000,
+        "why": "Disebut Pak Bagus saat survey"
+      },
+      {
+        "p": "Maintenance",
+        "st": "-"
+      },
+      {
+        "p": "Videotron",
+        "st": "-"
+      },
+      {
+        "p": "Command center",
+        "st": "-"
+      }
+    ]
+  },
+  "semarang": {
+    "inst": [
+      {
+        "s": "Videotron Simpang Lima (lama)",
+        "y": "2019",
+        "w": "Rusak · digantikan",
+        "c": "—"
+      }
+    ],
+    "ws": [
+      {
+        "p": "Videotron",
+        "st": "proses",
+        "v": 1850000000
+      },
+      {
+        "p": "CCTV kota",
+        "st": "peluang",
+        "v": 2100000000,
+        "why": "Diskominfo mengelola 300+ titik; kontrak vendor lama habis 2027"
+      },
+      {
+        "p": "Command center",
+        "st": "peluang",
+        "v": 1500000000,
+        "why": "Roadmap smart city 2027"
+      },
+      {
+        "p": "Maintenance",
+        "st": "peluang",
+        "v": 140000000,
+        "why": "Videotron baru · SLA 3 tahun"
+      },
+      {
+        "p": "Fire alarm",
+        "st": "-"
+      },
+      {
+        "p": "Signage",
+        "st": "-"
+      }
+    ]
+  },
+  "pelindo": {
+    "inst": [],
+    "ws": [
+      {
+        "p": "CCTV + analitik",
+        "st": "proses",
+        "v": 1600000000
+      },
+      {
+        "p": "Videotron gerbang",
+        "st": "peluang",
+        "v": 600000000,
+        "why": "Disebut Pak Gunawan: informasi antrean truk"
+      },
+      {
+        "p": "Maintenance",
+        "st": "peluang",
+        "v": 190000000,
+        "why": "90 titik area pelabuhan · korosi tinggi"
+      },
+      {
+        "p": "Fire alarm gudang",
+        "st": "-"
+      },
+      {
+        "p": "Command center",
+        "st": "-"
+      },
+      {
+        "p": "Signage",
+        "st": "-"
+      }
+    ]
+  },
+  "baja": {
+    "inst": [],
+    "ws": [
+      {
+        "p": "Command center",
+        "st": "proses",
+        "v": 3100000000
+      },
+      {
+        "p": "CCTV pabrik",
+        "st": "peluang",
+        "v": 1200000000,
+        "why": "Pabrik baru; belum ada vendor"
+      },
+      {
+        "p": "Fire alarm",
+        "st": "peluang",
+        "v": 800000000,
+        "why": "Wajib untuk pabrik baru"
+      },
+      {
+        "p": "Maintenance",
+        "st": "-"
+      },
+      {
+        "p": "Videotron",
+        "st": "-"
+      },
+      {
+        "p": "Signage",
+        "st": "-"
+      }
+    ]
+  },
+  "sleman": {
+    "inst": [],
+    "ws": [
+      {
+        "p": "Dashboard",
+        "st": "proses",
+        "v": 1200000000
+      },
+      {
+        "p": "CCTV kabupaten",
+        "st": "peluang",
+        "v": 1800000000,
+        "why": "Sumber data dashboard; tender 2027"
+      },
+      {
+        "p": "Videotron",
+        "st": "-"
+      },
+      {
+        "p": "Fire alarm",
+        "st": "-"
+      },
+      {
+        "p": "Maintenance",
+        "st": "-"
+      },
+      {
+        "p": "Command center",
+        "st": "-"
+      }
+    ]
+  },
+  "unmer": {
+    "inst": [],
+    "ws": [
+      {
+        "p": "LED indoor",
+        "st": "proses",
+        "v": 540000000
+      },
+      {
+        "p": "CCTV kampus",
+        "st": "peluang",
+        "v": 700000000,
+        "why": "Disebut Pak Dimas: 3 gedung baru"
+      },
+      {
+        "p": "Signage",
+        "st": "-"
+      },
+      {
+        "p": "Fire alarm",
+        "st": "-"
+      },
+      {
+        "p": "Maintenance",
+        "st": "-"
+      },
+      {
+        "p": "Command center",
+        "st": "-"
+      }
+    ]
+  }
+}

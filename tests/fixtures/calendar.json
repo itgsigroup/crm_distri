@@ -1,0 +1,5 @@
+[
+  {"id": "ev-bsd-kickoff", "title": "Kick-off fire alarm — Bank Sejahtera Daerah", "day_offset": 1, "time": "09:00", "minutes": 60, "location": "Kantor pusat Yogyakarta", "attendees": ["dewi@gsi.co.id", "yusuf@banksejahtera.co.id"]},
+  {"id": "ev-forecast-q4", "title": "Review forecast Q4", "day_offset": 1, "time": "13:30", "minutes": 45, "location": "Internal", "attendees": ["sam@gsi.co.id", "andi@gsi.co.id", "dewi@gsi.co.id", "rizky@gsi.co.id", "fajar@gsi.co.id"]},
+  {"id": "ev-baja-presentasi", "title": "Presentasi command center — PT Nusantara Baja", "day_offset": 1, "time": "15:30", "minutes": 90, "location": "Tuban · online", "attendees": ["rizky@gsi.co.id", "ferdi@nusantarabaja.co.id"]}
+]
