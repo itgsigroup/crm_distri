@@ -1,0 +1,12 @@
+# Automatic HTTPS for ARC_DOMAIN. The bridge is not exposed.
+{$ARC_DOMAIN:localhost} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	# Bridge callback endpoints stay inside the compose network.
+	@internal path /bridge/*
+	respond @internal 404
+	reverse_proxy api:8000
+}

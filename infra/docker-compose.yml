@@ -1,0 +1,58 @@
+# Production-like single-tenant stack: Postgres + API (serves web) + wa-bridge + Caddy.
+# Usage: cp .env.example .env && edit; make compose-up
+name: arc
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-arc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-arc}
+      TZ: Asia/Jakarta
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-arc} -d ${POSTGRES_DB:-arc}"]
+      interval: 10s
+      retries: 5
+
+  api:
+    build: { context: .., dockerfile: infra/Dockerfile.api }
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-arc}?sslmode=disable
+      BRIDGE_URL: http://wa-bridge:3001
+    depends_on:
+      postgres: { condition: service_healthy }
+    expose: ["8000"]
+
+  wa-bridge:
+    build: { context: .., dockerfile: infra/Dockerfile.bridge }
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-arc}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-arc}?sslmode=disable
+      ARC_API_URL: http://api:8000
+    volumes:
+      - bridgedata:/data
+    depends_on:
+      postgres: { condition: service_healthy }
+    expose: ["3001"]   # never published: only the API talks to the bridge
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      ARC_DOMAIN: ${ARC_DOMAIN:-localhost}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  bridgedata:
+  caddydata:

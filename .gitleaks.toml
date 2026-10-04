@@ -1,0 +1,17 @@
+# gitleaks config: default rules + ARC API key format; fixtures use obviously fake values.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "arc-api-key"
+description = "ARC live API key"
+regex = '''arc_live_[A-Za-z0-9]{20,}'''
+tags = ["key", "arc"]
+
+[allowlist]
+description = "Example env, fixtures and the approved mockup"
+paths = [
+  '''\.env\.example$''',
+  '''tests/fixtures/.*''',
+  '''reference/.*''',
+]
