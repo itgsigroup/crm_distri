@@ -23,6 +23,7 @@ import (
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/events"
 	"distri-arc/internal/jobs"
+	"distri-arc/internal/odoo"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
 	"distri-arc/internal/views"
@@ -42,6 +43,8 @@ const usage = `arc — Distri ARC Orbit
   arc ctl metrics --dealer <slug>  print a dealer's metrics and the 5 score components
   arc ctl wa inject --from <no> --text "…" [--to <sales no>]  feed a fake inbound WhatsApp message
   arc ctl wa numbers         list paired sales numbers
+  arc ctl odoo sync [--full] pull Odoo (ODOO_MODE=fake|rpc) into Distri ARC, read-only
+  arc ctl odoo test          check the Odoo connection
 `
 
 func main() {
@@ -105,7 +108,11 @@ func runAPI(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	a := api.New(cfg, st, c, log).WithJobs(ins)
+	src, err := odooSource(cfg)
+	if err != nil {
+		return err
+	}
+	a := api.New(cfg, st, c, log).WithJobs(ins).WithOdoo(src)
 	if cfg.WATransport == "cloudapi" {
 		a.WithCloudWebhook(cloudTransport(cfg))
 	}
@@ -135,7 +142,11 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	ingest := wa.NewIngestor(st, log)
-	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg)})
+	src, err := odooSource(cfg)
+	if err != nil {
+		return err
+	}
+	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src})
 	if err != nil {
 		return err
 	}
@@ -149,7 +160,7 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err := client.Start(ctx); err != nil {
 		return err
 	}
-	log.Info("worker started", "wa_transport", t.Name())
+	log.Info("worker started", "wa_transport", t.Name(), "odoo", cfg.OdooMode)
 	<-ctx.Done()
 	sh, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -160,6 +171,14 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 	if len(args) == 0 {
 		fmt.Print(usage)
 		return nil
+	}
+	if args[0] == "odoo" {
+		st, clk, err := open(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		defer st.Close()
+		return runOdooCtl(ctx, cfg, st, clk, log, args[1:])
 	}
 	if args[0] == "wa" {
 		st, clk, err := open(ctx, cfg)
@@ -366,4 +385,44 @@ func deref2(p *string) string {
 		return ""
 	}
 	return *p
+}
+
+func odooSource(cfg config.Config) (odoo.Source, error) {
+	return odoo.New(odoo.Config{Mode: cfg.OdooMode, URL: cfg.OdooURL, DB: cfg.OdooDB, User: cfg.OdooUser, APIKey: cfg.OdooAPIKey, Write: cfg.OdooWrite, SeedFS: db.Seed})
+}
+
+func runOdooCtl(ctx context.Context, cfg config.Config, st *store.Store, c clock.Clock, log *slog.Logger, args []string) error {
+	if len(args) == 0 {
+		return errors.New("usage: arc ctl odoo sync [--full] | test")
+	}
+	fs := flag.NewFlagSet("odoo "+args[0], flag.ExitOnError)
+	full := fs.Bool("full", false, "ignore cursors and read everything")
+	_ = fs.Parse(args[1:])
+	src, err := odooSource(cfg)
+	if err != nil {
+		return err
+	}
+	if src == nil {
+		return errors.New("ODOO_MODE=off")
+	}
+	switch args[0] {
+	case "test":
+		v, err := src.Version(ctx)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("odoo %s (%s) ok · write=%v\n", v, src.Name(), cfg.OdooWrite)
+	case "sync":
+		rep, err := odoo.NewSyncer(st, src, c, log).Run(ctx, *full)
+		if err != nil {
+			return err
+		}
+		if _, err := dealersvc.New(st, c).Recompute(ctx, rep.Dealers...); err != nil {
+			return err
+		}
+		fmt.Printf("synced %v · %d signals · %d dealers touched · %dms\n", rep.Records, rep.Signals, len(rep.Dealers), rep.Duration)
+	default:
+		return fmt.Errorf("unknown odoo command %q", args[0])
+	}
+	return nil
 }

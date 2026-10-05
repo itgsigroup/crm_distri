@@ -1,0 +1,1103 @@
+[
+ {
+  "city": "Semarang",
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "credit_limit": 250000000,
+  "customer_rank": 1,
+  "id": 3001,
+  "industry_id": [
+   3001,
+   "Toko CCTV \u0026 jaringan"
+  ],
+  "is_company": true,
+  "name": "Toko Sinar Elektronik",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   1,
+   "Tier A"
+  ],
+  "user_id": [
+   11,
+   "Andi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34010,
+  "is_company": false,
+  "mobile": "+6281900300101",
+  "name": "Pak Budi",
+  "parent_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "customer_rank": 0,
+  "function": "Admin order",
+  "id": 34011,
+  "is_company": false,
+  "mobile": "+6281900300102",
+  "name": "Mbak Rina",
+  "parent_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "customer_rank": 0,
+  "function": "Teknisi toko",
+  "id": 34012,
+  "is_company": false,
+  "mobile": "+6281900300103",
+  "name": "Pak Yono",
+  "parent_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Jakarta",
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "credit_limit": 250000000,
+  "customer_rank": 1,
+  "id": 3002,
+  "industry_id": [
+   3002,
+   "Installer \u0026 kontraktor"
+  ],
+  "is_company": true,
+  "name": "PT Graha Sentosa",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   1,
+   "Tier A"
+  ],
+  "user_id": [
+   14,
+   "Fajar"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Purchasing",
+  "id": 34020,
+  "is_company": false,
+  "mobile": "+6281900300201",
+  "name": "Pak Hasan",
+  "parent_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Finance",
+  "id": 34021,
+  "is_company": false,
+  "mobile": "+6281900300202",
+  "name": "Bu Lia",
+  "parent_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Direktur",
+  "id": 34022,
+  "is_company": false,
+  "mobile": "+6281900300203",
+  "name": "Pak Darto",
+  "parent_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Yogyakarta",
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "credit_limit": 150000000,
+  "customer_rank": 1,
+  "id": 3003,
+  "industry_id": [
+   3003,
+   "Installer CCTV"
+  ],
+  "is_company": true,
+  "name": "CV Mitra Jaya Teknik",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   2,
+   "Tier B"
+  ],
+  "user_id": [
+   12,
+   "Dewi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34030,
+  "is_company": false,
+  "mobile": "+6281900300301",
+  "name": "Pak Agus",
+  "parent_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Teknisi",
+  "id": 34031,
+  "is_company": false,
+  "mobile": "+6281900300302",
+  "name": "Mas Dika",
+  "parent_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Surabaya",
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "credit_limit": 400000000,
+  "customer_rank": 1,
+  "id": 3004,
+  "industry_id": [
+   3004,
+   "Distributor sub-area"
+  ],
+  "is_company": true,
+  "name": "Indo Vision Security",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   1,
+   "Tier A"
+  ],
+  "user_id": [
+   13,
+   "Rizky"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34040,
+  "is_company": false,
+  "mobile": "+6281900300401",
+  "name": "Pak Wira",
+  "parent_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "customer_rank": 0,
+  "function": "Purchasing",
+  "id": 34041,
+  "is_company": false,
+  "mobile": "+6281900300402",
+  "name": "Bu Santi",
+  "parent_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "customer_rank": 0,
+  "function": "Gudang",
+  "id": 34042,
+  "is_company": false,
+  "mobile": "+6281900300403",
+  "name": "Pak Eko",
+  "parent_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Solo",
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "credit_limit": 0,
+  "customer_rank": 1,
+  "id": 3005,
+  "industry_id": [
+   3005,
+   "Toko elektronik"
+  ],
+  "is_company": true,
+  "name": "UD Cahaya Abadi",
+  "parent_id": false,
+  "property_payment_term_id": [
+   2,
+   "Tunai"
+  ],
+  "property_product_pricelist": [
+   3,
+   "Tier C"
+  ],
+  "user_id": [
+   11,
+   "Andi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34050,
+  "is_company": false,
+  "mobile": "+6281900300501",
+  "name": "Bu Wati",
+  "parent_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Kudus",
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "credit_limit": 0,
+  "customer_rank": 1,
+  "id": 3006,
+  "industry_id": [
+   3006,
+   "Toko LED \u0026 lampu"
+  ],
+  "is_company": true,
+  "name": "Toko Lampu Jaya",
+  "parent_id": false,
+  "property_payment_term_id": [
+   2,
+   "Tunai"
+  ],
+  "property_product_pricelist": [
+   3,
+   "Tier C"
+  ],
+  "user_id": [
+   11,
+   "Andi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34060,
+  "is_company": false,
+  "mobile": "+6281900300601",
+  "name": "Pak Heri",
+  "parent_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Magelang",
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "credit_limit": 100000000,
+  "customer_rank": 1,
+  "id": 3007,
+  "industry_id": [
+   3007,
+   "Installer fire alarm"
+  ],
+  "is_company": true,
+  "name": "CV Bina Teknik",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   2,
+   "Tier B"
+  ],
+  "user_id": [
+   12,
+   "Dewi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34070,
+  "is_company": false,
+  "mobile": "+6281900300701",
+  "name": "Pak Slamet",
+  "parent_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Teknisi",
+  "id": 34071,
+  "is_company": false,
+  "mobile": "+6281900300702",
+  "name": "Mas Reza",
+  "parent_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Jakarta",
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "credit_limit": 25000000,
+  "customer_rank": 1,
+  "id": 3008,
+  "industry_id": [
+   3008,
+   "Installer baru"
+  ],
+  "is_company": true,
+  "name": "PT Nusantara Secure",
+  "parent_id": false,
+  "property_payment_term_id": [
+   2,
+   "Tunai"
+  ],
+  "property_product_pricelist": [
+   2,
+   "Tier B"
+  ],
+  "user_id": [
+   14,
+   "Fajar"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Direktur",
+  "id": 34080,
+  "is_company": false,
+  "mobile": "+6281900300801",
+  "name": "Pak Rizal",
+  "parent_id": [
+   3008,
+   "PT Nusantara Secure"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Semarang",
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "credit_limit": 0,
+  "customer_rank": 1,
+  "id": 3009,
+  "industry_id": [
+   3009,
+   "Toko komputer \u0026 CCTV"
+  ],
+  "is_company": true,
+  "name": "Citra Komputer",
+  "parent_id": false,
+  "property_payment_term_id": [
+   2,
+   "Tunai"
+  ],
+  "property_product_pricelist": [
+   3,
+   "Tier C"
+  ],
+  "user_id": [
+   11,
+   "Andi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34090,
+  "is_company": false,
+  "mobile": "+6281900300901",
+  "name": "Pak Yusuf",
+  "parent_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Pekalongan",
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "credit_limit": 100000000,
+  "customer_rank": 1,
+  "id": 3010,
+  "industry_id": [
+   3010,
+   "Installer"
+  ],
+  "is_company": true,
+  "name": "CV Anugerah Teknik",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   2,
+   "Tier B"
+  ],
+  "user_id": [
+   11,
+   "Andi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34100,
+  "is_company": false,
+  "mobile": "+6281900301001",
+  "name": "Pak Dani",
+  "parent_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "customer_rank": 0,
+  "function": "Admin",
+  "id": 34101,
+  "is_company": false,
+  "mobile": "+6281900301002",
+  "name": "Bu Nur",
+  "parent_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Tegal",
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "credit_limit": 0,
+  "customer_rank": 1,
+  "id": 3011,
+  "industry_id": [
+   3011,
+   "Toko elektronik"
+  ],
+  "is_company": true,
+  "name": "Toko Megah Jaya",
+  "parent_id": false,
+  "property_payment_term_id": [
+   2,
+   "Tunai"
+  ],
+  "property_product_pricelist": [
+   3,
+   "Tier C"
+  ],
+  "user_id": [
+   11,
+   "Andi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34110,
+  "is_company": false,
+  "mobile": "+6281900301101",
+  "name": "Bu Sri",
+  "parent_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Yogyakarta",
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "credit_limit": 300000000,
+  "customer_rank": 1,
+  "id": 3012,
+  "industry_id": [
+   3012,
+   "Distributor sub-area"
+  ],
+  "is_company": true,
+  "name": "PT Sarana Vision",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   1,
+   "Tier A"
+  ],
+  "user_id": [
+   12,
+   "Dewi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34120,
+  "is_company": false,
+  "mobile": "+6281900301201",
+  "name": "Pak Hendra",
+  "parent_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Purchasing",
+  "id": 34121,
+  "is_company": false,
+  "mobile": "+6281900301202",
+  "name": "Bu Ika",
+  "parent_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Gudang",
+  "id": 34122,
+  "is_company": false,
+  "mobile": "+6281900301203",
+  "name": "Pak Tono",
+  "parent_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Klaten",
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "credit_limit": 80000000,
+  "customer_rank": 1,
+  "id": 3013,
+  "industry_id": [
+   3013,
+   "Toko CCTV"
+  ],
+  "is_company": true,
+  "name": "Prima CCTV Klaten",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   2,
+   "Tier B"
+  ],
+  "user_id": [
+   12,
+   "Dewi"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34130,
+  "is_company": false,
+  "mobile": "+6281900301301",
+  "name": "Pak Bayu",
+  "parent_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Sidoarjo",
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "credit_limit": 120000000,
+  "customer_rank": 1,
+  "id": 3014,
+  "industry_id": [
+   3014,
+   "Toko elektronik \u0026 CCTV"
+  ],
+  "is_company": true,
+  "name": "Jaya Abadi Elektronik",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   2,
+   "Tier B"
+  ],
+  "user_id": [
+   13,
+   "Rizky"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34140,
+  "is_company": false,
+  "mobile": "+6281900301401",
+  "name": "Pak Agung",
+  "parent_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "customer_rank": 0,
+  "function": "Kasir",
+  "id": 34141,
+  "is_company": false,
+  "mobile": "+6281900301402",
+  "name": "Mbak Dewi",
+  "parent_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Malang",
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "credit_limit": 100000000,
+  "customer_rank": 1,
+  "id": 3015,
+  "industry_id": [
+   3015,
+   "Installer"
+  ],
+  "is_company": true,
+  "name": "CV Nusa Teknik",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   2,
+   "Tier B"
+  ],
+  "user_id": [
+   13,
+   "Rizky"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34150,
+  "is_company": false,
+  "mobile": "+6281900301501",
+  "name": "Pak Imam",
+  "parent_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Jakarta",
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "credit_limit": 150000000,
+  "customer_rank": 1,
+  "id": 3016,
+  "industry_id": [
+   3016,
+   "Reseller"
+  ],
+  "is_company": true,
+  "name": "Borneo Security",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   2,
+   "Tier B"
+  ],
+  "user_id": [
+   14,
+   "Fajar"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34160,
+  "is_company": false,
+  "mobile": "+6281900301601",
+  "name": "Bu Maya",
+  "parent_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Admin",
+  "id": 34161,
+  "is_company": false,
+  "mobile": "+6281900301602",
+  "name": "Pak Ari",
+  "parent_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Bekasi",
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "credit_limit": 0,
+  "customer_rank": 1,
+  "id": 3017,
+  "industry_id": [
+   3017,
+   "Toko elektronik"
+  ],
+  "is_company": true,
+  "name": "Toko Sumber Rejeki",
+  "parent_id": false,
+  "property_payment_term_id": [
+   2,
+   "Tunai"
+  ],
+  "property_product_pricelist": [
+   3,
+   "Tier C"
+  ],
+  "user_id": [
+   14,
+   "Fajar"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Pemilik",
+  "id": 34170,
+  "is_company": false,
+  "mobile": "+6281900301701",
+  "name": "Pak Udin",
+  "parent_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "city": "Tangerang",
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "credit_limit": 250000000,
+  "customer_rank": 1,
+  "id": 3018,
+  "industry_id": [
+   3018,
+   "Installer"
+  ],
+  "is_company": true,
+  "name": "PT Global Secur",
+  "parent_id": false,
+  "property_payment_term_id": [
+   1,
+   "30 Hari"
+  ],
+  "property_product_pricelist": [
+   1,
+   "Tier A"
+  ],
+  "user_id": [
+   14,
+   "Fajar"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Direktur",
+  "id": 34180,
+  "is_company": false,
+  "mobile": "+6281900301801",
+  "name": "Pak Yoga",
+  "parent_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Purchasing",
+  "id": 34181,
+  "is_company": false,
+  "mobile": "+6281900301802",
+  "name": "Bu Fitri",
+  "parent_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "customer_rank": 0,
+  "function": "Project",
+  "id": 34182,
+  "is_company": false,
+  "mobile": "+6281900301803",
+  "name": "Pak Deni",
+  "parent_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "write_date": "2026-10-04 23:00:00"
+ }
+]

@@ -24,7 +24,7 @@ func newServer(t *testing.T) *httptest.Server {
 	if _, err := seed.Run(context.Background(), st, db.Seed); err != nil {
 		t.Fatal(err)
 	}
-	cfg := config.Config{Env: "dev"}
+	cfg := config.Config{Env: "dev", OdooMode: "fake"}
 	h := api.New(cfg, st, clock.Fixed(time.Date(2026, 10, 5, 6, 45, 0, 0, clock.WIB)), slog.New(slog.NewTextHandler(io.Discard, nil))).Handler()
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)

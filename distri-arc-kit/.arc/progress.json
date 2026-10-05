@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 4,
+  "current_stage": 5,
   "stages": [
     {
       "id": 0,
@@ -48,12 +48,12 @@
     {
       "id": 4,
       "name": "Odoo sync read-only, order-to-cash, SO draft (off)",
-      "status": "pending",
+      "status": "done-with-fakes",
       "file": "docs/stages/04-odoo-sync.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-05",
+      "finished_at": "2026-10-05",
+      "summary": "internal/odoo: Source (JSON-RPC execute_kw + Fake dari db/seed/odoo, 13 model diekspor seedgen), syncer idempoten (kursor write_date per model, partner→dealer/kontak, produk+harga tier, SO+baris→orders, picking/invoice/pembayaran→order-to-cash, quant→stok, sinyal model:id:write_date), job odoo.sync 10 mnt, arc ctl odoo sync|test, SO draft (ODOO_WRITE=false menolak), API /connections + kategori, panel Odoo di Pengaturan.",
+      "notes": "Tanpa kredensial Odoo: ODOO_MODE=fake. Pemetaan field nyata (credit_limit, pricelist tier, industry/segmen, margin_percent, velocity) perlu dikonfirmasi pada instance GSI."
     },
     {
       "id": 5,

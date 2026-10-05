@@ -1,0 +1,5372 @@
+[
+ {
+  "amount": 58900000,
+  "create_date": "2025-12-01 04:00:00",
+  "date": "2025-12-01",
+  "id": 701,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   701
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2025-12-12 04:00:00",
+  "date": "2025-12-12",
+  "id": 702,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   702
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2025-12-03 04:00:00",
+  "date": "2025-12-03",
+  "id": 703,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   703
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2025-12-14 04:00:00",
+  "date": "2025-12-14",
+  "id": 704,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   704
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2025-12-25 04:00:00",
+  "date": "2025-12-25",
+  "id": 705,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   705
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-01-05 04:00:00",
+  "date": "2026-01-05",
+  "id": 706,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   706
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-01-16 04:00:00",
+  "date": "2026-01-16",
+  "id": 707,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   707
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-01-27 04:00:00",
+  "date": "2026-01-27",
+  "id": 708,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   708
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-02-07 04:00:00",
+  "date": "2026-02-07",
+  "id": 709,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   709
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-02-18 04:00:00",
+  "date": "2026-02-18",
+  "id": 710,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   710
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-03-01 04:00:00",
+  "date": "2026-03-01",
+  "id": 711,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   711
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-03-12 04:00:00",
+  "date": "2026-03-12",
+  "id": 712,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   712
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-03-23 04:00:00",
+  "date": "2026-03-23",
+  "id": 713,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   713
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-04-03 04:00:00",
+  "date": "2026-04-03",
+  "id": 714,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   714
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-04-14 04:00:00",
+  "date": "2026-04-14",
+  "id": 715,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   715
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58900000,
+  "create_date": "2026-04-25 04:00:00",
+  "date": "2026-04-25",
+  "id": 716,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   716
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 60400000,
+  "create_date": "2026-05-06 04:00:00",
+  "date": "2026-05-06",
+  "id": 717,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   717
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 60500000,
+  "create_date": "2026-05-20 04:00:00",
+  "date": "2026-05-20",
+  "id": 718,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   718
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 48400000,
+  "create_date": "2026-06-03 04:00:00",
+  "date": "2026-06-03",
+  "id": 719,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   719
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 48400000,
+  "create_date": "2026-06-17 04:00:00",
+  "date": "2026-06-17",
+  "id": 720,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   720
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 55400000,
+  "create_date": "2026-07-01 04:00:00",
+  "date": "2026-07-01",
+  "id": 721,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   721
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 55400000,
+  "create_date": "2026-07-15 04:00:00",
+  "date": "2026-07-15",
+  "id": 722,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   722
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 61500000,
+  "create_date": "2026-07-29 04:00:00",
+  "date": "2026-07-29",
+  "id": 723,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   723
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 61500000,
+  "create_date": "2026-08-12 04:00:00",
+  "date": "2026-08-12",
+  "id": 724,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   724
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 61500000,
+  "create_date": "2026-08-26 04:00:00",
+  "date": "2026-08-26",
+  "id": 725,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   725
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58500000,
+  "create_date": "2026-09-09 04:00:00",
+  "date": "2026-09-09",
+  "id": 726,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   726
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 58500000,
+  "create_date": "2026-09-23 04:00:00",
+  "date": "2026-09-23",
+  "id": 727,
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   727
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2025-11-22 04:00:00",
+  "date": "2025-11-22",
+  "id": 729,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   729
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2025-12-10 04:00:00",
+  "date": "2025-12-10",
+  "id": 730,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   730
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2025-12-28 04:00:00",
+  "date": "2025-12-28",
+  "id": 731,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   731
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2026-01-15 04:00:00",
+  "date": "2026-01-15",
+  "id": 732,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   732
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2026-01-13 04:00:00",
+  "date": "2026-01-13",
+  "id": 733,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   733
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2026-01-31 04:00:00",
+  "date": "2026-01-31",
+  "id": 734,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   734
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2026-02-18 04:00:00",
+  "date": "2026-02-18",
+  "id": 735,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   735
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2026-03-08 04:00:00",
+  "date": "2026-03-08",
+  "id": 736,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   736
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2026-03-26 04:00:00",
+  "date": "2026-03-26",
+  "id": 737,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   737
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2026-04-13 04:00:00",
+  "date": "2026-04-13",
+  "id": 738,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   738
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 79800000,
+  "create_date": "2026-05-01 04:00:00",
+  "date": "2026-05-01",
+  "id": 739,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   739
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 103700000,
+  "create_date": "2026-07-11 04:00:00",
+  "date": "2026-07-11",
+  "id": 740,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   740
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 83600000,
+  "create_date": "2026-06-10 04:00:00",
+  "date": "2026-06-10",
+  "id": 741,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   741
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 83600000,
+  "create_date": "2026-06-30 04:00:00",
+  "date": "2026-06-30",
+  "id": 742,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   742
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 109900000,
+  "create_date": "2026-09-09 04:00:00",
+  "date": "2026-09-09",
+  "id": 743,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   743
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 77600000,
+  "create_date": "2026-08-09 04:00:00",
+  "date": "2026-08-09",
+  "id": 744,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   744
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 77600000,
+  "create_date": "2026-08-29 04:00:00",
+  "date": "2026-08-29",
+  "id": 745,
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "reconciled_invoice_ids": [
+   745
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2025-11-28 04:00:00",
+  "date": "2025-11-28",
+  "id": 748,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   748
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2025-12-14 04:00:00",
+  "date": "2025-12-14",
+  "id": 749,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   749
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2025-12-30 04:00:00",
+  "date": "2025-12-30",
+  "id": 750,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   750
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2026-01-15 04:00:00",
+  "date": "2026-01-15",
+  "id": 751,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   751
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2026-01-31 04:00:00",
+  "date": "2026-01-31",
+  "id": 752,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   752
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2026-01-27 04:00:00",
+  "date": "2026-01-27",
+  "id": 753,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   753
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2026-02-12 04:00:00",
+  "date": "2026-02-12",
+  "id": 754,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   754
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2026-02-28 04:00:00",
+  "date": "2026-02-28",
+  "id": 755,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   755
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2026-03-16 04:00:00",
+  "date": "2026-03-16",
+  "id": 756,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   756
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2026-04-01 04:00:00",
+  "date": "2026-04-01",
+  "id": 757,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   757
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2026-04-17 04:00:00",
+  "date": "2026-04-17",
+  "id": 758,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   758
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36100000,
+  "create_date": "2026-05-03 04:00:00",
+  "date": "2026-05-03",
+  "id": 759,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   759
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 22200000,
+  "create_date": "2026-06-23 04:00:00",
+  "date": "2026-06-23",
+  "id": 760,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   760
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 27200000,
+  "create_date": "2026-06-11 04:00:00",
+  "date": "2026-06-11",
+  "id": 761,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   761
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 23300000,
+  "create_date": "2026-07-02 04:00:00",
+  "date": "2026-07-02",
+  "id": 762,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   762
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 23300000,
+  "create_date": "2026-08-25 04:00:00",
+  "date": "2026-08-25",
+  "id": 763,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   763
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25900000,
+  "create_date": "2026-08-13 04:00:00",
+  "date": "2026-08-13",
+  "id": 764,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   764
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20100000,
+  "create_date": "2026-09-03 04:00:00",
+  "date": "2026-09-03",
+  "id": 765,
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   765
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2025-11-25 04:00:00",
+  "date": "2025-11-25",
+  "id": 767,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   767
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2025-11-15 04:00:00",
+  "date": "2025-11-15",
+  "id": 768,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   768
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2025-11-25 04:00:00",
+  "date": "2025-11-25",
+  "id": 769,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   769
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2025-12-05 04:00:00",
+  "date": "2025-12-05",
+  "id": 770,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   770
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2025-12-15 04:00:00",
+  "date": "2025-12-15",
+  "id": 771,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   771
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2025-12-25 04:00:00",
+  "date": "2025-12-25",
+  "id": 772,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   772
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-01-04 04:00:00",
+  "date": "2026-01-04",
+  "id": 773,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   773
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-01-14 04:00:00",
+  "date": "2026-01-14",
+  "id": 774,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   774
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-01-24 04:00:00",
+  "date": "2026-01-24",
+  "id": 775,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   775
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-02-03 04:00:00",
+  "date": "2026-02-03",
+  "id": 776,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   776
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-02-13 04:00:00",
+  "date": "2026-02-13",
+  "id": 777,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   777
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-02-23 04:00:00",
+  "date": "2026-02-23",
+  "id": 778,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   778
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-03-05 04:00:00",
+  "date": "2026-03-05",
+  "id": 779,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   779
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-03-15 04:00:00",
+  "date": "2026-03-15",
+  "id": 780,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   780
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-03-25 04:00:00",
+  "date": "2026-03-25",
+  "id": 781,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   781
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-04-04 04:00:00",
+  "date": "2026-04-04",
+  "id": 782,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   782
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-04-14 04:00:00",
+  "date": "2026-04-14",
+  "id": 783,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   783
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 133000000,
+  "create_date": "2026-04-24 04:00:00",
+  "date": "2026-04-24",
+  "id": 784,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   784
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 159900000,
+  "create_date": "2026-05-01 04:00:00",
+  "date": "2026-05-01",
+  "id": 785,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   785
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 159800000,
+  "create_date": "2026-05-11 04:00:00",
+  "date": "2026-05-11",
+  "id": 786,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   786
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 159800000,
+  "create_date": "2026-05-21 04:00:00",
+  "date": "2026-05-21",
+  "id": 787,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   787
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 138400000,
+  "create_date": "2026-05-31 04:00:00",
+  "date": "2026-05-31",
+  "id": 788,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   788
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 138400000,
+  "create_date": "2026-06-10 04:00:00",
+  "date": "2026-06-10",
+  "id": 789,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   789
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 138400000,
+  "create_date": "2026-06-20 04:00:00",
+  "date": "2026-06-20",
+  "id": 790,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   790
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 152300000,
+  "create_date": "2026-06-30 04:00:00",
+  "date": "2026-06-30",
+  "id": 791,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   791
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 152300000,
+  "create_date": "2026-07-10 04:00:00",
+  "date": "2026-07-10",
+  "id": 792,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   792
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 152300000,
+  "create_date": "2026-07-20 04:00:00",
+  "date": "2026-07-20",
+  "id": 793,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   793
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 147600000,
+  "create_date": "2026-07-30 04:00:00",
+  "date": "2026-07-30",
+  "id": 794,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   794
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 147600000,
+  "create_date": "2026-08-09 04:00:00",
+  "date": "2026-08-09",
+  "id": 795,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   795
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 147600000,
+  "create_date": "2026-08-19 04:00:00",
+  "date": "2026-08-19",
+  "id": 796,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   796
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 173000000,
+  "create_date": "2026-08-29 04:00:00",
+  "date": "2026-08-29",
+  "id": 797,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   797
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 173000000,
+  "create_date": "2026-09-08 04:00:00",
+  "date": "2026-09-08",
+  "id": 798,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   798
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 173000000,
+  "create_date": "2026-09-18 04:00:00",
+  "date": "2026-09-18",
+  "id": 799,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   799
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 162600000,
+  "create_date": "2026-09-28 04:00:00",
+  "date": "2026-09-28",
+  "id": 800,
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "reconciled_invoice_ids": [
+   800
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2025-10-06 04:00:00",
+  "date": "2025-10-06",
+  "id": 804,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   804
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2025-10-21 04:00:00",
+  "date": "2025-10-21",
+  "id": 805,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   805
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2025-11-05 04:00:00",
+  "date": "2025-11-05",
+  "id": 806,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   806
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2025-11-20 04:00:00",
+  "date": "2025-11-20",
+  "id": 807,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   807
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2025-12-05 04:00:00",
+  "date": "2025-12-05",
+  "id": 808,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   808
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2025-12-20 04:00:00",
+  "date": "2025-12-20",
+  "id": 809,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   809
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2026-01-04 04:00:00",
+  "date": "2026-01-04",
+  "id": 810,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   810
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2026-01-19 04:00:00",
+  "date": "2026-01-19",
+  "id": 811,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   811
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2026-02-03 04:00:00",
+  "date": "2026-02-03",
+  "id": 812,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   812
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2026-02-18 04:00:00",
+  "date": "2026-02-18",
+  "id": 813,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   813
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2026-03-05 04:00:00",
+  "date": "2026-03-05",
+  "id": 814,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   814
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2026-03-20 04:00:00",
+  "date": "2026-03-20",
+  "id": 815,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   815
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8600000,
+  "create_date": "2026-04-04 04:00:00",
+  "date": "2026-04-04",
+  "id": 816,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   816
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 9000000,
+  "create_date": "2026-04-19 04:00:00",
+  "date": "2026-04-19",
+  "id": 817,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   817
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8200000,
+  "create_date": "2026-05-04 04:00:00",
+  "date": "2026-05-04",
+  "id": 818,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   818
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8200000,
+  "create_date": "2026-05-19 04:00:00",
+  "date": "2026-05-19",
+  "id": 819,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   819
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 9200000,
+  "create_date": "2026-06-03 04:00:00",
+  "date": "2026-06-03",
+  "id": 820,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   820
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 9200000,
+  "create_date": "2026-06-18 04:00:00",
+  "date": "2026-06-18",
+  "id": 821,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   821
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 7100000,
+  "create_date": "2026-07-03 04:00:00",
+  "date": "2026-07-03",
+  "id": 822,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   822
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 7100000,
+  "create_date": "2026-07-18 04:00:00",
+  "date": "2026-07-18",
+  "id": 823,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   823
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 10200000,
+  "create_date": "2026-08-02 04:00:00",
+  "date": "2026-08-02",
+  "id": 824,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   824
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 10200000,
+  "create_date": "2026-08-17 04:00:00",
+  "date": "2026-08-17",
+  "id": 825,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   825
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 9200000,
+  "create_date": "2026-09-01 04:00:00",
+  "date": "2026-09-01",
+  "id": 826,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   826
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 9200000,
+  "create_date": "2026-09-16 04:00:00",
+  "date": "2026-09-16",
+  "id": 827,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   827
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 11200000,
+  "create_date": "2026-10-01 04:00:00",
+  "date": "2026-10-01",
+  "id": 828,
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "reconciled_invoice_ids": [
+   828
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 11400000,
+  "create_date": "2025-10-25 04:00:00",
+  "date": "2025-10-25",
+  "id": 829,
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   829
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 11400000,
+  "create_date": "2025-11-29 04:00:00",
+  "date": "2025-11-29",
+  "id": 830,
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   830
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 11400000,
+  "create_date": "2026-01-03 04:00:00",
+  "date": "2026-01-03",
+  "id": 831,
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   831
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 11400000,
+  "create_date": "2026-02-07 04:00:00",
+  "date": "2026-02-07",
+  "id": 832,
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   832
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 11400000,
+  "create_date": "2026-03-14 04:00:00",
+  "date": "2026-03-14",
+  "id": 833,
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   833
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 12000000,
+  "create_date": "2026-04-18 04:00:00",
+  "date": "2026-04-18",
+  "id": 834,
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   834
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 13400000,
+  "create_date": "2026-05-23 04:00:00",
+  "date": "2026-05-23",
+  "id": 835,
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   835
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 10500000,
+  "create_date": "2026-06-27 04:00:00",
+  "date": "2026-06-27",
+  "id": 836,
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   836
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 12100000,
+  "create_date": "2026-08-01 04:00:00",
+  "date": "2026-08-01",
+  "id": 837,
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   837
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 22800000,
+  "create_date": "2025-12-18 04:00:00",
+  "date": "2025-12-18",
+  "id": 838,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   838
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 22800000,
+  "create_date": "2025-12-27 04:00:00",
+  "date": "2025-12-27",
+  "id": 839,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   839
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 22800000,
+  "create_date": "2026-01-25 04:00:00",
+  "date": "2026-01-25",
+  "id": 840,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   840
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 22800000,
+  "create_date": "2026-02-23 04:00:00",
+  "date": "2026-02-23",
+  "id": 841,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   841
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 22800000,
+  "create_date": "2026-03-24 04:00:00",
+  "date": "2026-03-24",
+  "id": 842,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   842
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 22800000,
+  "create_date": "2026-04-22 04:00:00",
+  "date": "2026-04-22",
+  "id": 843,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   843
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20800000,
+  "create_date": "2026-06-17 04:00:00",
+  "date": "2026-06-17",
+  "id": 845,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   845
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 22500000,
+  "create_date": "2026-06-17 04:00:00",
+  "date": "2026-06-17",
+  "id": 846,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   846
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 19100000,
+  "create_date": "2026-07-15 04:00:00",
+  "date": "2026-07-15",
+  "id": 847,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   847
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 24300000,
+  "create_date": "2026-08-13 04:00:00",
+  "date": "2026-08-13",
+  "id": 848,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   848
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 17300000,
+  "create_date": "2026-09-10 04:00:00",
+  "date": "2026-09-10",
+  "id": 849,
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   849
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18000000,
+  "create_date": "2026-09-26 04:00:00",
+  "date": "2026-09-26",
+  "id": 851,
+  "partner_id": [
+   3008,
+   "PT Nusantara Secure"
+  ],
+  "reconciled_invoice_ids": [
+   851
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2025-10-12 04:00:00",
+  "date": "2025-10-12",
+  "id": 852,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   852
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2025-10-24 04:00:00",
+  "date": "2025-10-24",
+  "id": 853,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   853
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2025-11-05 04:00:00",
+  "date": "2025-11-05",
+  "id": 854,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   854
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2025-11-17 04:00:00",
+  "date": "2025-11-17",
+  "id": 855,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   855
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2025-11-29 04:00:00",
+  "date": "2025-11-29",
+  "id": 856,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   856
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2025-12-11 04:00:00",
+  "date": "2025-12-11",
+  "id": 857,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   857
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2025-12-23 04:00:00",
+  "date": "2025-12-23",
+  "id": 858,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   858
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2026-01-04 04:00:00",
+  "date": "2026-01-04",
+  "id": 859,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   859
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2026-01-16 04:00:00",
+  "date": "2026-01-16",
+  "id": 860,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   860
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2026-01-28 04:00:00",
+  "date": "2026-01-28",
+  "id": 861,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   861
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2026-02-09 04:00:00",
+  "date": "2026-02-09",
+  "id": 862,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   862
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2026-02-21 04:00:00",
+  "date": "2026-02-21",
+  "id": 863,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   863
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2026-03-05 04:00:00",
+  "date": "2026-03-05",
+  "id": 864,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   864
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2026-03-17 04:00:00",
+  "date": "2026-03-17",
+  "id": 865,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   865
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6700000,
+  "create_date": "2026-03-29 04:00:00",
+  "date": "2026-03-29",
+  "id": 866,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   866
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 7200000,
+  "create_date": "2026-04-10 04:00:00",
+  "date": "2026-04-10",
+  "id": 867,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   867
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 7200000,
+  "create_date": "2026-04-22 04:00:00",
+  "date": "2026-04-22",
+  "id": 868,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   868
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6200000,
+  "create_date": "2026-05-04 04:00:00",
+  "date": "2026-05-04",
+  "id": 869,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   869
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6200000,
+  "create_date": "2026-05-16 04:00:00",
+  "date": "2026-05-16",
+  "id": 870,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   870
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6200000,
+  "create_date": "2026-05-28 04:00:00",
+  "date": "2026-05-28",
+  "id": 871,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   871
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 7200000,
+  "create_date": "2026-06-09 04:00:00",
+  "date": "2026-06-09",
+  "id": 872,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   872
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 7200000,
+  "create_date": "2026-06-21 04:00:00",
+  "date": "2026-06-21",
+  "id": 873,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   873
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8200000,
+  "create_date": "2026-07-03 04:00:00",
+  "date": "2026-07-03",
+  "id": 874,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   874
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8200000,
+  "create_date": "2026-07-15 04:00:00",
+  "date": "2026-07-15",
+  "id": 875,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   875
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 8200000,
+  "create_date": "2026-07-27 04:00:00",
+  "date": "2026-07-27",
+  "id": 876,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   876
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 7200000,
+  "create_date": "2026-08-08 04:00:00",
+  "date": "2026-08-08",
+  "id": 877,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   877
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 7200000,
+  "create_date": "2026-08-20 04:00:00",
+  "date": "2026-08-20",
+  "id": 878,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   878
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6200000,
+  "create_date": "2026-09-01 04:00:00",
+  "date": "2026-09-01",
+  "id": 879,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   879
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6200000,
+  "create_date": "2026-09-13 04:00:00",
+  "date": "2026-09-13",
+  "id": 880,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   880
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6200000,
+  "create_date": "2026-09-25 04:00:00",
+  "date": "2026-09-25",
+  "id": 881,
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "reconciled_invoice_ids": [
+   881
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20000000,
+  "create_date": "2025-11-29 04:00:00",
+  "date": "2025-11-29",
+  "id": 882,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   882
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20000000,
+  "create_date": "2025-12-19 04:00:00",
+  "date": "2025-12-19",
+  "id": 883,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   883
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20000000,
+  "create_date": "2025-12-19 04:00:00",
+  "date": "2025-12-19",
+  "id": 884,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   884
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20000000,
+  "create_date": "2026-01-08 04:00:00",
+  "date": "2026-01-08",
+  "id": 885,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   885
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20000000,
+  "create_date": "2026-01-28 04:00:00",
+  "date": "2026-01-28",
+  "id": 886,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   886
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20000000,
+  "create_date": "2026-02-17 04:00:00",
+  "date": "2026-02-17",
+  "id": 887,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   887
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20000000,
+  "create_date": "2026-03-09 04:00:00",
+  "date": "2026-03-09",
+  "id": 888,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   888
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20000000,
+  "create_date": "2026-03-29 04:00:00",
+  "date": "2026-03-29",
+  "id": 890,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   890
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20000000,
+  "create_date": "2026-04-18 04:00:00",
+  "date": "2026-04-18",
+  "id": 891,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   891
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 19300000,
+  "create_date": "2026-05-09 04:00:00",
+  "date": "2026-05-09",
+  "id": 892,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   892
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 19300000,
+  "create_date": "2026-05-29 04:00:00",
+  "date": "2026-05-29",
+  "id": 893,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   893
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 16500000,
+  "create_date": "2026-06-23 04:00:00",
+  "date": "2026-06-23",
+  "id": 894,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   894
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20200000,
+  "create_date": "2026-07-18 04:00:00",
+  "date": "2026-07-18",
+  "id": 895,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   895
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 17400000,
+  "create_date": "2026-08-12 04:00:00",
+  "date": "2026-08-12",
+  "id": 896,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   896
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 22000000,
+  "create_date": "2026-09-06 04:00:00",
+  "date": "2026-09-06",
+  "id": 897,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   897
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18300000,
+  "create_date": "2026-10-01 04:00:00",
+  "date": "2026-10-01",
+  "id": 898,
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   898
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 5700000,
+  "create_date": "2025-10-26 04:00:00",
+  "date": "2025-10-26",
+  "id": 900,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   900
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 5700000,
+  "create_date": "2025-11-25 04:00:00",
+  "date": "2025-11-25",
+  "id": 902,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   902
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 5700000,
+  "create_date": "2025-12-25 04:00:00",
+  "date": "2025-12-25",
+  "id": 903,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   903
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 5700000,
+  "create_date": "2026-01-24 04:00:00",
+  "date": "2026-01-24",
+  "id": 904,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   904
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 5700000,
+  "create_date": "2026-02-23 04:00:00",
+  "date": "2026-02-23",
+  "id": 905,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   905
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 5700000,
+  "create_date": "2026-03-25 04:00:00",
+  "date": "2026-03-25",
+  "id": 906,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   906
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6000000,
+  "create_date": "2026-04-24 04:00:00",
+  "date": "2026-04-24",
+  "id": 907,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   907
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6000000,
+  "create_date": "2026-05-24 04:00:00",
+  "date": "2026-05-24",
+  "id": 908,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   908
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 5000000,
+  "create_date": "2026-06-23 04:00:00",
+  "date": "2026-06-23",
+  "id": 909,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   909
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 7000000,
+  "create_date": "2026-07-23 04:00:00",
+  "date": "2026-07-23",
+  "id": 910,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   910
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6000000,
+  "create_date": "2026-08-22 04:00:00",
+  "date": "2026-08-22",
+  "id": 911,
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "reconciled_invoice_ids": [
+   911
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2025-11-23 04:00:00",
+  "date": "2025-11-23",
+  "id": 913,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   913
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2025-12-05 04:00:00",
+  "date": "2025-12-05",
+  "id": 914,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   914
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2025-12-17 04:00:00",
+  "date": "2025-12-17",
+  "id": 915,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   915
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2025-12-09 04:00:00",
+  "date": "2025-12-09",
+  "id": 916,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   916
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2025-12-21 04:00:00",
+  "date": "2025-12-21",
+  "id": 917,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   917
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-01-02 04:00:00",
+  "date": "2026-01-02",
+  "id": 918,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   918
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-01-14 04:00:00",
+  "date": "2026-01-14",
+  "id": 919,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   919
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-01-26 04:00:00",
+  "date": "2026-01-26",
+  "id": 920,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   920
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-02-07 04:00:00",
+  "date": "2026-02-07",
+  "id": 921,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   921
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-02-19 04:00:00",
+  "date": "2026-02-19",
+  "id": 922,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   922
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-03-03 04:00:00",
+  "date": "2026-03-03",
+  "id": 923,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   923
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-03-15 04:00:00",
+  "date": "2026-03-15",
+  "id": 924,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   924
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-03-27 04:00:00",
+  "date": "2026-03-27",
+  "id": 925,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   925
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-04-08 04:00:00",
+  "date": "2026-04-08",
+  "id": 926,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   926
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-04-20 04:00:00",
+  "date": "2026-04-20",
+  "id": 927,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   927
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-05-02 04:00:00",
+  "date": "2026-05-02",
+  "id": 928,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   928
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 102800000,
+  "create_date": "2026-05-13 04:00:00",
+  "date": "2026-05-13",
+  "id": 929,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   929
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 102700000,
+  "create_date": "2026-05-25 04:00:00",
+  "date": "2026-05-25",
+  "id": 930,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   930
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-06-06 04:00:00",
+  "date": "2026-06-06",
+  "id": 931,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   931
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 90300000,
+  "create_date": "2026-06-18 04:00:00",
+  "date": "2026-06-18",
+  "id": 932,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   932
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 99300000,
+  "create_date": "2026-06-30 04:00:00",
+  "date": "2026-06-30",
+  "id": 933,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   933
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 99300000,
+  "create_date": "2026-07-12 04:00:00",
+  "date": "2026-07-12",
+  "id": 934,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   934
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 99300000,
+  "create_date": "2026-07-24 04:00:00",
+  "date": "2026-07-24",
+  "id": 935,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   935
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 103900000,
+  "create_date": "2026-08-05 04:00:00",
+  "date": "2026-08-05",
+  "id": 936,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   936
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 103900000,
+  "create_date": "2026-08-17 04:00:00",
+  "date": "2026-08-17",
+  "id": 937,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   937
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 101600000,
+  "create_date": "2026-08-29 04:00:00",
+  "date": "2026-08-29",
+  "id": 938,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   938
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 101600000,
+  "create_date": "2026-09-10 04:00:00",
+  "date": "2026-09-10",
+  "id": 939,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   939
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 101600000,
+  "create_date": "2026-09-22 04:00:00",
+  "date": "2026-09-22",
+  "id": 940,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   940
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 108400000,
+  "create_date": "2026-10-04 04:00:00",
+  "date": "2026-10-04",
+  "id": 941,
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "reconciled_invoice_ids": [
+   941
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2025-12-02 04:00:00",
+  "date": "2025-12-02",
+  "id": 944,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   944
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2025-12-18 04:00:00",
+  "date": "2025-12-18",
+  "id": 945,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   945
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2026-01-03 04:00:00",
+  "date": "2026-01-03",
+  "id": 946,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   946
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2025-12-30 04:00:00",
+  "date": "2025-12-30",
+  "id": 947,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   947
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2026-01-15 04:00:00",
+  "date": "2026-01-15",
+  "id": 948,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   948
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2026-01-31 04:00:00",
+  "date": "2026-01-31",
+  "id": 949,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   949
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2026-02-16 04:00:00",
+  "date": "2026-02-16",
+  "id": 950,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   950
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2026-03-04 04:00:00",
+  "date": "2026-03-04",
+  "id": 951,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   951
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2026-03-20 04:00:00",
+  "date": "2026-03-20",
+  "id": 952,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   952
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2026-04-05 04:00:00",
+  "date": "2026-04-05",
+  "id": 953,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   953
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18100000,
+  "create_date": "2026-04-21 04:00:00",
+  "date": "2026-04-21",
+  "id": 954,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   954
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18900000,
+  "create_date": "2026-05-09 04:00:00",
+  "date": "2026-05-09",
+  "id": 955,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   955
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18800000,
+  "create_date": "2026-05-27 04:00:00",
+  "date": "2026-05-27",
+  "id": 956,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   956
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 16900000,
+  "create_date": "2026-06-14 04:00:00",
+  "date": "2026-06-14",
+  "id": 957,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   957
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 17900000,
+  "create_date": "2026-07-02 04:00:00",
+  "date": "2026-07-02",
+  "id": 958,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   958
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 17900000,
+  "create_date": "2026-07-20 04:00:00",
+  "date": "2026-07-20",
+  "id": 959,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   959
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 19900000,
+  "create_date": "2026-08-07 04:00:00",
+  "date": "2026-08-07",
+  "id": 960,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   960
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 19900000,
+  "create_date": "2026-08-25 04:00:00",
+  "date": "2026-08-25",
+  "id": 961,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   961
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18900000,
+  "create_date": "2026-09-12 04:00:00",
+  "date": "2026-09-12",
+  "id": 962,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   962
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18900000,
+  "create_date": "2026-09-30 04:00:00",
+  "date": "2026-09-30",
+  "id": 963,
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "reconciled_invoice_ids": [
+   963
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2025-11-24 04:00:00",
+  "date": "2025-11-24",
+  "id": 965,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   965
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2025-12-07 04:00:00",
+  "date": "2025-12-07",
+  "id": 966,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   966
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2025-12-20 04:00:00",
+  "date": "2025-12-20",
+  "id": 967,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   967
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2025-12-13 04:00:00",
+  "date": "2025-12-13",
+  "id": 968,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   968
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2025-12-26 04:00:00",
+  "date": "2025-12-26",
+  "id": 969,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   969
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-01-08 04:00:00",
+  "date": "2026-01-08",
+  "id": 970,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   970
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-01-21 04:00:00",
+  "date": "2026-01-21",
+  "id": 971,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   971
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-02-03 04:00:00",
+  "date": "2026-02-03",
+  "id": 972,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   972
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-02-16 04:00:00",
+  "date": "2026-02-16",
+  "id": 973,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   973
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-03-01 04:00:00",
+  "date": "2026-03-01",
+  "id": 974,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   974
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-03-14 04:00:00",
+  "date": "2026-03-14",
+  "id": 975,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   975
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-03-27 04:00:00",
+  "date": "2026-03-27",
+  "id": 976,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   976
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-04-09 04:00:00",
+  "date": "2026-04-09",
+  "id": 977,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   977
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-04-22 04:00:00",
+  "date": "2026-04-22",
+  "id": 978,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   978
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 33700000,
+  "create_date": "2026-06-02 04:00:00",
+  "date": "2026-06-02",
+  "id": 979,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   979
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 34000000,
+  "create_date": "2026-05-19 04:00:00",
+  "date": "2026-05-19",
+  "id": 980,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   980
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-06-02 04:00:00",
+  "date": "2026-06-02",
+  "id": 981,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   981
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 31400000,
+  "create_date": "2026-06-16 04:00:00",
+  "date": "2026-06-16",
+  "id": 982,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   982
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 33500000,
+  "create_date": "2026-06-30 04:00:00",
+  "date": "2026-06-30",
+  "id": 983,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   983
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 33500000,
+  "create_date": "2026-07-14 04:00:00",
+  "date": "2026-07-14",
+  "id": 984,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   984
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 33500000,
+  "create_date": "2026-07-29 04:00:00",
+  "date": "2026-07-29",
+  "id": 985,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   985
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 32400000,
+  "create_date": "2026-08-12 04:00:00",
+  "date": "2026-08-12",
+  "id": 986,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   986
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 32400000,
+  "create_date": "2026-08-26 04:00:00",
+  "date": "2026-08-26",
+  "id": 987,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   987
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36600000,
+  "create_date": "2026-09-09 04:00:00",
+  "date": "2026-09-09",
+  "id": 988,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   988
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 36600000,
+  "create_date": "2026-09-23 04:00:00",
+  "date": "2026-09-23",
+  "id": 989,
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "reconciled_invoice_ids": [
+   989
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2025-12-01 04:00:00",
+  "date": "2025-12-01",
+  "id": 992,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   992
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2025-12-14 04:00:00",
+  "date": "2025-12-14",
+  "id": 993,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   993
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2025-12-27 04:00:00",
+  "date": "2025-12-27",
+  "id": 994,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   994
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-01-09 04:00:00",
+  "date": "2026-01-09",
+  "id": 995,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   995
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-01-22 04:00:00",
+  "date": "2026-01-22",
+  "id": 996,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   996
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-01-15 04:00:00",
+  "date": "2026-01-15",
+  "id": 997,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   997
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-01-28 04:00:00",
+  "date": "2026-01-28",
+  "id": 998,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   998
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-02-10 04:00:00",
+  "date": "2026-02-10",
+  "id": 999,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   999
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-02-23 04:00:00",
+  "date": "2026-02-23",
+  "id": 1000,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1000
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-03-08 04:00:00",
+  "date": "2026-03-08",
+  "id": 1001,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1001
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-03-21 04:00:00",
+  "date": "2026-03-21",
+  "id": 1002,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1002
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-04-03 04:00:00",
+  "date": "2026-04-03",
+  "id": 1003,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1003
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-04-16 04:00:00",
+  "date": "2026-04-16",
+  "id": 1004,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1004
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 25700000,
+  "create_date": "2026-04-29 04:00:00",
+  "date": "2026-04-29",
+  "id": 1005,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1005
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 20200000,
+  "create_date": "2026-07-01 04:00:00",
+  "date": "2026-07-01",
+  "id": 1006,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1006
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 18200000,
+  "create_date": "2026-06-07 04:00:00",
+  "date": "2026-06-07",
+  "id": 1007,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1007
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 19700000,
+  "create_date": "2026-07-01 04:00:00",
+  "date": "2026-07-01",
+  "id": 1008,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1008
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 19700000,
+  "create_date": "2026-07-25 04:00:00",
+  "date": "2026-07-25",
+  "id": 1009,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1009
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 21200000,
+  "create_date": "2026-08-18 04:00:00",
+  "date": "2026-08-18",
+  "id": 1010,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1010
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 19000000,
+  "create_date": "2026-09-11 04:00:00",
+  "date": "2026-09-11",
+  "id": 1011,
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "reconciled_invoice_ids": [
+   1011
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2025-12-06 04:00:00",
+  "date": "2025-12-06",
+  "id": 1013,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1013
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2025-12-02 04:00:00",
+  "date": "2025-12-02",
+  "id": 1014,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1014
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2025-12-18 04:00:00",
+  "date": "2025-12-18",
+  "id": 1015,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1015
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2026-01-03 04:00:00",
+  "date": "2026-01-03",
+  "id": 1016,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1016
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2026-01-19 04:00:00",
+  "date": "2026-01-19",
+  "id": 1017,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1017
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2026-02-04 04:00:00",
+  "date": "2026-02-04",
+  "id": 1018,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1018
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2026-02-20 04:00:00",
+  "date": "2026-02-20",
+  "id": 1019,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1019
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2026-03-08 04:00:00",
+  "date": "2026-03-08",
+  "id": 1020,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1020
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2026-03-24 04:00:00",
+  "date": "2026-03-24",
+  "id": 1021,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1021
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2026-04-09 04:00:00",
+  "date": "2026-04-09",
+  "id": 1022,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1022
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 39000000,
+  "create_date": "2026-04-25 04:00:00",
+  "date": "2026-04-25",
+  "id": 1023,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1023
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 41300000,
+  "create_date": "2026-05-09 04:00:00",
+  "date": "2026-05-09",
+  "id": 1024,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1024
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 41200000,
+  "create_date": "2026-05-25 04:00:00",
+  "date": "2026-05-25",
+  "id": 1025,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1025
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 38300000,
+  "create_date": "2026-06-10 04:00:00",
+  "date": "2026-06-10",
+  "id": 1026,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1026
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 38300000,
+  "create_date": "2026-06-26 04:00:00",
+  "date": "2026-06-26",
+  "id": 1027,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1027
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 40300000,
+  "create_date": "2026-07-12 04:00:00",
+  "date": "2026-07-12",
+  "id": 1028,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1028
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 42300000,
+  "create_date": "2026-07-28 04:00:00",
+  "date": "2026-07-28",
+  "id": 1029,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1029
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 42300000,
+  "create_date": "2026-08-13 04:00:00",
+  "date": "2026-08-13",
+  "id": 1030,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1030
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 41300000,
+  "create_date": "2026-08-29 04:00:00",
+  "date": "2026-08-29",
+  "id": 1031,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1031
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 41300000,
+  "create_date": "2026-09-14 04:00:00",
+  "date": "2026-09-14",
+  "id": 1032,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1032
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 44400000,
+  "create_date": "2026-09-30 04:00:00",
+  "date": "2026-09-30",
+  "id": 1033,
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "reconciled_invoice_ids": [
+   1033
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 4800000,
+  "create_date": "2025-10-20 04:00:00",
+  "date": "2025-10-20",
+  "id": 1035,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1035
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 4800000,
+  "create_date": "2025-11-17 04:00:00",
+  "date": "2025-11-17",
+  "id": 1036,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1036
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 4800000,
+  "create_date": "2025-12-15 04:00:00",
+  "date": "2025-12-15",
+  "id": 1037,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1037
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 4800000,
+  "create_date": "2026-01-12 04:00:00",
+  "date": "2026-01-12",
+  "id": 1038,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1038
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 4800000,
+  "create_date": "2026-02-09 04:00:00",
+  "date": "2026-02-09",
+  "id": 1039,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1039
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 4800000,
+  "create_date": "2026-03-09 04:00:00",
+  "date": "2026-03-09",
+  "id": 1040,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1040
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 5100000,
+  "create_date": "2026-04-06 04:00:00",
+  "date": "2026-04-06",
+  "id": 1041,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1041
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 5200000,
+  "create_date": "2026-05-04 04:00:00",
+  "date": "2026-05-04",
+  "id": 1042,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1042
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 4200000,
+  "create_date": "2026-06-01 04:00:00",
+  "date": "2026-06-01",
+  "id": 1043,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1043
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 4200000,
+  "create_date": "2026-06-29 04:00:00",
+  "date": "2026-06-29",
+  "id": 1044,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1044
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 6300000,
+  "create_date": "2026-07-27 04:00:00",
+  "date": "2026-07-27",
+  "id": 1045,
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "reconciled_invoice_ids": [
+   1045
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2025-11-22 04:00:00",
+  "date": "2025-11-22",
+  "id": 1046,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1046
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2025-12-03 04:00:00",
+  "date": "2025-12-03",
+  "id": 1047,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1047
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2025-11-24 04:00:00",
+  "date": "2025-11-24",
+  "id": 1048,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1048
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2025-12-05 04:00:00",
+  "date": "2025-12-05",
+  "id": 1049,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1049
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2025-12-16 04:00:00",
+  "date": "2025-12-16",
+  "id": 1050,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1050
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2025-12-27 04:00:00",
+  "date": "2025-12-27",
+  "id": 1051,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1051
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-01-07 04:00:00",
+  "date": "2026-01-07",
+  "id": 1052,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1052
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-01-18 04:00:00",
+  "date": "2026-01-18",
+  "id": 1053,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1053
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-01-29 04:00:00",
+  "date": "2026-01-29",
+  "id": 1054,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1054
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-02-09 04:00:00",
+  "date": "2026-02-09",
+  "id": 1055,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1055
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-02-20 04:00:00",
+  "date": "2026-02-20",
+  "id": 1056,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1056
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-03-03 04:00:00",
+  "date": "2026-03-03",
+  "id": 1057,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1057
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-03-14 04:00:00",
+  "date": "2026-03-14",
+  "id": 1058,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1058
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-03-25 04:00:00",
+  "date": "2026-03-25",
+  "id": 1059,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1059
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-04-05 04:00:00",
+  "date": "2026-04-05",
+  "id": 1060,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1060
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-04-16 04:00:00",
+  "date": "2026-04-16",
+  "id": 1061,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1061
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 104500000,
+  "create_date": "2026-04-27 04:00:00",
+  "date": "2026-04-27",
+  "id": 1062,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1062
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 113700000,
+  "create_date": "2026-06-05 04:00:00",
+  "date": "2026-06-05",
+  "id": 1063,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1063
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 113900000,
+  "create_date": "2026-05-19 04:00:00",
+  "date": "2026-05-19",
+  "id": 1064,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1064
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 100800000,
+  "create_date": "2026-05-30 04:00:00",
+  "date": "2026-05-30",
+  "id": 1065,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1065
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 100800000,
+  "create_date": "2026-06-10 04:00:00",
+  "date": "2026-06-10",
+  "id": 1066,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1066
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 100800000,
+  "create_date": "2026-06-21 04:00:00",
+  "date": "2026-06-21",
+  "id": 1067,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1067
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 106400000,
+  "create_date": "2026-07-03 04:00:00",
+  "date": "2026-07-03",
+  "id": 1068,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1068
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 106400000,
+  "create_date": "2026-07-14 04:00:00",
+  "date": "2026-07-14",
+  "id": 1069,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1069
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 106400000,
+  "create_date": "2026-07-25 04:00:00",
+  "date": "2026-07-25",
+  "id": 1070,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1070
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 112000000,
+  "create_date": "2026-08-05 04:00:00",
+  "date": "2026-08-05",
+  "id": 1071,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1071
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 112000000,
+  "create_date": "2026-08-16 04:00:00",
+  "date": "2026-08-16",
+  "id": 1072,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1072
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 112000000,
+  "create_date": "2026-08-27 04:00:00",
+  "date": "2026-08-27",
+  "id": 1073,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1073
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 117600000,
+  "create_date": "2026-09-07 04:00:00",
+  "date": "2026-09-07",
+  "id": 1074,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1074
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 117600000,
+  "create_date": "2026-09-18 04:00:00",
+  "date": "2026-09-18",
+  "id": 1075,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1075
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 117600000,
+  "create_date": "2026-09-29 04:00:00",
+  "date": "2026-09-29",
+  "id": 1076,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1076
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 121000000,
+  "create_date": "2026-10-04 04:00:00",
+  "date": "2026-10-04",
+  "id": 1077,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1077
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount": 121000000,
+  "create_date": "2026-10-04 04:00:00",
+  "date": "2026-10-04",
+  "id": 1078,
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "reconciled_invoice_ids": [
+   1078
+  ],
+  "state": "paid",
+  "write_date": "2026-10-04 23:00:00"
+ }
+]

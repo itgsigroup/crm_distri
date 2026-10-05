@@ -15,6 +15,7 @@ import (
 	"distri-arc/internal/clock"
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/jobs"
+	"distri-arc/internal/odoo"
 	"distri-arc/internal/outbox"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
@@ -116,11 +117,36 @@ func (w *WAPairWorker) Work(ctx context.Context, job *river.Job[jobs.WAPairArgs]
 	return nil
 }
 
+// OdooSyncWorker runs the read-only Odoo sync and recomputes the dealers it touched.
+type OdooSyncWorker struct {
+	river.WorkerDefaults[jobs.OdooSyncArgs]
+	syncer *odoo.Syncer
+	svc    *dealersvc.Service
+}
+
+// Work syncs.
+func (w *OdooSyncWorker) Work(ctx context.Context, job *river.Job[jobs.OdooSyncArgs]) error {
+	rep, err := w.syncer.Run(ctx, job.Args.Full)
+	if err != nil {
+		return err
+	}
+	if len(rep.Dealers) > 0 {
+		_, err = w.svc.Recompute(ctx, rep.Dealers...)
+	}
+	return err
+}
+
+// Timeout allows a full sync to take a while.
+func (w *OdooSyncWorker) Timeout(*river.Job[jobs.OdooSyncArgs]) time.Duration {
+	return 10 * time.Minute
+}
+
 // Deps are the long-lived connections the worker owns.
 type Deps struct {
 	Transport wa.Transport
 	Ingest    *wa.Ingestor
 	Rules     outbox.Rules
+	Odoo      odoo.Source
 }
 
 // New builds the river client with all workers and periodic jobs registered.
@@ -130,6 +156,13 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	svc := dealersvc.New(st, c)
 	river.AddWorker(workers, &RecomputeWorker{svc: svc})
 	river.AddWorker(workers, &SnapshotWorker{svc: svc})
+	var periodic []*river.PeriodicJob
+	if deps.Odoo != nil {
+		river.AddWorker(workers, &OdooSyncWorker{syncer: odoo.NewSyncer(st, deps.Odoo, c, log), svc: svc})
+		periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(10*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
+			return jobs.OdooSyncArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 10 * time.Minute}}
+		}, nil))
+	}
 	if deps.Transport != nil {
 		river.AddWorker(workers, &OutboxWorker{sender: outbox.NewSender(st, deps.Transport, c, deps.Rules)})
 		river.AddWorker(workers, &WAPairWorker{t: deps.Transport, ingest: deps.Ingest})
@@ -138,7 +171,7 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 		Logger:  log,
 		Queues:  map[string]river.QueueConfig{river.QueueDefault: {MaxWorkers: 8}},
 		Workers: workers,
-		PeriodicJobs: []*river.PeriodicJob{
+		PeriodicJobs: append(periodic, []*river.PeriodicJob{
 			river.NewPeriodicJob(river.PeriodicInterval(time.Minute), func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.HeartbeatArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: time.Minute}}
 			}, &river.PeriodicJobOpts{RunOnStart: true}),
@@ -148,6 +181,6 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 			river.NewPeriodicJob(Daily{Hour: 0, Minute: 30}, func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.SnapshotArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 24 * time.Hour}}
 			}, nil),
-		},
+		}...),
 	})
 }

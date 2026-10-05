@@ -7,5 +7,5 @@ import "embed"
 //go:embed migrations/*.sql
 var Migrations embed.FS
 
-//go:embed seed/*.json
+//go:embed seed/*.json seed/odoo/*.json
 var Seed embed.FS

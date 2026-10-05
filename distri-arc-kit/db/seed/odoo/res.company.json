@@ -1,0 +1,22 @@
+[
+ {
+  "id": 1,
+  "name": "GSI Semarang",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "id": 2,
+  "name": "GSI Yogyakarta",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "id": 3,
+  "name": "GSI Surabaya",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "id": 4,
+  "name": "GSI Jakarta",
+  "write_date": "2026-10-04 23:00:00"
+ }
+]

@@ -13,6 +13,7 @@
   "memo": "Toko CCTV terbesar di Semarang Timur, pelanggan sejak 2022. Order rutin tiap 2 minggu lewat Mbak Rina; Pak Budi memutuskan harga dan limit. Bayar selalu ≤ 30 hari (93% tepat waktu). Membuka cabang di Demak — kebutuhan stok awal ±Rp 90 jt. Sensitif pada ketersediaan stok, bukan harga. Product mix belum menyentuh LED \u0026 fire alarm — share of wallet bisa naik dari 72%.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34010",
     "key": "sinar:budi",
     "name": "Pak Budi",
     "role": "Pemilik",
@@ -22,6 +23,7 @@
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34011",
     "key": "sinar:rina",
     "name": "Mbak Rina",
     "role": "Admin order",
@@ -31,6 +33,7 @@
     "last_interaction_at": "2026-10-03T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34012",
     "key": "sinar:yono",
     "name": "Pak Yono",
     "role": "Teknisi toko",
@@ -1272,7 +1275,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0701",
+    "odoo_id": "account.move:701",
     "number": "INV/0701",
     "order": "S04101",
     "issued_at": "2025-10-14",
@@ -1282,7 +1285,7 @@
     "paid_at": "2025-12-01"
    },
    {
-    "odoo_id": "account.move:0702",
+    "odoo_id": "account.move:702",
     "number": "INV/0702",
     "order": "S04102",
     "issued_at": "2025-10-25",
@@ -1292,7 +1295,7 @@
     "paid_at": "2025-12-12"
    },
    {
-    "odoo_id": "account.move:0703",
+    "odoo_id": "account.move:703",
     "number": "INV/0703",
     "order": "S04103",
     "issued_at": "2025-11-05",
@@ -1302,7 +1305,7 @@
     "paid_at": "2025-12-03"
    },
    {
-    "odoo_id": "account.move:0704",
+    "odoo_id": "account.move:704",
     "number": "INV/0704",
     "order": "S04104",
     "issued_at": "2025-11-16",
@@ -1312,7 +1315,7 @@
     "paid_at": "2025-12-14"
    },
    {
-    "odoo_id": "account.move:0705",
+    "odoo_id": "account.move:705",
     "number": "INV/0705",
     "order": "S04105",
     "issued_at": "2025-11-27",
@@ -1322,7 +1325,7 @@
     "paid_at": "2025-12-25"
    },
    {
-    "odoo_id": "account.move:0706",
+    "odoo_id": "account.move:706",
     "number": "INV/0706",
     "order": "S04106",
     "issued_at": "2025-12-08",
@@ -1332,7 +1335,7 @@
     "paid_at": "2026-01-05"
    },
    {
-    "odoo_id": "account.move:0707",
+    "odoo_id": "account.move:707",
     "number": "INV/0707",
     "order": "S04107",
     "issued_at": "2025-12-19",
@@ -1342,7 +1345,7 @@
     "paid_at": "2026-01-16"
    },
    {
-    "odoo_id": "account.move:0708",
+    "odoo_id": "account.move:708",
     "number": "INV/0708",
     "order": "S04108",
     "issued_at": "2025-12-30",
@@ -1352,7 +1355,7 @@
     "paid_at": "2026-01-27"
    },
    {
-    "odoo_id": "account.move:0709",
+    "odoo_id": "account.move:709",
     "number": "INV/0709",
     "order": "S04109",
     "issued_at": "2026-01-10",
@@ -1362,7 +1365,7 @@
     "paid_at": "2026-02-07"
    },
    {
-    "odoo_id": "account.move:0710",
+    "odoo_id": "account.move:710",
     "number": "INV/0710",
     "order": "S04110",
     "issued_at": "2026-01-21",
@@ -1372,7 +1375,7 @@
     "paid_at": "2026-02-18"
    },
    {
-    "odoo_id": "account.move:0711",
+    "odoo_id": "account.move:711",
     "number": "INV/0711",
     "order": "S04111",
     "issued_at": "2026-02-01",
@@ -1382,7 +1385,7 @@
     "paid_at": "2026-03-01"
    },
    {
-    "odoo_id": "account.move:0712",
+    "odoo_id": "account.move:712",
     "number": "INV/0712",
     "order": "S04112",
     "issued_at": "2026-02-12",
@@ -1392,7 +1395,7 @@
     "paid_at": "2026-03-12"
    },
    {
-    "odoo_id": "account.move:0713",
+    "odoo_id": "account.move:713",
     "number": "INV/0713",
     "order": "S04113",
     "issued_at": "2026-02-23",
@@ -1402,7 +1405,7 @@
     "paid_at": "2026-03-23"
    },
    {
-    "odoo_id": "account.move:0714",
+    "odoo_id": "account.move:714",
     "number": "INV/0714",
     "order": "S04114",
     "issued_at": "2026-03-06",
@@ -1412,7 +1415,7 @@
     "paid_at": "2026-04-03"
    },
    {
-    "odoo_id": "account.move:0715",
+    "odoo_id": "account.move:715",
     "number": "INV/0715",
     "order": "S04115",
     "issued_at": "2026-03-17",
@@ -1422,7 +1425,7 @@
     "paid_at": "2026-04-14"
    },
    {
-    "odoo_id": "account.move:0716",
+    "odoo_id": "account.move:716",
     "number": "INV/0716",
     "order": "S04116",
     "issued_at": "2026-03-28",
@@ -1432,7 +1435,7 @@
     "paid_at": "2026-04-25"
    },
    {
-    "odoo_id": "account.move:0717",
+    "odoo_id": "account.move:717",
     "number": "INV/0717",
     "order": "S04117",
     "issued_at": "2026-04-08",
@@ -1442,7 +1445,7 @@
     "paid_at": "2026-05-06"
    },
    {
-    "odoo_id": "account.move:0718",
+    "odoo_id": "account.move:718",
     "number": "INV/0718",
     "order": "S04118",
     "issued_at": "2026-04-22",
@@ -1452,7 +1455,7 @@
     "paid_at": "2026-05-20"
    },
    {
-    "odoo_id": "account.move:0719",
+    "odoo_id": "account.move:719",
     "number": "INV/0719",
     "order": "S04119",
     "issued_at": "2026-05-06",
@@ -1462,7 +1465,7 @@
     "paid_at": "2026-06-03"
    },
    {
-    "odoo_id": "account.move:0720",
+    "odoo_id": "account.move:720",
     "number": "INV/0720",
     "order": "S04120",
     "issued_at": "2026-05-20",
@@ -1472,7 +1475,7 @@
     "paid_at": "2026-06-17"
    },
    {
-    "odoo_id": "account.move:0721",
+    "odoo_id": "account.move:721",
     "number": "INV/0721",
     "order": "S04121",
     "issued_at": "2026-06-03",
@@ -1482,7 +1485,7 @@
     "paid_at": "2026-07-01"
    },
    {
-    "odoo_id": "account.move:0722",
+    "odoo_id": "account.move:722",
     "number": "INV/0722",
     "order": "S04122",
     "issued_at": "2026-06-17",
@@ -1492,7 +1495,7 @@
     "paid_at": "2026-07-15"
    },
    {
-    "odoo_id": "account.move:0723",
+    "odoo_id": "account.move:723",
     "number": "INV/0723",
     "order": "S04123",
     "issued_at": "2026-07-01",
@@ -1502,7 +1505,7 @@
     "paid_at": "2026-07-29"
    },
    {
-    "odoo_id": "account.move:0724",
+    "odoo_id": "account.move:724",
     "number": "INV/0724",
     "order": "S04124",
     "issued_at": "2026-07-15",
@@ -1512,7 +1515,7 @@
     "paid_at": "2026-08-12"
    },
    {
-    "odoo_id": "account.move:0725",
+    "odoo_id": "account.move:725",
     "number": "INV/0725",
     "order": "S04125",
     "issued_at": "2026-07-29",
@@ -1522,7 +1525,7 @@
     "paid_at": "2026-08-26"
    },
    {
-    "odoo_id": "account.move:0726",
+    "odoo_id": "account.move:726",
     "number": "INV/0726",
     "order": "S04126",
     "issued_at": "2026-08-12",
@@ -1532,7 +1535,7 @@
     "paid_at": "2026-09-09"
    },
    {
-    "odoo_id": "account.move:0727",
+    "odoo_id": "account.move:727",
     "number": "INV/0727",
     "order": "S04127",
     "issued_at": "2026-08-26",
@@ -1542,7 +1545,7 @@
     "paid_at": "2026-09-23"
    },
    {
-    "odoo_id": "account.move:0912",
+    "odoo_id": "account.move:912",
     "number": "INV/0912",
     "order": "S04128",
     "issued_at": "2026-09-09",
@@ -1551,7 +1554,7 @@
     "paid": 0
    },
    {
-    "odoo_id": "account.move:0728",
+    "odoo_id": "account.move:728",
     "number": "INV/0728",
     "order": "S04129",
     "issued_at": "2026-09-29",
@@ -1562,163 +1565,163 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0701",
+    "odoo_id": "account.payment:701",
     "invoice": "INV/0701",
     "paid_at": "2025-12-01",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0702",
+    "odoo_id": "account.payment:702",
     "invoice": "INV/0702",
     "paid_at": "2025-12-12",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0703",
+    "odoo_id": "account.payment:703",
     "invoice": "INV/0703",
     "paid_at": "2025-12-03",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0704",
+    "odoo_id": "account.payment:704",
     "invoice": "INV/0704",
     "paid_at": "2025-12-14",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0705",
+    "odoo_id": "account.payment:705",
     "invoice": "INV/0705",
     "paid_at": "2025-12-25",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0706",
+    "odoo_id": "account.payment:706",
     "invoice": "INV/0706",
     "paid_at": "2026-01-05",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0707",
+    "odoo_id": "account.payment:707",
     "invoice": "INV/0707",
     "paid_at": "2026-01-16",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0708",
+    "odoo_id": "account.payment:708",
     "invoice": "INV/0708",
     "paid_at": "2026-01-27",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0709",
+    "odoo_id": "account.payment:709",
     "invoice": "INV/0709",
     "paid_at": "2026-02-07",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0710",
+    "odoo_id": "account.payment:710",
     "invoice": "INV/0710",
     "paid_at": "2026-02-18",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0711",
+    "odoo_id": "account.payment:711",
     "invoice": "INV/0711",
     "paid_at": "2026-03-01",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0712",
+    "odoo_id": "account.payment:712",
     "invoice": "INV/0712",
     "paid_at": "2026-03-12",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0713",
+    "odoo_id": "account.payment:713",
     "invoice": "INV/0713",
     "paid_at": "2026-03-23",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0714",
+    "odoo_id": "account.payment:714",
     "invoice": "INV/0714",
     "paid_at": "2026-04-03",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0715",
+    "odoo_id": "account.payment:715",
     "invoice": "INV/0715",
     "paid_at": "2026-04-14",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0716",
+    "odoo_id": "account.payment:716",
     "invoice": "INV/0716",
     "paid_at": "2026-04-25",
     "amount": 58900000
    },
    {
-    "odoo_id": "account.payment:0717",
+    "odoo_id": "account.payment:717",
     "invoice": "INV/0717",
     "paid_at": "2026-05-06",
     "amount": 60400000
    },
    {
-    "odoo_id": "account.payment:0718",
+    "odoo_id": "account.payment:718",
     "invoice": "INV/0718",
     "paid_at": "2026-05-20",
     "amount": 60500000
    },
    {
-    "odoo_id": "account.payment:0719",
+    "odoo_id": "account.payment:719",
     "invoice": "INV/0719",
     "paid_at": "2026-06-03",
     "amount": 48400000
    },
    {
-    "odoo_id": "account.payment:0720",
+    "odoo_id": "account.payment:720",
     "invoice": "INV/0720",
     "paid_at": "2026-06-17",
     "amount": 48400000
    },
    {
-    "odoo_id": "account.payment:0721",
+    "odoo_id": "account.payment:721",
     "invoice": "INV/0721",
     "paid_at": "2026-07-01",
     "amount": 55400000
    },
    {
-    "odoo_id": "account.payment:0722",
+    "odoo_id": "account.payment:722",
     "invoice": "INV/0722",
     "paid_at": "2026-07-15",
     "amount": 55400000
    },
    {
-    "odoo_id": "account.payment:0723",
+    "odoo_id": "account.payment:723",
     "invoice": "INV/0723",
     "paid_at": "2026-07-29",
     "amount": 61500000
    },
    {
-    "odoo_id": "account.payment:0724",
+    "odoo_id": "account.payment:724",
     "invoice": "INV/0724",
     "paid_at": "2026-08-12",
     "amount": 61500000
    },
    {
-    "odoo_id": "account.payment:0725",
+    "odoo_id": "account.payment:725",
     "invoice": "INV/0725",
     "paid_at": "2026-08-26",
     "amount": 61500000
    },
    {
-    "odoo_id": "account.payment:0726",
+    "odoo_id": "account.payment:726",
     "invoice": "INV/0726",
     "paid_at": "2026-09-09",
     "amount": 58500000
    },
    {
-    "odoo_id": "account.payment:0727",
+    "odoo_id": "account.payment:727",
     "invoice": "INV/0727",
     "paid_at": "2026-09-23",
     "amount": 58500000
@@ -1757,6 +1760,7 @@
   "memo": "Installer besar untuk proyek gedung di Jakarta; order besar tapi bayar lambat (47 hari dari termin 30). INV/0844 Rp 95 jt lewat 17 hari. Minta rilis 24 kamera (Rp 180 jt) untuk proyek apartemen — over limit / overdue: exposure akan melewati limit. Finance (Bu Lia) jarang merespons; pembayaran bergantung termin dari klien mereka.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34020",
     "key": "graha:hasan",
     "name": "Pak Hasan",
     "role": "Purchasing",
@@ -1766,6 +1770,7 @@
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34021",
     "key": "graha:lia",
     "name": "Bu Lia",
     "role": "Finance",
@@ -1775,6 +1780,7 @@
     "last_interaction_at": "2026-06-08T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34022",
     "key": "graha:darto",
     "name": "Pak Darto",
     "role": "Direktur",
@@ -2644,7 +2650,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0729",
+    "odoo_id": "account.move:729",
     "number": "INV/0729",
     "order": "S04130",
     "issued_at": "2025-10-05",
@@ -2654,7 +2660,7 @@
     "paid_at": "2025-11-22"
    },
    {
-    "odoo_id": "account.move:0730",
+    "odoo_id": "account.move:730",
     "number": "INV/0730",
     "order": "S04131",
     "issued_at": "2025-10-23",
@@ -2664,7 +2670,7 @@
     "paid_at": "2025-12-10"
    },
    {
-    "odoo_id": "account.move:0731",
+    "odoo_id": "account.move:731",
     "number": "INV/0731",
     "order": "S04132",
     "issued_at": "2025-11-10",
@@ -2674,7 +2680,7 @@
     "paid_at": "2025-12-28"
    },
    {
-    "odoo_id": "account.move:0732",
+    "odoo_id": "account.move:732",
     "number": "INV/0732",
     "order": "S04133",
     "issued_at": "2025-11-28",
@@ -2684,7 +2690,7 @@
     "paid_at": "2026-01-15"
    },
    {
-    "odoo_id": "account.move:0733",
+    "odoo_id": "account.move:733",
     "number": "INV/0733",
     "order": "S04134",
     "issued_at": "2025-12-16",
@@ -2694,7 +2700,7 @@
     "paid_at": "2026-01-13"
    },
    {
-    "odoo_id": "account.move:0734",
+    "odoo_id": "account.move:734",
     "number": "INV/0734",
     "order": "S04135",
     "issued_at": "2026-01-03",
@@ -2704,7 +2710,7 @@
     "paid_at": "2026-01-31"
    },
    {
-    "odoo_id": "account.move:0735",
+    "odoo_id": "account.move:735",
     "number": "INV/0735",
     "order": "S04136",
     "issued_at": "2026-01-21",
@@ -2714,7 +2720,7 @@
     "paid_at": "2026-02-18"
    },
    {
-    "odoo_id": "account.move:0736",
+    "odoo_id": "account.move:736",
     "number": "INV/0736",
     "order": "S04137",
     "issued_at": "2026-02-08",
@@ -2724,7 +2730,7 @@
     "paid_at": "2026-03-08"
    },
    {
-    "odoo_id": "account.move:0737",
+    "odoo_id": "account.move:737",
     "number": "INV/0737",
     "order": "S04138",
     "issued_at": "2026-02-26",
@@ -2734,7 +2740,7 @@
     "paid_at": "2026-03-26"
    },
    {
-    "odoo_id": "account.move:0738",
+    "odoo_id": "account.move:738",
     "number": "INV/0738",
     "order": "S04139",
     "issued_at": "2026-03-16",
@@ -2744,7 +2750,7 @@
     "paid_at": "2026-04-13"
    },
    {
-    "odoo_id": "account.move:0739",
+    "odoo_id": "account.move:739",
     "number": "INV/0739",
     "order": "S04140",
     "issued_at": "2026-04-03",
@@ -2754,7 +2760,7 @@
     "paid_at": "2026-05-01"
    },
    {
-    "odoo_id": "account.move:0740",
+    "odoo_id": "account.move:740",
     "number": "INV/0740",
     "order": "S04141",
     "issued_at": "2026-04-21",
@@ -2764,7 +2770,7 @@
     "paid_at": "2026-07-11"
    },
    {
-    "odoo_id": "account.move:0741",
+    "odoo_id": "account.move:741",
     "number": "INV/0741",
     "order": "S04142",
     "issued_at": "2026-05-11",
@@ -2774,7 +2780,7 @@
     "paid_at": "2026-06-10"
    },
    {
-    "odoo_id": "account.move:0742",
+    "odoo_id": "account.move:742",
     "number": "INV/0742",
     "order": "S04143",
     "issued_at": "2026-05-31",
@@ -2784,7 +2790,7 @@
     "paid_at": "2026-06-30"
    },
    {
-    "odoo_id": "account.move:0743",
+    "odoo_id": "account.move:743",
     "number": "INV/0743",
     "order": "S04144",
     "issued_at": "2026-06-20",
@@ -2794,7 +2800,7 @@
     "paid_at": "2026-09-09"
    },
    {
-    "odoo_id": "account.move:0744",
+    "odoo_id": "account.move:744",
     "number": "INV/0744",
     "order": "S04145",
     "issued_at": "2026-07-10",
@@ -2804,7 +2810,7 @@
     "paid_at": "2026-08-09"
    },
    {
-    "odoo_id": "account.move:0745",
+    "odoo_id": "account.move:745",
     "number": "INV/0745",
     "order": "S04146",
     "issued_at": "2026-07-30",
@@ -2814,7 +2820,7 @@
     "paid_at": "2026-08-29"
    },
    {
-    "odoo_id": "account.move:0844",
+    "odoo_id": "account.move:844",
     "number": "INV/0844",
     "order": "S04147",
     "issued_at": "2026-08-19",
@@ -2823,7 +2829,7 @@
     "paid": 0
    },
    {
-    "odoo_id": "account.move:0746",
+    "odoo_id": "account.move:746",
     "number": "INV/0746",
     "order": "S04148",
     "issued_at": "2026-09-12",
@@ -2832,7 +2838,7 @@
     "paid": 0
    },
    {
-    "odoo_id": "account.move:0747",
+    "odoo_id": "account.move:747",
     "number": "INV/0747",
     "order": "S04149",
     "issued_at": "2026-10-02",
@@ -2843,103 +2849,103 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0729",
+    "odoo_id": "account.payment:729",
     "invoice": "INV/0729",
     "paid_at": "2025-11-22",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0730",
+    "odoo_id": "account.payment:730",
     "invoice": "INV/0730",
     "paid_at": "2025-12-10",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0731",
+    "odoo_id": "account.payment:731",
     "invoice": "INV/0731",
     "paid_at": "2025-12-28",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0732",
+    "odoo_id": "account.payment:732",
     "invoice": "INV/0732",
     "paid_at": "2026-01-15",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0733",
+    "odoo_id": "account.payment:733",
     "invoice": "INV/0733",
     "paid_at": "2026-01-13",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0734",
+    "odoo_id": "account.payment:734",
     "invoice": "INV/0734",
     "paid_at": "2026-01-31",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0735",
+    "odoo_id": "account.payment:735",
     "invoice": "INV/0735",
     "paid_at": "2026-02-18",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0736",
+    "odoo_id": "account.payment:736",
     "invoice": "INV/0736",
     "paid_at": "2026-03-08",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0737",
+    "odoo_id": "account.payment:737",
     "invoice": "INV/0737",
     "paid_at": "2026-03-26",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0738",
+    "odoo_id": "account.payment:738",
     "invoice": "INV/0738",
     "paid_at": "2026-04-13",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0739",
+    "odoo_id": "account.payment:739",
     "invoice": "INV/0739",
     "paid_at": "2026-05-01",
     "amount": 79800000
    },
    {
-    "odoo_id": "account.payment:0740",
+    "odoo_id": "account.payment:740",
     "invoice": "INV/0740",
     "paid_at": "2026-07-11",
     "amount": 103700000
    },
    {
-    "odoo_id": "account.payment:0741",
+    "odoo_id": "account.payment:741",
     "invoice": "INV/0741",
     "paid_at": "2026-06-10",
     "amount": 83600000
    },
    {
-    "odoo_id": "account.payment:0742",
+    "odoo_id": "account.payment:742",
     "invoice": "INV/0742",
     "paid_at": "2026-06-30",
     "amount": 83600000
    },
    {
-    "odoo_id": "account.payment:0743",
+    "odoo_id": "account.payment:743",
     "invoice": "INV/0743",
     "paid_at": "2026-09-09",
     "amount": 109900000
    },
    {
-    "odoo_id": "account.payment:0744",
+    "odoo_id": "account.payment:744",
     "invoice": "INV/0744",
     "paid_at": "2026-08-09",
     "amount": 77600000
    },
    {
-    "odoo_id": "account.payment:0745",
+    "odoo_id": "account.payment:745",
     "invoice": "INV/0745",
     "paid_at": "2026-08-29",
     "amount": 77600000
@@ -2978,6 +2984,7 @@
   "memo": "Installer kecil dengan proyek musiman; dua bulan terakhir order turun dan satu invoice Rp 46 jt lewat 11 hari. Pak Agus minta tambah tempo \"minggu depan\" tanpa tanggal. Over limit / overdue (exposure 162 / 150 jt) dan lewat jadwal (30 hari dari siklus order 21). Dua masalah satu akar: proyek belum cair. Yang berhasil di dealer serupa: cicilan 2× + order kecil cash.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34030",
     "key": "mitra:agus",
     "name": "Pak Agus",
     "role": "Pemilik",
@@ -2987,6 +2994,7 @@
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34031",
     "key": "mitra:dika",
     "name": "Mas Dika",
     "role": "Teknisi",
@@ -3843,7 +3851,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0748",
+    "odoo_id": "account.move:748",
     "number": "INV/0748",
     "order": "S04150",
     "issued_at": "2025-10-11",
@@ -3853,7 +3861,7 @@
     "paid_at": "2025-11-28"
    },
    {
-    "odoo_id": "account.move:0749",
+    "odoo_id": "account.move:749",
     "number": "INV/0749",
     "order": "S04151",
     "issued_at": "2025-10-27",
@@ -3863,7 +3871,7 @@
     "paid_at": "2025-12-14"
    },
    {
-    "odoo_id": "account.move:0750",
+    "odoo_id": "account.move:750",
     "number": "INV/0750",
     "order": "S04152",
     "issued_at": "2025-11-12",
@@ -3873,7 +3881,7 @@
     "paid_at": "2025-12-30"
    },
    {
-    "odoo_id": "account.move:0751",
+    "odoo_id": "account.move:751",
     "number": "INV/0751",
     "order": "S04153",
     "issued_at": "2025-11-28",
@@ -3883,7 +3891,7 @@
     "paid_at": "2026-01-15"
    },
    {
-    "odoo_id": "account.move:0752",
+    "odoo_id": "account.move:752",
     "number": "INV/0752",
     "order": "S04154",
     "issued_at": "2025-12-14",
@@ -3893,7 +3901,7 @@
     "paid_at": "2026-01-31"
    },
    {
-    "odoo_id": "account.move:0753",
+    "odoo_id": "account.move:753",
     "number": "INV/0753",
     "order": "S04155",
     "issued_at": "2025-12-30",
@@ -3903,7 +3911,7 @@
     "paid_at": "2026-01-27"
    },
    {
-    "odoo_id": "account.move:0754",
+    "odoo_id": "account.move:754",
     "number": "INV/0754",
     "order": "S04156",
     "issued_at": "2026-01-15",
@@ -3913,7 +3921,7 @@
     "paid_at": "2026-02-12"
    },
    {
-    "odoo_id": "account.move:0755",
+    "odoo_id": "account.move:755",
     "number": "INV/0755",
     "order": "S04157",
     "issued_at": "2026-01-31",
@@ -3923,7 +3931,7 @@
     "paid_at": "2026-02-28"
    },
    {
-    "odoo_id": "account.move:0756",
+    "odoo_id": "account.move:756",
     "number": "INV/0756",
     "order": "S04158",
     "issued_at": "2026-02-16",
@@ -3933,7 +3941,7 @@
     "paid_at": "2026-03-16"
    },
    {
-    "odoo_id": "account.move:0757",
+    "odoo_id": "account.move:757",
     "number": "INV/0757",
     "order": "S04159",
     "issued_at": "2026-03-04",
@@ -3943,7 +3951,7 @@
     "paid_at": "2026-04-01"
    },
    {
-    "odoo_id": "account.move:0758",
+    "odoo_id": "account.move:758",
     "number": "INV/0758",
     "order": "S04160",
     "issued_at": "2026-03-20",
@@ -3953,7 +3961,7 @@
     "paid_at": "2026-04-17"
    },
    {
-    "odoo_id": "account.move:0759",
+    "odoo_id": "account.move:759",
     "number": "INV/0759",
     "order": "S04161",
     "issued_at": "2026-04-05",
@@ -3963,7 +3971,7 @@
     "paid_at": "2026-05-03"
    },
    {
-    "odoo_id": "account.move:0760",
+    "odoo_id": "account.move:760",
     "number": "INV/0760",
     "order": "S04162",
     "issued_at": "2026-04-21",
@@ -3973,7 +3981,7 @@
     "paid_at": "2026-06-23"
    },
    {
-    "odoo_id": "account.move:0761",
+    "odoo_id": "account.move:761",
     "number": "INV/0761",
     "order": "S04163",
     "issued_at": "2026-05-12",
@@ -3983,7 +3991,7 @@
     "paid_at": "2026-06-11"
    },
    {
-    "odoo_id": "account.move:0762",
+    "odoo_id": "account.move:762",
     "number": "INV/0762",
     "order": "S04164",
     "issued_at": "2026-06-02",
@@ -3993,7 +4001,7 @@
     "paid_at": "2026-07-02"
    },
    {
-    "odoo_id": "account.move:0763",
+    "odoo_id": "account.move:763",
     "number": "INV/0763",
     "order": "S04165",
     "issued_at": "2026-06-23",
@@ -4003,7 +4011,7 @@
     "paid_at": "2026-08-25"
    },
    {
-    "odoo_id": "account.move:0764",
+    "odoo_id": "account.move:764",
     "number": "INV/0764",
     "order": "S04166",
     "issued_at": "2026-07-14",
@@ -4013,7 +4021,7 @@
     "paid_at": "2026-08-13"
    },
    {
-    "odoo_id": "account.move:0765",
+    "odoo_id": "account.move:765",
     "number": "INV/0765",
     "order": "S04167",
     "issued_at": "2026-08-04",
@@ -4023,7 +4031,7 @@
     "paid_at": "2026-09-03"
    },
    {
-    "odoo_id": "account.move:0889",
+    "odoo_id": "account.move:889",
     "number": "INV/0889",
     "order": "S04168",
     "issued_at": "2026-08-25",
@@ -4032,7 +4040,7 @@
     "paid": 0
    },
    {
-    "odoo_id": "account.move:0766",
+    "odoo_id": "account.move:766",
     "number": "INV/0766",
     "order": "S04169",
     "issued_at": "2026-09-05",
@@ -4043,109 +4051,109 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0748",
+    "odoo_id": "account.payment:748",
     "invoice": "INV/0748",
     "paid_at": "2025-11-28",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0749",
+    "odoo_id": "account.payment:749",
     "invoice": "INV/0749",
     "paid_at": "2025-12-14",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0750",
+    "odoo_id": "account.payment:750",
     "invoice": "INV/0750",
     "paid_at": "2025-12-30",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0751",
+    "odoo_id": "account.payment:751",
     "invoice": "INV/0751",
     "paid_at": "2026-01-15",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0752",
+    "odoo_id": "account.payment:752",
     "invoice": "INV/0752",
     "paid_at": "2026-01-31",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0753",
+    "odoo_id": "account.payment:753",
     "invoice": "INV/0753",
     "paid_at": "2026-01-27",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0754",
+    "odoo_id": "account.payment:754",
     "invoice": "INV/0754",
     "paid_at": "2026-02-12",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0755",
+    "odoo_id": "account.payment:755",
     "invoice": "INV/0755",
     "paid_at": "2026-02-28",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0756",
+    "odoo_id": "account.payment:756",
     "invoice": "INV/0756",
     "paid_at": "2026-03-16",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0757",
+    "odoo_id": "account.payment:757",
     "invoice": "INV/0757",
     "paid_at": "2026-04-01",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0758",
+    "odoo_id": "account.payment:758",
     "invoice": "INV/0758",
     "paid_at": "2026-04-17",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0759",
+    "odoo_id": "account.payment:759",
     "invoice": "INV/0759",
     "paid_at": "2026-05-03",
     "amount": 36100000
    },
    {
-    "odoo_id": "account.payment:0760",
+    "odoo_id": "account.payment:760",
     "invoice": "INV/0760",
     "paid_at": "2026-06-23",
     "amount": 22200000
    },
    {
-    "odoo_id": "account.payment:0761",
+    "odoo_id": "account.payment:761",
     "invoice": "INV/0761",
     "paid_at": "2026-06-11",
     "amount": 27200000
    },
    {
-    "odoo_id": "account.payment:0762",
+    "odoo_id": "account.payment:762",
     "invoice": "INV/0762",
     "paid_at": "2026-07-02",
     "amount": 23300000
    },
    {
-    "odoo_id": "account.payment:0763",
+    "odoo_id": "account.payment:763",
     "invoice": "INV/0763",
     "paid_at": "2026-08-25",
     "amount": 23300000
    },
    {
-    "odoo_id": "account.payment:0764",
+    "odoo_id": "account.payment:764",
     "invoice": "INV/0764",
     "paid_at": "2026-08-13",
     "amount": 25900000
    },
    {
-    "odoo_id": "account.payment:0765",
+    "odoo_id": "account.payment:765",
     "invoice": "INV/0765",
     "paid_at": "2026-09-03",
     "amount": 20100000
@@ -4184,6 +4192,7 @@
   "memo": "Dealer terbesar di Jatim, bayar 25 hari, order tiap 10 hari — Key account. Minta harga khusus 3% di bawah tier A untuk 60 unit karena \"distributor lain lebih murah\" (share of wallet kita 65%, sisanya ke distributor itu). Floor margin 9%: 3% membuat margin 8,3%. Counter yang masuk akal: 1,5% + ongkir, atau bundle NVR 32ch yang sedang menua.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34040",
     "key": "indo:wira",
     "name": "Pak Wira",
     "role": "Pemilik",
@@ -4193,6 +4202,7 @@
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34041",
     "key": "indo:santi",
     "name": "Bu Santi",
     "role": "Purchasing",
@@ -4202,6 +4212,7 @@
     "last_interaction_at": "2026-10-03T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34042",
     "key": "indo:eko",
     "name": "Pak Eko",
     "role": "Gudang",
@@ -5785,7 +5796,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0767",
+    "odoo_id": "account.move:767",
     "number": "INV/0767",
     "order": "S04170",
     "issued_at": "2025-10-08",
@@ -5795,7 +5806,7 @@
     "paid_at": "2025-11-25"
    },
    {
-    "odoo_id": "account.move:0768",
+    "odoo_id": "account.move:768",
     "number": "INV/0768",
     "order": "S04171",
     "issued_at": "2025-10-18",
@@ -5805,7 +5816,7 @@
     "paid_at": "2025-11-15"
    },
    {
-    "odoo_id": "account.move:0769",
+    "odoo_id": "account.move:769",
     "number": "INV/0769",
     "order": "S04172",
     "issued_at": "2025-10-28",
@@ -5815,7 +5826,7 @@
     "paid_at": "2025-11-25"
    },
    {
-    "odoo_id": "account.move:0770",
+    "odoo_id": "account.move:770",
     "number": "INV/0770",
     "order": "S04173",
     "issued_at": "2025-11-07",
@@ -5825,7 +5836,7 @@
     "paid_at": "2025-12-05"
    },
    {
-    "odoo_id": "account.move:0771",
+    "odoo_id": "account.move:771",
     "number": "INV/0771",
     "order": "S04174",
     "issued_at": "2025-11-17",
@@ -5835,7 +5846,7 @@
     "paid_at": "2025-12-15"
    },
    {
-    "odoo_id": "account.move:0772",
+    "odoo_id": "account.move:772",
     "number": "INV/0772",
     "order": "S04175",
     "issued_at": "2025-11-27",
@@ -5845,7 +5856,7 @@
     "paid_at": "2025-12-25"
    },
    {
-    "odoo_id": "account.move:0773",
+    "odoo_id": "account.move:773",
     "number": "INV/0773",
     "order": "S04176",
     "issued_at": "2025-12-07",
@@ -5855,7 +5866,7 @@
     "paid_at": "2026-01-04"
    },
    {
-    "odoo_id": "account.move:0774",
+    "odoo_id": "account.move:774",
     "number": "INV/0774",
     "order": "S04177",
     "issued_at": "2025-12-17",
@@ -5865,7 +5876,7 @@
     "paid_at": "2026-01-14"
    },
    {
-    "odoo_id": "account.move:0775",
+    "odoo_id": "account.move:775",
     "number": "INV/0775",
     "order": "S04178",
     "issued_at": "2025-12-27",
@@ -5875,7 +5886,7 @@
     "paid_at": "2026-01-24"
    },
    {
-    "odoo_id": "account.move:0776",
+    "odoo_id": "account.move:776",
     "number": "INV/0776",
     "order": "S04179",
     "issued_at": "2026-01-06",
@@ -5885,7 +5896,7 @@
     "paid_at": "2026-02-03"
    },
    {
-    "odoo_id": "account.move:0777",
+    "odoo_id": "account.move:777",
     "number": "INV/0777",
     "order": "S04180",
     "issued_at": "2026-01-16",
@@ -5895,7 +5906,7 @@
     "paid_at": "2026-02-13"
    },
    {
-    "odoo_id": "account.move:0778",
+    "odoo_id": "account.move:778",
     "number": "INV/0778",
     "order": "S04181",
     "issued_at": "2026-01-26",
@@ -5905,7 +5916,7 @@
     "paid_at": "2026-02-23"
    },
    {
-    "odoo_id": "account.move:0779",
+    "odoo_id": "account.move:779",
     "number": "INV/0779",
     "order": "S04182",
     "issued_at": "2026-02-05",
@@ -5915,7 +5926,7 @@
     "paid_at": "2026-03-05"
    },
    {
-    "odoo_id": "account.move:0780",
+    "odoo_id": "account.move:780",
     "number": "INV/0780",
     "order": "S04183",
     "issued_at": "2026-02-15",
@@ -5925,7 +5936,7 @@
     "paid_at": "2026-03-15"
    },
    {
-    "odoo_id": "account.move:0781",
+    "odoo_id": "account.move:781",
     "number": "INV/0781",
     "order": "S04184",
     "issued_at": "2026-02-25",
@@ -5935,7 +5946,7 @@
     "paid_at": "2026-03-25"
    },
    {
-    "odoo_id": "account.move:0782",
+    "odoo_id": "account.move:782",
     "number": "INV/0782",
     "order": "S04185",
     "issued_at": "2026-03-07",
@@ -5945,7 +5956,7 @@
     "paid_at": "2026-04-04"
    },
    {
-    "odoo_id": "account.move:0783",
+    "odoo_id": "account.move:783",
     "number": "INV/0783",
     "order": "S04186",
     "issued_at": "2026-03-17",
@@ -5955,7 +5966,7 @@
     "paid_at": "2026-04-14"
    },
    {
-    "odoo_id": "account.move:0784",
+    "odoo_id": "account.move:784",
     "number": "INV/0784",
     "order": "S04187",
     "issued_at": "2026-03-27",
@@ -5965,7 +5976,7 @@
     "paid_at": "2026-04-24"
    },
    {
-    "odoo_id": "account.move:0785",
+    "odoo_id": "account.move:785",
     "number": "INV/0785",
     "order": "S04188",
     "issued_at": "2026-04-06",
@@ -5975,7 +5986,7 @@
     "paid_at": "2026-05-01"
    },
    {
-    "odoo_id": "account.move:0786",
+    "odoo_id": "account.move:786",
     "number": "INV/0786",
     "order": "S04189",
     "issued_at": "2026-04-16",
@@ -5985,7 +5996,7 @@
     "paid_at": "2026-05-11"
    },
    {
-    "odoo_id": "account.move:0787",
+    "odoo_id": "account.move:787",
     "number": "INV/0787",
     "order": "S04190",
     "issued_at": "2026-04-26",
@@ -5995,7 +6006,7 @@
     "paid_at": "2026-05-21"
    },
    {
-    "odoo_id": "account.move:0788",
+    "odoo_id": "account.move:788",
     "number": "INV/0788",
     "order": "S04191",
     "issued_at": "2026-05-06",
@@ -6005,7 +6016,7 @@
     "paid_at": "2026-05-31"
    },
    {
-    "odoo_id": "account.move:0789",
+    "odoo_id": "account.move:789",
     "number": "INV/0789",
     "order": "S04192",
     "issued_at": "2026-05-16",
@@ -6015,7 +6026,7 @@
     "paid_at": "2026-06-10"
    },
    {
-    "odoo_id": "account.move:0790",
+    "odoo_id": "account.move:790",
     "number": "INV/0790",
     "order": "S04193",
     "issued_at": "2026-05-26",
@@ -6025,7 +6036,7 @@
     "paid_at": "2026-06-20"
    },
    {
-    "odoo_id": "account.move:0791",
+    "odoo_id": "account.move:791",
     "number": "INV/0791",
     "order": "S04194",
     "issued_at": "2026-06-05",
@@ -6035,7 +6046,7 @@
     "paid_at": "2026-06-30"
    },
    {
-    "odoo_id": "account.move:0792",
+    "odoo_id": "account.move:792",
     "number": "INV/0792",
     "order": "S04195",
     "issued_at": "2026-06-15",
@@ -6045,7 +6056,7 @@
     "paid_at": "2026-07-10"
    },
    {
-    "odoo_id": "account.move:0793",
+    "odoo_id": "account.move:793",
     "number": "INV/0793",
     "order": "S04196",
     "issued_at": "2026-06-25",
@@ -6055,7 +6066,7 @@
     "paid_at": "2026-07-20"
    },
    {
-    "odoo_id": "account.move:0794",
+    "odoo_id": "account.move:794",
     "number": "INV/0794",
     "order": "S04197",
     "issued_at": "2026-07-05",
@@ -6065,7 +6076,7 @@
     "paid_at": "2026-07-30"
    },
    {
-    "odoo_id": "account.move:0795",
+    "odoo_id": "account.move:795",
     "number": "INV/0795",
     "order": "S04198",
     "issued_at": "2026-07-15",
@@ -6075,7 +6086,7 @@
     "paid_at": "2026-08-09"
    },
    {
-    "odoo_id": "account.move:0796",
+    "odoo_id": "account.move:796",
     "number": "INV/0796",
     "order": "S04199",
     "issued_at": "2026-07-25",
@@ -6085,7 +6096,7 @@
     "paid_at": "2026-08-19"
    },
    {
-    "odoo_id": "account.move:0797",
+    "odoo_id": "account.move:797",
     "number": "INV/0797",
     "order": "S04200",
     "issued_at": "2026-08-04",
@@ -6095,7 +6106,7 @@
     "paid_at": "2026-08-29"
    },
    {
-    "odoo_id": "account.move:0798",
+    "odoo_id": "account.move:798",
     "number": "INV/0798",
     "order": "S04201",
     "issued_at": "2026-08-14",
@@ -6105,7 +6116,7 @@
     "paid_at": "2026-09-08"
    },
    {
-    "odoo_id": "account.move:0799",
+    "odoo_id": "account.move:799",
     "number": "INV/0799",
     "order": "S04202",
     "issued_at": "2026-08-24",
@@ -6115,7 +6126,7 @@
     "paid_at": "2026-09-18"
    },
    {
-    "odoo_id": "account.move:0800",
+    "odoo_id": "account.move:800",
     "number": "INV/0800",
     "order": "S04203",
     "issued_at": "2026-09-03",
@@ -6125,7 +6136,7 @@
     "paid_at": "2026-09-28"
    },
    {
-    "odoo_id": "account.move:0801",
+    "odoo_id": "account.move:801",
     "number": "INV/0801",
     "order": "S04204",
     "issued_at": "2026-09-13",
@@ -6134,7 +6145,7 @@
     "paid": 0
    },
    {
-    "odoo_id": "account.move:0802",
+    "odoo_id": "account.move:802",
     "number": "INV/0802",
     "order": "S04205",
     "issued_at": "2026-09-23",
@@ -6143,7 +6154,7 @@
     "paid": 0
    },
    {
-    "odoo_id": "account.move:0803",
+    "odoo_id": "account.move:803",
     "number": "INV/0803",
     "order": "S04206",
     "issued_at": "2026-10-03",
@@ -6154,205 +6165,205 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0767",
+    "odoo_id": "account.payment:767",
     "invoice": "INV/0767",
     "paid_at": "2025-11-25",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0768",
+    "odoo_id": "account.payment:768",
     "invoice": "INV/0768",
     "paid_at": "2025-11-15",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0769",
+    "odoo_id": "account.payment:769",
     "invoice": "INV/0769",
     "paid_at": "2025-11-25",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0770",
+    "odoo_id": "account.payment:770",
     "invoice": "INV/0770",
     "paid_at": "2025-12-05",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0771",
+    "odoo_id": "account.payment:771",
     "invoice": "INV/0771",
     "paid_at": "2025-12-15",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0772",
+    "odoo_id": "account.payment:772",
     "invoice": "INV/0772",
     "paid_at": "2025-12-25",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0773",
+    "odoo_id": "account.payment:773",
     "invoice": "INV/0773",
     "paid_at": "2026-01-04",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0774",
+    "odoo_id": "account.payment:774",
     "invoice": "INV/0774",
     "paid_at": "2026-01-14",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0775",
+    "odoo_id": "account.payment:775",
     "invoice": "INV/0775",
     "paid_at": "2026-01-24",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0776",
+    "odoo_id": "account.payment:776",
     "invoice": "INV/0776",
     "paid_at": "2026-02-03",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0777",
+    "odoo_id": "account.payment:777",
     "invoice": "INV/0777",
     "paid_at": "2026-02-13",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0778",
+    "odoo_id": "account.payment:778",
     "invoice": "INV/0778",
     "paid_at": "2026-02-23",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0779",
+    "odoo_id": "account.payment:779",
     "invoice": "INV/0779",
     "paid_at": "2026-03-05",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0780",
+    "odoo_id": "account.payment:780",
     "invoice": "INV/0780",
     "paid_at": "2026-03-15",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0781",
+    "odoo_id": "account.payment:781",
     "invoice": "INV/0781",
     "paid_at": "2026-03-25",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0782",
+    "odoo_id": "account.payment:782",
     "invoice": "INV/0782",
     "paid_at": "2026-04-04",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0783",
+    "odoo_id": "account.payment:783",
     "invoice": "INV/0783",
     "paid_at": "2026-04-14",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0784",
+    "odoo_id": "account.payment:784",
     "invoice": "INV/0784",
     "paid_at": "2026-04-24",
     "amount": 133000000
    },
    {
-    "odoo_id": "account.payment:0785",
+    "odoo_id": "account.payment:785",
     "invoice": "INV/0785",
     "paid_at": "2026-05-01",
     "amount": 159900000
    },
    {
-    "odoo_id": "account.payment:0786",
+    "odoo_id": "account.payment:786",
     "invoice": "INV/0786",
     "paid_at": "2026-05-11",
     "amount": 159800000
    },
    {
-    "odoo_id": "account.payment:0787",
+    "odoo_id": "account.payment:787",
     "invoice": "INV/0787",
     "paid_at": "2026-05-21",
     "amount": 159800000
    },
    {
-    "odoo_id": "account.payment:0788",
+    "odoo_id": "account.payment:788",
     "invoice": "INV/0788",
     "paid_at": "2026-05-31",
     "amount": 138400000
    },
    {
-    "odoo_id": "account.payment:0789",
+    "odoo_id": "account.payment:789",
     "invoice": "INV/0789",
     "paid_at": "2026-06-10",
     "amount": 138400000
    },
    {
-    "odoo_id": "account.payment:0790",
+    "odoo_id": "account.payment:790",
     "invoice": "INV/0790",
     "paid_at": "2026-06-20",
     "amount": 138400000
    },
    {
-    "odoo_id": "account.payment:0791",
+    "odoo_id": "account.payment:791",
     "invoice": "INV/0791",
     "paid_at": "2026-06-30",
     "amount": 152300000
    },
    {
-    "odoo_id": "account.payment:0792",
+    "odoo_id": "account.payment:792",
     "invoice": "INV/0792",
     "paid_at": "2026-07-10",
     "amount": 152300000
    },
    {
-    "odoo_id": "account.payment:0793",
+    "odoo_id": "account.payment:793",
     "invoice": "INV/0793",
     "paid_at": "2026-07-20",
     "amount": 152300000
    },
    {
-    "odoo_id": "account.payment:0794",
+    "odoo_id": "account.payment:794",
     "invoice": "INV/0794",
     "paid_at": "2026-07-30",
     "amount": 147600000
    },
    {
-    "odoo_id": "account.payment:0795",
+    "odoo_id": "account.payment:795",
     "invoice": "INV/0795",
     "paid_at": "2026-08-09",
     "amount": 147600000
    },
    {
-    "odoo_id": "account.payment:0796",
+    "odoo_id": "account.payment:796",
     "invoice": "INV/0796",
     "paid_at": "2026-08-19",
     "amount": 147600000
    },
    {
-    "odoo_id": "account.payment:0797",
+    "odoo_id": "account.payment:797",
     "invoice": "INV/0797",
     "paid_at": "2026-08-29",
     "amount": 173000000
    },
    {
-    "odoo_id": "account.payment:0798",
+    "odoo_id": "account.payment:798",
     "invoice": "INV/0798",
     "paid_at": "2026-09-08",
     "amount": 173000000
    },
    {
-    "odoo_id": "account.payment:0799",
+    "odoo_id": "account.payment:799",
     "invoice": "INV/0799",
     "paid_at": "2026-09-18",
     "amount": 173000000
    },
    {
-    "odoo_id": "account.payment:0800",
+    "odoo_id": "account.payment:800",
     "invoice": "INV/0800",
     "paid_at": "2026-09-28",
     "amount": 162600000
@@ -6382,6 +6393,7 @@
   "memo": "Toko kecil, cash/COD, order bulanan stabil Rp 8–11 jt. Cocok untuk bundle kamera analog + DVR. Tidak perlu limit kredit.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34050",
     "key": "cahaya:wati",
     "name": "Bu Wati",
     "role": "Pemilik",
@@ -7282,7 +7294,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0804",
+    "odoo_id": "account.move:804",
     "number": "INV/0804",
     "order": "S04207",
     "issued_at": "2025-10-06",
@@ -7292,7 +7304,7 @@
     "paid_at": "2025-10-06"
    },
    {
-    "odoo_id": "account.move:0805",
+    "odoo_id": "account.move:805",
     "number": "INV/0805",
     "order": "S04208",
     "issued_at": "2025-10-21",
@@ -7302,7 +7314,7 @@
     "paid_at": "2025-10-21"
    },
    {
-    "odoo_id": "account.move:0806",
+    "odoo_id": "account.move:806",
     "number": "INV/0806",
     "order": "S04209",
     "issued_at": "2025-11-05",
@@ -7312,7 +7324,7 @@
     "paid_at": "2025-11-05"
    },
    {
-    "odoo_id": "account.move:0807",
+    "odoo_id": "account.move:807",
     "number": "INV/0807",
     "order": "S04210",
     "issued_at": "2025-11-20",
@@ -7322,7 +7334,7 @@
     "paid_at": "2025-11-20"
    },
    {
-    "odoo_id": "account.move:0808",
+    "odoo_id": "account.move:808",
     "number": "INV/0808",
     "order": "S04211",
     "issued_at": "2025-12-05",
@@ -7332,7 +7344,7 @@
     "paid_at": "2025-12-05"
    },
    {
-    "odoo_id": "account.move:0809",
+    "odoo_id": "account.move:809",
     "number": "INV/0809",
     "order": "S04212",
     "issued_at": "2025-12-20",
@@ -7342,7 +7354,7 @@
     "paid_at": "2025-12-20"
    },
    {
-    "odoo_id": "account.move:0810",
+    "odoo_id": "account.move:810",
     "number": "INV/0810",
     "order": "S04213",
     "issued_at": "2026-01-04",
@@ -7352,7 +7364,7 @@
     "paid_at": "2026-01-04"
    },
    {
-    "odoo_id": "account.move:0811",
+    "odoo_id": "account.move:811",
     "number": "INV/0811",
     "order": "S04214",
     "issued_at": "2026-01-19",
@@ -7362,7 +7374,7 @@
     "paid_at": "2026-01-19"
    },
    {
-    "odoo_id": "account.move:0812",
+    "odoo_id": "account.move:812",
     "number": "INV/0812",
     "order": "S04215",
     "issued_at": "2026-02-03",
@@ -7372,7 +7384,7 @@
     "paid_at": "2026-02-03"
    },
    {
-    "odoo_id": "account.move:0813",
+    "odoo_id": "account.move:813",
     "number": "INV/0813",
     "order": "S04216",
     "issued_at": "2026-02-18",
@@ -7382,7 +7394,7 @@
     "paid_at": "2026-02-18"
    },
    {
-    "odoo_id": "account.move:0814",
+    "odoo_id": "account.move:814",
     "number": "INV/0814",
     "order": "S04217",
     "issued_at": "2026-03-05",
@@ -7392,7 +7404,7 @@
     "paid_at": "2026-03-05"
    },
    {
-    "odoo_id": "account.move:0815",
+    "odoo_id": "account.move:815",
     "number": "INV/0815",
     "order": "S04218",
     "issued_at": "2026-03-20",
@@ -7402,7 +7414,7 @@
     "paid_at": "2026-03-20"
    },
    {
-    "odoo_id": "account.move:0816",
+    "odoo_id": "account.move:816",
     "number": "INV/0816",
     "order": "S04219",
     "issued_at": "2026-04-04",
@@ -7412,7 +7424,7 @@
     "paid_at": "2026-04-04"
    },
    {
-    "odoo_id": "account.move:0817",
+    "odoo_id": "account.move:817",
     "number": "INV/0817",
     "order": "S04220",
     "issued_at": "2026-04-19",
@@ -7422,7 +7434,7 @@
     "paid_at": "2026-04-19"
    },
    {
-    "odoo_id": "account.move:0818",
+    "odoo_id": "account.move:818",
     "number": "INV/0818",
     "order": "S04221",
     "issued_at": "2026-05-04",
@@ -7432,7 +7444,7 @@
     "paid_at": "2026-05-04"
    },
    {
-    "odoo_id": "account.move:0819",
+    "odoo_id": "account.move:819",
     "number": "INV/0819",
     "order": "S04222",
     "issued_at": "2026-05-19",
@@ -7442,7 +7454,7 @@
     "paid_at": "2026-05-19"
    },
    {
-    "odoo_id": "account.move:0820",
+    "odoo_id": "account.move:820",
     "number": "INV/0820",
     "order": "S04223",
     "issued_at": "2026-06-03",
@@ -7452,7 +7464,7 @@
     "paid_at": "2026-06-03"
    },
    {
-    "odoo_id": "account.move:0821",
+    "odoo_id": "account.move:821",
     "number": "INV/0821",
     "order": "S04224",
     "issued_at": "2026-06-18",
@@ -7462,7 +7474,7 @@
     "paid_at": "2026-06-18"
    },
    {
-    "odoo_id": "account.move:0822",
+    "odoo_id": "account.move:822",
     "number": "INV/0822",
     "order": "S04225",
     "issued_at": "2026-07-03",
@@ -7472,7 +7484,7 @@
     "paid_at": "2026-07-03"
    },
    {
-    "odoo_id": "account.move:0823",
+    "odoo_id": "account.move:823",
     "number": "INV/0823",
     "order": "S04226",
     "issued_at": "2026-07-18",
@@ -7482,7 +7494,7 @@
     "paid_at": "2026-07-18"
    },
    {
-    "odoo_id": "account.move:0824",
+    "odoo_id": "account.move:824",
     "number": "INV/0824",
     "order": "S04227",
     "issued_at": "2026-08-02",
@@ -7492,7 +7504,7 @@
     "paid_at": "2026-08-02"
    },
    {
-    "odoo_id": "account.move:0825",
+    "odoo_id": "account.move:825",
     "number": "INV/0825",
     "order": "S04228",
     "issued_at": "2026-08-17",
@@ -7502,7 +7514,7 @@
     "paid_at": "2026-08-17"
    },
    {
-    "odoo_id": "account.move:0826",
+    "odoo_id": "account.move:826",
     "number": "INV/0826",
     "order": "S04229",
     "issued_at": "2026-09-01",
@@ -7512,7 +7524,7 @@
     "paid_at": "2026-09-01"
    },
    {
-    "odoo_id": "account.move:0827",
+    "odoo_id": "account.move:827",
     "number": "INV/0827",
     "order": "S04230",
     "issued_at": "2026-09-16",
@@ -7522,7 +7534,7 @@
     "paid_at": "2026-09-16"
    },
    {
-    "odoo_id": "account.move:0828",
+    "odoo_id": "account.move:828",
     "number": "INV/0828",
     "order": "S04231",
     "issued_at": "2026-10-01",
@@ -7534,151 +7546,151 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0804",
+    "odoo_id": "account.payment:804",
     "invoice": "INV/0804",
     "paid_at": "2025-10-06",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0805",
+    "odoo_id": "account.payment:805",
     "invoice": "INV/0805",
     "paid_at": "2025-10-21",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0806",
+    "odoo_id": "account.payment:806",
     "invoice": "INV/0806",
     "paid_at": "2025-11-05",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0807",
+    "odoo_id": "account.payment:807",
     "invoice": "INV/0807",
     "paid_at": "2025-11-20",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0808",
+    "odoo_id": "account.payment:808",
     "invoice": "INV/0808",
     "paid_at": "2025-12-05",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0809",
+    "odoo_id": "account.payment:809",
     "invoice": "INV/0809",
     "paid_at": "2025-12-20",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0810",
+    "odoo_id": "account.payment:810",
     "invoice": "INV/0810",
     "paid_at": "2026-01-04",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0811",
+    "odoo_id": "account.payment:811",
     "invoice": "INV/0811",
     "paid_at": "2026-01-19",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0812",
+    "odoo_id": "account.payment:812",
     "invoice": "INV/0812",
     "paid_at": "2026-02-03",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0813",
+    "odoo_id": "account.payment:813",
     "invoice": "INV/0813",
     "paid_at": "2026-02-18",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0814",
+    "odoo_id": "account.payment:814",
     "invoice": "INV/0814",
     "paid_at": "2026-03-05",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0815",
+    "odoo_id": "account.payment:815",
     "invoice": "INV/0815",
     "paid_at": "2026-03-20",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0816",
+    "odoo_id": "account.payment:816",
     "invoice": "INV/0816",
     "paid_at": "2026-04-04",
     "amount": 8600000
    },
    {
-    "odoo_id": "account.payment:0817",
+    "odoo_id": "account.payment:817",
     "invoice": "INV/0817",
     "paid_at": "2026-04-19",
     "amount": 9000000
    },
    {
-    "odoo_id": "account.payment:0818",
+    "odoo_id": "account.payment:818",
     "invoice": "INV/0818",
     "paid_at": "2026-05-04",
     "amount": 8200000
    },
    {
-    "odoo_id": "account.payment:0819",
+    "odoo_id": "account.payment:819",
     "invoice": "INV/0819",
     "paid_at": "2026-05-19",
     "amount": 8200000
    },
    {
-    "odoo_id": "account.payment:0820",
+    "odoo_id": "account.payment:820",
     "invoice": "INV/0820",
     "paid_at": "2026-06-03",
     "amount": 9200000
    },
    {
-    "odoo_id": "account.payment:0821",
+    "odoo_id": "account.payment:821",
     "invoice": "INV/0821",
     "paid_at": "2026-06-18",
     "amount": 9200000
    },
    {
-    "odoo_id": "account.payment:0822",
+    "odoo_id": "account.payment:822",
     "invoice": "INV/0822",
     "paid_at": "2026-07-03",
     "amount": 7100000
    },
    {
-    "odoo_id": "account.payment:0823",
+    "odoo_id": "account.payment:823",
     "invoice": "INV/0823",
     "paid_at": "2026-07-18",
     "amount": 7100000
    },
    {
-    "odoo_id": "account.payment:0824",
+    "odoo_id": "account.payment:824",
     "invoice": "INV/0824",
     "paid_at": "2026-08-02",
     "amount": 10200000
    },
    {
-    "odoo_id": "account.payment:0825",
+    "odoo_id": "account.payment:825",
     "invoice": "INV/0825",
     "paid_at": "2026-08-17",
     "amount": 10200000
    },
    {
-    "odoo_id": "account.payment:0826",
+    "odoo_id": "account.payment:826",
     "invoice": "INV/0826",
     "paid_at": "2026-09-01",
     "amount": 9200000
    },
    {
-    "odoo_id": "account.payment:0827",
+    "odoo_id": "account.payment:827",
     "invoice": "INV/0827",
     "paid_at": "2026-09-16",
     "amount": 9200000
    },
    {
-    "odoo_id": "account.payment:0828",
+    "odoo_id": "account.payment:828",
     "invoice": "INV/0828",
     "paid_at": "2026-10-01",
     "amount": 11200000
@@ -7700,6 +7712,7 @@
   "memo": "Pembeli modul LED P5 rutin sampai Juli, lalu berhenti — churn (65 hari dari siklus order 35). Dugaan: beli dari marketplace. Push stok yang tepat: bundle modul P5 (stok menua Semarang) dengan harga marketplace.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34060",
     "key": "lampu:heri",
     "name": "Pak Heri",
     "role": "Pemilik",
@@ -8033,7 +8046,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0829",
+    "odoo_id": "account.move:829",
     "number": "INV/0829",
     "order": "S04232",
     "issued_at": "2025-10-25",
@@ -8043,7 +8056,7 @@
     "paid_at": "2025-10-25"
    },
    {
-    "odoo_id": "account.move:0830",
+    "odoo_id": "account.move:830",
     "number": "INV/0830",
     "order": "S04233",
     "issued_at": "2025-11-29",
@@ -8053,7 +8066,7 @@
     "paid_at": "2025-11-29"
    },
    {
-    "odoo_id": "account.move:0831",
+    "odoo_id": "account.move:831",
     "number": "INV/0831",
     "order": "S04234",
     "issued_at": "2026-01-03",
@@ -8063,7 +8076,7 @@
     "paid_at": "2026-01-03"
    },
    {
-    "odoo_id": "account.move:0832",
+    "odoo_id": "account.move:832",
     "number": "INV/0832",
     "order": "S04235",
     "issued_at": "2026-02-07",
@@ -8073,7 +8086,7 @@
     "paid_at": "2026-02-07"
    },
    {
-    "odoo_id": "account.move:0833",
+    "odoo_id": "account.move:833",
     "number": "INV/0833",
     "order": "S04236",
     "issued_at": "2026-03-14",
@@ -8083,7 +8096,7 @@
     "paid_at": "2026-03-14"
    },
    {
-    "odoo_id": "account.move:0834",
+    "odoo_id": "account.move:834",
     "number": "INV/0834",
     "order": "S04237",
     "issued_at": "2026-04-18",
@@ -8093,7 +8106,7 @@
     "paid_at": "2026-04-18"
    },
    {
-    "odoo_id": "account.move:0835",
+    "odoo_id": "account.move:835",
     "number": "INV/0835",
     "order": "S04238",
     "issued_at": "2026-05-23",
@@ -8103,7 +8116,7 @@
     "paid_at": "2026-05-23"
    },
    {
-    "odoo_id": "account.move:0836",
+    "odoo_id": "account.move:836",
     "number": "INV/0836",
     "order": "S04239",
     "issued_at": "2026-06-27",
@@ -8113,7 +8126,7 @@
     "paid_at": "2026-06-27"
    },
    {
-    "odoo_id": "account.move:0837",
+    "odoo_id": "account.move:837",
     "number": "INV/0837",
     "order": "S04240",
     "issued_at": "2026-08-01",
@@ -8125,55 +8138,55 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0829",
+    "odoo_id": "account.payment:829",
     "invoice": "INV/0829",
     "paid_at": "2025-10-25",
     "amount": 11400000
    },
    {
-    "odoo_id": "account.payment:0830",
+    "odoo_id": "account.payment:830",
     "invoice": "INV/0830",
     "paid_at": "2025-11-29",
     "amount": 11400000
    },
    {
-    "odoo_id": "account.payment:0831",
+    "odoo_id": "account.payment:831",
     "invoice": "INV/0831",
     "paid_at": "2026-01-03",
     "amount": 11400000
    },
    {
-    "odoo_id": "account.payment:0832",
+    "odoo_id": "account.payment:832",
     "invoice": "INV/0832",
     "paid_at": "2026-02-07",
     "amount": 11400000
    },
    {
-    "odoo_id": "account.payment:0833",
+    "odoo_id": "account.payment:833",
     "invoice": "INV/0833",
     "paid_at": "2026-03-14",
     "amount": 11400000
    },
    {
-    "odoo_id": "account.payment:0834",
+    "odoo_id": "account.payment:834",
     "invoice": "INV/0834",
     "paid_at": "2026-04-18",
     "amount": 12000000
    },
    {
-    "odoo_id": "account.payment:0835",
+    "odoo_id": "account.payment:835",
     "invoice": "INV/0835",
     "paid_at": "2026-05-23",
     "amount": 13400000
    },
    {
-    "odoo_id": "account.payment:0836",
+    "odoo_id": "account.payment:836",
     "invoice": "INV/0836",
     "paid_at": "2026-06-27",
     "amount": 10500000
    },
    {
-    "odoo_id": "account.payment:0837",
+    "odoo_id": "account.payment:837",
     "invoice": "INV/0837",
     "paid_at": "2026-08-01",
     "amount": 12100000
@@ -8203,6 +8216,7 @@
   "memo": "Installer fire alarm untuk RS dan sekolah di Magelang–Temanggung. Mengajukan retur 2 NVR rusak. Jadwal order 3 hari lagi; proyek RS Muntilan menunggu detektor addressable — stok Yogyakarta cukup.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34070",
     "key": "bina:slamet",
     "name": "Pak Slamet",
     "role": "Pemilik",
@@ -8212,6 +8226,7 @@
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34071",
     "key": "bina:reza",
     "name": "Mas Reza",
     "role": "Teknisi",
@@ -8663,7 +8678,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0838",
+    "odoo_id": "account.move:838",
     "number": "INV/0838",
     "order": "S04241",
     "issued_at": "2025-10-31",
@@ -8673,7 +8688,7 @@
     "paid_at": "2025-12-18"
    },
    {
-    "odoo_id": "account.move:0839",
+    "odoo_id": "account.move:839",
     "number": "INV/0839",
     "order": "S04242",
     "issued_at": "2025-11-29",
@@ -8683,7 +8698,7 @@
     "paid_at": "2025-12-27"
    },
    {
-    "odoo_id": "account.move:0840",
+    "odoo_id": "account.move:840",
     "number": "INV/0840",
     "order": "S04243",
     "issued_at": "2025-12-28",
@@ -8693,7 +8708,7 @@
     "paid_at": "2026-01-25"
    },
    {
-    "odoo_id": "account.move:0841",
+    "odoo_id": "account.move:841",
     "number": "INV/0841",
     "order": "S04244",
     "issued_at": "2026-01-26",
@@ -8703,7 +8718,7 @@
     "paid_at": "2026-02-23"
    },
    {
-    "odoo_id": "account.move:0842",
+    "odoo_id": "account.move:842",
     "number": "INV/0842",
     "order": "S04245",
     "issued_at": "2026-02-24",
@@ -8713,7 +8728,7 @@
     "paid_at": "2026-03-24"
    },
    {
-    "odoo_id": "account.move:0843",
+    "odoo_id": "account.move:843",
     "number": "INV/0843",
     "order": "S04246",
     "issued_at": "2026-03-25",
@@ -8723,7 +8738,7 @@
     "paid_at": "2026-04-22"
    },
    {
-    "odoo_id": "account.move:0845",
+    "odoo_id": "account.move:845",
     "number": "INV/0845",
     "order": "S04247",
     "issued_at": "2026-04-23",
@@ -8733,7 +8748,7 @@
     "paid_at": "2026-06-17"
    },
    {
-    "odoo_id": "account.move:0846",
+    "odoo_id": "account.move:846",
     "number": "INV/0846",
     "order": "S04248",
     "issued_at": "2026-05-21",
@@ -8743,7 +8758,7 @@
     "paid_at": "2026-06-17"
    },
    {
-    "odoo_id": "account.move:0847",
+    "odoo_id": "account.move:847",
     "number": "INV/0847",
     "order": "S04249",
     "issued_at": "2026-06-18",
@@ -8753,7 +8768,7 @@
     "paid_at": "2026-07-15"
    },
    {
-    "odoo_id": "account.move:0848",
+    "odoo_id": "account.move:848",
     "number": "INV/0848",
     "order": "S04250",
     "issued_at": "2026-07-16",
@@ -8763,7 +8778,7 @@
     "paid_at": "2026-08-13"
    },
    {
-    "odoo_id": "account.move:0849",
+    "odoo_id": "account.move:849",
     "number": "INV/0849",
     "order": "S04251",
     "issued_at": "2026-08-13",
@@ -8773,7 +8788,7 @@
     "paid_at": "2026-09-10"
    },
    {
-    "odoo_id": "account.move:0850",
+    "odoo_id": "account.move:850",
     "number": "INV/0850",
     "order": "S04252",
     "issued_at": "2026-09-10",
@@ -8784,67 +8799,67 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0838",
+    "odoo_id": "account.payment:838",
     "invoice": "INV/0838",
     "paid_at": "2025-12-18",
     "amount": 22800000
    },
    {
-    "odoo_id": "account.payment:0839",
+    "odoo_id": "account.payment:839",
     "invoice": "INV/0839",
     "paid_at": "2025-12-27",
     "amount": 22800000
    },
    {
-    "odoo_id": "account.payment:0840",
+    "odoo_id": "account.payment:840",
     "invoice": "INV/0840",
     "paid_at": "2026-01-25",
     "amount": 22800000
    },
    {
-    "odoo_id": "account.payment:0841",
+    "odoo_id": "account.payment:841",
     "invoice": "INV/0841",
     "paid_at": "2026-02-23",
     "amount": 22800000
    },
    {
-    "odoo_id": "account.payment:0842",
+    "odoo_id": "account.payment:842",
     "invoice": "INV/0842",
     "paid_at": "2026-03-24",
     "amount": 22800000
    },
    {
-    "odoo_id": "account.payment:0843",
+    "odoo_id": "account.payment:843",
     "invoice": "INV/0843",
     "paid_at": "2026-04-22",
     "amount": 22800000
    },
    {
-    "odoo_id": "account.payment:0845",
+    "odoo_id": "account.payment:845",
     "invoice": "INV/0845",
     "paid_at": "2026-06-17",
     "amount": 20800000
    },
    {
-    "odoo_id": "account.payment:0846",
+    "odoo_id": "account.payment:846",
     "invoice": "INV/0846",
     "paid_at": "2026-06-17",
     "amount": 22500000
    },
    {
-    "odoo_id": "account.payment:0847",
+    "odoo_id": "account.payment:847",
     "invoice": "INV/0847",
     "paid_at": "2026-07-15",
     "amount": 19100000
    },
    {
-    "odoo_id": "account.payment:0848",
+    "odoo_id": "account.payment:848",
     "invoice": "INV/0848",
     "paid_at": "2026-08-13",
     "amount": 24300000
    },
    {
-    "odoo_id": "account.payment:0849",
+    "odoo_id": "account.payment:849",
     "invoice": "INV/0849",
     "paid_at": "2026-09-10",
     "amount": 17300000
@@ -8874,6 +8889,7 @@
   "memo": "Dealer baru masuk orbit (AI Prospek, 23 Sep): 1 order cash Rp 18 jt. Belum punya siklus order. Limit awal Rp 25 jt. Perlu kunjungan \u0026 verifikasi alamat sebelum limit naik.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34080",
     "key": "nusantara:rizal",
     "name": "Pak Rizal",
     "role": "Direktur",
@@ -8920,7 +8936,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0851",
+    "odoo_id": "account.move:851",
     "number": "INV/0851",
     "order": "S04253",
     "issued_at": "2026-09-26",
@@ -8932,7 +8948,7 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0851",
+    "odoo_id": "account.payment:851",
     "invoice": "INV/0851",
     "paid_at": "2026-09-26",
     "amount": 18000000
@@ -8962,6 +8978,7 @@
   "memo": "Toko komputer yang mulai jualan CCTV. Cash. Share of wallet masih 35% — sisanya dari marketplace. Jadwal order 2 hari lagi.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34090",
     "key": "citra:yusuf",
     "name": "Pak Yusuf",
     "role": "Pemilik",
@@ -10030,7 +10047,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0852",
+    "odoo_id": "account.move:852",
     "number": "INV/0852",
     "order": "S04254",
     "issued_at": "2025-10-12",
@@ -10040,7 +10057,7 @@
     "paid_at": "2025-10-12"
    },
    {
-    "odoo_id": "account.move:0853",
+    "odoo_id": "account.move:853",
     "number": "INV/0853",
     "order": "S04255",
     "issued_at": "2025-10-24",
@@ -10050,7 +10067,7 @@
     "paid_at": "2025-10-24"
    },
    {
-    "odoo_id": "account.move:0854",
+    "odoo_id": "account.move:854",
     "number": "INV/0854",
     "order": "S04256",
     "issued_at": "2025-11-05",
@@ -10060,7 +10077,7 @@
     "paid_at": "2025-11-05"
    },
    {
-    "odoo_id": "account.move:0855",
+    "odoo_id": "account.move:855",
     "number": "INV/0855",
     "order": "S04257",
     "issued_at": "2025-11-17",
@@ -10070,7 +10087,7 @@
     "paid_at": "2025-11-17"
    },
    {
-    "odoo_id": "account.move:0856",
+    "odoo_id": "account.move:856",
     "number": "INV/0856",
     "order": "S04258",
     "issued_at": "2025-11-29",
@@ -10080,7 +10097,7 @@
     "paid_at": "2025-11-29"
    },
    {
-    "odoo_id": "account.move:0857",
+    "odoo_id": "account.move:857",
     "number": "INV/0857",
     "order": "S04259",
     "issued_at": "2025-12-11",
@@ -10090,7 +10107,7 @@
     "paid_at": "2025-12-11"
    },
    {
-    "odoo_id": "account.move:0858",
+    "odoo_id": "account.move:858",
     "number": "INV/0858",
     "order": "S04260",
     "issued_at": "2025-12-23",
@@ -10100,7 +10117,7 @@
     "paid_at": "2025-12-23"
    },
    {
-    "odoo_id": "account.move:0859",
+    "odoo_id": "account.move:859",
     "number": "INV/0859",
     "order": "S04261",
     "issued_at": "2026-01-04",
@@ -10110,7 +10127,7 @@
     "paid_at": "2026-01-04"
    },
    {
-    "odoo_id": "account.move:0860",
+    "odoo_id": "account.move:860",
     "number": "INV/0860",
     "order": "S04262",
     "issued_at": "2026-01-16",
@@ -10120,7 +10137,7 @@
     "paid_at": "2026-01-16"
    },
    {
-    "odoo_id": "account.move:0861",
+    "odoo_id": "account.move:861",
     "number": "INV/0861",
     "order": "S04263",
     "issued_at": "2026-01-28",
@@ -10130,7 +10147,7 @@
     "paid_at": "2026-01-28"
    },
    {
-    "odoo_id": "account.move:0862",
+    "odoo_id": "account.move:862",
     "number": "INV/0862",
     "order": "S04264",
     "issued_at": "2026-02-09",
@@ -10140,7 +10157,7 @@
     "paid_at": "2026-02-09"
    },
    {
-    "odoo_id": "account.move:0863",
+    "odoo_id": "account.move:863",
     "number": "INV/0863",
     "order": "S04265",
     "issued_at": "2026-02-21",
@@ -10150,7 +10167,7 @@
     "paid_at": "2026-02-21"
    },
    {
-    "odoo_id": "account.move:0864",
+    "odoo_id": "account.move:864",
     "number": "INV/0864",
     "order": "S04266",
     "issued_at": "2026-03-05",
@@ -10160,7 +10177,7 @@
     "paid_at": "2026-03-05"
    },
    {
-    "odoo_id": "account.move:0865",
+    "odoo_id": "account.move:865",
     "number": "INV/0865",
     "order": "S04267",
     "issued_at": "2026-03-17",
@@ -10170,7 +10187,7 @@
     "paid_at": "2026-03-17"
    },
    {
-    "odoo_id": "account.move:0866",
+    "odoo_id": "account.move:866",
     "number": "INV/0866",
     "order": "S04268",
     "issued_at": "2026-03-29",
@@ -10180,7 +10197,7 @@
     "paid_at": "2026-03-29"
    },
    {
-    "odoo_id": "account.move:0867",
+    "odoo_id": "account.move:867",
     "number": "INV/0867",
     "order": "S04269",
     "issued_at": "2026-04-10",
@@ -10190,7 +10207,7 @@
     "paid_at": "2026-04-10"
    },
    {
-    "odoo_id": "account.move:0868",
+    "odoo_id": "account.move:868",
     "number": "INV/0868",
     "order": "S04270",
     "issued_at": "2026-04-22",
@@ -10200,7 +10217,7 @@
     "paid_at": "2026-04-22"
    },
    {
-    "odoo_id": "account.move:0869",
+    "odoo_id": "account.move:869",
     "number": "INV/0869",
     "order": "S04271",
     "issued_at": "2026-05-04",
@@ -10210,7 +10227,7 @@
     "paid_at": "2026-05-04"
    },
    {
-    "odoo_id": "account.move:0870",
+    "odoo_id": "account.move:870",
     "number": "INV/0870",
     "order": "S04272",
     "issued_at": "2026-05-16",
@@ -10220,7 +10237,7 @@
     "paid_at": "2026-05-16"
    },
    {
-    "odoo_id": "account.move:0871",
+    "odoo_id": "account.move:871",
     "number": "INV/0871",
     "order": "S04273",
     "issued_at": "2026-05-28",
@@ -10230,7 +10247,7 @@
     "paid_at": "2026-05-28"
    },
    {
-    "odoo_id": "account.move:0872",
+    "odoo_id": "account.move:872",
     "number": "INV/0872",
     "order": "S04274",
     "issued_at": "2026-06-09",
@@ -10240,7 +10257,7 @@
     "paid_at": "2026-06-09"
    },
    {
-    "odoo_id": "account.move:0873",
+    "odoo_id": "account.move:873",
     "number": "INV/0873",
     "order": "S04275",
     "issued_at": "2026-06-21",
@@ -10250,7 +10267,7 @@
     "paid_at": "2026-06-21"
    },
    {
-    "odoo_id": "account.move:0874",
+    "odoo_id": "account.move:874",
     "number": "INV/0874",
     "order": "S04276",
     "issued_at": "2026-07-03",
@@ -10260,7 +10277,7 @@
     "paid_at": "2026-07-03"
    },
    {
-    "odoo_id": "account.move:0875",
+    "odoo_id": "account.move:875",
     "number": "INV/0875",
     "order": "S04277",
     "issued_at": "2026-07-15",
@@ -10270,7 +10287,7 @@
     "paid_at": "2026-07-15"
    },
    {
-    "odoo_id": "account.move:0876",
+    "odoo_id": "account.move:876",
     "number": "INV/0876",
     "order": "S04278",
     "issued_at": "2026-07-27",
@@ -10280,7 +10297,7 @@
     "paid_at": "2026-07-27"
    },
    {
-    "odoo_id": "account.move:0877",
+    "odoo_id": "account.move:877",
     "number": "INV/0877",
     "order": "S04279",
     "issued_at": "2026-08-08",
@@ -10290,7 +10307,7 @@
     "paid_at": "2026-08-08"
    },
    {
-    "odoo_id": "account.move:0878",
+    "odoo_id": "account.move:878",
     "number": "INV/0878",
     "order": "S04280",
     "issued_at": "2026-08-20",
@@ -10300,7 +10317,7 @@
     "paid_at": "2026-08-20"
    },
    {
-    "odoo_id": "account.move:0879",
+    "odoo_id": "account.move:879",
     "number": "INV/0879",
     "order": "S04281",
     "issued_at": "2026-09-01",
@@ -10310,7 +10327,7 @@
     "paid_at": "2026-09-01"
    },
    {
-    "odoo_id": "account.move:0880",
+    "odoo_id": "account.move:880",
     "number": "INV/0880",
     "order": "S04282",
     "issued_at": "2026-09-13",
@@ -10320,7 +10337,7 @@
     "paid_at": "2026-09-13"
    },
    {
-    "odoo_id": "account.move:0881",
+    "odoo_id": "account.move:881",
     "number": "INV/0881",
     "order": "S04283",
     "issued_at": "2026-09-25",
@@ -10332,181 +10349,181 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0852",
+    "odoo_id": "account.payment:852",
     "invoice": "INV/0852",
     "paid_at": "2025-10-12",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0853",
+    "odoo_id": "account.payment:853",
     "invoice": "INV/0853",
     "paid_at": "2025-10-24",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0854",
+    "odoo_id": "account.payment:854",
     "invoice": "INV/0854",
     "paid_at": "2025-11-05",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0855",
+    "odoo_id": "account.payment:855",
     "invoice": "INV/0855",
     "paid_at": "2025-11-17",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0856",
+    "odoo_id": "account.payment:856",
     "invoice": "INV/0856",
     "paid_at": "2025-11-29",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0857",
+    "odoo_id": "account.payment:857",
     "invoice": "INV/0857",
     "paid_at": "2025-12-11",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0858",
+    "odoo_id": "account.payment:858",
     "invoice": "INV/0858",
     "paid_at": "2025-12-23",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0859",
+    "odoo_id": "account.payment:859",
     "invoice": "INV/0859",
     "paid_at": "2026-01-04",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0860",
+    "odoo_id": "account.payment:860",
     "invoice": "INV/0860",
     "paid_at": "2026-01-16",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0861",
+    "odoo_id": "account.payment:861",
     "invoice": "INV/0861",
     "paid_at": "2026-01-28",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0862",
+    "odoo_id": "account.payment:862",
     "invoice": "INV/0862",
     "paid_at": "2026-02-09",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0863",
+    "odoo_id": "account.payment:863",
     "invoice": "INV/0863",
     "paid_at": "2026-02-21",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0864",
+    "odoo_id": "account.payment:864",
     "invoice": "INV/0864",
     "paid_at": "2026-03-05",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0865",
+    "odoo_id": "account.payment:865",
     "invoice": "INV/0865",
     "paid_at": "2026-03-17",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0866",
+    "odoo_id": "account.payment:866",
     "invoice": "INV/0866",
     "paid_at": "2026-03-29",
     "amount": 6700000
    },
    {
-    "odoo_id": "account.payment:0867",
+    "odoo_id": "account.payment:867",
     "invoice": "INV/0867",
     "paid_at": "2026-04-10",
     "amount": 7200000
    },
    {
-    "odoo_id": "account.payment:0868",
+    "odoo_id": "account.payment:868",
     "invoice": "INV/0868",
     "paid_at": "2026-04-22",
     "amount": 7200000
    },
    {
-    "odoo_id": "account.payment:0869",
+    "odoo_id": "account.payment:869",
     "invoice": "INV/0869",
     "paid_at": "2026-05-04",
     "amount": 6200000
    },
    {
-    "odoo_id": "account.payment:0870",
+    "odoo_id": "account.payment:870",
     "invoice": "INV/0870",
     "paid_at": "2026-05-16",
     "amount": 6200000
    },
    {
-    "odoo_id": "account.payment:0871",
+    "odoo_id": "account.payment:871",
     "invoice": "INV/0871",
     "paid_at": "2026-05-28",
     "amount": 6200000
    },
    {
-    "odoo_id": "account.payment:0872",
+    "odoo_id": "account.payment:872",
     "invoice": "INV/0872",
     "paid_at": "2026-06-09",
     "amount": 7200000
    },
    {
-    "odoo_id": "account.payment:0873",
+    "odoo_id": "account.payment:873",
     "invoice": "INV/0873",
     "paid_at": "2026-06-21",
     "amount": 7200000
    },
    {
-    "odoo_id": "account.payment:0874",
+    "odoo_id": "account.payment:874",
     "invoice": "INV/0874",
     "paid_at": "2026-07-03",
     "amount": 8200000
    },
    {
-    "odoo_id": "account.payment:0875",
+    "odoo_id": "account.payment:875",
     "invoice": "INV/0875",
     "paid_at": "2026-07-15",
     "amount": 8200000
    },
    {
-    "odoo_id": "account.payment:0876",
+    "odoo_id": "account.payment:876",
     "invoice": "INV/0876",
     "paid_at": "2026-07-27",
     "amount": 8200000
    },
    {
-    "odoo_id": "account.payment:0877",
+    "odoo_id": "account.payment:877",
     "invoice": "INV/0877",
     "paid_at": "2026-08-08",
     "amount": 7200000
    },
    {
-    "odoo_id": "account.payment:0878",
+    "odoo_id": "account.payment:878",
     "invoice": "INV/0878",
     "paid_at": "2026-08-20",
     "amount": 7200000
    },
    {
-    "odoo_id": "account.payment:0879",
+    "odoo_id": "account.payment:879",
     "invoice": "INV/0879",
     "paid_at": "2026-09-01",
     "amount": 6200000
    },
    {
-    "odoo_id": "account.payment:0880",
+    "odoo_id": "account.payment:880",
     "invoice": "INV/0880",
     "paid_at": "2026-09-13",
     "amount": 6200000
    },
    {
-    "odoo_id": "account.payment:0881",
+    "odoo_id": "account.payment:881",
     "invoice": "INV/0881",
     "paid_at": "2026-09-25",
     "amount": 6200000
@@ -10528,6 +10545,7 @@
   "memo": "Installer stabil di Pekalongan, bayar 29 hari. Belum pernah beli LED/fire alarm — product mix bisa dilebarkan saat proyek sekolah mereka mulai.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34100",
     "key": "anugerah:dani",
     "name": "Pak Dani",
     "role": "Pemilik",
@@ -10537,6 +10555,7 @@
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34101",
     "key": "anugerah:nur",
     "name": "Bu Nur",
     "role": "Admin",
@@ -11163,7 +11182,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0882",
+    "odoo_id": "account.move:882",
     "number": "INV/0882",
     "order": "S04284",
     "issued_at": "2025-10-12",
@@ -11173,7 +11192,7 @@
     "paid_at": "2025-11-29"
    },
    {
-    "odoo_id": "account.move:0883",
+    "odoo_id": "account.move:883",
     "number": "INV/0883",
     "order": "S04285",
     "issued_at": "2025-11-01",
@@ -11183,7 +11202,7 @@
     "paid_at": "2025-12-19"
    },
    {
-    "odoo_id": "account.move:0884",
+    "odoo_id": "account.move:884",
     "number": "INV/0884",
     "order": "S04286",
     "issued_at": "2025-11-21",
@@ -11193,7 +11212,7 @@
     "paid_at": "2025-12-19"
    },
    {
-    "odoo_id": "account.move:0885",
+    "odoo_id": "account.move:885",
     "number": "INV/0885",
     "order": "S04287",
     "issued_at": "2025-12-11",
@@ -11203,7 +11222,7 @@
     "paid_at": "2026-01-08"
    },
    {
-    "odoo_id": "account.move:0886",
+    "odoo_id": "account.move:886",
     "number": "INV/0886",
     "order": "S04288",
     "issued_at": "2025-12-31",
@@ -11213,7 +11232,7 @@
     "paid_at": "2026-01-28"
    },
    {
-    "odoo_id": "account.move:0887",
+    "odoo_id": "account.move:887",
     "number": "INV/0887",
     "order": "S04289",
     "issued_at": "2026-01-20",
@@ -11223,7 +11242,7 @@
     "paid_at": "2026-02-17"
    },
    {
-    "odoo_id": "account.move:0888",
+    "odoo_id": "account.move:888",
     "number": "INV/0888",
     "order": "S04290",
     "issued_at": "2026-02-09",
@@ -11233,7 +11252,7 @@
     "paid_at": "2026-03-09"
    },
    {
-    "odoo_id": "account.move:0890",
+    "odoo_id": "account.move:890",
     "number": "INV/0890",
     "order": "S04291",
     "issued_at": "2026-03-01",
@@ -11243,7 +11262,7 @@
     "paid_at": "2026-03-29"
    },
    {
-    "odoo_id": "account.move:0891",
+    "odoo_id": "account.move:891",
     "number": "INV/0891",
     "order": "S04292",
     "issued_at": "2026-03-21",
@@ -11253,7 +11272,7 @@
     "paid_at": "2026-04-18"
    },
    {
-    "odoo_id": "account.move:0892",
+    "odoo_id": "account.move:892",
     "number": "INV/0892",
     "order": "S04293",
     "issued_at": "2026-04-10",
@@ -11263,7 +11282,7 @@
     "paid_at": "2026-05-09"
    },
    {
-    "odoo_id": "account.move:0893",
+    "odoo_id": "account.move:893",
     "number": "INV/0893",
     "order": "S04294",
     "issued_at": "2026-04-30",
@@ -11273,7 +11292,7 @@
     "paid_at": "2026-05-29"
    },
    {
-    "odoo_id": "account.move:0894",
+    "odoo_id": "account.move:894",
     "number": "INV/0894",
     "order": "S04295",
     "issued_at": "2026-05-25",
@@ -11283,7 +11302,7 @@
     "paid_at": "2026-06-23"
    },
    {
-    "odoo_id": "account.move:0895",
+    "odoo_id": "account.move:895",
     "number": "INV/0895",
     "order": "S04296",
     "issued_at": "2026-06-19",
@@ -11293,7 +11312,7 @@
     "paid_at": "2026-07-18"
    },
    {
-    "odoo_id": "account.move:0896",
+    "odoo_id": "account.move:896",
     "number": "INV/0896",
     "order": "S04297",
     "issued_at": "2026-07-14",
@@ -11303,7 +11322,7 @@
     "paid_at": "2026-08-12"
    },
    {
-    "odoo_id": "account.move:0897",
+    "odoo_id": "account.move:897",
     "number": "INV/0897",
     "order": "S04298",
     "issued_at": "2026-08-08",
@@ -11313,7 +11332,7 @@
     "paid_at": "2026-09-06"
    },
    {
-    "odoo_id": "account.move:0898",
+    "odoo_id": "account.move:898",
     "number": "INV/0898",
     "order": "S04299",
     "issued_at": "2026-09-02",
@@ -11323,7 +11342,7 @@
     "paid_at": "2026-10-01"
    },
    {
-    "odoo_id": "account.move:0899",
+    "odoo_id": "account.move:899",
     "number": "INV/0899",
     "order": "S04300",
     "issued_at": "2026-09-27",
@@ -11334,97 +11353,97 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0882",
+    "odoo_id": "account.payment:882",
     "invoice": "INV/0882",
     "paid_at": "2025-11-29",
     "amount": 20000000
    },
    {
-    "odoo_id": "account.payment:0883",
+    "odoo_id": "account.payment:883",
     "invoice": "INV/0883",
     "paid_at": "2025-12-19",
     "amount": 20000000
    },
    {
-    "odoo_id": "account.payment:0884",
+    "odoo_id": "account.payment:884",
     "invoice": "INV/0884",
     "paid_at": "2025-12-19",
     "amount": 20000000
    },
    {
-    "odoo_id": "account.payment:0885",
+    "odoo_id": "account.payment:885",
     "invoice": "INV/0885",
     "paid_at": "2026-01-08",
     "amount": 20000000
    },
    {
-    "odoo_id": "account.payment:0886",
+    "odoo_id": "account.payment:886",
     "invoice": "INV/0886",
     "paid_at": "2026-01-28",
     "amount": 20000000
    },
    {
-    "odoo_id": "account.payment:0887",
+    "odoo_id": "account.payment:887",
     "invoice": "INV/0887",
     "paid_at": "2026-02-17",
     "amount": 20000000
    },
    {
-    "odoo_id": "account.payment:0888",
+    "odoo_id": "account.payment:888",
     "invoice": "INV/0888",
     "paid_at": "2026-03-09",
     "amount": 20000000
    },
    {
-    "odoo_id": "account.payment:0890",
+    "odoo_id": "account.payment:890",
     "invoice": "INV/0890",
     "paid_at": "2026-03-29",
     "amount": 20000000
    },
    {
-    "odoo_id": "account.payment:0891",
+    "odoo_id": "account.payment:891",
     "invoice": "INV/0891",
     "paid_at": "2026-04-18",
     "amount": 20000000
    },
    {
-    "odoo_id": "account.payment:0892",
+    "odoo_id": "account.payment:892",
     "invoice": "INV/0892",
     "paid_at": "2026-05-09",
     "amount": 19300000
    },
    {
-    "odoo_id": "account.payment:0893",
+    "odoo_id": "account.payment:893",
     "invoice": "INV/0893",
     "paid_at": "2026-05-29",
     "amount": 19300000
    },
    {
-    "odoo_id": "account.payment:0894",
+    "odoo_id": "account.payment:894",
     "invoice": "INV/0894",
     "paid_at": "2026-06-23",
     "amount": 16500000
    },
    {
-    "odoo_id": "account.payment:0895",
+    "odoo_id": "account.payment:895",
     "invoice": "INV/0895",
     "paid_at": "2026-07-18",
     "amount": 20200000
    },
    {
-    "odoo_id": "account.payment:0896",
+    "odoo_id": "account.payment:896",
     "invoice": "INV/0896",
     "paid_at": "2026-08-12",
     "amount": 17400000
    },
    {
-    "odoo_id": "account.payment:0897",
+    "odoo_id": "account.payment:897",
     "invoice": "INV/0897",
     "paid_at": "2026-09-06",
     "amount": 22000000
    },
    {
-    "odoo_id": "account.payment:0898",
+    "odoo_id": "account.payment:898",
     "invoice": "INV/0898",
     "paid_at": "2026-10-01",
     "amount": 18300000
@@ -11446,6 +11465,7 @@
   "memo": "Toko kecil di Tegal, lewat jadwal 44 hari dari siklus order 30. WA terakhir 3 minggu lalu tanpa balasan. Share of wallet kecil — kemungkinan beralih ke grosir lokal.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34110",
     "key": "megah:sri",
     "name": "Bu Sri",
     "role": "Pemilik",
@@ -11779,7 +11799,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0900",
+    "odoo_id": "account.move:900",
     "number": "INV/0900",
     "order": "S04301",
     "issued_at": "2025-10-26",
@@ -11789,7 +11809,7 @@
     "paid_at": "2025-10-26"
    },
    {
-    "odoo_id": "account.move:0902",
+    "odoo_id": "account.move:902",
     "number": "INV/0902",
     "order": "S04302",
     "issued_at": "2025-11-25",
@@ -11799,7 +11819,7 @@
     "paid_at": "2025-11-25"
    },
    {
-    "odoo_id": "account.move:0903",
+    "odoo_id": "account.move:903",
     "number": "INV/0903",
     "order": "S04303",
     "issued_at": "2025-12-25",
@@ -11809,7 +11829,7 @@
     "paid_at": "2025-12-25"
    },
    {
-    "odoo_id": "account.move:0904",
+    "odoo_id": "account.move:904",
     "number": "INV/0904",
     "order": "S04304",
     "issued_at": "2026-01-24",
@@ -11819,7 +11839,7 @@
     "paid_at": "2026-01-24"
    },
    {
-    "odoo_id": "account.move:0905",
+    "odoo_id": "account.move:905",
     "number": "INV/0905",
     "order": "S04305",
     "issued_at": "2026-02-23",
@@ -11829,7 +11849,7 @@
     "paid_at": "2026-02-23"
    },
    {
-    "odoo_id": "account.move:0906",
+    "odoo_id": "account.move:906",
     "number": "INV/0906",
     "order": "S04306",
     "issued_at": "2026-03-25",
@@ -11839,7 +11859,7 @@
     "paid_at": "2026-03-25"
    },
    {
-    "odoo_id": "account.move:0907",
+    "odoo_id": "account.move:907",
     "number": "INV/0907",
     "order": "S04307",
     "issued_at": "2026-04-24",
@@ -11849,7 +11869,7 @@
     "paid_at": "2026-04-24"
    },
    {
-    "odoo_id": "account.move:0908",
+    "odoo_id": "account.move:908",
     "number": "INV/0908",
     "order": "S04308",
     "issued_at": "2026-05-24",
@@ -11859,7 +11879,7 @@
     "paid_at": "2026-05-24"
    },
    {
-    "odoo_id": "account.move:0909",
+    "odoo_id": "account.move:909",
     "number": "INV/0909",
     "order": "S04309",
     "issued_at": "2026-06-23",
@@ -11869,7 +11889,7 @@
     "paid_at": "2026-06-23"
    },
    {
-    "odoo_id": "account.move:0910",
+    "odoo_id": "account.move:910",
     "number": "INV/0910",
     "order": "S04310",
     "issued_at": "2026-07-23",
@@ -11879,7 +11899,7 @@
     "paid_at": "2026-07-23"
    },
    {
-    "odoo_id": "account.move:0911",
+    "odoo_id": "account.move:911",
     "number": "INV/0911",
     "order": "S04311",
     "issued_at": "2026-08-22",
@@ -11891,67 +11911,67 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0900",
+    "odoo_id": "account.payment:900",
     "invoice": "INV/0900",
     "paid_at": "2025-10-26",
     "amount": 5700000
    },
    {
-    "odoo_id": "account.payment:0902",
+    "odoo_id": "account.payment:902",
     "invoice": "INV/0902",
     "paid_at": "2025-11-25",
     "amount": 5700000
    },
    {
-    "odoo_id": "account.payment:0903",
+    "odoo_id": "account.payment:903",
     "invoice": "INV/0903",
     "paid_at": "2025-12-25",
     "amount": 5700000
    },
    {
-    "odoo_id": "account.payment:0904",
+    "odoo_id": "account.payment:904",
     "invoice": "INV/0904",
     "paid_at": "2026-01-24",
     "amount": 5700000
    },
    {
-    "odoo_id": "account.payment:0905",
+    "odoo_id": "account.payment:905",
     "invoice": "INV/0905",
     "paid_at": "2026-02-23",
     "amount": 5700000
    },
    {
-    "odoo_id": "account.payment:0906",
+    "odoo_id": "account.payment:906",
     "invoice": "INV/0906",
     "paid_at": "2026-03-25",
     "amount": 5700000
    },
    {
-    "odoo_id": "account.payment:0907",
+    "odoo_id": "account.payment:907",
     "invoice": "INV/0907",
     "paid_at": "2026-04-24",
     "amount": 6000000
    },
    {
-    "odoo_id": "account.payment:0908",
+    "odoo_id": "account.payment:908",
     "invoice": "INV/0908",
     "paid_at": "2026-05-24",
     "amount": 6000000
    },
    {
-    "odoo_id": "account.payment:0909",
+    "odoo_id": "account.payment:909",
     "invoice": "INV/0909",
     "paid_at": "2026-06-23",
     "amount": 5000000
    },
    {
-    "odoo_id": "account.payment:0910",
+    "odoo_id": "account.payment:910",
     "invoice": "INV/0910",
     "paid_at": "2026-07-23",
     "amount": 7000000
    },
    {
-    "odoo_id": "account.payment:0911",
+    "odoo_id": "account.payment:911",
     "invoice": "INV/0911",
     "paid_at": "2026-08-22",
     "amount": 6000000
@@ -11973,6 +11993,7 @@
   "memo": "Syarat Key account DIY. Siklus order 12 hari, bayar 27 hari. Share of wallet 60% — sisanya ke distributor Jakarta untuk LED. Peluang: modul LED P4 (product mix belum terisi).",
   "contacts": [
    {
+    "odoo_id": "res.partner:34120",
     "key": "sarana:hendra",
     "name": "Pak Hendra",
     "role": "Pemilik",
@@ -11982,6 +12003,7 @@
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34121",
     "key": "sarana:ika",
     "name": "Bu Ika",
     "role": "Purchasing",
@@ -11991,6 +12013,7 @@
     "last_interaction_at": "2026-10-03T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34122",
     "key": "sarana:tono",
     "name": "Pak Tono",
     "role": "Gudang",
@@ -13316,7 +13339,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0913",
+    "odoo_id": "account.move:913",
     "number": "INV/0913",
     "order": "S04312",
     "issued_at": "2025-10-06",
@@ -13326,7 +13349,7 @@
     "paid_at": "2025-11-23"
    },
    {
-    "odoo_id": "account.move:0914",
+    "odoo_id": "account.move:914",
     "number": "INV/0914",
     "order": "S04313",
     "issued_at": "2025-10-18",
@@ -13336,7 +13359,7 @@
     "paid_at": "2025-12-05"
    },
    {
-    "odoo_id": "account.move:0915",
+    "odoo_id": "account.move:915",
     "number": "INV/0915",
     "order": "S04314",
     "issued_at": "2025-10-30",
@@ -13346,7 +13369,7 @@
     "paid_at": "2025-12-17"
    },
    {
-    "odoo_id": "account.move:0916",
+    "odoo_id": "account.move:916",
     "number": "INV/0916",
     "order": "S04315",
     "issued_at": "2025-11-11",
@@ -13356,7 +13379,7 @@
     "paid_at": "2025-12-09"
    },
    {
-    "odoo_id": "account.move:0917",
+    "odoo_id": "account.move:917",
     "number": "INV/0917",
     "order": "S04316",
     "issued_at": "2025-11-23",
@@ -13366,7 +13389,7 @@
     "paid_at": "2025-12-21"
    },
    {
-    "odoo_id": "account.move:0918",
+    "odoo_id": "account.move:918",
     "number": "INV/0918",
     "order": "S04317",
     "issued_at": "2025-12-05",
@@ -13376,7 +13399,7 @@
     "paid_at": "2026-01-02"
    },
    {
-    "odoo_id": "account.move:0919",
+    "odoo_id": "account.move:919",
     "number": "INV/0919",
     "order": "S04318",
     "issued_at": "2025-12-17",
@@ -13386,7 +13409,7 @@
     "paid_at": "2026-01-14"
    },
    {
-    "odoo_id": "account.move:0920",
+    "odoo_id": "account.move:920",
     "number": "INV/0920",
     "order": "S04319",
     "issued_at": "2025-12-29",
@@ -13396,7 +13419,7 @@
     "paid_at": "2026-01-26"
    },
    {
-    "odoo_id": "account.move:0921",
+    "odoo_id": "account.move:921",
     "number": "INV/0921",
     "order": "S04320",
     "issued_at": "2026-01-10",
@@ -13406,7 +13429,7 @@
     "paid_at": "2026-02-07"
    },
    {
-    "odoo_id": "account.move:0922",
+    "odoo_id": "account.move:922",
     "number": "INV/0922",
     "order": "S04321",
     "issued_at": "2026-01-22",
@@ -13416,7 +13439,7 @@
     "paid_at": "2026-02-19"
    },
    {
-    "odoo_id": "account.move:0923",
+    "odoo_id": "account.move:923",
     "number": "INV/0923",
     "order": "S04322",
     "issued_at": "2026-02-03",
@@ -13426,7 +13449,7 @@
     "paid_at": "2026-03-03"
    },
    {
-    "odoo_id": "account.move:0924",
+    "odoo_id": "account.move:924",
     "number": "INV/0924",
     "order": "S04323",
     "issued_at": "2026-02-15",
@@ -13436,7 +13459,7 @@
     "paid_at": "2026-03-15"
    },
    {
-    "odoo_id": "account.move:0925",
+    "odoo_id": "account.move:925",
     "number": "INV/0925",
     "order": "S04324",
     "issued_at": "2026-02-27",
@@ -13446,7 +13469,7 @@
     "paid_at": "2026-03-27"
    },
    {
-    "odoo_id": "account.move:0926",
+    "odoo_id": "account.move:926",
     "number": "INV/0926",
     "order": "S04325",
     "issued_at": "2026-03-11",
@@ -13456,7 +13479,7 @@
     "paid_at": "2026-04-08"
    },
    {
-    "odoo_id": "account.move:0927",
+    "odoo_id": "account.move:927",
     "number": "INV/0927",
     "order": "S04326",
     "issued_at": "2026-03-23",
@@ -13466,7 +13489,7 @@
     "paid_at": "2026-04-20"
    },
    {
-    "odoo_id": "account.move:0928",
+    "odoo_id": "account.move:928",
     "number": "INV/0928",
     "order": "S04327",
     "issued_at": "2026-04-04",
@@ -13476,7 +13499,7 @@
     "paid_at": "2026-05-02"
    },
    {
-    "odoo_id": "account.move:0929",
+    "odoo_id": "account.move:929",
     "number": "INV/0929",
     "order": "S04328",
     "issued_at": "2026-04-16",
@@ -13486,7 +13509,7 @@
     "paid_at": "2026-05-13"
    },
    {
-    "odoo_id": "account.move:0930",
+    "odoo_id": "account.move:930",
     "number": "INV/0930",
     "order": "S04329",
     "issued_at": "2026-04-28",
@@ -13496,7 +13519,7 @@
     "paid_at": "2026-05-25"
    },
    {
-    "odoo_id": "account.move:0931",
+    "odoo_id": "account.move:931",
     "number": "INV/0931",
     "order": "S04330",
     "issued_at": "2026-05-10",
@@ -13506,7 +13529,7 @@
     "paid_at": "2026-06-06"
    },
    {
-    "odoo_id": "account.move:0932",
+    "odoo_id": "account.move:932",
     "number": "INV/0932",
     "order": "S04331",
     "issued_at": "2026-05-22",
@@ -13516,7 +13539,7 @@
     "paid_at": "2026-06-18"
    },
    {
-    "odoo_id": "account.move:0933",
+    "odoo_id": "account.move:933",
     "number": "INV/0933",
     "order": "S04332",
     "issued_at": "2026-06-03",
@@ -13526,7 +13549,7 @@
     "paid_at": "2026-06-30"
    },
    {
-    "odoo_id": "account.move:0934",
+    "odoo_id": "account.move:934",
     "number": "INV/0934",
     "order": "S04333",
     "issued_at": "2026-06-15",
@@ -13536,7 +13559,7 @@
     "paid_at": "2026-07-12"
    },
    {
-    "odoo_id": "account.move:0935",
+    "odoo_id": "account.move:935",
     "number": "INV/0935",
     "order": "S04334",
     "issued_at": "2026-06-27",
@@ -13546,7 +13569,7 @@
     "paid_at": "2026-07-24"
    },
    {
-    "odoo_id": "account.move:0936",
+    "odoo_id": "account.move:936",
     "number": "INV/0936",
     "order": "S04335",
     "issued_at": "2026-07-09",
@@ -13556,7 +13579,7 @@
     "paid_at": "2026-08-05"
    },
    {
-    "odoo_id": "account.move:0937",
+    "odoo_id": "account.move:937",
     "number": "INV/0937",
     "order": "S04336",
     "issued_at": "2026-07-21",
@@ -13566,7 +13589,7 @@
     "paid_at": "2026-08-17"
    },
    {
-    "odoo_id": "account.move:0938",
+    "odoo_id": "account.move:938",
     "number": "INV/0938",
     "order": "S04337",
     "issued_at": "2026-08-02",
@@ -13576,7 +13599,7 @@
     "paid_at": "2026-08-29"
    },
    {
-    "odoo_id": "account.move:0939",
+    "odoo_id": "account.move:939",
     "number": "INV/0939",
     "order": "S04338",
     "issued_at": "2026-08-14",
@@ -13586,7 +13609,7 @@
     "paid_at": "2026-09-10"
    },
    {
-    "odoo_id": "account.move:0940",
+    "odoo_id": "account.move:940",
     "number": "INV/0940",
     "order": "S04339",
     "issued_at": "2026-08-26",
@@ -13596,7 +13619,7 @@
     "paid_at": "2026-09-22"
    },
    {
-    "odoo_id": "account.move:0941",
+    "odoo_id": "account.move:941",
     "number": "INV/0941",
     "order": "S04340",
     "issued_at": "2026-09-07",
@@ -13606,7 +13629,7 @@
     "paid_at": "2026-10-04"
    },
    {
-    "odoo_id": "account.move:0942",
+    "odoo_id": "account.move:942",
     "number": "INV/0942",
     "order": "S04341",
     "issued_at": "2026-09-19",
@@ -13615,7 +13638,7 @@
     "paid": 0
    },
    {
-    "odoo_id": "account.move:0943",
+    "odoo_id": "account.move:943",
     "number": "INV/0943",
     "order": "S04342",
     "issued_at": "2026-10-01",
@@ -13626,175 +13649,175 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0913",
+    "odoo_id": "account.payment:913",
     "invoice": "INV/0913",
     "paid_at": "2025-11-23",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0914",
+    "odoo_id": "account.payment:914",
     "invoice": "INV/0914",
     "paid_at": "2025-12-05",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0915",
+    "odoo_id": "account.payment:915",
     "invoice": "INV/0915",
     "paid_at": "2025-12-17",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0916",
+    "odoo_id": "account.payment:916",
     "invoice": "INV/0916",
     "paid_at": "2025-12-09",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0917",
+    "odoo_id": "account.payment:917",
     "invoice": "INV/0917",
     "paid_at": "2025-12-21",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0918",
+    "odoo_id": "account.payment:918",
     "invoice": "INV/0918",
     "paid_at": "2026-01-02",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0919",
+    "odoo_id": "account.payment:919",
     "invoice": "INV/0919",
     "paid_at": "2026-01-14",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0920",
+    "odoo_id": "account.payment:920",
     "invoice": "INV/0920",
     "paid_at": "2026-01-26",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0921",
+    "odoo_id": "account.payment:921",
     "invoice": "INV/0921",
     "paid_at": "2026-02-07",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0922",
+    "odoo_id": "account.payment:922",
     "invoice": "INV/0922",
     "paid_at": "2026-02-19",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0923",
+    "odoo_id": "account.payment:923",
     "invoice": "INV/0923",
     "paid_at": "2026-03-03",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0924",
+    "odoo_id": "account.payment:924",
     "invoice": "INV/0924",
     "paid_at": "2026-03-15",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0925",
+    "odoo_id": "account.payment:925",
     "invoice": "INV/0925",
     "paid_at": "2026-03-27",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0926",
+    "odoo_id": "account.payment:926",
     "invoice": "INV/0926",
     "paid_at": "2026-04-08",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0927",
+    "odoo_id": "account.payment:927",
     "invoice": "INV/0927",
     "paid_at": "2026-04-20",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0928",
+    "odoo_id": "account.payment:928",
     "invoice": "INV/0928",
     "paid_at": "2026-05-02",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0929",
+    "odoo_id": "account.payment:929",
     "invoice": "INV/0929",
     "paid_at": "2026-05-13",
     "amount": 102800000
    },
    {
-    "odoo_id": "account.payment:0930",
+    "odoo_id": "account.payment:930",
     "invoice": "INV/0930",
     "paid_at": "2026-05-25",
     "amount": 102700000
    },
    {
-    "odoo_id": "account.payment:0931",
+    "odoo_id": "account.payment:931",
     "invoice": "INV/0931",
     "paid_at": "2026-06-06",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0932",
+    "odoo_id": "account.payment:932",
     "invoice": "INV/0932",
     "paid_at": "2026-06-18",
     "amount": 90300000
    },
    {
-    "odoo_id": "account.payment:0933",
+    "odoo_id": "account.payment:933",
     "invoice": "INV/0933",
     "paid_at": "2026-06-30",
     "amount": 99300000
    },
    {
-    "odoo_id": "account.payment:0934",
+    "odoo_id": "account.payment:934",
     "invoice": "INV/0934",
     "paid_at": "2026-07-12",
     "amount": 99300000
    },
    {
-    "odoo_id": "account.payment:0935",
+    "odoo_id": "account.payment:935",
     "invoice": "INV/0935",
     "paid_at": "2026-07-24",
     "amount": 99300000
    },
    {
-    "odoo_id": "account.payment:0936",
+    "odoo_id": "account.payment:936",
     "invoice": "INV/0936",
     "paid_at": "2026-08-05",
     "amount": 103900000
    },
    {
-    "odoo_id": "account.payment:0937",
+    "odoo_id": "account.payment:937",
     "invoice": "INV/0937",
     "paid_at": "2026-08-17",
     "amount": 103900000
    },
    {
-    "odoo_id": "account.payment:0938",
+    "odoo_id": "account.payment:938",
     "invoice": "INV/0938",
     "paid_at": "2026-08-29",
     "amount": 101600000
    },
    {
-    "odoo_id": "account.payment:0939",
+    "odoo_id": "account.payment:939",
     "invoice": "INV/0939",
     "paid_at": "2026-09-10",
     "amount": 101600000
    },
    {
-    "odoo_id": "account.payment:0940",
+    "odoo_id": "account.payment:940",
     "invoice": "INV/0940",
     "paid_at": "2026-09-22",
     "amount": 101600000
    },
    {
-    "odoo_id": "account.payment:0941",
+    "odoo_id": "account.payment:941",
     "invoice": "INV/0941",
     "paid_at": "2026-10-04",
     "amount": 108400000
@@ -13816,6 +13839,7 @@
   "memo": "Toko CCTV stabil di Klaten. Jadwal order besok. Biasanya 8–10 kamera 2MP + 1 NVR.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34130",
     "key": "prima:bayu",
     "name": "Pak Bayu",
     "role": "Pemilik",
@@ -14582,7 +14606,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0944",
+    "odoo_id": "account.move:944",
     "number": "INV/0944",
     "order": "S04343",
     "issued_at": "2025-10-15",
@@ -14592,7 +14616,7 @@
     "paid_at": "2025-12-02"
    },
    {
-    "odoo_id": "account.move:0945",
+    "odoo_id": "account.move:945",
     "number": "INV/0945",
     "order": "S04344",
     "issued_at": "2025-10-31",
@@ -14602,7 +14626,7 @@
     "paid_at": "2025-12-18"
    },
    {
-    "odoo_id": "account.move:0946",
+    "odoo_id": "account.move:946",
     "number": "INV/0946",
     "order": "S04345",
     "issued_at": "2025-11-16",
@@ -14612,7 +14636,7 @@
     "paid_at": "2026-01-03"
    },
    {
-    "odoo_id": "account.move:0947",
+    "odoo_id": "account.move:947",
     "number": "INV/0947",
     "order": "S04346",
     "issued_at": "2025-12-02",
@@ -14622,7 +14646,7 @@
     "paid_at": "2025-12-30"
    },
    {
-    "odoo_id": "account.move:0948",
+    "odoo_id": "account.move:948",
     "number": "INV/0948",
     "order": "S04347",
     "issued_at": "2025-12-18",
@@ -14632,7 +14656,7 @@
     "paid_at": "2026-01-15"
    },
    {
-    "odoo_id": "account.move:0949",
+    "odoo_id": "account.move:949",
     "number": "INV/0949",
     "order": "S04348",
     "issued_at": "2026-01-03",
@@ -14642,7 +14666,7 @@
     "paid_at": "2026-01-31"
    },
    {
-    "odoo_id": "account.move:0950",
+    "odoo_id": "account.move:950",
     "number": "INV/0950",
     "order": "S04349",
     "issued_at": "2026-01-19",
@@ -14652,7 +14676,7 @@
     "paid_at": "2026-02-16"
    },
    {
-    "odoo_id": "account.move:0951",
+    "odoo_id": "account.move:951",
     "number": "INV/0951",
     "order": "S04350",
     "issued_at": "2026-02-04",
@@ -14662,7 +14686,7 @@
     "paid_at": "2026-03-04"
    },
    {
-    "odoo_id": "account.move:0952",
+    "odoo_id": "account.move:952",
     "number": "INV/0952",
     "order": "S04351",
     "issued_at": "2026-02-20",
@@ -14672,7 +14696,7 @@
     "paid_at": "2026-03-20"
    },
    {
-    "odoo_id": "account.move:0953",
+    "odoo_id": "account.move:953",
     "number": "INV/0953",
     "order": "S04352",
     "issued_at": "2026-03-08",
@@ -14682,7 +14706,7 @@
     "paid_at": "2026-04-05"
    },
    {
-    "odoo_id": "account.move:0954",
+    "odoo_id": "account.move:954",
     "number": "INV/0954",
     "order": "S04353",
     "issued_at": "2026-03-24",
@@ -14692,7 +14716,7 @@
     "paid_at": "2026-04-21"
    },
    {
-    "odoo_id": "account.move:0955",
+    "odoo_id": "account.move:955",
     "number": "INV/0955",
     "order": "S04354",
     "issued_at": "2026-04-09",
@@ -14702,7 +14726,7 @@
     "paid_at": "2026-05-09"
    },
    {
-    "odoo_id": "account.move:0956",
+    "odoo_id": "account.move:956",
     "number": "INV/0956",
     "order": "S04355",
     "issued_at": "2026-04-27",
@@ -14712,7 +14736,7 @@
     "paid_at": "2026-05-27"
    },
    {
-    "odoo_id": "account.move:0957",
+    "odoo_id": "account.move:957",
     "number": "INV/0957",
     "order": "S04356",
     "issued_at": "2026-05-15",
@@ -14722,7 +14746,7 @@
     "paid_at": "2026-06-14"
    },
    {
-    "odoo_id": "account.move:0958",
+    "odoo_id": "account.move:958",
     "number": "INV/0958",
     "order": "S04357",
     "issued_at": "2026-06-02",
@@ -14732,7 +14756,7 @@
     "paid_at": "2026-07-02"
    },
    {
-    "odoo_id": "account.move:0959",
+    "odoo_id": "account.move:959",
     "number": "INV/0959",
     "order": "S04358",
     "issued_at": "2026-06-20",
@@ -14742,7 +14766,7 @@
     "paid_at": "2026-07-20"
    },
    {
-    "odoo_id": "account.move:0960",
+    "odoo_id": "account.move:960",
     "number": "INV/0960",
     "order": "S04359",
     "issued_at": "2026-07-08",
@@ -14752,7 +14776,7 @@
     "paid_at": "2026-08-07"
    },
    {
-    "odoo_id": "account.move:0961",
+    "odoo_id": "account.move:961",
     "number": "INV/0961",
     "order": "S04360",
     "issued_at": "2026-07-26",
@@ -14762,7 +14786,7 @@
     "paid_at": "2026-08-25"
    },
    {
-    "odoo_id": "account.move:0962",
+    "odoo_id": "account.move:962",
     "number": "INV/0962",
     "order": "S04361",
     "issued_at": "2026-08-13",
@@ -14772,7 +14796,7 @@
     "paid_at": "2026-09-12"
    },
    {
-    "odoo_id": "account.move:0963",
+    "odoo_id": "account.move:963",
     "number": "INV/0963",
     "order": "S04362",
     "issued_at": "2026-08-31",
@@ -14782,7 +14806,7 @@
     "paid_at": "2026-09-30"
    },
    {
-    "odoo_id": "account.move:0964",
+    "odoo_id": "account.move:964",
     "number": "INV/0964",
     "order": "S04363",
     "issued_at": "2026-09-18",
@@ -14793,121 +14817,121 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0944",
+    "odoo_id": "account.payment:944",
     "invoice": "INV/0944",
     "paid_at": "2025-12-02",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0945",
+    "odoo_id": "account.payment:945",
     "invoice": "INV/0945",
     "paid_at": "2025-12-18",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0946",
+    "odoo_id": "account.payment:946",
     "invoice": "INV/0946",
     "paid_at": "2026-01-03",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0947",
+    "odoo_id": "account.payment:947",
     "invoice": "INV/0947",
     "paid_at": "2025-12-30",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0948",
+    "odoo_id": "account.payment:948",
     "invoice": "INV/0948",
     "paid_at": "2026-01-15",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0949",
+    "odoo_id": "account.payment:949",
     "invoice": "INV/0949",
     "paid_at": "2026-01-31",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0950",
+    "odoo_id": "account.payment:950",
     "invoice": "INV/0950",
     "paid_at": "2026-02-16",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0951",
+    "odoo_id": "account.payment:951",
     "invoice": "INV/0951",
     "paid_at": "2026-03-04",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0952",
+    "odoo_id": "account.payment:952",
     "invoice": "INV/0952",
     "paid_at": "2026-03-20",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0953",
+    "odoo_id": "account.payment:953",
     "invoice": "INV/0953",
     "paid_at": "2026-04-05",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0954",
+    "odoo_id": "account.payment:954",
     "invoice": "INV/0954",
     "paid_at": "2026-04-21",
     "amount": 18100000
    },
    {
-    "odoo_id": "account.payment:0955",
+    "odoo_id": "account.payment:955",
     "invoice": "INV/0955",
     "paid_at": "2026-05-09",
     "amount": 18900000
    },
    {
-    "odoo_id": "account.payment:0956",
+    "odoo_id": "account.payment:956",
     "invoice": "INV/0956",
     "paid_at": "2026-05-27",
     "amount": 18800000
    },
    {
-    "odoo_id": "account.payment:0957",
+    "odoo_id": "account.payment:957",
     "invoice": "INV/0957",
     "paid_at": "2026-06-14",
     "amount": 16900000
    },
    {
-    "odoo_id": "account.payment:0958",
+    "odoo_id": "account.payment:958",
     "invoice": "INV/0958",
     "paid_at": "2026-07-02",
     "amount": 17900000
    },
    {
-    "odoo_id": "account.payment:0959",
+    "odoo_id": "account.payment:959",
     "invoice": "INV/0959",
     "paid_at": "2026-07-20",
     "amount": 17900000
    },
    {
-    "odoo_id": "account.payment:0960",
+    "odoo_id": "account.payment:960",
     "invoice": "INV/0960",
     "paid_at": "2026-08-07",
     "amount": 19900000
    },
    {
-    "odoo_id": "account.payment:0961",
+    "odoo_id": "account.payment:961",
     "invoice": "INV/0961",
     "paid_at": "2026-08-25",
     "amount": 19900000
    },
    {
-    "odoo_id": "account.payment:0962",
+    "odoo_id": "account.payment:962",
     "invoice": "INV/0962",
     "paid_at": "2026-09-12",
     "amount": 18900000
    },
    {
-    "odoo_id": "account.payment:0963",
+    "odoo_id": "account.payment:963",
     "invoice": "INV/0963",
     "paid_at": "2026-09-30",
     "amount": 18900000
@@ -14929,6 +14953,7 @@
   "memo": "Jadwal order besok. Product mix tetap 3 kategori; HDD selalu ikut. Pola bayar 31 hari — pengingat H-3 ramah.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34140",
     "key": "jaya:agung",
     "name": "Pak Agung",
     "role": "Pemilik",
@@ -14938,6 +14963,7 @@
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34141",
     "key": "jaya:dewi",
     "name": "Mbak Dewi",
     "role": "Kasir",
@@ -15913,7 +15939,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0965",
+    "odoo_id": "account.move:965",
     "number": "INV/0965",
     "order": "S04364",
     "issued_at": "2025-10-07",
@@ -15923,7 +15949,7 @@
     "paid_at": "2025-11-24"
    },
    {
-    "odoo_id": "account.move:0966",
+    "odoo_id": "account.move:966",
     "number": "INV/0966",
     "order": "S04365",
     "issued_at": "2025-10-20",
@@ -15933,7 +15959,7 @@
     "paid_at": "2025-12-07"
    },
    {
-    "odoo_id": "account.move:0967",
+    "odoo_id": "account.move:967",
     "number": "INV/0967",
     "order": "S04366",
     "issued_at": "2025-11-02",
@@ -15943,7 +15969,7 @@
     "paid_at": "2025-12-20"
    },
    {
-    "odoo_id": "account.move:0968",
+    "odoo_id": "account.move:968",
     "number": "INV/0968",
     "order": "S04367",
     "issued_at": "2025-11-15",
@@ -15953,7 +15979,7 @@
     "paid_at": "2025-12-13"
    },
    {
-    "odoo_id": "account.move:0969",
+    "odoo_id": "account.move:969",
     "number": "INV/0969",
     "order": "S04368",
     "issued_at": "2025-11-28",
@@ -15963,7 +15989,7 @@
     "paid_at": "2025-12-26"
    },
    {
-    "odoo_id": "account.move:0970",
+    "odoo_id": "account.move:970",
     "number": "INV/0970",
     "order": "S04369",
     "issued_at": "2025-12-11",
@@ -15973,7 +15999,7 @@
     "paid_at": "2026-01-08"
    },
    {
-    "odoo_id": "account.move:0971",
+    "odoo_id": "account.move:971",
     "number": "INV/0971",
     "order": "S04370",
     "issued_at": "2025-12-24",
@@ -15983,7 +16009,7 @@
     "paid_at": "2026-01-21"
    },
    {
-    "odoo_id": "account.move:0972",
+    "odoo_id": "account.move:972",
     "number": "INV/0972",
     "order": "S04371",
     "issued_at": "2026-01-06",
@@ -15993,7 +16019,7 @@
     "paid_at": "2026-02-03"
    },
    {
-    "odoo_id": "account.move:0973",
+    "odoo_id": "account.move:973",
     "number": "INV/0973",
     "order": "S04372",
     "issued_at": "2026-01-19",
@@ -16003,7 +16029,7 @@
     "paid_at": "2026-02-16"
    },
    {
-    "odoo_id": "account.move:0974",
+    "odoo_id": "account.move:974",
     "number": "INV/0974",
     "order": "S04373",
     "issued_at": "2026-02-01",
@@ -16013,7 +16039,7 @@
     "paid_at": "2026-03-01"
    },
    {
-    "odoo_id": "account.move:0975",
+    "odoo_id": "account.move:975",
     "number": "INV/0975",
     "order": "S04374",
     "issued_at": "2026-02-14",
@@ -16023,7 +16049,7 @@
     "paid_at": "2026-03-14"
    },
    {
-    "odoo_id": "account.move:0976",
+    "odoo_id": "account.move:976",
     "number": "INV/0976",
     "order": "S04375",
     "issued_at": "2026-02-27",
@@ -16033,7 +16059,7 @@
     "paid_at": "2026-03-27"
    },
    {
-    "odoo_id": "account.move:0977",
+    "odoo_id": "account.move:977",
     "number": "INV/0977",
     "order": "S04376",
     "issued_at": "2026-03-12",
@@ -16043,7 +16069,7 @@
     "paid_at": "2026-04-09"
    },
    {
-    "odoo_id": "account.move:0978",
+    "odoo_id": "account.move:978",
     "number": "INV/0978",
     "order": "S04377",
     "issued_at": "2026-03-25",
@@ -16053,7 +16079,7 @@
     "paid_at": "2026-04-22"
    },
    {
-    "odoo_id": "account.move:0979",
+    "odoo_id": "account.move:979",
     "number": "INV/0979",
     "order": "S04378",
     "issued_at": "2026-04-07",
@@ -16063,7 +16089,7 @@
     "paid_at": "2026-06-02"
    },
    {
-    "odoo_id": "account.move:0980",
+    "odoo_id": "account.move:980",
     "number": "INV/0980",
     "order": "S04379",
     "issued_at": "2026-04-21",
@@ -16073,7 +16099,7 @@
     "paid_at": "2026-05-19"
    },
    {
-    "odoo_id": "account.move:0981",
+    "odoo_id": "account.move:981",
     "number": "INV/0981",
     "order": "S04380",
     "issued_at": "2026-05-05",
@@ -16083,7 +16109,7 @@
     "paid_at": "2026-06-02"
    },
    {
-    "odoo_id": "account.move:0982",
+    "odoo_id": "account.move:982",
     "number": "INV/0982",
     "order": "S04381",
     "issued_at": "2026-05-19",
@@ -16093,7 +16119,7 @@
     "paid_at": "2026-06-16"
    },
    {
-    "odoo_id": "account.move:0983",
+    "odoo_id": "account.move:983",
     "number": "INV/0983",
     "order": "S04382",
     "issued_at": "2026-06-02",
@@ -16103,7 +16129,7 @@
     "paid_at": "2026-06-30"
    },
    {
-    "odoo_id": "account.move:0984",
+    "odoo_id": "account.move:984",
     "number": "INV/0984",
     "order": "S04383",
     "issued_at": "2026-06-16",
@@ -16113,7 +16139,7 @@
     "paid_at": "2026-07-14"
    },
    {
-    "odoo_id": "account.move:0985",
+    "odoo_id": "account.move:985",
     "number": "INV/0985",
     "order": "S04384",
     "issued_at": "2026-06-30",
@@ -16123,7 +16149,7 @@
     "paid_at": "2026-07-29"
    },
    {
-    "odoo_id": "account.move:0986",
+    "odoo_id": "account.move:986",
     "number": "INV/0986",
     "order": "S04385",
     "issued_at": "2026-07-14",
@@ -16133,7 +16159,7 @@
     "paid_at": "2026-08-12"
    },
    {
-    "odoo_id": "account.move:0987",
+    "odoo_id": "account.move:987",
     "number": "INV/0987",
     "order": "S04386",
     "issued_at": "2026-07-28",
@@ -16143,7 +16169,7 @@
     "paid_at": "2026-08-26"
    },
    {
-    "odoo_id": "account.move:0988",
+    "odoo_id": "account.move:988",
     "number": "INV/0988",
     "order": "S04387",
     "issued_at": "2026-08-11",
@@ -16153,7 +16179,7 @@
     "paid_at": "2026-09-09"
    },
    {
-    "odoo_id": "account.move:0989",
+    "odoo_id": "account.move:989",
     "number": "INV/0989",
     "order": "S04388",
     "issued_at": "2026-08-25",
@@ -16163,7 +16189,7 @@
     "paid_at": "2026-09-23"
    },
    {
-    "odoo_id": "account.move:0990",
+    "odoo_id": "account.move:990",
     "number": "INV/0990",
     "order": "S04389",
     "issued_at": "2026-09-08",
@@ -16172,7 +16198,7 @@
     "paid": 0
    },
    {
-    "odoo_id": "account.move:0991",
+    "odoo_id": "account.move:991",
     "number": "INV/0991",
     "order": "S04390",
     "issued_at": "2026-09-22",
@@ -16183,151 +16209,151 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0965",
+    "odoo_id": "account.payment:965",
     "invoice": "INV/0965",
     "paid_at": "2025-11-24",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0966",
+    "odoo_id": "account.payment:966",
     "invoice": "INV/0966",
     "paid_at": "2025-12-07",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0967",
+    "odoo_id": "account.payment:967",
     "invoice": "INV/0967",
     "paid_at": "2025-12-20",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0968",
+    "odoo_id": "account.payment:968",
     "invoice": "INV/0968",
     "paid_at": "2025-12-13",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0969",
+    "odoo_id": "account.payment:969",
     "invoice": "INV/0969",
     "paid_at": "2025-12-26",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0970",
+    "odoo_id": "account.payment:970",
     "invoice": "INV/0970",
     "paid_at": "2026-01-08",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0971",
+    "odoo_id": "account.payment:971",
     "invoice": "INV/0971",
     "paid_at": "2026-01-21",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0972",
+    "odoo_id": "account.payment:972",
     "invoice": "INV/0972",
     "paid_at": "2026-02-03",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0973",
+    "odoo_id": "account.payment:973",
     "invoice": "INV/0973",
     "paid_at": "2026-02-16",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0974",
+    "odoo_id": "account.payment:974",
     "invoice": "INV/0974",
     "paid_at": "2026-03-01",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0975",
+    "odoo_id": "account.payment:975",
     "invoice": "INV/0975",
     "paid_at": "2026-03-14",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0976",
+    "odoo_id": "account.payment:976",
     "invoice": "INV/0976",
     "paid_at": "2026-03-27",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0977",
+    "odoo_id": "account.payment:977",
     "invoice": "INV/0977",
     "paid_at": "2026-04-09",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0978",
+    "odoo_id": "account.payment:978",
     "invoice": "INV/0978",
     "paid_at": "2026-04-22",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0979",
+    "odoo_id": "account.payment:979",
     "invoice": "INV/0979",
     "paid_at": "2026-06-02",
     "amount": 33700000
    },
    {
-    "odoo_id": "account.payment:0980",
+    "odoo_id": "account.payment:980",
     "invoice": "INV/0980",
     "paid_at": "2026-05-19",
     "amount": 34000000
    },
    {
-    "odoo_id": "account.payment:0981",
+    "odoo_id": "account.payment:981",
     "invoice": "INV/0981",
     "paid_at": "2026-06-02",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0982",
+    "odoo_id": "account.payment:982",
     "invoice": "INV/0982",
     "paid_at": "2026-06-16",
     "amount": 31400000
    },
    {
-    "odoo_id": "account.payment:0983",
+    "odoo_id": "account.payment:983",
     "invoice": "INV/0983",
     "paid_at": "2026-06-30",
     "amount": 33500000
    },
    {
-    "odoo_id": "account.payment:0984",
+    "odoo_id": "account.payment:984",
     "invoice": "INV/0984",
     "paid_at": "2026-07-14",
     "amount": 33500000
    },
    {
-    "odoo_id": "account.payment:0985",
+    "odoo_id": "account.payment:985",
     "invoice": "INV/0985",
     "paid_at": "2026-07-29",
     "amount": 33500000
    },
    {
-    "odoo_id": "account.payment:0986",
+    "odoo_id": "account.payment:986",
     "invoice": "INV/0986",
     "paid_at": "2026-08-12",
     "amount": 32400000
    },
    {
-    "odoo_id": "account.payment:0987",
+    "odoo_id": "account.payment:987",
     "invoice": "INV/0987",
     "paid_at": "2026-08-26",
     "amount": 32400000
    },
    {
-    "odoo_id": "account.payment:0988",
+    "odoo_id": "account.payment:988",
     "invoice": "INV/0988",
     "paid_at": "2026-09-09",
     "amount": 36600000
    },
    {
-    "odoo_id": "account.payment:0989",
+    "odoo_id": "account.payment:989",
     "invoice": "INV/0989",
     "paid_at": "2026-09-23",
     "amount": 36600000
@@ -16349,6 +16375,7 @@
   "memo": "Limit tipis: exposure 98 / 100 jt dengan pola bayar 38 hari. Jadwal order 4 hari lagi, tapi order berikutnya akan tertahan limit — AI Kredit menyarankan menagih INV/0901 lebih dulu (jatuh tempo 5 Okt).",
   "contacts": [
    {
+    "odoo_id": "res.partner:34150",
     "key": "nusa:imam",
     "name": "Pak Imam",
     "role": "Pemilik",
@@ -17142,7 +17169,7 @@
   ],
   "invoices": [
    {
-    "odoo_id": "account.move:0992",
+    "odoo_id": "account.move:992",
     "number": "INV/0992",
     "order": "S04391",
     "issued_at": "2025-10-14",
@@ -17152,7 +17179,7 @@
     "paid_at": "2025-12-01"
    },
    {
-    "odoo_id": "account.move:0993",
+    "odoo_id": "account.move:993",
     "number": "INV/0993",
     "order": "S04392",
     "issued_at": "2025-10-27",
@@ -17162,7 +17189,7 @@
     "paid_at": "2025-12-14"
    },
    {
-    "odoo_id": "account.move:0994",
+    "odoo_id": "account.move:994",
     "number": "INV/0994",
     "order": "S04393",
     "issued_at": "2025-11-09",
@@ -17172,7 +17199,7 @@
     "paid_at": "2025-12-27"
    },
    {
-    "odoo_id": "account.move:0995",
+    "odoo_id": "account.move:995",
     "number": "INV/0995",
     "order": "S04394",
     "issued_at": "2025-11-22",
@@ -17182,7 +17209,7 @@
     "paid_at": "2026-01-09"
    },
    {
-    "odoo_id": "account.move:0996",
+    "odoo_id": "account.move:996",
     "number": "INV/0996",
     "order": "S04395",
     "issued_at": "2025-12-05",
@@ -17192,7 +17219,7 @@
     "paid_at": "2026-01-22"
    },
    {
-    "odoo_id": "account.move:0997",
+    "odoo_id": "account.move:997",
     "number": "INV/0997",
     "order": "S04396",
     "issued_at": "2025-12-18",
@@ -17202,7 +17229,7 @@
     "paid_at": "2026-01-15"
    },
    {
-    "odoo_id": "account.move:0998",
+    "odoo_id": "account.move:998",
     "number": "INV/0998",
     "order": "S04397",
     "issued_at": "2025-12-31",
@@ -17212,7 +17239,7 @@
     "paid_at": "2026-01-28"
    },
    {
-    "odoo_id": "account.move:0999",
+    "odoo_id": "account.move:999",
     "number": "INV/0999",
     "order": "S04398",
     "issued_at": "2026-01-13",
@@ -17342,7 +17369,7 @@
     "paid_at": "2026-09-11"
    },
    {
-    "odoo_id": "account.move:0901",
+    "odoo_id": "account.move:901",
     "number": "INV/0901",
     "order": "S04411",
     "issued_at": "2026-09-05",
@@ -17362,49 +17389,49 @@
   ],
   "payments": [
    {
-    "odoo_id": "account.payment:0992",
+    "odoo_id": "account.payment:992",
     "invoice": "INV/0992",
     "paid_at": "2025-12-01",
     "amount": 25700000
    },
    {
-    "odoo_id": "account.payment:0993",
+    "odoo_id": "account.payment:993",
     "invoice": "INV/0993",
     "paid_at": "2025-12-14",
     "amount": 25700000
    },
    {
-    "odoo_id": "account.payment:0994",
+    "odoo_id": "account.payment:994",
     "invoice": "INV/0994",
     "paid_at": "2025-12-27",
     "amount": 25700000
    },
    {
-    "odoo_id": "account.payment:0995",
+    "odoo_id": "account.payment:995",
     "invoice": "INV/0995",
     "paid_at": "2026-01-09",
     "amount": 25700000
    },
    {
-    "odoo_id": "account.payment:0996",
+    "odoo_id": "account.payment:996",
     "invoice": "INV/0996",
     "paid_at": "2026-01-22",
     "amount": 25700000
    },
    {
-    "odoo_id": "account.payment:0997",
+    "odoo_id": "account.payment:997",
     "invoice": "INV/0997",
     "paid_at": "2026-01-15",
     "amount": 25700000
    },
    {
-    "odoo_id": "account.payment:0998",
+    "odoo_id": "account.payment:998",
     "invoice": "INV/0998",
     "paid_at": "2026-01-28",
     "amount": 25700000
    },
    {
-    "odoo_id": "account.payment:0999",
+    "odoo_id": "account.payment:999",
     "invoice": "INV/0999",
     "paid_at": "2026-02-10",
     "amount": 25700000
@@ -17508,6 +17535,7 @@
   "memo": "Reseller rapi, bayar 26 hari, share of wallet 70%. Jadwal order besok; biasanya order via WA Senin pagi.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34160",
     "key": "borneo:maya",
     "name": "Bu Maya",
     "role": "Pemilik",
@@ -17517,6 +17545,7 @@
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34161",
     "key": "borneo:ari",
     "name": "Pak Ari",
     "role": "Admin",
@@ -18681,6 +18710,7 @@
   "memo": "Churn: 70 hari dari siklus order 28. Share of wallet kecil sejak awal. Sapaan 2× tanpa balasan — biarkan, prioritas rendah.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34170",
     "key": "rejeki:udin",
     "name": "Pak Udin",
     "role": "Pemilik",
@@ -19201,6 +19231,7 @@
   "memo": "Syarat Key account Jabodetabek. Siklus order 11 hari, bayar 29 hari, product mix 5 dari 6 kategori. Satu-satunya yang kosong: fire alarm — mereka subkontrak ke pihak lain.",
   "contacts": [
    {
+    "odoo_id": "res.partner:34180",
     "key": "global:yoga",
     "name": "Pak Yoga",
     "role": "Direktur",
@@ -19210,6 +19241,7 @@
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34181",
     "key": "global:fitri",
     "name": "Bu Fitri",
     "role": "Purchasing",
@@ -19219,6 +19251,7 @@
     "last_interaction_at": "2026-10-03T10:00:00+07:00"
    },
    {
+    "odoo_id": "res.partner:34182",
     "key": "global:deni",
     "name": "Pak Deni",
     "role": "Project",

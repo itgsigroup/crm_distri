@@ -341,6 +341,14 @@ type McpClient struct {
 	CreatedAt  time.Time  `json:"created_at"`
 }
 
+type OdooSyncState struct {
+	Model         string     `json:"model"`
+	LastWriteDate *time.Time `json:"last_write_date"`
+	LastRunAt     *time.Time `json:"last_run_at"`
+	Records       int32      `json:"records"`
+	Error         *string    `json:"error"`
+}
+
 type Order struct {
 	ID              uuid.UUID       `json:"id"`
 	DealerID        *uuid.UUID      `json:"dealer_id"`
@@ -410,6 +418,21 @@ type PolicyHistory struct {
 	Value     json.RawMessage `json:"value"`
 	UpdatedBy *uuid.UUID      `json:"updated_by"`
 	UpdatedAt *time.Time      `json:"updated_at"`
+}
+
+type Product struct {
+	ID              uuid.UUID       `json:"id"`
+	Sku             *string         `json:"sku"`
+	Name            string          `json:"name"`
+	Category        *string         `json:"category"`
+	OdooCategoryID  *int32          `json:"odoo_category_id"`
+	ListPrice       int64           `json:"list_price"`
+	Cost            int64           `json:"cost"`
+	Prices          json.RawMessage `json:"prices"`
+	Active          bool            `json:"active"`
+	SourceSystem    *string         `json:"source_system"`
+	SourceID        *string         `json:"source_id"`
+	SourceWriteDate *time.Time      `json:"source_write_date"`
 }
 
 type Proposal struct {

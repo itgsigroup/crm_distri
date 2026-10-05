@@ -2,8 +2,9 @@ import { useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { fmtRp } from '../../lib/format'
 import { AGENT_NAMES } from '../../lib/i18n/id'
-import { usePolicies, useWAGroups, useWAStatus } from '../../app/queries'
+import { useConnections, usePolicies, useWAGroups, useWAStatus } from '../../app/queries'
 import { WhatsAppPanel } from './WhatsAppPanel'
+import { OdooPanel } from './OdooPanel'
 
 type Obj = Record<string, unknown>
 const num = (o: Obj | undefined, k: string, d: number) => (o && typeof o[k] === 'number' ? (o[k] as number) : d)
@@ -16,6 +17,8 @@ export function SettingsPage() {
   const { data: pol } = usePolicies()
   const { data: wa } = useWAStatus()
   const { data: groups = [] } = useWAGroups()
+  const { data: conn } = useConnections()
+  const synced = (conn?.odoo.models ?? []).some((m) => m.last_run_at)
   const orbit = pol?.['orbit.thresholds']?.value as Obj | undefined
   const seg = pol?.['segment.thresholds']?.value as Obj | undefined
   const credit = pol?.['credit.rules']?.value as Obj | undefined
@@ -47,7 +50,7 @@ export function SettingsPage() {
         <div className="card">
           <div className="card-h"><h2>Sumber sinyal</h2></div>
           <div className="conn-grid" style={{ gridTemplateColumns: '1fr' }}>
-            <button className="cc" onClick={() => toast('Sinkronisasi Odoo tersambung di Stage 04')}><div className="ch"><span className="lg" style={{ background: '#714B67' }}>odoo</span><div><b>Odoo Sales · Inventory · Accounting</b><small>SO, stok per cabang, harga tier, invoice, pembayaran</small></div></div><div className="cs"><span className="dot warn" />Belum tersambung · data contoh</div></button>
+            <button className="cc" onClick={() => openSheet(<OdooPanel />)}><div className="ch"><span className="lg" style={{ background: '#714B67' }}>odoo</span><div><b>Odoo Sales · Inventory · Accounting</b><small>SO, stok per cabang, harga tier, invoice, pembayaran</small></div></div><div className="cs"><span className={`dot ${synced ? 'good' : 'warn'}`} />{synced ? `Terhubung · ${conn?.odoo.mode === 'fake' ? 'data contoh' : 'baca'}${conn?.odoo.write ? ' & tulis SO draft' : ' saja'}` : 'Belum sinkron'}</div></button>
             <button className="cc" onClick={() => openSheet(<WhatsAppPanel />)}><div className="ch"><span className="lg" style={{ background: '#25D366' }}>WA</span><div><b>WhatsApp</b><small>{wa?.items.length ?? 0} nomor sales + {internalGroups} grup gudang</small></div></div><div className="cs"><span className={`dot ${connected ? 'good' : 'warn'}`} />{connected ? `Terhubung · ${wa?.transport}` : 'Belum terhubung'} · {connected}/{wa?.items.length ?? 0} nomor</div></button>
             <button className="cc" onClick={() => toast('Identifikasi nomor oleh AI Prospek di Stage 09')}><div className="ch"><span className="lg" style={{ background: '#1E88E5' }}>ID</span><div><b>Identifikasi nomor</b><small>Profil WA Business · Truecaller · Getcontact (manual)</small></div></div><div className="cs"><span className="dot good" />Hanya nomor inbound</div></button>
           </div>

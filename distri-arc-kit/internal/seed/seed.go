@@ -72,6 +72,7 @@ type payment struct {
 }
 
 type contact struct {
+	OdooID            string     `json:"odoo_id"`
 	Key               string     `json:"key"`
 	Name              string     `json:"name"`
 	Role              string     `json:"role"`
@@ -205,7 +206,7 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 			}
 			dealerID[d.Slug] = id
 			for _, c := range d.Contacts {
-				sid := "res.partner.contact:" + c.Key
+				sid := c.OdooID
 				cid, err := q.UpsertContact(ctx, gen.UpsertContactParams{DealerID: &id, Name: &c.Name, Role: &c.Role, WaNumber: &c.WANumber, IsPrimary: c.IsPrimary, LastInteractionAt: c.LastInteractionAt, Interactions90d: c.Interactions90d, SourceSystem: &ss, SourceID: &sid})
 				if err != nil {
 					return fmt.Errorf("contact %s: %w", c.Key, err)

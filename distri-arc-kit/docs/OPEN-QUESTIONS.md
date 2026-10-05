@@ -8,3 +8,4 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-05 · 00 · Data contoh mockup punya angka yang tidak konsisten (KPI 85%/DSO 36/limit tipis "3") · angka dihitung dari rumus glossary; teks seed disesuaikan · —
 - 2026-10-05 · 01 · DSO dihitung untuk penjualan kredit saja (penjualan tunai tidak membentuk piutang): seed → 30 hari, mockup menulis 36 · Setuju definisi ini? · dipakai kredit-saja · —
 - 2026-10-05 · 03 · Enkripsi kunci sesi whatsmeow dengan `WA_SESSION_KEY` tidak didukung store resmi; tetap simpan di skema `whatsmeow` + backup terenkripsi, atau tulis store terenkripsi sendiri? · sesi tidak terenkripsi di DB · skema terpisah
+- 2026-10-05 · 04 · Field Odoo GSI untuk: limit kredit dealer (`credit_limit` bawaan atau field kustom), tier (nama pricelist "Tier A/B/C"?), jenis usaha dealer (`industry_id`?), velocity stok, dan cabang = company? · mapper memakai asumsi tsb · fake

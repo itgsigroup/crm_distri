@@ -105,3 +105,15 @@ func TestBriefToday(t *testing.T) {
 		t.Errorf("brief counts %v", pts)
 	}
 }
+
+func TestOdooConnectionEndpoints(t *testing.T) {
+	srv := newServer(t)
+	code, body := get(t, srv, "/api/connections", ceo)
+	if code != 200 || body["odoo"].(map[string]any)["mode"] != "fake" {
+		t.Fatalf("connections %d %v", code, body)
+	}
+	code, cats := get(t, srv, "/api/connections/odoo/categories", ceo)
+	if code != 200 || len(cats["kat"].([]any)) != 6 {
+		t.Fatalf("categories %d %v", code, cats)
+	}
+}

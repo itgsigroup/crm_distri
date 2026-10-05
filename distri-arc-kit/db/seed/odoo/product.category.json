@@ -1,0 +1,38 @@
+[
+ {
+  "complete_name": "All / CCTV / Kamera \u0026 NVR",
+  "id": 11,
+  "name": "CCTV / Kamera \u0026 NVR",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "complete_name": "All / Storage / HDD",
+  "id": 12,
+  "name": "Storage / HDD",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "complete_name": "All / Jaringan / Kabel \u0026 PoE",
+  "id": 13,
+  "name": "Jaringan / Kabel \u0026 PoE",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "complete_name": "All / LED / Modul",
+  "id": 14,
+  "name": "LED / Modul",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "complete_name": "All / Fire Alarm",
+  "id": 15,
+  "name": "Fire Alarm",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "complete_name": "All / Aksesoris",
+  "id": 16,
+  "name": "Aksesoris",
+  "write_date": "2026-10-04 23:00:00"
+ }
+]

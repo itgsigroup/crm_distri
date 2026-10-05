@@ -1,0 +1,17 @@
+[
+ {
+  "id": 1,
+  "name": "Tier A",
+  "x_markup_pct": 0
+ },
+ {
+  "id": 2,
+  "name": "Tier B",
+  "x_markup_pct": 3
+ },
+ {
+  "id": 3,
+  "name": "Tier C",
+  "x_markup_pct": 6
+ }
+]

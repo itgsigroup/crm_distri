@@ -16,6 +16,7 @@ import (
 	"distri-arc/internal/config"
 	"distri-arc/internal/events"
 	"distri-arc/internal/httpx"
+	"distri-arc/internal/odoo"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
@@ -32,6 +33,7 @@ type Server struct {
 	hub   *events.Hub
 	jobs  *river.Client[pgx.Tx]
 	cloud *wa.CloudAPI
+	odoo  odoo.Source
 }
 
 // WithJobs lets the API enqueue jobs (outbox.send, wa.pair) in the same transaction as its writes.
@@ -64,6 +66,7 @@ func (s *Server) Handler() http.Handler {
 			r.Get("/me", s.me)
 			s.readRoutes(r)
 			s.chatRoutes(r)
+			s.connectionRoutes(r)
 			r.Get("/events", s.events)
 			r.Get("/brief/today", s.briefToday)
 		})

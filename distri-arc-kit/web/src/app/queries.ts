@@ -59,3 +59,10 @@ export const useWAGroups = () => useQuery({ queryKey: ['wa', 'groups'], queryFn:
 
 export type PolicyRow<T> = { value: T; version: number; updated_at: string }
 export const usePolicies = () => useQuery({ queryKey: ['policies'], queryFn: () => api.get<Record<string, PolicyRow<Record<string, unknown>>>>('/policies') })
+
+// ---------- Odoo (stage 04) ----------
+export interface SyncState { model: string; last_write_date: string | null; last_run_at: string | null; records: number; error: string | null }
+export const useConnections = () =>
+  useQuery({ queryKey: ['connections'], queryFn: () => api.get<{ odoo: { mode: string; write: boolean; url: string; models: SyncState[] }; wa: { transport: string; numbers: number; connected: number } }>('/connections') })
+export const useOdooCategories = () =>
+  useQuery({ queryKey: ['connections', 'categories'], queryFn: () => api.get<{ map: { odoo_category_id: number; kat: string }[]; odoo: { id: number; name: string; complete_name: string }[] | null; kat: string[] }>('/connections/odoo/categories') })

@@ -1,0 +1,506 @@
+[
+ {
+  "categ_id": [
+   16,
+   "Aksesoris"
+  ],
+  "default_code": "AKSESORIS",
+  "id": 7001,
+  "list_price": 150000,
+  "name": "Aksesoris",
+  "standard_price": 120000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "AKSESORIS-KAMERA",
+  "id": 7002,
+  "list_price": 120000,
+  "name": "Aksesoris kamera",
+  "standard_price": 98400,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   14,
+   "LED / Modul"
+  ],
+  "default_code": "CONTROLLER",
+  "id": 7003,
+  "list_price": 450000,
+  "name": "Controller",
+  "standard_price": 378000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "DVR",
+  "id": 7004,
+  "list_price": 1000000,
+  "name": "DVR",
+  "standard_price": 870000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "DVR-4CH",
+  "id": 7005,
+  "list_price": 900000,
+  "name": "DVR 4ch",
+  "standard_price": 783000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   15,
+   "Fire Alarm"
+  ],
+  "default_code": "DETEKTOR",
+  "id": 7006,
+  "list_price": 350000,
+  "name": "Detektor",
+  "standard_price": 283500,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   15,
+   "Fire Alarm"
+  ],
+  "default_code": "DETEKTOR-ADDRESSABLE",
+  "id": 7007,
+  "list_price": 750000,
+  "name": "Detektor addressable",
+  "standard_price": 607500,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   12,
+   "Storage / HDD"
+  ],
+  "default_code": "HDD",
+  "id": 7008,
+  "list_price": 1300000,
+  "name": "HDD",
+  "standard_price": 1209000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   12,
+   "Storage / HDD"
+  ],
+  "default_code": "HDD-1TB",
+  "id": 7009,
+  "list_price": 650000,
+  "name": "HDD 1TB",
+  "standard_price": 604500,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   12,
+   "Storage / HDD"
+  ],
+  "default_code": "HDD-4TB",
+  "id": 7010,
+  "list_price": 1650000,
+  "name": "HDD 4TB",
+  "standard_price": 1534500,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   13,
+   "Jaringan / Kabel \u0026 PoE"
+  ],
+  "default_code": "KABEL",
+  "id": 7011,
+  "list_price": 900000,
+  "name": "Kabel",
+  "standard_price": 783000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   13,
+   "Jaringan / Kabel \u0026 PoE"
+  ],
+  "default_code": "KABEL-\u0026-AKSESORIS",
+  "id": 7012,
+  "list_price": 950000,
+  "name": "Kabel \u0026 aksesoris",
+  "standard_price": 826500,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   13,
+   "Jaringan / Kabel \u0026 PoE"
+  ],
+  "default_code": "KABEL-FRC",
+  "id": 7013,
+  "list_price": 1100000,
+  "name": "Kabel FRC",
+  "standard_price": 946000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   13,
+   "Jaringan / Kabel \u0026 PoE"
+  ],
+  "default_code": "KABEL-UTP-(ROLL)",
+  "id": 7014,
+  "list_price": 900000,
+  "name": "Kabel UTP (roll)",
+  "standard_price": 783000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "KAMERA-IP-2MP",
+  "id": 7015,
+  "list_price": 650000,
+  "name": "Kamera IP 2MP",
+  "standard_price": 572000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "KAMERA-IP-4MP",
+  "id": 7016,
+  "list_price": 1150000,
+  "name": "Kamera IP 4MP",
+  "standard_price": 1012000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "KAMERA-ANALOG",
+  "id": 7017,
+  "list_price": 300000,
+  "name": "Kamera analog",
+  "standard_price": 258000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   16,
+   "Aksesoris"
+  ],
+  "default_code": "KONEKTOR-RJ45-(BOX)",
+  "id": 7018,
+  "list_price": 250000,
+  "name": "Konektor RJ45 (box)",
+  "standard_price": 200000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   14,
+   "LED / Modul"
+  ],
+  "default_code": "MODUL-LED-P4",
+  "id": 7019,
+  "list_price": 600000,
+  "name": "Modul LED P4",
+  "standard_price": 504000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   14,
+   "LED / Modul"
+  ],
+  "default_code": "MODUL-LED-P5",
+  "id": 7020,
+  "list_price": 520000,
+  "name": "Modul LED P5",
+  "standard_price": 436800,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "NVR-16/32CH",
+  "id": 7021,
+  "list_price": 4200000,
+  "name": "NVR 16/32ch",
+  "standard_price": 3738000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "NVR-16CH",
+  "id": 7022,
+  "list_price": 3700000,
+  "name": "NVR 16ch",
+  "standard_price": 3293000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "NVR-32CH",
+  "id": 7023,
+  "list_price": 5100000,
+  "name": "NVR 32ch",
+  "standard_price": 4539000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "NVR-8CH",
+  "id": 7024,
+  "list_price": 1800000,
+  "name": "NVR 8ch",
+  "standard_price": 1602000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   15,
+   "Fire Alarm"
+  ],
+  "default_code": "PANEL",
+  "id": 7025,
+  "list_price": 9500000,
+  "name": "Panel",
+  "standard_price": 7885000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   16,
+   "Aksesoris"
+  ],
+  "default_code": "POWER-SUPPLY",
+  "id": 7026,
+  "list_price": 250000,
+  "name": "Power supply",
+  "standard_price": 205000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   13,
+   "Jaringan / Kabel \u0026 PoE"
+  ],
+  "default_code": "SWITCH-POE",
+  "id": 7027,
+  "list_price": 1250000,
+  "name": "Switch PoE",
+  "standard_price": 1100000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   14,
+   "LED / Modul"
+  ],
+  "default_code": "LED-P5-OUT",
+  "id": 7128,
+  "list_price": 560000,
+  "name": "Modul LED P5 outdoor",
+  "standard_price": 500000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "NVR-32CH",
+  "id": 7129,
+  "list_price": 6720000,
+  "name": "NVR 32 channel",
+  "standard_price": 6000000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   15,
+   "Fire Alarm"
+  ],
+  "default_code": "FA-DET-KONV",
+  "id": 7130,
+  "list_price": 232615,
+  "name": "Detektor asap konvensional",
+  "standard_price": 207692,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "CAM-AN-2MP",
+  "id": 7131,
+  "list_price": 280000,
+  "name": "Kamera analog 2MP",
+  "standard_price": 250000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "CAM-IP4-DOME",
+  "id": 7132,
+  "list_price": 1131200,
+  "name": "Kamera IP 4MP dome",
+  "standard_price": 1010000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   12,
+   "Storage / HDD"
+  ],
+  "default_code": "HDD-4TB-SV",
+  "id": 7133,
+  "list_price": 1713600,
+  "name": "HDD 4TB surveillance",
+  "standard_price": 1530000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   16,
+   "Aksesoris"
+  ],
+  "default_code": "PSU-12V10A",
+  "id": 7134,
+  "list_price": 229600,
+  "name": "Power supply 12V 10A",
+  "standard_price": 205000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "NVR-8CH",
+  "id": 7135,
+  "list_price": 1792000,
+  "name": "NVR 8ch",
+  "standard_price": 1600000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   13,
+   "Jaringan / Kabel \u0026 PoE"
+  ],
+  "default_code": "SW-POE-8",
+  "id": 7136,
+  "list_price": 1232000,
+  "name": "Switch PoE 8 port",
+  "standard_price": 1100000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   13,
+   "Jaringan / Kabel \u0026 PoE"
+  ],
+  "default_code": "UTP-CAT6",
+  "id": 7137,
+  "list_price": 873600,
+  "name": "Kabel UTP Cat6 (roll)",
+  "standard_price": 780000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "CAM-IP2-BUL",
+  "id": 7138,
+  "list_price": 638400,
+  "name": "Kamera IP 2MP bullet",
+  "standard_price": 570000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "NVR-16CH",
+  "id": 7139,
+  "list_price": 3684800,
+  "name": "NVR 16ch",
+  "standard_price": 3290000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   11,
+   "CCTV / Kamera \u0026 NVR"
+  ],
+  "default_code": "CAM-IP4-BUL",
+  "id": 7140,
+  "list_price": 1131200,
+  "name": "Kamera IP 4MP bullet",
+  "standard_price": 1010000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   15,
+   "Fire Alarm"
+  ],
+  "default_code": "FA-DET-ADR",
+  "id": 7141,
+  "list_price": 683200,
+  "name": "Detektor addressable",
+  "standard_price": 610000,
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "categ_id": [
+   14,
+   "LED / Modul"
+  ],
+  "default_code": "LED-P4-IN",
+  "id": 7142,
+  "list_price": 565600,
+  "name": "Modul LED P4 indoor",
+  "standard_price": 505000,
+  "write_date": "2026-10-04 23:00:00"
+ }
+]

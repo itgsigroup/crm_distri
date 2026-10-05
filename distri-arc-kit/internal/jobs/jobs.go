@@ -49,3 +49,10 @@ func (WAPairArgs) Kind() string { return "wa.pair" }
 func Inserter(pool *pgxpool.Pool) (*river.Client[pgx.Tx], error) {
 	return river.NewClient[pgx.Tx](riverpgxv5.New(pool), &river.Config{})
 }
+
+// OdooSyncArgs pulls Odoo changes (every 10 minutes; Full from Pengaturan or ctl).
+type OdooSyncArgs struct {
+	Full bool `json:"full"`
+}
+
+func (OdooSyncArgs) Kind() string { return "odoo.sync" }

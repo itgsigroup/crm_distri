@@ -163,6 +163,7 @@ type Payment struct {
 	Amount  int64  `json:"amount"`
 }
 type Contact struct {
+	OdooID            string     `json:"odoo_id"`
 	Key               string     `json:"key"`
 	Name              string     `json:"name"`
 	Role              string     `json:"role"`
@@ -363,6 +364,7 @@ func main() {
 	write(filepath.Join(out, "stock.json"), stock)
 	write(filepath.Join(out, "metrics_prev.json"), prev)
 	write(filepath.Join(out, "chats.json"), buildChats(m))
+	exportOdoo(filepath.Join(out, "odoo"), sales, dealers, stock)
 	nOrders, nWA := 0, 0
 	for _, d := range dealers {
 		nOrders += len(d.Orders)
@@ -587,14 +589,14 @@ func buildDealer(md mDealer, sales map[string]SalesUser, soSeq, invSeq *int) *De
 			}
 		}
 		issued := day(x, 0)
-		inv := &Invoice{OdooID: "account.move:" + strings.TrimPrefix(no, "INV/"), Number: no, Order: o.Number, IssuedAt: ymd(issued), DueAt: ymd(issued.AddDate(0, 0, terms)), Total: o.Total}
+		inv := &Invoice{OdooID: fmt.Sprintf("account.move:%d", invNum(no)), Number: no, Order: o.Number, IssuedAt: ymd(issued), DueAt: ymd(issued.AddDate(0, 0, terms)), Total: o.Total}
 		if pd, ok := payDays[x]; ok {
 			p := issued.AddDate(0, 0, pd)
 			ps := ymd(p)
 			inv.Paid, inv.PaidAt = o.Total, &ps
 			pt := p.Add(11 * time.Hour)
 			o.PaidAt = &pt
-			d.Payments = append(d.Payments, Payment{OdooID: "account.payment:" + strings.TrimPrefix(no, "INV/"), Invoice: no, PaidAt: ps, Amount: o.Total})
+			d.Payments = append(d.Payments, Payment{OdooID: fmt.Sprintf("account.payment:%d", invNum(no)), Invoice: no, PaidAt: ps, Amount: o.Total})
 		} else {
 			o.State = "invoice"
 			o.open = true
@@ -612,7 +614,7 @@ func buildDealer(md mDealer, sales map[string]SalesUser, soSeq, invSeq *int) *De
 	}
 	primaryDone := false
 	for i, p := range md.People {
-		c := Contact{Key: md.ID + ":" + slugify(p.N), Name: p.N, Role: p.Role, WANumber: fmt.Sprintf("%d", numBase+int64(i+1))}
+		c := Contact{OdooID: fmt.Sprintf("res.partner:%d", 4000+odooPartner[md.ID]*10+i), Key: md.ID + ":" + slugify(p.N), Name: p.N, Role: p.Role, WANumber: fmt.Sprintf("%d", numBase+int64(i+1))}
 		switch {
 		case p.S >= 3:
 			c.Interactions90d = 30 - 3*i
@@ -864,6 +866,14 @@ func paymentDays(md mDealer, sched []int, terms int, opens []openInv) map[int]in
 }
 
 var idMonths = []string{"Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"}
+
+func invNum(no string) int {
+	var n int
+	if _, err := fmt.Sscanf(strings.TrimPrefix(no, "INV/"), "%d", &n); err != nil {
+		log.Fatalf("invoice number %q: %v", no, err)
+	}
+	return n
+}
 
 func idDate(t time.Time) string { return fmt.Sprintf("%d %s", t.Day(), idMonths[t.Month()-1]) }
 

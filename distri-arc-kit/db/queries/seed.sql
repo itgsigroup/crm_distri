@@ -19,7 +19,7 @@ insert into dealers (slug, name, city, branch, tier, segment_desc, owner_id, cre
                      source_system, source_id, source_write_date, memo, memo_updated_at)
 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 on conflict (source_system, source_id) do update
-  set slug = excluded.slug, name = excluded.name, city = excluded.city, branch = excluded.branch, tier = excluded.tier,
+  set slug = coalesce(dealers.slug, excluded.slug), name = excluded.name, city = excluded.city, branch = excluded.branch, tier = excluded.tier,
       segment_desc = excluded.segment_desc, owner_id = excluded.owner_id, credit_limit = excluded.credit_limit,
       payment_terms_days = excluded.payment_terms_days, source_write_date = excluded.source_write_date,
       memo = coalesce(dealers.memo, excluded.memo), memo_updated_at = coalesce(dealers.memo_updated_at, excluded.memo_updated_at),

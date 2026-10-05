@@ -28,6 +28,13 @@ type Config struct {
 	WACloudToken   string
 	WACloudVerify  string
 	WACloudSecret  string
+
+	OdooMode   string // fake | rpc | off
+	OdooURL    string
+	OdooDB     string
+	OdooUser   string
+	OdooAPIKey string
+	OdooWrite  bool
 }
 
 // Load reads .env (if present, without overriding real env vars) and returns the configuration.
@@ -50,6 +57,12 @@ func Load() Config {
 		WACloudToken:    get("WA_CLOUD_TOKEN", ""),
 		WACloudVerify:   get("WA_CLOUD_VERIFY_TOKEN", ""),
 		WACloudSecret:   get("WA_CLOUD_APP_SECRET", ""),
+		OdooMode:        get("ODOO_MODE", "fake"),
+		OdooURL:         get("ODOO_URL", ""),
+		OdooDB:          get("ODOO_DB", ""),
+		OdooUser:        get("ODOO_USER", ""),
+		OdooAPIKey:      get("ODOO_API_KEY", ""),
+		OdooWrite:       get("ODOO_WRITE", "false") == "true",
 	}
 }
 

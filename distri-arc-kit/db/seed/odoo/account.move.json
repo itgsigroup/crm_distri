@@ -1,0 +1,8340 @@
+[
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-10-14 08:00:00",
+  "id": 701,
+  "invoice_date": "2025-10-14",
+  "invoice_date_due": "2025-11-13",
+  "invoice_origin": "S04101",
+  "move_type": "out_invoice",
+  "name": "INV/0701",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-10-25 08:00:00",
+  "id": 702,
+  "invoice_date": "2025-10-25",
+  "invoice_date_due": "2025-11-24",
+  "invoice_origin": "S04102",
+  "move_type": "out_invoice",
+  "name": "INV/0702",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-05 08:00:00",
+  "id": 703,
+  "invoice_date": "2025-11-05",
+  "invoice_date_due": "2025-12-05",
+  "invoice_origin": "S04103",
+  "move_type": "out_invoice",
+  "name": "INV/0703",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-16 08:00:00",
+  "id": 704,
+  "invoice_date": "2025-11-16",
+  "invoice_date_due": "2025-12-16",
+  "invoice_origin": "S04104",
+  "move_type": "out_invoice",
+  "name": "INV/0704",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-27 08:00:00",
+  "id": 705,
+  "invoice_date": "2025-11-27",
+  "invoice_date_due": "2025-12-27",
+  "invoice_origin": "S04105",
+  "move_type": "out_invoice",
+  "name": "INV/0705",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-12-08 08:00:00",
+  "id": 706,
+  "invoice_date": "2025-12-08",
+  "invoice_date_due": "2026-01-07",
+  "invoice_origin": "S04106",
+  "move_type": "out_invoice",
+  "name": "INV/0706",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-12-19 08:00:00",
+  "id": 707,
+  "invoice_date": "2025-12-19",
+  "invoice_date_due": "2026-01-18",
+  "invoice_origin": "S04107",
+  "move_type": "out_invoice",
+  "name": "INV/0707",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-12-30 08:00:00",
+  "id": 708,
+  "invoice_date": "2025-12-30",
+  "invoice_date_due": "2026-01-29",
+  "invoice_origin": "S04108",
+  "move_type": "out_invoice",
+  "name": "INV/0708",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-01-10 08:00:00",
+  "id": 709,
+  "invoice_date": "2026-01-10",
+  "invoice_date_due": "2026-02-09",
+  "invoice_origin": "S04109",
+  "move_type": "out_invoice",
+  "name": "INV/0709",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-01-21 08:00:00",
+  "id": 710,
+  "invoice_date": "2026-01-21",
+  "invoice_date_due": "2026-02-20",
+  "invoice_origin": "S04110",
+  "move_type": "out_invoice",
+  "name": "INV/0710",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-02-01 08:00:00",
+  "id": 711,
+  "invoice_date": "2026-02-01",
+  "invoice_date_due": "2026-03-03",
+  "invoice_origin": "S04111",
+  "move_type": "out_invoice",
+  "name": "INV/0711",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-02-12 08:00:00",
+  "id": 712,
+  "invoice_date": "2026-02-12",
+  "invoice_date_due": "2026-03-14",
+  "invoice_origin": "S04112",
+  "move_type": "out_invoice",
+  "name": "INV/0712",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-02-23 08:00:00",
+  "id": 713,
+  "invoice_date": "2026-02-23",
+  "invoice_date_due": "2026-03-25",
+  "invoice_origin": "S04113",
+  "move_type": "out_invoice",
+  "name": "INV/0713",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-06 08:00:00",
+  "id": 714,
+  "invoice_date": "2026-03-06",
+  "invoice_date_due": "2026-04-05",
+  "invoice_origin": "S04114",
+  "move_type": "out_invoice",
+  "name": "INV/0714",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-17 08:00:00",
+  "id": 715,
+  "invoice_date": "2026-03-17",
+  "invoice_date_due": "2026-04-16",
+  "invoice_origin": "S04115",
+  "move_type": "out_invoice",
+  "name": "INV/0715",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58900000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-28 08:00:00",
+  "id": 716,
+  "invoice_date": "2026-03-28",
+  "invoice_date_due": "2026-04-27",
+  "invoice_origin": "S04116",
+  "move_type": "out_invoice",
+  "name": "INV/0716",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 60400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-04-08 08:00:00",
+  "id": 717,
+  "invoice_date": "2026-04-08",
+  "invoice_date_due": "2026-05-08",
+  "invoice_origin": "S04117",
+  "move_type": "out_invoice",
+  "name": "INV/0717",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 60500000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-04-22 08:00:00",
+  "id": 718,
+  "invoice_date": "2026-04-22",
+  "invoice_date_due": "2026-05-22",
+  "invoice_origin": "S04118",
+  "move_type": "out_invoice",
+  "name": "INV/0718",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 48400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-05-06 08:00:00",
+  "id": 719,
+  "invoice_date": "2026-05-06",
+  "invoice_date_due": "2026-06-05",
+  "invoice_origin": "S04119",
+  "move_type": "out_invoice",
+  "name": "INV/0719",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 48400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-05-20 08:00:00",
+  "id": 720,
+  "invoice_date": "2026-05-20",
+  "invoice_date_due": "2026-06-19",
+  "invoice_origin": "S04120",
+  "move_type": "out_invoice",
+  "name": "INV/0720",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 55400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-06-03 08:00:00",
+  "id": 721,
+  "invoice_date": "2026-06-03",
+  "invoice_date_due": "2026-07-03",
+  "invoice_origin": "S04121",
+  "move_type": "out_invoice",
+  "name": "INV/0721",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 55400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-06-17 08:00:00",
+  "id": 722,
+  "invoice_date": "2026-06-17",
+  "invoice_date_due": "2026-07-17",
+  "invoice_origin": "S04122",
+  "move_type": "out_invoice",
+  "name": "INV/0722",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 61500000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-07-01 08:00:00",
+  "id": 723,
+  "invoice_date": "2026-07-01",
+  "invoice_date_due": "2026-07-31",
+  "invoice_origin": "S04123",
+  "move_type": "out_invoice",
+  "name": "INV/0723",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 61500000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-07-15 08:00:00",
+  "id": 724,
+  "invoice_date": "2026-07-15",
+  "invoice_date_due": "2026-08-14",
+  "invoice_origin": "S04124",
+  "move_type": "out_invoice",
+  "name": "INV/0724",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 61500000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-07-29 08:00:00",
+  "id": 725,
+  "invoice_date": "2026-07-29",
+  "invoice_date_due": "2026-08-28",
+  "invoice_origin": "S04125",
+  "move_type": "out_invoice",
+  "name": "INV/0725",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58500000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-08-12 08:00:00",
+  "id": 726,
+  "invoice_date": "2026-08-12",
+  "invoice_date_due": "2026-09-11",
+  "invoice_origin": "S04126",
+  "move_type": "out_invoice",
+  "name": "INV/0726",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 58500000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-08-26 08:00:00",
+  "id": 727,
+  "invoice_date": "2026-08-26",
+  "invoice_date_due": "2026-09-25",
+  "invoice_origin": "S04127",
+  "move_type": "out_invoice",
+  "name": "INV/0727",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 58000000,
+  "amount_total": 58000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-09-09 08:00:00",
+  "id": 912,
+  "invoice_date": "2026-09-09",
+  "invoice_date_due": "2026-10-09",
+  "invoice_origin": "S04128",
+  "move_type": "out_invoice",
+  "name": "INV/0912",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 118000000,
+  "amount_total": 118000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-09-29 08:00:00",
+  "id": 728,
+  "invoice_date": "2026-09-29",
+  "invoice_date_due": "2026-10-29",
+  "invoice_origin": "S04129",
+  "move_type": "out_invoice",
+  "name": "INV/0728",
+  "partner_id": [
+   3001,
+   "Toko Sinar Elektronik"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-10-05 08:00:00",
+  "id": 729,
+  "invoice_date": "2025-10-05",
+  "invoice_date_due": "2025-11-04",
+  "invoice_origin": "S04130",
+  "move_type": "out_invoice",
+  "name": "INV/0729",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-10-23 08:00:00",
+  "id": 730,
+  "invoice_date": "2025-10-23",
+  "invoice_date_due": "2025-11-22",
+  "invoice_origin": "S04131",
+  "move_type": "out_invoice",
+  "name": "INV/0730",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-11-10 08:00:00",
+  "id": 731,
+  "invoice_date": "2025-11-10",
+  "invoice_date_due": "2025-12-10",
+  "invoice_origin": "S04132",
+  "move_type": "out_invoice",
+  "name": "INV/0731",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-11-28 08:00:00",
+  "id": 732,
+  "invoice_date": "2025-11-28",
+  "invoice_date_due": "2025-12-28",
+  "invoice_origin": "S04133",
+  "move_type": "out_invoice",
+  "name": "INV/0732",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-12-16 08:00:00",
+  "id": 733,
+  "invoice_date": "2025-12-16",
+  "invoice_date_due": "2026-01-15",
+  "invoice_origin": "S04134",
+  "move_type": "out_invoice",
+  "name": "INV/0733",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-01-03 08:00:00",
+  "id": 734,
+  "invoice_date": "2026-01-03",
+  "invoice_date_due": "2026-02-02",
+  "invoice_origin": "S04135",
+  "move_type": "out_invoice",
+  "name": "INV/0734",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-01-21 08:00:00",
+  "id": 735,
+  "invoice_date": "2026-01-21",
+  "invoice_date_due": "2026-02-20",
+  "invoice_origin": "S04136",
+  "move_type": "out_invoice",
+  "name": "INV/0735",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-02-08 08:00:00",
+  "id": 736,
+  "invoice_date": "2026-02-08",
+  "invoice_date_due": "2026-03-10",
+  "invoice_origin": "S04137",
+  "move_type": "out_invoice",
+  "name": "INV/0736",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-02-26 08:00:00",
+  "id": 737,
+  "invoice_date": "2026-02-26",
+  "invoice_date_due": "2026-03-28",
+  "invoice_origin": "S04138",
+  "move_type": "out_invoice",
+  "name": "INV/0737",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-03-16 08:00:00",
+  "id": 738,
+  "invoice_date": "2026-03-16",
+  "invoice_date_due": "2026-04-15",
+  "invoice_origin": "S04139",
+  "move_type": "out_invoice",
+  "name": "INV/0738",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 79800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-04-03 08:00:00",
+  "id": 739,
+  "invoice_date": "2026-04-03",
+  "invoice_date_due": "2026-05-03",
+  "invoice_origin": "S04140",
+  "move_type": "out_invoice",
+  "name": "INV/0739",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 103700000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-04-21 08:00:00",
+  "id": 740,
+  "invoice_date": "2026-04-21",
+  "invoice_date_due": "2026-05-21",
+  "invoice_origin": "S04141",
+  "move_type": "out_invoice",
+  "name": "INV/0740",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 83600000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-05-11 08:00:00",
+  "id": 741,
+  "invoice_date": "2026-05-11",
+  "invoice_date_due": "2026-06-10",
+  "invoice_origin": "S04142",
+  "move_type": "out_invoice",
+  "name": "INV/0741",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 83600000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-05-31 08:00:00",
+  "id": 742,
+  "invoice_date": "2026-05-31",
+  "invoice_date_due": "2026-06-30",
+  "invoice_origin": "S04143",
+  "move_type": "out_invoice",
+  "name": "INV/0742",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 109900000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-06-20 08:00:00",
+  "id": 743,
+  "invoice_date": "2026-06-20",
+  "invoice_date_due": "2026-07-20",
+  "invoice_origin": "S04144",
+  "move_type": "out_invoice",
+  "name": "INV/0743",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 77600000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-07-10 08:00:00",
+  "id": 744,
+  "invoice_date": "2026-07-10",
+  "invoice_date_due": "2026-08-09",
+  "invoice_origin": "S04145",
+  "move_type": "out_invoice",
+  "name": "INV/0744",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 77600000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-07-30 08:00:00",
+  "id": 745,
+  "invoice_date": "2026-07-30",
+  "invoice_date_due": "2026-08-29",
+  "invoice_origin": "S04146",
+  "move_type": "out_invoice",
+  "name": "INV/0745",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 95000000,
+  "amount_total": 95000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-08-19 08:00:00",
+  "id": 844,
+  "invoice_date": "2026-08-19",
+  "invoice_date_due": "2026-09-18",
+  "invoice_origin": "S04147",
+  "move_type": "out_invoice",
+  "name": "INV/0844",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 40000000,
+  "amount_total": 40000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-09-12 08:00:00",
+  "id": 746,
+  "invoice_date": "2026-09-12",
+  "invoice_date_due": "2026-10-12",
+  "invoice_origin": "S04148",
+  "move_type": "out_invoice",
+  "name": "INV/0746",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 85000000,
+  "amount_total": 85000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-10-02 08:00:00",
+  "id": 747,
+  "invoice_date": "2026-10-02",
+  "invoice_date_due": "2026-11-01",
+  "invoice_origin": "S04149",
+  "move_type": "out_invoice",
+  "name": "INV/0747",
+  "partner_id": [
+   3002,
+   "PT Graha Sentosa"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-10-11 08:00:00",
+  "id": 748,
+  "invoice_date": "2025-10-11",
+  "invoice_date_due": "2025-11-10",
+  "invoice_origin": "S04150",
+  "move_type": "out_invoice",
+  "name": "INV/0748",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-10-27 08:00:00",
+  "id": 749,
+  "invoice_date": "2025-10-27",
+  "invoice_date_due": "2025-11-26",
+  "invoice_origin": "S04151",
+  "move_type": "out_invoice",
+  "name": "INV/0749",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-11-12 08:00:00",
+  "id": 750,
+  "invoice_date": "2025-11-12",
+  "invoice_date_due": "2025-12-12",
+  "invoice_origin": "S04152",
+  "move_type": "out_invoice",
+  "name": "INV/0750",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-11-28 08:00:00",
+  "id": 751,
+  "invoice_date": "2025-11-28",
+  "invoice_date_due": "2025-12-28",
+  "invoice_origin": "S04153",
+  "move_type": "out_invoice",
+  "name": "INV/0751",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-12-14 08:00:00",
+  "id": 752,
+  "invoice_date": "2025-12-14",
+  "invoice_date_due": "2026-01-13",
+  "invoice_origin": "S04154",
+  "move_type": "out_invoice",
+  "name": "INV/0752",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-12-30 08:00:00",
+  "id": 753,
+  "invoice_date": "2025-12-30",
+  "invoice_date_due": "2026-01-29",
+  "invoice_origin": "S04155",
+  "move_type": "out_invoice",
+  "name": "INV/0753",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-01-15 08:00:00",
+  "id": 754,
+  "invoice_date": "2026-01-15",
+  "invoice_date_due": "2026-02-14",
+  "invoice_origin": "S04156",
+  "move_type": "out_invoice",
+  "name": "INV/0754",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-01-31 08:00:00",
+  "id": 755,
+  "invoice_date": "2026-01-31",
+  "invoice_date_due": "2026-03-02",
+  "invoice_origin": "S04157",
+  "move_type": "out_invoice",
+  "name": "INV/0755",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-02-16 08:00:00",
+  "id": 756,
+  "invoice_date": "2026-02-16",
+  "invoice_date_due": "2026-03-18",
+  "invoice_origin": "S04158",
+  "move_type": "out_invoice",
+  "name": "INV/0756",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-03-04 08:00:00",
+  "id": 757,
+  "invoice_date": "2026-03-04",
+  "invoice_date_due": "2026-04-03",
+  "invoice_origin": "S04159",
+  "move_type": "out_invoice",
+  "name": "INV/0757",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-03-20 08:00:00",
+  "id": 758,
+  "invoice_date": "2026-03-20",
+  "invoice_date_due": "2026-04-19",
+  "invoice_origin": "S04160",
+  "move_type": "out_invoice",
+  "name": "INV/0758",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-04-05 08:00:00",
+  "id": 759,
+  "invoice_date": "2026-04-05",
+  "invoice_date_due": "2026-05-05",
+  "invoice_origin": "S04161",
+  "move_type": "out_invoice",
+  "name": "INV/0759",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 22200000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-04-21 08:00:00",
+  "id": 760,
+  "invoice_date": "2026-04-21",
+  "invoice_date_due": "2026-05-21",
+  "invoice_origin": "S04162",
+  "move_type": "out_invoice",
+  "name": "INV/0760",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 27200000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-05-12 08:00:00",
+  "id": 761,
+  "invoice_date": "2026-05-12",
+  "invoice_date_due": "2026-06-11",
+  "invoice_origin": "S04163",
+  "move_type": "out_invoice",
+  "name": "INV/0761",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 23300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-06-02 08:00:00",
+  "id": 762,
+  "invoice_date": "2026-06-02",
+  "invoice_date_due": "2026-07-02",
+  "invoice_origin": "S04164",
+  "move_type": "out_invoice",
+  "name": "INV/0762",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 23300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-06-23 08:00:00",
+  "id": 763,
+  "invoice_date": "2026-06-23",
+  "invoice_date_due": "2026-07-23",
+  "invoice_origin": "S04165",
+  "move_type": "out_invoice",
+  "name": "INV/0763",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-07-14 08:00:00",
+  "id": 764,
+  "invoice_date": "2026-07-14",
+  "invoice_date_due": "2026-08-13",
+  "invoice_origin": "S04166",
+  "move_type": "out_invoice",
+  "name": "INV/0764",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-08-04 08:00:00",
+  "id": 765,
+  "invoice_date": "2026-08-04",
+  "invoice_date_due": "2026-09-03",
+  "invoice_origin": "S04167",
+  "move_type": "out_invoice",
+  "name": "INV/0765",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 46000000,
+  "amount_total": 46000000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-08-25 08:00:00",
+  "id": 889,
+  "invoice_date": "2026-08-25",
+  "invoice_date_due": "2026-09-24",
+  "invoice_origin": "S04168",
+  "move_type": "out_invoice",
+  "name": "INV/0889",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 116000000,
+  "amount_total": 116000000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-09-05 08:00:00",
+  "id": 766,
+  "invoice_date": "2026-09-05",
+  "invoice_date_due": "2026-10-05",
+  "invoice_origin": "S04169",
+  "move_type": "out_invoice",
+  "name": "INV/0766",
+  "partner_id": [
+   3003,
+   "CV Mitra Jaya Teknik"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-10-08 08:00:00",
+  "id": 767,
+  "invoice_date": "2025-10-08",
+  "invoice_date_due": "2025-11-07",
+  "invoice_origin": "S04170",
+  "move_type": "out_invoice",
+  "name": "INV/0767",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-10-18 08:00:00",
+  "id": 768,
+  "invoice_date": "2025-10-18",
+  "invoice_date_due": "2025-11-17",
+  "invoice_origin": "S04171",
+  "move_type": "out_invoice",
+  "name": "INV/0768",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-10-28 08:00:00",
+  "id": 769,
+  "invoice_date": "2025-10-28",
+  "invoice_date_due": "2025-11-27",
+  "invoice_origin": "S04172",
+  "move_type": "out_invoice",
+  "name": "INV/0769",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-11-07 08:00:00",
+  "id": 770,
+  "invoice_date": "2025-11-07",
+  "invoice_date_due": "2025-12-07",
+  "invoice_origin": "S04173",
+  "move_type": "out_invoice",
+  "name": "INV/0770",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-11-17 08:00:00",
+  "id": 771,
+  "invoice_date": "2025-11-17",
+  "invoice_date_due": "2025-12-17",
+  "invoice_origin": "S04174",
+  "move_type": "out_invoice",
+  "name": "INV/0771",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-11-27 08:00:00",
+  "id": 772,
+  "invoice_date": "2025-11-27",
+  "invoice_date_due": "2025-12-27",
+  "invoice_origin": "S04175",
+  "move_type": "out_invoice",
+  "name": "INV/0772",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-12-07 08:00:00",
+  "id": 773,
+  "invoice_date": "2025-12-07",
+  "invoice_date_due": "2026-01-06",
+  "invoice_origin": "S04176",
+  "move_type": "out_invoice",
+  "name": "INV/0773",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-12-17 08:00:00",
+  "id": 774,
+  "invoice_date": "2025-12-17",
+  "invoice_date_due": "2026-01-16",
+  "invoice_origin": "S04177",
+  "move_type": "out_invoice",
+  "name": "INV/0774",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-12-27 08:00:00",
+  "id": 775,
+  "invoice_date": "2025-12-27",
+  "invoice_date_due": "2026-01-26",
+  "invoice_origin": "S04178",
+  "move_type": "out_invoice",
+  "name": "INV/0775",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-01-06 08:00:00",
+  "id": 776,
+  "invoice_date": "2026-01-06",
+  "invoice_date_due": "2026-02-05",
+  "invoice_origin": "S04179",
+  "move_type": "out_invoice",
+  "name": "INV/0776",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-01-16 08:00:00",
+  "id": 777,
+  "invoice_date": "2026-01-16",
+  "invoice_date_due": "2026-02-15",
+  "invoice_origin": "S04180",
+  "move_type": "out_invoice",
+  "name": "INV/0777",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-01-26 08:00:00",
+  "id": 778,
+  "invoice_date": "2026-01-26",
+  "invoice_date_due": "2026-02-25",
+  "invoice_origin": "S04181",
+  "move_type": "out_invoice",
+  "name": "INV/0778",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-02-05 08:00:00",
+  "id": 779,
+  "invoice_date": "2026-02-05",
+  "invoice_date_due": "2026-03-07",
+  "invoice_origin": "S04182",
+  "move_type": "out_invoice",
+  "name": "INV/0779",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-02-15 08:00:00",
+  "id": 780,
+  "invoice_date": "2026-02-15",
+  "invoice_date_due": "2026-03-17",
+  "invoice_origin": "S04183",
+  "move_type": "out_invoice",
+  "name": "INV/0780",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-02-25 08:00:00",
+  "id": 781,
+  "invoice_date": "2026-02-25",
+  "invoice_date_due": "2026-03-27",
+  "invoice_origin": "S04184",
+  "move_type": "out_invoice",
+  "name": "INV/0781",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-03-07 08:00:00",
+  "id": 782,
+  "invoice_date": "2026-03-07",
+  "invoice_date_due": "2026-04-06",
+  "invoice_origin": "S04185",
+  "move_type": "out_invoice",
+  "name": "INV/0782",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-03-17 08:00:00",
+  "id": 783,
+  "invoice_date": "2026-03-17",
+  "invoice_date_due": "2026-04-16",
+  "invoice_origin": "S04186",
+  "move_type": "out_invoice",
+  "name": "INV/0783",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 133000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-03-27 08:00:00",
+  "id": 784,
+  "invoice_date": "2026-03-27",
+  "invoice_date_due": "2026-04-26",
+  "invoice_origin": "S04187",
+  "move_type": "out_invoice",
+  "name": "INV/0784",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 159900000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-04-06 08:00:00",
+  "id": 785,
+  "invoice_date": "2026-04-06",
+  "invoice_date_due": "2026-05-06",
+  "invoice_origin": "S04188",
+  "move_type": "out_invoice",
+  "name": "INV/0785",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 159800000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-04-16 08:00:00",
+  "id": 786,
+  "invoice_date": "2026-04-16",
+  "invoice_date_due": "2026-05-16",
+  "invoice_origin": "S04189",
+  "move_type": "out_invoice",
+  "name": "INV/0786",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 159800000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-04-26 08:00:00",
+  "id": 787,
+  "invoice_date": "2026-04-26",
+  "invoice_date_due": "2026-05-26",
+  "invoice_origin": "S04190",
+  "move_type": "out_invoice",
+  "name": "INV/0787",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 138400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-05-06 08:00:00",
+  "id": 788,
+  "invoice_date": "2026-05-06",
+  "invoice_date_due": "2026-06-05",
+  "invoice_origin": "S04191",
+  "move_type": "out_invoice",
+  "name": "INV/0788",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 138400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-05-16 08:00:00",
+  "id": 789,
+  "invoice_date": "2026-05-16",
+  "invoice_date_due": "2026-06-15",
+  "invoice_origin": "S04192",
+  "move_type": "out_invoice",
+  "name": "INV/0789",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 138400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-05-26 08:00:00",
+  "id": 790,
+  "invoice_date": "2026-05-26",
+  "invoice_date_due": "2026-06-25",
+  "invoice_origin": "S04193",
+  "move_type": "out_invoice",
+  "name": "INV/0790",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 152300000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-06-05 08:00:00",
+  "id": 791,
+  "invoice_date": "2026-06-05",
+  "invoice_date_due": "2026-07-05",
+  "invoice_origin": "S04194",
+  "move_type": "out_invoice",
+  "name": "INV/0791",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 152300000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-06-15 08:00:00",
+  "id": 792,
+  "invoice_date": "2026-06-15",
+  "invoice_date_due": "2026-07-15",
+  "invoice_origin": "S04195",
+  "move_type": "out_invoice",
+  "name": "INV/0792",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 152300000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-06-25 08:00:00",
+  "id": 793,
+  "invoice_date": "2026-06-25",
+  "invoice_date_due": "2026-07-25",
+  "invoice_origin": "S04196",
+  "move_type": "out_invoice",
+  "name": "INV/0793",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 147600000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-07-05 08:00:00",
+  "id": 794,
+  "invoice_date": "2026-07-05",
+  "invoice_date_due": "2026-08-04",
+  "invoice_origin": "S04197",
+  "move_type": "out_invoice",
+  "name": "INV/0794",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 147600000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-07-15 08:00:00",
+  "id": 795,
+  "invoice_date": "2026-07-15",
+  "invoice_date_due": "2026-08-14",
+  "invoice_origin": "S04198",
+  "move_type": "out_invoice",
+  "name": "INV/0795",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 147600000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-07-25 08:00:00",
+  "id": 796,
+  "invoice_date": "2026-07-25",
+  "invoice_date_due": "2026-08-24",
+  "invoice_origin": "S04199",
+  "move_type": "out_invoice",
+  "name": "INV/0796",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 173000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-08-04 08:00:00",
+  "id": 797,
+  "invoice_date": "2026-08-04",
+  "invoice_date_due": "2026-09-03",
+  "invoice_origin": "S04200",
+  "move_type": "out_invoice",
+  "name": "INV/0797",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 173000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-08-14 08:00:00",
+  "id": 798,
+  "invoice_date": "2026-08-14",
+  "invoice_date_due": "2026-09-13",
+  "invoice_origin": "S04201",
+  "move_type": "out_invoice",
+  "name": "INV/0798",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 173000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-08-24 08:00:00",
+  "id": 799,
+  "invoice_date": "2026-08-24",
+  "invoice_date_due": "2026-09-23",
+  "invoice_origin": "S04202",
+  "move_type": "out_invoice",
+  "name": "INV/0799",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 162600000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-09-03 08:00:00",
+  "id": 800,
+  "invoice_date": "2026-09-03",
+  "invoice_date_due": "2026-10-03",
+  "invoice_origin": "S04203",
+  "move_type": "out_invoice",
+  "name": "INV/0800",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 46000000,
+  "amount_total": 46000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-09-13 08:00:00",
+  "id": 801,
+  "invoice_date": "2026-09-13",
+  "invoice_date_due": "2026-10-13",
+  "invoice_origin": "S04204",
+  "move_type": "out_invoice",
+  "name": "INV/0801",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 46000000,
+  "amount_total": 46000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-09-23 08:00:00",
+  "id": 802,
+  "invoice_date": "2026-09-23",
+  "invoice_date_due": "2026-10-23",
+  "invoice_origin": "S04205",
+  "move_type": "out_invoice",
+  "name": "INV/0802",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 92000000,
+  "amount_total": 92000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-10-03 08:00:00",
+  "id": 803,
+  "invoice_date": "2026-10-03",
+  "invoice_date_due": "2026-11-02",
+  "invoice_origin": "S04206",
+  "move_type": "out_invoice",
+  "name": "INV/0803",
+  "partner_id": [
+   3004,
+   "Indo Vision Security"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-10-06 08:00:00",
+  "id": 804,
+  "invoice_date": "2025-10-06",
+  "invoice_date_due": "2025-10-06",
+  "invoice_origin": "S04207",
+  "move_type": "out_invoice",
+  "name": "INV/0804",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-10-21 08:00:00",
+  "id": 805,
+  "invoice_date": "2025-10-21",
+  "invoice_date_due": "2025-10-21",
+  "invoice_origin": "S04208",
+  "move_type": "out_invoice",
+  "name": "INV/0805",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-05 08:00:00",
+  "id": 806,
+  "invoice_date": "2025-11-05",
+  "invoice_date_due": "2025-11-05",
+  "invoice_origin": "S04209",
+  "move_type": "out_invoice",
+  "name": "INV/0806",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-20 08:00:00",
+  "id": 807,
+  "invoice_date": "2025-11-20",
+  "invoice_date_due": "2025-11-20",
+  "invoice_origin": "S04210",
+  "move_type": "out_invoice",
+  "name": "INV/0807",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-12-05 08:00:00",
+  "id": 808,
+  "invoice_date": "2025-12-05",
+  "invoice_date_due": "2025-12-05",
+  "invoice_origin": "S04211",
+  "move_type": "out_invoice",
+  "name": "INV/0808",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-12-20 08:00:00",
+  "id": 809,
+  "invoice_date": "2025-12-20",
+  "invoice_date_due": "2025-12-20",
+  "invoice_origin": "S04212",
+  "move_type": "out_invoice",
+  "name": "INV/0809",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-01-04 08:00:00",
+  "id": 810,
+  "invoice_date": "2026-01-04",
+  "invoice_date_due": "2026-01-04",
+  "invoice_origin": "S04213",
+  "move_type": "out_invoice",
+  "name": "INV/0810",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-01-19 08:00:00",
+  "id": 811,
+  "invoice_date": "2026-01-19",
+  "invoice_date_due": "2026-01-19",
+  "invoice_origin": "S04214",
+  "move_type": "out_invoice",
+  "name": "INV/0811",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-02-03 08:00:00",
+  "id": 812,
+  "invoice_date": "2026-02-03",
+  "invoice_date_due": "2026-02-03",
+  "invoice_origin": "S04215",
+  "move_type": "out_invoice",
+  "name": "INV/0812",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-02-18 08:00:00",
+  "id": 813,
+  "invoice_date": "2026-02-18",
+  "invoice_date_due": "2026-02-18",
+  "invoice_origin": "S04216",
+  "move_type": "out_invoice",
+  "name": "INV/0813",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-05 08:00:00",
+  "id": 814,
+  "invoice_date": "2026-03-05",
+  "invoice_date_due": "2026-03-05",
+  "invoice_origin": "S04217",
+  "move_type": "out_invoice",
+  "name": "INV/0814",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-20 08:00:00",
+  "id": 815,
+  "invoice_date": "2026-03-20",
+  "invoice_date_due": "2026-03-20",
+  "invoice_origin": "S04218",
+  "move_type": "out_invoice",
+  "name": "INV/0815",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8600000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-04-04 08:00:00",
+  "id": 816,
+  "invoice_date": "2026-04-04",
+  "invoice_date_due": "2026-04-04",
+  "invoice_origin": "S04219",
+  "move_type": "out_invoice",
+  "name": "INV/0816",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 9000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-04-19 08:00:00",
+  "id": 817,
+  "invoice_date": "2026-04-19",
+  "invoice_date_due": "2026-04-19",
+  "invoice_origin": "S04220",
+  "move_type": "out_invoice",
+  "name": "INV/0817",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-05-04 08:00:00",
+  "id": 818,
+  "invoice_date": "2026-05-04",
+  "invoice_date_due": "2026-05-04",
+  "invoice_origin": "S04221",
+  "move_type": "out_invoice",
+  "name": "INV/0818",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-05-19 08:00:00",
+  "id": 819,
+  "invoice_date": "2026-05-19",
+  "invoice_date_due": "2026-05-19",
+  "invoice_origin": "S04222",
+  "move_type": "out_invoice",
+  "name": "INV/0819",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 9200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-06-03 08:00:00",
+  "id": 820,
+  "invoice_date": "2026-06-03",
+  "invoice_date_due": "2026-06-03",
+  "invoice_origin": "S04223",
+  "move_type": "out_invoice",
+  "name": "INV/0820",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 9200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-06-18 08:00:00",
+  "id": 821,
+  "invoice_date": "2026-06-18",
+  "invoice_date_due": "2026-06-18",
+  "invoice_origin": "S04224",
+  "move_type": "out_invoice",
+  "name": "INV/0821",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 7100000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-07-03 08:00:00",
+  "id": 822,
+  "invoice_date": "2026-07-03",
+  "invoice_date_due": "2026-07-03",
+  "invoice_origin": "S04225",
+  "move_type": "out_invoice",
+  "name": "INV/0822",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 7100000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-07-18 08:00:00",
+  "id": 823,
+  "invoice_date": "2026-07-18",
+  "invoice_date_due": "2026-07-18",
+  "invoice_origin": "S04226",
+  "move_type": "out_invoice",
+  "name": "INV/0823",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 10200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-08-02 08:00:00",
+  "id": 824,
+  "invoice_date": "2026-08-02",
+  "invoice_date_due": "2026-08-02",
+  "invoice_origin": "S04227",
+  "move_type": "out_invoice",
+  "name": "INV/0824",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 10200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-08-17 08:00:00",
+  "id": 825,
+  "invoice_date": "2026-08-17",
+  "invoice_date_due": "2026-08-17",
+  "invoice_origin": "S04228",
+  "move_type": "out_invoice",
+  "name": "INV/0825",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 9200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-09-01 08:00:00",
+  "id": 826,
+  "invoice_date": "2026-09-01",
+  "invoice_date_due": "2026-09-01",
+  "invoice_origin": "S04229",
+  "move_type": "out_invoice",
+  "name": "INV/0826",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 9200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-09-16 08:00:00",
+  "id": 827,
+  "invoice_date": "2026-09-16",
+  "invoice_date_due": "2026-09-16",
+  "invoice_origin": "S04230",
+  "move_type": "out_invoice",
+  "name": "INV/0827",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 11200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-10-01 08:00:00",
+  "id": 828,
+  "invoice_date": "2026-10-01",
+  "invoice_date_due": "2026-10-01",
+  "invoice_origin": "S04231",
+  "move_type": "out_invoice",
+  "name": "INV/0828",
+  "partner_id": [
+   3005,
+   "UD Cahaya Abadi"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 11400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-10-25 08:00:00",
+  "id": 829,
+  "invoice_date": "2025-10-25",
+  "invoice_date_due": "2025-10-25",
+  "invoice_origin": "S04232",
+  "move_type": "out_invoice",
+  "name": "INV/0829",
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 11400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-29 08:00:00",
+  "id": 830,
+  "invoice_date": "2025-11-29",
+  "invoice_date_due": "2025-11-29",
+  "invoice_origin": "S04233",
+  "move_type": "out_invoice",
+  "name": "INV/0830",
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 11400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-01-03 08:00:00",
+  "id": 831,
+  "invoice_date": "2026-01-03",
+  "invoice_date_due": "2026-01-03",
+  "invoice_origin": "S04234",
+  "move_type": "out_invoice",
+  "name": "INV/0831",
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 11400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-02-07 08:00:00",
+  "id": 832,
+  "invoice_date": "2026-02-07",
+  "invoice_date_due": "2026-02-07",
+  "invoice_origin": "S04235",
+  "move_type": "out_invoice",
+  "name": "INV/0832",
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 11400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-14 08:00:00",
+  "id": 833,
+  "invoice_date": "2026-03-14",
+  "invoice_date_due": "2026-03-14",
+  "invoice_origin": "S04236",
+  "move_type": "out_invoice",
+  "name": "INV/0833",
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 12000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-04-18 08:00:00",
+  "id": 834,
+  "invoice_date": "2026-04-18",
+  "invoice_date_due": "2026-04-18",
+  "invoice_origin": "S04237",
+  "move_type": "out_invoice",
+  "name": "INV/0834",
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 13400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-05-23 08:00:00",
+  "id": 835,
+  "invoice_date": "2026-05-23",
+  "invoice_date_due": "2026-05-23",
+  "invoice_origin": "S04238",
+  "move_type": "out_invoice",
+  "name": "INV/0835",
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 10500000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-06-27 08:00:00",
+  "id": 836,
+  "invoice_date": "2026-06-27",
+  "invoice_date_due": "2026-06-27",
+  "invoice_origin": "S04239",
+  "move_type": "out_invoice",
+  "name": "INV/0836",
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 12100000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-08-01 08:00:00",
+  "id": 837,
+  "invoice_date": "2026-08-01",
+  "invoice_date_due": "2026-08-01",
+  "invoice_origin": "S04240",
+  "move_type": "out_invoice",
+  "name": "INV/0837",
+  "partner_id": [
+   3006,
+   "Toko Lampu Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 22800000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-10-31 08:00:00",
+  "id": 838,
+  "invoice_date": "2025-10-31",
+  "invoice_date_due": "2025-11-30",
+  "invoice_origin": "S04241",
+  "move_type": "out_invoice",
+  "name": "INV/0838",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 22800000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-11-29 08:00:00",
+  "id": 839,
+  "invoice_date": "2025-11-29",
+  "invoice_date_due": "2025-12-29",
+  "invoice_origin": "S04242",
+  "move_type": "out_invoice",
+  "name": "INV/0839",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 22800000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-12-28 08:00:00",
+  "id": 840,
+  "invoice_date": "2025-12-28",
+  "invoice_date_due": "2026-01-27",
+  "invoice_origin": "S04243",
+  "move_type": "out_invoice",
+  "name": "INV/0840",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 22800000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-01-26 08:00:00",
+  "id": 841,
+  "invoice_date": "2026-01-26",
+  "invoice_date_due": "2026-02-25",
+  "invoice_origin": "S04244",
+  "move_type": "out_invoice",
+  "name": "INV/0841",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 22800000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-02-24 08:00:00",
+  "id": 842,
+  "invoice_date": "2026-02-24",
+  "invoice_date_due": "2026-03-26",
+  "invoice_origin": "S04245",
+  "move_type": "out_invoice",
+  "name": "INV/0842",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 22800000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-03-25 08:00:00",
+  "id": 843,
+  "invoice_date": "2026-03-25",
+  "invoice_date_due": "2026-04-24",
+  "invoice_origin": "S04246",
+  "move_type": "out_invoice",
+  "name": "INV/0843",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20800000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-04-23 08:00:00",
+  "id": 845,
+  "invoice_date": "2026-04-23",
+  "invoice_date_due": "2026-05-23",
+  "invoice_origin": "S04247",
+  "move_type": "out_invoice",
+  "name": "INV/0845",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 22500000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-05-21 08:00:00",
+  "id": 846,
+  "invoice_date": "2026-05-21",
+  "invoice_date_due": "2026-06-20",
+  "invoice_origin": "S04248",
+  "move_type": "out_invoice",
+  "name": "INV/0846",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 19100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-06-18 08:00:00",
+  "id": 847,
+  "invoice_date": "2026-06-18",
+  "invoice_date_due": "2026-07-18",
+  "invoice_origin": "S04249",
+  "move_type": "out_invoice",
+  "name": "INV/0847",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 24300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-07-16 08:00:00",
+  "id": 848,
+  "invoice_date": "2026-07-16",
+  "invoice_date_due": "2026-08-15",
+  "invoice_origin": "S04250",
+  "move_type": "out_invoice",
+  "name": "INV/0848",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 17300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-08-13 08:00:00",
+  "id": 849,
+  "invoice_date": "2026-08-13",
+  "invoice_date_due": "2026-09-12",
+  "invoice_origin": "S04251",
+  "move_type": "out_invoice",
+  "name": "INV/0849",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 40000000,
+  "amount_total": 40000000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-09-10 08:00:00",
+  "id": 850,
+  "invoice_date": "2026-09-10",
+  "invoice_date_due": "2026-10-10",
+  "invoice_origin": "S04252",
+  "move_type": "out_invoice",
+  "name": "INV/0850",
+  "partner_id": [
+   3007,
+   "CV Bina Teknik"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-09-26 08:00:00",
+  "id": 851,
+  "invoice_date": "2026-09-26",
+  "invoice_date_due": "2026-09-26",
+  "invoice_origin": "S04253",
+  "move_type": "out_invoice",
+  "name": "INV/0851",
+  "partner_id": [
+   3008,
+   "PT Nusantara Secure"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-10-12 08:00:00",
+  "id": 852,
+  "invoice_date": "2025-10-12",
+  "invoice_date_due": "2025-10-12",
+  "invoice_origin": "S04254",
+  "move_type": "out_invoice",
+  "name": "INV/0852",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-10-24 08:00:00",
+  "id": 853,
+  "invoice_date": "2025-10-24",
+  "invoice_date_due": "2025-10-24",
+  "invoice_origin": "S04255",
+  "move_type": "out_invoice",
+  "name": "INV/0853",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-05 08:00:00",
+  "id": 854,
+  "invoice_date": "2025-11-05",
+  "invoice_date_due": "2025-11-05",
+  "invoice_origin": "S04256",
+  "move_type": "out_invoice",
+  "name": "INV/0854",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-17 08:00:00",
+  "id": 855,
+  "invoice_date": "2025-11-17",
+  "invoice_date_due": "2025-11-17",
+  "invoice_origin": "S04257",
+  "move_type": "out_invoice",
+  "name": "INV/0855",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-29 08:00:00",
+  "id": 856,
+  "invoice_date": "2025-11-29",
+  "invoice_date_due": "2025-11-29",
+  "invoice_origin": "S04258",
+  "move_type": "out_invoice",
+  "name": "INV/0856",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-12-11 08:00:00",
+  "id": 857,
+  "invoice_date": "2025-12-11",
+  "invoice_date_due": "2025-12-11",
+  "invoice_origin": "S04259",
+  "move_type": "out_invoice",
+  "name": "INV/0857",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-12-23 08:00:00",
+  "id": 858,
+  "invoice_date": "2025-12-23",
+  "invoice_date_due": "2025-12-23",
+  "invoice_origin": "S04260",
+  "move_type": "out_invoice",
+  "name": "INV/0858",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-01-04 08:00:00",
+  "id": 859,
+  "invoice_date": "2026-01-04",
+  "invoice_date_due": "2026-01-04",
+  "invoice_origin": "S04261",
+  "move_type": "out_invoice",
+  "name": "INV/0859",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-01-16 08:00:00",
+  "id": 860,
+  "invoice_date": "2026-01-16",
+  "invoice_date_due": "2026-01-16",
+  "invoice_origin": "S04262",
+  "move_type": "out_invoice",
+  "name": "INV/0860",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-01-28 08:00:00",
+  "id": 861,
+  "invoice_date": "2026-01-28",
+  "invoice_date_due": "2026-01-28",
+  "invoice_origin": "S04263",
+  "move_type": "out_invoice",
+  "name": "INV/0861",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-02-09 08:00:00",
+  "id": 862,
+  "invoice_date": "2026-02-09",
+  "invoice_date_due": "2026-02-09",
+  "invoice_origin": "S04264",
+  "move_type": "out_invoice",
+  "name": "INV/0862",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-02-21 08:00:00",
+  "id": 863,
+  "invoice_date": "2026-02-21",
+  "invoice_date_due": "2026-02-21",
+  "invoice_origin": "S04265",
+  "move_type": "out_invoice",
+  "name": "INV/0863",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-05 08:00:00",
+  "id": 864,
+  "invoice_date": "2026-03-05",
+  "invoice_date_due": "2026-03-05",
+  "invoice_origin": "S04266",
+  "move_type": "out_invoice",
+  "name": "INV/0864",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-17 08:00:00",
+  "id": 865,
+  "invoice_date": "2026-03-17",
+  "invoice_date_due": "2026-03-17",
+  "invoice_origin": "S04267",
+  "move_type": "out_invoice",
+  "name": "INV/0865",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-29 08:00:00",
+  "id": 866,
+  "invoice_date": "2026-03-29",
+  "invoice_date_due": "2026-03-29",
+  "invoice_origin": "S04268",
+  "move_type": "out_invoice",
+  "name": "INV/0866",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 7200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-04-10 08:00:00",
+  "id": 867,
+  "invoice_date": "2026-04-10",
+  "invoice_date_due": "2026-04-10",
+  "invoice_origin": "S04269",
+  "move_type": "out_invoice",
+  "name": "INV/0867",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 7200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-04-22 08:00:00",
+  "id": 868,
+  "invoice_date": "2026-04-22",
+  "invoice_date_due": "2026-04-22",
+  "invoice_origin": "S04270",
+  "move_type": "out_invoice",
+  "name": "INV/0868",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-05-04 08:00:00",
+  "id": 869,
+  "invoice_date": "2026-05-04",
+  "invoice_date_due": "2026-05-04",
+  "invoice_origin": "S04271",
+  "move_type": "out_invoice",
+  "name": "INV/0869",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-05-16 08:00:00",
+  "id": 870,
+  "invoice_date": "2026-05-16",
+  "invoice_date_due": "2026-05-16",
+  "invoice_origin": "S04272",
+  "move_type": "out_invoice",
+  "name": "INV/0870",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-05-28 08:00:00",
+  "id": 871,
+  "invoice_date": "2026-05-28",
+  "invoice_date_due": "2026-05-28",
+  "invoice_origin": "S04273",
+  "move_type": "out_invoice",
+  "name": "INV/0871",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 7200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-06-09 08:00:00",
+  "id": 872,
+  "invoice_date": "2026-06-09",
+  "invoice_date_due": "2026-06-09",
+  "invoice_origin": "S04274",
+  "move_type": "out_invoice",
+  "name": "INV/0872",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 7200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-06-21 08:00:00",
+  "id": 873,
+  "invoice_date": "2026-06-21",
+  "invoice_date_due": "2026-06-21",
+  "invoice_origin": "S04275",
+  "move_type": "out_invoice",
+  "name": "INV/0873",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-07-03 08:00:00",
+  "id": 874,
+  "invoice_date": "2026-07-03",
+  "invoice_date_due": "2026-07-03",
+  "invoice_origin": "S04276",
+  "move_type": "out_invoice",
+  "name": "INV/0874",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-07-15 08:00:00",
+  "id": 875,
+  "invoice_date": "2026-07-15",
+  "invoice_date_due": "2026-07-15",
+  "invoice_origin": "S04277",
+  "move_type": "out_invoice",
+  "name": "INV/0875",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 8200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-07-27 08:00:00",
+  "id": 876,
+  "invoice_date": "2026-07-27",
+  "invoice_date_due": "2026-07-27",
+  "invoice_origin": "S04278",
+  "move_type": "out_invoice",
+  "name": "INV/0876",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 7200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-08-08 08:00:00",
+  "id": 877,
+  "invoice_date": "2026-08-08",
+  "invoice_date_due": "2026-08-08",
+  "invoice_origin": "S04279",
+  "move_type": "out_invoice",
+  "name": "INV/0877",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 7200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-08-20 08:00:00",
+  "id": 878,
+  "invoice_date": "2026-08-20",
+  "invoice_date_due": "2026-08-20",
+  "invoice_origin": "S04280",
+  "move_type": "out_invoice",
+  "name": "INV/0878",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-09-01 08:00:00",
+  "id": 879,
+  "invoice_date": "2026-09-01",
+  "invoice_date_due": "2026-09-01",
+  "invoice_origin": "S04281",
+  "move_type": "out_invoice",
+  "name": "INV/0879",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-09-13 08:00:00",
+  "id": 880,
+  "invoice_date": "2026-09-13",
+  "invoice_date_due": "2026-09-13",
+  "invoice_origin": "S04282",
+  "move_type": "out_invoice",
+  "name": "INV/0880",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-09-25 08:00:00",
+  "id": 881,
+  "invoice_date": "2026-09-25",
+  "invoice_date_due": "2026-09-25",
+  "invoice_origin": "S04283",
+  "move_type": "out_invoice",
+  "name": "INV/0881",
+  "partner_id": [
+   3009,
+   "Citra Komputer"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-10-12 08:00:00",
+  "id": 882,
+  "invoice_date": "2025-10-12",
+  "invoice_date_due": "2025-11-11",
+  "invoice_origin": "S04284",
+  "move_type": "out_invoice",
+  "name": "INV/0882",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-01 08:00:00",
+  "id": 883,
+  "invoice_date": "2025-11-01",
+  "invoice_date_due": "2025-12-01",
+  "invoice_origin": "S04285",
+  "move_type": "out_invoice",
+  "name": "INV/0883",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-21 08:00:00",
+  "id": 884,
+  "invoice_date": "2025-11-21",
+  "invoice_date_due": "2025-12-21",
+  "invoice_origin": "S04286",
+  "move_type": "out_invoice",
+  "name": "INV/0884",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-12-11 08:00:00",
+  "id": 885,
+  "invoice_date": "2025-12-11",
+  "invoice_date_due": "2026-01-10",
+  "invoice_origin": "S04287",
+  "move_type": "out_invoice",
+  "name": "INV/0885",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-12-31 08:00:00",
+  "id": 886,
+  "invoice_date": "2025-12-31",
+  "invoice_date_due": "2026-01-30",
+  "invoice_origin": "S04288",
+  "move_type": "out_invoice",
+  "name": "INV/0886",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-01-20 08:00:00",
+  "id": 887,
+  "invoice_date": "2026-01-20",
+  "invoice_date_due": "2026-02-19",
+  "invoice_origin": "S04289",
+  "move_type": "out_invoice",
+  "name": "INV/0887",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-02-09 08:00:00",
+  "id": 888,
+  "invoice_date": "2026-02-09",
+  "invoice_date_due": "2026-03-11",
+  "invoice_origin": "S04290",
+  "move_type": "out_invoice",
+  "name": "INV/0888",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-01 08:00:00",
+  "id": 890,
+  "invoice_date": "2026-03-01",
+  "invoice_date_due": "2026-03-31",
+  "invoice_origin": "S04291",
+  "move_type": "out_invoice",
+  "name": "INV/0890",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-21 08:00:00",
+  "id": 891,
+  "invoice_date": "2026-03-21",
+  "invoice_date_due": "2026-04-20",
+  "invoice_origin": "S04292",
+  "move_type": "out_invoice",
+  "name": "INV/0891",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 19300000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-04-10 08:00:00",
+  "id": 892,
+  "invoice_date": "2026-04-10",
+  "invoice_date_due": "2026-05-10",
+  "invoice_origin": "S04293",
+  "move_type": "out_invoice",
+  "name": "INV/0892",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 19300000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-04-30 08:00:00",
+  "id": 893,
+  "invoice_date": "2026-04-30",
+  "invoice_date_due": "2026-05-30",
+  "invoice_origin": "S04294",
+  "move_type": "out_invoice",
+  "name": "INV/0893",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 16500000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-05-25 08:00:00",
+  "id": 894,
+  "invoice_date": "2026-05-25",
+  "invoice_date_due": "2026-06-24",
+  "invoice_origin": "S04295",
+  "move_type": "out_invoice",
+  "name": "INV/0894",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20200000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-06-19 08:00:00",
+  "id": 895,
+  "invoice_date": "2026-06-19",
+  "invoice_date_due": "2026-07-19",
+  "invoice_origin": "S04296",
+  "move_type": "out_invoice",
+  "name": "INV/0895",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 17400000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-07-14 08:00:00",
+  "id": 896,
+  "invoice_date": "2026-07-14",
+  "invoice_date_due": "2026-08-13",
+  "invoice_origin": "S04297",
+  "move_type": "out_invoice",
+  "name": "INV/0896",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 22000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-08-08 08:00:00",
+  "id": 897,
+  "invoice_date": "2026-08-08",
+  "invoice_date_due": "2026-09-07",
+  "invoice_origin": "S04298",
+  "move_type": "out_invoice",
+  "name": "INV/0897",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18300000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-09-02 08:00:00",
+  "id": 898,
+  "invoice_date": "2026-09-02",
+  "invoice_date_due": "2026-10-02",
+  "invoice_origin": "S04299",
+  "move_type": "out_invoice",
+  "name": "INV/0898",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 35000000,
+  "amount_total": 35000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-09-27 08:00:00",
+  "id": 899,
+  "invoice_date": "2026-09-27",
+  "invoice_date_due": "2026-10-27",
+  "invoice_origin": "S04300",
+  "move_type": "out_invoice",
+  "name": "INV/0899",
+  "partner_id": [
+   3010,
+   "CV Anugerah Teknik"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 5700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-10-26 08:00:00",
+  "id": 900,
+  "invoice_date": "2025-10-26",
+  "invoice_date_due": "2025-10-26",
+  "invoice_origin": "S04301",
+  "move_type": "out_invoice",
+  "name": "INV/0900",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 5700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-11-25 08:00:00",
+  "id": 902,
+  "invoice_date": "2025-11-25",
+  "invoice_date_due": "2025-11-25",
+  "invoice_origin": "S04302",
+  "move_type": "out_invoice",
+  "name": "INV/0902",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 5700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2025-12-25 08:00:00",
+  "id": 903,
+  "invoice_date": "2025-12-25",
+  "invoice_date_due": "2025-12-25",
+  "invoice_origin": "S04303",
+  "move_type": "out_invoice",
+  "name": "INV/0903",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 5700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-01-24 08:00:00",
+  "id": 904,
+  "invoice_date": "2026-01-24",
+  "invoice_date_due": "2026-01-24",
+  "invoice_origin": "S04304",
+  "move_type": "out_invoice",
+  "name": "INV/0904",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 5700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-02-23 08:00:00",
+  "id": 905,
+  "invoice_date": "2026-02-23",
+  "invoice_date_due": "2026-02-23",
+  "invoice_origin": "S04305",
+  "move_type": "out_invoice",
+  "name": "INV/0905",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 5700000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-03-25 08:00:00",
+  "id": 906,
+  "invoice_date": "2026-03-25",
+  "invoice_date_due": "2026-03-25",
+  "invoice_origin": "S04306",
+  "move_type": "out_invoice",
+  "name": "INV/0906",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-04-24 08:00:00",
+  "id": 907,
+  "invoice_date": "2026-04-24",
+  "invoice_date_due": "2026-04-24",
+  "invoice_origin": "S04307",
+  "move_type": "out_invoice",
+  "name": "INV/0907",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-05-24 08:00:00",
+  "id": 908,
+  "invoice_date": "2026-05-24",
+  "invoice_date_due": "2026-05-24",
+  "invoice_origin": "S04308",
+  "move_type": "out_invoice",
+  "name": "INV/0908",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 5000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-06-23 08:00:00",
+  "id": 909,
+  "invoice_date": "2026-06-23",
+  "invoice_date_due": "2026-06-23",
+  "invoice_origin": "S04309",
+  "move_type": "out_invoice",
+  "name": "INV/0909",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 7000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-07-23 08:00:00",
+  "id": 910,
+  "invoice_date": "2026-07-23",
+  "invoice_date_due": "2026-07-23",
+  "invoice_origin": "S04310",
+  "move_type": "out_invoice",
+  "name": "INV/0910",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6000000,
+  "company_id": [
+   1,
+   "GSI Semarang"
+  ],
+  "create_date": "2026-08-22 08:00:00",
+  "id": 911,
+  "invoice_date": "2026-08-22",
+  "invoice_date_due": "2026-08-22",
+  "invoice_origin": "S04311",
+  "move_type": "out_invoice",
+  "name": "INV/0911",
+  "partner_id": [
+   3011,
+   "Toko Megah Jaya"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-10-06 08:00:00",
+  "id": 913,
+  "invoice_date": "2025-10-06",
+  "invoice_date_due": "2025-11-05",
+  "invoice_origin": "S04312",
+  "move_type": "out_invoice",
+  "name": "INV/0913",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-10-18 08:00:00",
+  "id": 914,
+  "invoice_date": "2025-10-18",
+  "invoice_date_due": "2025-11-17",
+  "invoice_origin": "S04313",
+  "move_type": "out_invoice",
+  "name": "INV/0914",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-10-30 08:00:00",
+  "id": 915,
+  "invoice_date": "2025-10-30",
+  "invoice_date_due": "2025-11-29",
+  "invoice_origin": "S04314",
+  "move_type": "out_invoice",
+  "name": "INV/0915",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-11-11 08:00:00",
+  "id": 916,
+  "invoice_date": "2025-11-11",
+  "invoice_date_due": "2025-12-11",
+  "invoice_origin": "S04315",
+  "move_type": "out_invoice",
+  "name": "INV/0916",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-11-23 08:00:00",
+  "id": 917,
+  "invoice_date": "2025-11-23",
+  "invoice_date_due": "2025-12-23",
+  "invoice_origin": "S04316",
+  "move_type": "out_invoice",
+  "name": "INV/0917",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-12-05 08:00:00",
+  "id": 918,
+  "invoice_date": "2025-12-05",
+  "invoice_date_due": "2026-01-04",
+  "invoice_origin": "S04317",
+  "move_type": "out_invoice",
+  "name": "INV/0918",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-12-17 08:00:00",
+  "id": 919,
+  "invoice_date": "2025-12-17",
+  "invoice_date_due": "2026-01-16",
+  "invoice_origin": "S04318",
+  "move_type": "out_invoice",
+  "name": "INV/0919",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-12-29 08:00:00",
+  "id": 920,
+  "invoice_date": "2025-12-29",
+  "invoice_date_due": "2026-01-28",
+  "invoice_origin": "S04319",
+  "move_type": "out_invoice",
+  "name": "INV/0920",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-01-10 08:00:00",
+  "id": 921,
+  "invoice_date": "2026-01-10",
+  "invoice_date_due": "2026-02-09",
+  "invoice_origin": "S04320",
+  "move_type": "out_invoice",
+  "name": "INV/0921",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-01-22 08:00:00",
+  "id": 922,
+  "invoice_date": "2026-01-22",
+  "invoice_date_due": "2026-02-21",
+  "invoice_origin": "S04321",
+  "move_type": "out_invoice",
+  "name": "INV/0922",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-02-03 08:00:00",
+  "id": 923,
+  "invoice_date": "2026-02-03",
+  "invoice_date_due": "2026-03-05",
+  "invoice_origin": "S04322",
+  "move_type": "out_invoice",
+  "name": "INV/0923",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-02-15 08:00:00",
+  "id": 924,
+  "invoice_date": "2026-02-15",
+  "invoice_date_due": "2026-03-17",
+  "invoice_origin": "S04323",
+  "move_type": "out_invoice",
+  "name": "INV/0924",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-02-27 08:00:00",
+  "id": 925,
+  "invoice_date": "2026-02-27",
+  "invoice_date_due": "2026-03-29",
+  "invoice_origin": "S04324",
+  "move_type": "out_invoice",
+  "name": "INV/0925",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-03-11 08:00:00",
+  "id": 926,
+  "invoice_date": "2026-03-11",
+  "invoice_date_due": "2026-04-10",
+  "invoice_origin": "S04325",
+  "move_type": "out_invoice",
+  "name": "INV/0926",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-03-23 08:00:00",
+  "id": 927,
+  "invoice_date": "2026-03-23",
+  "invoice_date_due": "2026-04-22",
+  "invoice_origin": "S04326",
+  "move_type": "out_invoice",
+  "name": "INV/0927",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-04-04 08:00:00",
+  "id": 928,
+  "invoice_date": "2026-04-04",
+  "invoice_date_due": "2026-05-04",
+  "invoice_origin": "S04327",
+  "move_type": "out_invoice",
+  "name": "INV/0928",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 102800000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-04-16 08:00:00",
+  "id": 929,
+  "invoice_date": "2026-04-16",
+  "invoice_date_due": "2026-05-16",
+  "invoice_origin": "S04328",
+  "move_type": "out_invoice",
+  "name": "INV/0929",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 102700000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-04-28 08:00:00",
+  "id": 930,
+  "invoice_date": "2026-04-28",
+  "invoice_date_due": "2026-05-28",
+  "invoice_origin": "S04329",
+  "move_type": "out_invoice",
+  "name": "INV/0930",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-05-10 08:00:00",
+  "id": 931,
+  "invoice_date": "2026-05-10",
+  "invoice_date_due": "2026-06-09",
+  "invoice_origin": "S04330",
+  "move_type": "out_invoice",
+  "name": "INV/0931",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 90300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-05-22 08:00:00",
+  "id": 932,
+  "invoice_date": "2026-05-22",
+  "invoice_date_due": "2026-06-21",
+  "invoice_origin": "S04331",
+  "move_type": "out_invoice",
+  "name": "INV/0932",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 99300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-06-03 08:00:00",
+  "id": 933,
+  "invoice_date": "2026-06-03",
+  "invoice_date_due": "2026-07-03",
+  "invoice_origin": "S04332",
+  "move_type": "out_invoice",
+  "name": "INV/0933",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 99300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-06-15 08:00:00",
+  "id": 934,
+  "invoice_date": "2026-06-15",
+  "invoice_date_due": "2026-07-15",
+  "invoice_origin": "S04333",
+  "move_type": "out_invoice",
+  "name": "INV/0934",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 99300000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-06-27 08:00:00",
+  "id": 935,
+  "invoice_date": "2026-06-27",
+  "invoice_date_due": "2026-07-27",
+  "invoice_origin": "S04334",
+  "move_type": "out_invoice",
+  "name": "INV/0935",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 103900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-07-09 08:00:00",
+  "id": 936,
+  "invoice_date": "2026-07-09",
+  "invoice_date_due": "2026-08-08",
+  "invoice_origin": "S04335",
+  "move_type": "out_invoice",
+  "name": "INV/0936",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 103900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-07-21 08:00:00",
+  "id": 937,
+  "invoice_date": "2026-07-21",
+  "invoice_date_due": "2026-08-20",
+  "invoice_origin": "S04336",
+  "move_type": "out_invoice",
+  "name": "INV/0937",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 101600000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-08-02 08:00:00",
+  "id": 938,
+  "invoice_date": "2026-08-02",
+  "invoice_date_due": "2026-09-01",
+  "invoice_origin": "S04337",
+  "move_type": "out_invoice",
+  "name": "INV/0938",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 101600000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-08-14 08:00:00",
+  "id": 939,
+  "invoice_date": "2026-08-14",
+  "invoice_date_due": "2026-09-13",
+  "invoice_origin": "S04338",
+  "move_type": "out_invoice",
+  "name": "INV/0939",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 101600000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-08-26 08:00:00",
+  "id": 940,
+  "invoice_date": "2026-08-26",
+  "invoice_date_due": "2026-09-25",
+  "invoice_origin": "S04339",
+  "move_type": "out_invoice",
+  "name": "INV/0940",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 108400000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-09-07 08:00:00",
+  "id": 941,
+  "invoice_date": "2026-09-07",
+  "invoice_date_due": "2026-10-07",
+  "invoice_origin": "S04340",
+  "move_type": "out_invoice",
+  "name": "INV/0941",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 22000000,
+  "amount_total": 22000000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-09-19 08:00:00",
+  "id": 942,
+  "invoice_date": "2026-09-19",
+  "invoice_date_due": "2026-10-19",
+  "invoice_origin": "S04341",
+  "move_type": "out_invoice",
+  "name": "INV/0942",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 98000000,
+  "amount_total": 98000000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-10-01 08:00:00",
+  "id": 943,
+  "invoice_date": "2026-10-01",
+  "invoice_date_due": "2026-10-31",
+  "invoice_origin": "S04342",
+  "move_type": "out_invoice",
+  "name": "INV/0943",
+  "partner_id": [
+   3012,
+   "PT Sarana Vision"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-10-15 08:00:00",
+  "id": 944,
+  "invoice_date": "2025-10-15",
+  "invoice_date_due": "2025-11-14",
+  "invoice_origin": "S04343",
+  "move_type": "out_invoice",
+  "name": "INV/0944",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-10-31 08:00:00",
+  "id": 945,
+  "invoice_date": "2025-10-31",
+  "invoice_date_due": "2025-11-30",
+  "invoice_origin": "S04344",
+  "move_type": "out_invoice",
+  "name": "INV/0945",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-11-16 08:00:00",
+  "id": 946,
+  "invoice_date": "2025-11-16",
+  "invoice_date_due": "2025-12-16",
+  "invoice_origin": "S04345",
+  "move_type": "out_invoice",
+  "name": "INV/0946",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-12-02 08:00:00",
+  "id": 947,
+  "invoice_date": "2025-12-02",
+  "invoice_date_due": "2026-01-01",
+  "invoice_origin": "S04346",
+  "move_type": "out_invoice",
+  "name": "INV/0947",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2025-12-18 08:00:00",
+  "id": 948,
+  "invoice_date": "2025-12-18",
+  "invoice_date_due": "2026-01-17",
+  "invoice_origin": "S04347",
+  "move_type": "out_invoice",
+  "name": "INV/0948",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-01-03 08:00:00",
+  "id": 949,
+  "invoice_date": "2026-01-03",
+  "invoice_date_due": "2026-02-02",
+  "invoice_origin": "S04348",
+  "move_type": "out_invoice",
+  "name": "INV/0949",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-01-19 08:00:00",
+  "id": 950,
+  "invoice_date": "2026-01-19",
+  "invoice_date_due": "2026-02-18",
+  "invoice_origin": "S04349",
+  "move_type": "out_invoice",
+  "name": "INV/0950",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-02-04 08:00:00",
+  "id": 951,
+  "invoice_date": "2026-02-04",
+  "invoice_date_due": "2026-03-06",
+  "invoice_origin": "S04350",
+  "move_type": "out_invoice",
+  "name": "INV/0951",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-02-20 08:00:00",
+  "id": 952,
+  "invoice_date": "2026-02-20",
+  "invoice_date_due": "2026-03-22",
+  "invoice_origin": "S04351",
+  "move_type": "out_invoice",
+  "name": "INV/0952",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-03-08 08:00:00",
+  "id": 953,
+  "invoice_date": "2026-03-08",
+  "invoice_date_due": "2026-04-07",
+  "invoice_origin": "S04352",
+  "move_type": "out_invoice",
+  "name": "INV/0953",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18100000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-03-24 08:00:00",
+  "id": 954,
+  "invoice_date": "2026-03-24",
+  "invoice_date_due": "2026-04-23",
+  "invoice_origin": "S04353",
+  "move_type": "out_invoice",
+  "name": "INV/0954",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-04-09 08:00:00",
+  "id": 955,
+  "invoice_date": "2026-04-09",
+  "invoice_date_due": "2026-05-09",
+  "invoice_origin": "S04354",
+  "move_type": "out_invoice",
+  "name": "INV/0955",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18800000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-04-27 08:00:00",
+  "id": 956,
+  "invoice_date": "2026-04-27",
+  "invoice_date_due": "2026-05-27",
+  "invoice_origin": "S04355",
+  "move_type": "out_invoice",
+  "name": "INV/0956",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 16900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-05-15 08:00:00",
+  "id": 957,
+  "invoice_date": "2026-05-15",
+  "invoice_date_due": "2026-06-14",
+  "invoice_origin": "S04356",
+  "move_type": "out_invoice",
+  "name": "INV/0957",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 17900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-06-02 08:00:00",
+  "id": 958,
+  "invoice_date": "2026-06-02",
+  "invoice_date_due": "2026-07-02",
+  "invoice_origin": "S04357",
+  "move_type": "out_invoice",
+  "name": "INV/0958",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 17900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-06-20 08:00:00",
+  "id": 959,
+  "invoice_date": "2026-06-20",
+  "invoice_date_due": "2026-07-20",
+  "invoice_origin": "S04358",
+  "move_type": "out_invoice",
+  "name": "INV/0959",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 19900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-07-08 08:00:00",
+  "id": 960,
+  "invoice_date": "2026-07-08",
+  "invoice_date_due": "2026-08-07",
+  "invoice_origin": "S04359",
+  "move_type": "out_invoice",
+  "name": "INV/0960",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 19900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-07-26 08:00:00",
+  "id": 961,
+  "invoice_date": "2026-07-26",
+  "invoice_date_due": "2026-08-25",
+  "invoice_origin": "S04360",
+  "move_type": "out_invoice",
+  "name": "INV/0961",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-08-13 08:00:00",
+  "id": 962,
+  "invoice_date": "2026-08-13",
+  "invoice_date_due": "2026-09-12",
+  "invoice_origin": "S04361",
+  "move_type": "out_invoice",
+  "name": "INV/0962",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18900000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-08-31 08:00:00",
+  "id": 963,
+  "invoice_date": "2026-08-31",
+  "invoice_date_due": "2026-09-30",
+  "invoice_origin": "S04362",
+  "move_type": "out_invoice",
+  "name": "INV/0963",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 22000000,
+  "amount_total": 22000000,
+  "company_id": [
+   2,
+   "GSI Yogyakarta"
+  ],
+  "create_date": "2026-09-18 08:00:00",
+  "id": 964,
+  "invoice_date": "2026-09-18",
+  "invoice_date_due": "2026-10-18",
+  "invoice_origin": "S04363",
+  "move_type": "out_invoice",
+  "name": "INV/0964",
+  "partner_id": [
+   3013,
+   "Prima CCTV Klaten"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-10-07 08:00:00",
+  "id": 965,
+  "invoice_date": "2025-10-07",
+  "invoice_date_due": "2025-11-06",
+  "invoice_origin": "S04364",
+  "move_type": "out_invoice",
+  "name": "INV/0965",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-10-20 08:00:00",
+  "id": 966,
+  "invoice_date": "2025-10-20",
+  "invoice_date_due": "2025-11-19",
+  "invoice_origin": "S04365",
+  "move_type": "out_invoice",
+  "name": "INV/0966",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-11-02 08:00:00",
+  "id": 967,
+  "invoice_date": "2025-11-02",
+  "invoice_date_due": "2025-12-02",
+  "invoice_origin": "S04366",
+  "move_type": "out_invoice",
+  "name": "INV/0967",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-11-15 08:00:00",
+  "id": 968,
+  "invoice_date": "2025-11-15",
+  "invoice_date_due": "2025-12-15",
+  "invoice_origin": "S04367",
+  "move_type": "out_invoice",
+  "name": "INV/0968",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-11-28 08:00:00",
+  "id": 969,
+  "invoice_date": "2025-11-28",
+  "invoice_date_due": "2025-12-28",
+  "invoice_origin": "S04368",
+  "move_type": "out_invoice",
+  "name": "INV/0969",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-12-11 08:00:00",
+  "id": 970,
+  "invoice_date": "2025-12-11",
+  "invoice_date_due": "2026-01-10",
+  "invoice_origin": "S04369",
+  "move_type": "out_invoice",
+  "name": "INV/0970",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-12-24 08:00:00",
+  "id": 971,
+  "invoice_date": "2025-12-24",
+  "invoice_date_due": "2026-01-23",
+  "invoice_origin": "S04370",
+  "move_type": "out_invoice",
+  "name": "INV/0971",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-01-06 08:00:00",
+  "id": 972,
+  "invoice_date": "2026-01-06",
+  "invoice_date_due": "2026-02-05",
+  "invoice_origin": "S04371",
+  "move_type": "out_invoice",
+  "name": "INV/0972",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-01-19 08:00:00",
+  "id": 973,
+  "invoice_date": "2026-01-19",
+  "invoice_date_due": "2026-02-18",
+  "invoice_origin": "S04372",
+  "move_type": "out_invoice",
+  "name": "INV/0973",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-02-01 08:00:00",
+  "id": 974,
+  "invoice_date": "2026-02-01",
+  "invoice_date_due": "2026-03-03",
+  "invoice_origin": "S04373",
+  "move_type": "out_invoice",
+  "name": "INV/0974",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-02-14 08:00:00",
+  "id": 975,
+  "invoice_date": "2026-02-14",
+  "invoice_date_due": "2026-03-16",
+  "invoice_origin": "S04374",
+  "move_type": "out_invoice",
+  "name": "INV/0975",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-02-27 08:00:00",
+  "id": 976,
+  "invoice_date": "2026-02-27",
+  "invoice_date_due": "2026-03-29",
+  "invoice_origin": "S04375",
+  "move_type": "out_invoice",
+  "name": "INV/0976",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-03-12 08:00:00",
+  "id": 977,
+  "invoice_date": "2026-03-12",
+  "invoice_date_due": "2026-04-11",
+  "invoice_origin": "S04376",
+  "move_type": "out_invoice",
+  "name": "INV/0977",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-03-25 08:00:00",
+  "id": 978,
+  "invoice_date": "2026-03-25",
+  "invoice_date_due": "2026-04-24",
+  "invoice_origin": "S04377",
+  "move_type": "out_invoice",
+  "name": "INV/0978",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 33700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-04-07 08:00:00",
+  "id": 979,
+  "invoice_date": "2026-04-07",
+  "invoice_date_due": "2026-05-07",
+  "invoice_origin": "S04378",
+  "move_type": "out_invoice",
+  "name": "INV/0979",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 34000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-04-21 08:00:00",
+  "id": 980,
+  "invoice_date": "2026-04-21",
+  "invoice_date_due": "2026-05-21",
+  "invoice_origin": "S04379",
+  "move_type": "out_invoice",
+  "name": "INV/0980",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-05-05 08:00:00",
+  "id": 981,
+  "invoice_date": "2026-05-05",
+  "invoice_date_due": "2026-06-04",
+  "invoice_origin": "S04380",
+  "move_type": "out_invoice",
+  "name": "INV/0981",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 31400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-05-19 08:00:00",
+  "id": 982,
+  "invoice_date": "2026-05-19",
+  "invoice_date_due": "2026-06-18",
+  "invoice_origin": "S04381",
+  "move_type": "out_invoice",
+  "name": "INV/0982",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 33500000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-06-02 08:00:00",
+  "id": 983,
+  "invoice_date": "2026-06-02",
+  "invoice_date_due": "2026-07-02",
+  "invoice_origin": "S04382",
+  "move_type": "out_invoice",
+  "name": "INV/0983",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 33500000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-06-16 08:00:00",
+  "id": 984,
+  "invoice_date": "2026-06-16",
+  "invoice_date_due": "2026-07-16",
+  "invoice_origin": "S04383",
+  "move_type": "out_invoice",
+  "name": "INV/0984",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 33500000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-06-30 08:00:00",
+  "id": 985,
+  "invoice_date": "2026-06-30",
+  "invoice_date_due": "2026-07-30",
+  "invoice_origin": "S04384",
+  "move_type": "out_invoice",
+  "name": "INV/0985",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 32400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-07-14 08:00:00",
+  "id": 986,
+  "invoice_date": "2026-07-14",
+  "invoice_date_due": "2026-08-13",
+  "invoice_origin": "S04385",
+  "move_type": "out_invoice",
+  "name": "INV/0986",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 32400000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-07-28 08:00:00",
+  "id": 987,
+  "invoice_date": "2026-07-28",
+  "invoice_date_due": "2026-08-27",
+  "invoice_origin": "S04386",
+  "move_type": "out_invoice",
+  "name": "INV/0987",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36600000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-08-11 08:00:00",
+  "id": 988,
+  "invoice_date": "2026-08-11",
+  "invoice_date_due": "2026-09-10",
+  "invoice_origin": "S04387",
+  "move_type": "out_invoice",
+  "name": "INV/0988",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 36600000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-08-25 08:00:00",
+  "id": 989,
+  "invoice_date": "2026-08-25",
+  "invoice_date_due": "2026-09-24",
+  "invoice_origin": "S04388",
+  "move_type": "out_invoice",
+  "name": "INV/0989",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 26000000,
+  "amount_total": 26000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-09-08 08:00:00",
+  "id": 990,
+  "invoice_date": "2026-09-08",
+  "invoice_date_due": "2026-10-08",
+  "invoice_origin": "S04389",
+  "move_type": "out_invoice",
+  "name": "INV/0990",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 34000000,
+  "amount_total": 34000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-09-22 08:00:00",
+  "id": 991,
+  "invoice_date": "2026-09-22",
+  "invoice_date_due": "2026-10-22",
+  "invoice_origin": "S04390",
+  "move_type": "out_invoice",
+  "name": "INV/0991",
+  "partner_id": [
+   3014,
+   "Jaya Abadi Elektronik"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-10-14 08:00:00",
+  "id": 992,
+  "invoice_date": "2025-10-14",
+  "invoice_date_due": "2025-11-13",
+  "invoice_origin": "S04391",
+  "move_type": "out_invoice",
+  "name": "INV/0992",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-10-27 08:00:00",
+  "id": 993,
+  "invoice_date": "2025-10-27",
+  "invoice_date_due": "2025-11-26",
+  "invoice_origin": "S04392",
+  "move_type": "out_invoice",
+  "name": "INV/0993",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-11-09 08:00:00",
+  "id": 994,
+  "invoice_date": "2025-11-09",
+  "invoice_date_due": "2025-12-09",
+  "invoice_origin": "S04393",
+  "move_type": "out_invoice",
+  "name": "INV/0994",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-11-22 08:00:00",
+  "id": 995,
+  "invoice_date": "2025-11-22",
+  "invoice_date_due": "2025-12-22",
+  "invoice_origin": "S04394",
+  "move_type": "out_invoice",
+  "name": "INV/0995",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-12-05 08:00:00",
+  "id": 996,
+  "invoice_date": "2025-12-05",
+  "invoice_date_due": "2026-01-04",
+  "invoice_origin": "S04395",
+  "move_type": "out_invoice",
+  "name": "INV/0996",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-12-18 08:00:00",
+  "id": 997,
+  "invoice_date": "2025-12-18",
+  "invoice_date_due": "2026-01-17",
+  "invoice_origin": "S04396",
+  "move_type": "out_invoice",
+  "name": "INV/0997",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2025-12-31 08:00:00",
+  "id": 998,
+  "invoice_date": "2025-12-31",
+  "invoice_date_due": "2026-01-30",
+  "invoice_origin": "S04397",
+  "move_type": "out_invoice",
+  "name": "INV/0998",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-01-13 08:00:00",
+  "id": 999,
+  "invoice_date": "2026-01-13",
+  "invoice_date_due": "2026-02-12",
+  "invoice_origin": "S04398",
+  "move_type": "out_invoice",
+  "name": "INV/0999",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-01-26 08:00:00",
+  "id": 1000,
+  "invoice_date": "2026-01-26",
+  "invoice_date_due": "2026-02-25",
+  "invoice_origin": "S04399",
+  "move_type": "out_invoice",
+  "name": "INV/1000",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-02-08 08:00:00",
+  "id": 1001,
+  "invoice_date": "2026-02-08",
+  "invoice_date_due": "2026-03-10",
+  "invoice_origin": "S04400",
+  "move_type": "out_invoice",
+  "name": "INV/1001",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-02-21 08:00:00",
+  "id": 1002,
+  "invoice_date": "2026-02-21",
+  "invoice_date_due": "2026-03-23",
+  "invoice_origin": "S04401",
+  "move_type": "out_invoice",
+  "name": "INV/1002",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-03-06 08:00:00",
+  "id": 1003,
+  "invoice_date": "2026-03-06",
+  "invoice_date_due": "2026-04-05",
+  "invoice_origin": "S04402",
+  "move_type": "out_invoice",
+  "name": "INV/1003",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-03-19 08:00:00",
+  "id": 1004,
+  "invoice_date": "2026-03-19",
+  "invoice_date_due": "2026-04-18",
+  "invoice_origin": "S04403",
+  "move_type": "out_invoice",
+  "name": "INV/1004",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 25700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-04-01 08:00:00",
+  "id": 1005,
+  "invoice_date": "2026-04-01",
+  "invoice_date_due": "2026-05-01",
+  "invoice_origin": "S04404",
+  "move_type": "out_invoice",
+  "name": "INV/1005",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 20200000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-04-14 08:00:00",
+  "id": 1006,
+  "invoice_date": "2026-04-14",
+  "invoice_date_due": "2026-05-14",
+  "invoice_origin": "S04405",
+  "move_type": "out_invoice",
+  "name": "INV/1006",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 18200000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-05-08 08:00:00",
+  "id": 1007,
+  "invoice_date": "2026-05-08",
+  "invoice_date_due": "2026-06-07",
+  "invoice_origin": "S04406",
+  "move_type": "out_invoice",
+  "name": "INV/1007",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 19700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-06-01 08:00:00",
+  "id": 1008,
+  "invoice_date": "2026-06-01",
+  "invoice_date_due": "2026-07-01",
+  "invoice_origin": "S04407",
+  "move_type": "out_invoice",
+  "name": "INV/1008",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 19700000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-06-25 08:00:00",
+  "id": 1009,
+  "invoice_date": "2026-06-25",
+  "invoice_date_due": "2026-07-25",
+  "invoice_origin": "S04408",
+  "move_type": "out_invoice",
+  "name": "INV/1009",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 21200000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-07-19 08:00:00",
+  "id": 1010,
+  "invoice_date": "2026-07-19",
+  "invoice_date_due": "2026-08-18",
+  "invoice_origin": "S04409",
+  "move_type": "out_invoice",
+  "name": "INV/1010",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 19000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-08-12 08:00:00",
+  "id": 1011,
+  "invoice_date": "2026-08-12",
+  "invoice_date_due": "2026-09-11",
+  "invoice_origin": "S04410",
+  "move_type": "out_invoice",
+  "name": "INV/1011",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 41000000,
+  "amount_total": 41000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-09-05 08:00:00",
+  "id": 901,
+  "invoice_date": "2026-09-05",
+  "invoice_date_due": "2026-10-05",
+  "invoice_origin": "S04411",
+  "move_type": "out_invoice",
+  "name": "INV/0901",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 57000000,
+  "amount_total": 57000000,
+  "company_id": [
+   3,
+   "GSI Surabaya"
+  ],
+  "create_date": "2026-09-15 08:00:00",
+  "id": 1012,
+  "invoice_date": "2026-09-15",
+  "invoice_date_due": "2026-10-15",
+  "invoice_origin": "S04412",
+  "move_type": "out_invoice",
+  "name": "INV/1012",
+  "partner_id": [
+   3015,
+   "CV Nusa Teknik"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-10-19 08:00:00",
+  "id": 1013,
+  "invoice_date": "2025-10-19",
+  "invoice_date_due": "2025-11-18",
+  "invoice_origin": "S04413",
+  "move_type": "out_invoice",
+  "name": "INV/1013",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-11-04 08:00:00",
+  "id": 1014,
+  "invoice_date": "2025-11-04",
+  "invoice_date_due": "2025-12-04",
+  "invoice_origin": "S04414",
+  "move_type": "out_invoice",
+  "name": "INV/1014",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-11-20 08:00:00",
+  "id": 1015,
+  "invoice_date": "2025-11-20",
+  "invoice_date_due": "2025-12-20",
+  "invoice_origin": "S04415",
+  "move_type": "out_invoice",
+  "name": "INV/1015",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-12-06 08:00:00",
+  "id": 1016,
+  "invoice_date": "2025-12-06",
+  "invoice_date_due": "2026-01-05",
+  "invoice_origin": "S04416",
+  "move_type": "out_invoice",
+  "name": "INV/1016",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-12-22 08:00:00",
+  "id": 1017,
+  "invoice_date": "2025-12-22",
+  "invoice_date_due": "2026-01-21",
+  "invoice_origin": "S04417",
+  "move_type": "out_invoice",
+  "name": "INV/1017",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-01-07 08:00:00",
+  "id": 1018,
+  "invoice_date": "2026-01-07",
+  "invoice_date_due": "2026-02-06",
+  "invoice_origin": "S04418",
+  "move_type": "out_invoice",
+  "name": "INV/1018",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-01-23 08:00:00",
+  "id": 1019,
+  "invoice_date": "2026-01-23",
+  "invoice_date_due": "2026-02-22",
+  "invoice_origin": "S04419",
+  "move_type": "out_invoice",
+  "name": "INV/1019",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-02-08 08:00:00",
+  "id": 1020,
+  "invoice_date": "2026-02-08",
+  "invoice_date_due": "2026-03-10",
+  "invoice_origin": "S04420",
+  "move_type": "out_invoice",
+  "name": "INV/1020",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-02-24 08:00:00",
+  "id": 1021,
+  "invoice_date": "2026-02-24",
+  "invoice_date_due": "2026-03-26",
+  "invoice_origin": "S04421",
+  "move_type": "out_invoice",
+  "name": "INV/1021",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-03-12 08:00:00",
+  "id": 1022,
+  "invoice_date": "2026-03-12",
+  "invoice_date_due": "2026-04-11",
+  "invoice_origin": "S04422",
+  "move_type": "out_invoice",
+  "name": "INV/1022",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 39000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-03-28 08:00:00",
+  "id": 1023,
+  "invoice_date": "2026-03-28",
+  "invoice_date_due": "2026-04-27",
+  "invoice_origin": "S04423",
+  "move_type": "out_invoice",
+  "name": "INV/1023",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 41300000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-04-13 08:00:00",
+  "id": 1024,
+  "invoice_date": "2026-04-13",
+  "invoice_date_due": "2026-05-13",
+  "invoice_origin": "S04424",
+  "move_type": "out_invoice",
+  "name": "INV/1024",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 41200000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-04-29 08:00:00",
+  "id": 1025,
+  "invoice_date": "2026-04-29",
+  "invoice_date_due": "2026-05-29",
+  "invoice_origin": "S04425",
+  "move_type": "out_invoice",
+  "name": "INV/1025",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 38300000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-05-15 08:00:00",
+  "id": 1026,
+  "invoice_date": "2026-05-15",
+  "invoice_date_due": "2026-06-14",
+  "invoice_origin": "S04426",
+  "move_type": "out_invoice",
+  "name": "INV/1026",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 38300000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-05-31 08:00:00",
+  "id": 1027,
+  "invoice_date": "2026-05-31",
+  "invoice_date_due": "2026-06-30",
+  "invoice_origin": "S04427",
+  "move_type": "out_invoice",
+  "name": "INV/1027",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 40300000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-06-16 08:00:00",
+  "id": 1028,
+  "invoice_date": "2026-06-16",
+  "invoice_date_due": "2026-07-16",
+  "invoice_origin": "S04428",
+  "move_type": "out_invoice",
+  "name": "INV/1028",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 42300000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-07-02 08:00:00",
+  "id": 1029,
+  "invoice_date": "2026-07-02",
+  "invoice_date_due": "2026-08-01",
+  "invoice_origin": "S04429",
+  "move_type": "out_invoice",
+  "name": "INV/1029",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 42300000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-07-18 08:00:00",
+  "id": 1030,
+  "invoice_date": "2026-07-18",
+  "invoice_date_due": "2026-08-17",
+  "invoice_origin": "S04430",
+  "move_type": "out_invoice",
+  "name": "INV/1030",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 41300000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-08-03 08:00:00",
+  "id": 1031,
+  "invoice_date": "2026-08-03",
+  "invoice_date_due": "2026-09-02",
+  "invoice_origin": "S04431",
+  "move_type": "out_invoice",
+  "name": "INV/1031",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 41300000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-08-19 08:00:00",
+  "id": 1032,
+  "invoice_date": "2026-08-19",
+  "invoice_date_due": "2026-09-18",
+  "invoice_origin": "S04432",
+  "move_type": "out_invoice",
+  "name": "INV/1032",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 44400000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-09-04 08:00:00",
+  "id": 1033,
+  "invoice_date": "2026-09-04",
+  "invoice_date_due": "2026-10-04",
+  "invoice_origin": "S04433",
+  "move_type": "out_invoice",
+  "name": "INV/1033",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 40000000,
+  "amount_total": 40000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-09-20 08:00:00",
+  "id": 1034,
+  "invoice_date": "2026-09-20",
+  "invoice_date_due": "2026-10-20",
+  "invoice_origin": "S04434",
+  "move_type": "out_invoice",
+  "name": "INV/1034",
+  "partner_id": [
+   3016,
+   "Borneo Security"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 4800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-10-20 08:00:00",
+  "id": 1035,
+  "invoice_date": "2025-10-20",
+  "invoice_date_due": "2025-10-20",
+  "invoice_origin": "S04435",
+  "move_type": "out_invoice",
+  "name": "INV/1035",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 4800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-11-17 08:00:00",
+  "id": 1036,
+  "invoice_date": "2025-11-17",
+  "invoice_date_due": "2025-11-17",
+  "invoice_origin": "S04436",
+  "move_type": "out_invoice",
+  "name": "INV/1036",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 4800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-12-15 08:00:00",
+  "id": 1037,
+  "invoice_date": "2025-12-15",
+  "invoice_date_due": "2025-12-15",
+  "invoice_origin": "S04437",
+  "move_type": "out_invoice",
+  "name": "INV/1037",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 4800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-01-12 08:00:00",
+  "id": 1038,
+  "invoice_date": "2026-01-12",
+  "invoice_date_due": "2026-01-12",
+  "invoice_origin": "S04438",
+  "move_type": "out_invoice",
+  "name": "INV/1038",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 4800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-02-09 08:00:00",
+  "id": 1039,
+  "invoice_date": "2026-02-09",
+  "invoice_date_due": "2026-02-09",
+  "invoice_origin": "S04439",
+  "move_type": "out_invoice",
+  "name": "INV/1039",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 4800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-03-09 08:00:00",
+  "id": 1040,
+  "invoice_date": "2026-03-09",
+  "invoice_date_due": "2026-03-09",
+  "invoice_origin": "S04440",
+  "move_type": "out_invoice",
+  "name": "INV/1040",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 5100000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-04-06 08:00:00",
+  "id": 1041,
+  "invoice_date": "2026-04-06",
+  "invoice_date_due": "2026-04-06",
+  "invoice_origin": "S04441",
+  "move_type": "out_invoice",
+  "name": "INV/1041",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 5200000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-05-04 08:00:00",
+  "id": 1042,
+  "invoice_date": "2026-05-04",
+  "invoice_date_due": "2026-05-04",
+  "invoice_origin": "S04442",
+  "move_type": "out_invoice",
+  "name": "INV/1042",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 4200000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-06-01 08:00:00",
+  "id": 1043,
+  "invoice_date": "2026-06-01",
+  "invoice_date_due": "2026-06-01",
+  "invoice_origin": "S04443",
+  "move_type": "out_invoice",
+  "name": "INV/1043",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 4200000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-06-29 08:00:00",
+  "id": 1044,
+  "invoice_date": "2026-06-29",
+  "invoice_date_due": "2026-06-29",
+  "invoice_origin": "S04444",
+  "move_type": "out_invoice",
+  "name": "INV/1044",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 6300000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-07-27 08:00:00",
+  "id": 1045,
+  "invoice_date": "2026-07-27",
+  "invoice_date_due": "2026-07-27",
+  "invoice_origin": "S04445",
+  "move_type": "out_invoice",
+  "name": "INV/1045",
+  "partner_id": [
+   3017,
+   "Toko Sumber Rejeki"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-10-05 08:00:00",
+  "id": 1046,
+  "invoice_date": "2025-10-05",
+  "invoice_date_due": "2025-11-04",
+  "invoice_origin": "S04446",
+  "move_type": "out_invoice",
+  "name": "INV/1046",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-10-16 08:00:00",
+  "id": 1047,
+  "invoice_date": "2025-10-16",
+  "invoice_date_due": "2025-11-15",
+  "invoice_origin": "S04447",
+  "move_type": "out_invoice",
+  "name": "INV/1047",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-10-27 08:00:00",
+  "id": 1048,
+  "invoice_date": "2025-10-27",
+  "invoice_date_due": "2025-11-26",
+  "invoice_origin": "S04448",
+  "move_type": "out_invoice",
+  "name": "INV/1048",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-11-07 08:00:00",
+  "id": 1049,
+  "invoice_date": "2025-11-07",
+  "invoice_date_due": "2025-12-07",
+  "invoice_origin": "S04449",
+  "move_type": "out_invoice",
+  "name": "INV/1049",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-11-18 08:00:00",
+  "id": 1050,
+  "invoice_date": "2025-11-18",
+  "invoice_date_due": "2025-12-18",
+  "invoice_origin": "S04450",
+  "move_type": "out_invoice",
+  "name": "INV/1050",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-11-29 08:00:00",
+  "id": 1051,
+  "invoice_date": "2025-11-29",
+  "invoice_date_due": "2025-12-29",
+  "invoice_origin": "S04451",
+  "move_type": "out_invoice",
+  "name": "INV/1051",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-12-10 08:00:00",
+  "id": 1052,
+  "invoice_date": "2025-12-10",
+  "invoice_date_due": "2026-01-09",
+  "invoice_origin": "S04452",
+  "move_type": "out_invoice",
+  "name": "INV/1052",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2025-12-21 08:00:00",
+  "id": 1053,
+  "invoice_date": "2025-12-21",
+  "invoice_date_due": "2026-01-20",
+  "invoice_origin": "S04453",
+  "move_type": "out_invoice",
+  "name": "INV/1053",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-01-01 08:00:00",
+  "id": 1054,
+  "invoice_date": "2026-01-01",
+  "invoice_date_due": "2026-01-31",
+  "invoice_origin": "S04454",
+  "move_type": "out_invoice",
+  "name": "INV/1054",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-01-12 08:00:00",
+  "id": 1055,
+  "invoice_date": "2026-01-12",
+  "invoice_date_due": "2026-02-11",
+  "invoice_origin": "S04455",
+  "move_type": "out_invoice",
+  "name": "INV/1055",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-01-23 08:00:00",
+  "id": 1056,
+  "invoice_date": "2026-01-23",
+  "invoice_date_due": "2026-02-22",
+  "invoice_origin": "S04456",
+  "move_type": "out_invoice",
+  "name": "INV/1056",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-02-03 08:00:00",
+  "id": 1057,
+  "invoice_date": "2026-02-03",
+  "invoice_date_due": "2026-03-05",
+  "invoice_origin": "S04457",
+  "move_type": "out_invoice",
+  "name": "INV/1057",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-02-14 08:00:00",
+  "id": 1058,
+  "invoice_date": "2026-02-14",
+  "invoice_date_due": "2026-03-16",
+  "invoice_origin": "S04458",
+  "move_type": "out_invoice",
+  "name": "INV/1058",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-02-25 08:00:00",
+  "id": 1059,
+  "invoice_date": "2026-02-25",
+  "invoice_date_due": "2026-03-27",
+  "invoice_origin": "S04459",
+  "move_type": "out_invoice",
+  "name": "INV/1059",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-03-08 08:00:00",
+  "id": 1060,
+  "invoice_date": "2026-03-08",
+  "invoice_date_due": "2026-04-07",
+  "invoice_origin": "S04460",
+  "move_type": "out_invoice",
+  "name": "INV/1060",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-03-19 08:00:00",
+  "id": 1061,
+  "invoice_date": "2026-03-19",
+  "invoice_date_due": "2026-04-18",
+  "invoice_origin": "S04461",
+  "move_type": "out_invoice",
+  "name": "INV/1061",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 104500000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-03-30 08:00:00",
+  "id": 1062,
+  "invoice_date": "2026-03-30",
+  "invoice_date_due": "2026-04-29",
+  "invoice_origin": "S04462",
+  "move_type": "out_invoice",
+  "name": "INV/1062",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 113700000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-04-10 08:00:00",
+  "id": 1063,
+  "invoice_date": "2026-04-10",
+  "invoice_date_due": "2026-05-10",
+  "invoice_origin": "S04463",
+  "move_type": "out_invoice",
+  "name": "INV/1063",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 113900000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-04-21 08:00:00",
+  "id": 1064,
+  "invoice_date": "2026-04-21",
+  "invoice_date_due": "2026-05-21",
+  "invoice_origin": "S04464",
+  "move_type": "out_invoice",
+  "name": "INV/1064",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 100800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-05-02 08:00:00",
+  "id": 1065,
+  "invoice_date": "2026-05-02",
+  "invoice_date_due": "2026-06-01",
+  "invoice_origin": "S04465",
+  "move_type": "out_invoice",
+  "name": "INV/1065",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 100800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-05-13 08:00:00",
+  "id": 1066,
+  "invoice_date": "2026-05-13",
+  "invoice_date_due": "2026-06-12",
+  "invoice_origin": "S04466",
+  "move_type": "out_invoice",
+  "name": "INV/1066",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 100800000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-05-24 08:00:00",
+  "id": 1067,
+  "invoice_date": "2026-05-24",
+  "invoice_date_due": "2026-06-23",
+  "invoice_origin": "S04467",
+  "move_type": "out_invoice",
+  "name": "INV/1067",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 106400000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-06-04 08:00:00",
+  "id": 1068,
+  "invoice_date": "2026-06-04",
+  "invoice_date_due": "2026-07-04",
+  "invoice_origin": "S04468",
+  "move_type": "out_invoice",
+  "name": "INV/1068",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 106400000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-06-15 08:00:00",
+  "id": 1069,
+  "invoice_date": "2026-06-15",
+  "invoice_date_due": "2026-07-15",
+  "invoice_origin": "S04469",
+  "move_type": "out_invoice",
+  "name": "INV/1069",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 106400000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-06-26 08:00:00",
+  "id": 1070,
+  "invoice_date": "2026-06-26",
+  "invoice_date_due": "2026-07-26",
+  "invoice_origin": "S04470",
+  "move_type": "out_invoice",
+  "name": "INV/1070",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 112000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-07-07 08:00:00",
+  "id": 1071,
+  "invoice_date": "2026-07-07",
+  "invoice_date_due": "2026-08-06",
+  "invoice_origin": "S04471",
+  "move_type": "out_invoice",
+  "name": "INV/1071",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 112000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-07-18 08:00:00",
+  "id": 1072,
+  "invoice_date": "2026-07-18",
+  "invoice_date_due": "2026-08-17",
+  "invoice_origin": "S04472",
+  "move_type": "out_invoice",
+  "name": "INV/1072",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 112000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-07-29 08:00:00",
+  "id": 1073,
+  "invoice_date": "2026-07-29",
+  "invoice_date_due": "2026-08-28",
+  "invoice_origin": "S04473",
+  "move_type": "out_invoice",
+  "name": "INV/1073",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 117600000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-08-09 08:00:00",
+  "id": 1074,
+  "invoice_date": "2026-08-09",
+  "invoice_date_due": "2026-09-08",
+  "invoice_origin": "S04474",
+  "move_type": "out_invoice",
+  "name": "INV/1074",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 117600000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-08-20 08:00:00",
+  "id": 1075,
+  "invoice_date": "2026-08-20",
+  "invoice_date_due": "2026-09-19",
+  "invoice_origin": "S04475",
+  "move_type": "out_invoice",
+  "name": "INV/1075",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 117600000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-08-31 08:00:00",
+  "id": 1076,
+  "invoice_date": "2026-08-31",
+  "invoice_date_due": "2026-09-30",
+  "invoice_origin": "S04476",
+  "move_type": "out_invoice",
+  "name": "INV/1076",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 121000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-09-11 08:00:00",
+  "id": 1077,
+  "invoice_date": "2026-09-11",
+  "invoice_date_due": "2026-10-11",
+  "invoice_origin": "S04477",
+  "move_type": "out_invoice",
+  "name": "INV/1077",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 0,
+  "amount_total": 121000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-09-22 08:00:00",
+  "id": 1078,
+  "invoice_date": "2026-09-22",
+  "invoice_date_due": "2026-10-22",
+  "invoice_origin": "S04478",
+  "move_type": "out_invoice",
+  "name": "INV/1078",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "amount_residual": 90000000,
+  "amount_total": 90000000,
+  "company_id": [
+   4,
+   "GSI Jakarta"
+  ],
+  "create_date": "2026-10-03 08:00:00",
+  "id": 1079,
+  "invoice_date": "2026-10-03",
+  "invoice_date_due": "2026-11-02",
+  "invoice_origin": "S04479",
+  "move_type": "out_invoice",
+  "name": "INV/1079",
+  "partner_id": [
+   3018,
+   "PT Global Secur"
+  ],
+  "payment_state": "not_paid",
+  "state": "posted",
+  "write_date": "2026-10-04 23:00:00"
+ }
+]
