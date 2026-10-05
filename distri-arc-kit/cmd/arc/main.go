@@ -18,8 +18,10 @@ import (
 	"distri-arc/internal/api"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
+	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
+	"distri-arc/internal/views"
 	"distri-arc/internal/worker"
 )
 
@@ -31,6 +33,8 @@ const usage = `arc — Distri ARC Orbit
   arc ctl seed [--if-empty]  load db/seed (18 sample dealers); idempotent
   arc ctl reset              drop everything, migrate and seed (dev only)
   arc ctl counts             print row counts
+  arc ctl recompute          recompute dealers.metrics_current (all dealers)
+  arc ctl metrics --dealer <slug>  print a dealer's metrics and the 5 score components
 `
 
 func main() {
@@ -131,13 +135,15 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 	}
 	fs := flag.NewFlagSet("ctl "+args[0], flag.ExitOnError)
 	ifEmpty := fs.Bool("if-empty", false, "seed only when there are no dealers")
+	dealerFlag := fs.String("dealer", "", "dealer slug or id")
 	_ = fs.Parse(args[1:])
 
-	st, _, err := open(ctx, cfg)
+	st, clk, err := open(ctx, cfg)
 	if err != nil {
 		return err
 	}
 	defer st.Close()
+	svc := dealersvc.New(st, clk)
 	switch args[0] {
 	case "migrate":
 		if err := st.Migrate(ctx); err != nil {
@@ -159,6 +165,9 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 		if err != nil {
 			return err
 		}
+		if _, err := svc.Recompute(ctx); err != nil {
+			return err
+		}
 		printCounts(res)
 	case "reset":
 		if !cfg.IsDev() {
@@ -174,7 +183,18 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 		if err != nil {
 			return err
 		}
+		if _, err := svc.Recompute(ctx); err != nil {
+			return err
+		}
 		printCounts(res)
+	case "recompute":
+		ms, err := svc.Recompute(ctx)
+		if err != nil {
+			return err
+		}
+		log.Info("recomputed", "dealers", len(ms))
+	case "metrics":
+		return printMetrics(ctx, st, clk, *dealerFlag)
 	case "counts":
 		res, err := st.Q.CountSeeded(ctx)
 		if err != nil {
@@ -194,4 +214,45 @@ func printCounts(r seed.Result) {
 		fmt.Sprintf("stock_items=%d", r.StockItems), fmt.Sprintf("sales_users=%d", r.SalesUsers),
 		fmt.Sprintf("commitments=%d", r.Commitments), fmt.Sprintf("policies=%d", r.Policies),
 	}, " "))
+}
+
+func printMetrics(ctx context.Context, st *store.Store, c clock.Clock, id string) error {
+	if id == "" {
+		return errors.New("--dealer is required")
+	}
+	b, err := views.NewBuilder(st, c).Board(ctx)
+	if err != nil {
+		return err
+	}
+	it, ok := b.Get(id)
+	if !ok {
+		return fmt.Errorf("dealer %q not found", id)
+	}
+	m := it.Metrics
+	opt := func(p *int) string {
+		if p == nil {
+			return "—"
+		}
+		return fmt.Sprint(*p)
+	}
+	fmt.Printf("%s (%s · %s · tier %s · sales %s)\n", it.Name, it.City, it.Branch, it.Tier, it.Owner.Name)
+	fmt.Printf("  siklus order   %s hr · terakhir %s hr · cyc %.2f · jadwal order %s · status %s · aktivitas %s\n", opt(m.Rhythm), opt(m.Last), m.Cyc, opt(m.DueIn), m.Status, m.Activity)
+	fmt.Printf("  segmen         %s · %.2f×/bln · Rp %d/order · omzet Rp %d/bln\n", m.Segment, deref(m.Freq), m.AvgOrder, m.OmzetBln)
+	fmt.Printf("  share of wallet %d%% (%s) · product mix %d/6 %v\n", m.SOW, m.SOWSource, m.Mix, m.MixCats)
+	room := "cash"
+	if m.Credit.Room != nil {
+		room = fmt.Sprintf("%.0f%%", *m.Credit.Room*100)
+	}
+	fmt.Printf("  sisa limit     %s · exposure Rp %d / limit Rp %d · ruang %s · pola bayar %d hr · tepat waktu %d%%\n", m.Credit.State, m.Credit.Exposure, m.Credit.Limit, room, m.Credit.PayDays, m.Credit.OnTime)
+	fmt.Printf("  PIC aktif      %d\n", m.PICActive)
+	p := m.ScoreParts
+	fmt.Printf("  skor dealer    %d  (siklus %d · SOW %d · mix %d · limit %d · PIC %d)\n", m.Score, p.Rhythm, p.SOW, p.Mix, p.Credit, p.Contact)
+	return nil
+}
+
+func deref(p *float64) float64 {
+	if p == nil {
+		return 0
+	}
+	return *p
 }

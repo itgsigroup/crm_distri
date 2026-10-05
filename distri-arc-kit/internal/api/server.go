@@ -15,6 +15,7 @@ import (
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
+	"distri-arc/internal/views"
 )
 
 // Server wires handlers to the store.
@@ -23,11 +24,12 @@ type Server struct {
 	st    *store.Store
 	clock clock.Clock
 	log   *slog.Logger
+	views *views.Builder
 }
 
 // New builds the API server.
 func New(cfg config.Config, st *store.Store, c clock.Clock, log *slog.Logger) *Server {
-	return &Server{cfg: cfg, st: st, clock: c, log: log}
+	return &Server{cfg: cfg, st: st, clock: c, log: log, views: views.NewBuilder(st, c)}
 }
 
 // Handler returns the HTTP handler with middleware and routes.
@@ -39,6 +41,7 @@ func (s *Server) Handler() http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(s.auth)
 			r.Get("/me", s.me)
+			s.readRoutes(r)
 		})
 	})
 	return r

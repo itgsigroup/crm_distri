@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 1,
+  "current_stage": 2,
   "stages": [
     {
       "id": 0,
@@ -18,12 +18,12 @@
     {
       "id": 1,
       "name": "Domain & metrics engine (rumus Orbit) + API baca dealer",
-      "status": "pending",
+      "status": "done",
       "file": "docs/stages/01-metrics-domain.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-05",
+      "finished_at": "2026-10-05",
+      "summary": "internal/domain + internal/metrics (siklus order median, status, aktivitas, segmen, SOW, product mix, sisa limit, pola bayar, tepat waktu, PIC aktif, skor 5 komponen, KPI, push kandidat, rekomendasi order); 16 kasus glossary + uji properti; seed regression: 18 dealer = mockup (toleransi 0); job metrics.recompute (10 mnt) & metrics.snapshot (00.30 WIB); API baca dealers/orbit/segmen/due/drift/credit-tight/kpi/agenda/stock/credit; arc ctl metrics.",
+      "notes": "KPI dihitung dari rumus: order tepat jadwal 81% (mockup 85%), DSO 30 hr kredit-saja (mockup 36), perputaran stok 46 hr, lewat tempo Rp 141 jt. Skor dihitung tanpa FMA agar pembulatan x,5 sama dengan rumus acuan."
     },
     {
       "id": 2,
