@@ -806,6 +806,20 @@ func (q *Queries) MarkSignalsProcessed(ctx context.Context, arg MarkSignalsProce
 	return err
 }
 
+const movePlanItem = `-- name: MovePlanItem :exec
+update plan_items set time_label = $2 where id = $1
+`
+
+type MovePlanItemParams struct {
+	ID        uuid.UUID `json:"id"`
+	TimeLabel *string   `json:"time_label"`
+}
+
+func (q *Queries) MovePlanItem(ctx context.Context, arg MovePlanItemParams) error {
+	_, err := q.db.Exec(ctx, movePlanItem, arg.ID, arg.TimeLabel)
+	return err
+}
+
 const newNumberThreads = `-- name: NewNumberThreads :many
 select t.id as thread_id, t.wa_jid, su.name as sales, i.wa_number, i.best_name, i.best_org, i.score, i.sources,
   m.signal_id, m.body as last_text, m.sent_at as last_at
@@ -862,6 +876,17 @@ func (q *Queries) NewNumberThreads(ctx context.Context) ([]NewNumberThreadsRow, 
 		return nil, err
 	}
 	return items, nil
+}
+
+const nextPlanSeq = `-- name: NextPlanSeq :one
+select coalesce(max(seq), 0)::int + 1 from plan_items where plan_date = $1
+`
+
+func (q *Queries) NextPlanSeq(ctx context.Context, planDate time.Time) (int32, error) {
+	row := q.db.QueryRow(ctx, nextPlanSeq, planDate)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const openProposalByKey = `-- name: OpenProposalByKey :one

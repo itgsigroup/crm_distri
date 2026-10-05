@@ -180,3 +180,9 @@ returning *;
 -- Proposals per agent today (agent cards).
 select agent, count(*)::bigint as n from proposals where created_at >= sqlc.arg(since)::timestamptz and kind <> 'reply' and payload->>'parent' is null
 group by agent;
+
+-- name: MovePlanItem :exec
+update plan_items set time_label = $2 where id = $1;
+
+-- name: NextPlanSeq :one
+select coalesce(max(seq), 0)::int + 1 from plan_items where plan_date = $1;

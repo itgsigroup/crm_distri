@@ -63,3 +63,12 @@ test('Analisis ulang di Orbit runs a cycle and reports it (stage 06)', async ({ 
   await expect(page.locator('table.runs tbody tr').first()).toContainText('Analisis ulang orbit')
   await expect(page.locator('.conflicts li')).not.toHaveCount(0)
 })
+
+test('MCP panel and Koneksi AI come from the server (stage 07)', async ({ page }) => {
+  await page.goto('/orchestrator', { waitUntil: 'networkidle' })
+  const panel = page.locator('.card').filter({ hasText: 'MCP sebagai orchestrator' })
+  await expect(panel.getByText('Terkunci')).toBeVisible()
+  await expect(panel.locator('.tools')).toContainText('orchestrator.submit')
+  await page.goto('/pengaturan', { waitUntil: 'networkidle' })
+  await expect(page.locator('.ep')).toContainText('/mcp')
+})

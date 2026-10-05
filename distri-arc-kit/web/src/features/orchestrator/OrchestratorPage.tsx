@@ -7,7 +7,8 @@ import { hhmm } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { useAgents, useConflicts, useCycleLatest, useCycles, usePolicies } from '../../app/queries'
+import { useAgents, useConflicts, useCycleLatest, useCycles, useMCPCalls, useMCPInfo } from '../../app/queries'
+import { MCPClientsPanel, MCPRules, ModeSeg } from '../settings/AIConnections'
 
 // Default stage descriptions before the first cycle (mockup STAGES).
 const STAGE_HINT = ['WA · SO · bayar · stok cabang', '6 agen paralel', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
@@ -58,21 +59,25 @@ function Runs({ cycles }: { cycles: Cycle[] }) {
   )
 }
 
+function argText(a: Record<string, unknown> | null): string {
+  if (!a) return ''
+  return Object.entries(a).filter(([, v]) => v !== '' && v != null && !(Array.isArray(v) && v.length === 0)).map(([k, v]) => `${k}:${typeof v === 'string' ? `"${v}"` : Array.isArray(v) ? `[${v.length}]` : JSON.stringify(v)}`).join(', ')
+}
+
 // Orchestrator (mockup screen-orch).
 export function OrchestratorPage() {
   const nav = useNavigate()
-  const { toast } = useFeedback()
+  const { openSheet } = useFeedback()
   const { reanalyze } = useOrch()
   const st = useOrchStatus()
   const { data: latest } = useCycleLatest()
   const { data: cycles = [] } = useCycles()
   const { data: conflicts = [] } = useConflicts()
   const { data: agents = [] } = useAgents()
-  const { data: pol } = usePolicies()
-  const mode = String((pol?.['llm.routing']?.value as { mode?: string } | undefined)?.mode ?? 'both')
+  const { data: info } = useMCPInfo()
+  const { data: calls = [] } = useMCPCalls()
   const shown = st.running && latest?.cycle ? latest.cycle : (latest?.last_full ?? latest?.last_done)
   const meta = st.run ? `siklus #${st.run.toLocaleString('id-ID')} · ${st.last} · ${st.dur}` : 'belum ada siklus'
-  const later = () => toast('Jalur analisis diatur di Pengaturan (Stage 11) · klien MCP tersambung di Stage 07')
 
   return (
     <>
@@ -84,7 +89,7 @@ export function OrchestratorPage() {
           <div className="oh-kv"><small>Status</small><b>{st.running ? `Menganalisis ${st.scope} · ${st.stage}` : 'Siap · menunggu siklus'}</b></div>
           <div className="oh-kv"><small>Analisis terakhir</small><b>{st.run ? `#${st.run.toLocaleString('id-ID')} · ${st.last}` : '—'}</b></div>
           <div className="oh-kv"><small>Berikutnya</small><b>{st.next} · tiap jam</b></div>
-          <div className="oh-kv"><small>Jalur analisis</small><div className="seg">{[['api', 'API AI'], ['mcp', 'MCP'], ['both', 'Keduanya']].map(([k, l]) => <button key={k} className={mode === k ? 'is-active' : ''} onClick={later}>{l}</button>)}</div></div>
+          <div className="oh-kv"><small>Jalur analisis</small><ModeSeg /></div>
           <div className="oh-btns">
             <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all')}><Icon name="refresh" />Analisis ulang sekarang</button>
             <button className="btn ghost" disabled={st.running} onClick={() => reanalyze('all', 'mcp')}><Icon name="plug" />Lewat MCP</button>
@@ -139,28 +144,23 @@ export function OrchestratorPage() {
             </div>
           </div>
           <div className="card">
-            <div className="card-h"><h2>MCP sebagai orchestrator</h2><Pill tone="neutral" icon="plug">Stage 07</Pill></div>
+            <div className="card-h"><h2>MCP sebagai orchestrator</h2>{info?.enabled ? <Pill tone="good" icon="check">Aktif</Pill> : <Pill tone="neutral" icon="plug">Mati</Pill>}<button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 'auto' }} onClick={() => openSheet(<MCPClientsPanel />)}>Klien &amp; token</button></div>
             <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5, marginBottom: 10 }}>Klien MCP (Claude Desktop, ChatGPT, agent eksternal) tidak hanya membaca data: mereka bisa memicu analisis ulang, meminta rencana, dan menjalankan satu agen — lewat tool yang sama dengan yang dipakai Orchestrator internal.</p>
-            <ul className="rules">
-              <li><div><b>Klien MCP boleh memicu analisis ulang</b><span>orchestrator.reanalyze(scope) · hasil masuk antrean, bukan langsung ke dealer</span></div><button className="sw on" aria-label="toggle" onClick={later} /></li>
-              <li><div><b>Klien MCP boleh mengubah rencana hari ini</b><span>orchestrator.plan.update · setiap perubahan butuh approve Anda</span></div><button className="sw on" aria-label="toggle" onClick={later} /></li>
-              <li><div><b>Klien MCP boleh mengirim ke dealer</b><span>Tidak pernah. Pengiriman hanya lewat tombol Setujui di aplikasi ini</span></div><Pill tone="neutral" icon="lock">Terkunci</Pill></li>
-            </ul>
+            <MCPRules />
             <div className="hr" />
             <h3 className="h3">Panggilan terakhir dari klien MCP</h3>
             <ul className="mcp-log">
-              {cycles.filter((c) => c.via === 'mcp').slice(0, 5).map((c) => (
-                <li key={c.id}><span className="num t">{hhmm(c.started_at)}</span><div><b>{c.requested_by ?? 'Klien MCP'}</b><code>orchestrator.reanalyze(scope:"{c.scope}")</code><span>→ {c.note}</span></div></li>
+              {calls.slice(0, 5).map((m) => (
+                <li key={m.id}><span className="num t">{hhmm(m.created_at)}</span><div><b>{m.client_name ?? 'Klien tanpa token'}</b><code style={{ overflowWrap: 'anywhere' }}>{m.tool}({argText(m.args)})</code><span style={m.status === 'ok' ? undefined : { color: 'var(--bad)' }}>→ {m.status === 'ok' ? m.result_summary : `${m.status} · ${m.result_summary ?? ''}`}</span></div></li>
               ))}
-              {!cycles.some((c) => c.via === 'mcp') && <li><span className="num t">—</span><div><b>Belum ada panggilan</b><span>Server MCP (Streamable HTTP + OAuth) tersambung di Stage 07</span></div></li>}
+              {calls.length === 0 && <li><span className="num t">—</span><div><b>Belum ada panggilan</b><span>Buat token di Klien &amp; token, lalu sambungkan Claude Desktop ke {info?.endpoint ?? '/mcp'}</span></div></li>}
             </ul>
             <div className="hr" />
             <h3 className="h3">Tool MCP</h3>
             <div className="tools">
-              <div><small>Baca</small><code>dealer.list · dealer.get · segmen.list · jadwal.due · jadwal.lewat · kredit.check · stok.aging · chat.thread</code></div>
-              <div><small>Analisis</small><code>analisis.dealer · analisis.segmen · analisis.kas · analisis.stok</code></div>
-              <div><small>Orkestrasi</small><code>orchestrator.run · orchestrator.reanalyze(scope) · orchestrator.plan · orchestrator.agent.run(nama)</code></div>
-              <div><small>Keputusan · human-only</small><code>actions.decide</code></div>
+              {([['read', 'Baca'], ['analyze', 'Analisis'], ['orchestrate', 'Orkestrasi'], ['decide', 'Keputusan · human-only']] as const).map(([k, l]) => (
+                <div key={k}><small>{l}</small><code style={{ overflowWrap: 'anywhere' }}>{(info?.tools ?? []).filter((t) => t.scope === k).map((t) => t.name).join(' · ')}</code></div>
+              ))}
             </div>
           </div>
           <div className="card">

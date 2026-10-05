@@ -16,6 +16,7 @@ import (
 	"distri-arc/internal/config"
 	"distri-arc/internal/events"
 	"distri-arc/internal/httpx"
+	"distri-arc/internal/mcp"
 	"distri-arc/internal/odoo"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
@@ -34,7 +35,11 @@ type Server struct {
 	jobs  *river.Client[pgx.Tx]
 	cloud *wa.CloudAPI
 	odoo  odoo.Source
+	mcp   *mcp.Server
 }
+
+// WithMCP mounts the MCP server at /mcp (bearer tokens, not the user session).
+func (s *Server) WithMCP(m *mcp.Server) *Server { s.mcp = m; return s }
 
 // WithJobs lets the API enqueue jobs (outbox.send, wa.pair) in the same transaction as its writes.
 func (s *Server) WithJobs(c *river.Client[pgx.Tx]) *Server { s.jobs = c; return s }
@@ -54,6 +59,9 @@ func (s *Server) Hub() *events.Hub { return s.hub }
 func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, httpx.Logger(s.log), middleware.Recoverer)
+	if s.mcp != nil {
+		r.Handle("/mcp", s.mcp.Handler())
+	}
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", s.health)
 		if s.cloud != nil {
@@ -69,6 +77,7 @@ func (s *Server) Handler() http.Handler {
 			s.connectionRoutes(r)
 			s.proposalRoutes(r)
 			s.cycleRoutes(r)
+			s.mcpRoutes(r)
 			r.Get("/events", s.events)
 			r.Get("/brief/today", s.briefToday)
 		})

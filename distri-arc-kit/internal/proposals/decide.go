@@ -162,6 +162,10 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 			sends := domain.SendsWA(row.Kind) && preview != "" && (opt == nil || opt.Sends || key == "approve")
 			var obID *uuid.UUID
 			switch {
+			case row.Kind == domain.KindPlanChange:
+				if err := applyPlanChange(ctx, q, row, now); err != nil {
+					return err
+				}
 			case row.Kind == domain.KindPushStock:
 				n, err := spawnPerDealer(ctx, q, tx, ins, row, who, now)
 				if err != nil {
@@ -363,4 +367,37 @@ func spawnPerDealer(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.C
 		n++
 	}
 	return n, q.SetProposalStatus(ctx, gen.SetProposalStatusParams{ID: parent.ID, Status: "executed"})
+}
+
+// applyPlanChange carries out an approved orchestrator.plan.update (move | skip | add).
+func applyPlanChange(ctx context.Context, q *gen.Queries, p gen.Proposal, now time.Time) error {
+	var pl struct {
+		Action string `json:"action"`
+		ItemID string `json:"item_id"`
+		Time   string `json:"time"`
+		Text   string `json:"text"`
+		Client string `json:"client"`
+	}
+	_ = json.Unmarshal(p.Payload, &pl)
+	switch pl.Action {
+	case "move", "skip":
+		id, err := uuid.Parse(pl.ItemID)
+		if err != nil {
+			return err
+		}
+		if pl.Action == "skip" {
+			return q.SetPlanStatus(ctx, gen.SetPlanStatusParams{ID: id, Status: domain.PlanSkipped})
+		}
+		return q.MovePlanItem(ctx, gen.MovePlanItemParams{ID: id, TimeLabel: &pl.Time})
+	case "add":
+		day := clock.Today(now)
+		seq, err := q.NextPlanSeq(ctx, day)
+		if err != nil {
+			return err
+		}
+		agent, auto := "MCP · "+pl.Client, "approve"
+		return q.InsertPlanItem(ctx, gen.InsertPlanItemParams{PlanDate: day, CycleID: p.CycleID, Seq: seq, TimeLabel: &pl.Time, Agent: &agent, Autonomy: &auto,
+			TextHtml: &pl.Text, Status: domain.PlanScheduled}) // a step of its own: the plan_change proposal is already decided
+	}
+	return fmt.Errorf("unknown plan action %q", pl.Action)
 }

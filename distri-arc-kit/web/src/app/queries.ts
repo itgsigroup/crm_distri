@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api, type Items } from '../api/client'
-import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, Plan, Proposal } from '../api/types'
+import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, MCPCall, MCPClient, MCPInfo, MCPPolicy, Plan, Proposal } from '../api/types'
 import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAGroup, WANumber } from '../api/types'
 import type {
   AgendaRow, AgingItem, BoardItem, Brief, DealerDetail, Health, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
@@ -88,3 +88,9 @@ export const useConflicts = () => useQuery({ queryKey: ['cycles', 'conflicts'], 
 export const useAgents = () => useQuery({ queryKey: ['agents'], queryFn: () => api.get<Items<AgentInfo>>('/agents').then((r) => r.items) })
 export const usePlan = () => useQuery({ queryKey: ['plan', 'today'], queryFn: () => api.get<Plan>('/plan/today') })
 export const useAutonomy = () => useQuery({ queryKey: ['policies', 'autonomy'], queryFn: () => api.get<AutonomyPolicy>('/policies/autonomy') })
+
+// ---------- MCP ----------
+export const useMCPInfo = () => useQuery({ queryKey: ['mcp', 'info'], queryFn: () => api.get<MCPInfo>('/mcp/info') })
+export const useMCPClients = () => useQuery({ queryKey: ['mcp', 'clients'], queryFn: () => api.get<Items<MCPClient>>('/mcp/clients').then((r) => r.items) })
+export const useMCPCalls = () => useQuery({ queryKey: ['mcp', 'calls'], queryFn: () => api.get<Items<MCPCall>>('/mcp/calls?limit=20').then((r) => r.items) })
+export const useMCPPolicy = () => useQuery({ queryKey: ['policies', 'mcp'], queryFn: () => api.get<MCPPolicy>('/policies/mcp') })

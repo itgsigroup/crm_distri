@@ -23,7 +23,9 @@ import (
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/events"
 	"distri-arc/internal/jobs"
+	"distri-arc/internal/mcp"
 	"distri-arc/internal/odoo"
+	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
 	"distri-arc/internal/views"
@@ -48,6 +50,8 @@ const usage = `arc — Distri ARC Orbit
   arc ctl reanalyze --scope all|screen:orbit|dealer:<slug>|agent:<name> [--if-empty]  run an Orchestrator cycle
   arc ctl agents run [--agent "AI Order"] [--dealer <slug>]  alias of reanalyze with that scope
   arc ctl cycle status       last cycles: status, counters, note
+  arc ctl mcp-token --name "Claude Desktop Sam" --scopes read,analyze,orchestrate   create an MCP token (shown once)
+  arc ctl mcp-stdio --token <token>   MCP over stdio for local clients (cycles run inline)
 `
 
 func main() {
@@ -115,7 +119,9 @@ func runAPI(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	a := api.New(cfg, st, c, log).WithJobs(ins).WithOdoo(src)
+	m := mcp.New(st, c, log, &orchestrator.Orchestrator{St: st, Clock: c, Log: log, OdooWrite: cfg.OdooWrite})
+	m.Jobs = ins // MCP cycles run in the worker like every other cycle
+	a := api.New(cfg, st, c, log).WithJobs(ins).WithOdoo(src).WithMCP(m)
 	if cfg.WATransport == "cloudapi" {
 		a.WithCloudWebhook(cloudTransport(cfg))
 	}
@@ -180,6 +186,17 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 	if len(args) == 0 {
 		fmt.Print(usage)
 		return nil
+	}
+	if args[0] == "mcp-token" || args[0] == "mcp-stdio" {
+		st, clk, err := open(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		defer st.Close()
+		if args[0] == "mcp-token" {
+			return runMCPToken(ctx, st, args[1:])
+		}
+		return runMCPStdio(ctx, cfg, st, clk, args[1:])
 	}
 	if args[0] == "agents" || args[0] == "reanalyze" || args[0] == "cycle" {
 		st, clk, err := open(ctx, cfg)

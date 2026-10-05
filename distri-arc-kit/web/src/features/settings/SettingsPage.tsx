@@ -3,6 +3,7 @@ import { Pill } from '../../components/ui'
 import { fmtRp, shortDate } from '../../lib/format'
 import { useCalibration, useConnections, usePolicies, useWAGroups, useWAStatus } from '../../app/queries'
 import { WhatsAppPanel } from './WhatsAppPanel'
+import { AIConnectionsCard } from './AIConnections'
 import { OdooPanel } from './OdooPanel'
 
 type Obj = Record<string, unknown>
@@ -10,7 +11,7 @@ const num = (o: Obj | undefined, k: string, d: number) => (o && typeof o[k] === 
 const dec = (n: number) => String(n).replace('.', ',')
 
 // Pengaturan (mockup screen-conn). Values are read from the policies table; editing arrives in stage 11,
-// the AI connections in stage 07; calibration lessons are aggregated in stage 10.
+// calibration lessons are aggregated in stage 10.
 export function SettingsPage() {
   const { toast, openSheet } = useFeedback()
   const { data: pol } = usePolicies()
@@ -55,20 +56,7 @@ export function SettingsPage() {
             <button className="cc" onClick={() => toast('Identifikasi nomor oleh AI Prospek di Stage 09')}><div className="ch"><span className="lg" style={{ background: '#1E88E5' }}>ID</span><div><b>Identifikasi nomor</b><small>Profil WA Business · Truecaller · Getcontact (manual)</small></div></div><div className="cs"><span className="dot good" />Hanya nomor inbound</div></button>
           </div>
         </div>
-        <div className="card">
-          <div className="card-h"><h2>Koneksi AI</h2><span className="meta">Mesin analisis agen</span></div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text-3)' }}>Analisis via</span>
-            <div className="seg"><button onClick={later}>API AI</button><button onClick={later}>MCP</button><button className="is-active" onClick={later}>Keduanya</button></div>
-          </div>
-          <div className="conn-grid" style={{ gridTemplateColumns: '1fr' }}>
-            <button className="cc"><div className="ch"><span className="lg" style={{ background: '#D97706' }}>API</span><div><b>API AI langsung</b><small>Claude API · cadangan OpenAI · batch analisis tiap jam dari server GSI</small></div></div><div className="cs"><span className="dot warn" />Tersambung di Stage 05</div></button>
-            <button className="cc"><div className="ch"><span className="lg" style={{ background: '#5E5CE6' }}>MCP</span><div><b>MCP · Distri ARC sebagai server</b><small>Claude Desktop, ChatGPT, atau agent eksternal membaca dan menganalisis data lewat tool MCP</small></div></div><div className="cs"><span className="dot warn" />Tersedia di Stage 07</div></button>
-          </div>
-          <ul className="rules" style={{ marginTop: 10 }}>
-            <li><div><b>Keputusan tetap manusia</b><span>API maupun MCP hanya mengusulkan; setujui / tolak ada di Pusat kendali</span></div><Pill tone="neutral" icon="lock">Terkunci</Pill></li>
-          </ul>
-        </div>
+        <AIConnectionsCard />
         <div className="card">
           <div className="card-h"><h2>Kalibrasi agen</h2><Pill tone="good" icon="check">Belajar dari keputusan Anda</Pill></div>
           <ul className="cal">

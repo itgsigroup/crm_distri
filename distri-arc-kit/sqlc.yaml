@@ -8,6 +8,7 @@ sql:
       - db/migrations/0004_odoo.sql
       - db/migrations/0005_proposals.sql
       - db/migrations/0006_orchestrator.sql
+      - db/migrations/0007_mcp.sql
     queries: db/queries
     gen:
       go:

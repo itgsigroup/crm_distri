@@ -209,6 +209,18 @@ type Cycle struct {
 	Stage         *string    `json:"stage"`
 }
 
+type CycleInput struct {
+	CycleID     uuid.UUID       `json:"cycle_id"`
+	Agent       string          `json:"agent"`
+	Input       json.RawMessage `json:"input"`
+	SignalIds   []uuid.UUID     `json:"signal_ids"`
+	Mapping     json.RawMessage `json:"mapping"`
+	Submitted   json.RawMessage `json:"submitted"`
+	SubmittedBy *uuid.UUID      `json:"submitted_by"`
+	SubmittedAt *time.Time      `json:"submitted_at"`
+	CreatedAt   time.Time       `json:"created_at"`
+}
+
 type CycleStage struct {
 	CycleID    uuid.UUID       `json:"cycle_id"`
 	Stage      string          `json:"stage"`
@@ -330,18 +342,20 @@ type McpCall struct {
 	CycleID       *uuid.UUID      `json:"cycle_id"`
 	DurationMs    *int32          `json:"duration_ms"`
 	CreatedAt     time.Time       `json:"created_at"`
+	Status        string          `json:"status"`
 }
 
 type McpClient struct {
-	ID         uuid.UUID  `json:"id"`
-	Name       *string    `json:"name"`
-	Kind       *string    `json:"kind"`
-	TokenHash  *string    `json:"token_hash"`
-	Scopes     []string   `json:"scopes"`
-	OwnerID    *uuid.UUID `json:"owner_id"`
-	LastSeenAt *time.Time `json:"last_seen_at"`
-	Active     bool       `json:"active"`
-	CreatedAt  time.Time  `json:"created_at"`
+	ID          uuid.UUID  `json:"id"`
+	Name        *string    `json:"name"`
+	Kind        *string    `json:"kind"`
+	TokenHash   *string    `json:"token_hash"`
+	Scopes      []string   `json:"scopes"`
+	OwnerID     *uuid.UUID `json:"owner_id"`
+	LastSeenAt  *time.Time `json:"last_seen_at"`
+	Active      bool       `json:"active"`
+	CreatedAt   time.Time  `json:"created_at"`
+	TokenPrefix *string    `json:"token_prefix"`
 }
 
 type OdooSyncState struct {

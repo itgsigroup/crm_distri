@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 7,
+  "current_stage": 8,
   "stages": [
     {
       "id": 0,
@@ -78,12 +78,12 @@
     {
       "id": 7,
       "name": "MCP server + MCP sebagai orchestrator + Koneksi AI",
-      "status": "pending",
+      "status": "done-with-fakes",
       "file": "docs/stages/07-mcp.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-05",
+      "finished_at": "2026-10-05",
+      "summary": "internal/mcp: server Streamable HTTP /mcp (SDK Go resmi v1.8) + arc ctl mcp-stdio; token arc_<id>_<secret> hash argon2id, scope read/analyze/orchestrate per tool, rate limit 60/mnt + max_cycles_per_hour, mcp_calls + audit_log + SSE mcp_call. 24 tool (baca 11, analisis 4, orkestrasi 8, actions.decide → human_only), resources arc://glossary|policies|dealer/{id}, prompts morning_brief|dealer_review. Jalur mcp: cycle_inputs, input.get (masked) / submit (validasi provenance), Analisis menunggu submit maks 10 mnt → partial. orchestrator.plan.update → proposal plan_change di Keputusan. API /mcp/info|clients|calls, /policies/mcp (allow_send terkunci → 400), /policies/llm. Web: panel MCP hidup (saklar izin, log panggilan, tool dari server), Pengaturan → Koneksi AI (jalur analisis, status API/MCP, endpoint + salin, klien & token). docs/mcp-clients.md, tools/mcpcheck, ADR 0009.",
+      "notes": "Diuji dengan klien SDK nyata lewat HTTP ke arc api: jadwal.due {sales:Dewi} → 2 dealer (mockup 3; rumus: Prima besok + Bina 3 hari, Mitra lewat jadwal), reanalyze dealer:mitra → siklus trigger=mcp oleh worker 1,8 dtk, tampil di Riwayat dan log panggilan. Belum diuji dengan Claude Desktop Sam sendiri (OPEN-QUESTIONS). Alasan/draft masih template (tanpa ANTHROPIC_API_KEY)."
     },
     {
       "id": 8,

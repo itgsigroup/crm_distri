@@ -46,6 +46,7 @@ type Orchestrator struct {
 	Agents    []agents.Agent // default proposals.All()
 	OdooWrite bool
 	Jobs      *river.Client[pgx.Tx] // inserts outbox.send for auto sends (nil in tests)
+	MCPWait   time.Duration         // routing = mcp: how long Analisis waits for submissions (default 10 min)
 }
 
 // Report is what a finished cycle returns.
@@ -301,6 +302,9 @@ func (o *Orchestrator) agentList(sc domain.Scope) []agents.Agent {
 
 func (o *Orchestrator) analyze(ctx context.Context, r *stageRun) (map[string]any, error) {
 	list := o.agentList(r.scope)
+	if r.in.Policies.LLM.Mode == "mcp" {
+		return o.analyzeViaMCP(ctx, r, list)
+	}
 	r.byAgent = map[string][]domain.Proposal{}
 	var mu sync.Mutex
 	g, gctx := errgroup.WithContext(ctx)

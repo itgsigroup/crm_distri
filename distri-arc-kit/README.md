@@ -57,3 +57,7 @@ Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (bran
 - Worker menjalankan siklus tiap jam 06.00–20.00 WIB; tombol *Analisis ulang* (Pusat kendali, Orbit, Segmen, Dealer, Dock, ⌘K "analisis ulang …") memicu siklus ber-scope; siklus kedua saat berjalan → "Orchestrator sedang berjalan".
 - Langkah otonom yang mengirim ke dealer menunggu *Jalankan sekarang* (ADR 0008); kebijakan `autonomy.guard` lewat `PUT /api/policies/autonomy` (CEO).
 
+### Tahap 07: MCP
+- `bin/arc ctl mcp-token --name "Claude Desktop Sam" --scopes read,analyze,orchestrate` (atau Pengaturan → Koneksi AI → Buat token) lalu ikuti `docs/mcp-clients.md`.
+- Uji cepat: `go run ./tools/mcpcheck -token arc_… jadwal.due '{"sales":"Dewi"}'` dan `… orchestrator.reanalyze '{"scope":"dealer:mitra"}'` → siklus `MCP` di Riwayat analisis + log panggilan di layar Orchestrator.
+

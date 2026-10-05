@@ -61,3 +61,20 @@ func (m *Masker) Unmask(s string) string {
 	}
 	return s
 }
+
+// Mapping returns placeholder → original value (kept server-side to unmask a later answer).
+func (m *Masker) Mapping() map[string]string {
+	out := make(map[string]string, len(m.fromPh))
+	for k, v := range m.fromPh {
+		out[k] = v
+	}
+	return out
+}
+
+// UnmaskWith restores placeholders from a stored mapping.
+func UnmaskWith(s string, mapping map[string]string) string {
+	for p, v := range mapping {
+		s = strings.ReplaceAll(s, p, v)
+	}
+	return s
+}

@@ -11,4 +11,6 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-05 · 04 · Field Odoo GSI untuk: limit kredit dealer (`credit_limit` bawaan atau field kustom), tier (nama pricelist "Tier A/B/C"?), jenis usaha dealer (`industry_id`?), velocity stok, dan cabang = company? · mapper memakai asumsi tsb · fake
 - 2026-10-05 · 06 · Kapan langkah otonom yang mengirim WA ke dealer (follow-up H-1, pengingat H-3) boleh terkirim tanpa klik *Jalankan sekarang*? · `autonomy.guard.dealer_messages = "confirm"` (ADR 0008) · confirm
 - 2026-10-05 · 06 · Bundle stok: mockup menulis LED P5 −8% ke 6 dealer, rumus (floor margin 9% dari modal, kandidat glossary) memberi −1,5% ke 2 dealer. Floor dihitung dari modal stok (`unit_cost`) — benar, atau dari HPP lain di Odoo? · rumus dipakai · −1,5%
+- 2026-10-05 · 07 · Uji nyata dari Claude Desktop Sam dan connector ChatGPT tim sales ke `https://distri.gsi.co.id/mcp` (butuh domain + TLS, Stage 13) · diuji dengan klien SDK (`tools/mcpcheck`) ke localhost · —
+- 2026-10-05 · 07 · `jadwal.due {sales:"Dewi"}` memberi 2 dealer (Prima besok, Bina 3 hari); acceptance menulis 3 (mockup menghitung Mitra yang lewat jadwal di agenda Dewi). Tetap pisahkan *jadwal* dan *lewat jadwal*? · dipisah seperti glossary · 2
 

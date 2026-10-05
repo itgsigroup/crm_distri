@@ -27,10 +27,11 @@ const (
 	KindNewDealer     = "new_dealer"
 	KindPriceList     = "price_list"
 	KindReply         = "reply"
+	KindPlanChange    = "plan_change" // proposed by an MCP client (orchestrator.plan.update)
 )
 
 // QueueKinds are decided in "Keputusan" (outside the agents' autonomy, high stakes).
-var QueueKinds = map[string]bool{KindCreditRelease: true, KindCreditLimit: true, KindPriceCounter: true, KindReturn: true}
+var QueueKinds = map[string]bool{KindCreditRelease: true, KindCreditLimit: true, KindPriceCounter: true, KindReturn: true, KindPlanChange: true}
 
 // SendsWA reports whether approving the kind sends a WhatsApp message to the dealer.
 func SendsWA(kind string) bool {

@@ -41,6 +41,8 @@ type Config struct {
 	AnthropicKey string
 	OpenAIKey    string
 	LLMIDRPerUSD float64 // cost estimate exchange rate (0 = built-in default)
+
+	PublicURL string // public base URL (MCP endpoint shown in Pengaturan), e.g. https://distri.gsi.co.id
 }
 
 // Load reads .env (if present, without overriding real env vars) and returns the configuration.
@@ -74,6 +76,7 @@ func Load() Config {
 		AnthropicKey:    get("ANTHROPIC_API_KEY", ""),
 		OpenAIKey:       get("OPENAI_API_KEY", ""),
 		LLMIDRPerUSD:    parseFloat(get("LLM_IDR_PER_USD", "")),
+		PublicURL:       get("PUBLIC_URL", ""),
 	}
 }
 
