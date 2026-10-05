@@ -35,6 +35,7 @@ func (s *Server) readRoutes(r chi.Router) {
 	r.Get("/stock/critical", s.stockCritical)
 	r.Get("/stock/push", s.stockPush)
 	r.Get("/stock/sales-by-product", s.stockSales)
+	r.Get("/policies", s.policies)
 	r.Get("/credit/overview", s.creditPart("overview"))
 	r.Get("/credit/dealers", s.creditPart("dealers"))
 	r.Get("/credit/exposure", s.creditPart("exposure"))
@@ -379,4 +380,17 @@ func (s *Server) briefToday(w http.ResponseWriter, r *http.Request) {
 		branches[x.Branch] = true
 	}
 	httpx.JSON(w, http.StatusOK, b.TemplateBrief(st, views.BriefCounts{WA: c.Wa, SO: c.So, Payments: c.Payments, Branches: len(branches)}))
+}
+
+func (s *Server) policies(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.st.Q.ListPolicies(r.Context())
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	out := map[string]any{}
+	for _, p := range rows {
+		out[p.Key] = map[string]any{"value": p.Value, "version": p.Version, "updated_at": p.UpdatedAt}
+	}
+	httpx.JSON(w, http.StatusOK, out)
 }

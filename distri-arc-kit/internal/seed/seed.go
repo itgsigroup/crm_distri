@@ -157,7 +157,8 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 	var signals []signal
 	var stock []stockItem
 	var policies map[string]json.RawMessage
-	for name, dst := range map[string]any{"seed/sales.json": &sales, "seed/dealers.json": &dealers, "seed/signals.json": &signals, "seed/stock.json": &stock, "seed/policies.json": &policies} {
+	var chats []chatMeta
+	for name, dst := range map[string]any{"seed/sales.json": &sales, "seed/dealers.json": &dealers, "seed/signals.json": &signals, "seed/stock.json": &stock, "seed/policies.json": &policies, "seed/chats.json": &chats} {
 		b, err := fs.ReadFile(fsys, name)
 		if err != nil {
 			return Result{}, err
@@ -275,6 +276,7 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 			}
 		}
 
+		signalID := map[string]uuid.UUID{}
 		memo := map[uuid.UUID][]uuid.UUID{}
 		for _, sg := range signals {
 			p := gen.UpsertSignalParams{Kind: sg.Kind, OccurredAt: sg.OccurredAt, DedupeKey: sg.DedupeKey, Payload: sg.Payload}
@@ -293,6 +295,7 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 			if err != nil {
 				return fmt.Errorf("signal %s: %w", sg.DedupeKey, err)
 			}
+			signalID[sg.DedupeKey] = sid
 			if p.DealerID != nil && isTimeline(sg.DedupeKey) {
 				memo[*p.DealerID] = append(memo[*p.DealerID], sid)
 			}
@@ -301,6 +304,10 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 			if err := q.SetDealerMemoSignals(ctx, gen.SetDealerMemoSignalsParams{ID: did, MemoSignalIds: ids}); err != nil {
 				return err
 			}
+		}
+
+		if err := seedChat(ctx, q, chatInput{sales: sales, salesID: salesID, dealers: dealers, dealerID: dealerID, contactID: contactID, signals: signals, signalID: signalID, chats: chats}); err != nil {
+			return fmt.Errorf("chat: %w", err)
 		}
 
 		keys := make([]string, 0, len(policies))

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api, type Items } from '../api/client'
+import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAGroup, WANumber } from '../api/types'
 import type {
   AgendaRow, AgingItem, BoardItem, Brief, DealerDetail, Health, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
 } from '../api/types'
@@ -42,3 +43,19 @@ export function useNow(): Date {
   const [mounted] = useState(() => new Date())
   return data ? new Date(data.now) : mounted
 }
+
+// ---------- Chat & WhatsApp (stage 03) ----------
+
+export const useThreads = (tab = 'all') =>
+  useQuery({ queryKey: ['chat', 'threads', tab], queryFn: () => api.get<Items<ThreadView>>('/chat/threads' + (tab === 'all' ? '' : `?tab=${tab}`)).then((r) => r.items) })
+export const useThread = (id?: string) =>
+  useQuery({ queryKey: ['chat', 'thread', id], enabled: !!id, queryFn: () => api.get<ThreadDetail>(`/chat/threads/${id}`) })
+export const useChatContext = (id?: string) =>
+  useQuery({ queryKey: ['chat', 'context', id], enabled: !!id, queryFn: () => api.get<ChatContext>(`/chat/threads/${id}/context`) })
+export const useWAStatus = () =>
+  useQuery({ queryKey: ['wa', 'status'], queryFn: () => api.get<{ items: WANumber[]; transport: string }>('/wa/status'), refetchInterval: (q) => (q.state.data?.items.some((n) => n.state === 'pairing') ? 3000 : false) })
+export const useInternalNumbers = () => useQuery({ queryKey: ['wa', 'internal'], queryFn: () => api.get<Items<InternalNumber>>('/internal-numbers').then((r) => r.items) })
+export const useWAGroups = () => useQuery({ queryKey: ['wa', 'groups'], queryFn: () => api.get<Items<WAGroup>>('/wa/groups').then((r) => r.items) })
+
+export type PolicyRow<T> = { value: T; version: number; updated_at: string }
+export const usePolicies = () => useQuery({ queryKey: ['policies'], queryFn: () => api.get<Record<string, PolicyRow<Record<string, unknown>>>>('/policies') })

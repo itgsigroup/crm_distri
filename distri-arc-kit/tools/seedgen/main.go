@@ -989,7 +989,7 @@ func buildSignals(m mockup, dealers []*Dealer, sales map[string]SalesUser) []Sig
 				out = append(out, Signal{
 					DedupeKey: fmt.Sprintf("seed:wa:hist:%s:%d", c.Key, j), Kind: "wa", Dealer: d.Slug, Contact: c.Key, Sales: d.Owner,
 					OccurredAt: at.Add(time.Duration(j*17) * time.Minute), Summary: txt,
-					Payload: map[string]any{"thread": "c-" + d.Slug, "direction": dir, "text": txt, "via": "chat", "source": "seed", "history": true},
+					Payload: map[string]any{"thread": threadFor(m, d.Slug, c.Name, c.Key), "direction": dir, "text": txt, "via": "chat", "source": "seed", "history": true},
 				})
 			}
 			n++
@@ -1126,4 +1126,15 @@ func must(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// threadFor keeps a contact's history in the mockup thread when that thread belongs to the contact, else in
+// its own thread ("h-<contact>").
+func threadFor(m mockup, slug, contactName, contactKey string) string {
+	for _, c := range m.CHATS {
+		if c.Acc == slug && strings.TrimSpace(strings.Split(c.Name, "·")[0]) == contactName {
+			return c.ID
+		}
+	}
+	return "h-" + contactKey
 }

@@ -3,9 +3,11 @@ package main
 
 import (
 	"context"
+
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 	"os"
@@ -20,9 +22,11 @@ import (
 	"distri-arc/internal/config"
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/events"
+	"distri-arc/internal/jobs"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
 	"distri-arc/internal/views"
+	"distri-arc/internal/wa"
 	"distri-arc/internal/worker"
 )
 
@@ -36,6 +40,8 @@ const usage = `arc — Distri ARC Orbit
   arc ctl counts             print row counts
   arc ctl recompute          recompute dealers.metrics_current (all dealers)
   arc ctl metrics --dealer <slug>  print a dealer's metrics and the 5 score components
+  arc ctl wa inject --from <no> --text "…" [--to <sales no>]  feed a fake inbound WhatsApp message
+  arc ctl wa numbers         list paired sales numbers
 `
 
 func main() {
@@ -95,7 +101,14 @@ func runAPI(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	defer st.Close()
-	a := api.New(cfg, st, c, log)
+	ins, err := jobs.Inserter(st.Pool)
+	if err != nil {
+		return err
+	}
+	a := api.New(cfg, st, c, log).WithJobs(ins)
+	if cfg.WATransport == "cloudapi" {
+		a.WithCloudWebhook(cloudTransport(cfg))
+	}
 	go events.Listen(ctx, st.Pool, a.Hub(), log)
 	srv := &http.Server{Addr: cfg.APIAddr, Handler: a.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	go func() {
@@ -117,14 +130,26 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	defer st.Close()
-	client, err := worker.New(st, c, log)
+	t, err := newTransport(ctx, cfg, st, log)
 	if err != nil {
 		return err
 	}
+	ingest := wa.NewIngestor(st, log)
+	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg)})
+	if err != nil {
+		return err
+	}
+	ingest.OnDealer = func(ctx context.Context, id uuid.UUID) {
+		_, _ = client.Insert(ctx, jobs.RecomputeArgs{DealerIDs: []string{id.String()}}, nil)
+	}
+	if err := t.Start(ctx); err != nil {
+		log.Error("wa transport start", "transport", t.Name(), "err", err)
+	}
+	go ingest.Run(ctx, t)
 	if err := client.Start(ctx); err != nil {
 		return err
 	}
-	log.Info("worker started")
+	log.Info("worker started", "wa_transport", t.Name())
 	<-ctx.Done()
 	sh, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -135,6 +160,14 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 	if len(args) == 0 {
 		fmt.Print(usage)
 		return nil
+	}
+	if args[0] == "wa" {
+		st, clk, err := open(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		defer st.Close()
+		return runWACtl(ctx, st, clk, log, args[1:])
 	}
 	fs := flag.NewFlagSet("ctl "+args[0], flag.ExitOnError)
 	ifEmpty := fs.Bool("if-empty", false, "seed only when there are no dealers")
@@ -151,6 +184,9 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 	case "migrate":
 		if err := st.Migrate(ctx); err != nil {
 			return err
+		}
+		if err := upgradeWhatsmeow(ctx, cfg); err != nil {
+			return fmt.Errorf("whatsmeow store: %w", err)
 		}
 		log.Info("migrated")
 	case "seed":
@@ -182,6 +218,9 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 		if err := st.Migrate(ctx); err != nil {
 			return err
 		}
+		if err := upgradeWhatsmeow(ctx, cfg); err != nil {
+			return err
+		}
 		res, err := seed.Run(ctx, st, db.Seed)
 		if err != nil {
 			return err
@@ -196,6 +235,8 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 			return err
 		}
 		log.Info("recomputed", "dealers", len(ms))
+	case "wa":
+		return runWACtl(ctx, st, clk, log, args[1:])
 	case "metrics":
 		return printMetrics(ctx, st, clk, *dealerFlag)
 	case "counts":
@@ -256,6 +297,73 @@ func printMetrics(ctx context.Context, st *store.Store, c clock.Clock, id string
 func deref(p *float64) float64 {
 	if p == nil {
 		return 0
+	}
+	return *p
+}
+
+func runWACtl(ctx context.Context, st *store.Store, c clock.Clock, log *slog.Logger, args []string) error {
+	if len(args) == 0 {
+		return errors.New("usage: arc ctl wa inject|numbers")
+	}
+	fs := flag.NewFlagSet("wa "+args[0], flag.ExitOnError)
+	from := fs.String("from", "", "sender number")
+	to := fs.String("to", "", "sales number that receives it (default: the dealer owner's number)")
+	text := fs.String("text", "", "message text")
+	name := fs.String("name", "", "sender push name")
+	_ = fs.Parse(args[1:])
+	switch args[0] {
+	case "inject":
+		if *from == "" || *text == "" {
+			return errors.New("--from and --text are required")
+		}
+		acct := *to
+		if acct == "" {
+			n := wa.Digits(*from)
+			if ct, err := st.Q.FindContactByNumber(ctx, &n); err == nil && ct.DealerOwner != nil {
+				for _, s := range must(st.Q.ListSalesUsers(ctx)) {
+					if s.ID == *ct.DealerOwner && s.WaNumber != nil {
+						acct = *s.WaNumber
+					}
+				}
+			}
+		}
+		if acct == "" {
+			acct = "6281234504471"
+		}
+		res, err := injectMessage(ctx, st, log, *from, acct, *text, *name, c.Now())
+		if err != nil {
+			return err
+		}
+		fmt.Printf("stored=%v reason=%s thread=%s signal=%s\n", res.Stored, res.Reason, res.ThreadID, res.SignalID)
+		if res.DealerID != nil {
+			if _, err := dealersvc.New(st, c).Recompute(ctx, *res.DealerID); err != nil {
+				return err
+			}
+		}
+	case "numbers":
+		nums, err := st.Q.ListWANumbers(ctx)
+		if err != nil {
+			return err
+		}
+		for _, n := range nums {
+			fmt.Printf("%-15s %-8s %-10s %s\n", n.WaNumber, deref2(n.SalesName), n.Transport, n.State)
+		}
+	default:
+		return fmt.Errorf("unknown wa command %q", args[0])
+	}
+	return nil
+}
+
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+func deref2(p *string) string {
+	if p == nil {
+		return ""
 	}
 	return *p
 }

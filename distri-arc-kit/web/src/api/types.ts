@@ -193,3 +193,62 @@ export interface Brief {
 
 export interface Me { id: string; email: string; name: string; role: string; branch: string }
 export interface Health { db: string; queue: string; now: string; sample_data?: boolean }
+
+export interface Tag { k: string; t: string }
+export interface ThreadView {
+  id: string
+  kind: 'dealer' | 'group' | 'new'
+  title: string
+  subtitle: string
+  dealer_id?: string
+  dealer_name?: string
+  sales: string
+  last_message_at: string | null
+  unread: number
+  last_body: string
+  last_from: string
+  tag: Tag | null
+  group_kind?: string
+}
+export interface Annotation { k: string; t: string; act?: string }
+export interface MessageView {
+  id: string
+  direction: 'in' | 'out'
+  from_name: string
+  body: string
+  sent_at: string
+  status: 'received' | 'pending' | 'sent' | 'failed'
+  internal: boolean
+  annotation: Annotation | null
+  signal_id: string | null
+}
+export interface ThreadDetail {
+  thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; dealer_id: string; sales: string; sales_wa: string; suggestions: string[] | null; tag: Tag | null; unread: number }
+  messages: MessageView[]
+}
+export interface Identification {
+  best_name: string
+  best_org: string
+  score: number
+  sources: { source: string; ok: string; value: string }[]
+  potential?: string
+}
+export interface ChatContext {
+  kind: ThreadView['kind']
+  dealer?: BoardItem
+  extracted: { annotation: Annotation; sent_at: string; from_name: string }[]
+  identification: Identification | null
+}
+export interface WANumber {
+  wa_number: string
+  masked: string
+  sales: string
+  branch: string
+  transport: string
+  state: 'unpaired' | 'pairing' | 'connected' | 'disconnected' | 'logged_out'
+  last_seen_at: string | null
+  paired_at: string | null
+  qr_png?: string
+}
+export interface InternalNumber { wa_number: string; label: string | null; department: string | null; is_sales: boolean }
+export interface WAGroup { id: string; jid: string; name: string | null; kind: 'internal' | 'external'; branch: string | null; members: number | null; read_enabled: boolean }

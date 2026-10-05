@@ -4,6 +4,7 @@ sql:
     schema:
       - db/migrations/0001_init.sql
       - db/migrations/0002_river.sql
+      - db/migrations/0003_whatsapp.sql
     queries: db/queries
     gen:
       go:

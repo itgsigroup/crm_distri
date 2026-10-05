@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5"
+	"github.com/riverqueue/river"
 
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
@@ -17,6 +19,7 @@ import (
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
+	"distri-arc/internal/wa"
 )
 
 // Server wires handlers to the store.
@@ -27,7 +30,15 @@ type Server struct {
 	log   *slog.Logger
 	views *views.Builder
 	hub   *events.Hub
+	jobs  *river.Client[pgx.Tx]
+	cloud *wa.CloudAPI
 }
+
+// WithJobs lets the API enqueue jobs (outbox.send, wa.pair) in the same transaction as its writes.
+func (s *Server) WithJobs(c *river.Client[pgx.Tx]) *Server { s.jobs = c; return s }
+
+// WithCloudWebhook mounts the WhatsApp Cloud API webhook (public, signature-verified).
+func (s *Server) WithCloudWebhook(c *wa.CloudAPI) *Server { s.cloud = c; return s }
 
 // New builds the API server.
 func New(cfg config.Config, st *store.Store, c clock.Clock, log *slog.Logger) *Server {
@@ -43,10 +54,16 @@ func (s *Server) Handler() http.Handler {
 	r.Use(middleware.RequestID, httpx.Logger(s.log), middleware.Recoverer)
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", s.health)
+		if s.cloud != nil {
+			ingest := wa.NewIngestor(s.st, s.log)
+			r.Method(http.MethodGet, "/wa/cloud/webhook", s.cloud.Webhook(func(ctx context.Context, m wa.Message) error { _, err := ingest.Process(ctx, m); return err }))
+			r.Method(http.MethodPost, "/wa/cloud/webhook", s.cloud.Webhook(func(ctx context.Context, m wa.Message) error { _, err := ingest.Process(ctx, m); return err }))
+		}
 		r.Group(func(r chi.Router) {
 			r.Use(s.auth)
 			r.Get("/me", s.me)
 			s.readRoutes(r)
+			s.chatRoutes(r)
 			r.Get("/events", s.events)
 			r.Get("/brief/today", s.briefToday)
 		})

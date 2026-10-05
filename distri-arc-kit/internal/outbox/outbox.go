@@ -1,0 +1,139 @@
+// Package outbox is the only way anything leaves Distri ARC: rows are written for approved proposals and the
+// worker delivers them through the WhatsApp transport (or Odoo, stage 12) under the anti-ban rules.
+package outbox
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"math/rand/v2"
+	"time"
+
+	"github.com/google/uuid"
+
+	"distri-arc/internal/clock"
+	"distri-arc/internal/events"
+	"distri-arc/internal/policy"
+	"distri-arc/internal/store"
+	"distri-arc/internal/store/gen"
+	"distri-arc/internal/wa"
+)
+
+// WAPayload is the payload of a channel=wa outbox row.
+type WAPayload struct {
+	From      string `json:"from"` // sales number (digits)
+	To        string `json:"to"`   // chat JID
+	Text      string `json:"text"`
+	Kind      string `json:"kind"`       // proposal kind; "reply" = a human answering in a conversation
+	MessageID string `json:"message_id"` // pending chat_messages row shown in the thread
+	ThreadID  string `json:"thread_id"`
+}
+
+// Rules are the anti-ban limits (09-policies-security): proactive messages are capped per sales per day and
+// spaced by a random gap; human replies inside a conversation only wait a short typing delay.
+type Rules struct {
+	GapMin, GapMax     time.Duration // between proactive sends of one number (default 20–90 s)
+	ReplyMin, ReplyMax time.Duration // typing delay for replies (default 2–6 s)
+	DailyCapOverride   int           // 0 = policy followup.rules.max_per_day_per_sales
+}
+
+// DefaultRules are the production limits.
+func DefaultRules() Rules {
+	return Rules{GapMin: 20 * time.Second, GapMax: 90 * time.Second, ReplyMin: 2 * time.Second, ReplyMax: 6 * time.Second}
+}
+
+// Sender delivers outbox rows.
+type Sender struct {
+	st    *store.Store
+	t     wa.Transport
+	clock clock.Clock
+	rules Rules
+	sleep func(time.Duration)
+}
+
+// NewSender builds a sender.
+func NewSender(st *store.Store, t wa.Transport, c clock.Clock, r Rules) *Sender {
+	return &Sender{st: st, t: t, clock: c, rules: r, sleep: time.Sleep}
+}
+
+// ErrCapReached tells the caller to retry tomorrow.
+var ErrCapReached = errors.New("daily send cap reached")
+
+// Send delivers one outbox row. It returns a positive duration when the job must be snoozed (gap or cap).
+func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) {
+	ob, err := s.st.Q.GetOutbox(ctx, id)
+	if err != nil {
+		return 0, err
+	}
+	if ob.Status == "sent" {
+		return 0, nil // idempotent
+	}
+	if ob.Channel != "wa" {
+		return 0, fmt.Errorf("channel %s is delivered from stage 12", ob.Channel)
+	}
+	var p WAPayload
+	if err := json.Unmarshal(ob.Payload, &p); err != nil {
+		return 0, err
+	}
+	now := s.clock.Now()
+	if p.Kind == "reply" {
+		s.sleep(jitter(s.rules.ReplyMin, s.rules.ReplyMax))
+	} else {
+		pol, err := policy.Load(ctx, s.st.Q)
+		if err != nil {
+			return 0, err
+		}
+		cap := pol.Followup.MaxPerDayPerSales
+		if s.rules.DailyCapOverride > 0 {
+			cap = s.rules.DailyCapOverride
+		}
+		day := clock.Today(now)
+		n, err := s.st.Q.CountSentToday(ctx, gen.CountSentTodayParams{FromNumber: p.From, Since: &day})
+		if err != nil {
+			return 0, err
+		}
+		if int(n) >= cap {
+			return day.AddDate(0, 0, 1).Add(8 * time.Hour).Sub(now), ErrCapReached
+		}
+		last, err := s.st.Q.LastSentAt(ctx, p.From)
+		if err != nil {
+			return 0, err
+		}
+		if gap := jitter(s.rules.GapMin, s.rules.GapMax); now.Sub(last) < gap {
+			return gap - now.Sub(last), nil
+		}
+	}
+	msgID, sendErr := s.t.Send(ctx, p.From, p.To, p.Text)
+	sent := s.clock.Now()
+	if sendErr != nil {
+		e := sendErr.Error()
+		_ = s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: id, Status: "failed", Error: &e})
+		return 0, sendErr
+	}
+	err = s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: id, Status: "sent", SentAt: &sent})
+	if err != nil {
+		return 0, err
+	}
+	if p.MessageID != "" {
+		if mid, err := uuid.Parse(p.MessageID); err == nil {
+			_ = s.st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &msgID, Status: "sent", SentAt: sent})
+		}
+	}
+	if err := s.st.Q.SetProposalExecuted(ctx, ob.ProposalID); err != nil {
+		return 0, err
+	}
+	actor, kind, action, entity := "worker", "system", "outbox.sent", "outbox"
+	after, _ := json.Marshal(map[string]any{"wa_msg_id": msgID, "from": p.From, "to": p.To, "proposal_id": ob.ProposalID})
+	_ = s.st.Q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &id, After: after})
+	_ = events.Notify(ctx, s.st.Pool, "chat_message", map[string]string{"thread_id": p.ThreadID})
+	_ = events.Notify(ctx, s.st.Pool, "proposal_changed", map[string]string{"id": ob.ProposalID.String(), "status": "executed"})
+	return 0, nil
+}
+
+func jitter(lo, hi time.Duration) time.Duration {
+	if hi <= lo {
+		return lo
+	}
+	return lo + time.Duration(rand.Int64N(int64(hi-lo)))
+}

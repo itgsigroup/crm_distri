@@ -193,7 +193,7 @@
    "history": true,
    "source": "seed",
    "text": "Mas Rizky, stok Switch PoE masih ada? Mau ambil untuk minggu ini.",
-   "thread": "c-indo",
+   "thread": "h-indo:eko",
    "via": "chat"
   }
  },
@@ -210,7 +210,7 @@
    "history": true,
    "source": "seed",
    "text": "Mas Fajar, stok Kabel masih ada? Mau ambil untuk minggu ini.",
-   "thread": "c-global",
+   "thread": "h-global:deni",
    "via": "chat"
   }
  },
@@ -227,7 +227,7 @@
    "history": true,
    "source": "seed",
    "text": "Ada Pak Eko, siap kirim. Saya buatkan SO-nya ya.",
-   "thread": "c-indo",
+   "thread": "h-indo:eko",
    "via": "chat"
   }
  },
@@ -244,7 +244,7 @@
    "history": true,
    "source": "seed",
    "text": "Ada Pak Deni, siap kirim. Saya buatkan SO-nya ya.",
-   "thread": "c-global",
+   "thread": "h-global:deni",
    "via": "chat"
   }
  },
@@ -291,7 +291,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-mitra",
+   "thread": "h-mitra:dika",
    "via": "chat"
   }
  },
@@ -308,7 +308,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-bina",
+   "thread": "h-bina:reza",
    "via": "chat"
   }
  },
@@ -325,7 +325,7 @@
    "history": true,
    "source": "seed",
    "text": "Mas Andi, stok Kabel masih ada? Mau ambil untuk minggu ini.",
-   "thread": "c-anugerah",
+   "thread": "h-anugerah:nur",
    "via": "chat"
   }
  },
@@ -342,7 +342,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-jaya",
+   "thread": "h-jaya:dewi",
    "via": "chat"
   }
  },
@@ -359,7 +359,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-borneo",
+   "thread": "h-borneo:ari",
    "via": "chat"
   }
  },
@@ -376,7 +376,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-mitra",
+   "thread": "h-mitra:dika",
    "via": "chat"
   }
  },
@@ -393,7 +393,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-bina",
+   "thread": "h-bina:reza",
    "via": "chat"
   }
  },
@@ -410,7 +410,7 @@
    "history": true,
    "source": "seed",
    "text": "Ada Bu Nur, siap kirim. Saya buatkan SO-nya ya.",
-   "thread": "c-anugerah",
+   "thread": "h-anugerah:nur",
    "via": "chat"
   }
  },
@@ -427,7 +427,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-jaya",
+   "thread": "h-jaya:dewi",
    "via": "chat"
   }
  },
@@ -444,7 +444,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-borneo",
+   "thread": "h-borneo:ari",
    "via": "chat"
   }
  },
@@ -508,7 +508,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-cahaya",
+   "thread": "h-cahaya:wati",
    "via": "chat"
   }
  },
@@ -525,7 +525,7 @@
    "history": true,
    "source": "seed",
    "text": "Bu Dewi, stok Kabel FRC masih ada? Mau ambil untuk minggu ini.",
-   "thread": "c-bina",
+   "thread": "h-bina:slamet",
    "via": "chat"
   }
  },
@@ -542,7 +542,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-nusantara",
+   "thread": "h-nusantara:rizal",
    "via": "chat"
   }
  },
@@ -559,7 +559,7 @@
    "history": true,
    "source": "seed",
    "text": "Mas Andi, stok Aksesoris masih ada? Mau ambil untuk minggu ini.",
-   "thread": "c-citra",
+   "thread": "h-citra:yusuf",
    "via": "chat"
   }
  },
@@ -576,7 +576,7 @@
    "history": true,
    "source": "seed",
    "text": "Tolong kirim seperti biasa ya, Mas Andi.",
-   "thread": "c-anugerah",
+   "thread": "h-anugerah:dani",
    "via": "chat"
   }
  },
@@ -593,7 +593,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-prima",
+   "thread": "h-prima:bayu",
    "via": "chat"
   }
  },
@@ -610,7 +610,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-nusa",
+   "thread": "h-nusa:imam",
    "via": "chat"
   }
  },
@@ -644,7 +644,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-cahaya",
+   "thread": "h-cahaya:wati",
    "via": "chat"
   }
  },
@@ -661,7 +661,7 @@
    "history": true,
    "source": "seed",
    "text": "Ada Pak Slamet, siap kirim. Saya buatkan SO-nya ya.",
-   "thread": "c-bina",
+   "thread": "h-bina:slamet",
    "via": "chat"
   }
  },
@@ -678,7 +678,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-nusantara",
+   "thread": "h-nusantara:rizal",
    "via": "chat"
   }
  },
@@ -695,7 +695,7 @@
    "history": true,
    "source": "seed",
    "text": "Ada Pak Yusuf, siap kirim. Saya buatkan SO-nya ya.",
-   "thread": "c-citra",
+   "thread": "h-citra:yusuf",
    "via": "chat"
   }
  },
@@ -712,7 +712,7 @@
    "history": true,
    "source": "seed",
    "text": "Siap, dikirim besok pagi Pak Dani. Terima kasih.",
-   "thread": "c-anugerah",
+   "thread": "h-anugerah:dani",
    "via": "chat"
   }
  },
@@ -729,7 +729,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-prima",
+   "thread": "h-prima:bayu",
    "via": "chat"
   }
  },
@@ -746,7 +746,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-nusa",
+   "thread": "h-nusa:imam",
    "via": "chat"
   }
  },
@@ -812,7 +812,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-sarana",
+   "thread": "h-sarana:ika",
    "via": "chat"
   }
  },
@@ -829,7 +829,7 @@
    "history": true,
    "source": "seed",
    "text": "Tolong kirim seperti biasa ya, Mas Fajar.",
-   "thread": "c-global",
+   "thread": "h-global:fitri",
    "via": "chat"
   }
  },
@@ -880,7 +880,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-sarana",
+   "thread": "h-sarana:ika",
    "via": "chat"
   }
  },
@@ -897,7 +897,7 @@
    "history": true,
    "source": "seed",
    "text": "Siap, dikirim besok pagi Bu Fitri. Terima kasih.",
-   "thread": "c-global",
+   "thread": "h-global:fitri",
    "via": "chat"
   }
  },
@@ -1024,7 +1024,7 @@
    "history": true,
    "source": "seed",
    "text": "Mas Andi, stok Kabel \u0026 aksesoris masih ada? Mau ambil untuk minggu ini.",
-   "thread": "c-sinar",
+   "thread": "h-sinar:budi",
    "via": "chat"
   }
  },
@@ -1058,7 +1058,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-indo",
+   "thread": "h-indo:wira",
    "via": "chat"
   }
  },
@@ -1075,7 +1075,7 @@
    "history": true,
    "source": "seed",
    "text": "Bu Dewi, stok Kabel masih ada? Mau ambil untuk minggu ini.",
-   "thread": "c-sarana",
+   "thread": "h-sarana:hendra",
    "via": "chat"
   }
  },
@@ -1092,7 +1092,7 @@
    "history": true,
    "source": "seed",
    "text": "Mas Rizky, stok HDD masih ada? Mau ambil untuk minggu ini.",
-   "thread": "c-jaya",
+   "thread": "h-jaya:agung",
    "via": "chat"
   }
  },
@@ -1109,7 +1109,7 @@
    "history": true,
    "source": "seed",
    "text": "Mas Fajar, stok HDD masih ada? Mau ambil untuk minggu ini.",
-   "thread": "c-borneo",
+   "thread": "h-borneo:maya",
    "via": "chat"
   }
  },
@@ -1126,7 +1126,7 @@
    "history": true,
    "source": "seed",
    "text": "Invoice kemarin sudah kami transfer ya.",
-   "thread": "c-global",
+   "thread": "h-global:yoga",
    "via": "chat"
   }
  },
@@ -1143,7 +1143,7 @@
    "history": true,
    "source": "seed",
    "text": "Ada Pak Budi, siap kirim. Saya buatkan SO-nya ya.",
-   "thread": "c-sinar",
+   "thread": "h-sinar:budi",
    "via": "chat"
   }
  },
@@ -1177,7 +1177,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-indo",
+   "thread": "h-indo:wira",
    "via": "chat"
   }
  },
@@ -1194,7 +1194,7 @@
    "history": true,
    "source": "seed",
    "text": "Ada Pak Hendra, siap kirim. Saya buatkan SO-nya ya.",
-   "thread": "c-sarana",
+   "thread": "h-sarana:hendra",
    "via": "chat"
   }
  },
@@ -1211,7 +1211,7 @@
    "history": true,
    "source": "seed",
    "text": "Ada Pak Agung, siap kirim. Saya buatkan SO-nya ya.",
-   "thread": "c-jaya",
+   "thread": "h-jaya:agung",
    "via": "chat"
   }
  },
@@ -1228,7 +1228,7 @@
    "history": true,
    "source": "seed",
    "text": "Ada Bu Maya, siap kirim. Saya buatkan SO-nya ya.",
-   "thread": "c-borneo",
+   "thread": "h-borneo:maya",
    "via": "chat"
   }
  },
@@ -1245,7 +1245,7 @@
    "history": true,
    "source": "seed",
    "text": "Sudah masuk, terima kasih banyak.",
-   "thread": "c-global",
+   "thread": "h-global:yoga",
    "via": "chat"
   }
  },

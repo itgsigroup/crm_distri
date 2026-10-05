@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 3,
+  "current_stage": 4,
   "stages": [
     {
       "id": 0,
@@ -38,12 +38,12 @@
     {
       "id": 3,
       "name": "WhatsApp ingest (whatsmeow + Cloud API), nomor internal, grup, Chat",
-      "status": "pending",
+      "status": "done-with-fakes",
       "file": "docs/stages/03-whatsapp.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-05",
+      "finished_at": "2026-10-05",
+      "summary": "internal/wa: Transport (fake, whatsmeow QR multi-device + riwayat, Cloud API webhook+Graph) dan ingest idempoten dengan filter privasi (DM internal dibuang, grup internal tanpa dampak ke dealer, nomor baru → thread baru); worker: ingest streaming, wa.pair, outbox.send (batas harian, jeda acak, balasan manusia); API Chat + nomor internal + grup + status/pair; Chat 3 panel & Pengaturan persis mockup; arc ctl wa inject.",
+      "notes": "Tanpa nomor uji: transport fake. whatsmeow belum diuji dengan ponsel nyata; enkripsi sesi WA_SESSION_KEY belum (ADR 0007). Riwayat WA sintetis hanya sebagai sinyal."
     },
     {
       "id": 4,

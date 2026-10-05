@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon'
 import { useFeedback } from '../components/feedback'
 import { AGENT_NAMES, TITLES, type ScreenKey } from '../lib/i18n/id'
 import { todayLine } from '../lib/format'
-import { useHealth, useMe, useNow, useOrbit } from './queries'
+import { useHealth, useMe, useNow, useOrbit, useThreads } from './queries'
 import { useCommand } from './command'
 import { Dock } from './Dock'
 import { OrchPill, useOrchStatus } from './orch'
@@ -64,6 +64,8 @@ export function Shell() {
   const { data: health } = useHealth()
   const now = useNow()
   const { data: dealers } = useOrbit()
+  const { data: threads } = useThreads('all')
+  const unread = threads?.reduce((a, t) => a + t.unread, 0)
   const orch = useOrchStatus()
   const run = useCommand()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -110,7 +112,7 @@ export function Shell() {
             <div className="nav-sec">Kendali</div>
             <NavBtn to="today" cur={cur} icon="sun" badge={<Badge n={orch.pending} />}>Pusat kendali</NavBtn>
             <NavBtn to="orch" cur={cur} icon="spark" badge={<span className="live" title="siklus berjalan tiap jam" />}>Orchestrator</NavBtn>
-            <NavBtn to="chat" cur={cur} icon="chat" badge={<Badge n={orch.unread} color="var(--good)" />}>Chat</NavBtn>
+            <NavBtn to="chat" cur={cur} icon="chat" badge={<Badge n={unread} color="var(--good)" />}>Chat</NavBtn>
             <div className="nav-sec">Dealer</div>
             <NavBtn to="orbit" cur={cur} icon="target" badge={<Badge n={atRisk} color="var(--bad)" />}>Orbit</NavBtn>
             <NavBtn to="dealer" cur={cur} icon="building">Dealer</NavBtn>

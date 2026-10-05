@@ -123,6 +123,9 @@ type ChatMessage struct {
 	SentAt     time.Time       `json:"sent_at"`
 	Annotation json.RawMessage `json:"annotation"`
 	SignalID   *uuid.UUID      `json:"signal_id"`
+	Status     string          `json:"status"`
+	ProposalID *uuid.UUID      `json:"proposal_id"`
+	Internal   bool            `json:"internal"`
 }
 
 type ChatThread struct {
@@ -138,6 +141,9 @@ type ChatThread struct {
 	LastMessageAt  *time.Time      `json:"last_message_at"`
 	Unread         int32           `json:"unread"`
 	Identification json.RawMessage `json:"identification"`
+	Tag            json.RawMessage `json:"tag"`
+	Suggestions    json.RawMessage `json:"suggestions"`
+	SeedKey        *string         `json:"seed_key"`
 }
 
 type Commitment struct {
@@ -554,4 +560,19 @@ type WaGroup struct {
 	Branch      *string   `json:"branch"`
 	Members     *int32    `json:"members"`
 	ReadEnabled bool      `json:"read_enabled"`
+}
+
+type WaNumber struct {
+	WaNumber     string     `json:"wa_number"`
+	SalesID      *uuid.UUID `json:"sales_id"`
+	Label        *string    `json:"label"`
+	Transport    string     `json:"transport"`
+	Jid          *string    `json:"jid"`
+	State        string     `json:"state"`
+	Qr           *string    `json:"qr"`
+	QrExpiresAt  *time.Time `json:"qr_expires_at"`
+	LastSeenAt   *time.Time `json:"last_seen_at"`
+	PairedAt     *time.Time `json:"paired_at"`
+	BackfillDays int32      `json:"backfill_days"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }

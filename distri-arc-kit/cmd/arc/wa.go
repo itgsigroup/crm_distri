@@ -1,0 +1,81 @@
+package main
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"log/slog"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
+
+	"distri-arc/internal/config"
+	"distri-arc/internal/outbox"
+	"distri-arc/internal/store"
+	"distri-arc/internal/wa"
+)
+
+// whatsmeowDB opens a database/sql handle whose search_path is the whatsmeow schema (device store).
+func whatsmeowDB(url string) (*sql.DB, error) {
+	cfg, err := pgx.ParseConfig(url)
+	if err != nil {
+		return nil, err
+	}
+	cfg.RuntimeParams["search_path"] = "whatsmeow"
+	return stdlib.OpenDB(*cfg), nil
+}
+
+// upgradeWhatsmeow applies whatsmeow's own versioned schema (run by `arc ctl migrate`, never at runtime).
+func upgradeWhatsmeow(ctx context.Context, cfg config.Config) error {
+	db, err := whatsmeowDB(cfg.DatabaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	return wa.WhatsmeowStore(db).Upgrade(ctx)
+}
+
+// newTransport builds the configured WhatsApp transport (WA_TRANSPORT).
+func newTransport(ctx context.Context, cfg config.Config, st *store.Store, log *slog.Logger) (wa.Transport, error) {
+	switch cfg.WATransport {
+	case "whatsmeow":
+		db, err := whatsmeowDB(cfg.DatabaseURL)
+		if err != nil {
+			return nil, err
+		}
+		return wa.NewWhatsmeow(wa.WhatsmeowStore(db), cfg.WABackfillDays, log), nil
+	case "cloudapi":
+		return cloudTransport(cfg), nil
+	case "fake", "":
+		nums, err := st.Q.ListWANumbers(ctx)
+		if err != nil {
+			return nil, err
+		}
+		var accts []string
+		for _, n := range nums {
+			accts = append(accts, n.WaNumber)
+		}
+		return wa.NewFake(accts...), nil
+	default:
+		return nil, fmt.Errorf("WA_TRANSPORT %q: want fake, whatsmeow or cloudapi", cfg.WATransport)
+	}
+}
+
+func cloudTransport(cfg config.Config) *wa.CloudAPI {
+	return wa.NewCloudAPI(cfg.WACloudNumber, cfg.WACloudPhoneID, cfg.WACloudToken, cfg.WACloudVerify, cfg.WACloudSecret)
+}
+
+func sendRules(cfg config.Config) outbox.Rules {
+	r := outbox.DefaultRules()
+	r.GapMin, r.GapMax = config.Range(cfg.WASendGap, r.GapMin, r.GapMax)
+	r.ReplyMin, r.ReplyMax = config.Range(cfg.WAReplyDelay, r.ReplyMin, r.ReplyMax)
+	return r
+}
+
+// injectMessage feeds one fake inbound message through the ingest pipeline (arc ctl wa inject).
+func injectMessage(ctx context.Context, st *store.Store, log *slog.Logger, from, to, text, name string, now time.Time) (wa.Result, error) {
+	in := wa.NewIngestor(st, log)
+	m := wa.Message{ID: fmt.Sprintf("INJ%d", now.UnixNano()), Account: to, ChatJID: wa.UserJID(from), FromNumber: wa.Digits(from), FromName: name, Text: text, Time: now}
+	return in.Process(ctx, m)
+}
