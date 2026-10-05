@@ -70,6 +70,7 @@ type NextAction struct {
 	DecidedAt  *time.Time `json:"decided_at"`
 	ExecutedAt *time.Time `json:"executed_at"`
 	Autonomy   string     `json:"autonomy"`
+	WaitFor    string     `json:"wait_for,omitempty"` // "payment:INV/0901" — waits for a payment (collect_before_followup)
 }
 
 // Board is a consistent picture of all dealers at one moment.
@@ -186,18 +187,24 @@ func (b *Builder) attachNext(ctx context.Context, board *Board) error {
 	}
 	best := map[uuid.UUID]gen.ListProposalsSinceRow{}
 	for _, r := range rows {
-		if r.DealerID == nil || r.Status == "suppressed" {
+		if r.Status == "suppressed" {
 			continue
 		}
-		cur, ok := best[*r.DealerID]
-		if !ok || rank(r) < rank(cur) || (rank(r) == rank(cur) && rank(r) >= 2 && r.CreatedAt.After(cur.CreatedAt)) {
-			best[*r.DealerID] = r
+		ids := r.DealerIds // multi-dealer proposals (bundle) are the next step of each dealer they address
+		if r.DealerID != nil {
+			ids = append(ids, *r.DealerID)
+		}
+		for _, id := range ids {
+			cur, ok := best[id]
+			if !ok || rank(r) < rank(cur) || (rank(r) == rank(cur) && rank(r) >= 2 && r.CreatedAt.After(cur.CreatedAt)) {
+				best[id] = r
+			}
 		}
 	}
 	for i := range board.Items {
 		if r, ok := best[board.Items[i].UUID]; ok {
 			board.Items[i].Next = &NextAction{ID: r.ID, Kind: r.Kind, Title: r.Title, Button: deref(r.Button), Icon: deref(r.Icon), Agent: r.Agent, DueLabel: deref(r.DueLabel),
-				Status: r.Status, Why: r.Why, DecidedAt: r.DecidedAt, ExecutedAt: r.ExecutedAt, Autonomy: r.Autonomy}
+				Status: r.Status, Why: r.Why, DecidedAt: r.DecidedAt, ExecutedAt: r.ExecutedAt, Autonomy: r.Autonomy, WaitFor: r.WaitFor}
 		}
 	}
 	return nil

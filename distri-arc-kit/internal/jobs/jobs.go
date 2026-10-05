@@ -56,3 +56,11 @@ type OdooSyncArgs struct {
 }
 
 func (OdooSyncArgs) Kind() string { return "odoo.sync" }
+
+// CycleRunArgs runs an Orchestrator cycle: a queued one (CycleID, from POST /cycles) or, without CycleID, the
+// hourly scheduled cycle (scope all) — unique per hour.
+type CycleRunArgs struct {
+	CycleID string `json:"cycle_id,omitempty"`
+}
+
+func (CycleRunArgs) Kind() string { return "cycle.run" }

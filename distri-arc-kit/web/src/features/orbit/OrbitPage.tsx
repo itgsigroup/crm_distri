@@ -2,9 +2,9 @@ import { useRef, useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router'
 import type { BoardItem, Mover } from '../../api/types'
 import { Icon } from '../../components/Icon'
-import { useFeedback } from '../../components/feedback'
 import { fmtRp } from '../../lib/format'
-import { KUAD, PENDING_ORCH, RING_DESC } from '../../lib/i18n/id'
+import { KUAD, RING_DESC } from '../../lib/i18n/id'
+import { useOrch, useOrchStatus } from '../../app/orch'
 import { useOrbit, useOrbitMovers, useOrbitSummary, useSales } from '../../app/queries'
 import { CX, CY, H, RINGS, RING_R, W, layoutOrbit } from './geometry'
 
@@ -137,7 +137,8 @@ export function orbitMover(m: Mover) {
 export function OrbitPage() {
   const [sales, setSales] = useState('all')
   const nav = useNavigate()
-  const { toast } = useFeedback()
+  const { reanalyze } = useOrch()
+  const orch = useOrchStatus()
   const { data: list = [] } = useOrbit(sales)
   const { data: summary = [] } = useOrbitSummary(sales)
   const { data: movers = [] } = useOrbitMovers(sales)
@@ -150,7 +151,7 @@ export function OrbitPage() {
             <SalesFilters value={sales} onChange={setSales} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span className="meta">{list.length} dealer · share of wallet rata-rata {avgSow}%</span>
-              <button className="btn ghost" style={{ height: 30, fontSize: 12 }} onClick={() => toast(PENDING_ORCH)}><Icon name="refresh" />Analisis ulang</button>
+              <button className="btn ghost" style={{ height: 30, fontSize: 12 }} disabled={orch.running} onClick={() => reanalyze('screen:orbit')}><Icon name="refresh" />Analisis ulang</button>
               <button className="btn ghost" style={{ height: 30, fontSize: 12 }} onClick={() => nav('/panduan')}><Icon name="doc" />Cara baca</button>
             </div>
           </div>

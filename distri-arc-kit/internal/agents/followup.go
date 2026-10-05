@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -62,9 +63,6 @@ func (a Followup) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]doma
 		if !drifting && (due < 0 || due > 7) {
 			continue
 		}
-		if !drifting && m.Credit.State == domain.CreditTipis && soonInvoice(d, in) {
-			continue // tagih dulu: AI Penagihan handles the invoice before the order (collect_before_followup)
-		}
 		if !drifting && bad {
 			continue
 		}
@@ -92,6 +90,7 @@ func (a Followup) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]doma
 				p.Preview = fmt.Sprintf("%s, untuk invoice %s kami bisa bagi dua: %s minggu ini dan %s 2 minggu lagi. Kalau butuh %s untuk proyek yang jalan, ada harga khusus untuk order cash minggu ini.", pic.Name, Rp(inv.Residual), Rp(half), Rp(inv.Residual-half), shortProduct(firstOr(rec.Products, "kamera")))
 				p.Steps = []string{"Masuk antrean " + d.Owner.Name, "Komitmen cicilan dicatat dengan tanggal", "Limit sementara dibekukan sampai cicilan 1 masuk"}
 				p.Payload["installments"] = []int64{half, inv.Residual - half}
+				p.Payload["covers"] = []string{domain.KindCollect, domain.KindInstallment}
 			case domain.RootMarketplaceModule, domain.RootMarketplace:
 				p.Agent = "AI Follow-up + AI Stok"
 				sweet := agingFor(in, d)
@@ -102,6 +101,7 @@ func (a Followup) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]doma
 					p.Prep = fmt.Sprintf("Draft WA dari %s dengan harga bundle dan stok siap kirim.", d.Owner.Name)
 					p.Preview = fmt.Sprintf("%s, lama tidak order. %s sedang ada harga khusus bundling — %s/pcs, kirim besok dari %s. Mau saya kirim daftar lengkapnya?", pic.Name, shortName(sweet.Name), Rb(price), sweet.Branch)
 					p.Payload["bundle_price"] = price
+					p.Payload["bundle_sku"] = sweet.Name
 				} else {
 					p.Title = fmt.Sprintf("Follow-up %s — lewat jadwal %d hari", d.Name, last)
 					p.Why = fmt.Sprintf("%d hari tanpa order (siklus order %d); dugaan harga vs marketplace.", last, rhythm)
@@ -109,6 +109,10 @@ func (a Followup) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]doma
 				}
 			default:
 				p.Title = fmt.Sprintf("Follow-up %s — lewat jadwal %d hari", d.Name, last)
+				if second(d, in) {
+					p.Title = fmt.Sprintf("Follow-up ke-2 %s — %d hari tanpa order, sebelum churn", d.Name, last)
+					p.Payload["second"] = true
+				}
 				p.Why = fmt.Sprintf("%s× siklus order tanpa order%s. Share of wallet %d%%%s.", strings.Replace(fmt.Sprintf("%.1f", m.Cyc), ".", ",", 1), unansweredText(d), m.SOW, rootText(d.RootCause))
 				p.Prep = fmt.Sprintf("Draft WA dari %s dengan rekomendasi order (%s).", d.Owner.Name, basket)
 				p.Preview = fmt.Sprintf("%s, lama tidak order. %s siap kirim besok dari %s. Mau saya kirim daftarnya?", pic.Name, capitalize(basket), d.Branch)
@@ -204,14 +208,13 @@ func lateInvoice(d *Dealer) (out struct {
 	return
 }
 
-// soonInvoice reports an open invoice falling due within 7 days.
-func soonInvoice(d *Dealer, in *Input) bool {
-	for _, i := range d.OpenInvoices {
-		if i.LateDays == 0 && metrics.DaysBetween(in.Today, i.DueAt) <= 7 {
-			return true
-		}
+// second reports whether this would be the second follow-up: an earlier one went out within 60 days, or the
+// last WhatsApp stayed unanswered (memo). Second follow-ups always wait for a human (autonomy matrix).
+func second(d *Dealer, in *Input) bool {
+	if d.LastFollowupAt != nil && in.Today.Sub(*d.LastFollowupAt) <= 60*24*time.Hour {
+		return true
 	}
-	return false
+	return strings.Contains(strings.ToLower(d.Memo), "tanpa balasan")
 }
 
 // agingFor finds aging stock in the dealer's branch for a category it buys.

@@ -26,6 +26,7 @@
   "AI Prospek":   {"auto": ["identify"], "approve": ["new_dealer", "price_list"], "never": ["send_price_unapproved"],
                    "labels": {"auto": "Identifikasi", "approve": "Membuat dealer di Odoo", "never": "Mengirim harga sebelum approve"}}
  },
+ "autonomy.guard": {"min_confidence": 0.8, "dealer_messages": "confirm"},
  "mcp.permissions": {"allow_reanalyze": true, "allow_plan_update_proposal": true, "allow_send": false, "mask_pii_in_read": true, "max_cycles_per_hour": 6},
  "llm.routing": {"mode": "both", "provider": "anthropic", "model": "claude-sonnet-5-5", "fallback": "openai:gpt-4.1", "batch_hours": [6, 20], "timezone": "Asia/Jakarta"},
  "retention": {"chat_days": 90, "signals_months": 24, "llm_calls_days": 180}

@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"distri-arc/internal/agents"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/metrics"
@@ -43,7 +45,13 @@ func BuildInput(ctx context.Context, st *store.Store, c clock.Clock, only string
 		return nil, nil, err
 	}
 	seen := map[string]bool{}
+	in.Catalog = map[string]agents.Product{}
 	for _, p := range prods {
+		if _, ok := in.Catalog[p.Name]; !ok {
+			var prices map[string]int64
+			_ = json.Unmarshal(p.Prices, &prices)
+			in.Catalog[p.Name] = agents.Product{ID: p.ID, Name: p.Name, Category: deref(p.Category), Prices: prices, Cost: p.Cost, SKU: deref(p.Sku)}
+		}
 		if !sold[p.Name] || seen[p.Name] {
 			continue // stock SKUs are matched separately; requests are matched to the sales catalog
 		}
@@ -77,6 +85,9 @@ func BuildInput(ctx context.Context, st *store.Store, c clock.Clock, only string
 		}
 		h := b.Data.Histories[it.UUID]
 		d := &agents.Dealer{BoardItem: it, Contacts: h.Contacts, Memo: deref(row.Memo), OpenInvoices: views.OpenInvoices(h, b.Today), SalesWA: salesWA[it.Owner.Name]}
+		if at, err := st.Q.LastSentFollowup(ctx, &it.UUID); err == nil && !at.IsZero() {
+			d.LastFollowupAt = &at
+		}
 		for _, mt := range metrics.MonthlyTotals(h.Orders, b.Today, 6) {
 			d.MonthlyOrders = append(d.MonthlyOrders, mt.Total)
 		}
@@ -105,6 +116,40 @@ func BuildInput(ctx context.Context, st *store.Store, c clock.Clock, only string
 			continue
 		}
 		in.WA = append(in.WA, agents.WAMessage{SignalID: m.ID, DealerID: *m.DealerID, Contact: deref(m.ContactName), At: m.OccurredAt, Text: deref(m.Summary)})
+	}
+
+	in.StockSignals = map[string]uuid.UUID{}
+	ss, err := st.Q.LatestStockSignals(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, s := range ss {
+		head := strings.TrimPrefix(strings.SplitN(deref(s.Summary), ":", 2)[0], "Stok ")
+		for _, it := range in.Stock {
+			if head == it.Name+" "+it.Branch {
+				in.StockSignals[it.Name+"|"+it.Branch] = s.ID
+			}
+		}
+	}
+
+	if only == "" {
+		nn, err := st.Q.NewNumberThreads(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, n := range nn {
+			var ident struct {
+				Sources   []agents.IdentSource `json:"sources"`
+				Potential string               `json:"potential"`
+			}
+			_ = json.Unmarshal(n.Sources, &ident)
+			x := agents.NewNumber{ThreadID: n.ThreadID, WANumber: n.WaNumber, Name: deref(n.BestName), Org: deref(n.BestOrg), Score: int(deref(n.Score)),
+				Sources: ident.Sources, Potential: ident.Potential, Sales: deref(n.Sales), Text: deref(n.LastText), At: n.LastAt}
+			if n.SignalID != nil {
+				x.SignalID = *n.SignalID
+			}
+			in.NewNumbers = append(in.NewNumbers, x)
+		}
 	}
 	return in, b, nil
 }

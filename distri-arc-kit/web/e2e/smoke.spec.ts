@@ -51,3 +51,15 @@ test('a proposal opens in the ActionSheet with its provenance (read-only)', asyn
   await page.locator('.ft').getByRole('button', { name: 'Nanti' }).click()
   expect(errors).toEqual([])
 })
+
+test('Analisis ulang di Orbit runs a cycle and reports it (stage 06)', async ({ page }) => {
+  await page.goto('/orbit', { waitUntil: 'networkidle' })
+  const before = await page.locator('.orch-pill .op-t b').innerText()
+  await page.getByRole('button', { name: 'Analisis ulang' }).first().click()
+  await expect(page.locator('.dock')).toHaveClass(/running/)
+  await expect(page.locator('.toast')).toContainText('Analisis ulang orbit selesai', { timeout: 10_000 })
+  await expect(page.locator('.orch-pill .op-t b')).not.toHaveText(before)
+  await page.goto('/orchestrator', { waitUntil: 'networkidle' })
+  await expect(page.locator('table.runs tbody tr').first()).toContainText('Analisis ulang orbit')
+  await expect(page.locator('.conflicts li')).not.toHaveCount(0)
+})

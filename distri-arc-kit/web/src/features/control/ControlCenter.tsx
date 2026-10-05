@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Icon } from '../../components/Icon'
-import { useFeedback } from '../../components/feedback'
 import { CardH, Pill, Prov } from '../../components/ui'
 import { fmtRp, greeting } from '../../lib/format'
-import { AGENT_NAMES, PENDING_ORCH } from '../../lib/i18n/id'
+import { AGENT_NAMES } from '../../lib/i18n/id'
 import { PipeChips } from '../../app/Dock'
-import { useAgenda, useBrief, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, useQueue, useSegmenMovers, useStockPush } from '../../app/queries'
-import { useOrchStatus } from '../../app/orch'
+import { useAgenda, useBrief, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, usePlan, useQueue, useSegmenMovers, useStockPush } from '../../app/queries'
+import { useOrch, useOrchStatus } from '../../app/orch'
+import { PlanList, planMeta } from './Plan'
 import { BriefPoints, DriftList, DueList, PushList, TightList, dueLabel } from './lists'
 import { Queue } from './Queue'
 import type { AgendaRow, KPI } from '../../api/types'
@@ -18,7 +18,6 @@ function scrollTo(id: string) {
 
 export function ControlCenter() {
   const nav = useNavigate()
-  const { toast } = useFeedback()
   const { data: me } = useMe()
   const now = useNow()
   const { data: brief } = useBrief()
@@ -30,6 +29,9 @@ export function ControlCenter() {
   const { data: push = [] } = useStockPush()
   const { data: segMovers = [] } = useSegmenMovers()
   const orch = useOrchStatus()
+  const { reanalyze } = useOrch()
+  const { data: plan } = usePlan()
+  const full = orch.lastFull
   const { data: queue = [] } = useQueue()
   const [agentsOpen, setAgentsOpen] = useState(false)
 
@@ -47,8 +49,14 @@ export function ControlCenter() {
           <div className="greet">
             <h2>{greeting(now)}, {first}.</h2>
             <p>
-              {c ? <>Data masuk sejak kemarin: {c.wa} WhatsApp, {c.so} SO, {c.payments} pembayaran, dan stok {c.branches} cabang. </> : null}
-              Orchestrator belum menjalankan siklus — langkah otonom dan keputusan muncul setelah siklus pertama.
+              {full ? (
+                <>Orchestrator sudah memproses {c?.wa ?? 0} WhatsApp, {c?.so ?? 0} SO, {c?.payments ?? 0} pembayaran, dan stok {c?.branches ?? 0} cabang. {full.auto_count ?? 0} langkah otonom, {orch.pending} menunggu keputusan Anda.</>
+              ) : (
+                <>
+                  {c ? <>Data masuk sejak kemarin: {c.wa} WhatsApp, {c.so} SO, {c.payments} pembayaran, dan stok {c.branches} cabang. </> : null}
+                  Orchestrator belum menjalankan siklus — langkah otonom dan keputusan muncul setelah siklus pertama.
+                </>
+              )}
             </p>
           </div>
           <div className="status-strip">
@@ -60,12 +68,16 @@ export function ControlCenter() {
           </div>
         </div>
         <div className="orch-card">
-          <div className="oc-h"><span className="ai">Orchestrator</span><Pill tone="good" icon="check">Siap</Pill><span className="meta">belum ada siklus · tiap jam 06.00–20.00</span></div>
+          <div className="oc-h">
+            <span className="ai">Orchestrator</span>
+            {orch.running ? <Pill tone="accent" icon="refresh">Menganalisis</Pill> : <Pill tone="good" icon="check">Siap</Pill>}
+            <span className="meta">{orch.run ? `siklus #${orch.run.toLocaleString('id-ID')} · ${orch.last} · ${orch.dur}` : 'belum ada siklus · tiap jam 06.00–20.00'}</span>
+          </div>
           <div className="oc-pipe"><PipeChips /></div>
           <div className="oc-foot">
-            <div className="oc-nums"><span><b>{signals}</b> sinyal</span><span><b>0</b> otonom</span><span><b>{orch.pending}</b> keputusan</span><span><b>0</b> konflik diselesaikan</span></div>
+            <div className="oc-nums"><span><b>{full ? full.signals_count ?? 0 : signals}</b> sinyal</span><span><b>{full?.auto_count ?? 0}</b> otonom</span><span><b>{orch.pending}</b> keputusan</span><span><b>{full?.conflict_count ?? 0}</b> konflik diselesaikan</span></div>
             <div className="oc-btns">
-              <button className="btn primary" onClick={() => toast(PENDING_ORCH)}><Icon name="refresh" />Analisis ulang</button>
+              <button className="btn primary" disabled={orch.running} onClick={() => reanalyze('all')}><Icon name="refresh" />Analisis ulang</button>
               <button className="btn ghost" onClick={() => nav('/orchestrator')}>Buka Orchestrator</button>
             </div>
           </div>
@@ -75,14 +87,8 @@ export function ControlCenter() {
       <div className="today">
         <div className="stack">
           <div className="card" id="plan-card">
-            <div className="card-h"><h2>Rencana hari ini</h2><span className="ai" style={{ marginLeft: 6 }}>disusun Orchestrator</span><span className="meta">0 langkah</span></div>
-            <ol className="plan">
-              <li>
-                <span className="pt">—</span>
-                <div className="pb"><div className="px" style={{ color: 'var(--text-2)' }}>Belum ada rencana. Orchestrator menyusun Rencana hari ini dari siklus pertamanya: jadwal order, penagihan, dan push stok, diurutkan per jam.</div><div className="pm"><span className="ai">Orchestrator</span><span className="pill neutral">menunggu siklus</span></div></div>
-                <div className="pa" />
-              </li>
-            </ol>
+            <div className="card-h"><h2>Rencana hari ini</h2><span className="ai" style={{ marginLeft: 6 }}>disusun Orchestrator</span><span className="meta">{planMeta(plan)}</span></div>
+            <PlanList plan={plan} />
             <div className="plan-foot"><span className="pol"><Icon name="lock" />Langkah berlabel <b>otonom</b> berjalan sendiri dalam batas kebijakan; yang lain menunggu Anda.</span><button className="btn ghost" onClick={() => scrollTo('queue-card')}>Ke keputusan</button></div>
           </div>
 

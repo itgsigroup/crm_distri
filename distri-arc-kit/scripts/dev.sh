@@ -15,7 +15,7 @@ done
 go run ./cmd/arc ctl migrate
 go run ./cmd/arc ctl seed --if-empty
 go build -o bin/arc ./cmd/arc
-bin/arc ctl agents run --all --if-empty   # first proposals for the Keputusan queue (Orchestrator from stage 06)
+bin/arc ctl reanalyze --scope all --if-empty   # first Orchestrator cycle: Rencana hari ini + Keputusan
 
 pids=()
 cleanup() { kill "${pids[@]}" 2>/dev/null || true; wait 2>/dev/null || true; }

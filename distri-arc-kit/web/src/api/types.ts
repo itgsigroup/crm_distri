@@ -76,12 +76,14 @@ export interface NextAction {
   decided_at: string | null
   executed_at: string | null
   autonomy: 'auto' | 'approve'
+  wait_for?: string
 }
 
 export type ProposalStatus = 'proposed' | 'approved' | 'edited' | 'rejected' | 'executed' | 'expired' | 'suppressed'
 export interface ProposalOption { key: string; label: string; style: 'primary' | 'ghost' | 'quiet'; result: string; sends: boolean; preview?: string }
 export interface ImpactItem { label: string; value: string; tone?: string }
 export interface Proposal {
+  payload?: Record<string, unknown> | null
   id: string
   agent: string
   dealer_id: string | null
@@ -304,3 +306,72 @@ export interface WANumber {
 }
 export interface InternalNumber { wa_number: string; label: string | null; department: string | null; is_sales: boolean }
 export interface WAGroup { id: string; jid: string; name: string | null; kind: 'internal' | 'external'; branch: string | null; members: number | null; read_enabled: boolean }
+
+// ---------- Orchestrator (stage 06) ----------
+export type StageName = 'ingest' | 'analyze' | 'synthesize' | 'decide' | 'execute' | 'learn'
+export interface StageDetail { text?: string; signals?: number; wa?: number; so?: number; payments?: number; branches?: number; auto?: number; decisions?: number; conflicts?: number; [k: string]: unknown }
+export interface CycleStage { cycle_id: string; stage: StageName; status: string; started_at: string | null; finished_at: string | null; detail: StageDetail | null }
+export interface Cycle {
+  id: string
+  number: number | null
+  trigger: 'schedule' | 'manual' | 'mcp'
+  scope: string
+  via: 'api' | 'mcp' | null
+  requested_by: string | null
+  status: 'queued' | 'running' | 'done' | 'partial' | 'failed'
+  started_at: string
+  finished_at: string | null
+  duration_ms: number | null
+  signals_count: number | null
+  auto_count: number | null
+  decision_count: number | null
+  conflict_count: number | null
+  note: string | null
+  stage: StageName | null
+  stages: CycleStage[]
+  label: string
+}
+export interface CycleLatest { cycle: Cycle | null; last_done: Cycle | null; last_full: Cycle | null; running: boolean; next_at: string }
+export interface Conflict {
+  id: string
+  cycle_id: string
+  dealer_id: string | null
+  agent_a: string
+  agent_b: string
+  title: string
+  resolution: string
+  rule: string
+  tone: string | null
+  visible: boolean
+  dealer_name: string | null
+  dealer_slug: string | null
+}
+export interface AgentInfo {
+  name: string
+  role: string
+  icon: string
+  auto: string
+  approve: string
+  never: string
+  output: string
+  confidence: number | null
+  last_run_at: string | null
+  today: number
+}
+export interface PlanProposal { id: string; kind: string; status: ProposalStatus; button: string; icon: string; autonomy: 'auto' | 'approve' }
+export interface PlanStep {
+  id: string
+  plan_date: string
+  seq: number
+  time_label: string | null
+  agent: string | null
+  autonomy: 'auto' | 'approve' | null
+  text_html: string | null
+  status: 'scheduled' | 'running' | 'done' | 'waiting' | 'skipped'
+  link: string | null
+  wait_for: string | null
+  proposals: PlanProposal[]
+}
+export interface Plan { items: PlanStep[]; total: number; auto: number; approve: number; cycle_number: number | null }
+export interface AutonomyRow { auto: string[]; approve: string[]; never: string[]; labels: Record<string, string> }
+export interface AutonomyPolicy { matrix: Record<string, AutonomyRow>; guard: { min_confidence: number; dealer_messages: 'confirm' | 'auto' }; order: string[] }

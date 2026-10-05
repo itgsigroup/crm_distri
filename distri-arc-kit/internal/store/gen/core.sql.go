@@ -266,7 +266,7 @@ func (q *Queries) ListPolicies(ctx context.Context) ([]Policy, error) {
 }
 
 const listProposalsByStatus = `-- name: ListProposalsByStatus :many
-select id, cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids, autonomy, status, due_label, decided_by, decided_at, decision_reason, edited_payload, executed_at, created_at, summary, button, icon, pills, options, queue, payload, chosen_option, dedupe_key from proposals where status = $1 order by created_at desc limit $2
+select id, cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids, autonomy, status, due_label, decided_by, decided_at, decision_reason, edited_payload, executed_at, created_at, summary, button, icon, pills, options, queue, payload, chosen_option, dedupe_key, dealer_ids from proposals where status = $1 order by created_at desc limit $2
 `
 
 type ListProposalsByStatusParams struct {
@@ -315,6 +315,7 @@ func (q *Queries) ListProposalsByStatus(ctx context.Context, arg ListProposalsBy
 			&i.Payload,
 			&i.ChosenOption,
 			&i.DedupeKey,
+			&i.DealerIds,
 		); err != nil {
 			return nil, err
 		}
@@ -327,7 +328,7 @@ func (q *Queries) ListProposalsByStatus(ctx context.Context, arg ListProposalsBy
 }
 
 const listRecentCycles = `-- name: ListRecentCycles :many
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note from cycles order by started_at desc limit $1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles order by started_at desc limit $1
 `
 
 func (q *Queries) ListRecentCycles(ctx context.Context, limit int32) ([]Cycle, error) {
@@ -355,6 +356,7 @@ func (q *Queries) ListRecentCycles(ctx context.Context, limit int32) ([]Cycle, e
 			&i.DecisionCount,
 			&i.ConflictCount,
 			&i.Note,
+			&i.Stage,
 		); err != nil {
 			return nil, err
 		}

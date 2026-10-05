@@ -45,7 +45,9 @@ const usage = `arc — Distri ARC Orbit
   arc ctl wa numbers         list paired sales numbers
   arc ctl odoo sync [--full] pull Odoo (ODOO_MODE=fake|rpc) into Distri ARC, read-only
   arc ctl odoo test          check the Odoo connection
-  arc ctl agents run [--agent "AI Order"] [--dealer <slug>]  run agents v1 and store proposals
+  arc ctl reanalyze --scope all|screen:orbit|dealer:<slug>|agent:<name> [--if-empty]  run an Orchestrator cycle
+  arc ctl agents run [--agent "AI Order"] [--dealer <slug>]  alias of reanalyze with that scope
+  arc ctl cycle status       last cycles: status, counters, note
 `
 
 func main() {
@@ -147,10 +149,16 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src})
+	orch := newOrchestrator(ctx, cfg, st, c, log)
+	// a worker that stopped mid-cycle leaves it running; mark such cycles failed so the next one can start
+	if err := st.Q.FailStaleCycles(ctx, c.Now().Add(-time.Hour)); err != nil {
+		return err
+	}
+	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch})
 	if err != nil {
 		return err
 	}
+	orch.Jobs = client
 	ingest.OnDealer = func(ctx context.Context, id uuid.UUID) {
 		_, _ = client.Insert(ctx, jobs.RecomputeArgs{DealerIDs: []string{id.String()}}, nil)
 	}
@@ -173,13 +181,21 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 		fmt.Print(usage)
 		return nil
 	}
-	if args[0] == "agents" {
+	if args[0] == "agents" || args[0] == "reanalyze" || args[0] == "cycle" {
 		st, clk, err := open(ctx, cfg)
 		if err != nil {
 			return err
 		}
 		defer st.Close()
-		return runAgentsCtl(ctx, cfg, st, clk, log, args[1:])
+		switch {
+		case args[0] == "cycle":
+			return runCycleCtl(ctx, st, args[1:])
+		case args[0] == "agents" && (len(args) < 2 || args[1] != "run"):
+			return errors.New(`usage: arc ctl agents run [--agent "AI Order"] [--dealer <slug>] [--if-empty]`)
+		case args[0] == "agents":
+			return runReanalyzeCtl(ctx, cfg, st, clk, log, args[2:])
+		}
+		return runReanalyzeCtl(ctx, cfg, st, clk, log, args[1:])
 	}
 	if args[0] == "odoo" {
 		st, clk, err := open(ctx, cfg)
@@ -322,9 +338,10 @@ func printMetrics(ctx context.Context, st *store.Store, c clock.Clock, id string
 	return nil
 }
 
-func deref(p *float64) float64 {
+func deref[T any](p *T) T {
+	var z T
 	if p == nil {
-		return 0
+		return z
 	}
 	return *p
 }

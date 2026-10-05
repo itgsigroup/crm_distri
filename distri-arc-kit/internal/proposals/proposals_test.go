@@ -2,6 +2,7 @@ package proposals_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -13,7 +14,9 @@ import (
 
 	"distri-arc/db"
 	"distri-arc/internal/clock"
+	"distri-arc/internal/domain"
 	"distri-arc/internal/llm"
+	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/outbox"
 	"distri-arc/internal/proposals"
 	"distri-arc/internal/seed"
@@ -24,19 +27,76 @@ import (
 
 var now = clock.Fixed(time.Date(2026, 10, 5, 9, 0, 0, 0, clock.WIB))
 
-func setup(t *testing.T) (*store.Store, *proposals.Runner) {
+type stored struct {
+	ID       uuid.UUID
+	Kind     string
+	Title    string
+	Status   string
+	Autonomy string
+	Proposal struct {
+		DueLabel   string
+		Preview    string
+		Confidence float64
+		SignalIDs  []uuid.UUID
+		Payload    map[string]any
+		Autonomy   string
+		Title      string
+	}
+}
+
+type result struct {
+	Stored     []stored
+	Suppressed int
+}
+
+func setup(t *testing.T) (*store.Store, *orchestrator.Orchestrator) {
 	t.Helper()
 	st := testdb.New(t)
 	if _, err := seed.Run(context.Background(), st, db.Seed); err != nil {
 		t.Fatal(err)
 	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return st, &proposals.Runner{St: st, Clock: now, Router: &llm.Router{Primary: llm.NewFake(nil), St: st, Log: log}, Log: log}
+	return st, &orchestrator.Orchestrator{St: st, Clock: now, Router: &llm.Router{Primary: llm.NewFake(nil), St: st, Log: log}, Log: log}
 }
 
-func find(res proposals.Result, kind, dealerPart string) *proposals.Stored {
+// run executes one Orchestrator cycle and returns what it stored.
+func run(t *testing.T, o *orchestrator.Orchestrator, scope string) result {
+	t.Helper()
+	sc, _ := domain.ParseScope(scope)
+	rep, err := o.Run(context.Background(), sc, domain.Trigger{Source: "manual", Via: "api"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cid := rep.Cycle.ID
+	rows, err := o.St.Q.ProposalsOfCycle(context.Background(), &cid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var res result
+	for _, r := range rows {
+		s := stored{ID: r.ID, Kind: r.Kind, Title: r.Title, Status: r.Status, Autonomy: r.Autonomy}
+		s.Proposal.DueLabel, s.Proposal.Preview, s.Proposal.SignalIDs, s.Proposal.Autonomy, s.Proposal.Title = deref(r.DueLabel), deref(r.Preview), r.SignalIds, r.Autonomy, r.Title
+		s.Proposal.Confidence = r.Confidence
+		_ = json.Unmarshal(r.Payload, &s.Proposal.Payload)
+		if r.Status == "suppressed" {
+			res.Suppressed++
+		}
+		res.Stored = append(res.Stored, s)
+	}
+	return res
+}
+
+func deref[T any](p *T) T {
+	var z T
+	if p == nil {
+		return z
+	}
+	return *p
+}
+
+func find(res result, kind, dealerPart string) *stored {
 	for i, s := range res.Stored {
-		if s.Proposal.Kind == kind && strings.Contains(s.Proposal.Title, dealerPart) {
+		if s.Kind == kind && strings.Contains(s.Title, dealerPart) {
 			return &res.Stored[i]
 		}
 	}
@@ -48,10 +108,7 @@ func find(res proposals.Result, kind, dealerPart string) *proposals.Stored {
 func TestAgentsOnSeed(t *testing.T) {
 	st, r := setup(t)
 	ctx := context.Background()
-	res, err := r.Run(ctx, proposals.RunOptions{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	res := run(t, r, "all")
 	if len(res.Stored) < 8 {
 		t.Fatalf("only %d proposals", len(res.Stored))
 	}
@@ -69,7 +126,7 @@ func TestAgentsOnSeed(t *testing.T) {
 		t.Fatalf("price counter: %+v", pc)
 	}
 	so := find(res, "so_draft", "Sinar")
-	if so == nil || so.Status != "approved" || so.Proposal.Autonomy != "auto" || !strings.Contains(so.Proposal.Title, "Rp 18,4 jt") {
+	if so == nil || (so.Status != "approved" && so.Status != "executed") || so.Proposal.Autonomy != "auto" || !strings.Contains(so.Proposal.Title, "Rp 18,4 jt") {
 		t.Fatalf("so draft: %+v", so)
 	}
 	for _, s := range res.Stored {
@@ -81,11 +138,11 @@ func TestAgentsOnSeed(t *testing.T) {
 		}
 	}
 	// idempotent: a second run stores nothing new
-	res2, err := r.Run(ctx, proposals.RunOptions{})
-	if err != nil || len(res2.Stored) != 0 {
-		t.Fatalf("second run stored %d (err %v)", len(res2.Stored), err)
+	if res2 := run(t, r, "all"); len(res2.Stored) != 0 {
+		t.Fatalf("second run stored %d", len(res2.Stored))
 	}
 	_ = st
+	_ = ctx
 }
 
 func sam(t *testing.T, st *store.Store) proposals.Decider {
@@ -100,7 +157,7 @@ func sam(t *testing.T, st *store.Store) proposals.Decider {
 func TestApproveSendsThroughOutbox(t *testing.T) {
 	st, r := setup(t)
 	ctx := context.Background()
-	res, _ := r.Run(ctx, proposals.RunOptions{})
+	res := run(t, r, "all")
 	p := find(res, "followup", "Prima")
 	out, err := proposals.Decide(ctx, st, nil, now, false, p.ID, sam(t, st), proposals.Decision{Decision: "approve"})
 	if err != nil || out.OutboxID == nil || out.Status != "approved" {
@@ -130,7 +187,7 @@ func TestApproveSendsThroughOutbox(t *testing.T) {
 func TestRejectSuppresses(t *testing.T) {
 	st, r := setup(t)
 	ctx := context.Background()
-	res, _ := r.Run(ctx, proposals.RunOptions{})
+	res := run(t, r, "all")
 	p := find(res, "followup", "Megah")
 	if _, err := proposals.Decide(ctx, st, nil, now, false, p.ID, sam(t, st), proposals.Decision{Decision: "reject"}); !errors.Is(err, proposals.ErrReason) {
 		t.Fatalf("reject without reason: %v", err)
@@ -139,11 +196,8 @@ func TestRejectSuppresses(t *testing.T) {
 		t.Fatal(err)
 	}
 	// next day the agent proposes again → suppressed
-	next := &proposals.Runner{St: st, Clock: clock.Fixed(time.Date(2026, 10, 6, 9, 0, 0, 0, clock.WIB)), Router: r.Router}
-	res2, err := next.Run(ctx, proposals.RunOptions{Agent: "AI Follow-up"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	next := &orchestrator.Orchestrator{St: st, Clock: clock.Fixed(time.Date(2026, 10, 6, 9, 0, 0, 0, clock.WIB)), Router: r.Router, Log: r.Log}
+	res2 := run(t, next, "agent:AI Follow-up")
 	if res2.Suppressed == 0 {
 		t.Fatalf("no suppression: %+v", res2)
 	}
@@ -156,7 +210,7 @@ func TestRejectSuppresses(t *testing.T) {
 func TestReleaseNeedsCEO(t *testing.T) {
 	st, r := setup(t)
 	ctx := context.Background()
-	res, _ := r.Run(ctx, proposals.RunOptions{})
+	res := run(t, r, "all")
 	g := find(res, "credit_release", "Graha")
 	who := sam(t, st)
 	who.Role = "sales"
@@ -166,5 +220,47 @@ func TestReleaseNeedsCEO(t *testing.T) {
 	out, err := proposals.Decide(ctx, st, nil, now, false, g.ID, sam(t, st), proposals.Decision{Decision: "option", Option: "hold"})
 	if err != nil || out.Status != "executed" || out.OutboxID != nil {
 		t.Fatalf("hold: %+v %v", out, err)
+	}
+}
+
+// Approving a bundle creates one WhatsApp draft per dealer (same decision), each through the outbox.
+func TestApproveBundleSpawnsDrafts(t *testing.T) {
+	st, r := setup(t)
+	ctx := context.Background()
+	res := run(t, r, "all")
+	b := find(res, "push_stock", "Modul LED P5")
+	if b == nil {
+		t.Fatal("no LED P5 bundle")
+	}
+	out, err := proposals.Decide(ctx, st, nil, now, false, b.ID, sam(t, st), proposals.Decision{Decision: "approve"})
+	if err != nil || out.Status != "executed" {
+		t.Fatalf("decide: %+v %v", out, err)
+	}
+	var children, rows, decided int
+	_ = st.Pool.QueryRow(ctx, "select count(*) from proposals where payload->>'parent' = $1", b.ID.String()).Scan(&children)
+	_ = st.Pool.QueryRow(ctx, "select count(*) from outbox o join proposals p on p.id = o.proposal_id where p.payload->>'parent' = $1 and o.channel = 'wa'", b.ID.String()).Scan(&rows)
+	_ = st.Pool.QueryRow(ctx, "select count(*) from proposals where payload->>'parent' = $1 and decided_by is not null", b.ID.String()).Scan(&decided)
+	if children == 0 || rows != children || decided != children {
+		t.Fatalf("children %d outbox %d decided %d", children, rows, decided)
+	}
+}
+
+// A new dealer is recorded for Odoo (written in stage 12), nothing is sent to the number yet.
+func TestApproveNewDealer(t *testing.T) {
+	st, r := setup(t)
+	ctx := context.Background()
+	res := run(t, r, "all")
+	nd := find(res, "new_dealer", "Toko Mandiri")
+	if nd == nil {
+		t.Fatal("no new dealer proposal")
+	}
+	out, err := proposals.Decide(ctx, st, nil, now, false, nd.ID, sam(t, st), proposals.Decision{Decision: "approve"})
+	if err != nil || out.OutboxID == nil {
+		t.Fatalf("decide: %+v %v", out, err)
+	}
+	var channel string
+	_ = st.Pool.QueryRow(ctx, "select channel from outbox where id = $1", *out.OutboxID).Scan(&channel)
+	if channel != "odoo_note" {
+		t.Fatalf("channel %s", channel)
 	}
 }

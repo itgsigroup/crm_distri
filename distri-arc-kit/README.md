@@ -52,3 +52,8 @@ Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (bran
 - Pusat kendali → Keputusan / Jadwal order: buka tombol aksi → ActionSheet → *Setujui & jalankan* (WA terkirim lewat `wa.Fake`, terlihat di Chat), *Edit dulu*, atau *Tolak* dengan alasan (tampil di Pengaturan → Kalibrasi agen).
 - LLM nyata: `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`; biaya per panggilan di tabel `llm_calls`.
 
+### Tahap 06: Orchestrator
+- `bin/arc ctl reanalyze --scope all` (otomatis saat `make dev`) → siklus 6 tahap, konflik, Rencana hari ini; `--scope screen:orbit`, `dealer:mitra`, `agent:AI Kredit`. `bin/arc ctl cycle status` → riwayat.
+- Worker menjalankan siklus tiap jam 06.00–20.00 WIB; tombol *Analisis ulang* (Pusat kendali, Orbit, Segmen, Dealer, Dock, ⌘K "analisis ulang …") memicu siklus ber-scope; siklus kedua saat berjalan → "Orchestrator sedang berjalan".
+- Langkah otonom yang mengirim ke dealer menunggu *Jalankan sekarang* (ADR 0008); kebijakan `autonomy.guard` lewat `PUT /api/policies/autonomy` (CEO).
+

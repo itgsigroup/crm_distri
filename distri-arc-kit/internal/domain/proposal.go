@@ -62,6 +62,7 @@ type Option struct {
 type Proposal struct {
 	Agent      string         `json:"agent"`
 	DealerID   *uuid.UUID     `json:"dealer_id"`
+	DealerIDs  []uuid.UUID    `json:"dealer_ids,omitempty"` // multi-dealer proposals (push_stock)
 	Kind       string         `json:"kind"`
 	Title      string         `json:"title"`
 	Summary    string         `json:"summary"`
@@ -80,6 +81,26 @@ type Proposal struct {
 	Autonomy   string         `json:"autonomy"` // auto | approve
 	Payload    map[string]any `json:"payload"`
 	DedupeKey  string         `json:"dedupe_key"`
+}
+
+// Covers lists the kinds a combined proposal already carries out for its dealer ("collect" in a follow-up with an
+// installment plan); the Orchestrator merges a separate proposal of such a kind into it (rule dedupe).
+func (p Proposal) Covers(kind string) bool {
+	switch v := p.Payload["covers"].(type) {
+	case []string:
+		for _, k := range v {
+			if k == kind {
+				return true
+			}
+		}
+	case []any:
+		for _, k := range v {
+			if k == kind {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // ErrNoProvenance rejects claims without sources (CLAUDE.md §2).

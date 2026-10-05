@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router'
 import type { BoardItem, Mover, Segment } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
-import { useFeedback } from '../../components/feedback'
 import { fmtRp, fx1, shortName } from '../../lib/format'
-import { KUAD, PENDING_ORCH, SEGMENT_ORDER } from '../../lib/i18n/id'
+import { KUAD, SEGMENT_ORDER } from '../../lib/i18n/id'
+import { useOrch, useOrchStatus } from '../../app/orch'
 import { useSegmen, useSegmenMovers, useSegmenSummary } from '../../app/queries'
 import { Legend, MoverList, SalesFilters } from '../orbit/OrbitPage'
 import { toneOf } from '../orbit/geometry'
@@ -177,7 +177,8 @@ export function SegmenPage() {
   const [sales, setSales] = useState('all')
   const [sel, setSel] = useState<Segment | null>(null)
   const nav = useNavigate()
-  const { toast } = useFeedback()
+  const { reanalyze } = useOrch()
+  const orch = useOrchStatus()
   const { data } = useSegmen(sales)
   const { data: sum } = useSegmenSummary(sales)
   const { data: movers = [] } = useSegmenMovers(sales)
@@ -193,7 +194,7 @@ export function SegmenPage() {
             <SalesFilters value={sales} onChange={setSales} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span className="meta">{list.length} dealer · {fmtRp(total)}/bln</span>
-              <button className="btn ghost" style={{ height: 30, fontSize: 12 }} onClick={() => toast(PENDING_ORCH)}><Icon name="refresh" />Analisis ulang</button>
+              <button className="btn ghost" style={{ height: 30, fontSize: 12 }} disabled={orch.running} onClick={() => reanalyze('screen:segmen')}><Icon name="refresh" />Analisis ulang</button>
               <button className="btn ghost" style={{ height: 30, fontSize: 12 }} onClick={() => nav('/panduan#t-kuadran')}><Icon name="doc" />Cara baca</button>
             </div>
           </div>

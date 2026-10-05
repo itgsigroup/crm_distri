@@ -47,6 +47,7 @@ type Brief struct {
 	Points      []BriefPoint `json:"points"`
 	Counts      BriefCounts  `json:"counts"`
 	Confidence  float64      `json:"confidence"`
+	Cycle       *int64       `json:"cycle"` // number of the last full Orchestrator cycle (nil before the first)
 }
 
 // BriefCounts are the signals the brief was written from.

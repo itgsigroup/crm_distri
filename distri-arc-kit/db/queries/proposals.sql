@@ -1,7 +1,7 @@
 -- name: InsertAgentProposal :one
 insert into proposals (cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids,
-  autonomy, status, due_label, summary, button, icon, pills, options, queue, payload, dedupe_key)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+  autonomy, status, due_label, summary, button, icon, pills, options, queue, payload, dedupe_key, dealer_ids, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
 on conflict (dedupe_key) where status in ('proposed','approved','edited') do nothing
 returning id;
 
@@ -65,7 +65,8 @@ update proposals set status = $2, executed_at = case when $2 = 'executed' then n
 update proposals set status = 'approved', decided_at = $2, decision_reason = $3 where id = $1;
 
 -- name: ListProposalsSince :many
-select p.id, p.dealer_id, p.kind, p.title, p.button, p.icon, p.agent, p.due_label, p.status, p.decided_at, p.executed_at, p.why, p.queue, p.created_at, p.autonomy, p.confidence
+select p.id, p.dealer_id, p.kind, p.title, p.button, p.icon, p.agent, p.due_label, p.status, p.decided_at, p.executed_at, p.why, p.queue, p.created_at, p.autonomy, p.confidence,
+  p.dealer_ids, coalesce(p.payload->>'wait_for', '')::text as wait_for
 from proposals p where p.created_at >= $1 and p.kind <> 'reply' and p.status <> 'expired' order by p.created_at;
 
 -- name: FindContactByName :one
@@ -86,3 +87,7 @@ select agent,
 from proposals
 where kind <> 'reply' and decided_at >= sqlc.arg(since)::timestamptz
 group by agent order by agent;
+
+-- name: MarkDecided :one
+-- Child proposals created by a decision (push_stock → one draft per dealer) carry the same human decision.
+update proposals set decided_by = $2, decided_at = $3, decision_reason = $4 where id = $1 returning *;

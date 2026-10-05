@@ -9,3 +9,6 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-05 · 01 · DSO dihitung untuk penjualan kredit saja (penjualan tunai tidak membentuk piutang): seed → 30 hari, mockup menulis 36 · Setuju definisi ini? · dipakai kredit-saja · —
 - 2026-10-05 · 03 · Enkripsi kunci sesi whatsmeow dengan `WA_SESSION_KEY` tidak didukung store resmi; tetap simpan di skema `whatsmeow` + backup terenkripsi, atau tulis store terenkripsi sendiri? · sesi tidak terenkripsi di DB · skema terpisah
 - 2026-10-05 · 04 · Field Odoo GSI untuk: limit kredit dealer (`credit_limit` bawaan atau field kustom), tier (nama pricelist "Tier A/B/C"?), jenis usaha dealer (`industry_id`?), velocity stok, dan cabang = company? · mapper memakai asumsi tsb · fake
+- 2026-10-05 · 06 · Kapan langkah otonom yang mengirim WA ke dealer (follow-up H-1, pengingat H-3) boleh terkirim tanpa klik *Jalankan sekarang*? · `autonomy.guard.dealer_messages = "confirm"` (ADR 0008) · confirm
+- 2026-10-05 · 06 · Bundle stok: mockup menulis LED P5 −8% ke 6 dealer, rumus (floor margin 9% dari modal, kandidat glossary) memberi −1,5% ke 2 dealer. Floor dihitung dari modal stok (`unit_cost`) — benar, atau dari HPP lain di Odoo? · rumus dipakai · −1,5%
+

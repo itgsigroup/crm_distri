@@ -3,10 +3,10 @@ import { useNavigate, useParams } from 'react-router'
 import type { BoardItem, Commitment, DealerDetail } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
-import { useFeedback } from '../../components/feedback'
 import { Pill, Prov, ScoreRing } from '../../components/ui'
 import { contactIni, fmtRp, hb, hcol, hhmm, shortDate } from '../../lib/format'
-import { KAT, KUAD, PENDING_ORCH } from '../../lib/i18n/id'
+import { KAT, KUAD } from '../../lib/i18n/id'
+import { useOrch, useOrchStatus } from '../../app/orch'
 import { useDealer, useDealers } from '../../app/queries'
 import { creditTone } from '../control/lists'
 
@@ -89,7 +89,8 @@ function activityLabel(a: string) {
 }
 
 function DealerBody({ d }: { d: DealerDetail }) {
-  const { toast } = useFeedback()
+  const { reanalyze } = useOrch()
+  const orch = useOrchStatus()
   const m = d.metrics
   const cr = m.credit
   const room = cr.room
@@ -114,7 +115,7 @@ function DealerBody({ d }: { d: DealerDetail }) {
             <Pill tone="neutral">Tier {d.tier} · {d.segment_desc}</Pill>
             <Pill tone="neutral" icon="chart">{KUAD[m.segment].n} · {KUAD[m.segment].s}</Pill>
             <Pill tone="neutral">Sales {d.owner.name}</Pill>
-            <button className="btn ghost" style={{ height: 26, fontSize: 12, marginLeft: 'auto' }} onClick={() => toast(PENDING_ORCH)}><Icon name="refresh" />Analisis ulang</button>
+            <button className="btn ghost" style={{ height: 26, fontSize: 12, marginLeft: 'auto' }} disabled={orch.running} onClick={() => reanalyze('dealer:' + d.id)}><Icon name="refresh" />Analisis ulang</button>
           </div>
         </div>
         <div className="kpis" style={{ margin: '14px 0 0', flexBasis: '100%' }}>
@@ -161,7 +162,7 @@ function DealerBody({ d }: { d: DealerDetail }) {
           <div className="card-h"><h2>Langkah berikutnya</h2></div>
           <p style={{ fontSize: 13.5, color: 'var(--text-2)' }}>
             {issue
-              ? `${PENDING_ORCH}. Agen menyusun langkah untuk dealer ini — tagih, follow-up, atau perluas product mix — dengan alasan dan sumbernya.`
+              ? `Belum ada saran hari ini untuk dealer ini. Analisis ulang dealer ini: agen menyusun langkah — tagih, follow-up, atau perluas product mix — dengan alasan dan sumbernya.`
               : `Tidak ada yang mendesak: siklus order terjaga, sisa limit ${cr.state}. AI Follow-up follow-up otomatis 1 hari sebelum jadwal order dengan rekomendasi order.`}
           </p>
         </div>

@@ -97,7 +97,7 @@ func (a Credit) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domain
 				{Key: "reject", Label: "Tolak", Style: "quiet", Result: "Ditolak · alasan dicatat untuk kalibrasi"},
 			},
 			Confidence: 0.88, SignalIDs: sigs, Autonomy: "approve",
-			Payload:   map[string]any{"amount": amount, "dp": dp, "exposure_after": after, "sop_sec_001": ok, "to": m.Contact},
+			Payload:   map[string]any{"amount": amount, "dp": dp, "exposure_after": after, "sop_sec_001": ok, "to": m.Contact, "covers": []string{domain.KindCollect, domain.KindInstallment}},
 			DedupeKey: "credit:release:" + m.SignalID.String(),
 		}
 		if !ok {

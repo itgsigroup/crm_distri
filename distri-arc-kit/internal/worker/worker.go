@@ -4,6 +4,7 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -14,8 +15,10 @@ import (
 
 	"distri-arc/internal/clock"
 	"distri-arc/internal/dealersvc"
+	"distri-arc/internal/domain"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/odoo"
+	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/outbox"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
@@ -141,12 +144,64 @@ func (w *OdooSyncWorker) Timeout(*river.Job[jobs.OdooSyncArgs]) time.Duration {
 	return 10 * time.Minute
 }
 
+// CycleWorker runs Orchestrator cycles (cycle.run).
+type CycleWorker struct {
+	river.WorkerDefaults[jobs.CycleRunArgs]
+	o *orchestrator.Orchestrator
+}
+
+// Work executes a queued cycle, or queues and runs the scheduled one; a running cycle makes the scheduled run a no-op.
+func (w *CycleWorker) Work(ctx context.Context, job *river.Job[jobs.CycleRunArgs]) error {
+	if job.Args.CycleID != "" {
+		id, err := uuid.Parse(job.Args.CycleID)
+		if err != nil {
+			return river.JobCancel(err)
+		}
+		_, err = w.o.Execute(ctx, id)
+		if errors.Is(err, orchestrator.ErrRunning) {
+			return river.JobSnooze(15 * time.Second)
+		}
+		if err != nil {
+			return river.JobCancel(err) // the cycle is recorded as failed; retrying would run it twice
+		}
+		return nil
+	}
+	_, err := w.o.Run(ctx, domain.Scope{Kind: "all"}, domain.Trigger{Source: "schedule", By: "scheduler", Via: "api"})
+	if errors.Is(err, orchestrator.ErrRunning) {
+		return nil
+	}
+	if err != nil {
+		return river.JobCancel(err)
+	}
+	return nil
+}
+
+// Timeout gives a full cycle with a real LLM room.
+func (w *CycleWorker) Timeout(*river.Job[jobs.CycleRunArgs]) time.Duration { return 15 * time.Minute }
+
+// Hourly fires on the hour between From and To (WIB), e.g. 06.00–20.00 (policy llm.routing.batch_hours).
+type Hourly struct{ From, To int }
+
+// Next implements river.PeriodicSchedule.
+func (h Hourly) Next(t time.Time) time.Time {
+	t = t.In(clock.WIB)
+	n := time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, clock.WIB).Add(time.Hour)
+	switch {
+	case n.Hour() < h.From:
+		n = time.Date(n.Year(), n.Month(), n.Day(), h.From, 0, 0, 0, clock.WIB)
+	case n.Hour() > h.To:
+		n = time.Date(n.Year(), n.Month(), n.Day()+1, h.From, 0, 0, 0, clock.WIB)
+	}
+	return n
+}
+
 // Deps are the long-lived connections the worker owns.
 type Deps struct {
-	Transport wa.Transport
-	Ingest    *wa.Ingestor
-	Rules     outbox.Rules
-	Odoo      odoo.Source
+	Transport    wa.Transport
+	Ingest       *wa.Ingestor
+	Rules        outbox.Rules
+	Odoo         odoo.Source
+	Orchestrator *orchestrator.Orchestrator
 }
 
 // New builds the river client with all workers and periodic jobs registered.
@@ -161,6 +216,12 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 		river.AddWorker(workers, &OdooSyncWorker{syncer: odoo.NewSyncer(st, deps.Odoo, c, log), svc: svc})
 		periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(10*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
 			return jobs.OdooSyncArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 10 * time.Minute}}
+		}, nil))
+	}
+	if deps.Orchestrator != nil {
+		river.AddWorker(workers, &CycleWorker{o: deps.Orchestrator})
+		periodic = append(periodic, river.NewPeriodicJob(Hourly{From: 6, To: 20}, func() (river.JobArgs, *river.InsertOpts) {
+			return jobs.CycleRunArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: time.Hour}}
 		}, nil))
 	}
 	if deps.Transport != nil {

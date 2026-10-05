@@ -68,6 +68,7 @@ func (s *Server) Handler() http.Handler {
 			s.chatRoutes(r)
 			s.connectionRoutes(r)
 			s.proposalRoutes(r)
+			s.cycleRoutes(r)
 			r.Get("/events", s.events)
 			r.Get("/brief/today", s.briefToday)
 		})

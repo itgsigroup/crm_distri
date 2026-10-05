@@ -106,3 +106,11 @@ func Join(xs []string) string {
 		return strings.Join(xs[:len(xs)-1], ", ") + " dan " + xs[len(xs)-1]
 	}
 }
+
+// Unit formats a unit price: thousands below Rp 1 jt ("Rp 552 rb"), one decimal above ("Rp 6,6 jt").
+func Unit(v int64) string {
+	if v >= 1_000_000 {
+		return Rp1(int64(math.Round(float64(v)/1e5)) * 100_000)
+	}
+	return Rb(v)
+}

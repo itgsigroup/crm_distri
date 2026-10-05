@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router'
-import type { AgingItem, BoardItem, Brief } from '../../api/types'
+import type { AgingItem, BoardItem, Brief, NextAction } from '../../api/types'
+import { useStockProposals } from '../../app/queries'
 import { ActBtn } from '../../components/actions'
 import { Icon } from '../../components/Icon'
 import { Pill } from '../../components/ui'
@@ -56,7 +57,7 @@ export function DriftList({ items }: { items: BoardItem[] }) {
               <div className="t"><Ev id={d.id}>{d.name}</Ev> · siklus order {d.metrics.rhythm_days} · {fmtRp(d.metrics.avg_order)}/order · <b>{d.metrics.status}</b></div>
               <div className="s">{d.root_cause ? ROOT_CAUSE[d.root_cause] : ''}</div>
             </div>
-            {d.next ? <ActBtn small next={d.next} /> : <span className="pill neutral st">biarkan</span>}
+            {d.next && !churn ? <ActBtn small next={d.next} /> : <span className="pill neutral st">biarkan</span>}
           </li>
         )
       })}
@@ -66,6 +67,11 @@ export function DriftList({ items }: { items: BoardItem[] }) {
 
 /** "Push stok" (mockup renderPush). */
 export function PushList({ items }: { items: AgingItem[] }) {
+  const { data: props = [] } = useStockProposals()
+  const bundleOf = (name: string): NextAction | null => {
+    const p = props.find((x) => x.kind === 'push_stock' && x.payload?.name === name && !x.payload?.parent)
+    return p ? { id: p.id, kind: p.kind, title: p.title, button: p.button ?? 'Buat bundle', icon: p.icon ?? 'box', agent: p.agent, due_label: p.due_label ?? '', status: p.status, why: p.why, decided_at: p.decided_at, executed_at: p.executed_at, autonomy: p.autonomy } : null
+  }
   return (
     <ul className="row-list">
       {items.slice(0, 3).map((x) => {
@@ -78,7 +84,7 @@ export function PushList({ items }: { items: AgingItem[] }) {
               <div className="t"><b>{x.name}</b> · {x.qty} {unit} · {x.age_days} hari · {fmtRp(x.value)}</div>
               <div className="s">→ {c.length} dealer {c.length ? `(${names}${c.length > 3 ? ', +' + (c.length - 3) : ''})` : 'belum ada yang cocok'}{x.due_this_week ? ` · ${x.due_this_week} jadwal order minggu ini` : ''}</div>
             </div>
-            {c.length > 0 && <ActBtn small label="Buat bundle" icon="box" />}
+            {c.length > 0 && <ActBtn small next={bundleOf(x.name)} label="Buat bundle" icon="box" />}
           </li>
         )
       })}

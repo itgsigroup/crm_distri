@@ -38,12 +38,13 @@ type Signal struct {
 // Dealer is everything an agent may read about one dealer.
 type Dealer struct {
 	views.BoardItem
-	Contacts      []domain.Contact
-	Memo          string
-	Signals       []Signal // newest first, at most 20
-	OpenInvoices  []views.OpenInvoice
-	SalesWA       string
-	MonthlyOrders []int64 // last 6 calendar months, oldest first
+	Contacts       []domain.Contact
+	Memo           string
+	Signals        []Signal // newest first, at most 20
+	OpenInvoices   []views.OpenInvoice
+	SalesWA        string
+	MonthlyOrders  []int64 // last 6 calendar months, oldest first
+	LastFollowupAt *time.Time
 }
 
 // Product is a catalog item with tier prices.
@@ -75,6 +76,32 @@ type Input struct {
 	Products []Product
 	WA       []WAMessage // inbound dealer messages of the last days
 	Examples []json.RawMessage
+
+	Catalog      map[string]Product   // every product by name (stock SKUs included)
+	StockSignals map[string]uuid.UUID // latest stock signal per "name|branch"
+	NewNumbers   []NewNumber          // inbound unknown numbers with an identification (AI Prospek)
+}
+
+// NewNumber is an inbound number that is not a dealer contact yet, with what identification found.
+type NewNumber struct {
+	ThreadID  uuid.UUID
+	WANumber  string
+	Name      string // best name across sources
+	Org       string // "Pati · toko CCTV & sound"
+	Score     int
+	Sources   []IdentSource
+	Potential string
+	Sales     string // sales number that received it
+	SignalID  uuid.UUID
+	Text      string
+	At        time.Time
+}
+
+// IdentSource is one identification source (profil WA Business, Getcontact, Odoo).
+type IdentSource struct {
+	Source string `json:"source"`
+	Value  string `json:"value"`
+	OK     string `json:"ok"`
 }
 
 // WAMessage is an inbound WhatsApp message from a dealer contact.
@@ -90,6 +117,16 @@ type WAMessage struct {
 func (in *Input) Dealer(id uuid.UUID) *Dealer {
 	for _, d := range in.Dealers {
 		if d.UUID == id {
+			return d
+		}
+	}
+	return nil
+}
+
+// DealerBySlug looks a dealer up by its board id (slug).
+func (in *Input) DealerBySlug(slug string) *Dealer {
+	for _, d := range in.Dealers {
+		if d.ID == slug {
 			return d
 		}
 	}

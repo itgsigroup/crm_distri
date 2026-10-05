@@ -21,6 +21,7 @@ export const TITLES: Record<ScreenKey, [string, string]> = {
 export const AGENT_NAMES = ['AI Order', 'AI Follow-up', 'AI Kredit', 'AI Stok', 'AI Penagihan', 'AI Prospek']
 
 export const PIPELINE_STAGES = ['Ingest', 'Analisis', 'Sintesis', 'Keputusan', 'Eksekusi', 'Belajar']
+export const STAGE_LABEL: Record<string, string> = { ingest: 'Ingest', analyze: 'Analisis', synthesize: 'Sintesis', decide: 'Keputusan', execute: 'Eksekusi', learn: 'Belajar' }
 
 export const KAT = ['Kamera & NVR', 'HDD & storage', 'Kabel & PoE', 'Modul LED', 'Fire alarm', 'Aksesoris']
 
@@ -61,4 +62,4 @@ export const ROOT_SHORT: Record<RootCause, string> = {
   small_share: 'porsi kecil',
 }
 
-export const PENDING_ORCH = 'Belum ada proposal — menunggu Orchestrator (Stage 06)'
+export const PENDING_ORCH = 'Belum ada saran untuk ini — jalankan Analisis ulang'

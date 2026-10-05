@@ -162,6 +162,27 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 			sends := domain.SendsWA(row.Kind) && preview != "" && (opt == nil || opt.Sends || key == "approve")
 			var obID *uuid.UUID
 			switch {
+			case row.Kind == domain.KindPushStock:
+				n, err := spawnPerDealer(ctx, q, tx, ins, row, who, now)
+				if err != nil {
+					return err
+				}
+				out.Status = "executed"
+				if out.Result == "" {
+					out.Result = fmt.Sprintf("Bundle disetujui · %d draft masuk antrean sales", n)
+				}
+			case row.Kind == domain.KindNewDealer:
+				var pl map[string]any
+				_ = json.Unmarshal(row.Payload, &pl)
+				payload, _ := json.Marshal(map[string]any{"create_partner": pl, "approved_by": who.Name, "note": "Dealer baru dari Distri ARC · proposal " + id.String()})
+				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: id, Channel: "odoo_note", Payload: payload})
+				if err != nil {
+					return err
+				}
+				obID = &ob.ID
+				if out.Result == "" {
+					out.Result = fmt.Sprintf("%v dicatat sebagai dealer tier C · dibuat di Odoo saat tulis-balik aktif", pl["name"])
+				}
 			case sends:
 				obID, err = queueWA(ctx, q, tx, ins, row, preview, now)
 				if err != nil {
@@ -198,6 +219,9 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 			if out.Result == "" {
 				out.Result = row.Title + " · dijalankan"
 			}
+		}
+		if err := q.SyncPlanStatus(ctx, clock.Today(now)); err != nil {
+			return err
 		}
 		actor, actorKind, action, entity := who.Email, "user", "proposal.decide", "proposal"
 		after, _ := json.Marshal(map[string]any{"decision": d.Decision, "option": key, "status": out.Status, "reason": reason, "outbox_id": out.OutboxID})
@@ -267,3 +291,76 @@ func queueWA(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Client[p
 }
 
 func ptrStr(s string) *string { return &s }
+
+// ApproveBySystem carries out an auto step the Orchestrator may send on its own (autonomy.guard.dealer_messages =
+// "auto", ADR 0008): approved without a human, recorded as such, queued through the outbox like any approval.
+func ApproveBySystem(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c clock.Clock, id uuid.UUID) (Outcome, error) {
+	now := c.Now()
+	out := Outcome{}
+	err := st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
+		reason := "otonom · dikirim Orchestrator dalam batas kebijakan"
+		row, err := q.DecideProposal(ctx, gen.DecideProposalParams{ID: id, Status: "approved", DecidedAt: &now, DecisionReason: &reason})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotOpen
+		}
+		if err != nil {
+			return err
+		}
+		out.Status = "approved"
+		if domain.SendsWA(row.Kind) && deref(row.Preview) != "" {
+			obID, err := queueWA(ctx, q, tx, ins, row, deref(row.Preview), now)
+			if err != nil {
+				return err
+			}
+			out.OutboxID = obID
+		}
+		actor, actorKind, action, entity := "orchestrator", "system", "proposal.auto", "proposal"
+		after, _ := json.Marshal(map[string]any{"status": out.Status, "outbox_id": out.OutboxID})
+		return q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &actorKind, Action: &action, Entity: &entity, EntityID: &id, After: after})
+	})
+	return out, err
+}
+
+// spawnPerDealer turns an approved bundle into one WhatsApp draft per dealer, each from the dealer owner's number,
+// each carrying the same human decision (and its own outbox row).
+func spawnPerDealer(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Client[pgx.Tx], parent gen.Proposal, who Decider, now time.Time) (int, error) {
+	var pl struct {
+		Name    string `json:"name"`
+		Dealers []struct {
+			ID      uuid.UUID `json:"id"`
+			Name    string    `json:"name"`
+			To      string    `json:"to"`
+			Preview string    `json:"preview"`
+		} `json:"dealers"`
+	}
+	_ = json.Unmarshal(parent.Payload, &pl)
+	n := 0
+	reason := "bagian dari bundle yang disetujui"
+	for _, d := range pl.Dealers {
+		if d.Preview == "" {
+			continue
+		}
+		dealerID := d.ID
+		payload, _ := json.Marshal(map[string]any{"parent": parent.ID, "to": d.To, "sku": pl.Name})
+		key := fmt.Sprintf("push-child:%s:%s", parent.ID, d.ID)
+		empty, _ := json.Marshal([]any{})
+		child, err := q.InsertAgentProposal(ctx, gen.InsertAgentProposalParams{
+			CycleID: parent.CycleID, Agent: parent.Agent, DealerID: &dealerID, Kind: domain.KindPushStock, Title: fmt.Sprintf("Bundle %s · %s", pl.Name, d.Name),
+			Why: parent.Why, Preview: &d.Preview, Steps: empty, Impact: empty, Confidence: parent.Confidence, SignalIds: parent.SignalIds,
+			Autonomy: "approve", Status: "approved", Pills: empty, Options: empty, Payload: payload, DedupeKey: &key, Icon: parent.Icon, CreatedAt: now,
+		})
+		if err != nil {
+			return n, err
+		}
+		uid := who.SalesUserID
+		row, err := q.MarkDecided(ctx, gen.MarkDecidedParams{ID: child, DecidedBy: &uid, DecidedAt: &now, DecisionReason: &reason})
+		if err != nil {
+			return n, err
+		}
+		if _, err := queueWA(ctx, q, tx, ins, row, d.Preview, now); err != nil {
+			return n, err
+		}
+		n++
+	}
+	return n, q.SetProposalStatus(ctx, gen.SetProposalStatusParams{ID: parent.ID, Status: "executed"})
+}

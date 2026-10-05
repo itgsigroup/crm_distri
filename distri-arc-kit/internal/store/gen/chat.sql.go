@@ -373,7 +373,7 @@ const insertProposal = `-- name: InsertProposal :one
 insert into proposals (cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids,
   autonomy, status, due_label, decided_by, decided_at, decision_reason, edited_payload)
 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-returning id, cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids, autonomy, status, due_label, decided_by, decided_at, decision_reason, edited_payload, executed_at, created_at, summary, button, icon, pills, options, queue, payload, chosen_option, dedupe_key
+returning id, cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids, autonomy, status, due_label, decided_by, decided_at, decision_reason, edited_payload, executed_at, created_at, summary, button, icon, pills, options, queue, payload, chosen_option, dedupe_key, dealer_ids
 `
 
 type InsertProposalParams struct {
@@ -453,6 +453,7 @@ func (q *Queries) InsertProposal(ctx context.Context, arg InsertProposalParams) 
 		&i.Payload,
 		&i.ChosenOption,
 		&i.DedupeKey,
+		&i.DealerIds,
 	)
 	return i, err
 }

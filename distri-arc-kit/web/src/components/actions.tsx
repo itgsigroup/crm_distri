@@ -136,6 +136,7 @@ export function ActBtn({ next, small, label, icon }: { next?: NextAction | null;
   if (next.status === 'approved' || next.status === 'edited') return <span className="pill accent"><Icon name="send" />Disetujui · mengirim</span>
   if (next.status === 'rejected') return <span className="pill bad"><Icon name="x" />Ditolak</span>
   if (next.status !== 'proposed') return null
+  if (next.wait_for) return <span className="pill neutral"><Icon name="cash" />setelah {next.wait_for.replace(/^payment:/, '')} dibayar</span>
   return (
     <button className="btn primary" style={style} onClick={() => openSheet(<ProposalSheet id={next.id} />)}>
       <Icon name={next.icon || 'check'} />

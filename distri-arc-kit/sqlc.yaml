@@ -7,6 +7,7 @@ sql:
       - db/migrations/0003_whatsapp.sql
       - db/migrations/0004_odoo.sql
       - db/migrations/0005_proposals.sql
+      - db/migrations/0006_orchestrator.sql
     queries: db/queries
     gen:
       go:

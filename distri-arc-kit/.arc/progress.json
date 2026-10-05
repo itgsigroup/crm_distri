@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 6,
+  "current_stage": 7,
   "stages": [
     {
       "id": 0,
@@ -68,12 +68,12 @@
     {
       "id": 6,
       "name": "Orchestrator: siklus 6 tahap, konflik, otonomi, rencana, layar Orchestrator",
-      "status": "pending",
+      "status": "done-with-fakes",
       "file": "docs/stages/06-orchestrator.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-05",
+      "finished_at": "2026-10-05",
+      "summary": "internal/orchestrator: Run/Queue/Execute 6 tahap (cycle_stages + NOTIFY cycle_stage/cycle_done), satu siklus aktif (indeks unik → 409, advisory lock per skema), errgroup maks 4 agen, aturan Sintesis murni (suppression, followup_gap, dedupe covers/satu tawaran/sama jenis, credit_over_stock, collect_before_followup, margin_floor, one_owner), Evaluate otonomi (matriks + autonomy.guard), plan.Build (8 langkah pada seed: 3 otonom, 5 approve), Eksekusi (SO draft/credit hold, lepas langkah menunggu pembayaran, kirim otonom hanya bila guard auto), Belajar (agent_state confidence, few-shot dari edit, sinyal ditandai). Agen v1 AI Stok, AI Penagihan, AI Prospek. Job cycle.run (tiap jam 06–20 WIB + on-demand). API cycles/conflicts/agents/plan/policies autonomy, brief dari siklus. Web: kartu Orchestrator, Rencana hari ini, layar Orchestrator, Dock, Analisis ulang di Orbit/Segmen/Dealer/⌘K, reducer useCycle. CLI arc ctl reanalyze / cycle status. ADR 0008.",
+      "notes": "Fake LLM: siklus seed 105 ms; konflik credit_over_stock Mitra, collect_before_followup Nusa, margin_floor Indo (one_owner tidak menyala: seed tanpa chat Sarana dari dua sales). Deviasi mockup (rumus menang): bundle LED P5 −1,5% (bukan −8%: floor margin 9% dari modal Rp 500 rb/harga A Rp 560 rb), ke 2 dealer (bukan 6, PushCandidates glossary); langkah AI Order 13.00 diganti follow-up Nusa menunggu pembayaran; teks \"dijalankan sendiri\" → \"otonom\" (ADR 0008: pesan otonom ke dealer menunggu Jalankan sekarang). Panel MCP placeholder sampai Stage 07."
     },
     {
       "id": 7,

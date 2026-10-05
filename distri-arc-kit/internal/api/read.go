@@ -381,7 +381,11 @@ func (s *Server) briefToday(w http.ResponseWriter, r *http.Request) {
 	for _, x := range st {
 		branches[x.Branch] = true
 	}
-	httpx.JSON(w, http.StatusOK, b.TemplateBrief(st, views.BriefCounts{WA: c.Wa, SO: c.So, Payments: c.Payments, Branches: len(branches)}))
+	brief := b.TemplateBrief(st, views.BriefCounts{WA: c.Wa, SO: c.So, Payments: c.Payments, Branches: len(branches)})
+	if cyc, err := s.st.Q.LatestFullCycle(r.Context()); err == nil {
+		brief.Cycle, brief.GeneratedAt = cyc.Number, cyc.StartedAt // Ringkasan Orchestrator · <time of the last cycle>
+	}
+	httpx.JSON(w, http.StatusOK, brief)
 }
 
 func (s *Server) policies(w http.ResponseWriter, r *http.Request) {

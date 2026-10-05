@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api, type Items } from '../api/client'
-import type { Proposal } from '../api/types'
+import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, Plan, Proposal } from '../api/types'
 import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAGroup, WANumber } from '../api/types'
 import type {
   AgendaRow, AgingItem, BoardItem, Brief, DealerDetail, Health, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
@@ -77,3 +77,14 @@ export interface CalibrationAgent { agent: string; confidence: number | null; ac
 export interface CalibrationEvent { id: string; agent: string | null; kind: string | null; decision: string | null; reason: string | null; suppress_until: string | null; created_at: string; title: string | null }
 export const useCalibration = () =>
   useQuery({ queryKey: ['proposals', 'calibration'], queryFn: () => api.get<{ agents: CalibrationAgent[]; items: CalibrationEvent[] }>('/calibration') })
+
+export const useStockProposals = () =>
+  useQuery({ queryKey: ['proposals', 'stock'], queryFn: () => api.get<Items<Proposal>>('/proposals?agent=' + encodeURIComponent('AI Stok') + '&today=1').then((r) => r.items) })
+
+// ---------- Orchestrator ----------
+export const useCycleLatest = () => useQuery({ queryKey: ['cycle', 'latest'], queryFn: () => api.get<CycleLatest>('/cycles/latest'), refetchInterval: 60_000 })
+export const useCycles = () => useQuery({ queryKey: ['cycles'], queryFn: () => api.get<Items<Cycle>>('/cycles?limit=20').then((r) => r.items) })
+export const useConflicts = () => useQuery({ queryKey: ['cycles', 'conflicts'], queryFn: () => api.get<Items<Conflict>>('/conflicts').then((r) => r.items) })
+export const useAgents = () => useQuery({ queryKey: ['agents'], queryFn: () => api.get<Items<AgentInfo>>('/agents').then((r) => r.items) })
+export const usePlan = () => useQuery({ queryKey: ['plan', 'today'], queryFn: () => api.get<Plan>('/plan/today') })
+export const useAutonomy = () => useQuery({ queryKey: ['policies', 'autonomy'], queryFn: () => api.get<AutonomyPolicy>('/policies/autonomy') })

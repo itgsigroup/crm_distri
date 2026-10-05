@@ -146,7 +146,7 @@ func (q *Queries) DealerSignals(ctx context.Context, arg DealerSignalsParams) ([
 const decideProposal = `-- name: DecideProposal :one
 update proposals set status = $2, decided_by = $3, decided_at = $4, decision_reason = $5, edited_payload = $6, chosen_option = $7
 where id = $1 and status = 'proposed'
-returning id, cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids, autonomy, status, due_label, decided_by, decided_at, decision_reason, edited_payload, executed_at, created_at, summary, button, icon, pills, options, queue, payload, chosen_option, dedupe_key
+returning id, cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids, autonomy, status, due_label, decided_by, decided_at, decision_reason, edited_payload, executed_at, created_at, summary, button, icon, pills, options, queue, payload, chosen_option, dedupe_key, dealer_ids
 `
 
 type DecideProposalParams struct {
@@ -202,6 +202,7 @@ func (q *Queries) DecideProposal(ctx context.Context, arg DecideProposalParams) 
 		&i.Payload,
 		&i.ChosenOption,
 		&i.DedupeKey,
+		&i.DealerIds,
 	)
 	return i, err
 }
@@ -260,7 +261,7 @@ func (q *Queries) FindThreadBySalesJID(ctx context.Context, arg FindThreadBySale
 }
 
 const getProposal = `-- name: GetProposal :one
-select p.id, p.cycle_id, p.agent, p.dealer_id, p.kind, p.title, p.why, p.prep, p.preview, p.steps, p.impact, p.confidence, p.signal_ids, p.autonomy, p.status, p.due_label, p.decided_by, p.decided_at, p.decision_reason, p.edited_payload, p.executed_at, p.created_at, p.summary, p.button, p.icon, p.pills, p.options, p.queue, p.payload, p.chosen_option, p.dedupe_key, d.slug as dealer_slug, d.name as dealer_name, s.name as decided_by_name
+select p.id, p.cycle_id, p.agent, p.dealer_id, p.kind, p.title, p.why, p.prep, p.preview, p.steps, p.impact, p.confidence, p.signal_ids, p.autonomy, p.status, p.due_label, p.decided_by, p.decided_at, p.decision_reason, p.edited_payload, p.executed_at, p.created_at, p.summary, p.button, p.icon, p.pills, p.options, p.queue, p.payload, p.chosen_option, p.dedupe_key, p.dealer_ids, d.slug as dealer_slug, d.name as dealer_name, s.name as decided_by_name
 from proposals p left join dealers d on d.id = p.dealer_id left join sales_users s on s.id = p.decided_by
 where p.id = $1
 `
@@ -297,6 +298,7 @@ type GetProposalRow struct {
 	Payload        json.RawMessage `json:"payload"`
 	ChosenOption   *string         `json:"chosen_option"`
 	DedupeKey      *string         `json:"dedupe_key"`
+	DealerIds      []uuid.UUID     `json:"dealer_ids"`
 	DealerSlug     *string         `json:"dealer_slug"`
 	DealerName     *string         `json:"dealer_name"`
 	DecidedByName  *string         `json:"decided_by_name"`
@@ -337,6 +339,7 @@ func (q *Queries) GetProposal(ctx context.Context, id uuid.UUID) (GetProposalRow
 		&i.Payload,
 		&i.ChosenOption,
 		&i.DedupeKey,
+		&i.DealerIds,
 		&i.DealerSlug,
 		&i.DealerName,
 		&i.DecidedByName,
@@ -346,8 +349,8 @@ func (q *Queries) GetProposal(ctx context.Context, id uuid.UUID) (GetProposalRow
 
 const insertAgentProposal = `-- name: InsertAgentProposal :one
 insert into proposals (cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids,
-  autonomy, status, due_label, summary, button, icon, pills, options, queue, payload, dedupe_key)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+  autonomy, status, due_label, summary, button, icon, pills, options, queue, payload, dedupe_key, dealer_ids, created_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
 on conflict (dedupe_key) where status in ('proposed','approved','edited') do nothing
 returning id
 `
@@ -376,6 +379,8 @@ type InsertAgentProposalParams struct {
 	Queue      bool            `json:"queue"`
 	Payload    json.RawMessage `json:"payload"`
 	DedupeKey  *string         `json:"dedupe_key"`
+	DealerIds  []uuid.UUID     `json:"dealer_ids"`
+	CreatedAt  time.Time       `json:"created_at"`
 }
 
 func (q *Queries) InsertAgentProposal(ctx context.Context, arg InsertAgentProposalParams) (uuid.UUID, error) {
@@ -403,6 +408,8 @@ func (q *Queries) InsertAgentProposal(ctx context.Context, arg InsertAgentPropos
 		arg.Queue,
 		arg.Payload,
 		arg.DedupeKey,
+		arg.DealerIds,
+		arg.CreatedAt,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
@@ -534,7 +541,7 @@ func (q *Queries) ListCalibration(ctx context.Context, limit int32) ([]ListCalib
 }
 
 const listProposals = `-- name: ListProposals :many
-select p.id, p.cycle_id, p.agent, p.dealer_id, p.kind, p.title, p.why, p.prep, p.preview, p.steps, p.impact, p.confidence, p.signal_ids, p.autonomy, p.status, p.due_label, p.decided_by, p.decided_at, p.decision_reason, p.edited_payload, p.executed_at, p.created_at, p.summary, p.button, p.icon, p.pills, p.options, p.queue, p.payload, p.chosen_option, p.dedupe_key, d.slug as dealer_slug, d.name as dealer_name, s.name as decided_by_name
+select p.id, p.cycle_id, p.agent, p.dealer_id, p.kind, p.title, p.why, p.prep, p.preview, p.steps, p.impact, p.confidence, p.signal_ids, p.autonomy, p.status, p.due_label, p.decided_by, p.decided_at, p.decision_reason, p.edited_payload, p.executed_at, p.created_at, p.summary, p.button, p.icon, p.pills, p.options, p.queue, p.payload, p.chosen_option, p.dedupe_key, p.dealer_ids, d.slug as dealer_slug, d.name as dealer_name, s.name as decided_by_name
 from proposals p left join dealers d on d.id = p.dealer_id left join sales_users s on s.id = p.decided_by
 where ($1::text is null or p.status = $1)
   and ($2::text is null or p.agent = $2)
@@ -582,6 +589,7 @@ type ListProposalsRow struct {
 	Payload        json.RawMessage `json:"payload"`
 	ChosenOption   *string         `json:"chosen_option"`
 	DedupeKey      *string         `json:"dedupe_key"`
+	DealerIds      []uuid.UUID     `json:"dealer_ids"`
 	DealerSlug     *string         `json:"dealer_slug"`
 	DealerName     *string         `json:"dealer_name"`
 	DecidedByName  *string         `json:"decided_by_name"`
@@ -633,6 +641,7 @@ func (q *Queries) ListProposals(ctx context.Context, arg ListProposalsParams) ([
 			&i.Payload,
 			&i.ChosenOption,
 			&i.DedupeKey,
+			&i.DealerIds,
 			&i.DealerSlug,
 			&i.DealerName,
 			&i.DecidedByName,
@@ -648,27 +657,30 @@ func (q *Queries) ListProposals(ctx context.Context, arg ListProposalsParams) ([
 }
 
 const listProposalsSince = `-- name: ListProposalsSince :many
-select p.id, p.dealer_id, p.kind, p.title, p.button, p.icon, p.agent, p.due_label, p.status, p.decided_at, p.executed_at, p.why, p.queue, p.created_at, p.autonomy, p.confidence
+select p.id, p.dealer_id, p.kind, p.title, p.button, p.icon, p.agent, p.due_label, p.status, p.decided_at, p.executed_at, p.why, p.queue, p.created_at, p.autonomy, p.confidence,
+  p.dealer_ids, coalesce(p.payload->>'wait_for', '')::text as wait_for
 from proposals p where p.created_at >= $1 and p.kind <> 'reply' and p.status <> 'expired' order by p.created_at
 `
 
 type ListProposalsSinceRow struct {
-	ID         uuid.UUID  `json:"id"`
-	DealerID   *uuid.UUID `json:"dealer_id"`
-	Kind       string     `json:"kind"`
-	Title      string     `json:"title"`
-	Button     *string    `json:"button"`
-	Icon       *string    `json:"icon"`
-	Agent      string     `json:"agent"`
-	DueLabel   *string    `json:"due_label"`
-	Status     string     `json:"status"`
-	DecidedAt  *time.Time `json:"decided_at"`
-	ExecutedAt *time.Time `json:"executed_at"`
-	Why        string     `json:"why"`
-	Queue      bool       `json:"queue"`
-	CreatedAt  time.Time  `json:"created_at"`
-	Autonomy   string     `json:"autonomy"`
-	Confidence float64    `json:"confidence"`
+	ID         uuid.UUID   `json:"id"`
+	DealerID   *uuid.UUID  `json:"dealer_id"`
+	Kind       string      `json:"kind"`
+	Title      string      `json:"title"`
+	Button     *string     `json:"button"`
+	Icon       *string     `json:"icon"`
+	Agent      string      `json:"agent"`
+	DueLabel   *string     `json:"due_label"`
+	Status     string      `json:"status"`
+	DecidedAt  *time.Time  `json:"decided_at"`
+	ExecutedAt *time.Time  `json:"executed_at"`
+	Why        string      `json:"why"`
+	Queue      bool        `json:"queue"`
+	CreatedAt  time.Time   `json:"created_at"`
+	Autonomy   string      `json:"autonomy"`
+	Confidence float64     `json:"confidence"`
+	DealerIds  []uuid.UUID `json:"dealer_ids"`
+	WaitFor    string      `json:"wait_for"`
 }
 
 func (q *Queries) ListProposalsSince(ctx context.Context, createdAt time.Time) ([]ListProposalsSinceRow, error) {
@@ -697,6 +709,8 @@ func (q *Queries) ListProposalsSince(ctx context.Context, createdAt time.Time) (
 			&i.CreatedAt,
 			&i.Autonomy,
 			&i.Confidence,
+			&i.DealerIds,
+			&i.WaitFor,
 		); err != nil {
 			return nil, err
 		}
@@ -706,6 +720,63 @@ func (q *Queries) ListProposalsSince(ctx context.Context, createdAt time.Time) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const markDecided = `-- name: MarkDecided :one
+update proposals set decided_by = $2, decided_at = $3, decision_reason = $4 where id = $1 returning id, cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids, autonomy, status, due_label, decided_by, decided_at, decision_reason, edited_payload, executed_at, created_at, summary, button, icon, pills, options, queue, payload, chosen_option, dedupe_key, dealer_ids
+`
+
+type MarkDecidedParams struct {
+	ID             uuid.UUID  `json:"id"`
+	DecidedBy      *uuid.UUID `json:"decided_by"`
+	DecidedAt      *time.Time `json:"decided_at"`
+	DecisionReason *string    `json:"decision_reason"`
+}
+
+// Child proposals created by a decision (push_stock → one draft per dealer) carry the same human decision.
+func (q *Queries) MarkDecided(ctx context.Context, arg MarkDecidedParams) (Proposal, error) {
+	row := q.db.QueryRow(ctx, markDecided,
+		arg.ID,
+		arg.DecidedBy,
+		arg.DecidedAt,
+		arg.DecisionReason,
+	)
+	var i Proposal
+	err := row.Scan(
+		&i.ID,
+		&i.CycleID,
+		&i.Agent,
+		&i.DealerID,
+		&i.Kind,
+		&i.Title,
+		&i.Why,
+		&i.Prep,
+		&i.Preview,
+		&i.Steps,
+		&i.Impact,
+		&i.Confidence,
+		&i.SignalIds,
+		&i.Autonomy,
+		&i.Status,
+		&i.DueLabel,
+		&i.DecidedBy,
+		&i.DecidedAt,
+		&i.DecisionReason,
+		&i.EditedPayload,
+		&i.ExecutedAt,
+		&i.CreatedAt,
+		&i.Summary,
+		&i.Button,
+		&i.Icon,
+		&i.Pills,
+		&i.Options,
+		&i.Queue,
+		&i.Payload,
+		&i.ChosenOption,
+		&i.DedupeKey,
+		&i.DealerIds,
+	)
+	return i, err
 }
 
 const proposalKeyUsed = `-- name: ProposalKeyUsed :one

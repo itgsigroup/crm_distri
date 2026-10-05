@@ -173,6 +173,8 @@ type Conflict struct {
 	Rule        *string     `json:"rule"`
 	ProposalIds []uuid.UUID `json:"proposal_ids"`
 	CreatedAt   time.Time   `json:"created_at"`
+	Tone        *string     `json:"tone"`
+	Visible     bool        `json:"visible"`
 }
 
 type Contact struct {
@@ -204,6 +206,7 @@ type Cycle struct {
 	DecisionCount *int32     `json:"decision_count"`
 	ConflictCount *int32     `json:"conflict_count"`
 	Note          *string    `json:"note"`
+	Stage         *string    `json:"stage"`
 }
 
 type CycleStage struct {
@@ -392,16 +395,19 @@ type Payment struct {
 }
 
 type PlanItem struct {
-	ID         uuid.UUID  `json:"id"`
-	PlanDate   time.Time  `json:"plan_date"`
-	CycleID    *uuid.UUID `json:"cycle_id"`
-	Seq        int32      `json:"seq"`
-	TimeLabel  *string    `json:"time_label"`
-	Agent      *string    `json:"agent"`
-	Autonomy   *string    `json:"autonomy"`
-	TextHtml   *string    `json:"text_html"`
-	ProposalID *uuid.UUID `json:"proposal_id"`
-	Status     string     `json:"status"`
+	ID          uuid.UUID   `json:"id"`
+	PlanDate    time.Time   `json:"plan_date"`
+	CycleID     *uuid.UUID  `json:"cycle_id"`
+	Seq         int32       `json:"seq"`
+	TimeLabel   *string     `json:"time_label"`
+	Agent       *string     `json:"agent"`
+	Autonomy    *string     `json:"autonomy"`
+	TextHtml    *string     `json:"text_html"`
+	ProposalID  *uuid.UUID  `json:"proposal_id"`
+	Status      string      `json:"status"`
+	ProposalIds []uuid.UUID `json:"proposal_ids"`
+	Link        *string     `json:"link"`
+	WaitFor     *string     `json:"wait_for"`
 }
 
 type Policy struct {
@@ -467,6 +473,7 @@ type Proposal struct {
 	Payload        json.RawMessage `json:"payload"`
 	ChosenOption   *string         `json:"chosen_option"`
 	DedupeKey      *string         `json:"dedupe_key"`
+	DealerIds      []uuid.UUID     `json:"dealer_ids"`
 }
 
 type RiverJob struct {
