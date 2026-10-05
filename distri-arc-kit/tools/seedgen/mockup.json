@@ -1,0 +1,3747 @@
+{
+ "SALES": [
+  {
+   "id": "s-andi",
+   "n": "Andi",
+   "branch": "Semarang",
+   "no": "+62 812-••••-4471"
+  },
+  {
+   "id": "s-dewi",
+   "n": "Dewi",
+   "branch": "Yogyakarta",
+   "no": "+62 815-••••-9032"
+  },
+  {
+   "id": "s-rizky",
+   "n": "Rizky",
+   "branch": "Surabaya",
+   "no": "+62 811-••••-2210"
+  },
+  {
+   "id": "s-fajar",
+   "n": "Fajar",
+   "branch": "Jakarta",
+   "no": "+62 813-••••-7785"
+  }
+ ],
+ "KAT": [
+  "Kamera & NVR",
+  "HDD & storage",
+  "Kabel & PoE",
+  "Modul LED",
+  "Fire alarm",
+  "Aksesoris"
+ ],
+ "DEALERS": [
+  {
+   "id": "sinar",
+   "account": "Toko Sinar Elektronik",
+   "city": "Semarang",
+   "branch": "Semarang",
+   "tier": "A",
+   "seg": "Toko CCTV & jaringan",
+   "owner": "Andi",
+   "limit": 250000000,
+   "exposure": 176000000,
+   "pay": 28,
+   "onTime": 93,
+   "rhythm": 14,
+   "last": 6,
+   "avg": 62000000,
+   "porsi": 72,
+   "prev": {
+    "rhythm": 16,
+    "avg": 48000000
+   },
+   "kr": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 4MP",
+     46
+    ],
+    [
+     "NVR 16ch",
+     22
+    ],
+    [
+     "HDD 4TB",
+     18
+    ],
+    [
+     "Kabel & aksesoris",
+     14
+    ]
+   ],
+   "months": [
+    48,
+    55,
+    61,
+    58,
+    66,
+    72
+   ],
+   "people": [
+    {
+     "n": "Pak Budi",
+     "role": "Pemilik",
+     "s": 3
+    },
+    {
+     "n": "Mbak Rina",
+     "role": "Admin order",
+     "s": 3
+    },
+    {
+     "n": "Pak Yono",
+     "role": "Teknisi toko",
+     "s": 1
+    }
+   ],
+   "memo": "Toko CCTV terbesar di Semarang Timur, pelanggan sejak 2022. Order rutin tiap 2 minggu lewat Mbak Rina; Pak Budi memutuskan harga dan limit. Bayar selalu ≤ 30 hari (93% tepat waktu). Membuka cabang di Demak — kebutuhan stok awal ±Rp 90 jt. Sensitif pada ketersediaan stok, bukan harga. Product mix belum menyentuh LED & fire alarm — share of wallet bisa naik dari 72%.",
+   "commits": {
+    "kami": [
+     {
+      "t": "Kirim 10 kamera + 1 NVR Senin",
+      "s": "SO dari WA hari ini",
+      "st": "open"
+     }
+    ],
+    "mereka": [
+     {
+      "t": "Bayar INV/0912 Rp 58 jt",
+      "s": "Jatuh tempo 9 Okt · pola 28 hari",
+      "st": "open"
+     }
+    ]
+   },
+   "timeline": [
+    {
+     "d": "2 Okt",
+     "via": "chat",
+     "who": "Mbak Rina",
+     "t": "Order 10 kamera 4MP + 1 NVR 16ch, kirim Senin.",
+     "x": "AI Order: stok Semarang OK, tier A, sisa limit OK → SO"
+    },
+    {
+     "d": "28 Sep",
+     "via": "box",
+     "who": "Pembayaran",
+     "t": "INV/0871 Rp 44 jt dibayar hari ke-27.",
+     "x": "Pola bayar tetap ≤ 30 hari"
+    },
+    {
+     "d": "18 Sep",
+     "via": "chat",
+     "who": "Pak Budi",
+     "t": "\"Bulan depan kami buka cabang di Demak.\"",
+     "x": "Sinyal ekspansi → usul limit naik"
+    }
+   ],
+   "health": 83
+  },
+  {
+   "id": "graha",
+   "account": "PT Graha Sentosa",
+   "city": "Jakarta",
+   "branch": "Jakarta",
+   "tier": "A",
+   "seg": "Installer & kontraktor",
+   "owner": "Fajar",
+   "limit": 250000000,
+   "exposure": 220000000,
+   "pay": 47,
+   "onTime": 61,
+   "rhythm": 20,
+   "last": 3,
+   "avg": 84000000,
+   "porsi": 55,
+   "prev": {
+    "rhythm": 17,
+    "avg": 80000000
+   },
+   "kr": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 4MP",
+     52
+    ],
+    [
+     "NVR 32ch",
+     20
+    ],
+    [
+     "Switch PoE",
+     16
+    ],
+    [
+     "Kabel",
+     12
+    ]
+   ],
+   "months": [
+    70,
+    92,
+    65,
+    110,
+    88,
+    96
+   ],
+   "people": [
+    {
+     "n": "Pak Hasan",
+     "role": "Purchasing",
+     "s": 3
+    },
+    {
+     "n": "Bu Lia",
+     "role": "Finance",
+     "s": 1
+    },
+    {
+     "n": "Pak Darto",
+     "role": "Direktur",
+     "s": 0
+    }
+   ],
+   "memo": "Installer besar untuk proyek gedung di Jakarta; order besar tapi bayar lambat (47 hari dari termin 30). INV/0844 Rp 95 jt lewat 17 hari. Minta rilis 24 kamera (Rp 180 jt) untuk proyek apartemen — over limit / overdue: exposure akan melewati limit. Finance (Bu Lia) jarang merespons; pembayaran bergantung termin dari klien mereka.",
+   "commits": {
+    "kami": [],
+    "mereka": [
+     {
+      "t": "Bayar INV/0844 Rp 95 jt",
+      "s": "Jatuh tempo 15 Sep",
+      "st": "late",
+      "d": "Lewat 17 hari"
+     },
+     {
+      "t": "Kirim PO proyek apartemen",
+      "s": "Diterima 1 Okt · diverifikasi via telepon",
+      "st": "done"
+     }
+    ]
+   },
+   "timeline": [
+    {
+     "d": "2 Okt",
+     "via": "chat",
+     "who": "Pak Hasan",
+     "t": "Minta rilis 24 unit kamera 4MP, termin 30 hari, kirim Rabu.",
+     "x": "AI Kredit: exposure → Rp 400 jt / limit 250 · eskalasi CEO · SOP-SEC-001 lolos"
+    },
+    {
+     "d": "1 Okt",
+     "via": "doc",
+     "who": "PO",
+     "t": "PO No. 118/GS/X/2026 diterima; dikonfirmasi via telepon ke kantor.",
+     "x": "SOP-SEC-001 ✓"
+    },
+    {
+     "d": "24 Sep",
+     "via": "chat",
+     "who": "Fajar",
+     "t": "Pengingat INV/0844 — dijawab \"menunggu termin klien\".",
+     "x": "Komitmen mereka digeser tanpa tanggal"
+    }
+   ],
+   "health": 64
+  },
+  {
+   "id": "mitra",
+   "account": "CV Mitra Jaya Teknik",
+   "city": "Yogyakarta",
+   "branch": "Yogyakarta",
+   "tier": "B",
+   "seg": "Installer CCTV",
+   "owner": "Dewi",
+   "limit": 150000000,
+   "exposure": 162000000,
+   "pay": 41,
+   "onTime": 58,
+   "rhythm": 21,
+   "last": 30,
+   "avg": 38000000,
+   "porsi": 40,
+   "prev": {
+    "rhythm": 16,
+    "avg": 46000000
+   },
+   "kr": [
+    1,
+    0,
+    1,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 2MP",
+     40
+    ],
+    [
+     "NVR 8ch",
+     25
+    ],
+    [
+     "Kabel",
+     20
+    ],
+    [
+     "Power supply",
+     15
+    ]
+   ],
+   "months": [
+    42,
+    36,
+    40,
+    31,
+    22,
+    0
+   ],
+   "people": [
+    {
+     "n": "Pak Agus",
+     "role": "Pemilik",
+     "s": 2
+    },
+    {
+     "n": "Mas Dika",
+     "role": "Teknisi",
+     "s": 2
+    }
+   ],
+   "memo": "Installer kecil dengan proyek musiman; dua bulan terakhir order turun dan satu invoice Rp 46 jt lewat 11 hari. Pak Agus minta tambah tempo \"minggu depan\" tanpa tanggal. Over limit / overdue (exposure 162 / 150 jt) dan lewat jadwal (30 hari dari siklus order 21). Dua masalah satu akar: proyek belum cair. Yang berhasil di dealer serupa: cicilan 2× + order kecil cash.",
+   "commits": {
+    "kami": [
+     {
+      "t": "Tawarkan skema cicilan 2×",
+      "s": "Draft siap · menunggu approve",
+      "st": "open"
+     }
+    ],
+    "mereka": [
+     {
+      "t": "Bayar INV/0889 Rp 46 jt",
+      "s": "Jatuh tempo 21 Sep",
+      "st": "late",
+      "d": "Lewat 11 hari"
+     }
+    ]
+   },
+   "timeline": [
+    {
+     "d": "1 Okt",
+     "via": "chat",
+     "who": "Pak Agus",
+     "t": "\"Bu, invoice yang 46 jt minggu depan ya, proyek belum cair.\"",
+     "x": "Sinyal: minta tempo tanpa tanggal · pola berulang 2×"
+    },
+    {
+     "d": "2 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order terakhir Rp 22 jt.",
+     "x": "Lewat jadwal sejak 27 Sep (1,2× siklus order)"
+    }
+   ],
+   "health": 44
+  },
+  {
+   "id": "indo",
+   "account": "Indo Vision Security",
+   "city": "Surabaya",
+   "branch": "Surabaya",
+   "tier": "A",
+   "seg": "Distributor sub-area",
+   "owner": "Rizky",
+   "limit": 400000000,
+   "exposure": 184000000,
+   "pay": 25,
+   "onTime": 97,
+   "rhythm": 10,
+   "last": 2,
+   "avg": 140000000,
+   "porsi": 65,
+   "kr": [
+    1,
+    1,
+    1,
+    1,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 4MP",
+     44
+    ],
+    [
+     "NVR 16/32ch",
+     24
+    ],
+    [
+     "HDD",
+     18
+    ],
+    [
+     "Switch PoE",
+     14
+    ]
+   ],
+   "months": [
+    120,
+    132,
+    128,
+    150,
+    141,
+    160
+   ],
+   "people": [
+    {
+     "n": "Pak Wira",
+     "role": "Pemilik",
+     "s": 3
+    },
+    {
+     "n": "Bu Santi",
+     "role": "Purchasing",
+     "s": 3
+    },
+    {
+     "n": "Pak Eko",
+     "role": "Gudang",
+     "s": 2
+    }
+   ],
+   "memo": "Dealer terbesar di Jatim, bayar 25 hari, order tiap 10 hari — Key account. Minta harga khusus 3% di bawah tier A untuk 60 unit karena \"distributor lain lebih murah\" (share of wallet kita 65%, sisanya ke distributor itu). Floor margin 9%: 3% membuat margin 8,3%. Counter yang masuk akal: 1,5% + ongkir, atau bundle NVR 32ch yang sedang menua.",
+   "commits": {
+    "kami": [
+     {
+      "t": "Jawab permintaan harga 60 unit",
+      "s": "Pricing guard · menunggu keputusan",
+      "st": "open"
+     }
+    ],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "2 Okt",
+     "via": "chat",
+     "who": "Bu Santi",
+     "t": "\"Untuk 60 unit 4MP, distributor lain kasih 3% di bawah harga Bapak. Bisa samain?\"",
+     "x": "Pricing guard: 3% → margin 8,3% < floor 9% · counter disiapkan"
+    },
+    {
+     "d": "30 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 92 jt — SO otomatis.",
+     "x": "Stok Surabaya OK · sisa limit OK"
+    }
+   ],
+   "health": 89
+  },
+  {
+   "id": "cahaya",
+   "account": "UD Cahaya Abadi",
+   "city": "Solo",
+   "branch": "Semarang",
+   "tier": "C",
+   "seg": "Toko elektronik",
+   "owner": "Andi",
+   "limit": 0,
+   "exposure": 0,
+   "pay": 0,
+   "onTime": 100,
+   "rhythm": 15,
+   "last": 4,
+   "avg": 9000000,
+   "porsi": 60,
+   "kr": [
+    1,
+    0,
+    1,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera analog",
+     50
+    ],
+    [
+     "DVR 4ch",
+     30
+    ],
+    [
+     "Kabel",
+     20
+    ]
+   ],
+   "months": [
+    8,
+    9,
+    7,
+    10,
+    9,
+    11
+   ],
+   "people": [
+    {
+     "n": "Bu Wati",
+     "role": "Pemilik",
+     "s": 2
+    }
+   ],
+   "memo": "Toko kecil, cash/COD, order bulanan stabil Rp 8–11 jt. Cocok untuk bundle kamera analog + DVR. Tidak perlu limit kredit.",
+   "commits": {
+    "kami": [],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "20 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 8,9 jt COD.",
+     "x": "Siklus order 30 hari terjaga"
+    }
+   ],
+   "health": 71
+  },
+  {
+   "id": "lampu",
+   "account": "Toko Lampu Jaya",
+   "city": "Kudus",
+   "branch": "Semarang",
+   "tier": "C",
+   "seg": "Toko LED & lampu",
+   "owner": "Andi",
+   "limit": 0,
+   "exposure": 0,
+   "pay": 0,
+   "onTime": 100,
+   "rhythm": 35,
+   "last": 65,
+   "avg": 12000000,
+   "porsi": 30,
+   "prev": {
+    "rhythm": 18,
+    "avg": 14000000
+   },
+   "kr": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Modul LED P5",
+     55
+    ],
+    [
+     "Power supply",
+     25
+    ],
+    [
+     "Controller",
+     20
+    ]
+   ],
+   "months": [
+    14,
+    11,
+    13,
+    0,
+    0,
+    0
+   ],
+   "people": [
+    {
+     "n": "Pak Heri",
+     "role": "Pemilik",
+     "s": 1
+    }
+   ],
+   "memo": "Pembeli modul LED P5 rutin sampai Juli, lalu berhenti — churn (65 hari dari siklus order 35). Dugaan: beli dari marketplace. Push stok yang tepat: bundle modul P5 (stok menua Semarang) dengan harga marketplace.",
+   "commits": {
+    "kami": [
+     {
+      "t": "Follow-up + bundle modul P5",
+      "s": "Draft siap",
+      "st": "open"
+     }
+    ],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "29 Jul",
+     "via": "box",
+     "who": "SO",
+     "t": "Order terakhir Rp 13 jt modul P5.",
+     "x": "Churn sejak awal September"
+    }
+   ],
+   "health": 25
+  },
+  {
+   "id": "bina",
+   "account": "CV Bina Teknik",
+   "city": "Magelang",
+   "branch": "Yogyakarta",
+   "tier": "B",
+   "seg": "Installer fire alarm",
+   "owner": "Dewi",
+   "limit": 100000000,
+   "exposure": 40000000,
+   "pay": 33,
+   "onTime": 82,
+   "rhythm": 28,
+   "last": 25,
+   "avg": 24000000,
+   "porsi": 50,
+   "kr": [
+    1,
+    0,
+    1,
+    0,
+    1,
+    1
+   ],
+   "fav": [
+    [
+     "Detektor addressable",
+     45
+    ],
+    [
+     "Panel",
+     30
+    ],
+    [
+     "Kabel FRC",
+     25
+    ]
+   ],
+   "months": [
+    26,
+    22,
+    28,
+    20,
+    24,
+    0
+   ],
+   "people": [
+    {
+     "n": "Pak Slamet",
+     "role": "Pemilik",
+     "s": 2
+    },
+    {
+     "n": "Mas Reza",
+     "role": "Teknisi",
+     "s": 2
+    }
+   ],
+   "memo": "Installer fire alarm untuk RS dan sekolah di Magelang–Temanggung. Mengajukan retur 2 NVR rusak. Jadwal order 3 hari lagi; proyek RS Muntilan menunggu detektor addressable — stok Yogyakarta cukup.",
+   "commits": {
+    "kami": [
+     {
+      "t": "Proses retur 2 NVR",
+      "s": "RMA supplier · menunggu approve",
+      "st": "open"
+     }
+    ],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "1 Okt",
+     "via": "chat",
+     "who": "Mas Reza",
+     "t": "2 NVR 8ch mati total setelah 2 minggu, minta tukar.",
+     "x": "Retur → garansi supplier berlaku · biaya Rp 0"
+    }
+   ],
+   "health": 80
+  },
+  {
+   "id": "nusantara",
+   "account": "PT Nusantara Secure",
+   "city": "Jakarta",
+   "branch": "Jakarta",
+   "tier": "B",
+   "seg": "Installer baru",
+   "owner": "Fajar",
+   "limit": 25000000,
+   "exposure": 0,
+   "pay": 0,
+   "onTime": 0,
+   "rhythm": 0,
+   "last": 9,
+   "avg": 18000000,
+   "porsi": 20,
+   "kr": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "fav": [
+    [
+     "Kamera IP 4MP",
+     60
+    ],
+    [
+     "NVR 16ch",
+     40
+    ]
+   ],
+   "months": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    18
+   ],
+   "people": [
+    {
+     "n": "Pak Rizal",
+     "role": "Direktur",
+     "s": 2
+    }
+   ],
+   "memo": "Dealer baru masuk orbit (AI Prospek, 23 Sep): 1 order cash Rp 18 jt. Belum punya siklus order. Limit awal Rp 25 jt. Perlu kunjungan & verifikasi alamat sebelum limit naik.",
+   "commits": {
+    "kami": [
+     {
+      "t": "Kunjungan perkenalan + verifikasi alamat",
+      "s": "Fajar · minggu depan",
+      "st": "open"
+     }
+    ],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "23 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order pertama Rp 18 jt, cash.",
+     "x": "Masuk orbit · tier B sementara"
+    }
+   ],
+   "health": 44
+  },
+  {
+   "id": "citra",
+   "account": "Citra Komputer",
+   "city": "Semarang",
+   "branch": "Semarang",
+   "tier": "C",
+   "seg": "Toko komputer & CCTV",
+   "owner": "Andi",
+   "limit": 0,
+   "exposure": 0,
+   "pay": 0,
+   "onTime": 100,
+   "rhythm": 12,
+   "last": 10,
+   "avg": 7000000,
+   "porsi": 35,
+   "prev": {
+    "rhythm": 21,
+    "avg": 7000000
+   },
+   "kr": [
+    1,
+    1,
+    0,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 2MP",
+     50
+    ],
+    [
+     "HDD",
+     30
+    ],
+    [
+     "Aksesoris",
+     20
+    ]
+   ],
+   "months": [
+    6,
+    7,
+    8,
+    7,
+    6,
+    8
+   ],
+   "people": [
+    {
+     "n": "Pak Yusuf",
+     "role": "Pemilik",
+     "s": 2
+    }
+   ],
+   "memo": "Toko komputer yang mulai jualan CCTV. Cash. Share of wallet masih 35% — sisanya dari marketplace. Jadwal order 2 hari lagi.",
+   "commits": {
+    "kami": [],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "14 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 7 jt cash.",
+     "x": "Siklus order 21 hari"
+    }
+   ],
+   "health": 64
+  },
+  {
+   "id": "anugerah",
+   "account": "CV Anugerah Teknik",
+   "city": "Pekalongan",
+   "branch": "Semarang",
+   "tier": "B",
+   "seg": "Installer",
+   "owner": "Andi",
+   "limit": 100000000,
+   "exposure": 35000000,
+   "pay": 29,
+   "onTime": 88,
+   "rhythm": 25,
+   "last": 8,
+   "avg": 21000000,
+   "porsi": 58,
+   "prev": {
+    "rhythm": 25,
+    "avg": 15000000
+   },
+   "kr": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 4MP",
+     48
+    ],
+    [
+     "NVR 8ch",
+     27
+    ],
+    [
+     "Kabel",
+     25
+    ]
+   ],
+   "months": [
+    18,
+    22,
+    19,
+    24,
+    20,
+    23
+   ],
+   "people": [
+    {
+     "n": "Pak Dani",
+     "role": "Pemilik",
+     "s": 2
+    },
+    {
+     "n": "Bu Nur",
+     "role": "Admin",
+     "s": 2
+    }
+   ],
+   "memo": "Installer stabil di Pekalongan, bayar 29 hari. Belum pernah beli LED/fire alarm — product mix bisa dilebarkan saat proyek sekolah mereka mulai.",
+   "commits": {
+    "kami": [],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "25 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 23 jt.",
+     "x": "Siklus order 25 hari terjaga"
+    }
+   ],
+   "health": 82
+  },
+  {
+   "id": "megah",
+   "account": "Toko Megah Jaya",
+   "city": "Tegal",
+   "branch": "Semarang",
+   "tier": "C",
+   "seg": "Toko elektronik",
+   "owner": "Andi",
+   "limit": 0,
+   "exposure": 0,
+   "pay": 0,
+   "onTime": 100,
+   "rhythm": 30,
+   "last": 44,
+   "avg": 6000000,
+   "porsi": 25,
+   "kr": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera analog",
+     60
+    ],
+    [
+     "DVR",
+     40
+    ]
+   ],
+   "months": [
+    6,
+    5,
+    7,
+    6,
+    0,
+    0
+   ],
+   "people": [
+    {
+     "n": "Bu Sri",
+     "role": "Pemilik",
+     "s": 1
+    }
+   ],
+   "memo": "Toko kecil di Tegal, lewat jadwal 44 hari dari siklus order 30. WA terakhir 3 minggu lalu tanpa balasan. Share of wallet kecil — kemungkinan beralih ke grosir lokal.",
+   "commits": {
+    "kami": [],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "20 Agu",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 6 jt.",
+     "x": "Lewat jadwal sejak 25 Sep"
+    }
+   ],
+   "health": 36
+  },
+  {
+   "id": "sarana",
+   "account": "PT Sarana Vision",
+   "city": "Yogyakarta",
+   "branch": "Yogyakarta",
+   "tier": "A",
+   "seg": "Distributor sub-area",
+   "owner": "Dewi",
+   "limit": 300000000,
+   "exposure": 120000000,
+   "pay": 27,
+   "onTime": 90,
+   "rhythm": 12,
+   "last": 4,
+   "avg": 95000000,
+   "porsi": 60,
+   "kr": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 4MP",
+     45
+    ],
+    [
+     "NVR 16ch",
+     25
+    ],
+    [
+     "HDD",
+     20
+    ],
+    [
+     "Kabel",
+     10
+    ]
+   ],
+   "months": [
+    80,
+    88,
+    92,
+    90,
+    96,
+    100
+   ],
+   "people": [
+    {
+     "n": "Pak Hendra",
+     "role": "Pemilik",
+     "s": 3
+    },
+    {
+     "n": "Bu Ika",
+     "role": "Purchasing",
+     "s": 3
+    },
+    {
+     "n": "Pak Tono",
+     "role": "Gudang",
+     "s": 1
+    }
+   ],
+   "memo": "Syarat Key account DIY. Siklus order 12 hari, bayar 27 hari. Share of wallet 60% — sisanya ke distributor Jakarta untuk LED. Peluang: modul LED P4 (product mix belum terisi).",
+   "commits": {
+    "kami": [],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "29 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 98 jt.",
+     "x": "Siklus order terjaga"
+    }
+   ],
+   "health": 82
+  },
+  {
+   "id": "prima",
+   "account": "Prima CCTV Klaten",
+   "city": "Klaten",
+   "branch": "Yogyakarta",
+   "tier": "B",
+   "seg": "Toko CCTV",
+   "owner": "Dewi",
+   "limit": 80000000,
+   "exposure": 22000000,
+   "pay": 30,
+   "onTime": 85,
+   "rhythm": 18,
+   "last": 17,
+   "avg": 19000000,
+   "porsi": 55,
+   "prev": {
+    "rhythm": 24,
+    "avg": 16000000
+   },
+   "kr": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 2MP",
+     50
+    ],
+    [
+     "NVR 8ch",
+     30
+    ],
+    [
+     "HDD",
+     20
+    ]
+   ],
+   "months": [
+    17,
+    18,
+    20,
+    19,
+    21,
+    18
+   ],
+   "people": [
+    {
+     "n": "Pak Bayu",
+     "role": "Pemilik",
+     "s": 2
+    }
+   ],
+   "memo": "Toko CCTV stabil di Klaten. Jadwal order besok. Biasanya 8–10 kamera 2MP + 1 NVR.",
+   "commits": {
+    "kami": [],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "16 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 18 jt.",
+     "x": "Siklus order 18 hari"
+    }
+   ],
+   "health": 75
+  },
+  {
+   "id": "jaya",
+   "account": "Jaya Abadi Elektronik",
+   "city": "Sidoarjo",
+   "branch": "Surabaya",
+   "tier": "B",
+   "seg": "Toko elektronik & CCTV",
+   "owner": "Rizky",
+   "limit": 120000000,
+   "exposure": 60000000,
+   "pay": 31,
+   "onTime": 84,
+   "rhythm": 14,
+   "last": 13,
+   "avg": 33000000,
+   "porsi": 50,
+   "kr": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 4MP",
+     40
+    ],
+    [
+     "NVR 16ch",
+     30
+    ],
+    [
+     "HDD",
+     30
+    ]
+   ],
+   "months": [
+    30,
+    32,
+    31,
+    35,
+    33,
+    34
+   ],
+   "people": [
+    {
+     "n": "Pak Agung",
+     "role": "Pemilik",
+     "s": 3
+    },
+    {
+     "n": "Mbak Dewi",
+     "role": "Kasir",
+     "s": 2
+    }
+   ],
+   "memo": "Jadwal order besok. Product mix tetap 3 kategori; HDD selalu ikut. Pola bayar 31 hari — pengingat H-3 ramah.",
+   "commits": {
+    "kami": [],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "20 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 34 jt.",
+     "x": "Siklus order 14 hari"
+    }
+   ],
+   "health": 80
+  },
+  {
+   "id": "nusa",
+   "account": "CV Nusa Teknik",
+   "city": "Malang",
+   "branch": "Surabaya",
+   "tier": "B",
+   "seg": "Installer",
+   "owner": "Rizky",
+   "limit": 100000000,
+   "exposure": 98000000,
+   "pay": 38,
+   "onTime": 70,
+   "rhythm": 24,
+   "last": 20,
+   "avg": 27000000,
+   "porsi": 45,
+   "prev": {
+    "rhythm": 20,
+    "avg": 29000000
+   },
+   "kr": [
+    1,
+    0,
+    1,
+    0,
+    1,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 4MP",
+     45
+    ],
+    [
+     "Detektor",
+     30
+    ],
+    [
+     "Kabel",
+     25
+    ]
+   ],
+   "months": [
+    24,
+    26,
+    28,
+    25,
+    30,
+    27
+   ],
+   "people": [
+    {
+     "n": "Pak Imam",
+     "role": "Pemilik",
+     "s": 2
+    }
+   ],
+   "memo": "Limit tipis: exposure 98 / 100 jt dengan pola bayar 38 hari. Jadwal order 4 hari lagi, tapi order berikutnya akan tertahan limit — AI Kredit menyarankan menagih INV/0901 lebih dulu (jatuh tempo 5 Okt).",
+   "commits": {
+    "kami": [],
+    "mereka": [
+     {
+      "t": "Bayar INV/0901 Rp 41 jt",
+      "s": "Jatuh tempo 5 Okt",
+      "st": "open"
+     }
+    ]
+   },
+   "timeline": [
+    {
+     "d": "13 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 27 jt.",
+     "x": "Exposure mendekati limit"
+    }
+   ],
+   "health": 61
+  },
+  {
+   "id": "borneo",
+   "account": "Borneo Security",
+   "city": "Jakarta",
+   "branch": "Jakarta",
+   "tier": "B",
+   "seg": "Reseller",
+   "owner": "Fajar",
+   "limit": 150000000,
+   "exposure": 40000000,
+   "pay": 26,
+   "onTime": 95,
+   "rhythm": 16,
+   "last": 15,
+   "avg": 41000000,
+   "porsi": 70,
+   "kr": [
+    1,
+    1,
+    1,
+    0,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 4MP",
+     50
+    ],
+    [
+     "NVR 16ch",
+     30
+    ],
+    [
+     "HDD",
+     20
+    ]
+   ],
+   "months": [
+    38,
+    40,
+    42,
+    41,
+    44,
+    40
+   ],
+   "people": [
+    {
+     "n": "Bu Maya",
+     "role": "Pemilik",
+     "s": 3
+    },
+    {
+     "n": "Pak Ari",
+     "role": "Admin",
+     "s": 2
+    }
+   ],
+   "memo": "Reseller rapi, bayar 26 hari, share of wallet 70%. Jadwal order besok; biasanya order via WA Senin pagi.",
+   "commits": {
+    "kami": [],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "18 Sep",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 40 jt.",
+     "x": "Siklus order 16 hari"
+    }
+   ],
+   "health": 85
+  },
+  {
+   "id": "rejeki",
+   "account": "Toko Sumber Rejeki",
+   "city": "Bekasi",
+   "branch": "Jakarta",
+   "tier": "C",
+   "seg": "Toko elektronik",
+   "owner": "Fajar",
+   "limit": 0,
+   "exposure": 0,
+   "pay": 0,
+   "onTime": 100,
+   "rhythm": 28,
+   "last": 70,
+   "avg": 5000000,
+   "porsi": 15,
+   "kr": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "fav": [
+    [
+     "Kamera analog",
+     70
+    ],
+    [
+     "Aksesoris",
+     30
+    ]
+   ],
+   "months": [
+    5,
+    4,
+    6,
+    0,
+    0,
+    0
+   ],
+   "people": [
+    {
+     "n": "Pak Udin",
+     "role": "Pemilik",
+     "s": 1
+    }
+   ],
+   "memo": "Churn: 70 hari dari siklus order 28. Share of wallet kecil sejak awal. Sapaan 2× tanpa balasan — biarkan, prioritas rendah.",
+   "commits": {
+    "kami": [],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "25 Jul",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 5 jt.",
+     "x": "Churn"
+    }
+   ],
+   "health": 18
+  },
+  {
+   "id": "global",
+   "account": "PT Global Secur",
+   "city": "Tangerang",
+   "branch": "Jakarta",
+   "tier": "A",
+   "seg": "Installer",
+   "owner": "Fajar",
+   "limit": 250000000,
+   "exposure": 90000000,
+   "pay": 29,
+   "onTime": 91,
+   "rhythm": 11,
+   "last": 2,
+   "avg": 110000000,
+   "porsi": 68,
+   "kr": [
+    1,
+    1,
+    1,
+    1,
+    0,
+    1
+   ],
+   "fav": [
+    [
+     "Kamera IP 4MP",
+     40
+    ],
+    [
+     "NVR 32ch",
+     25
+    ],
+    [
+     "Modul LED P4",
+     20
+    ],
+    [
+     "Kabel",
+     15
+    ]
+   ],
+   "months": [
+    90,
+    95,
+    100,
+    105,
+    108,
+    112
+   ],
+   "people": [
+    {
+     "n": "Pak Yoga",
+     "role": "Direktur",
+     "s": 3
+    },
+    {
+     "n": "Bu Fitri",
+     "role": "Purchasing",
+     "s": 3
+    },
+    {
+     "n": "Pak Deni",
+     "role": "Project",
+     "s": 2
+    }
+   ],
+   "memo": "Syarat Key account Jabodetabek. Siklus order 11 hari, bayar 29 hari, product mix 5 dari 6 kategori. Satu-satunya yang kosong: fire alarm — mereka subkontrak ke pihak lain.",
+   "commits": {
+    "kami": [],
+    "mereka": []
+   },
+   "timeline": [
+    {
+     "d": "1 Okt",
+     "via": "box",
+     "who": "SO",
+     "t": "Order Rp 112 jt.",
+     "x": "Siklus order terjaga"
+    }
+   ],
+   "health": 90
+  }
+ ],
+ "ACTIONS": {
+  "credit_graha": {
+   "t": "Rilis Rp 180 jt untuk PT Graha Sentosa dengan DP 50%",
+   "btn": "Setujui DP 50%",
+   "icon": "i-shield",
+   "agent": "AI Kredit",
+   "due": "Hari ini",
+   "why": "Exposure Rp 220 jt + Rp 180 jt = Rp 400 jt, limit Rp 250 jt. Pola bayar 47 hari (termin 30) dan INV/0844 Rp 95 jt lewat 17 hari. SOP-SEC-001 lolos: PO diverifikasi via telepon ke nomor kantor, alamat kirim sama dengan 6 pengiriman sebelumnya. Risikonya konsentrasi piutang, bukan penipuan.",
+   "prep": "Dua opsi disiapkan: (A) DP 50% Rp 90 jt sebelum kirim, sisa termin 30 hari; (B) tahan sampai INV/0844 lunas. Draft balasan ke Pak Hasan untuk opsi A, SO Odoo dengan syarat DP, gudang Jakarta diberi tahu menunggu bukti transfer.",
+   "preview": "Pak Hasan, untuk 24 unit kamera 4MP (Rp 180 jt) kami bisa kirim Rabu dengan DP 50% (Rp 90 jt) karena exposure saat ini di atas limit kredit. Sisanya termin 30 hari seperti biasa. Bukti transfer bisa dikirim ke sini.",
+   "steps": [
+    "Balasan masuk antrean Fajar",
+    "SO dibuat di Odoo dengan syarat DP",
+    "Gudang menunggu bukti transfer sebelum surat jalan",
+    "AI Penagihan agent memantau INV/0844"
+   ]
+  },
+  "price_indo": {
+   "t": "Jawab permintaan harga Indo Vision: counter 1,5% + ongkir gratis",
+   "btn": "Setujui counter",
+   "icon": "i-cash",
+   "agent": "AI Order",
+   "due": "Hari ini",
+   "why": "Diminta 3% di bawah tier A untuk 60 unit → margin 8,3%, di bawah floor 9%. Indo Vision bayar 25 hari, order tiap 10 hari, 97% tepat waktu — relasi paling bernilai di Jatim. Counter 1,5% + ongkir gratis menjaga margin 9,6% dan menjawab keluhan harga.",
+   "prep": "Draft balasan ke Bu Santi dengan dua opsi: 1,5% + ongkir gratis, atau harga tier A + bundle 2 NVR 32ch (stok aging Surabaya) di harga khusus — margin gabungan 10,4%.",
+   "preview": "Bu Santi, untuk 60 unit kami bisa 1,5% di bawah harga biasa plus ongkir gratis ke gudang Ibu. Atau, tetap harga biasa tapi 2 unit NVR 32ch kami beri harga khusus Rp 4,2 jt (dari Rp 5,1 jt). Mana yang lebih pas?",
+   "steps": [
+    "Balasan masuk antrean Rizky",
+    "Harga khusus dicatat di SO dengan alasan",
+    "AI Order mencatat kompetitor disebut"
+   ]
+  },
+  "limit_sinar": {
+   "t": "Naikkan limit kredit Toko Sinar Rp 250 jt → Rp 350 jt",
+   "btn": "Setujui",
+   "icon": "i-trend",
+   "agent": "AI Kredit",
+   "due": "Minggu ini",
+   "why": "12 bulan 93% tepat waktu, pola 28 hari, order naik 50% dalam 6 bulan, dan membuka cabang Demak (kebutuhan stok awal ±Rp 90 jt). Limit sekarang akan tersentuh dalam 2 order.",
+   "prep": "Perubahan limit di Odoo + pesan ke Pak Budi dari Andi (dengan ucapan selamat cabang baru).",
+   "steps": [
+    "Limit diperbarui di Odoo",
+    "Pesan masuk antrean Andi",
+    "AI Kredit memantau exposure 90 hari"
+   ]
+  },
+  "retur_bina": {
+   "t": "Setujui retur 2 NVR 8ch CV Bina Teknik (ganti unit)",
+   "btn": "Setujui retur",
+   "icon": "i-refresh",
+   "agent": "AI Order",
+   "due": "Hari ini",
+   "why": "Unit mati total dalam 2 minggu; garansi supplier berlaku (biaya Rp 0). Dealer sedang mendekati siklus order order dan menunggu detektor untuk proyek RS — pengalaman retur yang cepat menjaga order berikutnya.",
+   "prep": "RMA ke supplier, surat jalan tukar dari gudang Yogyakarta, pesan ke Mas Reza.",
+   "steps": [
+    "RMA dibuat",
+    "Unit pengganti dikirim bersama order berikutnya atau terpisah (pilihan Dewi)",
+    "Dicatat di riwayat dealer"
+   ]
+  },
+  "so_sinar": {
+   "t": "Buat SO Toko Sinar: 10 kamera 4MP + 1 NVR 16ch (Rp 18,4 jt)",
+   "btn": "Buat SO",
+   "icon": "i-check",
+   "agent": "AI Order",
+   "due": "Hari ini",
+   "why": "Permintaan WA jelas; stok Semarang 18 unit (cukup, tapi akan kritis), harga tier A, exposure 176 + 18,4 = 194 jt ≤ 250 jt, tidak ada invoice lewat.",
+   "prep": "SO draft di Odoo dengan 2 baris; surat jalan Senin; konfirmasi ke Mbak Rina.",
+   "preview": "Mbak Rina, order 10 kamera 4MP + 1 NVR 16ch total Rp 18,4 jt sudah kami catat, kirim Senin pagi. Terima kasih!",
+   "steps": [
+    "SO dikonfirmasi di Odoo",
+    "Konfirmasi WA terkirim",
+    "Stok Semarang menjadi kritis → usul transfer dari Jakarta"
+   ]
+  },
+  "reorder_mitra": {
+   "t": "Follow-up CV Mitra Jaya dengan skema cicilan 2× + order kecil cash",
+   "btn": "Kirim",
+   "icon": "i-chat",
+   "agent": "AI Follow-up + AI Penagihan",
+   "due": "Hari ini",
+   "why": "Lewat siklus order 9 hari dan invoice lewat 11 hari — dua masalah yang sama akarnya (proyek belum cair). Di 5 dealer serupa, cicilan 2× + order cash kecil menjaga hubungan dan mengembalikan 100% piutang.",
+   "prep": "Draft WA dari nomor Dewi: tawaran cicilan 2× (23 + 23 jt) dan promo kamera 2MP untuk order cash.",
+   "preview": "Pak Agus, untuk invoice 46 jt kami bisa bagi dua: 23 jt minggu ini dan 23 jt 2 minggu lagi. Kalau butuh kamera 2MP untuk proyek yang jalan, ada harga khusus untuk order cash minggu ini.",
+   "steps": [
+    "Masuk antrean Dewi",
+    "Komitmen cicilan dicatat dengan tanggal",
+    "Limit sementara dibekukan sampai cicilan 1 masuk"
+   ]
+  },
+  "reorder_lampu": {
+   "t": "Follow-up Toko Lampu Jaya dengan bundle modul P5 harga marketplace",
+   "btn": "Kirim",
+   "icon": "i-chat",
+   "agent": "AI Follow-up + AI Stok",
+   "due": "Minggu ini",
+   "why": "65 hari tanpa order (siklus order 35). Produk favorit mereka = modul P5 yang sedang aging 148 hari di Semarang. Bundle modul + power supply diskon 8% masih margin 14%.",
+   "prep": "Draft WA dari Andi dengan harga bundle dan stok siap kirim.",
+   "preview": "Pak Heri, lama tidak order. Modul P5 outdoor sedang ada harga khusus bundling dengan power supply — Rp 485 rb/modul, kirim besok dari Semarang. Mau saya kirim daftar lengkapnya?",
+   "steps": [
+    "Masuk antrean Andi",
+    "Kalau dibalas, AI Order menyiapkan SO",
+    "Kalau sunyi 14 hari, usul kunjungan"
+   ]
+  },
+  "reorder_bina": {
+   "t": "Ingatkan CV Bina Teknik: detektor untuk RS Muntilan siap",
+   "btn": "Kirim",
+   "icon": "i-chat",
+   "agent": "AI Follow-up",
+   "due": "Besok",
+   "why": "Hari ke-25 dari siklus order 28; proyek RS Muntilan disebut 2 minggu lalu. Stok detektor addressable Yogyakarta cukup.",
+   "prep": "Draft WA dari Dewi + lampiran stok & harga tier B.",
+   "steps": [
+    "Masuk antrean Dewi"
+   ]
+  },
+  "reorder_nusantara": {
+   "t": "Kunjungan perkenalan PT Nusantara Secure + verifikasi alamat",
+   "btn": "Jadwalkan",
+   "icon": "i-cal",
+   "agent": "AI Kredit",
+   "due": "Minggu depan",
+   "why": "Dealer baru dengan 1 order cash. Sebelum limit dinaikkan di atas Rp 25 jt, alamat & kantor harus diverifikasi (SOP-SEC-001).",
+   "prep": "3 slot kalender Fajar + checklist verifikasi.",
+   "steps": [
+    "Fajar memilih slot",
+    "Checklist diisi dari ponsel",
+    "Limit tier B penuh setelah verifikasi"
+   ]
+  },
+  "push_led": {
+   "t": "Buat bundle modul LED P5 + power supply untuk 6 dealer",
+   "btn": "Buat bundle",
+   "icon": "i-box",
+   "agent": "AI Stok",
+   "due": "Minggu ini",
+   "why": "420 pcs, 148 hari, Rp 210 jt menganggur di Semarang. 6 dealer rutin beli modul (Lampu Jaya, Toko Sinar, 4 lain). Diskon 8% → margin 14%; perputaran stok naik, kas kembali ±Rp 180 jt dalam 30 hari jika 60% terserap.",
+   "prep": "Harga bundle dihitung, daftar 6 dealer dengan kuantitas yang disarankan dari riwayat, draft WA per dealer dalam gaya sales masing-masing.",
+   "steps": [
+    "6 draft masuk antrean sales terkait",
+    "Promo dicatat di Odoo (pricelist 14 hari)",
+    "AI Stok memantau serapan"
+   ]
+  },
+  "push_nvr": {
+   "t": "Tawarkan NVR 32ch (aging 97 hari) ke Indo Vision & Graha",
+   "btn": "Tawarkan",
+   "icon": "i-box",
+   "agent": "AI Stok",
+   "due": "Minggu ini",
+   "why": "14 unit Rp 84 jt di Surabaya. Indo Vision sedang nego harga 60 kamera — NVR 32ch bisa jadi pemanis tanpa menurunkan harga kamera. Graha memakai NVR 32ch di proyek apartemen.",
+   "prep": "Harga khusus Rp 4,2 jt (margin 9,5%), draft ke dua dealer.",
+   "steps": [
+    "Draft masuk antrean Rizky & Fajar"
+   ]
+  },
+  "transfer_cam": {
+   "t": "Transfer 40 kamera IP 4MP Jakarta → Semarang",
+   "btn": "Usulkan transfer",
+   "icon": "i-refresh",
+   "agent": "AI Stok",
+   "due": "Hari ini",
+   "why": "Semarang sisa 18 unit, siklus order 24/minggu, 5 dealer bergantung (termasuk Toko Sinar yang order hari ini). Jakarta stok 210. Transfer internal tanpa SO/PO sesuai aturan multi-company.",
+   "prep": "Transfer internal di Odoo (internal transfer), ekspedisi 2 hari.",
+   "steps": [
+    "Transfer dibuat di Odoo",
+    "Gudang Jakarta & Semarang diberi tahu di grup",
+    "Stok Semarang aman 3 minggu"
+   ]
+  },
+  "col_graha": {
+   "t": "Pengingat tegas INV/0844 Rp 95 jt (lewat 17 hari)",
+   "btn": "Kirim pengingat",
+   "icon": "i-mail",
+   "agent": "AI Penagihan",
+   "due": "Hari ini",
+   "why": "Pola bayar lambat (47 hari) → nada tegas pada H+7 sesuai kebijakan; sekarang H+17 dan ada permintaan rilis baru — momentum untuk menagih.",
+   "prep": "Email ke Bu Lia (finance) cc Pak Hasan, mengaitkan pelunasan dengan rilis order baru.",
+   "steps": [
+    "Email masuk antrean Fajar",
+    "Kalau tidak ada balasan H+3, telepon oleh Fajar"
+   ]
+  },
+  "col_mitra": {
+   "t": "Sepakati cicilan INV/0889 CV Mitra Jaya",
+   "btn": "Buka draft",
+   "icon": "i-cash",
+   "agent": "AI Penagihan",
+   "due": "Hari ini",
+   "why": "Lihat saran AI Follow-up + AI Penagihan — satu pesan untuk dua masalah.",
+   "prep": "Sama dengan \"Follow-up CV Mitra Jaya\".",
+   "steps": [
+    "Lihat tindakan reorder_mitra"
+   ]
+  },
+  "col_lampu": {
+   "t": "Tidak ada piutang — follow-up untuk order",
+   "btn": "Lihat",
+   "icon": "i-chat",
+   "agent": "AI Follow-up",
+   "due": "—",
+   "why": "Dealer cash.",
+   "prep": "",
+   "steps": []
+  },
+  "reorder_megah": {
+   "t": "Follow-up Toko Megah Jaya — lewat jadwal 44 hari",
+   "btn": "Kirim",
+   "icon": "i-chat",
+   "agent": "AI Follow-up",
+   "due": "Minggu ini",
+   "why": "1,5× siklus order tanpa order dan WA 3 minggu tanpa balasan. Share of wallet hanya 25% — dugaan beralih ke grosir lokal. Sapaan terakhir sebelum diturunkan ke prioritas rendah.",
+   "prep": "Draft WA dari Andi dengan harga kamera analog + DVR bundle (product mix mereka).",
+   "preview": "Bu Sri, lama tidak order. Kamera analog 2MP + DVR 4ch sedang ada paket Rp 1,45 jt (biasanya 1,6 jt), kirim besok dari Semarang. Mau saya kirim daftarnya?",
+   "steps": [
+    "Masuk antrean Andi",
+    "Kalau sunyi 14 hari → Churn, tidak di-follow-up lagi 60 hari"
+   ]
+  },
+  "napas_nusa": {
+   "t": "Tagih INV/0901 CV Nusa Teknik sebelum jadwal order order",
+   "btn": "Kirim pengingat",
+   "icon": "i-cash",
+   "agent": "AI Kredit + AI Penagihan",
+   "due": "Hari ini",
+   "why": "Jadwal order 4 hari lagi, tapi exposure 98/100 jt — order berikutnya (±Rp 27 jt) akan tertahan limit. INV/0901 Rp 41 jt jatuh tempo 5 Okt; kalau dibayar, sisa limit kembali aman tepat saat mereka order.",
+   "prep": "Pengingat H-3 nada ramah ke Pak Imam, menyebut order berikutnya bisa langsung diproses setelah pembayaran masuk.",
+   "preview": "Pak Imam, mengingatkan INV/0901 (Rp 41 jt) jatuh tempo 5 Okt ya. Setelah masuk, order kamera berikutnya bisa langsung kami kirim tanpa menunggu.",
+   "steps": [
+    "Masuk antrean Rizky",
+    "Sisa limit diperbarui saat pembayaran masuk",
+    "AI Order siap memproses order berikutnya"
+   ]
+  },
+  "due_prima": {
+   "t": "Follow-up Prima CCTV Klaten — jadwal order besok",
+   "btn": "Kirim rekomendasi",
+   "icon": "i-chat",
+   "agent": "AI Follow-up",
+   "due": "Besok",
+   "why": "Siklus order 18 hari, order terakhir 17 hari lalu. Product mix biasa: 8–10 kamera 2MP + 1 NVR 8ch + HDD. Stok Yogyakarta cukup.",
+   "prep": "Rekomendasi order + harga tier B dari Dewi; HDD 4TB sedang kritis di Yogya → disarankan 2TB.",
+   "preview": "Pak Bayu, biasanya minggu ini Bapak order ya. Stok kamera 2MP & NVR 8ch siap; kalau HDD, yang 2TB ready, 4TB datang Kamis. Mau saya siapkan seperti biasa?",
+   "steps": [
+    "Masuk antrean Dewi",
+    "Balasan → AI Order membuat SO"
+   ]
+  },
+  "due_jaya": {
+   "t": "Follow-up Jaya Abadi — jadwal order besok",
+   "btn": "Kirim rekomendasi",
+   "icon": "i-chat",
+   "agent": "AI Follow-up",
+   "due": "Besok",
+   "why": "Siklus order 14 hari, order terakhir 13 hari lalu. Pola bayar 31 hari — INV terakhir jatuh tempo 21 Okt, sisa limit aman.",
+   "prep": "Rekomendasi order (kamera 4MP, NVR 16ch, HDD) + pemanis NVR 32ch yang menua di Surabaya.",
+   "steps": [
+    "Masuk antrean Rizky"
+   ]
+  },
+  "due_borneo": {
+   "t": "Follow-up Borneo Security — jadwal order besok",
+   "btn": "Kirim rekomendasi",
+   "icon": "i-chat",
+   "agent": "AI Follow-up",
+   "due": "Senin pagi",
+   "why": "Order rutin via WA Senin pagi; siklus order 16 hari. Share of wallet 70% — pertahankan dengan kecepatan respons.",
+   "prep": "Rekomendasi order dari Fajar; dikirim Senin 07.30 sebelum mereka bertanya.",
+   "steps": [
+    "Dijadwalkan Senin 07.30 setelah approve"
+   ]
+  },
+  "due_citra": {
+   "t": "Follow-up Citra Komputer — jadwal order 2 hari",
+   "btn": "Kirim",
+   "icon": "i-chat",
+   "agent": "AI Follow-up",
+   "due": "Senin",
+   "why": "Share of wallet hanya 35% — sisanya marketplace. Tawarkan harga tier C yang setara marketplace + kirim hari yang sama.",
+   "prep": "Draft WA dari Andi.",
+   "steps": [
+    "Masuk antrean Andi"
+   ]
+  },
+  "kr_sarana": {
+   "t": "Perluas product mix PT Sarana Vision: modul LED P4",
+   "btn": "Tawarkan",
+   "icon": "i-box",
+   "agent": "AI Stok",
+   "due": "Minggu ini",
+   "why": "Syarat Key account, share of wallet 60% — 40% sisanya ke distributor Jakarta untuk LED. Product mix LED kosong padahal mereka menjual videotron ke 3 kabupaten. Modul P4 margin 16%.",
+   "prep": "Penawaran modul P4 harga tier A + stok siap di Yogya; dari Dewi ke Bu Ika.",
+   "steps": [
+    "Masuk antrean Dewi",
+    "Kalau order → share of wallet naik ±10 poin"
+   ]
+  }
+ },
+ "QUEUE": [
+  {
+   "id": "q1",
+   "kind": "credit",
+   "icon": "i-shield",
+   "color": "var(--bad)",
+   "title": "Rilis barang kredit — PT Graha Sentosa",
+   "pills": [
+    [
+     "bad",
+     "AI Kredit"
+    ],
+    [
+     "neutral",
+     "Diajukan Fajar · Jakarta"
+    ]
+   ],
+   "desc": "24 unit kamera 4MP (Rp 180 jt) termin 30 hari untuk proyek apartemen. Setelah rilis, exposure melewati limit.",
+   "impact": [
+    [
+     "Piutang berjalan",
+     "Rp 220 jt",
+     ""
+    ],
+    [
+     "Limit kredit",
+     "Rp 250 jt",
+     ""
+    ],
+    [
+     "Setelah rilis",
+     "Rp 400 jt",
+     "var(--bad)"
+    ],
+    [
+     "Rata-rata bayar",
+     "47 hari",
+     "var(--warn)"
+    ]
+   ],
+   "why": "SOP-SEC-001 ✓ (PO diverifikasi via telepon, alamat kirim konsisten). Risikonya konsentrasi piutang: INV/0844 Rp 95 jt sudah lewat 17 hari. Usul: DP 50% atau tahan sampai invoice itu lunas.",
+   "quick": [
+    "Setujui DP 50%",
+    "approve"
+   ],
+   "actions": [
+    [
+     "Setujui DP 50%",
+     "approve",
+     "primary"
+    ],
+    [
+     "Tahan sampai lunas",
+     "hold",
+     "ghost"
+    ],
+    [
+     "Tolak",
+     "reject",
+     "quiet"
+    ]
+   ],
+   "res": {
+    "approve": "Disetujui dengan DP 50% · SO dibuat dengan syarat DP, Fajar & gudang Jakarta diberi tahu",
+    "hold": "Ditahan · Fajar diminta menagih INV/0844 dulu; AI Penagihan memantau",
+    "reject": "Ditolak · alasan dicatat untuk kalibrasi"
+   }
+  },
+  {
+   "id": "q2",
+   "kind": "price",
+   "icon": "i-cash",
+   "color": "var(--warn)",
+   "title": "Harga khusus Indo Vision Security — 3% di bawah tier A",
+   "pills": [
+    [
+     "warn",
+     "AI Order"
+    ],
+    [
+     "neutral",
+     "60 unit kamera 4MP"
+    ]
+   ],
+   "desc": "Bu Santi menyebut distributor lain 3% lebih murah. Floor margin 9%.",
+   "impact": [
+    [
+     "Margin tier A",
+     "11,0%",
+     ""
+    ],
+    [
+     "Jika 3%",
+     "8,3%",
+     "var(--bad)"
+    ],
+    [
+     "Counter 1,5% + ongkir",
+     "9,6%",
+     "var(--good)"
+    ],
+    [
+     "Nilai order",
+     "Rp 92 jt",
+     ""
+    ]
+   ],
+   "why": "Dealer paling bernilai di Jatim (bayar 25 hari, order tiap 10 hari). Counter 1,5% + ongkir gratis, atau bundle NVR 32ch aging — keduanya di atas floor.",
+   "quick": [
+    "Setujui counter",
+    "approve"
+   ],
+   "actions": [
+    [
+     "Setujui counter 1,5%",
+     "approve",
+     "primary"
+    ],
+    [
+     "Setujui 3% (di bawah floor)",
+     "override",
+     "ghost"
+    ],
+    [
+     "Tolak",
+     "reject",
+     "quiet"
+    ]
+   ],
+   "res": {
+    "approve": "Counter disetujui · balasan masuk antrean Rizky",
+    "override": "3% disetujui dengan pengecualian · dicatat di audit, floor tetap 9%",
+    "reject": "Ditolak · Rizky diminta menawarkan harga tier"
+   }
+  },
+  {
+   "id": "q3",
+   "kind": "credit",
+   "icon": "i-trend",
+   "color": "var(--good)",
+   "title": "Naikkan limit kredit Toko Sinar Elektronik → Rp 350 jt",
+   "pills": [
+    [
+     "good",
+     "AI Kredit"
+    ],
+    [
+     "neutral",
+     "12 bln · 93% tepat waktu"
+    ]
+   ],
+   "desc": "Order naik 50% dalam 6 bulan dan membuka cabang Demak; limit sekarang tersentuh dalam 2 order.",
+   "impact": [
+    [
+     "Limit sekarang",
+     "Rp 250 jt",
+     ""
+    ],
+    [
+     "Usulan",
+     "Rp 350 jt",
+     "var(--good)"
+    ],
+    [
+     "Pola bayar",
+     "28 hari",
+     ""
+    ],
+    [
+     "Exposure",
+     "Rp 176 jt",
+     ""
+    ]
+   ],
+   "why": "Memenuhi aturan kenaikan: ≥ 12 bulan tepat waktu + pertumbuhan. Sinyal ekspansi dari chat Pak Budi 18 Sep.",
+   "quick": [
+    "Setujui",
+    "approve"
+   ],
+   "actions": [
+    [
+     "Setujui Rp 350 jt",
+     "approve",
+     "primary"
+    ],
+    [
+     "Setujui Rp 300 jt",
+     "partial",
+     "ghost"
+    ],
+    [
+     "Nanti",
+     "skip",
+     "quiet"
+    ]
+   ],
+   "res": {
+    "approve": "Limit Rp 350 jt · Odoo diperbarui, Andi menyampaikan ke Pak Budi",
+    "partial": "Limit Rp 300 jt · dicatat dengan alasan",
+    "skip": "Ditunda · diingatkan lagi saat exposure > 80% limit"
+   }
+  },
+  {
+   "id": "q4",
+   "kind": "order",
+   "icon": "i-refresh",
+   "color": "var(--indigo)",
+   "title": "Retur 2 NVR 8ch — CV Bina Teknik",
+   "pills": [
+    [
+     "indigo",
+     "AI Order"
+    ],
+    [
+     "neutral",
+     "Garansi supplier berlaku"
+    ]
+   ],
+   "desc": "Unit mati total setelah 2 minggu. RMA supplier bisa diajukan, biaya Rp 0.",
+   "impact": [
+    [
+     "Biaya GSI",
+     "Rp 0",
+     ""
+    ],
+    [
+     "Nilai unit",
+     "Rp 3,6 jt",
+     ""
+    ],
+    [
+     "Dealer",
+     "skor dealer 66",
+     "var(--warn)"
+    ]
+   ],
+   "why": "Dealer mendekati siklus order order dan menunggu detektor untuk proyek RS Muntilan — retur cepat menjaga order berikutnya.",
+   "quick": [
+    "Setujui retur",
+    "approve"
+   ],
+   "actions": [
+    [
+     "Setujui tukar unit",
+     "approve",
+     "primary"
+    ],
+    [
+     "Minta unit dicek dulu",
+     "check",
+     "ghost"
+    ],
+    [
+     "Tolak",
+     "reject",
+     "quiet"
+    ]
+   ],
+   "res": {
+    "approve": "Retur disetujui · RMA dibuat, unit pengganti dikirim dari Yogyakarta",
+    "check": "Unit diminta dikirim ke service center dulu · Mas Reza diberi tahu",
+    "reject": "Ditolak · alasan dicatat"
+   }
+  }
+ ],
+ "NEXT": {
+  "sinar": "limit_sinar",
+  "graha": "credit_graha",
+  "mitra": "reorder_mitra",
+  "indo": "price_indo",
+  "lampu": "reorder_lampu",
+  "bina": "reorder_bina",
+  "nusantara": "reorder_nusantara",
+  "megah": "reorder_megah",
+  "nusa": "napas_nusa",
+  "prima": "due_prima",
+  "jaya": "due_jaya",
+  "borneo": "due_borneo",
+  "citra": "due_citra",
+  "rejeki": null,
+  "cahaya": null,
+  "anugerah": null,
+  "sarana": "kr_sarana",
+  "global": null
+ },
+ "AGENTS": [
+  {
+   "id": "order",
+   "n": "AI Order",
+   "role": "Mengubah permintaan WA menjadi SO: cek stok, harga tier, sisa limit.",
+   "auto": "SO rutin dalam limit",
+   "approve": "Harga di bawah tier · dealer baru",
+   "never": "Mengubah limit",
+   "out": "7 SO otomatis · 2 eskalasi",
+   "conf": 94,
+   "icon": "i-doc"
+  },
+  {
+   "id": "follow",
+   "n": "AI Follow-up",
+   "role": "Menghitung siklus order, jadwal order, lewat jadwal; menyusun rekomendasi order.",
+   "auto": "Follow-up H-1 bila limit aman",
+   "approve": "Dealer At risk · follow-up ke-2",
+   "never": "Menjanjikan harga",
+   "out": "6 jadwal order · 4 lewat jadwal · 3 rekomendasi",
+   "conf": 81,
+   "icon": "i-refresh"
+  },
+  {
+   "id": "credit",
+   "n": "AI Kredit",
+   "role": "Menjaga sisa limit: menahan rilis di atas limit, mengusulkan DP atau kenaikan limit.",
+   "auto": "Tidak ada",
+   "approve": "Semua rilis di atas limit · perubahan limit",
+   "never": "Melepas barang tanpa approve",
+   "out": "1 tahan (Graha) · 1 usul naik (Sinar)",
+   "conf": 58,
+   "icon": "i-shield"
+  },
+  {
+   "id": "stock",
+   "n": "AI Stok",
+   "role": "Mencocokkan stok menua dengan dealer yang product mix-nya cocok dan masuk jadwal order.",
+   "auto": "Menyusun daftar kandidat",
+   "approve": "Harga bundle · promo",
+   "never": "Di bawah floor margin 9%",
+   "out": "LED P5 → 6 dealer · NVR 32ch → 2",
+   "conf": 66,
+   "icon": "i-box"
+  },
+  {
+   "id": "collect",
+   "n": "AI Penagihan",
+   "role": "Mengingatkan invoice dengan nada mengikuti pola bayar; sinkron dengan jadwal order.",
+   "auto": "Pengingat H-3 ramah",
+   "approve": "Nada tegas · skema cicilan",
+   "never": "Mengancam / menahan kiriman",
+   "out": "3 invoice lewat tempo · 1 pengingat H-3",
+   "conf": 89,
+   "icon": "i-cash"
+  },
+  {
+   "id": "lead",
+   "n": "AI Prospek",
+   "role": "Mengenali nomor baru (profil WA, Getcontact manual) dan mengusulkan tier awal.",
+   "auto": "Identifikasi",
+   "approve": "Membuat dealer di Odoo",
+   "never": "Mengirim harga sebelum approve",
+   "out": "1 nomor baru: Toko Mandiri, Pati",
+   "conf": 72,
+   "icon": "i-people"
+  }
+ ],
+ "STAGES": [
+  [
+   "Ingest",
+   "31 WA · 9 SO · 6 bayar · stok 4 cabang"
+  ],
+  [
+   "Analisis",
+   "6 agen paralel"
+  ],
+  [
+   "Sintesis",
+   "3 konflik diselesaikan"
+  ],
+  [
+   "Keputusan",
+   "7 otonom · 4 ke Anda"
+  ],
+  [
+   "Eksekusi",
+   "antrean per sales"
+  ],
+  [
+   "Belajar",
+   "2 kalibrasi"
+  ]
+ ],
+ "RUNS": [
+  {
+   "t": "06.45",
+   "n": 1284,
+   "via": "API",
+   "sig": 23,
+   "auto": 7,
+   "dec": 4,
+   "conf": 3,
+   "note": "Rencana hari ini disusun · 2 kalibrasi dari penolakan kemarin"
+  },
+  {
+   "t": "05.45",
+   "n": 1283,
+   "via": "API",
+   "sig": 4,
+   "auto": 1,
+   "dec": 0,
+   "conf": 0,
+   "note": "Sinyal malam: 3 WA, 1 pembayaran masuk (Indo Vision)"
+  },
+  {
+   "t": "20.00",
+   "n": 1282,
+   "via": "API",
+   "sig": 11,
+   "auto": 3,
+   "dec": 1,
+   "conf": 1,
+   "note": "Ringkasan sore · 1 SO dieskalasi (harga)"
+  },
+  {
+   "t": "19.00",
+   "n": 1281,
+   "via": "MCP",
+   "sig": 2,
+   "auto": 0,
+   "dec": 0,
+   "conf": 0,
+   "note": "Dipicu Claude Desktop: analisis ulang dealer Graha"
+  },
+  {
+   "t": "18.00",
+   "n": 1280,
+   "via": "API",
+   "sig": 9,
+   "auto": 4,
+   "dec": 0,
+   "conf": 1,
+   "note": "4 SO otomatis · LED P5 bundle disiapkan"
+  },
+  {
+   "t": "17.00",
+   "n": 1279,
+   "via": "API",
+   "sig": 14,
+   "auto": 5,
+   "dec": 2,
+   "conf": 2,
+   "note": "Mitra Jaya turun segmen A → C ditandai"
+  }
+ ],
+ "CONFLICTS": [
+  {
+   "a": "AI Stok",
+   "b": "AI Kredit",
+   "d": "CV Mitra Jaya Teknik",
+   "t": "Push LED P5 ditahan — dealer over limit",
+   "r": "Urutan: AI Penagihan kirim skema cicilan dulu → push stok setelah INV/0889 masuk. Tidak ada tawaran ke dealer yang tidak bisa bayar.",
+   "k": "warn",
+   "dealer": "mitra"
+  },
+  {
+   "a": "AI Follow-up",
+   "b": "AI Penagihan",
+   "d": "CV Nusa Teknik",
+   "t": "Jadwal order H-4, tapi sisa limit 2%",
+   "r": "Pengingat INV/0901 (H-3, nada ramah) dikirim dulu; rekomendasi order dikirim otomatis begitu pembayaran masuk. Dua pesan terpisah, satu tujuan.",
+   "k": "accent",
+   "dealer": "nusa"
+  },
+  {
+   "a": "AI Order",
+   "b": "Kebijakan margin",
+   "d": "Indo Vision Security",
+   "t": "Harga khusus 3% di bawah tier A → margin 8,3% < floor 9%",
+   "r": "Tidak diproses otomatis. Dieskalasi ke Anda dengan counter 2% + pemanis NVR 32ch yang menua.",
+   "k": "bad",
+   "dealer": "indo"
+  },
+  {
+   "a": "Dewi",
+   "b": "Rizky",
+   "d": "PT Sarana Vision",
+   "t": "Dua sales menyentuh satu dealer",
+   "r": "Pemilik harga: Dewi (82 interaksi/bln). Rizky mendukung logistik Surabaya. Ditulis ke memori dealer.",
+   "k": "indigo",
+   "dealer": "sarana"
+  }
+ ],
+ "MCP_LOG": [
+  {
+   "t": "07.52",
+   "who": "Claude Desktop · Sam",
+   "call": "orchestrator.reanalyze(scope:\"dealer:mitra\")",
+   "res": "1 saran diperbarui · skema cicilan 2×"
+  },
+  {
+   "t": "07.20",
+   "who": "ChatGPT · tim sales",
+   "call": "jadwal.due(sales:\"Dewi\")",
+   "res": "3 dealer · rekomendasi order siap"
+  },
+  {
+   "t": "06.58",
+   "who": "Claude Desktop · Sam",
+   "call": "orchestrator.plan(hari:\"2026-10-05\")",
+   "res": "7 langkah · 3 butuh approve"
+  },
+  {
+   "t": "06.45",
+   "who": "Scheduler internal",
+   "call": "orchestrator.run()",
+   "res": "siklus #1.284 · 23 sinyal"
+  }
+ ],
+ "AGING": [
+  {
+   "sku": "Modul LED P5 outdoor",
+   "qty": "420 pcs",
+   "days": 148,
+   "val": 210000000,
+   "branch": "Semarang",
+   "dealers": "Lampu Jaya, Toko Sinar, +4",
+   "aid": "push_led",
+   "k": "bad"
+  },
+  {
+   "sku": "NVR 32 channel",
+   "qty": "14 unit",
+   "days": 97,
+   "val": 84000000,
+   "branch": "Surabaya",
+   "dealers": "Indo Vision, Graha Sentosa",
+   "aid": "push_nvr",
+   "k": "warn"
+  },
+  {
+   "sku": "Detektor asap konvensional",
+   "qty": "260 pcs",
+   "days": 210,
+   "val": 54000000,
+   "branch": "Jakarta",
+   "dealers": "2 installer fire alarm",
+   "aid": null,
+   "k": "bad",
+   "note": "Usul: diskon 15% atau retur ke supplier (masih bisa)"
+  },
+  {
+   "sku": "Kamera analog 2MP",
+   "qty": "88 unit",
+   "days": 76,
+   "val": 22000000,
+   "branch": "Yogyakarta",
+   "dealers": "UD Cahaya, 3 toko kecil",
+   "aid": null,
+   "k": "warn",
+   "note": "Bundle dengan DVR 4ch untuk dealer tier C"
+  }
+ ],
+ "AR": [
+  {
+   "d": "graha",
+   "open": 220000000,
+   "over": 95000000,
+   "days": 17,
+   "aid": "col_graha"
+  },
+  {
+   "d": "mitra",
+   "open": 162000000,
+   "over": 46000000,
+   "days": 11,
+   "aid": "reorder_mitra"
+  },
+  {
+   "d": "bina",
+   "open": 40000000,
+   "over": 0,
+   "days": 0,
+   "aid": null
+  },
+  {
+   "d": "sinar",
+   "open": 176000000,
+   "over": 0,
+   "days": 0,
+   "aid": null
+  },
+  {
+   "d": "indo",
+   "open": 184000000,
+   "over": 0,
+   "days": 0,
+   "aid": null
+  }
+ ],
+ "CHATS": [
+  {
+   "id": "c-sinar",
+   "type": "cust",
+   "name": "Mbak Rina · Toko Sinar",
+   "sub": "Toko Sinar Elektronik · Admin order",
+   "via": "Andi",
+   "acc": "sinar",
+   "time": "14.02",
+   "unread": 1,
+   "tag": {
+    "k": "accent",
+    "t": "Order terdeteksi"
+   },
+   "sug": [
+    "Konfirmasi order & kirim Senin",
+    "Tanyakan kebutuhan stok cabang Demak",
+    "Tawarkan HDD 4TB untuk NVR"
+   ],
+   "msgs": [
+    {
+     "d": "Hari ini"
+    },
+    {
+     "f": "in",
+     "t": "Mas Andi, order ya: kamera 4MP dome 10 unit, NVR 16ch 1 unit. Kirim Senin bisa?",
+     "tm": "14.02",
+     "ann": {
+      "k": "accent",
+      "t": "AI Order: 10× Kamera IP 4MP + 1× NVR 16ch = Rp 18,4 jt · stok Semarang OK · tier A · kredit OK",
+      "act": "so_sinar"
+     }
+    }
+   ]
+  },
+  {
+   "id": "c-graha",
+   "type": "cust",
+   "name": "Pak Hasan · Graha Sentosa",
+   "sub": "PT Graha Sentosa · Purchasing",
+   "via": "Fajar",
+   "acc": "graha",
+   "time": "10.12",
+   "unread": 1,
+   "tag": {
+    "k": "bad",
+    "t": "Kredit lewat limit"
+   },
+   "sug": [
+    "Tawarkan DP 50% kirim Rabu",
+    "Tanyakan jadwal pelunasan INV/0844",
+    "Minta PO proyek (sudah diterima)"
+   ],
+   "msgs": [
+    {
+     "d": "Kemarin"
+    },
+    {
+     "f": "in",
+     "t": "PO proyek apartemen sudah saya email ya Mas.",
+     "tm": "16.20",
+     "ann": {
+      "k": "good",
+      "t": "PO No. 118/GS/X/2026 diterima · diverifikasi via telepon ke kantor (SOP-SEC-001 ✓)"
+     }
+    },
+    {
+     "d": "Hari ini"
+    },
+    {
+     "f": "in",
+     "t": "Mas Fajar, rilis 24 unit kamera 4MP ya, termin 30 hari seperti biasa. Kirim Rabu.",
+     "tm": "10.12",
+     "ann": {
+      "k": "bad",
+      "t": "AI Kredit: exposure 220 + 180 = 400 jt > limit 250 jt · INV/0844 lewat 17 hari → eskalasi CEO",
+      "act": "credit_graha"
+     }
+    }
+   ]
+  },
+  {
+   "id": "c-indo",
+   "type": "cust",
+   "name": "Bu Santi · Indo Vision",
+   "sub": "Indo Vision Security · Purchasing",
+   "via": "Rizky",
+   "acc": "indo",
+   "time": "09.40",
+   "unread": 1,
+   "tag": {
+    "k": "warn",
+    "t": "Minta harga khusus"
+   },
+   "sug": [
+    "Counter 1,5% + ongkir gratis",
+    "Tawarkan bundle NVR 32ch",
+    "Minta waktu sampai sore"
+   ],
+   "msgs": [
+    {
+     "d": "Hari ini"
+    },
+    {
+     "f": "in",
+     "t": "Pak Rizky, untuk 60 unit 4MP, distributor lain kasih 3% di bawah harga Bapak. Bisa disamain? Kalau bisa saya order hari ini.",
+     "tm": "09.40",
+     "ann": {
+      "k": "warn",
+      "t": "AI Order: 3% → margin 8,3% < floor 9% · kompetitor disebut · counter disiapkan",
+      "act": "price_indo"
+     }
+    }
+   ]
+  },
+  {
+   "id": "c-mitra",
+   "type": "cust",
+   "name": "Pak Agus · Mitra Jaya",
+   "sub": "CV Mitra Jaya Teknik · Pemilik",
+   "via": "Dewi",
+   "acc": "mitra",
+   "time": "Kemarin",
+   "unread": 0,
+   "tag": {
+    "k": "warn",
+    "t": "Minta tempo"
+   },
+   "sug": [
+    "Tawarkan cicilan 2×",
+    "Tanyakan tanggal pasti",
+    "Tawarkan order cash kecil"
+   ],
+   "msgs": [
+    {
+     "d": "Kemarin"
+    },
+    {
+     "f": "out",
+     "t": "Pak Agus, mengingatkan invoice 46 jt sudah jatuh tempo 21 Sep ya.",
+     "tm": "09.10"
+    },
+    {
+     "f": "in",
+     "t": "Bu, minggu depan ya, proyek belum cair.",
+     "tm": "11.45",
+     "ann": {
+      "k": "warn",
+      "t": "Komitmen tanpa tanggal · pola berulang 2× · AI Penagihan + Reorder: usul cicilan 2×",
+      "act": "reorder_mitra"
+     }
+    }
+   ]
+  },
+  {
+   "id": "g-gudang",
+   "type": "gint",
+   "name": "Gudang Semarang",
+   "sub": "Grup internal · 6 anggota",
+   "via": "Andi",
+   "time": "15.20",
+   "unread": 2,
+   "tag": {
+    "k": "neutral",
+    "t": "Internal · stok"
+   },
+   "msgs": [
+    {
+     "d": "Hari ini"
+    },
+    {
+     "f": "in",
+     "who": "Pak Joko",
+     "int": true,
+     "t": "Kamera 4MP dome sisa 18, kalau Toko Sinar ambil 10 tinggal 8.",
+     "tm": "15.10",
+     "ann": {
+      "k": "bad",
+      "t": "Stok kritis: sisa 8 vs siklus order 24/minggu → usul transfer 40 dari Jakarta",
+      "act": "transfer_cam"
+     }
+    },
+    {
+     "f": "in",
+     "who": "Sari",
+     "int": true,
+     "t": "Surat jalan Bina Teknik Senin, sekalian unit pengganti NVR?",
+     "tm": "15.20",
+     "ann": {
+      "k": "indigo",
+      "t": "Tugas → Sari: gabungkan RMA NVR ke pengiriman Senin (menunggu approve retur)"
+     }
+    }
+   ]
+  },
+  {
+   "id": "n-mandiri",
+   "type": "new",
+   "name": "+62 822-••••-3310",
+   "sub": "Toko Mandiri Elektronik, Pati (74)",
+   "via": "Andi",
+   "time": "11.30",
+   "unread": 0,
+   "tag": {
+    "k": "accent",
+    "t": "Nomor baru"
+   },
+   "sug": [
+    "Kirim harga tier C + ongkir Pati",
+    "Tawarkan jadi dealer",
+    "Tanya kebutuhan bulanan"
+   ],
+   "msgs": [
+    {
+     "d": "Hari ini"
+    },
+    {
+     "f": "in",
+     "t": "Pagi, mau tanya harga kamera 4MP 2 unit sama NVR 4ch, kirim ke Pati berapa?",
+     "tm": "11.30",
+     "ann": {
+      "k": "accent",
+      "t": "Identity: Getcontact “Mandiri Elektronik Pati” + profil WA “Toko Mandiri – CCTV & Sound” · skor 74 · tier C cash"
+     }
+    }
+   ]
+  }
+ ],
+ "EDGES_M": [
+  [
+   "s-andi",
+   "sinar",
+   [
+    52,
+    58,
+    61,
+    66,
+    70,
+    74
+   ]
+  ],
+  [
+   "s-andi",
+   "cahaya",
+   [
+    6,
+    7,
+    6,
+    8,
+    7,
+    9
+   ]
+  ],
+  [
+   "s-andi",
+   "lampu",
+   [
+    12,
+    10,
+    11,
+    2,
+    0,
+    0
+   ]
+  ],
+  [
+   "s-fajar",
+   "graha",
+   [
+    40,
+    48,
+    44,
+    60,
+    55,
+    62
+   ]
+  ],
+  [
+   "s-fajar",
+   "nusantara",
+   [
+    0,
+    0,
+    0,
+    0,
+    8,
+    14
+   ]
+  ],
+  [
+   "s-dewi",
+   "mitra",
+   [
+    30,
+    28,
+    26,
+    20,
+    14,
+    9
+   ]
+  ],
+  [
+   "s-dewi",
+   "bina",
+   [
+    18,
+    16,
+    20,
+    15,
+    17,
+    21
+   ]
+  ],
+  [
+   "s-rizky",
+   "indo",
+   [
+    80,
+    86,
+    90,
+    98,
+    95,
+    104
+   ]
+  ],
+  [
+   "s-rizky",
+   "graha",
+   [
+    0,
+    0,
+    0,
+    3,
+    2,
+    4
+   ]
+  ],
+  [
+   "s-andi",
+   "mitra",
+   [
+    0,
+    0,
+    0,
+    0,
+    0,
+    3
+   ]
+  ],
+  [
+   "s-andi",
+   "citra",
+   [
+    10,
+    9,
+    11,
+    8,
+    10,
+    9
+   ]
+  ],
+  [
+   "s-andi",
+   "anugerah",
+   [
+    20,
+    22,
+    19,
+    24,
+    23,
+    25
+   ]
+  ],
+  [
+   "s-andi",
+   "megah",
+   [
+    8,
+    7,
+    6,
+    4,
+    2,
+    0
+   ]
+  ],
+  [
+   "s-dewi",
+   "sarana",
+   [
+    60,
+    64,
+    70,
+    72,
+    78,
+    82
+   ]
+  ],
+  [
+   "s-dewi",
+   "prima",
+   [
+    14,
+    15,
+    16,
+    14,
+    17,
+    16
+   ]
+  ],
+  [
+   "s-rizky",
+   "jaya",
+   [
+    22,
+    24,
+    26,
+    25,
+    28,
+    30
+   ]
+  ],
+  [
+   "s-rizky",
+   "nusa",
+   [
+    18,
+    17,
+    19,
+    16,
+    15,
+    14
+   ]
+  ],
+  [
+   "s-rizky",
+   "sarana",
+   [
+    0,
+    0,
+    0,
+    0,
+    4,
+    6
+   ]
+  ],
+  [
+   "s-fajar",
+   "borneo",
+   [
+    26,
+    28,
+    30,
+    29,
+    31,
+    33
+   ]
+  ],
+  [
+   "s-fajar",
+   "rejeki",
+   [
+    5,
+    4,
+    3,
+    1,
+    0,
+    0
+   ]
+  ],
+  [
+   "s-fajar",
+   "global",
+   [
+    50,
+    54,
+    58,
+    62,
+    66,
+    70
+   ]
+  ]
+ ],
+ "KUAD": {
+  "jangkar": {
+   "n": "Segmen A",
+   "s": "sering × besar",
+   "k": "accent",
+   "play": "Prioritas: jaga & layani terbaik",
+   "desc": "Tulang punggung omzet. Prioritas stok dan kecepatan respons, limit kredit tumbuh mengikuti siklus order, minimal 2 PIC aktif, review harga tier setahun sekali — bukan tiap nego.",
+   "agent": "AI Follow-up + AI Kredit",
+   "risk": "Konsentrasi: sedikit dealer menopang sebagian besar omzet. Satu yang lewat jadwal langsung terasa di kas."
+  },
+  "nadi": {
+   "n": "Segmen B",
+   "s": "sering × kecil",
+   "k": "good",
+   "play": "Upsell: naikkan nilai order",
+   "desc": "Order rutin tapi kecil, biaya layani per order tinggi. Bundle, minimum order bebas ongkir, konsolidasi kiriman mingguan, tawarkan kategori produk yang belum pernah dibeli. Target: naik ke Segmen A.",
+   "agent": "AI Stok",
+   "risk": "Margin tergerus ongkir dan admin selama nilai per order tidak naik."
+  },
+  "gelombang": {
+   "n": "Segmen C",
+   "s": "jarang × besar",
+   "k": "indigo",
+   "play": "Project-based: ikuti proyeknya",
+   "desc": "Order datang bersama proyek. Tanya pipeline proyek tiap kuartal, siapkan limit kredit (limit sementara / DP) dan lead time stok sebelum proyek berikutnya. Jangan di-follow-up berdasarkan siklus order.",
+   "agent": "AI Order + AI Kredit",
+   "risk": "Over limit saat proyek belum cair — piutang besar dalam sekali jalan."
+  },
+  "riak": {
+   "n": "Segmen D",
+   "s": "jarang × kecil",
+   "k": "text-3",
+   "play": "Low-touch: layani otomatis",
+   "desc": "Cash / transfer, harga tier C, katalog WA self-service, follow-up otomatis sebulan sekali, tanpa kunjungan. Naik ke Segmen B bila mulai rutin.",
+   "agent": "AI Prospek (otomatis)",
+   "risk": "Perhatian sales lebih mahal dari marginnya."
+  },
+  "baru": {
+   "n": "Baru",
+   "s": "belum ada siklus order",
+   "k": "text-3",
+   "play": "Amati dua putaran",
+   "desc": "Satu order belum membentuk siklus. Ditempatkan sementara dari nilai order pertama; segmen ditetapkan setelah order kedua.",
+   "agent": "AI Prospek",
+   "risk": ""
+  }
+ },
+ "plan": [
+  {
+   "t": "07.30",
+   "agent": "AI Follow-up",
+   "auto": true,
+   "txt": "Kirim rekomendasi order ke 3 dealer jadwal order besok — <button class=\"ev\" data-go=\"dealer:prima\">Prima Klaten</button>, <button class=\"ev\" data-go=\"dealer:jaya\">Jaya Abadi</button>, <button class=\"ev\" data-go=\"dealer:borneo\">Borneo</button>",
+   "st": "terjadwal",
+   "aid": null
+  },
+  {
+   "t": "08.00",
+   "agent": "AI Penagihan",
+   "auto": true,
+   "txt": "Pengingat H-3 INV/0901 <button class=\"ev\" data-go=\"dealer:nusa\">Nusa Teknik</button> — supaya order berikutnya tidak tertahan limit",
+   "st": "terjadwal",
+   "aid": "napas_nusa"
+  },
+  {
+   "t": "08.30",
+   "agent": "AI Kredit",
+   "auto": false,
+   "txt": "Rilis kredit <button class=\"ev\" data-go=\"dealer:graha\">Graha Sentosa</button> Rp 180 jt — usul DP 50%",
+   "st": "menunggu Anda",
+   "aid": "credit_graha"
+  },
+  {
+   "t": "09.00",
+   "agent": "AI Stok",
+   "auto": false,
+   "txt": "Bundle LED P5 −8% ke 6 dealer product mix LED (2 di antaranya jadwal order minggu ini)",
+   "st": "menunggu Anda",
+   "aid": "push_led"
+  },
+  {
+   "t": "09.30",
+   "agent": "AI Follow-up + AI Penagihan",
+   "auto": false,
+   "txt": "Skema cicilan 2× + order cash kecil untuk <button class=\"ev\" data-go=\"dealer:mitra\">Mitra Jaya</button> (lewat jadwal 9 hr, over limit)",
+   "st": "menunggu Anda",
+   "aid": "reorder_mitra"
+  },
+  {
+   "t": "10.00",
+   "agent": "AI Follow-up",
+   "auto": false,
+   "txt": "Follow-up ke-2 <button class=\"ev\" data-go=\"dealer:megah\">Megah Jaya</button> — 44 hari tanpa order, sebelum churn",
+   "st": "menunggu Anda",
+   "aid": "reorder_megah"
+  },
+  {
+   "t": "11.00",
+   "agent": "AI Prospek",
+   "auto": false,
+   "txt": "Nomor baru Toko Mandiri Elektronik (Pati) → usul dealer tier C, harga tier C dari Andi",
+   "st": "menunggu Anda",
+   "aid": null,
+   "go": "chat"
+  },
+  {
+   "t": "13.00",
+   "agent": "AI Order",
+   "auto": true,
+   "txt": "Catat SO dari WA yang masuk siang (stok · tier · limit aman) — rata-rata 4 SO/hari",
+   "st": "berjalan",
+   "aid": null
+  }
+ ],
+ "expected": [
+  {
+   "id": "sinar",
+   "cyc": 0.42857142857142855,
+   "due_in": 8,
+   "activity": "normal",
+   "status": "Key account",
+   "credit": {
+    "k": "warn",
+    "t": "tipis",
+    "s": "tipis",
+    "room": 0.29600000000000004
+   },
+   "score": {
+    "g": 83,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      72
+     ],
+     [
+      "Product mix",
+      67
+     ],
+     [
+      "Sisa limit",
+      87
+     ],
+     [
+      "PIC aktif",
+      80
+     ]
+    ]
+   },
+   "segment": "jangkar",
+   "segment_prev": "jangkar",
+   "omzet": 132857142.85714285,
+   "freq": 2.142857142857143
+  },
+  {
+   "id": "graha",
+   "cyc": 0.15,
+   "due_in": 17,
+   "activity": "normal",
+   "status": "Aktif",
+   "credit": {
+    "k": "bad",
+    "t": "overdue · invoice lewat tempo",
+    "s": "overdue",
+    "room": 0.12
+   },
+   "score": {
+    "g": 64,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      55
+     ],
+     [
+      "Product mix",
+      67
+     ],
+     [
+      "Sisa limit",
+      29
+     ],
+     [
+      "PIC aktif",
+      40
+     ]
+    ]
+   },
+   "segment": "jangkar",
+   "segment_prev": "jangkar",
+   "omzet": 126000000,
+   "freq": 1.5
+  },
+  {
+   "id": "mitra",
+   "cyc": 1.4285714285714286,
+   "due_in": -9,
+   "activity": "menurun",
+   "status": "At risk",
+   "credit": {
+    "k": "bad",
+    "t": "over limit",
+    "s": "over limit",
+    "room": -0.08000000000000007
+   },
+   "score": {
+    "g": 44,
+    "parts": [
+     [
+      "Siklus order",
+      49
+     ],
+     [
+      "Share of wallet",
+      40
+     ],
+     [
+      "Product mix",
+      50
+     ],
+     [
+      "Sisa limit",
+      0
+     ],
+     [
+      "PIC aktif",
+      80
+     ]
+    ]
+   },
+   "segment": "gelombang",
+   "segment_prev": "jangkar",
+   "omzet": 54285714.28571428,
+   "freq": 1.4285714285714286
+  },
+  {
+   "id": "indo",
+   "cyc": 0.2,
+   "due_in": 8,
+   "activity": "normal",
+   "status": "Key account",
+   "credit": {
+    "k": "good",
+    "t": "aman",
+    "s": "aman",
+    "room": 0.54
+   },
+   "score": {
+    "g": 89,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      65
+     ],
+     [
+      "Product mix",
+      83
+     ],
+     [
+      "Sisa limit",
+      100
+     ],
+     [
+      "PIC aktif",
+      100
+     ]
+    ]
+   },
+   "segment": "jangkar",
+   "segment_prev": null,
+   "omzet": 420000000,
+   "freq": 3
+  },
+  {
+   "id": "cahaya",
+   "cyc": 0.26666666666666666,
+   "due_in": 11,
+   "activity": "normal",
+   "status": "Key account",
+   "credit": {
+    "k": "neutral",
+    "t": "cash",
+    "s": "cash",
+    "room": null
+   },
+   "score": {
+    "g": 71,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      60
+     ],
+     [
+      "Product mix",
+      50
+     ],
+     [
+      "Sisa limit",
+      80
+     ],
+     [
+      "PIC aktif",
+      40
+     ]
+    ]
+   },
+   "segment": "nadi",
+   "segment_prev": null,
+   "omzet": 18000000,
+   "freq": 2
+  },
+  {
+   "id": "lampu",
+   "cyc": 1.8571428571428572,
+   "due_in": -30,
+   "activity": "menurun",
+   "status": "At risk",
+   "credit": {
+    "k": "neutral",
+    "t": "cash",
+    "s": "cash",
+    "room": null
+   },
+   "score": {
+    "g": 25,
+    "parts": [
+     [
+      "Siklus order",
+      0
+     ],
+     [
+      "Share of wallet",
+      30
+     ],
+     [
+      "Product mix",
+      33
+     ],
+     [
+      "Sisa limit",
+      80
+     ],
+     [
+      "PIC aktif",
+      0
+     ]
+    ]
+   },
+   "segment": "riak",
+   "segment_prev": "nadi",
+   "omzet": 10285714.285714285,
+   "freq": 0.8571428571428571
+  },
+  {
+   "id": "bina",
+   "cyc": 0.8928571428571429,
+   "due_in": 3,
+   "activity": "normal",
+   "status": "Aktif",
+   "credit": {
+    "k": "good",
+    "t": "aman",
+    "s": "aman",
+    "room": 0.6
+   },
+   "score": {
+    "g": 80,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      50
+     ],
+     [
+      "Product mix",
+      67
+     ],
+     [
+      "Sisa limit",
+      100
+     ],
+     [
+      "PIC aktif",
+      80
+     ]
+    ]
+   },
+   "segment": "gelombang",
+   "segment_prev": null,
+   "omzet": 25714285.714285713,
+   "freq": 1.0714285714285714
+  },
+  {
+   "id": "nusantara",
+   "cyc": 0,
+   "due_in": null,
+   "activity": "baru",
+   "status": "Aktif",
+   "credit": {
+    "k": "good",
+    "t": "aman",
+    "s": "aman",
+    "room": 1
+   },
+   "score": {
+    "g": 44,
+    "parts": [
+     [
+      "Siklus order",
+      50
+     ],
+     [
+      "Share of wallet",
+      20
+     ],
+     [
+      "Product mix",
+      17
+     ],
+     [
+      "Sisa limit",
+      100
+     ],
+     [
+      "PIC aktif",
+      40
+     ]
+    ]
+   },
+   "segment": "baru",
+   "segment_prev": null,
+   "omzet": 18000000,
+   "freq": null
+  },
+  {
+   "id": "citra",
+   "cyc": 0.8333333333333334,
+   "due_in": 2,
+   "activity": "normal",
+   "status": "Aktif",
+   "credit": {
+    "k": "neutral",
+    "t": "cash",
+    "s": "cash",
+    "room": null
+   },
+   "score": {
+    "g": 64,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      35
+     ],
+     [
+      "Product mix",
+      50
+     ],
+     [
+      "Sisa limit",
+      80
+     ],
+     [
+      "PIC aktif",
+      40
+     ]
+    ]
+   },
+   "segment": "nadi",
+   "segment_prev": "riak",
+   "omzet": 17500000,
+   "freq": 2.5
+  },
+  {
+   "id": "anugerah",
+   "cyc": 0.32,
+   "due_in": 17,
+   "activity": "normal",
+   "status": "Key account",
+   "credit": {
+    "k": "good",
+    "t": "aman",
+    "s": "aman",
+    "room": 0.65
+   },
+   "score": {
+    "g": 82,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      58
+     ],
+     [
+      "Product mix",
+      67
+     ],
+     [
+      "Sisa limit",
+      100
+     ],
+     [
+      "PIC aktif",
+      80
+     ]
+    ]
+   },
+   "segment": "gelombang",
+   "segment_prev": "riak",
+   "omzet": 25200000,
+   "freq": 1.2
+  },
+  {
+   "id": "megah",
+   "cyc": 1.4666666666666666,
+   "due_in": -14,
+   "activity": "menurun",
+   "status": "At risk",
+   "credit": {
+    "k": "neutral",
+    "t": "cash",
+    "s": "cash",
+    "room": null
+   },
+   "score": {
+    "g": 36,
+    "parts": [
+     [
+      "Siklus order",
+      44
+     ],
+     [
+      "Share of wallet",
+      25
+     ],
+     [
+      "Product mix",
+      33
+     ],
+     [
+      "Sisa limit",
+      80
+     ],
+     [
+      "PIC aktif",
+      0
+     ]
+    ]
+   },
+   "segment": "riak",
+   "segment_prev": null,
+   "omzet": 6000000,
+   "freq": 1
+  },
+  {
+   "id": "sarana",
+   "cyc": 0.3333333333333333,
+   "due_in": 8,
+   "activity": "normal",
+   "status": "Key account",
+   "credit": {
+    "k": "good",
+    "t": "aman",
+    "s": "aman",
+    "room": 0.6
+   },
+   "score": {
+    "g": 82,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      60
+     ],
+     [
+      "Product mix",
+      67
+     ],
+     [
+      "Sisa limit",
+      100
+     ],
+     [
+      "PIC aktif",
+      80
+     ]
+    ]
+   },
+   "segment": "jangkar",
+   "segment_prev": null,
+   "omzet": 237500000,
+   "freq": 2.5
+  },
+  {
+   "id": "prima",
+   "cyc": 0.9444444444444444,
+   "due_in": 1,
+   "activity": "normal",
+   "status": "Key account",
+   "credit": {
+    "k": "good",
+    "t": "aman",
+    "s": "aman",
+    "room": 0.725
+   },
+   "score": {
+    "g": 75,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      55
+     ],
+     [
+      "Product mix",
+      67
+     ],
+     [
+      "Sisa limit",
+      100
+     ],
+     [
+      "PIC aktif",
+      40
+     ]
+    ]
+   },
+   "segment": "nadi",
+   "segment_prev": "riak",
+   "omzet": 31666666.666666668,
+   "freq": 1.6666666666666667
+  },
+  {
+   "id": "jaya",
+   "cyc": 0.9285714285714286,
+   "due_in": 1,
+   "activity": "normal",
+   "status": "Aktif",
+   "credit": {
+    "k": "good",
+    "t": "aman",
+    "s": "aman",
+    "room": 0.5
+   },
+   "score": {
+    "g": 80,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      50
+     ],
+     [
+      "Product mix",
+      67
+     ],
+     [
+      "Sisa limit",
+      100
+     ],
+     [
+      "PIC aktif",
+      80
+     ]
+    ]
+   },
+   "segment": "jangkar",
+   "segment_prev": null,
+   "omzet": 70714285.71428572,
+   "freq": 2.142857142857143
+  },
+  {
+   "id": "nusa",
+   "cyc": 0.8333333333333334,
+   "due_in": 4,
+   "activity": "normal",
+   "status": "Aktif",
+   "credit": {
+    "k": "warn",
+    "t": "tipis",
+    "s": "tipis",
+    "room": 0.020000000000000018
+   },
+   "score": {
+    "g": 61,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      45
+     ],
+     [
+      "Product mix",
+      67
+     ],
+     [
+      "Sisa limit",
+      23
+     ],
+     [
+      "PIC aktif",
+      40
+     ]
+    ]
+   },
+   "segment": "gelombang",
+   "segment_prev": "jangkar",
+   "omzet": 33750000,
+   "freq": 1.25
+  },
+  {
+   "id": "borneo",
+   "cyc": 0.9375,
+   "due_in": 1,
+   "activity": "normal",
+   "status": "Key account",
+   "credit": {
+    "k": "good",
+    "t": "aman",
+    "s": "aman",
+    "room": 0.7333333333333334
+   },
+   "score": {
+    "g": 85,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      70
+     ],
+     [
+      "Product mix",
+      67
+     ],
+     [
+      "Sisa limit",
+      100
+     ],
+     [
+      "PIC aktif",
+      80
+     ]
+    ]
+   },
+   "segment": "jangkar",
+   "segment_prev": null,
+   "omzet": 76875000,
+   "freq": 1.875
+  },
+  {
+   "id": "rejeki",
+   "cyc": 2.5,
+   "due_in": -42,
+   "activity": "berhenti",
+   "status": "Churn",
+   "credit": {
+    "k": "neutral",
+    "t": "cash",
+    "s": "cash",
+    "room": null
+   },
+   "score": {
+    "g": 18,
+    "parts": [
+     [
+      "Siklus order",
+      0
+     ],
+     [
+      "Share of wallet",
+      15
+     ],
+     [
+      "Product mix",
+      17
+     ],
+     [
+      "Sisa limit",
+      80
+     ],
+     [
+      "PIC aktif",
+      0
+     ]
+    ]
+   },
+   "segment": "riak",
+   "segment_prev": null,
+   "omzet": 5357142.857142857,
+   "freq": 1.0714285714285714
+  },
+  {
+   "id": "global",
+   "cyc": 0.18181818181818182,
+   "due_in": 9,
+   "activity": "normal",
+   "status": "Key account",
+   "credit": {
+    "k": "good",
+    "t": "aman",
+    "s": "aman",
+    "room": 0.64
+   },
+   "score": {
+    "g": 90,
+    "parts": [
+     [
+      "Siklus order",
+      100
+     ],
+     [
+      "Share of wallet",
+      68
+     ],
+     [
+      "Product mix",
+      83
+     ],
+     [
+      "Sisa limit",
+      100
+     ],
+     [
+      "PIC aktif",
+      100
+     ]
+    ]
+   },
+   "segment": "jangkar",
+   "segment_prev": null,
+   "omzet": 300000000,
+   "freq": 2.727272727272727
+  }
+ ]
+}

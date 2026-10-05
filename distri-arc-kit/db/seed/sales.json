@@ -1,0 +1,65 @@
+[
+ {
+  "key": "andi",
+  "name": "Andi",
+  "branch": "Semarang",
+  "wa_number": "6281234504471",
+  "role": "sales",
+  "odoo_user_id": 11,
+  "email": "andi@gsi.co.id"
+ },
+ {
+  "key": "dewi",
+  "name": "Dewi",
+  "branch": "Yogyakarta",
+  "wa_number": "6281534509032",
+  "role": "sales",
+  "odoo_user_id": 12,
+  "email": "dewi@gsi.co.id"
+ },
+ {
+  "key": "rizky",
+  "name": "Rizky",
+  "branch": "Surabaya",
+  "wa_number": "6281134502210",
+  "role": "sales",
+  "odoo_user_id": 13,
+  "email": "rizky@gsi.co.id"
+ },
+ {
+  "key": "fajar",
+  "name": "Fajar",
+  "branch": "Jakarta",
+  "wa_number": "6281334507785",
+  "role": "sales",
+  "odoo_user_id": 14,
+  "email": "fajar@gsi.co.id"
+ },
+ {
+  "key": "sam",
+  "name": "Sam Setiadi",
+  "branch": "Semua cabang",
+  "wa_number": "6281100000001",
+  "role": "ceo",
+  "odoo_user_id": 2,
+  "email": "sam@gsi.co.id"
+ },
+ {
+  "key": "admin",
+  "name": "Admin Distri",
+  "branch": "Semarang",
+  "wa_number": "6281100000002",
+  "role": "admin",
+  "odoo_user_id": 3,
+  "email": "admin@gsi.co.id"
+ },
+ {
+  "key": "finance",
+  "name": "Rina Keuangan",
+  "branch": "Semarang",
+  "wa_number": "6281100000003",
+  "role": "finance",
+  "odoo_user_id": 4,
+  "email": "finance@gsi.co.id"
+ }
+]

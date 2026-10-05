@@ -1,0 +1,106 @@
+[
+ {
+  "dealer": "sinar",
+  "id": "c-sinar",
+  "name": "Mbak Rina · Toko Sinar",
+  "sub": "Toko Sinar Elektronik · Admin order",
+  "suggestions": [
+   "Konfirmasi order \u0026 kirim Senin",
+   "Tanyakan kebutuhan stok cabang Demak",
+   "Tawarkan HDD 4TB untuk NVR"
+  ],
+  "tag": {
+   "k": "accent",
+   "t": "Order terdeteksi"
+  },
+  "type": "cust",
+  "unread": 1,
+  "via": "andi"
+ },
+ {
+  "dealer": "graha",
+  "id": "c-graha",
+  "name": "Pak Hasan · Graha Sentosa",
+  "sub": "PT Graha Sentosa · Purchasing",
+  "suggestions": [
+   "Tawarkan DP 50% kirim Rabu",
+   "Tanyakan jadwal pelunasan INV/0844",
+   "Minta PO proyek (sudah diterima)"
+  ],
+  "tag": {
+   "k": "bad",
+   "t": "Kredit lewat limit"
+  },
+  "type": "cust",
+  "unread": 1,
+  "via": "fajar"
+ },
+ {
+  "dealer": "indo",
+  "id": "c-indo",
+  "name": "Bu Santi · Indo Vision",
+  "sub": "Indo Vision Security · Purchasing",
+  "suggestions": [
+   "Counter 1,5% + ongkir gratis",
+   "Tawarkan bundle NVR 32ch",
+   "Minta waktu sampai sore"
+  ],
+  "tag": {
+   "k": "warn",
+   "t": "Minta harga khusus"
+  },
+  "type": "cust",
+  "unread": 1,
+  "via": "rizky"
+ },
+ {
+  "dealer": "mitra",
+  "id": "c-mitra",
+  "name": "Pak Agus · Mitra Jaya",
+  "sub": "CV Mitra Jaya Teknik · Pemilik",
+  "suggestions": [
+   "Tawarkan cicilan 2×",
+   "Tanyakan tanggal pasti",
+   "Tawarkan order cash kecil"
+  ],
+  "tag": {
+   "k": "warn",
+   "t": "Minta tempo"
+  },
+  "type": "cust",
+  "unread": 0,
+  "via": "dewi"
+ },
+ {
+  "dealer": "",
+  "id": "g-gudang",
+  "name": "Gudang Semarang",
+  "sub": "Grup internal · 6 anggota",
+  "suggestions": null,
+  "tag": {
+   "k": "neutral",
+   "t": "Internal · stok"
+  },
+  "type": "gint",
+  "unread": 2,
+  "via": "andi"
+ },
+ {
+  "dealer": "",
+  "id": "n-mandiri",
+  "name": "+62 822-••••-3310",
+  "sub": "Toko Mandiri Elektronik, Pati (74)",
+  "suggestions": [
+   "Kirim harga tier C + ongkir Pati",
+   "Tawarkan jadi dealer",
+   "Tanya kebutuhan bulanan"
+  ],
+  "tag": {
+   "k": "accent",
+   "t": "Nomor baru"
+  },
+  "type": "new",
+  "unread": 0,
+  "via": "andi"
+ }
+]

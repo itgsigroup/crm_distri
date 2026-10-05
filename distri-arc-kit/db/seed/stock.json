@@ -1,0 +1,200 @@
+[
+ {
+  "odoo_id": "stock.quant:5001",
+  "branch": "Semarang",
+  "sku": "LED-P5-OUT",
+  "name": "Modul LED P5 outdoor",
+  "category": "Modul LED",
+  "qty": 420,
+  "unit_cost": 500000,
+  "age_days": 148,
+  "weekly_velocity": 6
+ },
+ {
+  "odoo_id": "stock.quant:5002",
+  "branch": "Surabaya",
+  "sku": "NVR-32CH",
+  "name": "NVR 32 channel",
+  "category": "Kamera \u0026 NVR",
+  "qty": 14,
+  "unit_cost": 6000000,
+  "age_days": 97,
+  "weekly_velocity": 1
+ },
+ {
+  "odoo_id": "stock.quant:5003",
+  "branch": "Jakarta",
+  "sku": "FA-DET-KONV",
+  "name": "Detektor asap konvensional",
+  "category": "Fire alarm",
+  "qty": 260,
+  "unit_cost": 207692,
+  "age_days": 210,
+  "weekly_velocity": 2
+ },
+ {
+  "odoo_id": "stock.quant:5004",
+  "branch": "Yogyakarta",
+  "sku": "CAM-AN-2MP",
+  "name": "Kamera analog 2MP",
+  "category": "Kamera \u0026 NVR",
+  "qty": 88,
+  "unit_cost": 250000,
+  "age_days": 76,
+  "weekly_velocity": 5
+ },
+ {
+  "odoo_id": "stock.quant:5005",
+  "branch": "Semarang",
+  "sku": "CAM-IP4-DOME",
+  "name": "Kamera IP 4MP dome",
+  "category": "Kamera \u0026 NVR",
+  "qty": 18,
+  "unit_cost": 1010000,
+  "age_days": 12,
+  "weekly_velocity": 24
+ },
+ {
+  "odoo_id": "stock.quant:5006",
+  "branch": "Yogyakarta",
+  "sku": "HDD-4TB-SV",
+  "name": "HDD 4TB surveillance",
+  "category": "HDD \u0026 storage",
+  "qty": 6,
+  "unit_cost": 1530000,
+  "age_days": 9,
+  "weekly_velocity": 9
+ },
+ {
+  "odoo_id": "stock.quant:5007",
+  "branch": "Surabaya",
+  "sku": "PSU-12V10A",
+  "name": "Power supply 12V 10A",
+  "category": "Aksesoris",
+  "qty": 30,
+  "unit_cost": 205000,
+  "age_days": 15,
+  "weekly_velocity": 35
+ },
+ {
+  "odoo_id": "stock.quant:5008",
+  "branch": "Yogyakarta",
+  "sku": "NVR-8CH",
+  "name": "NVR 8ch",
+  "category": "Kamera \u0026 NVR",
+  "qty": 5,
+  "unit_cost": 1600000,
+  "age_days": 20,
+  "weekly_velocity": 4
+ },
+ {
+  "odoo_id": "stock.quant:5009",
+  "branch": "Jakarta",
+  "sku": "SW-POE-8",
+  "name": "Switch PoE 8 port",
+  "category": "Kabel \u0026 PoE",
+  "qty": 9,
+  "unit_cost": 1100000,
+  "age_days": 18,
+  "weekly_velocity": 7
+ },
+ {
+  "odoo_id": "stock.quant:5010",
+  "branch": "Semarang",
+  "sku": "UTP-CAT6",
+  "name": "Kabel UTP Cat6 (roll)",
+  "category": "Kabel \u0026 PoE",
+  "qty": 12,
+  "unit_cost": 780000,
+  "age_days": 22,
+  "weekly_velocity": 10
+ },
+ {
+  "odoo_id": "stock.quant:5011",
+  "branch": "Surabaya",
+  "sku": "CAM-IP2-BUL",
+  "name": "Kamera IP 2MP bullet",
+  "category": "Kamera \u0026 NVR",
+  "qty": 20,
+  "unit_cost": 570000,
+  "age_days": 14,
+  "weekly_velocity": 16
+ },
+ {
+  "odoo_id": "stock.quant:5012",
+  "branch": "Jakarta",
+  "sku": "CAM-IP4-DOME",
+  "name": "Kamera IP 4MP dome",
+  "category": "Kamera \u0026 NVR",
+  "qty": 210,
+  "unit_cost": 1010000,
+  "age_days": 24,
+  "weekly_velocity": 30
+ },
+ {
+  "odoo_id": "stock.quant:5013",
+  "branch": "Semarang",
+  "sku": "NVR-16CH",
+  "name": "NVR 16ch",
+  "category": "Kamera \u0026 NVR",
+  "qty": 78,
+  "unit_cost": 3290000,
+  "age_days": 31,
+  "weekly_velocity": 6
+ },
+ {
+  "odoo_id": "stock.quant:5014",
+  "branch": "Yogyakarta",
+  "sku": "CAM-IP4-BUL",
+  "name": "Kamera IP 4MP bullet",
+  "category": "Kamera \u0026 NVR",
+  "qty": 256,
+  "unit_cost": 1010000,
+  "age_days": 28,
+  "weekly_velocity": 18
+ },
+ {
+  "odoo_id": "stock.quant:5015",
+  "branch": "Yogyakarta",
+  "sku": "FA-DET-ADR",
+  "name": "Detektor addressable",
+  "category": "Fire alarm",
+  "qty": 425,
+  "unit_cost": 610000,
+  "age_days": 35,
+  "weekly_velocity": 12
+ },
+ {
+  "odoo_id": "stock.quant:5016",
+  "branch": "Surabaya",
+  "sku": "HDD-4TB-SV",
+  "name": "HDD 4TB surveillance",
+  "category": "HDD \u0026 storage",
+  "qty": 169,
+  "unit_cost": 1530000,
+  "age_days": 26,
+  "weekly_velocity": 14
+ },
+ {
+  "odoo_id": "stock.quant:5017",
+  "branch": "Jakarta",
+  "sku": "LED-P4-IN",
+  "name": "Modul LED P4 indoor",
+  "category": "Modul LED",
+  "qty": 513,
+  "unit_cost": 505000,
+  "age_days": 40,
+  "weekly_velocity": 20
+ },
+ {
+  "odoo_id": "stock.quant:5018",
+  "branch": "Jakarta",
+  "sku": "NVR-32CH",
+  "name": "NVR 32 channel",
+  "category": "Kamera \u0026 NVR",
+  "qty": 58,
+  "unit_cost": 4540000,
+  "age_days": 33,
+  "weekly_velocity": 3
+ }
+]

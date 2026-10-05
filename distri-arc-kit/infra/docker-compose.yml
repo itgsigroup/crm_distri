@@ -1,0 +1,16 @@
+# Development / single-host stack. `make db-up` starts only postgres; production compose arrives in stage 13.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: arc
+      POSTGRES_PASSWORD: arc
+      POSTGRES_DB: distri_arc
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arc -d distri_arc"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:

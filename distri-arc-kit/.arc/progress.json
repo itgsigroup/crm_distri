@@ -1,0 +1,159 @@
+{
+  "project": "Distri ARC Orbit",
+  "owner": "Sam Setiadi (GSI)",
+  "stack": "Go 1.23 · React 19 · PostgreSQL 16",
+  "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
+  "current_stage": 1,
+  "stages": [
+    {
+      "id": 0,
+      "name": "Fondasi: monorepo, Postgres, migrasi, seed, Makefile, CI",
+      "status": "done",
+      "file": "docs/stages/00-fondasi.md",
+      "started_at": "2026-10-05",
+      "finished_at": "2026-10-05",
+      "summary": "Monorepo Go (cmd/arc api·worker·ctl, chi, pgx, goose, river, sqlc) + web Vite/React 19 dengan token & CSS mockup; migrasi 0001 (semua tabel 03-data-model + commitments) & 0002 river; seed 18 dealer dari mockup via tools/seedgen (idempoten); /api/health, /api/me (X-Dev-User), heartbeat river; make dev/check/migrate/seed/sqlc; CI.",
+      "notes": "Tanpa Docker: Postgres 17 native + DATABASE_URL_TEST skema per test (ADR 0006). Proyek di subfolder distri-arc-kit/ (kode ARC v1 di repo induk belum dihapus — butuh keputusan Sam)."
+    },
+    {
+      "id": 1,
+      "name": "Domain & metrics engine (rumus Orbit) + API baca dealer",
+      "status": "pending",
+      "file": "docs/stages/01-metrics-domain.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 2,
+      "name": "Frontend shell + Pusat kendali (baca) + Orbit/Segmen/Dealer",
+      "status": "pending",
+      "file": "docs/stages/02-frontend-shell.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 3,
+      "name": "WhatsApp ingest (whatsmeow + Cloud API), nomor internal, grup, Chat",
+      "status": "pending",
+      "file": "docs/stages/03-whatsapp.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 4,
+      "name": "Odoo sync read-only, order-to-cash, SO draft (off)",
+      "status": "pending",
+      "file": "docs/stages/04-odoo-sync.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 5,
+      "name": "LLM provider + Agen v1 (Order, Follow-up, Kredit) + proposal & keputusan",
+      "status": "pending",
+      "file": "docs/stages/05-agents-v1.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 6,
+      "name": "Orchestrator: siklus 6 tahap, konflik, otonomi, rencana, layar Orchestrator",
+      "status": "pending",
+      "file": "docs/stages/06-orchestrator.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 7,
+      "name": "MCP server + MCP sebagai orchestrator + Koneksi AI",
+      "status": "pending",
+      "file": "docs/stages/07-mcp.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 8,
+      "name": "Peta relasi 3D + pola relasi + PIC aktif",
+      "status": "pending",
+      "file": "docs/stages/08-relasi-3d.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 9,
+      "name": "Agen v2 (Stok, Penagihan, Prospek) + Push stok & Kredit · kas",
+      "status": "pending",
+      "file": "docs/stages/09-agents-v2.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 10,
+      "name": "Memori dealer, ringkasan, kalibrasi & belajar, Tanya ⌘K",
+      "status": "pending",
+      "file": "docs/stages/10-memori-kalibrasi.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 11,
+      "name": "Pengaturan kebijakan, auth & peran, Panduan",
+      "status": "pending",
+      "file": "docs/stages/11-pengaturan-kebijakan.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 12,
+      "name": "Eksekusi nyata: Odoo SO draft, outbox WA produksi, komitmen",
+      "status": "pending",
+      "file": "docs/stages/12-odoo-write-outbox.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 13,
+      "name": "Hardening: keamanan, partisi & retensi, backup, observabilitas, deploy",
+      "status": "pending",
+      "file": "docs/stages/13-hardening.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    },
+    {
+      "id": 14,
+      "name": "Pilot 1 cabang: migrasi, mode bayangan, pengukuran",
+      "status": "pending",
+      "file": "docs/stages/14-pilot.md",
+      "started_at": null,
+      "finished_at": null,
+      "summary": "",
+      "notes": ""
+    }
+  ]
+}

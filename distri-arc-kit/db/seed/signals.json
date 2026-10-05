@@ -1,0 +1,1443 @@
+[
+ {
+  "dedupe_key": "seed:timeline:rejeki:0",
+  "kind": "so",
+  "dealer": "rejeki",
+  "sales": "fajar",
+  "occurred_at": "2026-07-25T10:00:00+07:00",
+  "summary": "Order Rp 5 jt.",
+  "payload": {
+   "conclusion": "Churn",
+   "source": "seed",
+   "text": "Order Rp 5 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:lampu:0",
+  "kind": "so",
+  "dealer": "lampu",
+  "sales": "andi",
+  "occurred_at": "2026-08-01T09:20:00+07:00",
+  "summary": "Order terakhir Rp 12 jt.",
+  "payload": {
+   "conclusion": "Churn sejak awal September",
+   "source": "seed",
+   "text": "Order terakhir Rp 12 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:megah:0",
+  "kind": "so",
+  "dealer": "megah",
+  "sales": "andi",
+  "occurred_at": "2026-08-20T10:00:00+07:00",
+  "summary": "Order Rp 6 jt.",
+  "payload": {
+   "conclusion": "Lewat jadwal sejak 25 Sep",
+   "source": "seed",
+   "text": "Order Rp 6 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:mitra:1",
+  "kind": "so",
+  "dealer": "mitra",
+  "sales": "dewi",
+  "occurred_at": "2026-09-05T09:20:00+07:00",
+  "summary": "Order terakhir Rp 116 jt.",
+  "payload": {
+   "conclusion": "Lewat jadwal sejak 27 Sep (1,2× siklus order)",
+   "source": "seed",
+   "text": "Order terakhir Rp 116 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:nusa:0",
+  "kind": "so",
+  "dealer": "nusa",
+  "sales": "rizky",
+  "occurred_at": "2026-09-13T10:00:00+07:00",
+  "summary": "Order Rp 27 jt.",
+  "payload": {
+   "conclusion": "Exposure mendekati limit",
+   "source": "seed",
+   "text": "Order Rp 27 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:citra:0",
+  "kind": "so",
+  "dealer": "citra",
+  "sales": "andi",
+  "occurred_at": "2026-09-14T10:00:00+07:00",
+  "summary": "Order Rp 7 jt cash.",
+  "payload": {
+   "conclusion": "Siklus order 21 hari",
+   "source": "seed",
+   "text": "Order Rp 7 jt cash.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:prima:0",
+  "kind": "so",
+  "dealer": "prima",
+  "sales": "dewi",
+  "occurred_at": "2026-09-16T10:00:00+07:00",
+  "summary": "Order Rp 18 jt.",
+  "payload": {
+   "conclusion": "Siklus order 18 hari",
+   "source": "seed",
+   "text": "Order Rp 18 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:sinar:2",
+  "kind": "wa",
+  "dealer": "sinar",
+  "contact": "sinar:budi",
+  "sales": "andi",
+  "occurred_at": "2026-09-18T10:00:00+07:00",
+  "summary": "\"Bulan depan kami buka cabang di Demak.\"",
+  "payload": {
+   "conclusion": "Sinyal ekspansi → usul limit naik",
+   "source": "seed",
+   "text": "\"Bulan depan kami buka cabang di Demak.\"",
+   "via": "chat",
+   "who": "Pak Budi"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:borneo:0",
+  "kind": "so",
+  "dealer": "borneo",
+  "sales": "fajar",
+  "occurred_at": "2026-09-18T10:00:00+07:00",
+  "summary": "Order Rp 40 jt.",
+  "payload": {
+   "conclusion": "Siklus order 16 hari",
+   "source": "seed",
+   "text": "Order Rp 40 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:cahaya:0",
+  "kind": "so",
+  "dealer": "cahaya",
+  "sales": "andi",
+  "occurred_at": "2026-09-20T10:00:00+07:00",
+  "summary": "Order Rp 8,9 jt COD.",
+  "payload": {
+   "conclusion": "Siklus order 30 hari terjaga",
+   "source": "seed",
+   "text": "Order Rp 8,9 jt COD.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:jaya:0",
+  "kind": "so",
+  "dealer": "jaya",
+  "sales": "rizky",
+  "occurred_at": "2026-09-20T10:00:00+07:00",
+  "summary": "Order Rp 34 jt.",
+  "payload": {
+   "conclusion": "Siklus order 14 hari",
+   "source": "seed",
+   "text": "Order Rp 34 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:nusantara:0",
+  "kind": "so",
+  "dealer": "nusantara",
+  "sales": "fajar",
+  "occurred_at": "2026-09-23T10:00:00+07:00",
+  "summary": "Order pertama Rp 18 jt, cash.",
+  "payload": {
+   "conclusion": "Masuk orbit · tier B sementara",
+   "source": "seed",
+   "text": "Order pertama Rp 18 jt, cash.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:indo:eko:0",
+  "kind": "wa",
+  "dealer": "indo",
+  "contact": "indo:eko",
+  "sales": "rizky",
+  "occurred_at": "2026-09-23T11:00:00+07:00",
+  "summary": "Mas Rizky, stok Switch PoE masih ada? Mau ambil untuk minggu ini.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Mas Rizky, stok Switch PoE masih ada? Mau ambil untuk minggu ini.",
+   "thread": "c-indo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:global:deni:0",
+  "kind": "wa",
+  "dealer": "global",
+  "contact": "global:deni",
+  "sales": "fajar",
+  "occurred_at": "2026-09-23T11:00:00+07:00",
+  "summary": "Mas Fajar, stok Kabel masih ada? Mau ambil untuk minggu ini.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Mas Fajar, stok Kabel masih ada? Mau ambil untuk minggu ini.",
+   "thread": "c-global",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:indo:eko:1",
+  "kind": "wa",
+  "dealer": "indo",
+  "contact": "indo:eko",
+  "sales": "rizky",
+  "occurred_at": "2026-09-23T11:17:00+07:00",
+  "summary": "Ada Pak Eko, siap kirim. Saya buatkan SO-nya ya.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Ada Pak Eko, siap kirim. Saya buatkan SO-nya ya.",
+   "thread": "c-indo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:global:deni:1",
+  "kind": "wa",
+  "dealer": "global",
+  "contact": "global:deni",
+  "sales": "fajar",
+  "occurred_at": "2026-09-23T11:17:00+07:00",
+  "summary": "Ada Pak Deni, siap kirim. Saya buatkan SO-nya ya.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Ada Pak Deni, siap kirim. Saya buatkan SO-nya ya.",
+   "thread": "c-global",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:graha:2",
+  "kind": "wa",
+  "dealer": "graha",
+  "sales": "fajar",
+  "occurred_at": "2026-09-24T10:00:00+07:00",
+  "summary": "Pengingat INV/0844 — dijawab \"menunggu termin klien\".",
+  "payload": {
+   "conclusion": "Komitmen mereka digeser tanpa tanggal",
+   "source": "seed",
+   "text": "Pengingat INV/0844 — dijawab \"menunggu termin klien\".",
+   "via": "chat",
+   "who": "Fajar"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:anugerah:0",
+  "kind": "so",
+  "dealer": "anugerah",
+  "sales": "andi",
+  "occurred_at": "2026-09-25T10:00:00+07:00",
+  "summary": "Order Rp 23 jt.",
+  "payload": {
+   "conclusion": "Siklus order 25 hari terjaga",
+   "source": "seed",
+   "text": "Order Rp 23 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:mitra:dika:0",
+  "kind": "wa",
+  "dealer": "mitra",
+  "contact": "mitra:dika",
+  "sales": "dewi",
+  "occurred_at": "2026-09-26T11:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-mitra",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:bina:reza:0",
+  "kind": "wa",
+  "dealer": "bina",
+  "contact": "bina:reza",
+  "sales": "dewi",
+  "occurred_at": "2026-09-26T11:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-bina",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:anugerah:nur:0",
+  "kind": "wa",
+  "dealer": "anugerah",
+  "contact": "anugerah:nur",
+  "sales": "andi",
+  "occurred_at": "2026-09-26T11:00:00+07:00",
+  "summary": "Mas Andi, stok Kabel masih ada? Mau ambil untuk minggu ini.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Mas Andi, stok Kabel masih ada? Mau ambil untuk minggu ini.",
+   "thread": "c-anugerah",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:jaya:dewi:0",
+  "kind": "wa",
+  "dealer": "jaya",
+  "contact": "jaya:dewi",
+  "sales": "rizky",
+  "occurred_at": "2026-09-26T11:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-jaya",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:borneo:ari:0",
+  "kind": "wa",
+  "dealer": "borneo",
+  "contact": "borneo:ari",
+  "sales": "fajar",
+  "occurred_at": "2026-09-26T11:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-borneo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:mitra:dika:1",
+  "kind": "wa",
+  "dealer": "mitra",
+  "contact": "mitra:dika",
+  "sales": "dewi",
+  "occurred_at": "2026-09-26T11:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-mitra",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:bina:reza:1",
+  "kind": "wa",
+  "dealer": "bina",
+  "contact": "bina:reza",
+  "sales": "dewi",
+  "occurred_at": "2026-09-26T11:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-bina",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:anugerah:nur:1",
+  "kind": "wa",
+  "dealer": "anugerah",
+  "contact": "anugerah:nur",
+  "sales": "andi",
+  "occurred_at": "2026-09-26T11:17:00+07:00",
+  "summary": "Ada Bu Nur, siap kirim. Saya buatkan SO-nya ya.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Ada Bu Nur, siap kirim. Saya buatkan SO-nya ya.",
+   "thread": "c-anugerah",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:jaya:dewi:1",
+  "kind": "wa",
+  "dealer": "jaya",
+  "contact": "jaya:dewi",
+  "sales": "rizky",
+  "occurred_at": "2026-09-26T11:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-jaya",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:borneo:ari:1",
+  "kind": "wa",
+  "dealer": "borneo",
+  "contact": "borneo:ari",
+  "sales": "fajar",
+  "occurred_at": "2026-09-26T11:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-borneo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:sinar:1",
+  "kind": "payment",
+  "dealer": "sinar",
+  "sales": "andi",
+  "occurred_at": "2026-09-28T10:00:00+07:00",
+  "summary": "INV/0871 Rp 44 jt dibayar hari ke-27.",
+  "payload": {
+   "conclusion": "Pola bayar tetap ≤ 30 hari",
+   "source": "seed",
+   "text": "INV/0871 Rp 44 jt dibayar hari ke-27.",
+   "via": "box",
+   "who": "Pembayaran"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:sarana:0",
+  "kind": "so",
+  "dealer": "sarana",
+  "sales": "dewi",
+  "occurred_at": "2026-09-29T10:00:00+07:00",
+  "summary": "Order Rp 98 jt.",
+  "payload": {
+   "conclusion": "Siklus order terjaga",
+   "source": "seed",
+   "text": "Order Rp 98 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:mitra:agus:0",
+  "kind": "wa",
+  "dealer": "mitra",
+  "contact": "mitra:agus",
+  "sales": "dewi",
+  "occurred_at": "2026-09-29T11:00:00+07:00",
+  "summary": "Bu Dewi, stok Power supply masih ada? Mau ambil untuk minggu ini.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Bu Dewi, stok Power supply masih ada? Mau ambil untuk minggu ini.",
+   "thread": "c-mitra",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:cahaya:wati:0",
+  "kind": "wa",
+  "dealer": "cahaya",
+  "contact": "cahaya:wati",
+  "sales": "andi",
+  "occurred_at": "2026-09-29T11:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-cahaya",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:bina:slamet:0",
+  "kind": "wa",
+  "dealer": "bina",
+  "contact": "bina:slamet",
+  "sales": "dewi",
+  "occurred_at": "2026-09-29T11:00:00+07:00",
+  "summary": "Bu Dewi, stok Kabel FRC masih ada? Mau ambil untuk minggu ini.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Bu Dewi, stok Kabel FRC masih ada? Mau ambil untuk minggu ini.",
+   "thread": "c-bina",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:nusantara:rizal:0",
+  "kind": "wa",
+  "dealer": "nusantara",
+  "contact": "nusantara:rizal",
+  "sales": "fajar",
+  "occurred_at": "2026-09-29T11:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-nusantara",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:citra:yusuf:0",
+  "kind": "wa",
+  "dealer": "citra",
+  "contact": "citra:yusuf",
+  "sales": "andi",
+  "occurred_at": "2026-09-29T11:00:00+07:00",
+  "summary": "Mas Andi, stok Aksesoris masih ada? Mau ambil untuk minggu ini.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Mas Andi, stok Aksesoris masih ada? Mau ambil untuk minggu ini.",
+   "thread": "c-citra",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:anugerah:dani:0",
+  "kind": "wa",
+  "dealer": "anugerah",
+  "contact": "anugerah:dani",
+  "sales": "andi",
+  "occurred_at": "2026-09-29T11:00:00+07:00",
+  "summary": "Tolong kirim seperti biasa ya, Mas Andi.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Tolong kirim seperti biasa ya, Mas Andi.",
+   "thread": "c-anugerah",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:prima:bayu:0",
+  "kind": "wa",
+  "dealer": "prima",
+  "contact": "prima:bayu",
+  "sales": "dewi",
+  "occurred_at": "2026-09-29T11:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-prima",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:nusa:imam:0",
+  "kind": "wa",
+  "dealer": "nusa",
+  "contact": "nusa:imam",
+  "sales": "rizky",
+  "occurred_at": "2026-09-29T11:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-nusa",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:mitra:agus:1",
+  "kind": "wa",
+  "dealer": "mitra",
+  "contact": "mitra:agus",
+  "sales": "dewi",
+  "occurred_at": "2026-09-29T11:17:00+07:00",
+  "summary": "Ada Pak Agus, siap kirim. Saya buatkan SO-nya ya.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Ada Pak Agus, siap kirim. Saya buatkan SO-nya ya.",
+   "thread": "c-mitra",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:cahaya:wati:1",
+  "kind": "wa",
+  "dealer": "cahaya",
+  "contact": "cahaya:wati",
+  "sales": "andi",
+  "occurred_at": "2026-09-29T11:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-cahaya",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:bina:slamet:1",
+  "kind": "wa",
+  "dealer": "bina",
+  "contact": "bina:slamet",
+  "sales": "dewi",
+  "occurred_at": "2026-09-29T11:17:00+07:00",
+  "summary": "Ada Pak Slamet, siap kirim. Saya buatkan SO-nya ya.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Ada Pak Slamet, siap kirim. Saya buatkan SO-nya ya.",
+   "thread": "c-bina",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:nusantara:rizal:1",
+  "kind": "wa",
+  "dealer": "nusantara",
+  "contact": "nusantara:rizal",
+  "sales": "fajar",
+  "occurred_at": "2026-09-29T11:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-nusantara",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:citra:yusuf:1",
+  "kind": "wa",
+  "dealer": "citra",
+  "contact": "citra:yusuf",
+  "sales": "andi",
+  "occurred_at": "2026-09-29T11:17:00+07:00",
+  "summary": "Ada Pak Yusuf, siap kirim. Saya buatkan SO-nya ya.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Ada Pak Yusuf, siap kirim. Saya buatkan SO-nya ya.",
+   "thread": "c-citra",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:anugerah:dani:1",
+  "kind": "wa",
+  "dealer": "anugerah",
+  "contact": "anugerah:dani",
+  "sales": "andi",
+  "occurred_at": "2026-09-29T11:17:00+07:00",
+  "summary": "Siap, dikirim besok pagi Pak Dani. Terima kasih.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Siap, dikirim besok pagi Pak Dani. Terima kasih.",
+   "thread": "c-anugerah",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:prima:bayu:1",
+  "kind": "wa",
+  "dealer": "prima",
+  "contact": "prima:bayu",
+  "sales": "dewi",
+  "occurred_at": "2026-09-29T11:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-prima",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:nusa:imam:1",
+  "kind": "wa",
+  "dealer": "nusa",
+  "contact": "nusa:imam",
+  "sales": "rizky",
+  "occurred_at": "2026-09-29T11:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-nusa",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:indo:1",
+  "kind": "so",
+  "dealer": "indo",
+  "sales": "rizky",
+  "occurred_at": "2026-09-30T10:00:00+07:00",
+  "summary": "Order Rp 92 jt — SO otomatis.",
+  "payload": {
+   "conclusion": "Stok Surabaya OK · sisa limit OK",
+   "source": "seed",
+   "text": "Order Rp 92 jt — SO otomatis.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:sinar:rina:0",
+  "kind": "wa",
+  "dealer": "sinar",
+  "contact": "sinar:rina",
+  "sales": "andi",
+  "occurred_at": "2026-09-30T10:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-sinar",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:indo:santi:0",
+  "kind": "wa",
+  "dealer": "indo",
+  "contact": "indo:santi",
+  "sales": "rizky",
+  "occurred_at": "2026-09-30T10:00:00+07:00",
+  "summary": "Tolong kirim seperti biasa ya, Mas Rizky.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Tolong kirim seperti biasa ya, Mas Rizky.",
+   "thread": "c-indo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:sarana:ika:0",
+  "kind": "wa",
+  "dealer": "sarana",
+  "contact": "sarana:ika",
+  "sales": "dewi",
+  "occurred_at": "2026-09-30T10:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-sarana",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:global:fitri:0",
+  "kind": "wa",
+  "dealer": "global",
+  "contact": "global:fitri",
+  "sales": "fajar",
+  "occurred_at": "2026-09-30T10:00:00+07:00",
+  "summary": "Tolong kirim seperti biasa ya, Mas Fajar.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Tolong kirim seperti biasa ya, Mas Fajar.",
+   "thread": "c-global",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:sinar:rina:1",
+  "kind": "wa",
+  "dealer": "sinar",
+  "contact": "sinar:rina",
+  "sales": "andi",
+  "occurred_at": "2026-09-30T10:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-sinar",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:indo:santi:1",
+  "kind": "wa",
+  "dealer": "indo",
+  "contact": "indo:santi",
+  "sales": "rizky",
+  "occurred_at": "2026-09-30T10:17:00+07:00",
+  "summary": "Siap, dikirim besok pagi Bu Santi. Terima kasih.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Siap, dikirim besok pagi Bu Santi. Terima kasih.",
+   "thread": "c-indo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:sarana:ika:1",
+  "kind": "wa",
+  "dealer": "sarana",
+  "contact": "sarana:ika",
+  "sales": "dewi",
+  "occurred_at": "2026-09-30T10:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-sarana",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:global:fitri:1",
+  "kind": "wa",
+  "dealer": "global",
+  "contact": "global:fitri",
+  "sales": "fajar",
+  "occurred_at": "2026-09-30T10:17:00+07:00",
+  "summary": "Siap, dikirim besok pagi Bu Fitri. Terima kasih.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Siap, dikirim besok pagi Bu Fitri. Terima kasih.",
+   "thread": "c-global",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:graha:1",
+  "kind": "manual",
+  "dealer": "graha",
+  "sales": "fajar",
+  "occurred_at": "2026-10-01T10:00:00+07:00",
+  "summary": "PO No. 118/GS/X/2026 diterima; dikonfirmasi via telepon ke kantor.",
+  "payload": {
+   "conclusion": "SOP-SEC-001 ✓",
+   "source": "seed",
+   "text": "PO No. 118/GS/X/2026 diterima; dikonfirmasi via telepon ke kantor.",
+   "via": "doc",
+   "who": "PO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:mitra:0",
+  "kind": "wa",
+  "dealer": "mitra",
+  "contact": "mitra:agus",
+  "sales": "dewi",
+  "occurred_at": "2026-10-01T10:00:00+07:00",
+  "summary": "\"Bu, invoice yang 46 jt minggu depan ya, proyek belum cair.\"",
+  "payload": {
+   "conclusion": "Sinyal: minta tempo tanpa tanggal · pola berulang 2×",
+   "source": "seed",
+   "text": "\"Bu, invoice yang 46 jt minggu depan ya, proyek belum cair.\"",
+   "via": "chat",
+   "who": "Pak Agus"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:bina:0",
+  "kind": "wa",
+  "dealer": "bina",
+  "contact": "bina:reza",
+  "sales": "dewi",
+  "occurred_at": "2026-10-01T10:00:00+07:00",
+  "summary": "2 NVR 8ch mati total setelah 2 minggu, minta tukar.",
+  "payload": {
+   "conclusion": "Retur → garansi supplier berlaku · biaya Rp 0",
+   "source": "seed",
+   "text": "2 NVR 8ch mati total setelah 2 minggu, minta tukar.",
+   "via": "chat",
+   "who": "Mas Reza"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:global:0",
+  "kind": "so",
+  "dealer": "global",
+  "sales": "fajar",
+  "occurred_at": "2026-10-01T10:00:00+07:00",
+  "summary": "Order Rp 112 jt.",
+  "payload": {
+   "conclusion": "Siklus order terjaga",
+   "source": "seed",
+   "text": "Order Rp 112 jt.",
+   "via": "box",
+   "who": "SO"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:sinar:0",
+  "kind": "wa",
+  "dealer": "sinar",
+  "contact": "sinar:rina",
+  "sales": "andi",
+  "occurred_at": "2026-10-02T10:00:00+07:00",
+  "summary": "Order 10 kamera 4MP + 1 NVR 16ch, kirim Senin.",
+  "payload": {
+   "conclusion": "AI Order: stok Semarang OK, tier A, sisa limit OK → SO",
+   "source": "seed",
+   "text": "Order 10 kamera 4MP + 1 NVR 16ch, kirim Senin.",
+   "via": "chat",
+   "who": "Mbak Rina"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:graha:0",
+  "kind": "wa",
+  "dealer": "graha",
+  "contact": "graha:hasan",
+  "sales": "fajar",
+  "occurred_at": "2026-10-02T10:00:00+07:00",
+  "summary": "Minta rilis 24 unit kamera 4MP, termin 30 hari, kirim Rabu.",
+  "payload": {
+   "conclusion": "AI Kredit: exposure → Rp 400 jt / limit 250 · eskalasi CEO · SOP-SEC-001 lolos",
+   "source": "seed",
+   "text": "Minta rilis 24 unit kamera 4MP, termin 30 hari, kirim Rabu.",
+   "via": "chat",
+   "who": "Pak Hasan"
+  }
+ },
+ {
+  "dedupe_key": "seed:timeline:indo:0",
+  "kind": "wa",
+  "dealer": "indo",
+  "contact": "indo:santi",
+  "sales": "rizky",
+  "occurred_at": "2026-10-02T10:00:00+07:00",
+  "summary": "\"Untuk 60 unit 4MP, distributor lain kasih 3% di bawah harga Bapak. Bisa samain?\"",
+  "payload": {
+   "conclusion": "Pricing guard: 3% → margin 8,3% \u003c floor 9% · counter disiapkan",
+   "source": "seed",
+   "text": "\"Untuk 60 unit 4MP, distributor lain kasih 3% di bawah harga Bapak. Bisa samain?\"",
+   "via": "chat",
+   "who": "Bu Santi"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:sinar:budi:0",
+  "kind": "wa",
+  "dealer": "sinar",
+  "contact": "sinar:budi",
+  "sales": "andi",
+  "occurred_at": "2026-10-02T10:00:00+07:00",
+  "summary": "Mas Andi, stok Kabel \u0026 aksesoris masih ada? Mau ambil untuk minggu ini.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Mas Andi, stok Kabel \u0026 aksesoris masih ada? Mau ambil untuk minggu ini.",
+   "thread": "c-sinar",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:graha:hasan:0",
+  "kind": "wa",
+  "dealer": "graha",
+  "contact": "graha:hasan",
+  "sales": "fajar",
+  "occurred_at": "2026-10-02T10:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-graha",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:indo:wira:0",
+  "kind": "wa",
+  "dealer": "indo",
+  "contact": "indo:wira",
+  "sales": "rizky",
+  "occurred_at": "2026-10-02T10:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-indo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:sarana:hendra:0",
+  "kind": "wa",
+  "dealer": "sarana",
+  "contact": "sarana:hendra",
+  "sales": "dewi",
+  "occurred_at": "2026-10-02T10:00:00+07:00",
+  "summary": "Bu Dewi, stok Kabel masih ada? Mau ambil untuk minggu ini.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Bu Dewi, stok Kabel masih ada? Mau ambil untuk minggu ini.",
+   "thread": "c-sarana",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:jaya:agung:0",
+  "kind": "wa",
+  "dealer": "jaya",
+  "contact": "jaya:agung",
+  "sales": "rizky",
+  "occurred_at": "2026-10-02T10:00:00+07:00",
+  "summary": "Mas Rizky, stok HDD masih ada? Mau ambil untuk minggu ini.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Mas Rizky, stok HDD masih ada? Mau ambil untuk minggu ini.",
+   "thread": "c-jaya",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:borneo:maya:0",
+  "kind": "wa",
+  "dealer": "borneo",
+  "contact": "borneo:maya",
+  "sales": "fajar",
+  "occurred_at": "2026-10-02T10:00:00+07:00",
+  "summary": "Mas Fajar, stok HDD masih ada? Mau ambil untuk minggu ini.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Mas Fajar, stok HDD masih ada? Mau ambil untuk minggu ini.",
+   "thread": "c-borneo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:global:yoga:0",
+  "kind": "wa",
+  "dealer": "global",
+  "contact": "global:yoga",
+  "sales": "fajar",
+  "occurred_at": "2026-10-02T10:00:00+07:00",
+  "summary": "Invoice kemarin sudah kami transfer ya.",
+  "payload": {
+   "direction": "in",
+   "history": true,
+   "source": "seed",
+   "text": "Invoice kemarin sudah kami transfer ya.",
+   "thread": "c-global",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:sinar:budi:1",
+  "kind": "wa",
+  "dealer": "sinar",
+  "contact": "sinar:budi",
+  "sales": "andi",
+  "occurred_at": "2026-10-02T10:17:00+07:00",
+  "summary": "Ada Pak Budi, siap kirim. Saya buatkan SO-nya ya.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Ada Pak Budi, siap kirim. Saya buatkan SO-nya ya.",
+   "thread": "c-sinar",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:graha:hasan:1",
+  "kind": "wa",
+  "dealer": "graha",
+  "contact": "graha:hasan",
+  "sales": "fajar",
+  "occurred_at": "2026-10-02T10:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-graha",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:indo:wira:1",
+  "kind": "wa",
+  "dealer": "indo",
+  "contact": "indo:wira",
+  "sales": "rizky",
+  "occurred_at": "2026-10-02T10:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-indo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:sarana:hendra:1",
+  "kind": "wa",
+  "dealer": "sarana",
+  "contact": "sarana:hendra",
+  "sales": "dewi",
+  "occurred_at": "2026-10-02T10:17:00+07:00",
+  "summary": "Ada Pak Hendra, siap kirim. Saya buatkan SO-nya ya.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Ada Pak Hendra, siap kirim. Saya buatkan SO-nya ya.",
+   "thread": "c-sarana",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:jaya:agung:1",
+  "kind": "wa",
+  "dealer": "jaya",
+  "contact": "jaya:agung",
+  "sales": "rizky",
+  "occurred_at": "2026-10-02T10:17:00+07:00",
+  "summary": "Ada Pak Agung, siap kirim. Saya buatkan SO-nya ya.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Ada Pak Agung, siap kirim. Saya buatkan SO-nya ya.",
+   "thread": "c-jaya",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:borneo:maya:1",
+  "kind": "wa",
+  "dealer": "borneo",
+  "contact": "borneo:maya",
+  "sales": "fajar",
+  "occurred_at": "2026-10-02T10:17:00+07:00",
+  "summary": "Ada Bu Maya, siap kirim. Saya buatkan SO-nya ya.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Ada Bu Maya, siap kirim. Saya buatkan SO-nya ya.",
+   "thread": "c-borneo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:hist:global:yoga:1",
+  "kind": "wa",
+  "dealer": "global",
+  "contact": "global:yoga",
+  "sales": "fajar",
+  "occurred_at": "2026-10-02T10:17:00+07:00",
+  "summary": "Sudah masuk, terima kasih banyak.",
+  "payload": {
+   "direction": "out",
+   "history": true,
+   "source": "seed",
+   "text": "Sudah masuk, terima kasih banyak.",
+   "thread": "c-global",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:c-mitra:1",
+  "kind": "wa",
+  "dealer": "mitra",
+  "contact": "mitra:agus",
+  "sales": "dewi",
+  "occurred_at": "2026-10-04T09:10:00+07:00",
+  "summary": "Pak Agus, mengingatkan invoice 46 jt sudah jatuh tempo 21 Sep ya.",
+  "payload": {
+   "direction": "out",
+   "sales": "dewi",
+   "source": "seed",
+   "text": "Pak Agus, mengingatkan invoice 46 jt sudah jatuh tempo 21 Sep ya.",
+   "thread": "c-mitra",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:c-mitra:2",
+  "kind": "wa",
+  "dealer": "mitra",
+  "contact": "mitra:agus",
+  "sales": "dewi",
+  "occurred_at": "2026-10-04T11:45:00+07:00",
+  "summary": "Bu, minggu depan ya, proyek belum cair.",
+  "payload": {
+   "annotation": {
+    "act": "reorder_mitra",
+    "k": "warn",
+    "t": "Komitmen tanpa tanggal · pola berulang 2× · AI Penagihan + Reorder: usul cicilan 2×"
+   },
+   "direction": "in",
+   "sales": "dewi",
+   "source": "seed",
+   "text": "Bu, minggu depan ya, proyek belum cair.",
+   "thread": "c-mitra",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:c-graha:1",
+  "kind": "wa",
+  "dealer": "graha",
+  "contact": "graha:hasan",
+  "sales": "fajar",
+  "occurred_at": "2026-10-04T16:20:00+07:00",
+  "summary": "PO proyek apartemen sudah saya email ya Mas.",
+  "payload": {
+   "annotation": {
+    "act": "",
+    "k": "good",
+    "t": "PO No. 118/GS/X/2026 diterima · diverifikasi via telepon ke kantor (SOP-SEC-001 ✓)"
+   },
+   "direction": "in",
+   "sales": "fajar",
+   "source": "seed",
+   "text": "PO proyek apartemen sudah saya email ya Mas.",
+   "thread": "c-graha",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:c-indo:1",
+  "kind": "wa",
+  "dealer": "indo",
+  "contact": "indo:santi",
+  "sales": "rizky",
+  "occurred_at": "2026-10-05T09:40:00+07:00",
+  "summary": "Pak Rizky, untuk 60 unit 4MP, distributor lain kasih 3% di bawah harga Bapak. Bisa disamain? Kalau bisa saya order hari ini.",
+  "payload": {
+   "annotation": {
+    "act": "price_indo",
+    "k": "warn",
+    "t": "AI Order: 3% → margin 8,3% \u003c floor 9% · kompetitor disebut · counter disiapkan"
+   },
+   "direction": "in",
+   "sales": "rizky",
+   "source": "seed",
+   "text": "Pak Rizky, untuk 60 unit 4MP, distributor lain kasih 3% di bawah harga Bapak. Bisa disamain? Kalau bisa saya order hari ini.",
+   "thread": "c-indo",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:c-graha:3",
+  "kind": "wa",
+  "dealer": "graha",
+  "contact": "graha:hasan",
+  "sales": "fajar",
+  "occurred_at": "2026-10-05T10:12:00+07:00",
+  "summary": "Mas Fajar, rilis 24 unit kamera 4MP ya, termin 30 hari seperti biasa. Kirim Rabu.",
+  "payload": {
+   "annotation": {
+    "act": "credit_graha",
+    "k": "bad",
+    "t": "AI Kredit: exposure 220 + 180 = 400 jt \u003e limit 250 jt · INV/0844 lewat 17 hari → eskalasi CEO"
+   },
+   "direction": "in",
+   "sales": "fajar",
+   "source": "seed",
+   "text": "Mas Fajar, rilis 24 unit kamera 4MP ya, termin 30 hari seperti biasa. Kirim Rabu.",
+   "thread": "c-graha",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:n-mandiri:1",
+  "kind": "wa",
+  "sales": "andi",
+  "occurred_at": "2026-10-05T11:30:00+07:00",
+  "summary": "Pagi, mau tanya harga kamera 4MP 2 unit sama NVR 4ch, kirim ke Pati berapa?",
+  "payload": {
+   "annotation": {
+    "act": "",
+    "k": "accent",
+    "t": "Identity: Getcontact “Mandiri Elektronik Pati” + profil WA “Toko Mandiri – CCTV \u0026 Sound” · skor 74 · tier C cash"
+   },
+   "direction": "in",
+   "sales": "andi",
+   "source": "seed",
+   "text": "Pagi, mau tanya harga kamera 4MP 2 unit sama NVR 4ch, kirim ke Pati berapa?",
+   "thread": "n-mandiri",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:c-sinar:1",
+  "kind": "wa",
+  "dealer": "sinar",
+  "contact": "sinar:rina",
+  "sales": "andi",
+  "occurred_at": "2026-10-05T14:02:00+07:00",
+  "summary": "Mas Andi, order ya: kamera 4MP dome 10 unit, NVR 16ch 1 unit. Kirim Senin bisa?",
+  "payload": {
+   "annotation": {
+    "act": "so_sinar",
+    "k": "accent",
+    "t": "AI Order: 10× Kamera IP 4MP + 1× NVR 16ch = Rp 18,4 jt · stok Semarang OK · tier A · kredit OK"
+   },
+   "direction": "in",
+   "sales": "andi",
+   "source": "seed",
+   "text": "Mas Andi, order ya: kamera 4MP dome 10 unit, NVR 16ch 1 unit. Kirim Senin bisa?",
+   "thread": "c-sinar",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:g-gudang:1",
+  "kind": "wa_group",
+  "sales": "andi",
+  "occurred_at": "2026-10-05T15:10:00+07:00",
+  "summary": "Kamera 4MP dome sisa 18, kalau Toko Sinar ambil 10 tinggal 8.",
+  "payload": {
+   "annotation": {
+    "act": "transfer_cam",
+    "k": "bad",
+    "t": "Stok kritis: sisa 8 vs siklus order 24/minggu → usul transfer 40 dari Jakarta"
+   },
+   "direction": "in",
+   "from_name": "Pak Joko",
+   "internal": true,
+   "sales": "andi",
+   "source": "seed",
+   "text": "Kamera 4MP dome sisa 18, kalau Toko Sinar ambil 10 tinggal 8.",
+   "thread": "g-gudang",
+   "via": "chat"
+  }
+ },
+ {
+  "dedupe_key": "seed:wa:g-gudang:2",
+  "kind": "wa_group",
+  "sales": "andi",
+  "occurred_at": "2026-10-05T15:20:00+07:00",
+  "summary": "Surat jalan Bina Teknik Senin, sekalian unit pengganti NVR?",
+  "payload": {
+   "annotation": {
+    "act": "",
+    "k": "indigo",
+    "t": "Tugas → Sari: gabungkan RMA NVR ke pengiriman Senin (menunggu approve retur)"
+   },
+   "direction": "in",
+   "from_name": "Sari",
+   "internal": true,
+   "sales": "andi",
+   "source": "seed",
+   "text": "Surat jalan Bina Teknik Senin, sekalian unit pengganti NVR?",
+   "thread": "g-gudang",
+   "via": "chat"
+  }
+ }
+]

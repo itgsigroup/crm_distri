@@ -1,0 +1,42 @@
+{
+ "anugerah": {
+  "as_of": "2026-07-05",
+  "avg_order": 15000000,
+  "rhythm_days": 25
+ },
+ "citra": {
+  "as_of": "2026-07-05",
+  "avg_order": 7000000,
+  "rhythm_days": 21
+ },
+ "graha": {
+  "as_of": "2026-07-05",
+  "avg_order": 80000000,
+  "rhythm_days": 17
+ },
+ "lampu": {
+  "as_of": "2026-07-05",
+  "avg_order": 14000000,
+  "rhythm_days": 18
+ },
+ "mitra": {
+  "as_of": "2026-07-05",
+  "avg_order": 46000000,
+  "rhythm_days": 16
+ },
+ "nusa": {
+  "as_of": "2026-07-05",
+  "avg_order": 29000000,
+  "rhythm_days": 20
+ },
+ "prima": {
+  "as_of": "2026-07-05",
+  "avg_order": 16000000,
+  "rhythm_days": 24
+ },
+ "sinar": {
+  "as_of": "2026-07-05",
+  "avg_order": 48000000,
+  "rhythm_days": 16
+ }
+}

@@ -1,0 +1,32 @@
+{
+ "orbit.thresholds": {"drift": 1.2, "churn": 2.0, "key_account": {"sow_min": 50, "on_time_min": 85}},
+ "segment.thresholds": {"freq_per_month": 1.5, "size_idr": 20000000, "new_dealer_wait_orders": 2},
+ "credit.rules": {
+  "room_min": 0.40, "pay_max_days": 35,
+  "default_limit": {"A": 250000000, "B": 150000000, "C": 0, "new": 25000000},
+  "limit_up": {"on_time_min": 90, "tight_months_min": 3},
+  "limit_down": {"late_invoices": 2, "late_days": 14},
+  "release_over_limit": "ceo_approve", "sop_sec_001_required": true
+ },
+ "followup.rules": {"gap_days": 14, "h_minus": 1, "max_per_day_per_sales": 12, "second_followup": "approve"},
+ "margin.floor": {"pct": 9},
+ "stock.rules": {"aging_days": 90, "bundle_max_discount_pct": 8, "critical_days": 10},
+ "kpi.targets": {"on_schedule_pct": 85, "dso_days": 30, "stock_turn_days": 40},
+ "autonomy.matrix": {
+  "AI Order":     {"auto": ["so_draft"], "approve": ["price_counter", "return", "new_dealer"], "never": ["credit_limit"],
+                   "labels": {"auto": "SO rutin dalam limit", "approve": "Harga di bawah tier · dealer baru", "never": "Mengubah limit"}},
+  "AI Follow-up": {"auto": ["followup"], "approve": ["followup"], "never": ["price_counter"],
+                   "labels": {"auto": "Follow-up H-1 bila limit aman", "approve": "Dealer At risk · follow-up ke-2", "never": "Menjanjikan harga"}},
+  "AI Kredit":    {"auto": ["credit_hold"], "approve": ["credit_release", "credit_limit"], "never": ["release_goods"],
+                   "labels": {"auto": "Tidak ada", "approve": "Semua rilis di atas limit · perubahan limit", "never": "Melepas barang tanpa approve"}},
+  "AI Stok":      {"auto": ["stock_list"], "approve": ["push_stock", "transfer", "po_request"], "never": ["below_floor"],
+                   "labels": {"auto": "Menyusun daftar kandidat", "approve": "Harga bundle · promo", "never": "Di bawah floor margin 9%"}},
+  "AI Penagihan": {"auto": ["collect"], "approve": ["collect", "installment"], "never": ["threat"],
+                   "labels": {"auto": "Pengingat H-3 ramah", "approve": "Nada tegas · skema cicilan", "never": "Mengancam / menahan kiriman"}},
+  "AI Prospek":   {"auto": ["identify"], "approve": ["new_dealer", "price_list"], "never": ["send_price_unapproved"],
+                   "labels": {"auto": "Identifikasi", "approve": "Membuat dealer di Odoo", "never": "Mengirim harga sebelum approve"}}
+ },
+ "mcp.permissions": {"allow_reanalyze": true, "allow_plan_update_proposal": true, "allow_send": false, "mask_pii_in_read": true, "max_cycles_per_hour": 6},
+ "llm.routing": {"mode": "both", "provider": "anthropic", "model": "claude-sonnet-5-5", "fallback": "openai:gpt-4.1", "batch_hours": [6, 20], "timezone": "Asia/Jakarta"},
+ "retention": {"chat_days": 90, "signals_months": 24, "llm_calls_days": 180}
+}

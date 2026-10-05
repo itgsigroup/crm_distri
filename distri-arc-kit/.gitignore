@@ -1,0 +1,21 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Build output
+/bin/
+web/dist/
+web/node_modules/
+web/test-results/
+web/playwright-report/
+node_modules/
+
+# Runtime data
+/data/
+/backups/
+*.log
+
+# OS / editor
+.DS_Store
+.idea/

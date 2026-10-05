@@ -1,0 +1,24 @@
+name: check
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: arc, POSTGRES_PASSWORD: arc, POSTGRES_DB: distri_arc_test }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U arc" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgres://arc:arc@localhost:5432/distri_arc_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm, cache-dependency-path: web/package-lock.json }
+      - uses: golangci/golangci-lint-action@v8
+        with: { version: latest }
+      - run: cd web && npm ci
+      - run: go vet ./... && go test ./...
+      - run: cd web && npm run lint && npm run typecheck && npm test
