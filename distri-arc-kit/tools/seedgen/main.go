@@ -615,10 +615,10 @@ func buildDealer(md mDealer, sales map[string]SalesUser, soSeq, invSeq *int) *De
 		c := Contact{Key: md.ID + ":" + slugify(p.N), Name: p.N, Role: p.Role, WANumber: fmt.Sprintf("%d", numBase+int64(i+1))}
 		switch {
 		case p.S >= 3:
-			c.Interactions90d = 24 + 3*i
+			c.Interactions90d = 30 - 3*i
 			c.LastInteractionAt = ptr(day(1+i, 10))
 		case p.S == 2:
-			c.Interactions90d = 7 + i
+			c.Interactions90d = 12 - i
 			c.LastInteractionAt = ptr(day(4+2*i, 11))
 		case p.S == 1:
 			c.Interactions90d = 0

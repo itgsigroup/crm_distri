@@ -33,7 +33,7 @@ from dealers d left join sales_users s on s.id = d.owner_id
 where d.slug = $1;
 
 -- name: ListSalesUsers :many
-select * from sales_users where active order by name;
+select * from sales_users where active order by odoo_user_id nulls last, name;
 
 -- name: ListRecentCycles :many
 select * from cycles order by started_at desc limit $1;

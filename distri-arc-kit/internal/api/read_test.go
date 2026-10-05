@@ -84,3 +84,24 @@ func TestPusatKendaliLists(t *testing.T) {
 		t.Errorf("search: %v", s)
 	}
 }
+
+func TestBriefToday(t *testing.T) {
+	srv := newServer(t)
+	code, body := get(t, srv, "/api/brief/today", ceo)
+	if code != 200 {
+		t.Fatalf("brief %d", code)
+	}
+	pts := body["points"].([]any)
+	if len(pts) != 4 {
+		t.Fatalf("points %d", len(pts))
+	}
+	kinds := []string{"on_schedule", "drift", "credit", "push"}
+	for i, p := range pts {
+		if p.(map[string]any)["kind"] != kinds[i] {
+			t.Errorf("point %d kind %v", i, p.(map[string]any)["kind"])
+		}
+	}
+	if pts[0].(map[string]any)["count"].(float64) != 6 || pts[1].(map[string]any)["count"].(float64) != 4 {
+		t.Errorf("brief counts %v", pts)
+	}
+}

@@ -19,6 +19,7 @@ import (
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
 	"distri-arc/internal/dealersvc"
+	"distri-arc/internal/events"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
 	"distri-arc/internal/views"
@@ -94,7 +95,9 @@ func runAPI(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	defer st.Close()
-	srv := &http.Server{Addr: cfg.APIAddr, Handler: api.New(cfg, st, c, log).Handler(), ReadHeaderTimeout: 10 * time.Second}
+	a := api.New(cfg, st, c, log)
+	go events.Listen(ctx, st.Pool, a.Hub(), log)
+	srv := &http.Server{Addr: cfg.APIAddr, Handler: a.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		<-ctx.Done()
 		sh, cancel := context.WithTimeout(context.Background(), 5*time.Second)

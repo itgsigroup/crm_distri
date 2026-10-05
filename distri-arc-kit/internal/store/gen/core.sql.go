@@ -358,7 +358,7 @@ func (q *Queries) ListRecentCycles(ctx context.Context, limit int32) ([]Cycle, e
 }
 
 const listSalesUsers = `-- name: ListSalesUsers :many
-select id, name, branch, wa_number, odoo_user_id, role, active, source_system, source_id, created_at from sales_users where active order by name
+select id, name, branch, wa_number, odoo_user_id, role, active, source_system, source_id, created_at from sales_users where active order by odoo_user_id nulls last, name
 `
 
 func (q *Queries) ListSalesUsers(ctx context.Context) ([]SalesUser, error) {

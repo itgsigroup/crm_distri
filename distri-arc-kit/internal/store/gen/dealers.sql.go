@@ -382,7 +382,7 @@ select d.id, d.slug, d.name, d.city, d.branch, d.tier, d.segment_desc, d.owner_i
        d.payment_terms_days, d.memo, d.memo_signal_ids, d.memo_updated_at, d.metrics_current, d.updated_at,
        s.name as owner_name, s.branch as owner_branch, s.wa_number as owner_wa
 from dealers d left join sales_users s on s.id = d.owner_id
-order by d.name
+order by length(d.source_id), d.source_id, d.name
 `
 
 type ListDealersFullRow struct {

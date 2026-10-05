@@ -41,3 +41,8 @@ AI mengusulkan · Orchestrator mengatur · manusia memutuskan. Angka dihitung di
 5. `make check` sebelum commit. Data contoh dibangun ulang dengan `make seedgen` (dari mockup) lalu `make reset`.
 
 Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (branch `distri-arc-orbit`); lihat ADR 0006.
+
+### Tahap 01–02: yang bisa dicoba
+- `go run ./cmd/arc ctl metrics --dealer mitra` → siklus order, status, segmen, sisa limit, skor + 5 komponen.
+- `make dev` lalu buka `http://localhost:5173`: Pusat kendali, Orbit, Segmen, Dealer (data dari API).
+- `cd web && npx playwright test` (dengan `make dev` berjalan) → smoke 6 rute + screenshot di `web/e2e/__screenshots__`.

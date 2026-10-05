@@ -12,6 +12,7 @@ import (
 
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
+	"distri-arc/internal/events"
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
@@ -25,12 +26,16 @@ type Server struct {
 	clock clock.Clock
 	log   *slog.Logger
 	views *views.Builder
+	hub   *events.Hub
 }
 
 // New builds the API server.
 func New(cfg config.Config, st *store.Store, c clock.Clock, log *slog.Logger) *Server {
-	return &Server{cfg: cfg, st: st, clock: c, log: log, views: views.NewBuilder(st, c)}
+	return &Server{cfg: cfg, st: st, clock: c, log: log, views: views.NewBuilder(st, c), hub: events.NewHub()}
 }
+
+// Hub returns the SSE hub (fed by events.Listen).
+func (s *Server) Hub() *events.Hub { return s.hub }
 
 // Handler returns the HTTP handler with middleware and routes.
 func (s *Server) Handler() http.Handler {
@@ -42,6 +47,8 @@ func (s *Server) Handler() http.Handler {
 			r.Use(s.auth)
 			r.Get("/me", s.me)
 			s.readRoutes(r)
+			r.Get("/events", s.events)
+			r.Get("/brief/today", s.briefToday)
 		})
 	})
 	return r
@@ -53,6 +60,9 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	if _, err := s.st.Q.Ping(r.Context()); err != nil {
 		res["db"], status = "error", http.StatusServiceUnavailable
 	}
+	var sample bool
+	_ = s.st.Pool.QueryRow(r.Context(), "select exists(select 1 from signals where dedupe_key like 'seed:%')").Scan(&sample)
+	res["sample_data"] = sample
 	if depth, err := s.st.Q.QueueDepth(r.Context()); err != nil {
 		res["queue"], status = "error", http.StatusServiceUnavailable
 	} else {

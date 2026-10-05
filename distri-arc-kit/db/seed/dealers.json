@@ -18,7 +18,7 @@
     "role": "Pemilik",
     "wa_number": "6281900300101",
     "is_primary": true,
-    "interactions_90d": 24,
+    "interactions_90d": 30,
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
@@ -1762,7 +1762,7 @@
     "role": "Purchasing",
     "wa_number": "6281900300201",
     "is_primary": true,
-    "interactions_90d": 24,
+    "interactions_90d": 30,
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
@@ -2983,7 +2983,7 @@
     "role": "Pemilik",
     "wa_number": "6281900300301",
     "is_primary": true,
-    "interactions_90d": 7,
+    "interactions_90d": 12,
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    },
    {
@@ -2992,7 +2992,7 @@
     "role": "Teknisi",
     "wa_number": "6281900300302",
     "is_primary": false,
-    "interactions_90d": 8,
+    "interactions_90d": 11,
     "last_interaction_at": "2026-09-29T11:00:00+07:00"
    }
   ],
@@ -4189,7 +4189,7 @@
     "role": "Pemilik",
     "wa_number": "6281900300401",
     "is_primary": true,
-    "interactions_90d": 24,
+    "interactions_90d": 30,
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
@@ -4207,7 +4207,7 @@
     "role": "Gudang",
     "wa_number": "6281900300403",
     "is_primary": false,
-    "interactions_90d": 9,
+    "interactions_90d": 10,
     "last_interaction_at": "2026-09-27T11:00:00+07:00"
    }
   ],
@@ -6387,7 +6387,7 @@
     "role": "Pemilik",
     "wa_number": "6281900300501",
     "is_primary": true,
-    "interactions_90d": 7,
+    "interactions_90d": 12,
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    }
   ],
@@ -8208,7 +8208,7 @@
     "role": "Pemilik",
     "wa_number": "6281900300701",
     "is_primary": true,
-    "interactions_90d": 7,
+    "interactions_90d": 12,
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    },
    {
@@ -8217,7 +8217,7 @@
     "role": "Teknisi",
     "wa_number": "6281900300702",
     "is_primary": false,
-    "interactions_90d": 8,
+    "interactions_90d": 11,
     "last_interaction_at": "2026-09-29T11:00:00+07:00"
    }
   ],
@@ -8879,7 +8879,7 @@
     "role": "Direktur",
     "wa_number": "6281900300801",
     "is_primary": true,
-    "interactions_90d": 7,
+    "interactions_90d": 12,
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    }
   ],
@@ -8967,7 +8967,7 @@
     "role": "Pemilik",
     "wa_number": "6281900300901",
     "is_primary": true,
-    "interactions_90d": 7,
+    "interactions_90d": 12,
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    }
   ],
@@ -10533,7 +10533,7 @@
     "role": "Pemilik",
     "wa_number": "6281900301001",
     "is_primary": true,
-    "interactions_90d": 7,
+    "interactions_90d": 12,
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    },
    {
@@ -10542,7 +10542,7 @@
     "role": "Admin",
     "wa_number": "6281900301002",
     "is_primary": false,
-    "interactions_90d": 8,
+    "interactions_90d": 11,
     "last_interaction_at": "2026-09-29T11:00:00+07:00"
    }
   ],
@@ -11978,7 +11978,7 @@
     "role": "Pemilik",
     "wa_number": "6281900301201",
     "is_primary": true,
-    "interactions_90d": 24,
+    "interactions_90d": 30,
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
@@ -13821,7 +13821,7 @@
     "role": "Pemilik",
     "wa_number": "6281900301301",
     "is_primary": true,
-    "interactions_90d": 7,
+    "interactions_90d": 12,
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    }
   ],
@@ -14934,7 +14934,7 @@
     "role": "Pemilik",
     "wa_number": "6281900301401",
     "is_primary": true,
-    "interactions_90d": 24,
+    "interactions_90d": 30,
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
@@ -14943,7 +14943,7 @@
     "role": "Kasir",
     "wa_number": "6281900301402",
     "is_primary": false,
-    "interactions_90d": 8,
+    "interactions_90d": 11,
     "last_interaction_at": "2026-09-29T11:00:00+07:00"
    }
   ],
@@ -16354,7 +16354,7 @@
     "role": "Pemilik",
     "wa_number": "6281900301501",
     "is_primary": true,
-    "interactions_90d": 7,
+    "interactions_90d": 12,
     "last_interaction_at": "2026-10-01T11:00:00+07:00"
    }
   ],
@@ -17513,7 +17513,7 @@
     "role": "Pemilik",
     "wa_number": "6281900301601",
     "is_primary": true,
-    "interactions_90d": 24,
+    "interactions_90d": 30,
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
@@ -17522,7 +17522,7 @@
     "role": "Admin",
     "wa_number": "6281900301602",
     "is_primary": false,
-    "interactions_90d": 8,
+    "interactions_90d": 11,
     "last_interaction_at": "2026-09-29T11:00:00+07:00"
    }
   ],
@@ -19206,7 +19206,7 @@
     "role": "Direktur",
     "wa_number": "6281900301801",
     "is_primary": true,
-    "interactions_90d": 24,
+    "interactions_90d": 30,
     "last_interaction_at": "2026-10-04T10:00:00+07:00"
    },
    {
@@ -19224,7 +19224,7 @@
     "role": "Project",
     "wa_number": "6281900301803",
     "is_primary": false,
-    "interactions_90d": 9,
+    "interactions_90d": 10,
     "last_interaction_at": "2026-09-27T11:00:00+07:00"
    }
   ],

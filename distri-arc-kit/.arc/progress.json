@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 2,
+  "current_stage": 3,
   "stages": [
     {
       "id": 0,
@@ -28,12 +28,12 @@
     {
       "id": 2,
       "name": "Frontend shell + Pusat kendali (baca) + Orbit/Segmen/Dealer",
-      "status": "pending",
+      "status": "done",
       "file": "docs/stages/02-frontend-shell.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-05",
+      "finished_at": "2026-10-05",
+      "summary": "Shell React persis mockup (rail, topbar + view tabs, ⌘K, tabbar, dock, toast, sheet; CSS mockup verbatim); Pusat kendali (baca: hero, Orchestrator card, ringkasan template /brief/today, jadwal order, lewat jadwal, KPI utama, agenda sales, push stok, limit tipis), Orbit (SVG + anti-tabrak), Segmen (log-Y, zona, titik 3 bulan lalu), Dealer (semua bagian); SSE /api/events; vitest 11 + Playwright 13 (6 rute × 1440/390, tanpa scroll horizontal).",
+      "notes": "Rencana hari ini, Keputusan, dan tombol aksi menampilkan empty state \"menunggu Orchestrator (Stage 06)\". Layar Orchestrator/Chat/Peta relasi/Push stok/Kredit/Pengaturan/Panduan berupa placeholder sampai tahapnya. Screenshot di web/e2e/__screenshots__."
     },
     {
       "id": 3,

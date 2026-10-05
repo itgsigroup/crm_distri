@@ -4,9 +4,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/views"
@@ -341,6 +343,8 @@ func (s *Server) creditPart(part string) http.HandlerFunc {
 	}
 }
 
+func clockToday(s *Server) time.Time { return clock.Today(s.clock.Now()) }
+
 func atoi(s string, def int) int {
 	if v, err := strconv.Atoi(s); err == nil && v >= 0 {
 		return v
@@ -353,4 +357,26 @@ func nonNil[T any](v []T) []T {
 		return []T{}
 	}
 	return v
+}
+
+func (s *Server) briefToday(w http.ResponseWriter, r *http.Request) {
+	b, ok := s.board(w, r)
+	if !ok {
+		return
+	}
+	st, ok := s.stock(w, r)
+	if !ok {
+		return
+	}
+	since := clockToday(s).AddDate(0, 0, -1)
+	c, err := s.st.Q.CountSignalsSince(r.Context(), since)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	branches := map[string]bool{}
+	for _, x := range st {
+		branches[x.Branch] = true
+	}
+	httpx.JSON(w, http.StatusOK, b.TemplateBrief(st, views.BriefCounts{WA: c.Wa, SO: c.So, Payments: c.Payments, Branches: len(branches)}))
 }
