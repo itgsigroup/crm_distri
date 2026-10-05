@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { useNow } from './queries'
+import { useNow, useQueue } from './queries'
 import { hhmm } from '../lib/format'
 
 // Orchestrator status shared by the rail, topbar pill and dock. Until stage 06 there is no cycle yet:
@@ -24,7 +24,8 @@ export function nextRun(now: Date): string {
 
 export function useOrchStatus(): OrchStatus {
   const now = useNow()
-  return { running: false, run: null, last: null, next: nextRun(now), pending: 0, unread: 0 }
+  const { data: queue = [] } = useQueue()
+  return { running: false, run: null, last: null, next: nextRun(now), pending: queue.filter((q) => q.status === 'proposed').length, unread: 0 }
 }
 
 export function OrchPill() {

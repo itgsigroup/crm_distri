@@ -35,7 +35,7 @@ export function DueList({ items }: { items: BoardItem[] }) {
               <div className="t"><Ev id={d.id}>{d.name}</Ev> · siklus order {d.metrics.rhythm_days} hr · {fmtRp(d.metrics.avg_order)}/order</div>
               <div className="s">Rekomendasi order: {basket}{isBad(d) && <> · <b style={{ color: 'var(--bad)' }}>over limit / overdue — tagih dulu</b></>}</div>
             </div>
-            {due <= 1 || isBad(d) ? <ActBtn small label={isBad(d) ? 'Kirim pengingat' : 'Kirim rekomendasi'} icon={isBad(d) ? 'cash' : 'chat'} dealer={d.name} /> : <span className="pill neutral st">rutin</span>}
+            {d.next ? <ActBtn small next={d.next} /> : <span className="pill neutral st">rutin</span>}
           </li>
         )
       })}
@@ -56,7 +56,7 @@ export function DriftList({ items }: { items: BoardItem[] }) {
               <div className="t"><Ev id={d.id}>{d.name}</Ev> · siklus order {d.metrics.rhythm_days} · {fmtRp(d.metrics.avg_order)}/order · <b>{d.metrics.status}</b></div>
               <div className="s">{d.root_cause ? ROOT_CAUSE[d.root_cause] : ''}</div>
             </div>
-            {!churn ? <ActBtn small label="Kirim" icon="chat" dealer={d.name} /> : <span className="pill neutral st">biarkan</span>}
+            {d.next ? <ActBtn small next={d.next} /> : <span className="pill neutral st">biarkan</span>}
           </li>
         )
       })}
@@ -100,7 +100,7 @@ export function TightList({ items }: { items: BoardItem[] }) {
               <div className="t"><Ev id={d.id}>{d.name}</Ev> · {fmtRp(d.metrics.credit.exposure)} / {fmtRp(d.credit_limit)}</div>
               <div className="s">{soon ? `jadwal order ${due} hr lagi — order akan tertahan` : `pola bayar ${d.metrics.credit.pay_days} hari`}</div>
             </div>
-            <ActBtn small label={d.metrics.credit.state === 'tipis' && d.metrics.credit.on_time >= 90 ? 'Setujui' : 'Kirim pengingat'} icon={d.metrics.credit.state === 'tipis' && d.metrics.credit.on_time >= 90 ? 'trend' : 'cash'} dealer={d.name} />
+            <ActBtn small next={d.next} />
           </li>
         )
       })}

@@ -270,6 +270,9 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 			}
 		}
 
+		if err := seedProducts(ctx, q, fsys); err != nil {
+			return fmt.Errorf("products: %w", err)
+		}
 		for _, it := range stock {
 			src := it.OdooID
 			if err := q.UpsertStockItem(ctx, gen.UpsertStockItemParams{Branch: it.Branch, Sku: it.SKU, Name: it.Name, Category: it.Category, Qty: it.Qty, UnitCost: it.UnitCost, Value: int64(it.Qty) * it.UnitCost, AgeDays: it.AgeDays, WeeklyVelocity: it.WeeklyVelocity, SourceSystem: &ss, SourceID: &src, SourceWriteDate: &Anchor}); err != nil {
@@ -337,4 +340,46 @@ func date(s string) time.Time {
 		panic(err)
 	}
 	return t
+}
+
+// seedProducts loads the catalog from the fake Odoo export (product.product), as the Odoo sync would.
+func seedProducts(ctx context.Context, q *gen.Queries, fsys fs.FS) error {
+	b, err := fs.ReadFile(fsys, "seed/odoo/product.product.json")
+	if err != nil {
+		return err
+	}
+	var rows []struct {
+		ID           int     `json:"id"`
+		Name         string  `json:"name"`
+		Code         string  `json:"default_code"`
+		Categ        []any   `json:"categ_id"`
+		ListPrice    float64 `json:"list_price"`
+		StandardCost float64 `json:"standard_price"`
+	}
+	if err := json.Unmarshal(b, &rows); err != nil {
+		return err
+	}
+	kat := map[int]string{}
+	for _, c := range Categories {
+		kat[int(c.OdooID)] = c.Kat
+	}
+	ss := sourceSystem
+	for _, r := range rows {
+		cid := 0
+		if len(r.Categ) > 0 {
+			if f, ok := r.Categ[0].(float64); ok {
+				cid = int(f)
+			}
+		}
+		k := kat[cid]
+		cid32 := int32(cid)
+		list := int64(r.ListPrice)
+		prices, _ := json.Marshal(map[string]int64{"A": list, "B": list * 103 / 100, "C": list * 106 / 100})
+		src := fmt.Sprintf("product.product:%d", r.ID)
+		code := r.Code
+		if err := q.UpsertProduct(ctx, gen.UpsertProductParams{Sku: &code, Name: r.Name, Category: &k, OdooCategoryID: &cid32, ListPrice: list, Cost: int64(r.StandardCost), Prices: prices, SourceSystem: &ss, SourceID: &src, SourceWriteDate: &Anchor}); err != nil {
+			return err
+		}
+	}
+	return nil
 }

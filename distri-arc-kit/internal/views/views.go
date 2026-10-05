@@ -18,6 +18,7 @@ import (
 	"distri-arc/internal/domain"
 	"distri-arc/internal/metrics"
 	"distri-arc/internal/store"
+	"distri-arc/internal/store/gen"
 )
 
 // Owner is the sales who owns a dealer.
@@ -52,6 +53,23 @@ type BoardItem struct {
 	Composition []metrics.ProductShare `json:"composition"`
 	Prev        *Prev                  `json:"prev"`
 	RootCause   string                 `json:"root_cause,omitempty"`
+	Next        *NextAction            `json:"next"`
+}
+
+// NextAction is the dealer's current agent proposal ("Langkah berikutnya" and every list's action button).
+type NextAction struct {
+	ID         uuid.UUID  `json:"id"`
+	Kind       string     `json:"kind"`
+	Title      string     `json:"title"`
+	Button     string     `json:"button"`
+	Icon       string     `json:"icon"`
+	Agent      string     `json:"agent"`
+	DueLabel   string     `json:"due_label"`
+	Status     string     `json:"status"`
+	Why        string     `json:"why"`
+	DecidedAt  *time.Time `json:"decided_at"`
+	ExecutedAt *time.Time `json:"executed_at"`
+	Autonomy   string     `json:"autonomy"`
 }
 
 // Board is a consistent picture of all dealers at one moment.
@@ -141,7 +159,48 @@ func (b *Builder) Board(ctx context.Context) (*Board, error) {
 		board.byID[d.ID.String()] = len(board.Items)
 		board.Items = append(board.Items, it)
 	}
+	if err := b.attachNext(ctx, board); err != nil {
+		return nil, err
+	}
 	return board, nil
+}
+
+// attachNext picks each dealer's current proposal of today: an open one (queue kinds first), else the latest
+// decided one so lists show "Dijalankan · 09.12" or "Ditolak".
+func (b *Builder) attachNext(ctx context.Context, board *Board) error {
+	rows, err := b.st.Q.ListProposalsSince(ctx, clock.Today(board.Today))
+	if err != nil {
+		return err
+	}
+	rank := func(r gen.ListProposalsSinceRow) int {
+		switch {
+		case r.Status == "proposed" && r.Queue:
+			return 0
+		case r.Status == "proposed":
+			return 1
+		case r.Status == "approved" || r.Status == "edited":
+			return 2
+		default:
+			return 3
+		}
+	}
+	best := map[uuid.UUID]gen.ListProposalsSinceRow{}
+	for _, r := range rows {
+		if r.DealerID == nil || r.Status == "suppressed" {
+			continue
+		}
+		cur, ok := best[*r.DealerID]
+		if !ok || rank(r) < rank(cur) || (rank(r) == rank(cur) && rank(r) >= 2 && r.CreatedAt.After(cur.CreatedAt)) {
+			best[*r.DealerID] = r
+		}
+	}
+	for i := range board.Items {
+		if r, ok := best[board.Items[i].UUID]; ok {
+			board.Items[i].Next = &NextAction{ID: r.ID, Kind: r.Kind, Title: r.Title, Button: deref(r.Button), Icon: deref(r.Icon), Agent: r.Agent, DueLabel: deref(r.DueLabel),
+				Status: r.Status, Why: r.Why, DecidedAt: r.DecidedAt, ExecutedAt: r.ExecutedAt, Autonomy: r.Autonomy}
+		}
+	}
+	return nil
 }
 
 // prev returns the 3-months-ago position from the snapshot 90 days back, or db/seed/metrics_prev.json when

@@ -137,7 +137,7 @@
   "sku": "NVR-16CH",
   "name": "NVR 16ch",
   "category": "Kamera \u0026 NVR",
-  "qty": 78,
+  "qty": 79,
   "unit_cost": 3290000,
   "age_days": 31,
   "weekly_velocity": 6
@@ -148,7 +148,7 @@
   "sku": "CAM-IP4-BUL",
   "name": "Kamera IP 4MP bullet",
   "category": "Kamera \u0026 NVR",
-  "qty": 256,
+  "qty": 258,
   "unit_cost": 1010000,
   "age_days": 28,
   "weekly_velocity": 18
@@ -159,7 +159,7 @@
   "sku": "FA-DET-ADR",
   "name": "Detektor addressable",
   "category": "Fire alarm",
-  "qty": 425,
+  "qty": 427,
   "unit_cost": 610000,
   "age_days": 35,
   "weekly_velocity": 12
@@ -170,7 +170,7 @@
   "sku": "HDD-4TB-SV",
   "name": "HDD 4TB surveillance",
   "category": "HDD \u0026 storage",
-  "qty": 169,
+  "qty": 170,
   "unit_cost": 1530000,
   "age_days": 26,
   "weekly_velocity": 14
@@ -181,7 +181,7 @@
   "sku": "LED-P4-IN",
   "name": "Modul LED P4 indoor",
   "category": "Modul LED",
-  "qty": 513,
+  "qty": 516,
   "unit_cost": 505000,
   "age_days": 40,
   "weekly_velocity": 20

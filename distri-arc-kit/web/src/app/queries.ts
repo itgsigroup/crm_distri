@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api, type Items } from '../api/client'
+import type { Proposal } from '../api/types'
 import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAGroup, WANumber } from '../api/types'
 import type {
   AgendaRow, AgingItem, BoardItem, Brief, DealerDetail, Health, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
@@ -66,3 +67,13 @@ export const useConnections = () =>
   useQuery({ queryKey: ['connections'], queryFn: () => api.get<{ odoo: { mode: string; write: boolean; url: string; models: SyncState[] }; wa: { transport: string; numbers: number; connected: number } }>('/connections') })
 export const useOdooCategories = () =>
   useQuery({ queryKey: ['connections', 'categories'], queryFn: () => api.get<{ map: { odoo_category_id: number; kat: string }[]; odoo: { id: number; name: string; complete_name: string }[] | null; kat: string[] }>('/connections/odoo/categories') })
+
+// ---------- Proposals (stage 05) ----------
+export const useProposal = (id?: string) => useQuery({ queryKey: ['proposals', 'one', id], enabled: !!id, queryFn: () => api.get<Proposal>(`/proposals/${id}`) })
+export const useQueue = () =>
+  useQuery({ queryKey: ['proposals', 'queue'], queryFn: () => api.get<Items<Proposal>>('/proposals?queue=1&today=1').then((r) => r.items) })
+
+export interface CalibrationAgent { agent: string; confidence: number | null; accepted: number; rejected: number }
+export interface CalibrationEvent { id: string; agent: string | null; kind: string | null; decision: string | null; reason: string | null; suppress_until: string | null; created_at: string; title: string | null }
+export const useCalibration = () =>
+  useQuery({ queryKey: ['proposals', 'calibration'], queryFn: () => api.get<{ agents: CalibrationAgent[]; items: CalibrationEvent[] }>('/calibration') })

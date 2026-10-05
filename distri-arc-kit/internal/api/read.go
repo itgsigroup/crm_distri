@@ -173,6 +173,8 @@ func (s *Server) dealerPart(w http.ResponseWriter, r *http.Request) {
 	}
 	h := b.Data.Histories[it.UUID]
 	switch chi.URLParam(r, "part") {
+	case "next":
+		httpx.JSON(w, http.StatusOK, map[string]any{"next": it.Next})
 	case "orders":
 		httpx.JSON(w, http.StatusOK, views.DealerOrders(h, it.Metrics, b.Today, atoi(r.URL.Query().Get("months"), 6)))
 	case "mix":

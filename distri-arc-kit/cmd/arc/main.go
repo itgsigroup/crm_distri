@@ -45,6 +45,7 @@ const usage = `arc — Distri ARC Orbit
   arc ctl wa numbers         list paired sales numbers
   arc ctl odoo sync [--full] pull Odoo (ODOO_MODE=fake|rpc) into Distri ARC, read-only
   arc ctl odoo test          check the Odoo connection
+  arc ctl agents run [--agent "AI Order"] [--dealer <slug>]  run agents v1 and store proposals
 `
 
 func main() {
@@ -171,6 +172,14 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 	if len(args) == 0 {
 		fmt.Print(usage)
 		return nil
+	}
+	if args[0] == "agents" {
+		st, clk, err := open(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		defer st.Close()
+		return runAgentsCtl(ctx, cfg, st, clk, log, args[1:])
 	}
 	if args[0] == "odoo" {
 		st, clk, err := open(ctx, cfg)

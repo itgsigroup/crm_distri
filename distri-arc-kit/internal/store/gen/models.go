@@ -458,6 +458,15 @@ type Proposal struct {
 	EditedPayload  json.RawMessage `json:"edited_payload"`
 	ExecutedAt     *time.Time      `json:"executed_at"`
 	CreatedAt      time.Time       `json:"created_at"`
+	Summary        *string         `json:"summary"`
+	Button         *string         `json:"button"`
+	Icon           *string         `json:"icon"`
+	Pills          json.RawMessage `json:"pills"`
+	Options        json.RawMessage `json:"options"`
+	Queue          bool            `json:"queue"`
+	Payload        json.RawMessage `json:"payload"`
+	ChosenOption   *string         `json:"chosen_option"`
+	DedupeKey      *string         `json:"dedupe_key"`
 }
 
 type RiverJob struct {

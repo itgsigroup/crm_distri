@@ -38,3 +38,16 @@ test('Pusat kendali shows the numbers from the API', async ({ page }) => {
   await page.goto('/dealer/mitra', { waitUntil: 'networkidle' })
   await expect(page.locator('.acc-head .ring text')).toHaveText('44')
 })
+
+test('a proposal opens in the ActionSheet with its provenance (read-only)', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(String(e)))
+  await page.goto('/', { waitUntil: 'networkidle' })
+  const btn = page.locator('.row-list > li .btn.primary').first()
+  test.skip(!(await btn.count()), 'no open proposals (run bin/arc ctl agents run --all)')
+  await btn.click()
+  await expect(page.getByText('Kenapa sekarang')).toBeVisible()
+  await expect(page.getByRole('button', { name: /Setujui & jalankan/ })).toBeVisible()
+  await page.locator('.ft').getByRole('button', { name: 'Nanti' }).click()
+  expect(errors).toEqual([])
+})

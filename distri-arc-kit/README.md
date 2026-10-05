@@ -46,3 +46,9 @@ Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (bran
 - `go run ./cmd/arc ctl metrics --dealer mitra` → siklus order, status, segmen, sisa limit, skor + 5 komponen.
 - `make dev` lalu buka `http://localhost:5173`: Pusat kendali, Orbit, Segmen, Dealer (data dari API).
 - `cd web && npx playwright test` (dengan `make dev` berjalan) → smoke 6 rute + screenshot di `web/e2e/__screenshots__`.
+
+### Tahap 05: agen & keputusan
+- `bin/arc ctl agents run --all` (atau otomatis saat `make dev`) → proposal AI Order / Follow-up / Kredit dari seed; `--agent "AI Kredit"`, `--dealer graha`.
+- Pusat kendali → Keputusan / Jadwal order: buka tombol aksi → ActionSheet → *Setujui & jalankan* (WA terkirim lewat `wa.Fake`, terlihat di Chat), *Edit dulu*, atau *Tolak* dengan alasan (tampil di Pengaturan → Kalibrasi agen).
+- LLM nyata: `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`; biaya per panggilan di tabel `llm_calls`.
+

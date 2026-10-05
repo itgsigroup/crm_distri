@@ -60,6 +60,57 @@ export interface BoardItem {
   composition: ProductShare[]
   prev: Prev | null
   root_cause?: RootCause
+  next: NextAction | null
+}
+
+export interface NextAction {
+  id: string
+  kind: string
+  title: string
+  button: string
+  icon: string
+  agent: string
+  due_label: string
+  status: ProposalStatus
+  why: string
+  decided_at: string | null
+  executed_at: string | null
+  autonomy: 'auto' | 'approve'
+}
+
+export type ProposalStatus = 'proposed' | 'approved' | 'edited' | 'rejected' | 'executed' | 'expired' | 'suppressed'
+export interface ProposalOption { key: string; label: string; style: 'primary' | 'ghost' | 'quiet'; result: string; sends: boolean; preview?: string }
+export interface ImpactItem { label: string; value: string; tone?: string }
+export interface Proposal {
+  id: string
+  agent: string
+  dealer_id: string | null
+  dealer_slug: string | null
+  dealer_name: string | null
+  kind: string
+  title: string
+  summary: string | null
+  why: string
+  prep: string | null
+  preview: string | null
+  steps: string[]
+  impact: ImpactItem[]
+  options: ProposalOption[]
+  pills: [string, string][]
+  button: string | null
+  icon: string | null
+  due_label: string | null
+  confidence: number
+  autonomy: 'auto' | 'approve'
+  status: ProposalStatus
+  queue: boolean
+  decided_at: string | null
+  executed_at: string | null
+  decision_reason: string | null
+  chosen_option: string | null
+  decided_by_name: string | null
+  created_at: string
+  signals?: TimelineEntry[]
 }
 
 export type RootCause = 'project_unpaid' | 'marketplace_module' | 'marketplace' | 'wholesaler' | 'small_share'
@@ -221,6 +272,7 @@ export interface MessageView {
   internal: boolean
   annotation: Annotation | null
   signal_id: string | null
+  proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }
 }
 export interface ThreadDetail {
   thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; dealer_id: string; sales: string; sales_wa: string; suggestions: string[] | null; tag: Tag | null; unread: number }

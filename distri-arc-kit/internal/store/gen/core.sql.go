@@ -266,7 +266,7 @@ func (q *Queries) ListPolicies(ctx context.Context) ([]Policy, error) {
 }
 
 const listProposalsByStatus = `-- name: ListProposalsByStatus :many
-select id, cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids, autonomy, status, due_label, decided_by, decided_at, decision_reason, edited_payload, executed_at, created_at from proposals where status = $1 order by created_at desc limit $2
+select id, cycle_id, agent, dealer_id, kind, title, why, prep, preview, steps, impact, confidence, signal_ids, autonomy, status, due_label, decided_by, decided_at, decision_reason, edited_payload, executed_at, created_at, summary, button, icon, pills, options, queue, payload, chosen_option, dedupe_key from proposals where status = $1 order by created_at desc limit $2
 `
 
 type ListProposalsByStatusParams struct {
@@ -306,6 +306,15 @@ func (q *Queries) ListProposalsByStatus(ctx context.Context, arg ListProposalsBy
 			&i.EditedPayload,
 			&i.ExecutedAt,
 			&i.CreatedAt,
+			&i.Summary,
+			&i.Button,
+			&i.Icon,
+			&i.Pills,
+			&i.Options,
+			&i.Queue,
+			&i.Payload,
+			&i.ChosenOption,
+			&i.DedupeKey,
 		); err != nil {
 			return nil, err
 		}

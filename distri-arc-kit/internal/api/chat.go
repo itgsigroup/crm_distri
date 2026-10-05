@@ -104,6 +104,16 @@ type MessageView struct {
 	Internal   bool            `json:"internal"`
 	Annotation json.RawMessage `json:"annotation"`
 	SignalID   *uuid.UUID      `json:"signal_id"`
+	Proposal   *MsgProposal    `json:"proposal,omitempty"`
+}
+
+// MsgProposal is the agent proposal triggered by a message (the button on its annotation).
+type MsgProposal struct {
+	ID         uuid.UUID  `json:"id"`
+	Button     string     `json:"button"`
+	Status     string     `json:"status"`
+	ExecutedAt *time.Time `json:"executed_at"`
+	DecidedAt  *time.Time `json:"decided_at"`
 }
 
 func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
@@ -122,9 +132,34 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	var sigIDs []uuid.UUID
+	for _, m := range msgs {
+		if m.SignalID != nil {
+			sigIDs = append(sigIDs, *m.SignalID)
+		}
+	}
+	bySig := map[uuid.UUID]*MsgProposal{}
+	if len(sigIDs) > 0 {
+		ps, err := s.st.Q.ProposalsForSignals(r.Context(), sigIDs)
+		if err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+		for _, p := range ps {
+			for _, sid := range p.SignalIds {
+				if _, ok := bySig[sid]; !ok {
+					bySig[sid] = &MsgProposal{ID: p.ID, Button: deref(p.Button), Status: p.Status, ExecutedAt: p.ExecutedAt, DecidedAt: p.DecidedAt}
+				}
+			}
+		}
+	}
 	out := make([]MessageView, 0, len(msgs))
 	for _, m := range msgs {
-		out = append(out, MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: deref(m.Body), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Annotation: m.Annotation, SignalID: m.SignalID})
+		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: deref(m.Body), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Annotation: m.Annotation, SignalID: m.SignalID}
+		if m.SignalID != nil {
+			v.Proposal = bySig[*m.SignalID]
+		}
+		out = append(out, v)
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"thread": map[string]any{
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "dealer_id": deref(t.DealerSlug),

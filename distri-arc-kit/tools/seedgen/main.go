@@ -245,7 +245,7 @@ type product struct {
 }
 
 var catalog = map[string]product{
-	"Kamera IP 4MP":        {"Kamera & NVR", 1_150_000, 12},
+	"Kamera IP 4MP":        {"Kamera & NVR", 1_470_000, 11},
 	"Kamera IP 2MP":        {"Kamera & NVR", 650_000, 12},
 	"Kamera analog":        {"Kamera & NVR", 300_000, 14},
 	"Aksesoris kamera":     {"Kamera & NVR", 120_000, 18},

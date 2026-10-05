@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import type { MessageView, ThreadDetail, ThreadView } from '../../api/types'
 import { Icon } from '../../components/Icon'
-import { ActBtn } from '../../components/actions'
+import { ActBtn, ProposalSheet } from '../../components/actions'
 import { useFeedback } from '../../components/feedback'
 import { ScoreRing } from '../../components/ui'
 import { fmtRp, hhmm, shortDate, wib } from '../../lib/format'
@@ -91,11 +91,17 @@ function Bubble({ m, via, group }: { m: MessageView; via: string; group: boolean
         <span className={`ann ${a.k}`}>
           <span className="ai" />
           {a.t}
-          {a.act && ACT_LABEL[a.act] && <> · <AnnAction act={a.act} /></>}
+          {m.proposal ? <> · <AnnProposal p={m.proposal} /></> : a.act && ACT_LABEL[a.act] && <> · <AnnAction act={a.act} /></>}
         </span>
       )}
     </div>
   )
+}
+
+function AnnProposal({ p }: { p: NonNullable<MessageView['proposal']> }) {
+  const { openSheet } = useFeedback()
+  const done = p.status === 'executed' || p.status === 'approved' || p.status === 'edited'
+  return <button onClick={() => openSheet(<ProposalSheet id={p.id} />)}>{done ? 'Dijalankan ✓' : p.status === 'rejected' ? 'Ditolak' : p.button || 'Lihat'}</button>
 }
 
 function AnnAction({ act }: { act: string }) {
@@ -224,6 +230,7 @@ function ContextPane({ id }: { id: string }) {
           <ScoreRing h={m.score} />
           <div><b>{d.name}</b><span>Tier {d.tier} · {d.city} · {d.credit_limit ? `${fmtRp(m.credit.exposure)} / ${fmtRp(d.credit_limit)}` : 'cash'} · bayar {m.credit.pay_days ? m.credit.pay_days + ' hr' : 'cash'}</span></div>
         </div>
+        {d.next && <div style={{ marginTop: 8 }}><ActBtn next={d.next} /></div>}
         <button className="btn quiet" style={{ width: '100%', justifyContent: 'center', marginTop: 4 }} onClick={() => nav('/dealer/' + d.id)}>Buka halaman dealer <Icon name="arrow" /></button>
       </div>
       <div>

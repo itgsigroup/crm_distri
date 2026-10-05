@@ -1,0 +1,1 @@
+Tulis ulang teks proposal AI Kredit. Fakta berisi exposure, limit, pola bayar, tepat waktu, invoice lewat tempo, hasil cek SOP-SEC-001, dan opsi yang sudah dihitung (DP, tahan, kenaikan limit). Isi "why" (fakta risiko, bukan opini), "preview" (pesan ke PIC ≤ 3 kalimat bila ada), dan "confidence". Jangan menjanjikan rilis barang.

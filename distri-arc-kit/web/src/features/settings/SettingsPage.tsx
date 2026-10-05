@@ -1,8 +1,7 @@
 import { useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
-import { fmtRp } from '../../lib/format'
-import { AGENT_NAMES } from '../../lib/i18n/id'
-import { useConnections, usePolicies, useWAGroups, useWAStatus } from '../../app/queries'
+import { fmtRp, shortDate } from '../../lib/format'
+import { useCalibration, useConnections, usePolicies, useWAGroups, useWAStatus } from '../../app/queries'
 import { WhatsAppPanel } from './WhatsAppPanel'
 import { OdooPanel } from './OdooPanel'
 
@@ -11,13 +10,14 @@ const num = (o: Obj | undefined, k: string, d: number) => (o && typeof o[k] === 
 const dec = (n: number) => String(n).replace('.', ',')
 
 // Pengaturan (mockup screen-conn). Values are read from the policies table; editing arrives in stage 11,
-// the AI connections in stage 07 and the calibration in stage 10.
+// the AI connections in stage 07; calibration lessons are aggregated in stage 10.
 export function SettingsPage() {
   const { toast, openSheet } = useFeedback()
   const { data: pol } = usePolicies()
   const { data: wa } = useWAStatus()
   const { data: groups = [] } = useWAGroups()
   const { data: conn } = useConnections()
+  const { data: cal } = useCalibration()
   const synced = (conn?.odoo.models ?? []).some((m) => m.last_run_at)
   const orbit = pol?.['orbit.thresholds']?.value as Obj | undefined
   const seg = pol?.['segment.thresholds']?.value as Obj | undefined
@@ -70,11 +70,22 @@ export function SettingsPage() {
           </ul>
         </div>
         <div className="card">
-          <div className="card-h"><h2>Kalibrasi agen</h2><Pill tone="neutral" icon="check">Belajar dari keputusan Anda</Pill></div>
+          <div className="card-h"><h2>Kalibrasi agen</h2><Pill tone="good" icon="check">Belajar dari keputusan Anda</Pill></div>
           <ul className="cal">
-            {AGENT_NAMES.slice(0, 5).map((a) => <li key={a}><span>{a}</span><div className="bar"><i style={{ width: '0%' }} /></div><span className="v num">—</span></li>)}
+            {(cal?.agents ?? []).slice(0, 5).map((a) => (
+              <li key={a.agent} title={`${a.accepted} disetujui · ${a.rejected} ditolak · 30 hari`}>
+                <span>{a.agent}</span>
+                <div className="bar"><i style={{ width: `${a.confidence ?? 0}%`, ...(a.confidence !== null && a.confidence < 60 ? { background: 'var(--warn)' } : {}) }} /></div>
+                <span className="v num">{a.confidence === null ? '—' : `${a.confidence}%`}</span>
+              </li>
+            ))}
           </ul>
-          <ul className="learn" style={{ marginTop: 10 }}><li><span className="ai" /><span>Kalibrasi terisi dari keputusan setujui / edit / tolak setelah agen berjalan.</span></li></ul>
+          <ul className="learn" style={{ marginTop: 10 }}>
+            {(cal?.items ?? []).filter((c) => c.decision === 'rejected').map((c) => (
+              <li key={c.id}><span className="ai" /><span>{c.agent}: “{c.title}” ditolak — {c.reason}.{c.suppress_until ? ` Saran serupa untuk dealer ini ditahan sampai ${shortDate(c.suppress_until)}.` : ''}</span></li>
+            ))}
+            {!(cal?.items ?? []).some((c) => c.decision === 'rejected') && <li><span className="ai" /><span>Kalibrasi terisi dari keputusan setujui / edit / tolak di Pusat kendali.</span></li>}
+          </ul>
         </div>
       </div>
     </div>

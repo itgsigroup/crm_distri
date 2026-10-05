@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import type { BoardItem, Commitment, DealerDetail } from '../../api/types'
 import { Icon } from '../../components/Icon'
+import { ActBtn } from '../../components/actions'
 import { useFeedback } from '../../components/feedback'
 import { Pill, Prov, ScoreRing } from '../../components/ui'
-import { contactIni, fmtRp, hb, hcol, shortDate } from '../../lib/format'
+import { contactIni, fmtRp, hb, hcol, hhmm, shortDate } from '../../lib/format'
 import { KAT, KUAD, PENDING_ORCH } from '../../lib/i18n/id'
 import { useDealer, useDealers } from '../../app/queries'
 import { creditTone } from '../control/lists'
@@ -146,14 +147,25 @@ function DealerBody({ d }: { d: DealerDetail }) {
         <button onClick={() => scrollTo('sec-tl')}>Timeline</button>
       </div>
 
-      <div className="card" id="sec-next">
-        <div className="card-h"><h2>Langkah berikutnya</h2></div>
-        <p style={{ fontSize: 13.5, color: 'var(--text-2)' }}>
-          {issue
-            ? `${PENDING_ORCH}. Agen menyusun langkah untuk dealer ini — tagih, follow-up, atau perluas product mix — dengan alasan dan sumbernya.`
-            : `Tidak ada yang mendesak: siklus order terjaga, sisa limit ${cr.state}. AI Follow-up follow-up otomatis 1 hari sebelum jadwal order dengan rekomendasi order.`}
-        </p>
-      </div>
+      {d.next && d.next.status !== 'expired' ? (
+        <div className="card next" id="sec-next">
+          <div className="card-h"><h2>Langkah berikutnya</h2><span className="ai" style={{ marginLeft: 6 }}>disarankan {d.next.agent}</span><span className="meta">{d.next.status === 'proposed' ? 'Tenggat: ' + (d.next.due_label || '—') : d.next.status === 'rejected' ? 'Ditolak' : 'Dijalankan · ' + hhmm(d.next.executed_at ?? d.next.decided_at ?? '')}</span></div>
+          <div className="next-row">
+            <span className="ni"><Icon name={d.next.icon || 'spark'} /></span>
+            <div><b>{d.next.title}</b><span>{d.next.why}</span></div>
+            <div className="btns"><ActBtn next={d.next} /></div>
+          </div>
+        </div>
+      ) : (
+        <div className="card" id="sec-next">
+          <div className="card-h"><h2>Langkah berikutnya</h2></div>
+          <p style={{ fontSize: 13.5, color: 'var(--text-2)' }}>
+            {issue
+              ? `${PENDING_ORCH}. Agen menyusun langkah untuk dealer ini — tagih, follow-up, atau perluas product mix — dengan alasan dan sumbernya.`
+              : `Tidak ada yang mendesak: siklus order terjaga, sisa limit ${cr.state}. AI Follow-up follow-up otomatis 1 hari sebelum jadwal order dengan rekomendasi order.`}
+          </p>
+        </div>
+      )}
 
       <div className="grid-2">
         <div className="card" id="sec-siklus">

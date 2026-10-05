@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router'
 import { Shell } from './Shell'
+import { FeedbackProvider } from '../components/feedback'
 import { ControlCenter } from '../features/control/ControlCenter'
 import { OrbitPage } from '../features/orbit/OrbitPage'
 import { SegmenPage } from '../features/segmen/SegmenPage'
@@ -12,7 +13,8 @@ import { SettingsPage } from '../features/settings/SettingsPage'
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Shell />,
+    // inside the router so sheets can navigate (provenance chips, "Buka dealer")
+    element: <FeedbackProvider><Shell /></FeedbackProvider>,
     children: [
       { index: true, element: <ControlCenter /> },
       { path: 'orchestrator', element: <Upcoming title="Orchestrator" stage="06" text="Siklus per jam enam tahap (Ingest → Analisis → Sintesis & konflik → Keputusan → Eksekusi → Belajar), resolusi konflik antar agen, riwayat analisis, kartu agen, dan matriks otonomi." /> },

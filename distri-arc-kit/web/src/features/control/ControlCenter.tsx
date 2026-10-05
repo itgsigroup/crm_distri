@@ -6,9 +6,10 @@ import { CardH, Pill, Prov } from '../../components/ui'
 import { fmtRp, greeting } from '../../lib/format'
 import { AGENT_NAMES, PENDING_ORCH } from '../../lib/i18n/id'
 import { PipeChips } from '../../app/Dock'
-import { useAgenda, useBrief, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, useSegmenMovers, useStockPush } from '../../app/queries'
+import { useAgenda, useBrief, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, useQueue, useSegmenMovers, useStockPush } from '../../app/queries'
 import { useOrchStatus } from '../../app/orch'
 import { BriefPoints, DriftList, DueList, PushList, TightList, dueLabel } from './lists'
+import { Queue } from './Queue'
 import type { AgendaRow, KPI } from '../../api/types'
 
 function scrollTo(id: string) {
@@ -29,6 +30,7 @@ export function ControlCenter() {
   const { data: push = [] } = useStockPush()
   const { data: segMovers = [] } = useSegmenMovers()
   const orch = useOrchStatus()
+  const { data: queue = [] } = useQueue()
   const [agentsOpen, setAgentsOpen] = useState(false)
 
   const c = brief?.counts
@@ -85,13 +87,8 @@ export function ControlCenter() {
           </div>
 
           <div className="card" id="queue-card">
-            <div className="card-h"><h2>Keputusan</h2><span className="meta">{orch.pending} item · di luar batas otonomi agen</span></div>
-            <div className="queue">
-              <div className="q done" style={{ opacity: 1 }}>
-                <div className="qi" style={{ color: 'var(--text-3)' }}><Icon name="check" /></div>
-                <div><div className="qt"><b>Belum ada keputusan</b><span className="pill neutral">{PENDING_ORCH}</span></div><div className="qd">Saran di luar batas otonomi — rilis kredit, harga di bawah tier, retur, kenaikan limit — muncul di sini lengkap dengan alasan, dampak, dan opsi.</div></div>
-              </div>
-            </div>
+            <div className="card-h"><h2>Keputusan</h2><span className="meta">{orch.pending ? `${orch.pending} item · di luar batas otonomi agen` : 'Semua keputusan hari ini selesai'}</span></div>
+            <Queue items={queue} />
           </div>
 
           <div className="card brief">

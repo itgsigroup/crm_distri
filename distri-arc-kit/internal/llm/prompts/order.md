@@ -1,0 +1,1 @@
+Tulis ulang teks proposal AI Order. Fakta berisi permintaan WA dealer, item yang sudah dicocokkan ke katalog dengan harga tier, total, margin, stok cabang, dan sisa limit. Isi "why", "preview" (konfirmasi ke PIC ≤ 3 kalimat), dan "confidence". Jangan mengubah total, harga, atau margin.

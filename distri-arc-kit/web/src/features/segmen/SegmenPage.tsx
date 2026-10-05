@@ -231,7 +231,7 @@ export function SegmenPage() {
                     <li key={d.id}>
                       <button className="ev" onClick={() => nav('/dealer/' + d.id)}>{d.name}</button>
                       <span>{d.metrics.rhythm_days ? fx1(30 / d.metrics.rhythm_days) + '×/bln' : 'baru'} · {fmtRp(d.metrics.avg_order)}/order</span>
-                      {(d.metrics.status === 'At risk' || (d.metrics.due_in != null && d.metrics.due_in >= 0 && d.metrics.due_in <= 1)) && <ActBtn small label="Kirim" icon="chat" dealer={d.name} />}
+                      {d.next && <ActBtn small next={d.next} />}
                     </li>
                   ))}
                 </ul>

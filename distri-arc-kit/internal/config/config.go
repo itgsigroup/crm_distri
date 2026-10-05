@@ -35,6 +35,12 @@ type Config struct {
 	OdooUser   string
 	OdooAPIKey string
 	OdooWrite  bool
+
+	LLMProvider  string // fake | anthropic
+	LLMModel     string // overrides policy llm.routing.model
+	AnthropicKey string
+	OpenAIKey    string
+	LLMIDRPerUSD float64 // cost estimate exchange rate (0 = built-in default)
 }
 
 // Load reads .env (if present, without overriding real env vars) and returns the configuration.
@@ -63,6 +69,11 @@ func Load() Config {
 		OdooUser:        get("ODOO_USER", ""),
 		OdooAPIKey:      get("ODOO_API_KEY", ""),
 		OdooWrite:       get("ODOO_WRITE", "false") == "true",
+		LLMProvider:     get("LLM_PROVIDER", "fake"),
+		LLMModel:        get("LLM_MODEL", ""),
+		AnthropicKey:    get("ANTHROPIC_API_KEY", ""),
+		OpenAIKey:       get("OPENAI_API_KEY", ""),
+		LLMIDRPerUSD:    parseFloat(get("LLM_IDR_PER_USD", "")),
 	}
 }
 
@@ -116,4 +127,9 @@ func loadDotEnv(path string) {
 			_ = os.Setenv(k, v)
 		}
 	}
+}
+
+func parseFloat(s string) float64 {
+	f, _ := strconv.ParseFloat(s, 64)
+	return f
 }
