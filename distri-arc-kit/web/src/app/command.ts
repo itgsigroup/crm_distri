@@ -2,7 +2,9 @@ import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import type { BoardItem } from '../api/types'
 import { useFeedback } from '../components/feedback'
+import { createElement } from 'react'
 import { useOrch } from './orch'
+import { AskSheet } from './AskSheet'
 
 /** Command bar (⌘K) parser: "analisis ulang …" → Orchestrator; a dealer name → its page; else → Tanya. */
 export function parseCommand(text: string, dealers: BoardItem[]):
@@ -23,7 +25,7 @@ export function parseCommand(text: string, dealers: BoardItem[]):
 export function useCommand() {
   const nav = useNavigate()
   const qc = useQueryClient()
-  const { toast } = useFeedback()
+  const { toast, openSheet } = useFeedback()
   const { reanalyze } = useOrch()
   return (text: string) => {
     const dealers = (qc.getQueryData<BoardItem[]>(['orbit', 'all']) ?? [])
@@ -34,7 +36,7 @@ export function useCommand() {
     } else if (c.kind === 'reanalyze') {
       reanalyze(c.scope, c.via)
     } else {
-      toast('Tanya dengan sumber tersedia setelah memori & kalibrasi (Stage 10)')
+      openSheet(createElement(AskSheet, { q: c.q }))
     }
   }
 }

@@ -142,7 +142,7 @@ type stockItem struct {
 // Anchor is the date the sample data describes ("Senin, 5 Oktober 2026"); seeded source_write_date.
 var Anchor = time.Date(2026, 10, 5, 6, 0, 0, 0, clock.WIB)
 
-// stockWriteDate is the write_date of the exported stock.quant records (db/seed/odoo/stock.quant.json).
+// stockWriteDate is the write_date of the exported Odoo records (db/seed/odoo/*.json).
 const stockWriteDate = "2026-10-04 23:00:00"
 
 // HistoryAsOf ends the imported interaction history (the whole anchor day, so the sample chats of that day are
@@ -263,6 +263,14 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 					return fmt.Errorf("invoice %s: %w", inv.Number, err)
 				}
 				invID[inv.Number] = iid
+				if inv.Total > inv.Paid { // open invoices: the same signal the Odoo sync writes (provenance for credit claims)
+					key := inv.OdooID + ":" + stockWriteDate
+					summary := fmt.Sprintf("Invoice %s Rp %.0f jt · jatuh tempo %s", inv.Number, float64(inv.Total)/1e6, due.Format("2006-01-02"))
+					payload, _ := json.Marshal(map[string]any{"model": "account.move", "name": inv.Number, "write_date": stockWriteDate, "source": "odoo"})
+					if _, err := q.UpsertSignal(ctx, gen.UpsertSignalParams{Kind: "invoice", DealerID: &id, OccurredAt: issued.Add(9 * time.Hour), DedupeKey: key, Summary: &summary, Payload: payload}); err != nil {
+						return err
+					}
+				}
 			}
 			for _, p := range d.Payments {
 				iid := invID[p.Invoice]

@@ -477,12 +477,19 @@ type Detail struct {
 	Memo          string                  `json:"memo"`
 	MemoUpdatedAt *time.Time              `json:"memo_updated_at"`
 	MemoSignals   []TimelineEntry         `json:"memo_signals"`
+	MemoSentences []MemoSentence          `json:"memo_sentences"` // each sentence with its sources (hover)
 	Contacts      []ContactView           `json:"contacts"`
 	Commitments   map[string][]Commitment `json:"commitments"`
 	Orders        Orders                  `json:"orders"`
 	OpenInvoices  []OpenInvoice           `json:"open_invoices"`
 	Timeline      []TimelineEntry         `json:"timeline"`
 	Flags         []string                `json:"flags"`
+}
+
+// MemoSentence is one claim of the memo and the signals it rests on.
+type MemoSentence struct {
+	Text      string   `json:"text"`
+	SignalIDs []string `json:"signal_ids"`
 }
 
 // DealerDetail assembles the dealer page.
@@ -502,6 +509,7 @@ func (bld *Builder) DealerDetail(ctx context.Context, b *Board, it BoardItem) (D
 		}
 		d.MemoSignals = Timeline(sigs)
 	}
+	_ = json.Unmarshal(row.MemoSentences, &d.MemoSentences)
 	cm, err := bld.st.Q.ListDealerCommitments(ctx, &it.UUID)
 	if err != nil {
 		return Detail{}, err

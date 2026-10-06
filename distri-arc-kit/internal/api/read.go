@@ -363,6 +363,11 @@ func nonNil[T any](v []T) []T {
 }
 
 func (s *Server) briefToday(w http.ResponseWriter, r *http.Request) {
+	if row, err := s.st.Q.GetBrief(r.Context(), clockToday(s)); err == nil {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(row.Brief) // written by the last full cycle (text + signal_ids per point)
+		return
+	}
 	b, ok := s.board(w, r)
 	if !ok {
 		return

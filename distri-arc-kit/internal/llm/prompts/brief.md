@@ -1,0 +1,1 @@
+Tulis ulang empat poin "Ringkasan Orchestrator" untuk CEO dalam Bahasa Indonesia yang ringkas dan langsung. Masukan berisi poin dengan `kind` dan `text`. Kembalikan empat poin dengan `kind` yang sama dan urutan yang sama. Setiap tautan dealer `[[dealer:slug|Nama]]` dan setiap angka harus tetap ada persis. Jangan menambah dealer, angka, atau klaim baru.

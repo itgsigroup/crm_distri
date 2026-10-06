@@ -68,3 +68,8 @@ Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (bran
 - `/stok` dan `/kredit`: KPI, push stok (bundle), stok kritis (Usulkan transfer / Ajukan PO), sisa limit, exposure, prediksi kas — semua dari API.
 - Chat → Nomor baru: identifikasi + *Buat dealer tier C* / *Kirim harga*. Impor Getcontact: Pengaturan → Identifikasi nomor, atau `curl -X POST --data-binary @getcontact.csv localhost:8080/api/identifications/import`.
 
+### Tahap 10: memori, ringkasan, kalibrasi, Tanya
+- Dealer → Memori dealer: arahkan kursor ke kalimat untuk melihat sumbernya, klik untuk membuka sumber.
+- ⌘K: "dealer mana yang berisiko", "stok apa yang harus didorong", "berapa prediksi kas masuk", "siapa yang order minggu ini".
+- Pengaturan → Kalibrasi agen: tiga penolakan dengan alasan sama menjadi satu pelajaran (berlaku 14 hari).
+

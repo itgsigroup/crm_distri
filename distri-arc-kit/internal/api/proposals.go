@@ -159,5 +159,10 @@ func (s *Server) calibration(w http.ResponseWriter, r *http.Request) {
 		}
 		agents = append(agents, a)
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"agents": agents, "items": rows, "as_of": s.clock.Now()})
+	lessons, err := s.st.Q.ListLessons(ctx, 10)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"agents": agents, "items": rows, "lessons": nonNil(lessons), "as_of": s.clock.Now()})
 }

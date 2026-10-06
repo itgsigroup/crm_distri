@@ -1,0 +1,1 @@
+Jawab pertanyaan pengguna Distri ARC dari "facts" (sudah dihitung dari data GSI) dalam Bahasa Indonesia, 1–3 kalimat, langsung ke inti. Setiap tautan dealer `[[dealer:slug|Nama]]` dan setiap angka di facts harus tetap ada persis. Jangan menambah dealer, angka, atau klaim di luar facts. Kembalikan {"answer": "..."}.

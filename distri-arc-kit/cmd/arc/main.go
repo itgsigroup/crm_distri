@@ -18,6 +18,7 @@ import (
 
 	"distri-arc/db"
 	"distri-arc/internal/api"
+	"distri-arc/internal/ask"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
 	"distri-arc/internal/dealersvc"
@@ -122,7 +123,7 @@ func runAPI(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	m := mcp.New(st, c, log, &orchestrator.Orchestrator{St: st, Clock: c, Log: log, OdooWrite: cfg.OdooWrite})
 	m.Jobs = ins // MCP cycles run in the worker like every other cycle
-	a := api.New(cfg, st, c, log).WithJobs(ins).WithOdoo(src).WithMCP(m).WithIdentify(&identify.Service{St: st, Clock: c, Truecaller: truecaller(cfg)})
+	a := api.New(cfg, st, c, log).WithJobs(ins).WithOdoo(src).WithMCP(m).WithIdentify(&identify.Service{St: st, Clock: c, Truecaller: truecaller(cfg)}).WithAsk(&ask.Service{St: st, Clock: c, Router: newRouter(ctx, cfg, st, log)})
 	if cfg.WATransport == "cloudapi" {
 		a.WithCloudWebhook(cloudTransport(cfg))
 	}

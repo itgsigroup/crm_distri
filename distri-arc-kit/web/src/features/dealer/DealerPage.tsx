@@ -7,6 +7,7 @@ import { Pill, Prov, ScoreRing } from '../../components/ui'
 import { contactIni, fmtRp, hb, hcol, hhmm, shortDate } from '../../lib/format'
 import { KAT, KUAD } from '../../lib/i18n/id'
 import { useOrch, useOrchStatus } from '../../app/orch'
+import { MemoText } from './Memo'
 import { useDealer, useDealers } from '../../app/queries'
 import { creditTone } from '../control/lists'
 
@@ -242,7 +243,7 @@ function DealerBody({ d }: { d: DealerDetail }) {
 
       <div className="card" id="sec-memo">
         <div className="card-h"><h2>Memori dealer</h2><span className="ai" style={{ marginLeft: 6 }}>brief otomatis</span><span className="meta">diperbarui {d.memo_updated_at ? shortDate(d.memo_updated_at) : '—'}</span></div>
-        <p className="memo">{d.memo}</p>
+        <MemoText d={d} />
         <div className="prov-row">
           <Prov icon="chat">WhatsApp</Prov><Prov icon="doc">SO &amp; invoice Odoo</Prov><Prov icon="box">pembayaran</Prov>
           <Prov style={{ marginLeft: 'auto' }}>{(d.memo_signals ?? []).length} sumber · semua klaim bisa dilacak ke sumber</Prov>

@@ -55,6 +55,7 @@ type RuleInput struct {
 	Policies     domain.PolicySet
 	Today        time.Time
 	Suppressions []Suppression
+	Lessons      []Lesson // learned from repeated rejections (Belajar)
 	LastFollowup map[uuid.UUID]time.Time
 	Interactions map[uuid.UUID][]SalesCount
 	// Dealer looks up a dealer of a multi-dealer proposal.
@@ -107,6 +108,45 @@ func slugOf(c *Cand) *string {
 
 func suppression(cands []*Cand, in RuleInput) ([]*Cand, []domain.Conflict) {
 	var out []domain.Conflict
+	for _, c := range cands {
+		if !c.Live() {
+			continue
+		}
+		product := ProductOf(c.P.Payload)
+		for _, l := range in.Lessons {
+			if c.P.Kind == domain.KindPushStock && in.Dealer != nil && len(c.P.DealerIDs) > 0 {
+				var keep []uuid.UUID
+				for _, id := range c.P.DealerIDs {
+					if !l.Applies(c.P.Agent, c.P.Kind, product, in.Dealer(id)) {
+						keep = append(keep, id)
+					}
+				}
+				if len(keep) == len(c.P.DealerIDs) {
+					continue
+				}
+				c.P.DealerIDs = keep
+				if ds, ok := c.P.Payload["dealers"].([]map[string]any); ok {
+					var kept []map[string]any
+					for _, d := range ds {
+						if id, ok := d["id"].(uuid.UUID); ok && slices.Contains(keep, id) {
+							kept = append(kept, d)
+						}
+					}
+					c.P.Payload["dealers"] = kept
+				}
+				if len(keep) == 0 {
+					c.Suppressed = "Pelajaran kalibrasi: " + l.Text
+				}
+				out = append(out, domain.Conflict{Rule: RuleSuppression, AgentA: c.P.Agent, AgentB: "Kalibrasi", Title: c.P.Title, Resolution: "Pelajaran: " + l.Text, Tone: "neutral", Keys: []string{c.P.DedupeKey}})
+				continue
+			}
+			if l.Applies(c.P.Agent, c.P.Kind, product, c.Dealer) {
+				c.Suppressed = "Pelajaran kalibrasi: " + l.Text
+				out = append(out, domain.Conflict{Rule: RuleSuppression, DealerID: slugOf(c), AgentA: c.P.Agent, AgentB: "Kalibrasi", Title: c.P.Title, Resolution: "Pelajaran: " + l.Text, Tone: "neutral", Keys: []string{c.P.DedupeKey}})
+				break
+			}
+		}
+	}
 	for _, c := range cands {
 		if !c.Live() || c.P.DealerID == nil {
 			continue

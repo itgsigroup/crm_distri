@@ -2,6 +2,7 @@ package orchestrator_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -9,11 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"distri-arc/db"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/orchestrator"
+	"distri-arc/internal/proposals"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
 	"distri-arc/internal/testdb"
@@ -265,5 +269,98 @@ func TestStage09AgentsInCycle(t *testing.T) {
 	}
 	if !strings.Contains(titles["po_request"], "Power supply 12V 10A untuk Surabaya") {
 		t.Errorf("PO requests: %s", titles["po_request"])
+	}
+}
+
+// docs/stages/10 acceptance: three rejections of HDD offers to tier C dealers with the same reason become a lesson,
+// and a similar proposal does not come back for 14 days.
+func TestLessonFromRejections(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	var ceo uuid.UUID
+	_ = st.Pool.QueryRow(ctx, "select id from sales_users where role = 'ceo'").Scan(&ceo)
+	who := proposals.Decider{SalesUserID: ceo, Name: "Sam", Role: "ceo", Email: "sam@gsi.co.id"}
+	var sig uuid.UUID
+	_ = st.Pool.QueryRow(ctx, "select id from signals limit 1").Scan(&sig)
+	for _, slug := range []string{"cahaya", "citra", "megah"} {
+		var did uuid.UUID
+		_ = st.Pool.QueryRow(ctx, "select id from dealers where slug = $1", slug).Scan(&did)
+		p := domain.Proposal{Agent: "AI Stok", DealerID: &did, Kind: domain.KindPushStock, Title: "Bundle HDD 4TB · " + slug, Why: "stok menua", Confidence: 0.8,
+			SignalIDs: []uuid.UUID{sig}, Autonomy: "approve", Payload: map[string]any{"name": "HDD 4TB surveillance"}, DedupeKey: "test:hdd:" + slug}
+		id, err := proposals.Insert(ctx, st.Q, p, "proposed", nil, now.Now().Add(-time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := proposals.Decide(ctx, st, nil, now, false, id, who, proposals.Decision{Decision: "reject", Reason: "tidak_sesuai_kebijakan", ReasonText: "mereka beli di marketplace"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := o.Run(ctx, all, sched); err != nil {
+		t.Fatal(err)
+	}
+	ls, err := st.Q.ListLessons(ctx, 10)
+	if err != nil || len(ls) != 1 {
+		t.Fatalf("lessons %v %v", ls, err)
+	}
+	if ls[0].Text != "AI Stok tidak lagi menawarkan HDD ke dealer tier C (ditolak 3×: “mereka beli di marketplace”)." {
+		t.Fatalf("lesson %q", ls[0].Text)
+	}
+	if ls[0].SuppressUntil == nil || ls[0].SuppressUntil.Format("2006-01-02") != now.Now().AddDate(0, 0, 14).Format("2006-01-02") {
+		t.Fatalf("until %v", ls[0].SuppressUntil)
+	}
+}
+
+// docs/stages/10: after a cycle the Mitra memo keeps the essentials and every sentence has a source of Mitra;
+// the brief carries signal ids on every point that quotes dealers.
+func TestMemoAndBriefAfterCycle(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	if _, err := o.Run(ctx, all, sched); err != nil {
+		t.Fatal(err)
+	}
+	var memo string
+	var raw []byte
+	var mitra uuid.UUID
+	if err := st.Pool.QueryRow(ctx, "select id, memo, memo_sentences from dealers where slug = 'mitra'").Scan(&mitra, &memo, &raw); err != nil {
+		t.Fatal(err)
+	}
+	var sentences []struct {
+		Text      string      `json:"text"`
+		SignalIDs []uuid.UUID `json:"signal_ids"`
+	}
+	if err := json.Unmarshal(raw, &sentences); err != nil || len(sentences) < 4 {
+		t.Fatalf("sentences %d %v", len(sentences), err)
+	}
+	for _, s := range sentences {
+		var n int
+		_ = st.Pool.QueryRow(ctx, "select count(*) from signals where id = any($1) and dealer_id = $2", s.SignalIDs, mitra).Scan(&n)
+		if len(s.SignalIDs) == 0 || n != len(s.SignalIDs) {
+			t.Errorf("sentence %q: %d of %d sources are Mitra signals", s.Text, n, len(s.SignalIDs))
+		}
+	}
+	for _, want := range []string{"tempo", "Over limit", "lewat jadwal"} {
+		if !strings.Contains(memo, want) {
+			t.Errorf("memo misses %q: %s", want, memo)
+		}
+	}
+	b, err := st.Q.GetBrief(ctx, clock.Today(now.Now()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var br struct {
+		Points []struct {
+			Kind      string   `json:"kind"`
+			Text      string   `json:"text"`
+			SignalIDs []string `json:"signal_ids"`
+		} `json:"points"`
+	}
+	_ = json.Unmarshal(b.Brief, &br)
+	for _, p := range br.Points {
+		if p.Text == "" || len(p.SignalIDs) == 0 {
+			t.Errorf("brief point %s: text %q, %d sources", p.Kind, p.Text, len(p.SignalIDs))
+		}
+	}
+	if !strings.Contains(br.Points[2].Text, "[[dealer:graha|Graha Sentosa]] minta rilis Rp 35 jt") {
+		t.Errorf("credit point: %s", br.Points[2].Text)
 	}
 }

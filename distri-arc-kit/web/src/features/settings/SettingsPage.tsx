@@ -70,10 +70,13 @@ export function SettingsPage() {
             ))}
           </ul>
           <ul className="learn" style={{ marginTop: 10 }}>
-            {(cal?.items ?? []).filter((c) => c.decision === 'rejected').map((c) => (
+            {(cal?.lessons ?? []).map((l) => (
+              <li key={l.id}><span className="ai" /><span>{l.text}{l.suppress_until ? ` Berlaku sampai ${shortDate(l.suppress_until)}.` : ''}</span></li>
+            ))}
+            {(cal?.items ?? []).filter((c) => c.decision === 'rejected').slice(0, Math.max(0, 3 - (cal?.lessons ?? []).length)).map((c) => (
               <li key={c.id}><span className="ai" /><span>{c.agent}: “{c.title}” ditolak — {c.reason}.{c.suppress_until ? ` Saran serupa untuk dealer ini ditahan sampai ${shortDate(c.suppress_until)}.` : ''}</span></li>
             ))}
-            {!(cal?.items ?? []).some((c) => c.decision === 'rejected') && <li><span className="ai" /><span>Kalibrasi terisi dari keputusan setujui / edit / tolak di Pusat kendali.</span></li>}
+            {!(cal?.lessons ?? []).length && !(cal?.items ?? []).some((c) => c.decision === 'rejected') && <li><span className="ai" /><span>Kalibrasi terisi dari keputusan setujui / edit / tolak di Pusat kendali; 3 penolakan dengan alasan sama menjadi satu pelajaran.</span></li>}
           </ul>
         </div>
       </div>

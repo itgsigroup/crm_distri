@@ -148,6 +148,7 @@ export interface DealerDetail extends BoardItem {
   memo: string
   memo_updated_at: string | null
   memo_signals: TimelineEntry[] | null
+  memo_sentences?: { text: string; signal_ids: string[] }[] | null
   contacts: ContactView[]
   commitments: { kami: Commitment[]; mereka: Commitment[] }
   orders: Orders
@@ -242,6 +243,8 @@ export interface BriefPoint {
   order_dealers?: number
   item?: AgingItem
   signal_ids: string[]
+  title: string
+  text: string
 }
 export interface Brief {
   generated_at: string

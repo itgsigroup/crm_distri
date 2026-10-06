@@ -75,8 +75,9 @@ export const useQueue = () =>
 
 export interface CalibrationAgent { agent: string; confidence: number | null; accepted: number; rejected: number }
 export interface CalibrationEvent { id: string; agent: string | null; kind: string | null; decision: string | null; reason: string | null; suppress_until: string | null; created_at: string; title: string | null }
+export interface CalibrationLesson { id: string; agent: string; kind: string; reason: string; scope: string; product: string | null; rejections: number; text: string; suppress_until: string | null; created_at: string }
 export const useCalibration = () =>
-  useQuery({ queryKey: ['proposals', 'calibration'], queryFn: () => api.get<{ agents: CalibrationAgent[]; items: CalibrationEvent[] }>('/calibration') })
+  useQuery({ queryKey: ['proposals', 'calibration'], queryFn: () => api.get<{ agents: CalibrationAgent[]; items: CalibrationEvent[]; lessons: CalibrationLesson[] }>('/calibration') })
 
 export const useStockProposals = () =>
   useQuery({ queryKey: ['proposals', 'stock'], queryFn: () => api.get<Items<Proposal>>('/proposals?agent=' + encodeURIComponent('AI Stok') + '&today=1').then((r) => r.items) })

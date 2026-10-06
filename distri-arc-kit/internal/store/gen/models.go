@@ -94,6 +94,14 @@ type AuditLog struct {
 	CreatedAt time.Time       `json:"created_at"`
 }
 
+type Brief struct {
+	BriefDate time.Time       `json:"brief_date"`
+	CycleID   *uuid.UUID      `json:"cycle_id"`
+	Brief     json.RawMessage `json:"brief"`
+	Source    string          `json:"source"`
+	CreatedAt time.Time       `json:"created_at"`
+}
+
 type CalibrationEvent struct {
 	ID            uuid.UUID  `json:"id"`
 	ProposalID    *uuid.UUID `json:"proposal_id"`
@@ -102,6 +110,19 @@ type CalibrationEvent struct {
 	Kind          *string    `json:"kind"`
 	Decision      *string    `json:"decision"`
 	Reason        *string    `json:"reason"`
+	SuppressUntil *time.Time `json:"suppress_until"`
+	CreatedAt     time.Time  `json:"created_at"`
+}
+
+type CalibrationLesson struct {
+	ID            uuid.UUID  `json:"id"`
+	Agent         string     `json:"agent"`
+	Kind          string     `json:"kind"`
+	Reason        string     `json:"reason"`
+	Scope         string     `json:"scope"`
+	Product       *string    `json:"product"`
+	Rejections    int32      `json:"rejections"`
+	Text          string     `json:"text"`
 	SuppressUntil *time.Time `json:"suppress_until"`
 	CreatedAt     time.Time  `json:"created_at"`
 }
@@ -252,6 +273,7 @@ type Dealer struct {
 	MetricsCurrent   json.RawMessage `json:"metrics_current"`
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
+	MemoSentences    json.RawMessage `json:"memo_sentences"`
 }
 
 type DealerMetricsDaily struct {

@@ -87,3 +87,16 @@ test('Peta relasi loads the graph from the API (stage 08)', async ({ page }) => 
   await expect(page.locator('.net-lbl')).toHaveCount(22)
   expect(errors).toEqual([])
 })
+
+test('⌘K answers with sources and the memo shows sources per sentence (stage 10)', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'networkidle' })
+  const input = page.locator('.searchwrap input').first()
+  await input.fill('dealer mana yang berisiko')
+  await input.press('Enter')
+  await expect(page.locator('.sheet')).toContainText('Tiga dealer')
+  await expect(page.locator('.sheet .prov').first()).toBeVisible()
+  await page.goto('/dealer/mitra', { waitUntil: 'networkidle' })
+  const s = page.locator('#sec-memo .ms').first()
+  await s.click()
+  await expect(page.locator('.sheet')).toContainText('Sumber klaim')
+})

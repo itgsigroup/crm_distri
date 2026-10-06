@@ -11,6 +11,7 @@ sql:
       - db/migrations/0007_mcp.sql
       - db/migrations/0008_relasi.sql
       - db/migrations/0009_identify.sql
+      - db/migrations/0010_memory.sql
     queries: db/queries
     gen:
       go:

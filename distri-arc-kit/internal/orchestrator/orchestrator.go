@@ -376,6 +376,13 @@ func (o *Orchestrator) synthesize(ctx context.Context, r *stageRun) (map[string]
 			ri.Suppressions = append(ri.Suppressions, Suppression{Agent: *s.Agent, Kind: *s.Kind, DealerID: *s.DealerID, Until: *s.SuppressUntil})
 		}
 	}
+	if ls, err := o.St.Q.ActiveLessons(ctx, &today); err == nil {
+		for _, l := range ls {
+			ri.Lessons = append(ri.Lessons, LessonFromRow(l))
+		}
+	} else {
+		return nil, err
+	}
 	since := o.Clock.Now().AddDate(0, 0, -30)
 	for _, d := range r.in.Dealers {
 		if d.LastFollowupAt != nil {
@@ -768,12 +775,26 @@ func (o *Orchestrator) learn(ctx context.Context, r *stageRun) (map[string]any, 
 			return nil, err
 		}
 	}
+	memos, err := o.refreshMemos(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	lessons, err := o.learnLessons(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if r.scope.Kind == "all" {
+		if err := o.writeBrief(ctx, r); err != nil {
+			return nil, err
+		}
+	}
 	if len(r.signals) > 0 {
 		if err := o.St.Q.MarkSignalsProcessed(ctx, gen.MarkSignalsProcessedParams{At: now, Ids: r.signals}); err != nil {
 			return nil, err
 		}
 	}
-	return map[string]any{"calibrations": r.learned, "policy_review": policyReview, "examples": len(edited), "text": fmt.Sprintf("%d kalibrasi", r.learned)}, nil
+	return map[string]any{"calibrations": r.learned, "policy_review": policyReview, "examples": len(edited), "memos": memos, "lessons": lessons,
+		"text": fmt.Sprintf("%d kalibrasi · %d memo diperbarui", r.learned, memos)}, nil
 }
 
 // summarize is the agent card's "hasil siklus terakhir" line.

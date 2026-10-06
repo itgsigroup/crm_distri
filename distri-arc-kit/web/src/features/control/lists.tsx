@@ -2,10 +2,11 @@ import { useNavigate } from 'react-router'
 import type { AgingItem, BoardItem, Brief, NextAction } from '../../api/types'
 import { useStockProposals } from '../../app/queries'
 import { ActBtn } from '../../components/actions'
+import { PlanText } from './Plan'
 import { Icon } from '../../components/Icon'
 import { Pill } from '../../components/ui'
 import { fmtRp, shortName } from '../../lib/format'
-import { ROOT_CAUSE, ROOT_SHORT } from '../../lib/i18n/id'
+import { ROOT_CAUSE } from '../../lib/i18n/id'
 
 export const creditTone = (s: string) => (s === 'aman' ? 'good' : s === 'tipis' ? 'warn' : s === 'cash' ? 'neutral' : 'bad')
 const isBad = (d: BoardItem) => creditTone(d.metrics.credit.state) === 'bad'
@@ -115,53 +116,21 @@ export function TightList({ items }: { items: BoardItem[] }) {
 }
 
 /** "Ringkasan Orchestrator" points (mockup renderBrief), written from the structured brief. */
+const BRIEF_ICON: Record<string, [string, string]> = { on_schedule: ['good', 'check'], drift: ['warn', 'refresh'], credit: ['bad', 'shield'], push: ['accent', 'box'] }
+
+/** Ringkasan Orchestrator (mockup renderBrief): four points written by the cycle, dealer names link to the dealer. */
 export function BriefPoints({ brief }: { brief: Brief }) {
-  const [p1, p2, p3, p4] = brief.points
-  const list = (xs: React.ReactNode[]) => xs.flatMap((x, i) => (i === 0 ? [x] : i === xs.length - 1 ? [' dan ', x] : [', ', x]))
-  const drifting = p2.dealers.filter((d) => d.status !== 'Churn')
-  const churned = p2.dealers.filter((d) => d.status === 'Churn')
-  const recoverable = drifting.filter((d) => d.root_cause && d.root_cause !== 'small_share')
-  const bad = p3.dealers.filter((d) => d.credit_state === 'over limit' || d.credit_state === 'overdue')
-  const soon = p3.dealers.filter((d) => d.credit_state === 'tipis')
   return (
     <ol>
-      <li>
-        <span className="k good"><Icon name="check" /></span>
-        <div>
-          <b>Order tepat jadwal</b>: {p1.count} dealer jadwal order minggu ini
-          {p1.dealers.length > 0 && <> — {list(p1.dealers.map((d) => <Ev key={d.id} id={d.id}>{d.short_name}</Ev>))} besok</>}; rekomendasi order disiapkan AI Follow-up. Order 7 hari terakhir {fmtRp(p1.amount ?? 0)} dari {p1.order_dealers ?? 0} dealer.
-        </div>
-      </li>
-      <li>
-        <span className="k warn"><Icon name="refresh" /></span>
-        <div>
-          <b>Lewat jadwal</b>: {list(drifting.map((d, i) => <span key={d.id}><Ev id={d.id}>{d.name}</Ev> ({d.last_order_days}{i === 0 ? ' hari / siklus order ' : ' / '}{d.rhythm_days})</span>))} mulai menjauh
-          {churned.length > 0 && <>; {list(churned.map((d) => <Ev key={d.id} id={d.id}>{d.short_name}</Ev>))} sudah churn</>}. Potensi {fmtRp(p2.amount ?? 0)}/bulan.
-          {recoverable.length > 0 && <> Yang bisa ditarik kembali: {list(recoverable.map((d) => <span key={d.id}>{d.short_name} (akar: {ROOT_SHORT[d.root_cause!]})</span>))}.</>}
-        </div>
-      </li>
-      <li>
-        <span className="k bad"><Icon name="shield" /></span>
-        <div>
-          <b>Over limit / overdue</b>:{' '}
-          {list(bad.map((d) => <span key={d.id}><Ev id={d.id}>{d.short_name}</Ev> exposure {d.exposure_pct}% limit{d.late_days ? <> dan {d.late_invoice} lewat {d.late_days} hari</> : null}</span>))}
-          {bad.length > 0 && ' — order berikutnya tertahan sampai pembayaran masuk.'}
-          {soon.map((d) => (
-            <span key={d.id}> <Ev id={d.id}>{d.short_name}</Ev> jadwal order {d.due_in} hari lagi tapi sisa limit {d.room_pct}% — tagih {d.next_invoice || 'invoice terbuka'} dulu agar ordernya tidak tertahan.</span>
-          ))}
-        </div>
-      </li>
-      <li>
-        <span className="k accent"><Icon name="box" /></span>
-        <div>
-          <b>Push stok</b>:{' '}
-          {p4.item ? (
-            <>{p4.item.name} ({p4.item.qty} pcs, {p4.item.age_days} hari, {fmtRp(p4.item.value)}) cocok untuk {p4.count} dealer yang product mix-nya {p4.item.category} — {p4.item.due_this_week} di antaranya jadwal order minggu ini. Harga bundle tidak pernah di bawah floor margin 9%.</>
-          ) : (
-            'tidak ada stok di atas 90 hari.'
-          )}
-        </div>
-      </li>
+      {brief.points.map((p) => {
+        const [k, icon] = BRIEF_ICON[p.kind] ?? ['accent', 'spark']
+        return (
+          <li key={p.kind} title={p.signal_ids.length ? `${p.signal_ids.length} sumber` : undefined}>
+            <span className={`k ${k}`}><Icon name={icon} /></span>
+            <div><b>{p.title}</b>: <PlanText text={p.text} /></div>
+          </li>
+        )
+      })}
     </ol>
   )
 }

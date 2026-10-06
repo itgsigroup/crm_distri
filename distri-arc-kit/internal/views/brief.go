@@ -1,8 +1,11 @@
 package views
 
 import (
+	"fmt"
 	"math"
+	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"distri-arc/internal/domain"
@@ -25,6 +28,7 @@ type BriefDealer struct {
 	RoomPct     int    `json:"room_pct,omitempty"`
 	NextInvoice string `json:"next_invoice,omitempty"`
 	RootCause   string `json:"root_cause,omitempty"`
+	Release     string `json:"release,omitempty"` // open release request ("Rp 35 jt"), from the dealer's next proposal
 }
 
 // BriefPoint is one of the four points of "Ringkasan Orchestrator".
@@ -38,6 +42,8 @@ type BriefPoint struct {
 	OrderDealers int           `json:"order_dealers,omitempty"`
 	Item         *AgingItem    `json:"item,omitempty"`
 	SignalIDs    []string      `json:"signal_ids"`
+	Title        string        `json:"title"`
+	Text         string        `json:"text"` // with [[dealer:<slug>|Name]] links
 }
 
 // Brief is the morning summary. Until the Orchestrator writes it (stage 06/10) it is a template from metrics.
@@ -118,6 +124,11 @@ func (b *Board) TemplateBrief(stock []domain.StockItem, counts BriefCounts) Brie
 				d.NextInvoice = inv.Number
 			}
 		}
+		if it.Next != nil && it.Next.Kind == domain.KindCreditRelease && it.Next.Status == "proposed" {
+			if m := reRelease.FindStringSubmatch(it.Next.Title); m != nil {
+				d.Release = m[1]
+			}
+		}
 		p3.Dealers = append(p3.Dealers, d)
 		p3.Count++
 	}
@@ -132,5 +143,129 @@ func (b *Board) TemplateBrief(stock []domain.StockItem, counts BriefCounts) Brie
 		}
 	}
 	br.Points = []BriefPoint{p1, p2, p3, p4}
+	for i := range br.Points {
+		br.Points[i].Title, br.Points[i].Text = briefText(br.Points[i])
+	}
 	return br
+}
+
+var reRelease = regexp.MustCompile(`Rilis (Rp [\d,]+ (?:jt|M))`)
+
+func link(d BriefDealer, short bool) string {
+	n := d.Name
+	if short {
+		n = d.ShortName
+	}
+	return "[[dealer:" + d.ID + "|" + n + "]]"
+}
+
+func joinID(xs []string) string {
+	switch len(xs) {
+	case 0:
+		return ""
+	case 1:
+		return xs[0]
+	}
+	return strings.Join(xs[:len(xs)-1], ", ") + " dan " + xs[len(xs)-1]
+}
+
+func rpt(v int64) string {
+	if v >= 1_000_000_000 {
+		return strings.Replace(fmt.Sprintf("Rp %.2f M", float64(v)/1e9), ".", ",", 1)
+	}
+	return fmt.Sprintf("Rp %d jt", int64(math.Round(float64(v)/1e6)))
+}
+
+var rootShort = map[string]string{domain.RootProjectUnpaid: "proyek belum cair", domain.RootMarketplaceModule: "harga modul vs marketplace", domain.RootMarketplace: "harga vs marketplace",
+	domain.RootWholesaler: "beralih ke grosir lokal"}
+
+// briefText writes a point the way the mockup reads ("Order tepat jadwal: …").
+func briefText(p BriefPoint) (string, string) {
+	switch p.Kind {
+	case "on_schedule":
+		var ds []string
+		for _, d := range p.Dealers {
+			ds = append(ds, link(d, true))
+		}
+		t := fmt.Sprintf("%d dealer jadwal order minggu ini", p.Count)
+		if len(ds) > 0 {
+			t += " — " + joinID(ds) + " besok"
+		}
+		t += fmt.Sprintf("; rekomendasi order disiapkan AI Follow-up. Order 7 hari terakhir %s dari %d dealer.", rpt(p.Amount), p.OrderDealers)
+		return "Order tepat jadwal", t
+	case "drift":
+		var moving, churn, back []string
+		for i, d := range p.Dealers {
+			if d.Status == domain.StatusChurn {
+				churn = append(churn, link(d, true))
+				continue
+			}
+			if d.Last != nil && d.Rhythm != nil {
+				unit := " / "
+				if i == 0 {
+					unit = " hari / siklus order "
+				}
+				moving = append(moving, fmt.Sprintf("%s (%d%s%d)", link(d, false), *d.Last, unit, *d.Rhythm))
+			}
+			if r, ok := rootShort[d.RootCause]; ok {
+				back = append(back, fmt.Sprintf("%s (akar: %s)", d.ShortName, r))
+			}
+		}
+		t := joinID(moving) + " mulai menjauh"
+		if len(churn) > 0 {
+			t += "; " + joinID(churn) + " sudah churn"
+		}
+		t += fmt.Sprintf(". Potensi %s/bulan.", rpt(p.Amount))
+		if len(back) > 0 {
+			t += " Yang bisa ditarik kembali: " + joinID(back) + "."
+		}
+		return "Lewat jadwal", t
+	case "credit":
+		var parts []string
+		rank := func(d BriefDealer) int {
+			switch {
+			case d.Release != "":
+				return 0
+			case d.CreditState == domain.CreditOverLimit || d.CreditState == domain.CreditOverdue:
+				return 1
+			}
+			return 2
+		}
+		ds := append([]BriefDealer{}, p.Dealers...)
+		sort.SliceStable(ds, func(i, j int) bool { return rank(ds[i]) < rank(ds[j]) })
+		for _, d := range ds {
+			switch {
+			case d.Release != "":
+				s := fmt.Sprintf("%s minta rilis %s saat exposure sudah %d%% limit", link(d, true), d.Release, d.ExposurePct)
+				if d.LateDays > 0 {
+					s += fmt.Sprintf(" dan %s lewat %d hari", d.LateInvoice, d.LateDays)
+				}
+				parts = append(parts, s+" — usul DP 50%.")
+			case d.CreditState == domain.CreditOverLimit || d.CreditState == domain.CreditOverdue:
+				s := fmt.Sprintf("%s exposure %d%% limit", link(d, true), d.ExposurePct)
+				if d.LateDays > 0 {
+					s += fmt.Sprintf(" dan %s lewat %d hari", d.LateInvoice, d.LateDays)
+				}
+				parts = append(parts, s+" — order berikutnya tertahan sampai pembayaran masuk.")
+			case d.DueIn != nil:
+				inv := d.NextInvoice
+				if inv == "" {
+					inv = "invoice terbuka"
+				}
+				parts = append(parts, fmt.Sprintf("%s jadwal order %d hari lagi tapi sisa limit %d%% — tagih %s dulu agar ordernya tidak tertahan.", link(d, true), *d.DueIn, d.RoomPct, inv))
+			}
+		}
+		if len(parts) == 0 {
+			return "Over limit / overdue", "tidak ada dealer yang ordernya tertahan limit."
+		}
+		return "Over limit / overdue", strings.Join(parts, " ")
+	case "push":
+		if p.Item == nil {
+			return "Push stok", "tidak ada stok di atas 90 hari."
+		}
+		it := p.Item
+		return "Push stok", fmt.Sprintf("%s (%d pcs, %d hari, %s) cocok untuk %d dealer yang product mix-nya %s — %d di antaranya jadwal order minggu ini. Harga bundle tidak pernah di bawah floor margin.",
+			it.Name, it.Qty, it.AgeDays, rpt(it.Value), p.Count, it.Category, it.DueThisWeek)
+	}
+	return "", ""
 }

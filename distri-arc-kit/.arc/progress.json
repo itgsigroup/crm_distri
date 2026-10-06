@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 10,
+  "current_stage": 11,
   "stages": [
     {
       "id": 0,
@@ -108,12 +108,12 @@
     {
       "id": 10,
       "name": "Memori dealer, ringkasan, kalibrasi & belajar, Tanya ⌘K",
-      "status": "pending",
+      "status": "done-with-fakes",
       "file": "docs/stages/10-memori-kalibrasi.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-06",
+      "finished_at": "2026-10-06",
+      "summary": "internal/memory: memo per kalimat bersumber (atribusi topik/kata, validator ≤120 kata, Refresh fakta orbit/kredit, Polish LLM), ditulis di Belajar untuk dealer tanpa sumber per kalimat atau dengan sinyal baru. Ringkasan Orchestrator ditulis siklus penuh (teks + signal_ids per poin, LLM dengan validator tautan/angka, tabel briefs). Pelajaran kalibrasi (≥3 penolakan alasan sama → calibration_lessons, menahan usulan serupa 14 hari). internal/ask + POST /ask (router risiko/lewat jadwal/kas/stok/jadwal/dealer/umum, jawaban dengan sumber). Web: Memori dealer hover/klik sumber per kalimat, Ringkasan dari siklus, Kalibrasi agen dengan pelajaran, Sheet jawaban ⌘K. Migrasi 0010, ADR 0012.",
+      "notes": "Acceptance: memo Mitra utuh (tempo, over limit, lewat jadwal) dengan sumber Mitra per kalimat; 3× tolak HDD tier C → \"AI Stok tidak lagi menawarkan HDD ke dealer tier C (ditolak 3×: “mereka beli di marketplace”)\", 14 hari; ⌘K \"dealer mana yang berisiko\" → Mitra, Graha, Lampu + 3 sumber. LLM = fake (teks template); dengan ANTHROPIC_API_KEY ringkasan/memo/jawaban dirapikan model, divalidasi."
     },
     {
       "id": 11,

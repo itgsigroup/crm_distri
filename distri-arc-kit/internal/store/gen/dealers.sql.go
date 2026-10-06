@@ -42,7 +42,7 @@ func (q *Queries) CountSignalsSince(ctx context.Context, occurredAt time.Time) (
 
 const getDealer = `-- name: GetDealer :one
 select d.id, d.slug, d.name, d.city, d.branch, d.tier, d.segment_desc, d.owner_id, d.credit_limit,
-       d.payment_terms_days, d.memo, d.memo_signal_ids, d.memo_updated_at, d.metrics_current, d.updated_at,
+       d.payment_terms_days, d.memo, d.memo_signal_ids, d.memo_updated_at, d.memo_sentences, d.metrics_current, d.updated_at,
        s.name as owner_name, s.branch as owner_branch, s.wa_number as owner_wa
 from dealers d left join sales_users s on s.id = d.owner_id
 where d.slug = $1 or d.id::text = $1
@@ -62,6 +62,7 @@ type GetDealerRow struct {
 	Memo             *string         `json:"memo"`
 	MemoSignalIds    []uuid.UUID     `json:"memo_signal_ids"`
 	MemoUpdatedAt    *time.Time      `json:"memo_updated_at"`
+	MemoSentences    json.RawMessage `json:"memo_sentences"`
 	MetricsCurrent   json.RawMessage `json:"metrics_current"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 	OwnerName        *string         `json:"owner_name"`
@@ -86,6 +87,7 @@ func (q *Queries) GetDealer(ctx context.Context, slug *string) (GetDealerRow, er
 		&i.Memo,
 		&i.MemoSignalIds,
 		&i.MemoUpdatedAt,
+		&i.MemoSentences,
 		&i.MetricsCurrent,
 		&i.UpdatedAt,
 		&i.OwnerName,
@@ -383,7 +385,7 @@ func (q *Queries) ListDealerTimeline(ctx context.Context, arg ListDealerTimeline
 
 const listDealersFull = `-- name: ListDealersFull :many
 select d.id, d.slug, d.name, d.city, d.branch, d.tier, d.segment_desc, d.owner_id, d.credit_limit,
-       d.payment_terms_days, d.memo, d.memo_signal_ids, d.memo_updated_at, d.metrics_current, d.updated_at,
+       d.payment_terms_days, d.memo, d.memo_signal_ids, d.memo_updated_at, d.memo_sentences, d.metrics_current, d.updated_at,
        s.name as owner_name, s.branch as owner_branch, s.wa_number as owner_wa
 from dealers d left join sales_users s on s.id = d.owner_id
 order by length(d.source_id), d.source_id, d.name
@@ -403,6 +405,7 @@ type ListDealersFullRow struct {
 	Memo             *string         `json:"memo"`
 	MemoSignalIds    []uuid.UUID     `json:"memo_signal_ids"`
 	MemoUpdatedAt    *time.Time      `json:"memo_updated_at"`
+	MemoSentences    json.RawMessage `json:"memo_sentences"`
 	MetricsCurrent   json.RawMessage `json:"metrics_current"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 	OwnerName        *string         `json:"owner_name"`
@@ -433,6 +436,7 @@ func (q *Queries) ListDealersFull(ctx context.Context) ([]ListDealersFullRow, er
 			&i.Memo,
 			&i.MemoSignalIds,
 			&i.MemoUpdatedAt,
+			&i.MemoSentences,
 			&i.MetricsCurrent,
 			&i.UpdatedAt,
 			&i.OwnerName,

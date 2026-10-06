@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
 
+	"distri-arc/internal/ask"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
 	"distri-arc/internal/events"
@@ -38,7 +39,11 @@ type Server struct {
 	odoo  odoo.Source
 	mcp   *mcp.Server
 	idf   *identify.Service
+	ask   *ask.Service
 }
+
+// WithAsk enables POST /ask (the command bar).
+func (s *Server) WithAsk(a *ask.Service) *Server { s.ask = a; return s }
 
 // WithIdentify enables POST /chat/identify (sources the API can read; the worker adds the WA Business profile).
 func (s *Server) WithIdentify(i *identify.Service) *Server { s.idf = i; return s }
@@ -85,6 +90,7 @@ func (s *Server) Handler() http.Handler {
 			s.mcpRoutes(r)
 			s.relasiRoutes(r)
 			s.identifyRoutes(r)
+			r.Post("/ask", s.askHandler)
 			r.Get("/events", s.events)
 			r.Get("/brief/today", s.briefToday)
 		})

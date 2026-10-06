@@ -1,0 +1,6 @@
+/* Additions to the mockup styles (mockup.css stays verbatim). Stage 10: memo sentences carry their sources. */
+.memo .ms{border-bottom:1px dashed transparent;cursor:pointer;transition:background .12s,border-color .12s;border-radius:3px}
+.memo .ms:hover,.memo .ms.on{background:var(--accent-soft);border-bottom-color:var(--accent)}
+.memo-wrap{position:relative}
+.memo-wrap .tip{pointer-events:none;max-width:320px}
+.memo-wrap .tip .r span:first-child{opacity:.75;white-space:nowrap}
