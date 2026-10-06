@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { Outlet, useLocation, useNavigate } from 'react-router'
 import sprite from '../icons/sprite.svg?raw'
 import { Icon } from '../components/Icon'
+import { AppearancePicker } from '../components/AppearancePicker'
 import { useFeedback } from '../components/feedback'
 import { AGENT_NAMES, TITLES, type ScreenKey } from '../lib/i18n/id'
 import { todayLine } from '../lib/format'
@@ -152,7 +153,8 @@ export function Shell() {
             </div>
             <div style={{ position: 'relative' }}>
               {menu && (
-                <div className="card" style={{ position: 'absolute', bottom: '105%', left: 0, right: 0, padding: 6, zIndex: 20 }}>
+                <div className="card" style={{ position: 'absolute', bottom: '105%', left: 0, right: 0, padding: 8, zIndex: 20 }}>
+                  <AppearancePicker compact />
                   <button className="btn quiet" style={{ width: '100%', justifyContent: 'flex-start' }} onClick={() => void logout()}><Icon name="x" />Keluar</button>
                 </div>
               )}

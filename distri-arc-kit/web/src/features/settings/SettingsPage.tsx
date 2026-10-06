@@ -11,6 +11,7 @@ import { IdentifyPanel } from './IdentifyPanel'
 import { OdooPanel } from './OdooPanel'
 import { SecurityCard, SystemCard } from './SystemCard'
 import { PilotCard } from '../pilot/PilotPage'
+import { AppearancePicker } from '../../components/AppearancePicker'
 
 type Obj = Record<string, unknown>
 const num = (o: Obj | undefined, k: string, d: number) => (o && typeof o[k] === 'number' ? (o[k] as number) : d)
@@ -81,6 +82,10 @@ export function SettingsPage() {
       <AutonomyCard />
       <UsersCard />
       <SecurityCard />
+      <div className="card">
+        <div className="card-h"><h2>Tampilan</h2><span className="meta">Disimpan di perangkat ini</span></div>
+        <AppearancePicker />
+      </div>
       </div>
       <div className="stack">
         <div className="card">

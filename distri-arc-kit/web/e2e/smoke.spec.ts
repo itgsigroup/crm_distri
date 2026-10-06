@@ -190,3 +190,20 @@ test('Pilot: shadow mode chip, dashboard per agent + audit; Konfirmasi share of 
     await request.post('/api/pilot/mode', { data: { mode: 'off' } })
   }
 })
+
+test.describe('Tampilan', () => {
+  test.use({ colorScheme: 'dark' })
+  test('light by default even when the OS is dark; sidebar colour from the account menu is kept', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'networkidle' })
+    expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('light')
+    expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(245, 245, 247)')
+    await page.locator('.me').click()
+    await page.getByRole('radio', { name: 'Biru' }).click()
+    await page.reload({ waitUntil: 'networkidle' })
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector('.rail')!).backgroundColor)).toBe('rgb(0, 113, 227)')
+    await page.locator('.me').click()
+    await page.getByRole('radio', { name: 'Gelap' }).click()
+    expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark')
+    await page.evaluate(() => localStorage.clear())
+  })
+})
