@@ -91,3 +91,9 @@ group by agent order by agent;
 -- name: MarkDecided :one
 -- Child proposals created by a decision (push_stock → one draft per dealer) carry the same human decision.
 update proposals set decided_by = $2, decided_at = $3, decision_reason = $4 where id = $1 returning *;
+
+-- name: RecentApprovalForSubject :one
+-- A stock step already approved for the same SKU and branch in the last days is being carried out (transfer, PO,
+-- bundle): the Orchestrator does not propose it again while the stock in Odoo has not moved yet.
+select exists(select 1 from proposals where dedupe_key like sqlc.arg(prefix)::text || ':%'
+  and status in ('approved', 'edited', 'executed') and decided_at >= sqlc.arg(since)::timestamptz)::bool as recent;

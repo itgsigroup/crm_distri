@@ -67,6 +67,7 @@ const usage = `arc — Distri ARC Orbit
   arc ctl pilot start [--branch Semarang] | live | off   pilot mode (start = shadow: no sends, everything approve)
   arc ctl pilot status|audit [--week d]   pilot numbers per agent, KPI, privacy & send audit (exit 1 on a violation)
   arc ctl pilot snapshot|export [--week d] [--out f]   store a pilot week | weekly CSV
+  arc ctl pilot rehearse [--days 21]   dev only: simulated pilot (14 days shadow + live) to test the tooling
 `
 
 func main() {
@@ -222,6 +223,9 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 			return err
 		}
 		defer st.Close()
+		if len(args) > 1 && args[1] == "rehearse" {
+			return runRehearsal(ctx, cfg, st, clk, log, args[2:])
+		}
 		return runPilotCtl(ctx, st, clk, args[1:])
 	}
 	if args[0] == "pdp" || args[0] == "retention" || args[0] == "fingerprint" {

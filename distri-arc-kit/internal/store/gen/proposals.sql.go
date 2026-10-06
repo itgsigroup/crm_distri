@@ -839,6 +839,25 @@ func (q *Queries) ProposalsForSignals(ctx context.Context, ids []uuid.UUID) ([]P
 	return items, nil
 }
 
+const recentApprovalForSubject = `-- name: RecentApprovalForSubject :one
+select exists(select 1 from proposals where dedupe_key like $1::text || ':%'
+  and status in ('approved', 'edited', 'executed') and decided_at >= $2::timestamptz)::bool as recent
+`
+
+type RecentApprovalForSubjectParams struct {
+	Prefix string    `json:"prefix"`
+	Since  time.Time `json:"since"`
+}
+
+// A stock step already approved for the same SKU and branch in the last days is being carried out (transfer, PO,
+// bundle): the Orchestrator does not propose it again while the stock in Odoo has not moved yet.
+func (q *Queries) RecentApprovalForSubject(ctx context.Context, arg RecentApprovalForSubjectParams) (bool, error) {
+	row := q.db.QueryRow(ctx, recentApprovalForSubject, arg.Prefix, arg.Since)
+	var recent bool
+	err := row.Scan(&recent)
+	return recent, err
+}
+
 const recentInboundWA = `-- name: RecentInboundWA :many
 select s.id, s.dealer_id, s.contact_id, s.occurred_at, s.summary, s.payload, c.name as contact_name
 from signals s left join contacts c on c.id = s.contact_id

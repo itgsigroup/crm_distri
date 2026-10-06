@@ -110,7 +110,8 @@ func (q *Queries) AuditSystemToNonInternal(ctx context.Context, arg AuditSystemT
 const auditUnapprovedSends = `-- name: AuditUnapprovedSends :one
 select count(*)::bigint from outbox o left join proposals p on p.id = o.proposal_id
 where o.status = 'sent' and o.channel <> 'wa_system' and o.sent_at >= $1::timestamptz and o.sent_at < $2::timestamptz
-  and (p.id is null or p.decided_at is null or p.status not in ('approved','edited','executed'))
+  and (p.id is null or p.decided_at is null
+       or (o.channel <> 'odoo_note' and p.status not in ('approved','edited','executed')))
 `
 
 type AuditUnapprovedSendsParams struct {
@@ -118,7 +119,9 @@ type AuditUnapprovedSendsParams struct {
 	Until time.Time `json:"until"`
 }
 
-// Rows delivered without a recorded decision (human, or the system within policy for automatic steps).
+// Rows delivered without a recorded decision: what reaches a dealer or creates an order (wa, odoo_so_draft) needs an
+// approval (human, or the system within policy for automatic steps); an internal Odoo note records any decision,
+// a rejection included, so it only needs the decision.
 func (q *Queries) AuditUnapprovedSends(ctx context.Context, arg AuditUnapprovedSendsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, auditUnapprovedSends, arg.Since, arg.Until)
 	var column_1 int64

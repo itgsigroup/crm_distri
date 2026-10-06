@@ -523,6 +523,15 @@ func (o *Orchestrator) decide(ctx context.Context, r *stageRun) (map[string]any,
 		if used {
 			continue // decided earlier (rejected/expired with the same key)
 		}
+		if prefix, ok := subjectPrefix(c.P.Kind, key); ok {
+			recent, err := o.St.Q.RecentApprovalForSubject(ctx, gen.RecentApprovalForSubjectParams{Prefix: prefix, Since: now.AddDate(0, 0, -SubjectCooldownDays)})
+			if err != nil {
+				return nil, err
+			}
+			if recent {
+				continue // approved earlier this week and still being carried out in Odoo
+			}
+		}
 		status := "proposed"
 		v := Evaluate(c, r.in.Policies)
 		if c.Suppressed != "" {
@@ -901,4 +910,26 @@ func deref[T any](p *T) T {
 		return z
 	}
 	return *p
+}
+
+// SubjectCooldownDays is how long an approved stock step (transfer, PO, bundle) is not proposed again for the same
+// SKU and branch: the time a transfer or purchase takes to show in Odoo stock.
+const SubjectCooldownDays = 7
+
+// subjectPrefix is the dedupe key without its day ("transfer:HDD-4TB-SV:Yogyakarta") for stock kinds, whose keys
+// carry the day they were proposed.
+func subjectPrefix(kind, key string) (string, bool) {
+	switch kind {
+	case domain.KindTransfer, domain.KindPORequest, domain.KindPushStock:
+	default:
+		return "", false
+	}
+	i := strings.LastIndex(key, ":")
+	if i < 0 || len(key)-i-1 != len("2006-01-02") {
+		return "", false
+	}
+	if _, err := time.Parse("2006-01-02", key[i+1:]); err != nil {
+		return "", false
+	}
+	return key[:i], true
 }

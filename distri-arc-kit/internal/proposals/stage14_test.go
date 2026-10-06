@@ -103,6 +103,15 @@ func TestPilotAuditViolations(t *testing.T) {
 	if _, err := st.Pool.Exec(ctx, "insert into outbox (proposal_id, channel, status, sent_at) values ($1, 'wa', 'sent', $2)", prop, now.Now()); err != nil {
 		t.Fatal(err)
 	}
+	// an internal Odoo note recording a rejection is not a send without a decision
+	var rejected uuid.UUID
+	if err := st.Pool.QueryRow(ctx, `insert into proposals (agent, kind, title, why, confidence, signal_ids, autonomy, status, decided_at)
+		values ('AI Follow-up', 'followup', 'r', 'w', 0.9, array[(select id from signals limit 1)], 'approve', 'rejected', $1) returning id`, now.Now()).Scan(&rejected); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, "insert into outbox (proposal_id, channel, status, sent_at) values ($1, 'odoo_note', 'sent', $2)", rejected, now.Now()); err != nil {
+		t.Fatal(err)
+	}
 	from, to, _ := svc.Period(ctx)
 	rep, err := svc.Build(ctx, from, to)
 	if err != nil {
@@ -193,4 +202,35 @@ func TestDriftCaughtBeforeChurn(t *testing.T) {
 func chatParams(thread uuid.UUID, at time.Time) gen.InsertChatMessageParams {
 	id, dir, from, body := "dm-1", "in", "6281111111111", "stok aman?"
 	return gen.InsertChatMessageParams{ThreadID: &thread, WaMsgID: &id, Direction: &dir, FromNumber: &from, Body: &body, SentAt: at, Status: "received"}
+}
+
+// Found in the pilot rehearsal: an approved transfer waits for the warehouse in Odoo; the next days' cycles must not
+// propose the same transfer again (stock keys carry the day).
+func TestApprovedTransferNotReproposed(t *testing.T) {
+	st, r := setup(t)
+	ctx := context.Background()
+	res := run(t, r, "all")
+	tr := find(res, "transfer", "Kamera IP 4MP")
+	if tr == nil {
+		t.Fatal("no transfer")
+	}
+	if _, err := proposals.Decide(ctx, st, nil, now, false, tr.ID, sam(t, st), proposals.Decision{Decision: "approve"}); err != nil {
+		t.Fatal(err)
+	}
+	var key string
+	_ = st.Pool.QueryRow(ctx, "select dedupe_key from proposals where id = $1", tr.ID).Scan(&key)
+	prefix := key[:strings.LastIndex(key, ":")]
+	for _, days := range []int{1, 3, 8} {
+		r.Clock = clock.Fixed(now.Now().AddDate(0, 0, days))
+		run(t, r, "all")
+		var n int
+		_ = st.Pool.QueryRow(ctx, "select count(*) from proposals where dedupe_key like $1 || ':%'", prefix).Scan(&n)
+		want := 1
+		if days == 8 {
+			want = 2 // after a week without the stock moving, AI Stok may ask again
+		}
+		if n != want {
+			t.Fatalf("day +%d: %d proposals for %s, want %d", days, n, prefix, want)
+		}
+	}
 }

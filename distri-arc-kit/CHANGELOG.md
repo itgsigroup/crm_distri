@@ -107,3 +107,4 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Web: Pengaturan → **Pilot** (mode, KPI, per agen, audit, laporan mingguan), kartu Pilot di Pengaturan, chip **Mode bayangan** di topbar, Dealer → **Konfirmasi share of wallet** (20 dealer teratas, per kuartal).
 - `docs/PILOT-REPORT.md` (checklist hari 0, aturan pilot, tabel hasil, temuan, go/no-go untuk ditandatangani Sam). ADR 0016.
 - Perbaikan: `pdp delete` kini juga menghapus sinyal percakapan berdasarkan `payload.from_number`.
+- Gladi pilot (`arc ctl pilot rehearse`, dev): 21 hari simulasi (14 bayangan + 7 live) — `docs/PILOT-REHEARSAL.md`. Perbaikan dari gladi: audit tidak lagi menghitung catatan Odoo atas saran yang ditolak sebagai kirim tanpa persetujuan; transfer/PO/bundle yang sudah disetujui tidak diusulkan ulang selama 7 hari (AI Stok 214 → 82 saran dalam 21 hari).

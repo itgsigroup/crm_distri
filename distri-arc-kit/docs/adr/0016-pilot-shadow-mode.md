@@ -26,3 +26,10 @@
 ## Konsekuensi
 - Pilot yang sebenarnya (data Odoo Semarang, 2 nomor WA, 14 hari, tanda tangan Sam) dijalankan GSI; laporan di
   `docs/PILOT-REPORT.md`. Stage 14 berstatus `in-progress` sampai laporan ditandatangani.
+
+## Tambahan dari gladi (2026-10-06)
+- Audit "kirim tanpa persetujuan": kanal yang sampai ke dealer atau membuat order (`wa`, `odoo_so_draft`) wajib
+  disetujui; catatan internal Odoo (`odoo_note`) cukup merekam keputusan, termasuk penolakan.
+- Subjek stok (transfer, PO, bundle per SKU + cabang) yang sudah disetujui tidak diusulkan lagi selama 7 hari
+  (`orchestrator.SubjectCooldownDays`): waktu yang dibutuhkan stok Odoo untuk bergerak.
+- `arc ctl pilot rehearse` (dev saja) mensimulasikan pilot untuk menguji perangkatnya; hasilnya bukan hasil pilot.

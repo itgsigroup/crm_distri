@@ -223,7 +223,7 @@ func (s Service) audit(ctx context.Context, r *Report, pp domain.PilotPolicy, fr
 		return nil
 	}
 	n, err := q.AuditUnapprovedSends(ctx, gen.AuditUnapprovedSendsParams{Since: from, Until: to})
-	if err := add("unapproved_sends", "Kirim tanpa keputusan tercatat (outbox = proposal disetujui)", n, err); err != nil {
+	if err := add("unapproved_sends", "Kirim ke dealer / Odoo tanpa persetujuan tercatat", n, err); err != nil {
 		return err
 	}
 	if start, ok := parseDay(pp.StartedAt); ok {

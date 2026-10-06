@@ -1122,6 +1122,31 @@ func (q *Queries) OpenCommitments(ctx context.Context, dealerID *uuid.UUID) ([]O
 	return items, nil
 }
 
+const pendingOutboxIDs = `-- name: PendingOutboxIDs :many
+select id from outbox where status in ('pending', 'failed') order by created_at
+`
+
+// Rows waiting for delivery (pilot rehearsal; the worker uses one job per row).
+func (q *Queries) PendingOutboxIDs(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, pendingOutboxIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setMessageReplyTo = `-- name: SetMessageReplyTo :exec
 update chat_messages set proposal_id = $2 where id = $1
 `

@@ -31,3 +31,4 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-06 · 14 · Daftar nomor internal karyawan (CSV `wa_number,label,department,is_sales`) untuk `arc ctl wa import-internal` · hanya 4 nomor sales di seed · —
 - 2026-10-06 · 14 · Target pilot di `docs/PILOT-REPORT.md` (saran diterima ≥ 70%, median keputusan < 4 jam kerja, lewat jadwal tertangkap ≥ 50%) — setuju, atau Sam punya angka lain? · dipakai sebagai usulan · —
 - 2026-10-06 · 14 · Saran tanpa dealer (transfer stok, PO) dihitung untuk semua cabang di dashboard pilot; perlu dipisah per gudang cabang? · dihitung semua · —
+- 2026-10-06 · 14 · Gladi: dengan 2 sales, AI Order / Kredit / Prospek bisa tidak mencapai 5 keputusan per minggu sehingga tidak pernah memenuhi syarat buka otonomi dalam 2 minggu. Turunkan `pilot.min_decisions_per_week` (mis. 3), hitung per 2 minggu, atau biarkan agen itu tetap approve? · tetap 5 · 5

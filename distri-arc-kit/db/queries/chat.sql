@@ -239,3 +239,7 @@ update outbox set status = 'shadow', error = 'mode bayangan pilot: tidak dikirim
 -- The pending chat bubble of a row that will not be sent (shadow mode) is removed with its dedupe key.
 with gone as (delete from chat_messages where proposal_id = $1 and status = 'pending' and direction = 'out' returning id)
 delete from chat_message_keys k using gone where k.message_id = gone.id;
+
+-- name: PendingOutboxIDs :many
+-- Rows waiting for delivery (pilot rehearsal; the worker uses one job per row).
+select id from outbox where status in ('pending', 'failed') order by created_at;

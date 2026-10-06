@@ -4,6 +4,8 @@
 > sesudah pilot; angka diambil dari Pengaturan → Pilot / `arc ctl pilot status` / CSV mingguan — bukan diketik ulang
 > dari ingatan.
 
+Gladi (simulasi 21 hari di database uji) sudah dijalankan untuk menguji perangkat ini: `docs/PILOT-REHEARSAL.md`.
+
 ## 1. Persiapan (hari 0)
 | # | Langkah | Perintah / layar | Penanggung jawab | Selesai |
 |---|---|---|---|---|

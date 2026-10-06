@@ -153,7 +153,7 @@
       "started_at": "2026-10-06",
       "finished_at": null,
       "summary": "Perangkat pilot siap: kebijakan pilot (off/shadow/live) dengan mode bayangan ditegakkan di Orchestrator, keputusan, chat, dan sender (outbox 'shadow'); internal/pilot: metrik per agen (% diterima, median waktu keputusan, confidence mingguan), order tepat jadwal, DSO, lewat jadwal tertangkap sebelum churn, audit privasi & kirim, aturan buka otonomi (≥80% dua minggu, dicek server), snapshot & CSV mingguan; UI Pengaturan → Pilot, chip Mode bayangan, Dealer → Konfirmasi share of wallet; arc ctl pilot start|live|off|status|audit|snapshot|export, wa import-internal; migrasi 0012_pilot; docs/PILOT-REPORT.md (checklist + kerangka laporan); ADR 0016.",
-      "notes": "Belum: pilot nyata — butuh deploy produksi, kredensial Odoo read-only, 2 nomor WA sales Semarang, 14 hari mode bayangan, lalu laporan ditandatangani Sam (go/no-go cabang kedua). Acceptance 'outbox = proposal approved 100%' dan 'tanpa insiden privasi' diukur oleh audit pilot (arc ctl pilot audit) selama pilot berjalan."
+      "notes": "Belum: pilot nyata — butuh deploy produksi, kredensial Odoo read-only, 2 nomor WA sales Semarang, 14 hari mode bayangan, lalu laporan ditandatangani Sam (go/no-go cabang kedua). Acceptance 'outbox = proposal approved 100%' dan 'tanpa insiden privasi' diukur oleh audit pilot (arc ctl pilot audit) selama pilot berjalan. Gladi 21 hari (simulasi) lolos: 0 kirim di mode bayangan, audit bersih tiap hari, AI Penagihan memenuhi syarat buka otonomi; dua bug diperbaiki (audit catatan Odoo, transfer berulang) — docs/PILOT-REHEARSAL.md."
     }
   ]
 }

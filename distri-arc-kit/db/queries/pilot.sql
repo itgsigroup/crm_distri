@@ -50,10 +50,13 @@ select (select count(*) from risk)::bigint as at_risk, (select count(*) from cau
        (select count(*) from churned)::bigint as churned;
 
 -- name: AuditUnapprovedSends :one
--- Rows delivered without a recorded decision (human, or the system within policy for automatic steps).
+-- Rows delivered without a recorded decision: what reaches a dealer or creates an order (wa, odoo_so_draft) needs an
+-- approval (human, or the system within policy for automatic steps); an internal Odoo note records any decision,
+-- a rejection included, so it only needs the decision.
 select count(*)::bigint from outbox o left join proposals p on p.id = o.proposal_id
 where o.status = 'sent' and o.channel <> 'wa_system' and o.sent_at >= sqlc.arg(since)::timestamptz and o.sent_at < sqlc.arg(until)::timestamptz
-  and (p.id is null or p.decided_at is null or p.status not in ('approved','edited','executed'));
+  and (p.id is null or p.decided_at is null
+       or (o.channel <> 'odoo_note' and p.status not in ('approved','edited','executed')));
 
 -- name: AuditSentBetween :one
 -- Rows delivered in a period (shadow weeks must have none).
