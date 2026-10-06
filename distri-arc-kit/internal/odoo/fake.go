@@ -17,6 +17,16 @@ type Fake struct {
 	models  map[string][]Record
 	Write   bool
 	created []Record
+	notes   []Note
+	// FailNext makes the next write fail (tests of the outbox error path).
+	FailNext error
+}
+
+// Note is an internal note posted on a record (fake chatter).
+type Note struct {
+	Model string
+	ID    int
+	Body  string
 }
 
 // NewFake loads every <model>.json under dir of fsys.
@@ -66,6 +76,10 @@ func (f *Fake) Create(_ context.Context, model string, vals map[string]any) (int
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if err := f.FailNext; err != nil {
+		f.FailNext = nil
+		return 0, err
+	}
 	id := 900000 + len(f.created) + 1
 	r := Record{"id": float64(id)}
 	for k, v := range vals {
@@ -74,6 +88,35 @@ func (f *Fake) Create(_ context.Context, model string, vals map[string]any) (int
 	f.models[model] = append(f.models[model], r)
 	f.created = append(f.created, r)
 	return id, nil
+}
+
+// PostNote records a note (writes must be enabled).
+func (f *Fake) PostNote(_ context.Context, model string, id int, body string) (int, error) {
+	if !f.Write {
+		return 0, ErrWriteDisabled
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if err := f.FailNext; err != nil {
+		f.FailNext = nil
+		return 0, err
+	}
+	f.notes = append(f.notes, Note{Model: model, ID: id, Body: body})
+	return len(f.notes), nil
+}
+
+// Notes returns the notes posted so far.
+func (f *Fake) Notes() []Note {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]Note(nil), f.notes...)
+}
+
+// Created returns the records created so far.
+func (f *Fake) Created() []Record {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]Record(nil), f.created...)
 }
 
 // Set replaces a field of a record (tests simulate Odoo changes).

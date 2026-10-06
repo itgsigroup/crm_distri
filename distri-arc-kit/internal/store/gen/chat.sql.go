@@ -13,6 +13,46 @@ import (
 	"github.com/google/uuid"
 )
 
+const adoptKamiCommitment = `-- name: AdoptKamiCommitment :one
+update commitments set proposal_id = $1, detail = $2, due_at = coalesce(due_at, $3),
+  signal_ids = array_append(signal_ids, $4::uuid)
+where id = (select c.id from commitments c where c.dealer_id = $5 and c.side = 'kami' and c.status = 'open'
+  and c.proposal_id is null and c.title ilike 'Kirim%' order by c.created_at limit 1)
+returning id
+`
+
+type AdoptKamiCommitmentParams struct {
+	ProposalID *uuid.UUID `json:"proposal_id"`
+	Detail     *string    `json:"detail"`
+	DueAt      *time.Time `json:"due_at"`
+	SignalID   uuid.UUID  `json:"signal_id"`
+	DealerID   *uuid.UUID `json:"dealer_id"`
+}
+
+// An executed SO draft takes over the open "Kirim …" promise sales already made in the chat (no proposal yet),
+// instead of listing the same delivery twice.
+func (q *Queries) AdoptKamiCommitment(ctx context.Context, arg AdoptKamiCommitmentParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, adoptKamiCommitment,
+		arg.ProposalID,
+		arg.Detail,
+		arg.DueAt,
+		arg.SignalID,
+		arg.DealerID,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const closeCommitment = `-- name: CloseCommitment :exec
+update commitments set status = 'done' where id = $1
+`
+
+func (q *Queries) CloseCommitment(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, closeCommitment, id)
+	return err
+}
+
 const countSentToday = `-- name: CountSentToday :one
 select count(*)::bigint from outbox
 where channel = 'wa' and status = 'sent' and payload->>'from' = $1::text and sent_at >= $2
@@ -28,6 +68,43 @@ func (q *Queries) CountSentToday(ctx context.Context, arg CountSentTodayParams) 
 	var column_1 int64
 	err := row.Scan(&column_1)
 	return column_1, err
+}
+
+const dealerOpenInvoiceList = `-- name: DealerOpenInvoiceList :many
+select id, number, due_at, (total - coalesce(paid, 0))::bigint as residual from invoices
+where dealer_id = $1 and total > coalesce(paid, 0) and state <> 'cancel' order by due_at
+`
+
+type DealerOpenInvoiceListRow struct {
+	ID       uuid.UUID  `json:"id"`
+	Number   *string    `json:"number"`
+	DueAt    *time.Time `json:"due_at"`
+	Residual int64      `json:"residual"`
+}
+
+func (q *Queries) DealerOpenInvoiceList(ctx context.Context, dealerID *uuid.UUID) ([]DealerOpenInvoiceListRow, error) {
+	rows, err := q.db.Query(ctx, dealerOpenInvoiceList, dealerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DealerOpenInvoiceListRow{}
+	for rows.Next() {
+		var i DealerOpenInvoiceListRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Number,
+			&i.DueAt,
+			&i.Residual,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const deleteInternalNumber = `-- name: DeleteInternalNumber :exec
@@ -261,6 +338,39 @@ func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, e
 	return i, err
 }
 
+const insertAIDraftOrder = `-- name: InsertAIDraftOrder :one
+insert into orders (dealer_id, number, state, ordered_at, total, margin_pct, lines, created_by, source_system, source_id, source_write_date)
+values ($1, $2, 'order', $3, $4, $5, $6, 'ai_order_draft', 'odoo', $7, $3)
+on conflict (source_system, source_id) do nothing
+returning id
+`
+
+type InsertAIDraftOrderParams struct {
+	DealerID  *uuid.UUID      `json:"dealer_id"`
+	Number    *string         `json:"number"`
+	OrderedAt *time.Time      `json:"ordered_at"`
+	Total     int64           `json:"total"`
+	MarginPct *float64        `json:"margin_pct"`
+	Lines     json.RawMessage `json:"lines"`
+	SourceID  *string         `json:"source_id"`
+}
+
+// A sale order draft created in Odoo by Distri ARC (outbox odoo_so_draft); the Odoo sync updates it later.
+func (q *Queries) InsertAIDraftOrder(ctx context.Context, arg InsertAIDraftOrderParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertAIDraftOrder,
+		arg.DealerID,
+		arg.Number,
+		arg.OrderedAt,
+		arg.Total,
+		arg.MarginPct,
+		arg.Lines,
+		arg.SourceID,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const insertChatMessage = `-- name: InsertChatMessage :one
 insert into chat_messages (thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal)
 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -299,6 +409,44 @@ func (q *Queries) InsertChatMessage(ctx context.Context, arg InsertChatMessagePa
 		arg.Status,
 		arg.ProposalID,
 		arg.Internal,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const insertCommitment = `-- name: InsertCommitment :one
+insert into commitments (dealer_id, side, title, detail, status, due_at, invoice_id, proposal_id, signal_ids, source_key, created_at)
+values ($1, $2, $3, $4, 'open', $5, $6, $7, $8, $9, $10)
+on conflict (source_key) do update set detail = excluded.detail
+returning id
+`
+
+type InsertCommitmentParams struct {
+	DealerID   *uuid.UUID  `json:"dealer_id"`
+	Side       string      `json:"side"`
+	Title      string      `json:"title"`
+	Detail     *string     `json:"detail"`
+	DueAt      *time.Time  `json:"due_at"`
+	InvoiceID  *uuid.UUID  `json:"invoice_id"`
+	ProposalID *uuid.UUID  `json:"proposal_id"`
+	SignalIds  []uuid.UUID `json:"signal_ids"`
+	SourceKey  *string     `json:"source_key"`
+	CreatedAt  time.Time   `json:"created_at"`
+}
+
+func (q *Queries) InsertCommitment(ctx context.Context, arg InsertCommitmentParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertCommitment,
+		arg.DealerID,
+		arg.Side,
+		arg.Title,
+		arg.Detail,
+		arg.DueAt,
+		arg.InvoiceID,
+		arg.ProposalID,
+		arg.SignalIds,
+		arg.SourceKey,
+		arg.CreatedAt,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
@@ -547,6 +695,40 @@ func (q *Queries) LastSentAt(ctx context.Context, fromNumber string) (time.Time,
 	var last time.Time
 	err := row.Scan(&last)
 	return last, err
+}
+
+const lastSentProposalInThread = `-- name: LastSentProposalInThread :one
+select m.proposal_id, m.sent_at, p.kind, p.title, p.payload from chat_messages m join proposals p on p.id = m.proposal_id
+where m.thread_id = $1 and m.direction = 'out' and m.proposal_id is not null and m.sent_at <= $2::timestamptz
+  and m.sent_at >= $2::timestamptz - interval '72 hours'
+order by m.sent_at desc limit 1
+`
+
+type LastSentProposalInThreadParams struct {
+	ThreadID *uuid.UUID `json:"thread_id"`
+	Before   time.Time  `json:"before"`
+}
+
+type LastSentProposalInThreadRow struct {
+	ProposalID *uuid.UUID      `json:"proposal_id"`
+	SentAt     time.Time       `json:"sent_at"`
+	Kind       string          `json:"kind"`
+	Title      string          `json:"title"`
+	Payload    json.RawMessage `json:"payload"`
+}
+
+// The newest message Distri ARC sent from a proposal in a thread before a moment (reply tracking, 72 hours).
+func (q *Queries) LastSentProposalInThread(ctx context.Context, arg LastSentProposalInThreadParams) (LastSentProposalInThreadRow, error) {
+	row := q.db.QueryRow(ctx, lastSentProposalInThread, arg.ThreadID, arg.Before)
+	var i LastSentProposalInThreadRow
+	err := row.Scan(
+		&i.ProposalID,
+		&i.SentAt,
+		&i.Kind,
+		&i.Title,
+		&i.Payload,
+	)
+	return i, err
 }
 
 const latestThreadSignal = `-- name: LatestThreadSignal :one
@@ -804,12 +986,120 @@ func (q *Queries) ListWANumbers(ctx context.Context) ([]ListWANumbersRow, error)
 	return items, nil
 }
 
+const markLateCommitments = `-- name: MarkLateCommitments :many
+update commitments set status = 'late' where status = 'open' and due_at < $1 returning id, dealer_id, side, title
+`
+
+type MarkLateCommitmentsRow struct {
+	ID       uuid.UUID  `json:"id"`
+	DealerID *uuid.UUID `json:"dealer_id"`
+	Side     string     `json:"side"`
+	Title    string     `json:"title"`
+}
+
+// Open commitments past their date become late (the agents act on them).
+func (q *Queries) MarkLateCommitments(ctx context.Context, dueAt *time.Time) ([]MarkLateCommitmentsRow, error) {
+	rows, err := q.db.Query(ctx, markLateCommitments, dueAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MarkLateCommitmentsRow{}
+	for rows.Next() {
+		var i MarkLateCommitmentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.DealerID,
+			&i.Side,
+			&i.Title,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markThreadRead = `-- name: MarkThreadRead :exec
 update chat_threads set unread = 0 where id = $1
 `
 
 func (q *Queries) MarkThreadRead(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, markThreadRead, id)
+	return err
+}
+
+const openCommitments = `-- name: OpenCommitments :many
+select c.id, c.dealer_id, c.side, c.title, c.detail, c.status, c.due_at, c.late_label, c.invoice_id, c.proposal_id, c.signal_ids, c.source_key, c.created_at, i.number as invoice_number from commitments c left join invoices i on i.id = c.invoice_id
+where c.dealer_id = $1 and c.status <> 'done' order by c.due_at nulls last
+`
+
+type OpenCommitmentsRow struct {
+	ID            uuid.UUID   `json:"id"`
+	DealerID      *uuid.UUID  `json:"dealer_id"`
+	Side          string      `json:"side"`
+	Title         string      `json:"title"`
+	Detail        *string     `json:"detail"`
+	Status        string      `json:"status"`
+	DueAt         *time.Time  `json:"due_at"`
+	LateLabel     *string     `json:"late_label"`
+	InvoiceID     *uuid.UUID  `json:"invoice_id"`
+	ProposalID    *uuid.UUID  `json:"proposal_id"`
+	SignalIds     []uuid.UUID `json:"signal_ids"`
+	SourceKey     *string     `json:"source_key"`
+	CreatedAt     time.Time   `json:"created_at"`
+	InvoiceNumber *string     `json:"invoice_number"`
+}
+
+func (q *Queries) OpenCommitments(ctx context.Context, dealerID *uuid.UUID) ([]OpenCommitmentsRow, error) {
+	rows, err := q.db.Query(ctx, openCommitments, dealerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []OpenCommitmentsRow{}
+	for rows.Next() {
+		var i OpenCommitmentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.DealerID,
+			&i.Side,
+			&i.Title,
+			&i.Detail,
+			&i.Status,
+			&i.DueAt,
+			&i.LateLabel,
+			&i.InvoiceID,
+			&i.ProposalID,
+			&i.SignalIds,
+			&i.SourceKey,
+			&i.CreatedAt,
+			&i.InvoiceNumber,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const setMessageReplyTo = `-- name: SetMessageReplyTo :exec
+update chat_messages set proposal_id = $2 where id = $1
+`
+
+type SetMessageReplyToParams struct {
+	ID         uuid.UUID  `json:"id"`
+	ProposalID *uuid.UUID `json:"proposal_id"`
+}
+
+func (q *Queries) SetMessageReplyTo(ctx context.Context, arg SetMessageReplyToParams) error {
+	_, err := q.db.Exec(ctx, setMessageReplyTo, arg.ID, arg.ProposalID)
 	return err
 }
 
@@ -824,6 +1114,21 @@ type SetMessageSignalParams struct {
 
 func (q *Queries) SetMessageSignal(ctx context.Context, arg SetMessageSignalParams) error {
 	_, err := q.db.Exec(ctx, setMessageSignal, arg.ID, arg.SignalID)
+	return err
+}
+
+const setOutboxError = `-- name: SetOutboxError :exec
+update outbox set status = $2, attempts = attempts + 1, error = $3 where id = $1
+`
+
+type SetOutboxErrorParams struct {
+	ID     uuid.UUID `json:"id"`
+	Status string    `json:"status"`
+	Error  *string   `json:"error"`
+}
+
+func (q *Queries) SetOutboxError(ctx context.Context, arg SetOutboxErrorParams) error {
+	_, err := q.db.Exec(ctx, setOutboxError, arg.ID, arg.Status, arg.Error)
 	return err
 }
 
@@ -854,6 +1159,20 @@ update proposals set status = 'executed', executed_at = now() where id = $1
 
 func (q *Queries) SetProposalExecuted(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, setProposalExecuted, id)
+	return err
+}
+
+const setSignalReply = `-- name: SetSignalReply :exec
+update signals set payload = payload || jsonb_build_object('reply_to', $2::text) where id = $1
+`
+
+type SetSignalReplyParams struct {
+	ID      uuid.UUID `json:"id"`
+	Column2 string    `json:"column_2"`
+}
+
+func (q *Queries) SetSignalReply(ctx context.Context, arg SetSignalReplyParams) error {
+	_, err := q.db.Exec(ctx, setSignalReply, arg.ID, arg.Column2)
 	return err
 }
 

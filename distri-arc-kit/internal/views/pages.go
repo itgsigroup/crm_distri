@@ -515,11 +515,16 @@ func (bld *Builder) DealerDetail(ctx context.Context, b *Board, it BoardItem) (D
 		return Detail{}, err
 	}
 	d.Commitments = Commitments(cm, b.Today)
-	tl, err := bld.st.Q.ListDealerTimeline(ctx, gen.ListDealerTimelineParams{DealerID: &it.UUID, Limit: 10})
+	tl, err := bld.st.Q.DealerTimelineFull(ctx, gen.DealerTimelineFullParams{DealerID: &it.UUID, Lim: 15})
 	if err != nil {
 		return Detail{}, err
 	}
-	d.Timeline = Timeline(tl)
+	for _, t := range tl {
+		d.Timeline = append(d.Timeline, TimelineEntry{At: t.At, Kind: t.Kind, Via: t.Via, Who: t.Who, Text: t.Text, Conclusion: t.Conclusion, SignalID: t.Ref})
+	}
+	if d.Timeline == nil {
+		d.Timeline = []TimelineEntry{}
+	}
 	m := it.Metrics
 	if it.CreditLimit > 0 && metrics.CreditTone(m.Credit.State) == "bad" {
 		d.Flags = append(d.Flags, "credit_blocked")

@@ -12,6 +12,7 @@ import (
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
 	"distri-arc/internal/domain"
+	"distri-arc/internal/jobs"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/policy"
@@ -59,7 +60,11 @@ func runReanalyzeCtl(ctx context.Context, cfg config.Config, st *store.Store, c 
 			return nil
 		}
 	}
-	rep, err := newOrchestrator(ctx, cfg, st, c, log).Run(ctx, sc, domain.Trigger{Source: "manual", By: "arc ctl", Via: *via})
+	orch := newOrchestrator(ctx, cfg, st, c, log)
+	if ins, err := jobs.Inserter(st.Pool); err == nil {
+		orch.Jobs = ins // automatic SO drafts reach the worker's outbox queue
+	}
+	rep, err := orch.Run(ctx, sc, domain.Trigger{Source: "manual", By: "arc ctl", Via: *via})
 	if errors.Is(err, orchestrator.ErrRunning) {
 		return errors.New("orchestrator sedang berjalan — coba lagi setelah siklus selesai")
 	}

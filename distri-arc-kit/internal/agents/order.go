@@ -214,7 +214,7 @@ func (a Order) soDraft(ctx context.Context, in *Input, r *llm.Router, d *Dealer,
 		Pills:      [][2]string{{"accent", a.Name()}, {"neutral", fmt.Sprintf("tier %s · %s", d.Tier, Pct(margin))}},
 		Impact:     []domain.Impact{{Label: "Nilai SO", Value: Rp1(total)}, {Label: "Margin", Value: Pct(margin)}, {Label: "Exposure setelah", Value: Rp(after)}},
 		Confidence: 0.92, SignalIDs: []uuid.UUID{m.SignalID}, Autonomy: "approve",
-		Payload:   map[string]any{"lines": lines, "total": total, "margin_pct": margin, "complete": stockOK && creditOK, "to": contact},
+		Payload:   map[string]any{"lines": lines, "total": total, "margin_pct": margin, "complete": stockOK && creditOK, "to": contact, "day": day},
 		DedupeKey: "order:so:" + m.SignalID.String(),
 	}
 	stockText := fmt.Sprintf("stok %s cukup", d.Branch)

@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,6 +46,30 @@ type Dealer struct {
 	SalesWA        string
 	MonthlyOrders  []int64 // last 6 calendar months, oldest first
 	LastFollowupAt *time.Time
+	Commitments    []Commitment // open and late, both sides
+}
+
+// Commitment is a two-way commitment of a dealer (Kami = GSI promised, Mereka = the dealer promised).
+type Commitment struct {
+	ID        uuid.UUID
+	Side      string
+	Title     string
+	Detail    string
+	Status    string // open | late
+	DueAt     *time.Time
+	Invoice   string
+	SignalIDs []uuid.UUID
+}
+
+// LatePromise is the dealer's broken payment promise, if any.
+func (d *Dealer) LatePromise() *Commitment {
+	for i := range d.Commitments {
+		c := &d.Commitments[i]
+		if c.Side == "mereka" && c.Status == "late" && strings.HasPrefix(c.Title, "Bayar") {
+			return c
+		}
+	}
+	return nil
 }
 
 // Product is a catalog item with tier prices.

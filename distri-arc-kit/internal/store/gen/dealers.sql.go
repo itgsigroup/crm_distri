@@ -40,10 +40,71 @@ func (q *Queries) CountSignalsSince(ctx context.Context, occurredAt time.Time) (
 	return i, err
 }
 
+const dealerTimelineFull = `-- name: DealerTimelineFull :many
+select x.at, x.kind, x.via, x.who, x.text, x.conclusion, x.ref from (
+  select s.occurred_at as at, s.kind, coalesce(s.payload->>'via', '')::text as via, coalesce(s.payload->>'who', s.payload->>'from_name', '')::text as who,
+    coalesce(s.payload->>'text', s.summary, '')::text as text,
+    coalesce(s.payload->>'conclusion', 'Balasan untuk: ' || rp.title, '')::text as conclusion, s.id::text as ref
+  from signals s left join proposals rp on rp.id::text = s.payload->>'reply_to'
+  where s.dealer_id = $1 and (s.payload ? 'conclusion' or s.payload ? 'reply_to')
+  union all
+  select p.decided_at, 'decision', 'form', coalesce(su.name, 'Orchestrator')::text,
+    (case when p.status = 'rejected' then 'Ditolak' when p.status = 'expired' then 'Ditunda' when p.decided_by is null then 'Otonom' else 'Disetujui' end || ': ' || p.title)::text,
+    (p.agent || ' · proposal ' || left(p.id::text, 8) || coalesce(' · ' || p.decision_reason, ''))::text, p.id::text
+  from proposals p left join sales_users su on su.id = p.decided_by
+  where p.dealer_id = $1 and p.decided_at is not null and p.kind <> 'reply'
+) x order by x.at desc limit $2
+`
+
+type DealerTimelineFullParams struct {
+	DealerID *uuid.UUID `json:"dealer_id"`
+	Lim      int32      `json:"lim"`
+}
+
+type DealerTimelineFullRow struct {
+	At         time.Time `json:"at"`
+	Kind       string    `json:"kind"`
+	Via        string    `json:"via"`
+	Who        string    `json:"who"`
+	Text       string    `json:"text"`
+	Conclusion string    `json:"conclusion"`
+	Ref        string    `json:"ref"`
+}
+
+// Timeline dealer: interactions with an agent conclusion, sends (manual trail signals), replies linked to a
+// proposal, and decisions on proposals — newest first.
+func (q *Queries) DealerTimelineFull(ctx context.Context, arg DealerTimelineFullParams) ([]DealerTimelineFullRow, error) {
+	rows, err := q.db.Query(ctx, dealerTimelineFull, arg.DealerID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DealerTimelineFullRow{}
+	for rows.Next() {
+		var i DealerTimelineFullRow
+		if err := rows.Scan(
+			&i.At,
+			&i.Kind,
+			&i.Via,
+			&i.Who,
+			&i.Text,
+			&i.Conclusion,
+			&i.Ref,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getDealer = `-- name: GetDealer :one
 select d.id, d.slug, d.name, d.city, d.branch, d.tier, d.segment_desc, d.owner_id, d.credit_limit,
        d.payment_terms_days, d.memo, d.memo_signal_ids, d.memo_updated_at, d.memo_sentences, d.metrics_current, d.updated_at,
-       s.name as owner_name, s.branch as owner_branch, s.wa_number as owner_wa
+       d.source_id, s.name as owner_name, s.branch as owner_branch, s.wa_number as owner_wa
 from dealers d left join sales_users s on s.id = d.owner_id
 where d.slug = $1 or d.id::text = $1
 `
@@ -65,6 +126,7 @@ type GetDealerRow struct {
 	MemoSentences    json.RawMessage `json:"memo_sentences"`
 	MetricsCurrent   json.RawMessage `json:"metrics_current"`
 	UpdatedAt        time.Time       `json:"updated_at"`
+	SourceID         *string         `json:"source_id"`
 	OwnerName        *string         `json:"owner_name"`
 	OwnerBranch      *string         `json:"owner_branch"`
 	OwnerWa          *string         `json:"owner_wa"`
@@ -90,6 +152,7 @@ func (q *Queries) GetDealer(ctx context.Context, slug *string) (GetDealerRow, er
 		&i.MemoSentences,
 		&i.MetricsCurrent,
 		&i.UpdatedAt,
+		&i.SourceID,
 		&i.OwnerName,
 		&i.OwnerBranch,
 		&i.OwnerWa,

@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 12,
+  "current_stage": 13,
   "stages": [
     {
       "id": 0,
@@ -128,12 +128,12 @@
     {
       "id": 12,
       "name": "Eksekusi nyata: Odoo SO draft, outbox WA produksi, komitmen",
-      "status": "pending",
+      "status": "done-with-fakes",
       "file": "docs/stages/12-odoo-write-outbox.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-06",
+      "finished_at": "2026-10-06",
+      "summary": "Outbox jadi jalur eksekusi tunggal: kanal wa, odoo_so_draft, odoo_note (pending → sent/failed/manual, retry 3×, toast outbox_failed). Odoo: SO draft dengan catatan sumber + catatan internal keputusan (message_post), partner baru untuk nomor baru; transfer/PO manual. SO draft dicatat sebagai order ai_order_draft + sinyal + komitmen Kami (mengadopsi janji kirim dari chat). WA: jendela 08–18 WIB (WA_SEND_HOURS), jejak 'Terkirim … dari proposal' di Timeline. internal/commitment: reply tracking 72 jam, janji bayar & jawaban ya → komitmen Mereka, komitmen lewat tanggal → late → AI Penagihan 'Janji bayar terlewat'. Timeline dealer menampilkan keputusan + balasan. Kebijakan odoo.write.notes. ADR 0014.",
+      "notes": "Acceptance dengan fake: SO draft otonom Toko Sinar → Odoo fake (catatan sumber), order + Timeline rantai WA → keputusan → SO draft (test + layar). Reply tracking & janji bayar diuji dengan wa.Fake. Belum: Odoo uji sungguhan dan WA nyata nomor uji Sam → nomor kedua (butuh kredensial/izin, OPEN-QUESTIONS)."
     },
     {
       "id": 13,

@@ -150,3 +150,56 @@ update chat_messages set signal_id = $2 where id = $1;
 -- name: UpsertIdentification :exec
 insert into identifications (wa_number, sources, best_name, best_org, score) values ($1, $2, $3, $4, $5)
 on conflict (wa_number) do update set sources = excluded.sources, best_name = excluded.best_name, best_org = excluded.best_org, score = excluded.score;
+
+-- name: InsertAIDraftOrder :one
+-- A sale order draft created in Odoo by Distri ARC (outbox odoo_so_draft); the Odoo sync updates it later.
+insert into orders (dealer_id, number, state, ordered_at, total, margin_pct, lines, created_by, source_system, source_id, source_write_date)
+values ($1, $2, 'order', $3, $4, $5, $6, 'ai_order_draft', 'odoo', $7, $3)
+on conflict (source_system, source_id) do nothing
+returning id;
+
+-- name: InsertCommitment :one
+insert into commitments (dealer_id, side, title, detail, status, due_at, invoice_id, proposal_id, signal_ids, source_key, created_at)
+values ($1, $2, $3, $4, 'open', $5, $6, $7, $8, $9, $10)
+on conflict (source_key) do update set detail = excluded.detail
+returning id;
+
+-- name: AdoptKamiCommitment :one
+-- An executed SO draft takes over the open "Kirim …" promise sales already made in the chat (no proposal yet),
+-- instead of listing the same delivery twice.
+update commitments set proposal_id = sqlc.arg(proposal_id), detail = sqlc.arg(detail), due_at = coalesce(due_at, sqlc.narg(due_at)),
+  signal_ids = array_append(signal_ids, sqlc.arg(signal_id)::uuid)
+where id = (select c.id from commitments c where c.dealer_id = sqlc.arg(dealer_id) and c.side = 'kami' and c.status = 'open'
+  and c.proposal_id is null and c.title ilike 'Kirim%' order by c.created_at limit 1)
+returning id;
+
+-- name: MarkLateCommitments :many
+-- Open commitments past their date become late (the agents act on them).
+update commitments set status = 'late' where status = 'open' and due_at < $1 returning id, dealer_id, side, title;
+
+-- name: CloseCommitment :exec
+update commitments set status = 'done' where id = $1;
+
+-- name: OpenCommitments :many
+select c.*, i.number as invoice_number from commitments c left join invoices i on i.id = c.invoice_id
+where c.dealer_id = $1 and c.status <> 'done' order by c.due_at nulls last;
+
+-- name: SetOutboxError :exec
+update outbox set status = $2, attempts = attempts + 1, error = $3 where id = $1;
+
+-- name: LastSentProposalInThread :one
+-- The newest message Distri ARC sent from a proposal in a thread before a moment (reply tracking, 72 hours).
+select m.proposal_id, m.sent_at, p.kind, p.title, p.payload from chat_messages m join proposals p on p.id = m.proposal_id
+where m.thread_id = $1 and m.direction = 'out' and m.proposal_id is not null and m.sent_at <= sqlc.arg(before)::timestamptz
+  and m.sent_at >= sqlc.arg(before)::timestamptz - interval '72 hours'
+order by m.sent_at desc limit 1;
+
+-- name: SetMessageReplyTo :exec
+update chat_messages set proposal_id = $2 where id = $1;
+
+-- name: SetSignalReply :exec
+update signals set payload = payload || jsonb_build_object('reply_to', $2::text) where id = $1;
+
+-- name: DealerOpenInvoiceList :many
+select id, number, due_at, (total - coalesce(paid, 0))::bigint as residual from invoices
+where dealer_id = $1 and total > coalesce(paid, 0) and state <> 'cancel' order by due_at;

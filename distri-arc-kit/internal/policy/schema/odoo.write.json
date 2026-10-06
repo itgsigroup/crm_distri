@@ -1,0 +1,1 @@
+{"type":"object","additionalProperties":false,"required":["notes"],"properties":{"notes":{"type":"boolean"}}}

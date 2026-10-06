@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/google/uuid"
 
+	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/metrics"
@@ -38,7 +40,8 @@ func (a Collect) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domai
 				soon = append(soon, i)
 			}
 		}
-		if len(late) == 0 && len(soon) == 0 {
+		promise := d.LatePromise()
+		if len(late) == 0 && len(soon) == 0 && promise == nil {
 			continue
 		}
 		m := d.Metrics
@@ -78,6 +81,9 @@ func (a Collect) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domai
 				p.Payload["tone"] = "tegas"
 			}
 			p.Steps = []string{"Masuk antrean " + d.Owner.Name, "Komitmen bayar dicatat dengan tanggal", "Pembayaran masuk → limit terbuka lagi"}
+		case len(soon) == 0:
+			p.Kind, p.Button, p.DueLabel, p.Confidence = domain.KindCollect, "Kirim pengingat", "Hari ini", 0.86
+			p.Payload["tone"] = "tegas"
 		default:
 			inv := soon[0]
 			due := metrics.DaysBetween(in.Today, inv.DueAt)
@@ -93,6 +99,25 @@ func (a Collect) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domai
 			p.Steps = []string{"Dikirim dari nomor " + d.Owner.Name, "Pembayaran masuk → order berikutnya tidak tertahan limit"}
 			p.Payload["invoices"] = numbers(soon)
 			p.Payload["tone"] = "ramah"
+		}
+		if promise != nil { // a broken payment promise: firm, needs a human, the promise is the provenance
+			due := ""
+			if promise.DueAt != nil {
+				due = " " + clock.DayMonth(*promise.DueAt)
+			}
+			p.Why = fmt.Sprintf("Janji “%s”%s terlewat (%s). %s", promise.Title, due, promise.Detail, p.Why)
+			p.SignalIDs = append(append([]uuid.UUID{}, promise.SignalIDs...), p.SignalIDs...)
+			p.Payload["commitment_id"] = promise.ID
+			if p.Kind != domain.KindInstallment {
+				p.Kind, p.Confidence, p.Button = domain.KindCollect, 0.86, "Kirim pengingat"
+				p.Title = fmt.Sprintf("Janji bayar terlewat — %s %s", d.Name, promise.Title)
+				p.Preview = fmt.Sprintf("%s, kami belum menerima pembayaran yang dijanjikan%s untuk %s. Mohon info jadwal transfernya ya.%s", pic.Name, due, strings.TrimPrefix(promise.Title, "Bayar "), orderLine)
+				p.Payload["tone"] = "tegas"
+				p.Steps = []string{"Masuk antrean " + d.Owner.Name, "Komitmen baru dicatat dengan tanggal", "Pembayaran masuk → komitmen selesai"}
+			}
+		}
+		if len(p.SignalIDs) == 0 {
+			continue
 		}
 		polish(ctx, r, in, &p, "collect", map[string]any{"dealer": d.Name, "pic": pic.Name, "sales": d.Owner.Name, "invoices": d.OpenInvoices,
 			"pay_days": m.Credit.PayDays, "on_time": m.Credit.OnTime, "tone": p.Payload["tone"], "order_due_in": m.DueIn}, []string{pic.Name, d.Owner.Name})

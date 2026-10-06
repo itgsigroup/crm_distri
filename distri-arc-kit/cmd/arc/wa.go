@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -70,6 +72,15 @@ func sendRules(cfg config.Config) outbox.Rules {
 	r := outbox.DefaultRules()
 	r.GapMin, r.GapMax = config.Range(cfg.WASendGap, r.GapMin, r.GapMax)
 	r.ReplyMin, r.ReplyMax = config.Range(cfg.WAReplyDelay, r.ReplyMin, r.ReplyMax)
+	switch h := strings.TrimSpace(os.Getenv("WA_SEND_HOURS")); {
+	case h == "off":
+		r.SendFrom, r.SendTo = 0, 0
+	case h != "":
+		var a, b int
+		if _, err := fmt.Sscanf(h, "%d-%d", &a, &b); err == nil && a >= 0 && b <= 24 && a < b {
+			r.SendFrom, r.SendTo = a, b
+		}
+	}
 	return r
 }
 

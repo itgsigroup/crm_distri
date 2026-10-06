@@ -19,6 +19,8 @@ type Source interface {
 	Name() string
 	SearchRead(ctx context.Context, model string, domain []any, fields []string) ([]Record, error)
 	Create(ctx context.Context, model string, vals map[string]any) (int, error)
+	// PostNote posts an internal note (chatter, not sent to the customer) on a record; writes must be enabled.
+	PostNote(ctx context.Context, model string, id int, body string) (int, error)
 	Version(ctx context.Context) (string, error)
 }
 

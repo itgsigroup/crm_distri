@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"distri-arc/internal/agents"
+	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
 )
 
@@ -153,7 +154,7 @@ func suppression(cands []*Cand, in RuleInput) ([]*Cand, []domain.Conflict) {
 		}
 		for _, s := range in.Suppressions {
 			if s.Agent == c.P.Agent && s.Kind == c.P.Kind && s.DealerID == *c.P.DealerID {
-				c.Suppressed = fmt.Sprintf("Ditahan kalibrasi sampai %s: saran serupa ditolak", s.Until.Format("2 Jan"))
+				c.Suppressed = fmt.Sprintf("Ditahan kalibrasi sampai %s: saran serupa ditolak", clock.DayMonth(s.Until))
 				out = append(out, domain.Conflict{Rule: RuleSuppression, DealerID: slugOf(c), AgentA: c.P.Agent, AgentB: "Kalibrasi", Title: c.P.Title,
 					Resolution: c.Suppressed, Tone: "neutral", Keys: []string{c.P.DedupeKey}})
 				break

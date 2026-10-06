@@ -85,6 +85,14 @@ func BuildInput(ctx context.Context, st *store.Store, c clock.Clock, only string
 		}
 		h := b.Data.Histories[it.UUID]
 		d := &agents.Dealer{BoardItem: it, Contacts: h.Contacts, Memo: deref(row.Memo), OpenInvoices: views.OpenInvoices(h, b.Today), SalesWA: salesWA[it.Owner.Name]}
+		if cs, err := st.Q.OpenCommitments(ctx, &it.UUID); err == nil {
+			for _, c := range cs {
+				d.Commitments = append(d.Commitments, agents.Commitment{ID: c.ID, Side: c.Side, Title: c.Title, Detail: deref(c.Detail), Status: c.Status,
+					DueAt: c.DueAt, Invoice: deref(c.InvoiceNumber), SignalIDs: c.SignalIds})
+			}
+		} else {
+			return nil, nil, err
+		}
 		if at, err := st.Q.LastSentFollowup(ctx, &it.UUID); err == nil && !at.IsZero() {
 			d.LastFollowupAt = &at
 		}

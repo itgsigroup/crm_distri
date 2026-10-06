@@ -37,7 +37,7 @@ func (OutboxSendArgs) Kind() string { return "outbox.send" }
 
 // InsertOpts makes outbox.send unique per outbox row.
 func (OutboxSendArgs) InsertOpts() river.InsertOpts {
-	return river.InsertOpts{UniqueOpts: river.UniqueOpts{ByArgs: true}, MaxAttempts: 5}
+	return river.InsertOpts{UniqueOpts: river.UniqueOpts{ByArgs: true}, MaxAttempts: 3}
 }
 
 // WAPairArgs starts pairing a sales number (QR) in the worker, which owns the WhatsApp connections.

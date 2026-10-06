@@ -45,7 +45,7 @@ const usage = `arc — Distri ARC Orbit
   arc ctl counts             print row counts
   arc ctl recompute          recompute dealers.metrics_current (all dealers)
   arc ctl metrics --dealer <slug>  print a dealer's metrics and the 5 score components
-  arc ctl wa inject --from <no> --text "…" [--to <sales no>]  feed a fake inbound WhatsApp message
+  arc ctl wa inject --from <no> --text "…" [--to <sales no>] [--in 2h]  feed a fake inbound WhatsApp message
   arc ctl wa numbers         list paired sales numbers
   arc ctl odoo sync [--full] pull Odoo (ODOO_MODE=fake|rpc) into Distri ARC, read-only
   arc ctl odoo test          check the Odoo connection
@@ -400,6 +400,7 @@ func runWACtl(ctx context.Context, st *store.Store, c clock.Clock, log *slog.Log
 	to := fs.String("to", "", "sales number that receives it (default: the dealer owner's number)")
 	text := fs.String("text", "", "message text")
 	name := fs.String("name", "", "sender push name")
+	in := fs.Duration("in", 0, "message time after now (dev clock: a reply arrives after the sent follow-up)")
 	_ = fs.Parse(args[1:])
 	switch args[0] {
 	case "inject":
@@ -420,7 +421,7 @@ func runWACtl(ctx context.Context, st *store.Store, c clock.Clock, log *slog.Log
 		if acct == "" {
 			acct = "6281234504471"
 		}
-		res, err := injectMessage(ctx, st, log, *from, acct, *text, *name, c.Now())
+		res, err := injectMessage(ctx, st, log, *from, acct, *text, *name, c.Now().Add(*in))
 		if err != nil {
 			return err
 		}

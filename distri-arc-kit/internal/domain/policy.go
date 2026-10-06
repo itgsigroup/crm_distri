@@ -12,6 +12,7 @@ type PolicySet struct {
 	KPI       KPITargets             `json:"kpi.targets"`
 	Autonomy  map[string]AutonomyRow `json:"autonomy.matrix"`
 	Guard     AutonomyGuard          `json:"autonomy.guard"`
+	OdooWrite OdooWritePolicy        `json:"odoo.write"`
 	MCP       MCPPermissions         `json:"mcp.permissions"`
 	LLM       LLMRouting             `json:"llm.routing"`
 	Retention Retention              `json:"retention"`
@@ -71,6 +72,11 @@ type KPITargets struct {
 	StockTurnDays int `json:"stock_turn_days"`
 }
 
+// OdooWritePolicy: what Distri ARC writes to Odoo besides SO drafts (only when ODOO_WRITE=true).
+type OdooWritePolicy struct {
+	Notes bool `json:"notes"` // an internal note on the partner for every decided proposal
+}
+
 // AutonomyGuard narrows the matrix (04-orchestrator › Keputusan, ADR 0008). DealerMessages decides what an
 // "auto" step that would message a dealer does: "confirm" (default) keeps it scheduled until a human presses
 // "Jalankan sekarang"; "auto" lets the Orchestrator send it at its slot — only the owner may switch it on.
@@ -128,6 +134,7 @@ func DefaultPolicies() PolicySet {
 	p.Margin.Pct = 9
 	p.Stock = StockPolicy{AgingDays: 90, BundleMaxDiscountPct: 8, CriticalDays: 10}
 	p.KPI = KPITargets{OnSchedulePct: 85, DSODays: 30, StockTurnDays: 40}
+	p.OdooWrite = OdooWritePolicy{Notes: true}
 	p.Guard = AutonomyGuard{MinConfidence: 0.8, DealerMessages: "confirm"}
 	p.MCP = MCPPermissions{AllowReanalyze: true, AllowPlanUpdateProposal: true, MaskPIIInRead: true, MaxCyclesPerHour: 6}
 	p.LLM = LLMRouting{Mode: "both", Provider: "anthropic", Model: "claude-sonnet-5-5", Fallback: "openai:gpt-4.1", BatchHours: []int{6, 20}, Timezone: "Asia/Jakarta"}

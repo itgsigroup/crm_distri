@@ -24,6 +24,7 @@ import (
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/events"
+	"distri-arc/internal/jobs"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/proposals"
 	"distri-arc/internal/store"
@@ -229,6 +230,10 @@ func (o *Orchestrator) ingest(ctx context.Context, r *stageRun) (map[string]any,
 		if err := o.St.Q.ExpireOpenProposals(ctx, today); err != nil {
 			return nil, err
 		}
+	}
+	// commitments past their date become late; AI Penagihan acts on broken payment promises
+	if _, err := o.St.Q.MarkLateCommitments(ctx, &today); err != nil {
+		return nil, err
 	}
 	sigs, err := o.St.Q.UnprocessedSignals(ctx, dealerFilter)
 	if err != nil {
@@ -650,8 +655,14 @@ func (o *Orchestrator) execute(ctx context.Context, r *stageRun) (map[string]any
 		switch {
 		case p.Kind == domain.KindSODraft && p.Autonomy == "auto" && o.OdooWrite:
 			payload, _ := json.Marshal(map[string]any{"proposal": p.Payload, "approved_by": "Orchestrator · otonom"})
-			if _, err := o.St.Q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: p.ID, Channel: "odoo_so_draft", Payload: payload}); err != nil {
+			ob, err := o.St.Q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: p.ID, Channel: "odoo_so_draft", Payload: payload})
+			if err != nil {
 				return nil, err
+			}
+			if o.Jobs != nil {
+				if _, err := o.Jobs.Insert(ctx, jobs.OutboxSendArgs{OutboxID: ob.ID.String()}, nil); err != nil {
+					return nil, err
+				}
 			}
 			r.outbox++
 		case p.Autonomy == "auto" && !MessagesDealer(p.Kind):

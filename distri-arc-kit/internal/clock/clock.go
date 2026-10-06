@@ -39,3 +39,10 @@ func Today(t time.Time) time.Time {
 	t = t.In(WIB)
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, WIB)
 }
+
+var idMonths = [12]string{"Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"}
+
+// DayMonth formats a date the way the UI writes it ("8 Okt").
+func DayMonth(t time.Time) string {
+	return fmt.Sprintf("%d %s", t.Day(), idMonths[t.Month()-1])
+}

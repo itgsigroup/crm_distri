@@ -18,4 +18,7 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-06 · 09 · Prediksi kas: konstanta probabilitas dikalibrasi ke mockup (ADR 0011). Bandingkan dengan realisasi kas 2–3 bulan pilot lalu kalibrasi ulang · — · seperti ADR
 - 2026-10-06 · 11 · Peran gudang/finance: menu dan hak keputusan di ADR 0013 (finance: penagihan & limit; gudang: transfer & PO) — sesuai praktik GSI? · ADR 0013 · —
 - 2026-10-06 · 11 · Akun produksi: siapa saja (email) dan perannya, untuk dibuat lewat `arc ctl user add` saat pilot · akun contoh di seed · —
-
+- 2026-10-06 · 12 · Instance Odoo **uji** (URL, DB, user dengan hak `sale.order.create` + catatan `mail.message`) untuk membuktikan SO draft & catatan sebelum produksi · tulis Odoo diuji dengan fake · `ODOO_WRITE=false` di produksi
+- 2026-10-06 · 12 · Uji WA nyata: nomor uji Sam → nomor uji kedua (pairing QR whatsmeow) untuk jam kirim, jeda, dan balasan · diuji dengan `wa.Fake` · —
+- 2026-10-06 · 12 · Transfer internal & PO: picking type / operation type per cabang di Odoo GSI, dan apakah PO dibuat sebagai RFQ draft · baris outbox berstatus `manual` (dikerjakan gudang di Odoo) · manual
+- 2026-10-06 · 12 · Catatan keputusan di partner Odoo (chatter) untuk setiap keputusan dealer — diinginkan, atau terlalu ramai? · kebijakan `odoo.write.notes` · aktif

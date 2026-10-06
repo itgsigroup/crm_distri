@@ -17,6 +17,7 @@ import (
 	"distri-arc/internal/domain"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/outbox"
+	"distri-arc/internal/policy"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/wa"
@@ -154,7 +155,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 				preview = d.Preview
 			}
 			sends := domain.SendsWA(row.Kind) && preview != "" && (opt == nil || opt.Sends || key == "approve")
-			var obID *uuid.UUID
+			var obID, odooOB *uuid.UUID
 			switch {
 			case row.Kind == domain.KindPlanChange:
 				if err := applyPlanChange(ctx, q, row, now); err != nil {
@@ -178,7 +179,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 				if err != nil {
 					return err
 				}
-				obID = &ob.ID
+				obID, odooOB = &ob.ID, &ob.ID
 				if out.Result == "" {
 					out.Result = row.Title + " · dicatat untuk gudang/Purchasing"
 				}
@@ -190,7 +191,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 				if err != nil {
 					return err
 				}
-				obID = &ob.ID
+				obID, odooOB = &ob.ID, &ob.ID
 				if out.Result == "" {
 					out.Result = fmt.Sprintf("%v dicatat sebagai dealer tier C · dibuat di Odoo saat tulis-balik aktif", pl["name"])
 				}
@@ -205,7 +206,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 				if err != nil {
 					return err
 				}
-				obID = &ob.ID
+				obID, odooOB = &ob.ID, &ob.ID
 			case row.Kind == domain.KindCreditLimit:
 				var pl map[string]any
 				_ = json.Unmarshal(row.Payload, &pl)
@@ -218,9 +219,14 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 				if err != nil {
 					return err
 				}
-				obID = &ob.ID
+				obID, odooOB = &ob.ID, &ob.ID
 			}
 			out.OutboxID = obID
+			if odooOB != nil && odooWrite && ins != nil { // written by the worker; without ODOO_WRITE the row waits
+				if _, err := ins.InsertTx(ctx, tx, jobs.OutboxSendArgs{OutboxID: odooOB.String()}, nil); err != nil {
+					return err
+				}
+			}
 			if obID == nil { // nothing leaves the system: the decision itself completes the proposal
 				if err := q.SetProposalStatus(ctx, gen.SetProposalStatusParams{ID: id, Status: "executed"}); err != nil {
 					return err
@@ -230,6 +236,9 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 			if out.Result == "" {
 				out.Result = row.Title + " · dijalankan"
 			}
+		}
+		if err := decisionNote(ctx, q, tx, ins, odooWrite, row, out.Status, who, reason); err != nil {
+			return err
 		}
 		if err := q.SyncPlanStatus(ctx, clock.Today(now)); err != nil {
 			return err
@@ -278,7 +287,15 @@ func queueWA(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Client[p
 	}
 	jid := wa.UserJID(deref(contact.WaNumber))
 	payload := outbox.WAPayload{From: *d.OwnerWa, To: jid, Text: text, Kind: p.Kind}
-	if tid, err := q.FindThreadBySalesJID(ctx, gen.FindThreadBySalesJIDParams{SalesID: d.OwnerID, WaJid: &jid}); err == nil {
+	tid, err := q.FindThreadBySalesJID(ctx, gen.FindThreadBySalesJIDParams{SalesID: d.OwnerID, WaJid: &jid})
+	if errors.Is(err, pgx.ErrNoRows) {
+		// first message to this contact: open the thread so the dealer's answer can be linked back (reply tracking)
+		kind, title, subtitle := "dealer", deref(contact.Name)+" · "+wa.ShortDealer(d.Name), d.Name+" · "+deref(contact.Role)
+		var t gen.ChatThread
+		t, err = q.InsertThread(ctx, gen.InsertThreadParams{Kind: &kind, DealerID: p.DealerID, ContactID: &contact.ID, WaJid: &jid, Title: &title, Subtitle: &subtitle, SalesID: d.OwnerID, LastMessageAt: &now})
+		tid = t.ID
+	}
+	if err == nil {
 		dir, name, pending := "out", deref(d.OwnerName), "outbox:"+p.ID.String()
 		mid, err := q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &tid, WaMsgID: &pending, Direction: &dir, FromNumber: d.OwnerWa, FromName: &name, Body: &text, SentAt: now, Status: "pending", ProposalID: &p.ID})
 		if err == nil {
@@ -521,4 +538,38 @@ func authorize(ctx context.Context, q *gen.Queries, kind string, dealerID *uuid.
 		}
 	}
 	return fmt.Errorf("%w: bukan dealer atau chat Anda", ErrForbidden)
+}
+
+// decisionNote writes the decision as an internal note on the dealer's Odoo partner (policy odoo.write.notes,
+// ODOO_WRITE=true). Kinds that already write to Odoo (SO draft, limit, new dealer, transfer, PO) are skipped.
+func decisionNote(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Client[pgx.Tx], odooWrite bool, p gen.Proposal, status string, who Decider, reason string) error {
+	if !odooWrite || p.DealerID == nil {
+		return nil
+	}
+	switch p.Kind {
+	case domain.KindSODraft, domain.KindCreditLimit, domain.KindNewDealer, domain.KindTransfer, domain.KindPORequest, domain.KindReply:
+		return nil
+	}
+	pol, err := policy.Load(ctx, q)
+	if err != nil || !pol.OdooWrite.Notes {
+		return err
+	}
+	verb := map[string]string{"rejected": "Ditolak", "expired": "Ditunda"}[status]
+	if verb == "" {
+		verb = "Disetujui"
+	}
+	note := fmt.Sprintf("Distri ARC · %s oleh %s · %s (%s)", verb, who.Name, p.Title, p.Agent)
+	if reason != "" && status == "rejected" {
+		note += " · alasan: " + reason
+	}
+	note += " · proposal " + p.ID.String()
+	payload, _ := json.Marshal(map[string]any{"note": note})
+	ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: p.ID, Channel: "odoo_note", Payload: payload})
+	if err != nil {
+		return err
+	}
+	if ins != nil {
+		_, err = ins.InsertTx(ctx, tx, jobs.OutboxSendArgs{OutboxID: ob.ID.String()}, nil)
+	}
+	return err
 }

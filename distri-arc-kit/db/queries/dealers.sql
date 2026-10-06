@@ -8,7 +8,7 @@ order by length(d.source_id), d.source_id, d.name;
 -- name: GetDealer :one
 select d.id, d.slug, d.name, d.city, d.branch, d.tier, d.segment_desc, d.owner_id, d.credit_limit,
        d.payment_terms_days, d.memo, d.memo_signal_ids, d.memo_updated_at, d.memo_sentences, d.metrics_current, d.updated_at,
-       s.name as owner_name, s.branch as owner_branch, s.wa_number as owner_wa
+       d.source_id, s.name as owner_name, s.branch as owner_branch, s.wa_number as owner_wa
 from dealers d left join sales_users s on s.id = d.owner_id
 where d.slug = $1 or d.id::text = $1;
 
@@ -85,3 +85,20 @@ select count(*) filter (where kind in ('wa','wa_group'))::bigint as wa,
        count(*) filter (where kind = 'payment')::bigint as payments,
        count(*)::bigint as total
 from signals where occurred_at >= $1;
+
+-- name: DealerTimelineFull :many
+-- Timeline dealer: interactions with an agent conclusion, sends (manual trail signals), replies linked to a
+-- proposal, and decisions on proposals — newest first.
+select x.at, x.kind, x.via, x.who, x.text, x.conclusion, x.ref from (
+  select s.occurred_at as at, s.kind, coalesce(s.payload->>'via', '')::text as via, coalesce(s.payload->>'who', s.payload->>'from_name', '')::text as who,
+    coalesce(s.payload->>'text', s.summary, '')::text as text,
+    coalesce(s.payload->>'conclusion', 'Balasan untuk: ' || rp.title, '')::text as conclusion, s.id::text as ref
+  from signals s left join proposals rp on rp.id::text = s.payload->>'reply_to'
+  where s.dealer_id = sqlc.arg(dealer_id) and (s.payload ? 'conclusion' or s.payload ? 'reply_to')
+  union all
+  select p.decided_at, 'decision', 'form', coalesce(su.name, 'Orchestrator')::text,
+    (case when p.status = 'rejected' then 'Ditolak' when p.status = 'expired' then 'Ditunda' when p.decided_by is null then 'Otonom' else 'Disetujui' end || ': ' || p.title)::text,
+    (p.agent || ' · proposal ' || left(p.id::text, 8) || coalesce(' · ' || p.decision_reason, ''))::text, p.id::text
+  from proposals p left join sales_users su on su.id = p.decided_by
+  where p.dealer_id = sqlc.arg(dealer_id) and p.decided_at is not null and p.kind <> 'reply'
+) x order by x.at desc limit sqlc.arg(lim);

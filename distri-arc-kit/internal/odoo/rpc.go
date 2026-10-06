@@ -114,6 +114,26 @@ func (c *RPC) Create(ctx context.Context, model string, vals map[string]any) (in
 	return id, json.Unmarshal(raw, &id)
 }
 
+// PostNote calls message_post with the internal-note subtype: visible to GSI staff in Odoo, never e-mailed to the
+// partner.
+func (c *RPC) PostNote(ctx context.Context, model string, id int, body string) (int, error) {
+	if !c.Write {
+		return 0, ErrWriteDisabled
+	}
+	raw, err := c.executeKw(ctx, model, "message_post", []any{[]any{id}}, map[string]any{"body": body, "message_type": "comment", "subtype_xmlid": "mail.mt_note"})
+	if err != nil {
+		return 0, err
+	}
+	var mid int
+	if json.Unmarshal(raw, &mid) != nil {
+		var ids []int
+		if json.Unmarshal(raw, &ids) == nil && len(ids) > 0 {
+			mid = ids[0]
+		}
+	}
+	return mid, nil
+}
+
 // Version returns the server version (connection test).
 func (c *RPC) Version(ctx context.Context) (string, error) {
 	raw, err := c.call(ctx, "common", "version")

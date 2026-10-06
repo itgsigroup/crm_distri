@@ -9,6 +9,7 @@ import { useHealth, useMe, useNow, useOrbit, useThreads } from './queries'
 import { useCommand } from './command'
 import { Dock } from './Dock'
 import { OrchPill, useOrchStatus } from './orch'
+import { useSse } from './SseProvider'
 
 export const ROUTES: Record<ScreenKey, string> = {
   today: '/',
@@ -81,6 +82,16 @@ export function Shell() {
     if (me && !me.screens.includes(cur)) nav('/', { replace: true })
   }, [me, cur, nav])
   const [menu, setMenu] = useState(false)
+  const { subscribe } = useSse()
+  useEffect(
+    () =>
+      subscribe((name, data) => {
+        if (name !== 'outbox_failed') return
+        const d = (data ?? {}) as { channel?: string; error?: string }
+        toast(`${d.channel === 'wa' ? 'Pesan WhatsApp' : 'Penulisan ke Odoo'} gagal: ${d.error ?? 'coba lagi'} — saran tetap disetujui, worker mencoba ulang`)
+      }),
+    [subscribe, toast],
+  )
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
     window.location.assign('/login')

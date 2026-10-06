@@ -77,3 +77,8 @@ Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (bran
 - Isi `ARC_DEMO_PASSWORD` di `.env` (dev) lalu `make reset`: akun contoh (sam@, admin@, finance@, andi@/dewi@/rizky@/fajar@, gudang@ `gsi.co.id`) memakai kata sandi itu. Produksi: `bin/arc ctl user add --email … --role ceo --password …`.
 - Pengaturan (CEO): ubah ambang, limit, floor margin, follow-up, matriks otonomi; setiap perubahan berversi dan berlaku di siklus berikutnya.
 
+### Tahap 12: eksekusi nyata
+- Dev: `WA_SEND_HOURS=off` (jam contoh 06.45 di luar jendela 08–18) dan `ODOO_WRITE=true` dengan `ODOO_MODE=fake`. `make reset` lalu `bin/arc ctl reanalyze --scope all`: SO draft otonom Toko Sinar dikirim worker ke Odoo fake → halaman Dealer Sinar menampilkan rantai WA → Otonom → SO draft #900001 dan komitmen Kami.
+- Setujui follow-up, lalu simulasikan balasan dealer: `bin/arc ctl wa inject --from 6281900301301 --in 1h --text "INV/0964 saya transfer hari Kamis ya"` (Pak Bayu, Prima) → komitmen Mereka bertanggal dan Timeline "Balasan untuk: …".
+- Produksi: `ODOO_MODE=rpc` + `ODOO_WRITE=true` hanya setelah diuji di instance Odoo uji; status tiap eksekusi ada di tabel `outbox` (gagal → toast + coba ulang).
+

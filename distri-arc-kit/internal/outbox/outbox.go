@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/rand/v2"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 
 	"distri-arc/internal/clock"
 	"distri-arc/internal/events"
+	"distri-arc/internal/odoo"
 	"distri-arc/internal/policy"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
@@ -36,11 +36,12 @@ type Rules struct {
 	GapMin, GapMax     time.Duration // between proactive sends of one number (default 20–90 s)
 	ReplyMin, ReplyMax time.Duration // typing delay for replies (default 2–6 s)
 	DailyCapOverride   int           // 0 = policy followup.rules.max_per_day_per_sales
+	SendFrom, SendTo   int           // proactive sends only between these WIB hours (0, 0 = any time)
 }
 
 // DefaultRules are the production limits.
 func DefaultRules() Rules {
-	return Rules{GapMin: 20 * time.Second, GapMax: 90 * time.Second, ReplyMin: 2 * time.Second, ReplyMax: 6 * time.Second}
+	return Rules{GapMin: 20 * time.Second, GapMax: 90 * time.Second, ReplyMin: 2 * time.Second, ReplyMax: 6 * time.Second, SendFrom: 8, SendTo: 18}
 }
 
 // Sender delivers outbox rows.
@@ -50,6 +51,26 @@ type Sender struct {
 	clock clock.Clock
 	rules Rules
 	sleep func(time.Duration)
+	odoo  odoo.Source
+}
+
+// WithOdoo lets the sender carry out Odoo rows (SO drafts, notes); nil keeps them pending.
+func (s *Sender) WithOdoo(src odoo.Source) *Sender { s.odoo = src; return s }
+
+// windowWait is how long a proactive message waits for the send window (08–18 WIB by default).
+func (r Rules) windowWait(now time.Time) time.Duration {
+	if r.SendFrom == 0 && r.SendTo == 0 {
+		return 0
+	}
+	t := now.In(clock.WIB)
+	open := time.Date(t.Year(), t.Month(), t.Day(), r.SendFrom, 0, 0, 0, clock.WIB)
+	switch {
+	case t.Before(open):
+		return open.Sub(t)
+	case t.Hour() >= r.SendTo:
+		return open.AddDate(0, 0, 1).Sub(t)
+	}
+	return 0
 }
 
 // NewSender builds a sender.
@@ -70,7 +91,7 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 		return 0, nil // idempotent
 	}
 	if ob.Channel != "wa" {
-		return 0, fmt.Errorf("channel %s is delivered from stage 12", ob.Channel)
+		return 0, s.sendOdoo(ctx, ob)
 	}
 	var p WAPayload
 	if err := json.Unmarshal(ob.Payload, &p); err != nil {
@@ -80,6 +101,9 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	if p.Kind == "reply" {
 		s.sleep(jitter(s.rules.ReplyMin, s.rules.ReplyMax))
 	} else {
+		if w := s.rules.windowWait(now); w > 0 {
+			return w, nil // outside 08–18 WIB: wait for the window
+		}
 		pol, err := policy.Load(ctx, s.st.Q)
 		if err != nil {
 			return 0, err
@@ -123,12 +147,38 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	if err := s.st.Q.SetProposalExecuted(ctx, ob.ProposalID); err != nil {
 		return 0, err
 	}
+	if err := s.trail(ctx, ob, p, sent); err != nil {
+		return 0, err
+	}
 	actor, kind, action, entity := "worker", "system", "outbox.sent", "outbox"
 	after, _ := json.Marshal(map[string]any{"wa_msg_id": msgID, "from": p.From, "to": p.To, "proposal_id": ob.ProposalID})
 	_ = s.st.Q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &id, After: after})
 	_ = events.Notify(ctx, s.st.Pool, "chat_message", map[string]string{"thread_id": p.ThreadID})
 	_ = events.Notify(ctx, s.st.Pool, "proposal_changed", map[string]string{"id": ob.ProposalID.String(), "status": "executed"})
 	return 0, nil
+}
+
+func (s *Sender) sendOdoo(ctx context.Context, ob gen.Outbox) error {
+	err := s.deliverOdoo(ctx, ob)
+	switch {
+	case errors.Is(err, ErrManual):
+		e := err.Error()
+		return s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "manual", Error: &e})
+	case err != nil:
+		e := err.Error()
+		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
+		s.notifyFailed(ctx, ob, err)
+		return err
+	}
+	now := s.clock.Now()
+	if err := s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: ob.ID, Status: "sent", SentAt: &now}); err != nil {
+		return err
+	}
+	actor, kind, action, entity := "worker", "system", "outbox.odoo", "outbox"
+	after, _ := json.Marshal(map[string]any{"channel": ob.Channel, "proposal_id": ob.ProposalID})
+	_ = s.st.Q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &ob.ID, After: after})
+	_ = events.Notify(ctx, s.st.Pool, "proposal_changed", map[string]string{"id": ob.ProposalID.String(), "channel": ob.Channel})
+	return nil
 }
 
 func jitter(lo, hi time.Duration) time.Duration {

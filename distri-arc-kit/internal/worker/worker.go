@@ -245,7 +245,7 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 		}, nil))
 	}
 	if deps.Transport != nil {
-		river.AddWorker(workers, &OutboxWorker{sender: outbox.NewSender(st, deps.Transport, c, deps.Rules)})
+		river.AddWorker(workers, &OutboxWorker{sender: outbox.NewSender(st, deps.Transport, c, deps.Rules).WithOdoo(deps.Odoo)})
 		river.AddWorker(workers, &WAPairWorker{t: deps.Transport, ingest: deps.Ingest})
 	}
 	return river.NewClient[pgx.Tx](riverpgxv5.New(st.Pool), &river.Config{

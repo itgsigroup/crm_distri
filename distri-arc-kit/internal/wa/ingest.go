@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"distri-arc/internal/commitment"
 	"distri-arc/internal/events"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
@@ -105,7 +106,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			}
 			if c, err := q.FindContactByNumber(ctx, &remote); err == nil {
 				dealerID, contactID, threadKind = c.DealerID, &c.ID, "dealer"
-				title = deref(c.Name) + " · " + shortDealer(c.DealerName)
+				title = deref(c.Name) + " · " + ShortDealer(c.DealerName)
 				subtitle = c.DealerName + " · " + deref(c.Role)
 			} else if errors.Is(err, pgx.ErrNoRows) {
 				threadKind, title, subtitle = "new", MaskNumber(remote), m.FromName
@@ -158,6 +159,11 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if contactID != nil && !m.FromMe {
 			if err := q.TouchContact(ctx, gen.TouchContactParams{ID: *contactID, LastInteractionAt: &m.Time}); err != nil {
 				return err
+			}
+		}
+		if threadKind == "dealer" && dir == "in" && dealerID != nil {
+			if _, err := commitment.FromInbound(ctx, q, commitment.Inbound{DealerID: *dealerID, ThreadID: thread.ID, MessageID: msgID, SignalID: sid, Text: m.Text, At: m.Time}); err != nil {
+				return fmt.Errorf("commitment: %w", err)
 			}
 		}
 		if _, err := tx.Exec(ctx, "select pg_notify('chat_message', $1)", fmt.Sprintf(`{"thread_id":%q}`, thread.ID)); err != nil {
@@ -221,7 +227,7 @@ func (in *Ingestor) Run(ctx context.Context, t Transport) {
 	}
 }
 
-func shortDealer(name string) string {
+func ShortDealer(name string) string {
 	for _, p := range []string{"PT ", "CV ", "UD ", "Toko "} {
 		name = strings.TrimPrefix(name, p)
 	}

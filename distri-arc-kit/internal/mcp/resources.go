@@ -10,6 +10,7 @@ import (
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"distri-arc/internal/agents"
+	"distri-arc/internal/clock"
 	"distri-arc/internal/views"
 )
 
@@ -104,7 +105,7 @@ func dealerMarkdown(b *views.Board, it views.BoardItem) string {
 	fmt.Fprintf(&sb, "- Omzet/bln %s · rata-rata order %s · share of wallet %d%%\n", agents.Rp(m.OmzetBln), agents.Rp(m.AvgOrder), m.SOW)
 	fmt.Fprintf(&sb, "- Sisa limit: %s · exposure %s / limit %s · pola bayar %d hari\n", m.Credit.State, agents.Rp(m.Credit.Exposure), agents.Rp(it.CreditLimit), m.Credit.PayDays)
 	for _, inv := range views.OpenInvoices(b.Data.Histories[it.UUID], b.Today) {
-		fmt.Fprintf(&sb, "  - %s %s jatuh tempo %s%s\n", inv.Number, agents.Rp(inv.Residual), inv.DueAt.Format("2 Jan"), map[bool]string{true: fmt.Sprintf(" · lewat %d hari", inv.LateDays), false: ""}[inv.LateDays > 0])
+		fmt.Fprintf(&sb, "  - %s %s jatuh tempo %s%s\n", inv.Number, agents.Rp(inv.Residual), clock.DayMonth(inv.DueAt), map[bool]string{true: fmt.Sprintf(" · lewat %d hari", inv.LateDays), false: ""}[inv.LateDays > 0])
 	}
 	if it.Next != nil {
 		fmt.Fprintf(&sb, "- Langkah berikutnya (%s, %s): %s\n", it.Next.Agent, it.Next.Status, it.Next.Title)
