@@ -246,17 +246,17 @@ func (q *Queries) FindContactByName(ctx context.Context, arg FindContactByNamePa
 	return i, err
 }
 
-const findThreadBySalesJID = `-- name: FindThreadBySalesJID :one
-select id from chat_threads where sales_id = $1 and wa_jid = $2
+const findThreadByAccountJID = `-- name: FindThreadByAccountJID :one
+select id from chat_threads where account = $1 and wa_jid = $2
 `
 
-type FindThreadBySalesJIDParams struct {
-	SalesID *uuid.UUID `json:"sales_id"`
-	WaJid   *string    `json:"wa_jid"`
+type FindThreadByAccountJIDParams struct {
+	Account *string `json:"account"`
+	WaJid   *string `json:"wa_jid"`
 }
 
-func (q *Queries) FindThreadBySalesJID(ctx context.Context, arg FindThreadBySalesJIDParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, findThreadBySalesJID, arg.SalesID, arg.WaJid)
+func (q *Queries) FindThreadByAccountJID(ctx context.Context, arg FindThreadByAccountJIDParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, findThreadByAccountJID, arg.Account, arg.WaJid)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err

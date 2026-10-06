@@ -2,13 +2,13 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
-import type { MessageView, ThreadDetail, ThreadView } from '../../api/types'
+import type { MessageView, ThreadDetail, ThreadView, WANumber } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
-import { useFeedback } from '../../components/feedback'
+import { SheetHead, useFeedback } from '../../components/feedback'
 import { ScoreRing } from '../../components/ui'
 import { fmtRp, hhmm, shortDate, wib } from '../../lib/format'
-import { useChatContext, useNow, useThread, useThreads } from '../../app/queries'
+import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
 
 const TABS: [string, string][] = [['all', 'Semua'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['new', 'Nomor baru']]
 const SECTION: Record<string, string> = { dealer: 'Dealer', group: 'Grup internal', new: 'Nomor baru' }
@@ -44,11 +44,63 @@ function timeLabel(d: string | null, now: Date) {
   return l === 'Hari ini' ? hhmm(d) : l
 }
 
-function ThreadList({ tab, setTab, active, onPick }: { tab: string; setTab: (t: string) => void; active?: string; onPick: (id: string) => void }) {
-  const { data: list = [] } = useThreads(tab)
+const DOT: Record<string, string> = { connected: 'good', pairing: 'warn', disconnected: 'bad', logged_out: 'bad', unpaired: 'neutral' }
+const labelOf = (n: WANumber) => (n.label || n.sales || n.masked).replace(/^Nomor\s+/, '')
+
+/** QR pairing of one number (Chat → nomor belum terhubung); closes itself once the phone is linked. */
+function PairSheet({ wa }: { wa: string }) {
+  const { closeSheet, toast } = useFeedback()
+  const { data } = useWAStatus()
+  const n = data?.items.find((x) => x.wa_number === wa)
+  useEffect(() => {
+    if (n?.state === 'connected') {
+      toast(`${labelOf(n)} terhubung · pesan masuk mulai tampil di Chat`)
+      closeSheet()
+    }
+  }, [n?.state]) // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <>
+      <SheetHead icon="qr" title={`Pasangkan ${n ? labelOf(n) : ''}`} sub={n ? `${n.masked} · tautkan sebagai perangkat (Baileys) · aturan anti-blokir berlaku` : ''} onClose={closeSheet} />
+      <div className="sec qr">
+        {n?.qr_png ? <img src={n.qr_png} alt="QR WhatsApp" style={{ width: 216, height: 216, borderRadius: 14, background: '#fff', padding: 12, boxShadow: 'var(--shadow)' }} /> : <div style={{ width: 216, height: 216, display: 'grid', placeItems: 'center', color: 'var(--text-3)' }}>Menyiapkan QR…</div>}
+        <ol><li>Buka WhatsApp di HP nomor {n?.masked}</li><li>Setelan → Perangkat tertaut → Tautkan perangkat</li><li>Arahkan kamera ke kode ini</li></ol>
+        <span className="exp">kode diperbarui otomatis · HP tetap menerima notifikasi seperti biasa</span>
+      </div>
+    </>
+  )
+}
+
+/** Numbers bar: filter conversations by WhatsApp number; a number that is not linked can be paired here. */
+function NumberBar({ account, setAccount }: { account: string; setAccount: (a: string) => void }) {
+  const { data } = useWAStatus()
+  const { openSheet, toast } = useFeedback()
+  const qc = useQueryClient()
+  const pair = useMutation({
+    mutationFn: (n: string) => api.post('/wa/pair', { wa_number: n }),
+    onSuccess: (_r, n) => { qc.invalidateQueries({ queryKey: ['wa'] }); openSheet(<PairSheet wa={n} />) },
+    onError: (e: Error) => toast(e.message),
+  })
+  const items = data?.items ?? []
+  if (items.length < 1) return null
+  return (
+    <div className="wa-bar" role="tablist" aria-label="Nomor WhatsApp">
+      <button className={`wa-chip ${account === '' ? 'is-active' : ''}`} onClick={() => setAccount('')}>Semua nomor</button>
+      {items.map((n) => (
+        <button key={n.wa_number} className={`wa-chip ${account === n.wa_number ? 'is-active' : ''}`} title={`${labelOf(n)} · ${n.masked} · ${n.state === 'connected' ? 'terhubung' : 'belum terhubung — klik untuk pasangkan'}`}
+          onClick={() => (n.state === 'connected' || data?.transport === 'fake' ? setAccount(account === n.wa_number ? '' : n.wa_number) : pair.mutate(n.wa_number))}>
+          <span className={`dot ${DOT[n.state] ?? 'neutral'}`} />{labelOf(n)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function ThreadList({ tab, setTab, account, setAccount, active, onPick }: { tab: string; setTab: (t: string) => void; account: string; setAccount: (a: string) => void; active?: string; onPick: (id: string) => void }) {
+  const { data: list = [] } = useThreads(tab, account)
   const now = useNow()
   return (
     <div className="pane list-pane">
+      <NumberBar account={account} setAccount={setAccount} />
       <div className="chat-tabs">
         {TABS.map(([k, l]) => <button key={k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>{l}</button>)}
       </div>
@@ -69,7 +121,7 @@ function ThreadList({ tab, setTab, active, onPick }: { tab: string; setTab: (t: 
                 <div className="rt">
                   <span>{timeLabel(c.last_message_at, now)}</span>
                   {c.unread > 0 && <span className="un">{c.unread}</span>}
-                  <span style={{ fontSize: 10 }}>via {c.sales}</span>
+                  <span style={{ fontSize: 10 }}>via {(c.account_label || c.sales).replace(/^Nomor\s+/, '')}</span>
                 </div>
               </button>
             </div>
@@ -117,11 +169,12 @@ function ThreadPane({ id, onBack, picked }: { id: string; onBack: () => void; pi
   const { toast } = useFeedback()
   const [text, setText] = useState('')
   const body = useRef<HTMLDivElement>(null)
+  const from = (data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
   const send = useMutation({
     mutationFn: (b: string) => api.post(`/chat/threads/${id}/messages`, { body: b }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['chat'] })
-      toast(`Terkirim ke ${data?.thread.title} dari nomor ${data?.thread.sales}`)
+      toast(`Masuk antrean kirim ke ${data?.thread.title} dari ${from} · lewat penjaga anti-blokir`)
     },
     onError: (e: Error) => toast(e.message),
   })
@@ -146,7 +199,7 @@ function ThreadPane({ id, onBack, picked }: { id: string; onBack: () => void; pi
         <button className="back" onClick={onBack} aria-label="Kembali"><Icon name="arrow" /></button>
         <span className="av">{initials(t)}</span>
         <div><b>{t.title}</b><span>{t.subtitle}</span></div>
-        <div className="via"><b>Nomor {t.sales}</b><br />{t.kind === 'group' ? 'grup internal · stok & tugas' : 'dealer · dibaca agen'}</div>
+        <div className="via"><b>{from}</b> · {t.account_masked}<br />{t.kind === 'group' ? 'grup internal · stok & tugas' : t.kind === 'new' ? 'nomor baru · identifikasi' : 'dealer · dibaca agen'}</div>
       </div>
       <div className="th-body" ref={body}>
         {data.messages.map((m, i) => {
@@ -154,7 +207,7 @@ function ThreadPane({ id, onBack, picked }: { id: string; onBack: () => void; pi
           return (
             <div key={m.id} style={{ display: 'contents' }}>
               {sep}
-              <Bubble m={m} via={t.sales} group={t.kind === 'group'} />
+              <Bubble m={m} via={from} group={t.kind === 'group'} />
             </div>
           )
         })}
@@ -164,11 +217,11 @@ function ThreadPane({ id, onBack, picked }: { id: string; onBack: () => void; pi
           {(t.suggestions ?? []).map((x) => <button key={x} className="chip" onClick={() => setText(x)}><span className="ai" style={{ fontSize: 0 }} />{x}</button>)}
         </div>
         <form onSubmit={submit}>
-          <span className="as"><Icon name="chat" />Balas sebagai {t.sales}</span>
+          <span className="as"><Icon name="chat" />Balas dari {from}</span>
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Tulis balasan…" autoComplete="off" />
           <button type="submit" className="send" aria-label="Kirim" disabled={send.isPending}><Icon name="send" /></button>
         </form>
-        <span className="pol"><Icon name="lock" />Dikirim dari nomor {t.sales} · dicatat ke chatter dealer di Odoo</span>
+        <span className="pol"><Icon name="lock" />Dikirim dari {from} ({t.account_masked}) · jeda & "mengetik…" seperti manusia · penjaga anti-blokir</span>
       </div>
     </div>
   )
@@ -260,11 +313,12 @@ export function ChatPage() {
   const { threadId } = useParams()
   const nav = useNavigate()
   const [tab, setTab] = useState('all')
-  const { data: list } = useThreads('all')
+  const [account, setAccount] = useState('')
+  const { data: list } = useThreads('all', account)
   const active = threadId ?? list?.[0]?.id
   return (
     <div className={`chat ${threadId ? 'show-thread' : ''}`}>
-      <ThreadList tab={tab} setTab={setTab} active={active} onPick={(id) => nav('/chat/' + id)} />
+      <ThreadList tab={tab} setTab={setTab} account={account} setAccount={setAccount} active={active} onPick={(id) => nav('/chat/' + id)} />
       {active ? <ThreadPane id={active} picked={!!threadId} onBack={() => nav('/chat')} /> : <div className="pane th-pane" />}
       {active ? <ContextPane id={active} /> : <div className="pane ctx-pane ctx" />}
     </div>

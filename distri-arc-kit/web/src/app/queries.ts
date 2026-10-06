@@ -49,8 +49,17 @@ export function useNow(): Date {
 
 // ---------- Chat & WhatsApp (stage 03) ----------
 
-export const useThreads = (tab = 'all') =>
-  useQuery({ queryKey: ['chat', 'threads', tab], queryFn: () => api.get<Items<ThreadView>>('/chat/threads' + (tab === 'all' ? '' : `?tab=${tab}`)).then((r) => r.items) })
+export const useThreads = (tab = 'all', account = '') =>
+  useQuery({
+    queryKey: ['chat', 'threads', tab, account],
+    queryFn: () => {
+      const q = new URLSearchParams()
+      if (tab !== 'all') q.set('tab', tab)
+      if (account) q.set('account', account)
+      const qs = q.toString()
+      return api.get<Items<ThreadView>>('/chat/threads' + (qs ? '?' + qs : '')).then((r) => r.items)
+    },
+  })
 export const useThread = (id?: string) =>
   useQuery({ queryKey: ['chat', 'thread', id], enabled: !!id, queryFn: () => api.get<ThreadDetail>(`/chat/threads/${id}`) })
 export const useChatContext = (id?: string) =>

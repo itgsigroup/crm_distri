@@ -98,3 +98,10 @@ func (AlertsCheckArgs) Kind() string { return "alerts.check" }
 type PilotSnapshotArgs struct{}
 
 func (PilotSnapshotArgs) Kind() string { return "pilot.snapshot" }
+
+// WAUnpairArgs logs a linked number out (Pengaturan → WhatsApp → Lepas); the worker owns the connections.
+type WAUnpairArgs struct {
+	WANumber string `json:"wa_number"`
+}
+
+func (WAUnpairArgs) Kind() string { return "wa.unpair" }

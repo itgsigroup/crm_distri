@@ -289,6 +289,8 @@ export interface ThreadView {
   last_from: string
   tag: Tag | null
   group_kind?: string
+  account: string
+  account_label: string
 }
 export interface Annotation { k: string; t: string; act?: string }
 export interface MessageView {
@@ -304,7 +306,7 @@ export interface MessageView {
   proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }
 }
 export interface ThreadDetail {
-  thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; dealer_id: string; sales: string; sales_wa: string; suggestions: string[] | null; tag: Tag | null; unread: number }
+  thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; dealer_id: string; sales: string; sales_wa: string; account_label: string; account_masked: string; suggestions: string[] | null; tag: Tag | null; unread: number }
   messages: MessageView[]
 }
 export interface Identification {
@@ -331,6 +333,9 @@ export interface WANumber {
   last_seen_at: string | null
   paired_at: string | null
   qr_png?: string
+  label: string
+  sales_id: string | null
+  limits?: { last_hour: number; per_hour: number; today: number; per_day: number; warmup: boolean }
 }
 export interface InternalNumber { wa_number: string; label: string | null; department: string | null; is_sales: boolean }
 export interface WAGroup { id: string; jid: string; name: string | null; kind: 'internal' | 'external'; branch: string | null; members: number | null; read_enabled: boolean }

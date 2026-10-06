@@ -66,7 +66,9 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 	err := in.st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
 		account := Digits(m.Account)
 		var salesID *uuid.UUID
-		if s, err := q.GetSalesByNumber(ctx, &account); err == nil {
+		if n, err := q.GetWANumber(ctx, account); err == nil && n.SalesID != nil {
+			salesID = n.SalesID // the number's owner (a sales may link several numbers)
+		} else if s, err := q.GetSalesByNumber(ctx, &account); err == nil {
 			salesID = &s.ID
 		}
 		internal := func(n string) bool {
@@ -115,9 +117,9 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			}
 		}
 
-		thread, err := q.GetThreadBySalesJID(ctx, gen.GetThreadBySalesJIDParams{WaJid: &m.ChatJID, SalesID: salesID})
+		thread, err := q.GetThreadByAccountJID(ctx, gen.GetThreadByAccountJIDParams{WaJid: &m.ChatJID, Account: &account})
 		if errors.Is(err, pgx.ErrNoRows) {
-			thread, err = q.InsertThread(ctx, gen.InsertThreadParams{Kind: &threadKind, DealerID: dealerID, GroupID: groupID, ContactID: contactID, WaJid: &m.ChatJID, Title: &title, Subtitle: &subtitle, SalesID: salesID, LastMessageAt: &m.Time})
+			thread, err = q.InsertThread(ctx, gen.InsertThreadParams{Kind: &threadKind, DealerID: dealerID, GroupID: groupID, ContactID: contactID, WaJid: &m.ChatJID, Title: &title, Subtitle: &subtitle, SalesID: salesID, LastMessageAt: &m.Time, Account: &account})
 		}
 		if err != nil {
 			return fmt.Errorf("thread: %w", err)

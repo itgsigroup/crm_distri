@@ -30,12 +30,16 @@ echo "deploy: $BRANCH @ $REV"
 # build (as arc; Go fetches the toolchain from go.mod when needed)
 as_arc "cd $KIT && export PATH=/usr/local/go/bin:/usr/local/bin:\$PATH GOTOOLCHAIN=auto && go build -trimpath -ldflags '-s -w -X distri-arc/internal/config.Version=$REV' -o bin/arc.new ./cmd/arc"
 as_arc "cd $KIT/web && npm ci --no-audit --no-fund --silent && npm run build --silent"
+as_arc "cd $KIT/apps/wa-bridge && npm ci --no-audit --no-fund --silent && npm run build --silent && npm prune --omit=dev --silent"
 
 # install
 install -d -o arc -g arc "$ROOT/bin" "$ROOT/web" "$ROOT/infra"
 install -o arc -g arc -m 755 "$KIT/bin/arc.new" "$ROOT/bin/arc.new"
 rsync -a --delete "$KIT/web/dist/" "$ROOT/web.new/"
 rsync -a --delete "$KIT/infra/" "$ROOT/infra/"
+install -d -o arc -g arc "$ROOT/wa-bridge" /var/lib/distri-arc/wa-bridge
+rsync -a --delete "$KIT/apps/wa-bridge/dist" "$KIT/apps/wa-bridge/node_modules" "$KIT/apps/wa-bridge/package.json" "$ROOT/wa-bridge/"
+chown -R arc:arc "$ROOT/wa-bridge"
 chown -R arc:arc "$ROOT/web.new" "$ROOT/infra"
 
 # migrate with the new binary before switching (goose is transactional per migration)
@@ -46,15 +50,19 @@ rm -rf "$ROOT/web.old" && [[ -d $ROOT/web ]] && mv "$ROOT/web" "$ROOT/web.old"
 mv "$ROOT/web.new" "$ROOT/web"
 # nginx (www-data) reads only the public web build; source, scripts and the binary stay private to arc
 chmod 711 "$ROOT"
-chmod 750 "$SRC" "$ROOT/infra"
+chmod 750 "$SRC" "$ROOT/infra" "$ROOT/wa-bridge"
 chmod -R a+rX "$ROOT/web"
 
-for f in distri-arc-api.service distri-arc-worker.service distri-arc-backup.service distri-arc-backup.timer; do
+for f in distri-arc-api.service distri-arc-worker.service distri-arc-wa-bridge.service distri-arc-backup.service distri-arc-backup.timer; do
   install -m 644 "$KIT/infra/systemd/$f" "/etc/systemd/system/$f"
 done
 systemctl daemon-reload
 systemctl enable --now distri-arc-backup.timer >/dev/null
 systemctl enable distri-arc-api distri-arc-worker >/dev/null
+if grep -qE '^WA_TRANSPORT=baileys' $ENV_FILE; then
+  systemctl enable distri-arc-wa-bridge >/dev/null
+  systemctl restart distri-arc-wa-bridge   # sessions are restored from Postgres; phones stay linked
+fi
 systemctl restart distri-arc-api distri-arc-worker
 
 ADDR="$(grep -E '^API_ADDR=' $ENV_FILE | cut -d= -f2)"

@@ -7,6 +7,9 @@
 /bin/
 web/dist/
 web/node_modules/
+apps/wa-bridge/node_modules/
+apps/wa-bridge/dist/
+apps/wa-bridge/data/
 web/test-results/
 web/playwright-report/
 node_modules/

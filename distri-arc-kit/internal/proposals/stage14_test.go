@@ -234,3 +234,46 @@ func TestApprovedTransferNotReproposed(t *testing.T) {
 		}
 	}
 }
+
+// refusingT is a transport whose anti-ban guard says no.
+type refusingT struct {
+	*wa.Fake
+	err error
+}
+
+func (r refusingT) Send(ctx context.Context, account, chat, text string) (string, error) {
+	if wa.ActionFrom(ctx) == "" {
+		return "", errors.New("no outbox id passed to the transport")
+	}
+	return "", r.err
+}
+
+// The Baileys guard's answers reach the outbox: pacing waits with the reason, a final refusal fails the row.
+func TestOutboxHandlesGuardRefusals(t *testing.T) {
+	st, r := setup(t)
+	ctx := context.Background()
+	res := run(t, r, "all")
+	p := find(res, "followup", "Prima")
+	out, err := proposals.Decide(ctx, st, nil, now, false, p.ID, sam(t, st), proposals.Decision{Decision: "approve"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	quiet := refusingT{wa.NewFake(), &wa.SendRefused{Code: "quiet_hours", Reason: "Jam tenang 21.00–07.00 WIB", RetryAfter: time.Hour}}
+	wait, err := outbox.NewSender(st, quiet, now, outbox.Rules{}).Send(ctx, *out.OutboxID)
+	var status, reason string
+	_ = st.Pool.QueryRow(ctx, "select status, coalesce(error, '') from outbox where id = $1", *out.OutboxID).Scan(&status, &reason)
+	if err != nil || wait != time.Hour || status != "pending" || !strings.Contains(reason, "Jam tenang") {
+		t.Fatalf("pacing: wait %v err %v status %s %q", wait, err, status, reason)
+	}
+	cold := refusingT{wa.NewFake(), &wa.SendRefused{Code: "first_contact", Reason: "Kontak belum pernah mengirim pesan ke nomor ini"}}
+	_, err = outbox.NewSender(st, cold, now, outbox.Rules{}).Send(ctx, *out.OutboxID)
+	_ = st.Pool.QueryRow(ctx, "select status, coalesce(error, '') from outbox where id = $1", *out.OutboxID).Scan(&status, &reason)
+	if !errors.Is(err, outbox.ErrRefused) || status != "failed" || !strings.Contains(reason, "anti-blokir") {
+		t.Fatalf("final refusal: %v status %s %q", err, status, reason)
+	}
+	var bubble string
+	_ = st.Pool.QueryRow(ctx, "select status from chat_messages where proposal_id = $1", p.ID).Scan(&bubble)
+	if bubble != "failed" {
+		t.Fatalf("chat bubble %s", bubble)
+	}
+}

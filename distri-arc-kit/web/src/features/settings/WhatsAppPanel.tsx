@@ -4,7 +4,7 @@ import { api } from '../../api/client'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
-import { useInternalNumbers, useWAGroups, useWAStatus } from '../../app/queries'
+import { useInternalNumbers, useSales, useWAGroups, useWAStatus } from '../../app/queries'
 
 const STATE: Record<string, [string, 'good' | 'warn' | 'bad' | 'neutral']> = {
   connected: ['Terhubung', 'good'], pairing: ['Menunggu scan QR', 'warn'], disconnected: ['Terputus', 'bad'], logged_out: ['Keluar dari perangkat', 'bad'], unpaired: ['Belum dipasangkan', 'neutral'],
@@ -17,6 +17,20 @@ export function WhatsAppPanel() {
   const { data: status } = useWAStatus()
   const { data: internal = [] } = useInternalNumbers()
   const { data: groups = [] } = useWAGroups()
+  const { data: sales = [] } = useSales()
+  const [newNo, setNewNo] = useState('')
+  const [newLabel, setNewLabel] = useState('')
+  const [owner, setOwner] = useState('')
+  const addNumber = useMutation({
+    mutationFn: () => api.post('/wa/numbers', { wa_number: newNo, label: newLabel, sales_name: owner }),
+    onSuccess: () => { setNewNo(''); setNewLabel(''); setOwner(''); qc.invalidateQueries({ queryKey: ['wa'] }); toast('Nomor ditambahkan · klik Pasangkan lalu scan QR dari HP nomor itu') },
+    onError: (e: Error) => toast(e.message),
+  })
+  const unpair = useMutation({
+    mutationFn: (n: string) => api.del(`/wa/numbers/${n}`),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['wa'] }); toast('Nomor dilepas · perangkat tertaut dikeluarkan') },
+    onError: (e: Error) => toast(e.message),
+  })
   const [no, setNo] = useState('')
   const [label, setLabel] = useState('')
   const pair = useMutation({
@@ -44,29 +58,58 @@ export function WhatsAppPanel() {
   }
   return (
     <>
-      <SheetHead icon="chat" title="WhatsApp" sub={`Transport: ${status?.transport ?? '…'} · hanya nomor sales terdaftar · kirim hanya lewat outbox yang disetujui`} onClose={closeSheet} />
+      <SheetHead icon="chat" title="WhatsApp" sub={`Transport: ${status?.transport ?? '…'} · banyak nomor · kirim hanya lewat outbox yang disetujui`} onClose={closeSheet} />
       <div className="sec">
-        <h4>Nomor sales</h4>
+        <h4>Nomor WhatsApp <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>· {(status?.items ?? []).filter((n) => n.state === 'connected').length}/{status?.items.length ?? 0} terhubung</span></h4>
         <ul className="nums">
-          {(status?.items ?? []).map((n) => (
-            <li key={n.wa_number}>
-              <span className="av">{n.sales.slice(0, 2).toUpperCase()}</span>
-              <div><b>{n.sales} · {n.branch}</b><span className="no">{n.masked}</span></div>
-              <div className="st">
-                <Pill tone={STATE[n.state][1]}>{STATE[n.state][0]}</Pill>
-                {n.state === 'connected' ? <small>{n.transport}</small> : <button className="btn ghost" style={{ height: 26, fontSize: 11.5 }} onClick={() => pair.mutate(n.wa_number)}><Icon name="qr" />Pasangkan</button>}
-              </div>
-            </li>
-          ))}
+          {(status?.items ?? []).map((n) => {
+            const name = n.label || n.sales || n.masked
+            const lim = n.limits
+            return (
+              <li key={n.wa_number}>
+                <span className="av">{name.replace(/^Nomor\s+/, '').slice(0, 2).toUpperCase()}</span>
+                <div>
+                  <b>{name}{n.sales && !name.includes(n.sales) ? ` · ${n.sales}` : ''}</b>
+                  <span className="no">{n.masked}{n.sales ? ` · ${n.branch}` : ' · nomor tim'}</span>
+                  {lim && <span className="no" style={{ display: 'block' }}>hari ini {lim.today}/{lim.per_day}{lim.warmup ? ' · pemanasan nomor baru' : ''} · jam ini {lim.last_hour}/{lim.per_hour}</span>}
+                </div>
+                <div className="st">
+                  <Pill tone={STATE[n.state][1]}>{STATE[n.state][0]}</Pill>
+                  {n.state !== 'connected' && n.state !== 'pairing' && <button className="btn ghost" style={{ height: 26, fontSize: 11.5 }} onClick={() => pair.mutate(n.wa_number)}><Icon name="qr" />Pasangkan</button>}
+                  {(n.state !== 'unpaired' || !n.sales_id) && <button className="btn quiet" style={{ height: 26, fontSize: 11.5 }} onClick={() => { if (window.confirm(`Lepas ${name} dari Distri ARC? Perangkat tertaut di HP ikut dikeluarkan.`)) unpair.mutate(n.wa_number) }}>Lepas</button>}
+                </div>
+              </li>
+            )
+          })}
         </ul>
+        <form className="wa-add" onSubmit={(e) => { e.preventDefault(); if (newNo.trim() && newLabel.trim()) addNumber.mutate() }}>
+          <input value={newNo} onChange={(e) => setNewNo(e.target.value)} placeholder="Nomor, mis. 0812 3456 7890" aria-label="Nomor WhatsApp baru" inputMode="tel" />
+          <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Label, mis. CS Kantor" aria-label="Label nomor" />
+          <select value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Pemilik nomor">
+            <option value="">Nomor tim (tanpa sales)</option>
+            {sales.map((x) => <option key={x.key} value={x.name}>{x.name} · {x.branch}</option>)}
+          </select>
+          <button className="btn primary" type="submit" disabled={addNumber.isPending || !newNo.trim() || !newLabel.trim()}><Icon name="plug" />Tambah nomor</button>
+        </form>
       </div>
       {pairing && (
         <div className="sec qr">
           <img src={pairing.qr_png} alt="QR WhatsApp" style={{ width: 196, height: 196, borderRadius: 14, background: '#fff', padding: 12, boxShadow: 'var(--shadow)' }} />
-          <ol><li>Buka WhatsApp di ponsel {pairing.sales}</li><li>Setelan → Perangkat tertaut → Tautkan perangkat</li><li>Arahkan kamera ke kode ini</li></ol>
+          <ol><li>Buka WhatsApp di ponsel {pairing.label || pairing.sales} ({pairing.masked})</li><li>Setelan → Perangkat tertaut → Tautkan perangkat</li><li>Arahkan kamera ke kode ini</li></ol>
           <span className="exp">kode diperbarui otomatis</span>
         </div>
       )}
+      <div className="sec">
+        <h4>Penjaga anti-blokir <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>· berlaku untuk setiap nomor, setelah pesan disetujui</span></h4>
+        <ul className="rules">
+          <li><div><b>Hanya membalas kontak yang pernah menghubungi nomor itu</b><span>Pesan pertama ke kontak dingin adalah pemicu utama laporan spam — hubungi lewat telepon atau minta kontak menyapa dulu</span></div><Pill tone="neutral" icon="lock">Aktif</Pill></li>
+          <li><div><b>Batas per nomor 20/jam, 120/hari · per chat 6/jam, jeda ≥ 20 dtk</b><span>Nomor baru tertaut: pemanasan 15 pesan/hari, naik bertahap selama 7 hari</span></div><Pill tone="neutral" icon="lock">Aktif</Pill></li>
+          <li><div><b>Jam kirim 08.00–18.00 WIB · jam tenang 21.00–07.00</b><span>Di luar jam itu pesan menunggu, tidak dibuang</span></div><Pill tone="neutral" icon="lock">Aktif</Pill></li>
+          <li><div><b>Teks identik ke &gt; 3 chat/jam ditolak · "STOP" / "berhenti" dihormati</b><span>Pola broadcast tidak dikirim; personalisasi pesannya</span></div><Pill tone="neutral" icon="lock">Aktif</Pill></li>
+          <li><div><b>Seperti manusia: "mengetik…", jeda acak 2–6 dtk, tidak online terus</b><span>Tidak membaca otomatis (centang biru tetap dari HP), tidak mengunduh media, reconnect pelan; setelah logout/diblokir tidak menyambung sendiri</span></div><Pill tone="neutral" icon="lock">Aktif</Pill></li>
+        </ul>
+        <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '8px 0 0', lineHeight: 1.5 }}>Pakai nomor kerja yang sudah lama aktif, bukan nomor baru. WhatsApp tetap bisa membatasi nomor yang dilaporkan penerima — volume besar atau kontak baru lewat WhatsApp Cloud API resmi.</p>
+      </div>
       <div className="sec">
         <h4>Nomor internal <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>· DM antar nomor internal tidak pernah dibaca</span></h4>
         <div className="tbl-wrap">

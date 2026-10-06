@@ -14,6 +14,7 @@ sql:
       - db/migrations/0010_memory.sql
       - db/migrations/0011_hardening.sql
       - db/migrations/0012_pilot.sql
+      - db/migrations/0013_wa_accounts.sql
     queries: db/queries
     gen:
       go:

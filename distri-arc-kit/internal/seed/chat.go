@@ -127,6 +127,7 @@ func seedChat(ctx context.Context, q *gen.Queries, in chatInput) error {
 			salesKey = m.Via
 		}
 		sid := in.salesID[salesKey]
+		account := salesNo[salesKey]
 		var kind, jid, title, subtitle string
 		var dealerID, contactID, gid *uuid.UUID
 		var ident json.RawMessage
@@ -175,7 +176,7 @@ func seedChat(ctx context.Context, q *gen.Queries, in chatInput) error {
 		}
 		last := msgs[len(msgs)-1].sig.OccurredAt
 		seedKey := "seed:thread:" + key
-		th, err := q.InsertThread(ctx, gen.InsertThreadParams{Kind: &kind, DealerID: dealerID, GroupID: gid, ContactID: contactID, WaJid: &jid, Title: &title, Subtitle: &subtitle, SalesID: &sid, LastMessageAt: &last, Unread: unread, Identification: ident, Tag: tag, Suggestions: sugg, SeedKey: &seedKey})
+		th, err := q.InsertThread(ctx, gen.InsertThreadParams{Kind: &kind, DealerID: dealerID, GroupID: gid, ContactID: contactID, WaJid: &jid, Title: &title, Subtitle: &subtitle, SalesID: &sid, LastMessageAt: &last, Unread: unread, Identification: ident, Tag: tag, Suggestions: sugg, SeedKey: &seedKey, Account: &account})
 		if err != nil {
 			return err
 		}

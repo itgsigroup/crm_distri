@@ -43,7 +43,25 @@ services:
 
   worker:
     <<: *arc
-    command: ["worker"]                     # whatsmeow sessions live in Postgres (schema whatsmeow)
+    command: ["worker"]                     # WhatsApp sessions live in Postgres (wa_bridge / whatsmeow schemas)
+    environment:
+      APP_ENV: prod
+      DATABASE_URL: postgres://arc:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/distri_arc?sslmode=disable
+      BRIDGE_URL: http://wa-bridge:8111
+      BRIDGE_LISTEN: 0.0.0.0:8112
+
+  wa-bridge:
+    build: { context: .., dockerfile: infra/Dockerfile, target: wa-bridge }
+    image: distri-arc/wa-bridge:${VERSION:-dev}
+    env_file: ../.env
+    environment:
+      APP_ENV: prod
+      BRIDGE_DATABASE_URL: postgres://arc:${POSTGRES_PASSWORD}@postgres:5432/distri_arc?sslmode=disable
+      BRIDGE_WORKER_URL: http://worker:8112
+    volumes: [wa_bridge:/data]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
 
   backup:
     <<: *arc
@@ -72,5 +90,6 @@ services:
 volumes:
   pgdata:
   backups:
+  wa_bridge:
   caddy_data:
   caddy_config:

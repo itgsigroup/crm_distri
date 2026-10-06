@@ -35,6 +35,8 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Patch("/wa/groups/{id}", s.patchWAGroup)
 	r.Get("/wa/status", s.waStatus)
 	r.Post("/wa/pair", s.waPair)
+	r.Post("/wa/numbers", s.addWANumber)
+	r.Delete("/wa/numbers/{wa}", s.deleteWANumber)
 }
 
 // ThreadView is one row of the chat list.
@@ -52,6 +54,8 @@ type ThreadView struct {
 	LastFrom      string          `json:"last_from"`
 	Tag           json.RawMessage `json:"tag"`
 	GroupKind     string          `json:"group_kind,omitempty"`
+	Account       string          `json:"account"`       // the WhatsApp number holding the conversation
+	AccountLabel  string          `json:"account_label"` // its label (CS Kantor, Nomor Andi …)
 }
 
 func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
@@ -61,15 +65,26 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tab := r.URL.Query().Get("tab")
+	account := wa.Digits(r.URL.Query().Get("account"))
 	term := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	u, _ := CurrentUser(r.Context())
+	salesOnly := deref(u.Role) == "sales"
 	out := []ThreadView{}
 	for _, t := range rows {
 		kind := deref(t.Kind)
 		if (tab == "dealer" && kind != "dealer") || (tab == "group_internal" && kind != "group") || (tab == "new" && kind != "new") {
 			continue
 		}
+		if account != "" && deref(t.Account) != account {
+			continue
+		}
+		// a sales user reads only the conversations of their own numbers
+		if salesOnly && (u.SalesUserID == nil || t.SalesID == nil || *t.SalesID != *u.SalesUserID) {
+			continue
+		}
 		v := ThreadView{ID: t.ID, Kind: kind, Title: deref(t.Title), Subtitle: deref(t.Subtitle), DealerID: deref(t.DealerSlug), DealerName: deref(t.DealerName),
-			Sales: deref(t.SalesName), LastMessageAt: t.LastMessageAt, Unread: t.Unread, LastBody: deref(t.LastBody), Tag: t.Tag, GroupKind: deref(t.GroupKind)}
+			Sales: deref(t.SalesName), LastMessageAt: t.LastMessageAt, Unread: t.Unread, LastBody: deref(t.LastBody), Tag: t.Tag, GroupKind: deref(t.GroupKind),
+			Account: deref(t.Account), AccountLabel: t.AccountLabel}
 		if t.LastFrom != nil && kind == "group" {
 			v.LastFrom = *t.LastFrom
 		}
@@ -90,6 +105,10 @@ func (s *Server) threadParam(w http.ResponseWriter, r *http.Request) (gen.GetThr
 	t, err := s.st.Q.GetThread(r.Context(), id)
 	if err != nil {
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Percakapan tidak ditemukan")
+		return gen.GetThreadRow{}, false
+	}
+	if u, _ := CurrentUser(r.Context()); deref(u.Role) == "sales" && (u.SalesUserID == nil || t.SalesID == nil || *t.SalesID != *u.SalesUserID) {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Percakapan tidak ditemukan") // another number's conversation
 		return gen.GetThreadRow{}, false
 	}
 	return t, true
@@ -165,7 +184,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"thread": map[string]any{
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "dealer_id": deref(t.DealerSlug),
-		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
+		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
 	}, "messages": out})
 }
 
@@ -394,10 +413,30 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	// anti-ban counters per number from the Baileys bridge (today / per day, warm-up of a new device)
+	limits := map[string]json.RawMessage{}
+	if s.cfg.WATransport == "baileys" {
+		b := &wa.Baileys{BridgeURL: s.cfg.BridgeURL, Secret: s.cfg.BridgeSecret}
+		if raw, err := b.Health(r.Context()); err == nil {
+			var h struct {
+				Limits map[string]json.RawMessage `json:"limits"`
+			}
+			if json.Unmarshal(raw, &h) == nil {
+				limits = h.Limits
+			}
+		}
+	}
+	u, _ := CurrentUser(r.Context())
 	out := []map[string]any{}
 	for _, n := range rows {
+		if deref(u.Role) == "sales" && (u.SalesUserID == nil || n.SalesID == nil || *n.SalesID != *u.SalesUserID) {
+			continue // a sales user sees and pairs only their own numbers
+		}
 		v := map[string]any{"wa_number": n.WaNumber, "masked": wa.MaskNumber(n.WaNumber), "sales": deref(n.SalesName), "branch": deref(n.SalesBranch), "transport": n.Transport,
-			"state": n.State, "last_seen_at": n.LastSeenAt, "paired_at": n.PairedAt, "backfill_days": n.BackfillDays}
+			"state": n.State, "last_seen_at": n.LastSeenAt, "paired_at": n.PairedAt, "backfill_days": n.BackfillDays, "label": deref(n.Label), "sales_id": n.SalesID}
+		if l, ok := limits[n.WaNumber]; ok {
+			v["limits"] = l
+		}
 		if n.Qr != nil && n.State == "pairing" {
 			if png, err := qrcode.Encode(*n.Qr, qrcode.Medium, 256); err == nil {
 				v["qr_png"] = "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
@@ -418,8 +457,13 @@ func (s *Server) waPair(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	n := wa.Digits(in.WANumber)
-	if _, err := s.st.Q.GetWANumber(r.Context(), n); errors.Is(err, pgx.ErrNoRows) {
-		httpx.Fail(w, http.StatusNotFound, "unknown_number", "Hanya nomor sales terdaftar yang bisa dipasangkan")
+	row, err := s.st.Q.GetWANumber(r.Context(), n)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.Fail(w, http.StatusNotFound, "unknown_number", "Hanya nomor terdaftar yang bisa dipasangkan — tambah nomor dulu")
+		return
+	}
+	if u, _ := CurrentUser(r.Context()); !canManageNumber(u, row) {
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO, admin, atau pemilik nomor yang bisa memasangkan")
 		return
 	}
 	if s.jobs == nil {

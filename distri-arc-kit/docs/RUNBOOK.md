@@ -5,11 +5,16 @@ Alat utama: **Pengaturan → Status sistem** (CEO/admin), log JSON (`docker comp
 WhatsApp internal (`ALERT_WA_GROUP`) sekali per insiden dan "✅ Pulih" saat selesai.
 
 ## 1. WhatsApp terputus (alert "WhatsApp … terputus")
+Bridge Baileys: `systemctl status distri-arc-wa-bridge`, `curl -s 127.0.0.1:8111/health` (sesi, antrean, penghitung
+anti-blokir per nomor), log `journalctl -u distri-arc-wa-bridge -n 100`. Status `forbidden` = WhatsApp menolak perangkat
+(nomor kemungkinan dibatasi): **jangan** dipasangkan ulang terus-menerus; tunggu 24–48 jam, cek nomor di HP.
 1. Status sistem → baris WhatsApp menunjukkan nomor mana. Penyebab umum: ponsel sales mati/tanpa internet > 14 hari,
    perangkat tertaut dihapus dari ponsel, atau WhatsApp membatasi akun.
 2. Minta sales membuka WhatsApp di ponsel (online). Bila status `logged_out`: Pengaturan → WhatsApp → pasangkan ulang (QR).
 3. Pesan yang disetujui selama terputus tetap di outbox (`pending`) dan dikirim setelah terhubung — tidak ada yang hilang.
-4. Bila akun dibatasi WhatsApp: hentikan kirim proaktif nomor itu (Matriks otonomi → follow-up ke Konfirmasi), turunkan
+4. Pesan "Penjaga anti-blokir: …" di outbox: jeda/jam tenang = menunggu otomatis; "kontak belum pernah mengirim
+   pesan" / opt-out / broadcast = final, minta kontak menyapa dulu atau hubungi lewat telepon.
+5. Bila akun dibatasi WhatsApp: hentikan kirim proaktif nomor itu (Matriks otonomi → follow-up ke Konfirmasi), turunkan
    `followup.rules.max_per_day_per_sales`, dan jangan pasangkan nomor lain untuk "menyiasati" (ADR 0007).
 
 ## 2. Odoo gagal sync (Status sistem: Odoo "Gagal")

@@ -8,7 +8,7 @@ include .env
 export
 endif
 
-.PHONY: help dev api worker web setup check test test-go test-web lint typecheck migrate seed reset sqlc seedgen build e2e db-up restore-test vuln loadtest
+.PHONY: help dev api worker web setup check test test-go test-web test-bridge bridge lint typecheck migrate seed reset sqlc seedgen build e2e db-up restore-test vuln loadtest
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-10s %s\n", $$1, $$2}'
@@ -28,18 +28,25 @@ worker: ## Run only the worker
 web: ## Run only the web dev server
 	cd $(WEB) && npm run dev
 
-setup: ## Install web dependencies
+setup: ## Install web and bridge dependencies
 	cd $(WEB) && npm ci
+	cd apps/wa-bridge && npm ci
 
 check: lint test typecheck ## go vet + golangci-lint + go test + web typecheck + web test
 
-test: test-go test-web ## All unit + integration tests
+test: test-go test-web test-bridge ## All unit + integration tests
 
 test-go: ## Go tests (integration tests use DATABASE_URL_TEST)
 	$(GO) test ./...
 
 test-web:
 	cd $(WEB) && npm test
+
+test-bridge: ## WhatsApp Baileys bridge (guard, sender, http, forward)
+	cd apps/wa-bridge && npm test --silent && npm run lint --silent
+
+bridge: ## Run the Baileys bridge (WA_TRANSPORT=baileys; BRIDGE_SECRET as for the worker)
+	cd apps/wa-bridge && npm run build --silent && BRIDGE_DATABASE_URL=$(DATABASE_URL) node dist/main.js
 
 lint: ## go vet + golangci-lint + oxlint
 	$(GO) vet ./...

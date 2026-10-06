@@ -42,3 +42,20 @@ CMD ["api"]
 FROM caddy:2-alpine AS web
 COPY --from=webbuild /src/web/dist /srv/web
 COPY infra/Caddyfile /etc/caddy/Caddyfile
+
+# WhatsApp Baileys bridge (ADR 0017)
+FROM node:${NODE_VERSION}-bookworm-slim AS bridgebuild
+WORKDIR /src
+COPY apps/wa-bridge/package.json apps/wa-bridge/package-lock.json ./
+RUN npm ci
+COPY apps/wa-bridge ./
+RUN npm run build && npm prune --omit=dev
+
+FROM node:${NODE_VERSION}-bookworm-slim AS wa-bridge
+WORKDIR /app
+COPY --from=bridgebuild /src/dist ./dist
+COPY --from=bridgebuild /src/node_modules ./node_modules
+COPY --from=bridgebuild /src/package.json ./
+USER node
+ENV NODE_ENV=production BRIDGE_HOST=0.0.0.0 BRIDGE_PORT=8111 BRIDGE_DATA_DIR=/data
+CMD ["node", "dist/main.js"]

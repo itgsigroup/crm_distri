@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/rand/v2"
 	"time"
 
@@ -78,6 +79,10 @@ func NewSender(st *store.Store, t wa.Transport, c clock.Clock, r Rules) *Sender 
 	return &Sender{st: st, t: t, clock: c, rules: r, sleep: time.Sleep}
 }
 
+// ErrRefused is a final no from the anti-ban guard (contact never wrote first, opted out, broadcast pattern):
+// retrying would not help; the row stays failed with the reason for a person to see.
+var ErrRefused = errors.New("ditolak penjaga anti-blokir")
+
 // ErrCapReached tells the caller to retry tomorrow.
 var ErrCapReached = errors.New("daily send cap reached")
 
@@ -136,8 +141,22 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 			return gap - now.Sub(last), nil
 		}
 	}
-	msgID, sendErr := s.t.Send(ctx, p.From, p.To, p.Text)
+	msgID, sendErr := s.t.Send(wa.WithAction(ctx, id.String()), p.From, p.To, p.Text)
 	sent := s.clock.Now()
+	var refused *wa.SendRefused
+	if errors.As(sendErr, &refused) {
+		e := "Penjaga anti-blokir: " + refused.Reason
+		if refused.Temporary() { // pacing: the same message goes out later
+			_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: id, Status: "pending", Error: &e})
+			return refused.RetryAfter, nil
+		}
+		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: id, Status: "failed", Error: &e})
+		if mid, err := uuid.Parse(p.MessageID); err == nil {
+			_ = s.st.Q.SetChatMessageStatus(ctx, gen.SetChatMessageStatusParams{ID: mid, Status: "failed"})
+		}
+		s.notifyFailed(ctx, ob, errors.New(e))
+		return 0, fmt.Errorf("%w: %s", ErrRefused, refused.Reason)
+	}
 	if sendErr != nil {
 		e := sendErr.Error()
 		_ = s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: id, Status: "failed", Error: &e})

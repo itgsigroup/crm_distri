@@ -72,8 +72,8 @@ from proposals p where p.created_at >= $1 and p.kind <> 'reply' and p.status <> 
 -- name: FindContactByName :one
 select * from contacts where dealer_id = $1 and name = $2 limit 1;
 
--- name: FindThreadBySalesJID :one
-select id from chat_threads where sales_id = $1 and wa_jid = $2;
+-- name: FindThreadByAccountJID :one
+select id from chat_threads where account = sqlc.arg(account) and wa_jid = sqlc.arg(wa_jid);
 
 -- name: ProposalsForSignals :many
 select id, signal_ids, button, icon, status, title, kind, executed_at, decided_at from proposals

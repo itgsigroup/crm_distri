@@ -116,6 +116,16 @@ func (q *Queries) DeleteInternalNumber(ctx context.Context, waNumber string) err
 	return err
 }
 
+const deleteWANumber = `-- name: DeleteWANumber :exec
+delete from wa_numbers where wa_number = $1 and sales_id is null
+`
+
+// Removes a team number (no sales owner) after it was unlinked; a sales' main number stays as "unpaired".
+func (q *Queries) DeleteWANumber(ctx context.Context, waNumber string) error {
+	_, err := q.db.Exec(ctx, deleteWANumber, waNumber)
+	return err
+}
+
 const dropPendingBubble = `-- name: DropPendingBubble :exec
 with gone as (delete from chat_messages where proposal_id = $1 and status = 'pending' and direction = 'out' returning id)
 delete from chat_message_keys k using gone where k.message_id = gone.id
@@ -218,10 +228,12 @@ func (q *Queries) GetSalesByNumber(ctx context.Context, waNumber *string) (Sales
 }
 
 const getThread = `-- name: GetThread :one
-select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, s.wa_number as sales_wa
+select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
+  coalesce(n.label, s.name, t.account) as account_label
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
+left join wa_numbers n on n.wa_number = t.account
 where t.id = $1
 `
 
@@ -241,12 +253,15 @@ type GetThreadRow struct {
 	Tag            json.RawMessage `json:"tag"`
 	Suggestions    json.RawMessage `json:"suggestions"`
 	SeedKey        *string         `json:"seed_key"`
+	Account        *string         `json:"account"`
 	DealerSlug     *string         `json:"dealer_slug"`
 	DealerName     *string         `json:"dealer_name"`
 	SalesName      *string         `json:"sales_name"`
 	SalesWa        *string         `json:"sales_wa"`
+	AccountLabel   string          `json:"account_label"`
 }
 
+// sales_wa is the number replies go out from: the thread's own number, else its sales' main number.
 func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, error) {
 	row := q.db.QueryRow(ctx, getThread, id)
 	var i GetThreadRow
@@ -266,25 +281,28 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 		&i.Tag,
 		&i.Suggestions,
 		&i.SeedKey,
+		&i.Account,
 		&i.DealerSlug,
 		&i.DealerName,
 		&i.SalesName,
 		&i.SalesWa,
+		&i.AccountLabel,
 	)
 	return i, err
 }
 
-const getThreadBySalesJID = `-- name: GetThreadBySalesJID :one
-select id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key from chat_threads where wa_jid = $1 and sales_id is not distinct from $2
+const getThreadByAccountJID = `-- name: GetThreadByAccountJID :one
+select id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account from chat_threads where wa_jid = $1 and account is not distinct from $2
 `
 
-type GetThreadBySalesJIDParams struct {
-	WaJid   *string    `json:"wa_jid"`
-	SalesID *uuid.UUID `json:"sales_id"`
+type GetThreadByAccountJIDParams struct {
+	WaJid   *string `json:"wa_jid"`
+	Account *string `json:"account"`
 }
 
-func (q *Queries) GetThreadBySalesJID(ctx context.Context, arg GetThreadBySalesJIDParams) (ChatThread, error) {
-	row := q.db.QueryRow(ctx, getThreadBySalesJID, arg.WaJid, arg.SalesID)
+// A conversation belongs to the WhatsApp number that holds it (many numbers per sales, team numbers).
+func (q *Queries) GetThreadByAccountJID(ctx context.Context, arg GetThreadByAccountJIDParams) (ChatThread, error) {
+	row := q.db.QueryRow(ctx, getThreadByAccountJID, arg.WaJid, arg.Account)
 	var i ChatThread
 	err := row.Scan(
 		&i.ID,
@@ -302,6 +320,7 @@ func (q *Queries) GetThreadBySalesJID(ctx context.Context, arg GetThreadBySalesJ
 		&i.Tag,
 		&i.Suggestions,
 		&i.SeedKey,
+		&i.Account,
 	)
 	return i, err
 }
@@ -326,7 +345,7 @@ func (q *Queries) GetWAGroupByJID(ctx context.Context, jid *string) (WaGroup, er
 }
 
 const getWANumber = `-- name: GetWANumber :one
-select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at from wa_numbers where wa_number = $1
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at from wa_numbers where wa_number = $1
 `
 
 func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, error) {
@@ -345,6 +364,7 @@ func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, e
 		&i.PairedAt,
 		&i.BackfillDays,
 		&i.UpdatedAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -644,12 +664,12 @@ func (q *Queries) InsertProposal(ctx context.Context, arg InsertProposalParams) 
 }
 
 const insertThread = `-- name: InsertThread :one
-insert into chat_threads (kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+insert into chat_threads (kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 on conflict (seed_key) do update set title = excluded.title, subtitle = excluded.subtitle, tag = excluded.tag,
   suggestions = excluded.suggestions, identification = excluded.identification, unread = excluded.unread,
   dealer_id = excluded.dealer_id, contact_id = excluded.contact_id, group_id = excluded.group_id
-returning id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key
+returning id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account
 `
 
 type InsertThreadParams struct {
@@ -667,6 +687,7 @@ type InsertThreadParams struct {
 	Tag            json.RawMessage `json:"tag"`
 	Suggestions    json.RawMessage `json:"suggestions"`
 	SeedKey        *string         `json:"seed_key"`
+	Account        *string         `json:"account"`
 }
 
 func (q *Queries) InsertThread(ctx context.Context, arg InsertThreadParams) (ChatThread, error) {
@@ -685,6 +706,7 @@ func (q *Queries) InsertThread(ctx context.Context, arg InsertThreadParams) (Cha
 		arg.Tag,
 		arg.Suggestions,
 		arg.SeedKey,
+		arg.Account,
 	)
 	var i ChatThread
 	err := row.Scan(
@@ -703,6 +725,7 @@ func (q *Queries) InsertThread(ctx context.Context, arg InsertThreadParams) (Cha
 		&i.Tag,
 		&i.Suggestions,
 		&i.SeedKey,
+		&i.Account,
 	)
 	return i, err
 }
@@ -854,13 +877,15 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 }
 
 const listThreads = `-- name: ListThreads :many
-select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
+select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
+  coalesce(n.label, s.name, t.account) as account_label,
   (select m.body from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_body,
   (select m.from_name from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_from
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
 left join wa_groups g on g.id = t.group_id
+left join wa_numbers n on n.wa_number = t.account
 order by case t.kind when 'dealer' then 0 when 'group' then 1 else 2 end, t.last_message_at desc nulls last
 `
 
@@ -880,10 +905,12 @@ type ListThreadsRow struct {
 	Tag            json.RawMessage `json:"tag"`
 	Suggestions    json.RawMessage `json:"suggestions"`
 	SeedKey        *string         `json:"seed_key"`
+	Account        *string         `json:"account"`
 	DealerSlug     *string         `json:"dealer_slug"`
 	DealerName     *string         `json:"dealer_name"`
 	SalesName      *string         `json:"sales_name"`
 	GroupKind      *string         `json:"group_kind"`
+	AccountLabel   string          `json:"account_label"`
 	LastBody       *string         `json:"last_body"`
 	LastFrom       *string         `json:"last_from"`
 }
@@ -913,10 +940,12 @@ func (q *Queries) ListThreads(ctx context.Context) ([]ListThreadsRow, error) {
 			&i.Tag,
 			&i.Suggestions,
 			&i.SeedKey,
+			&i.Account,
 			&i.DealerSlug,
 			&i.DealerName,
 			&i.SalesName,
 			&i.GroupKind,
+			&i.AccountLabel,
 			&i.LastBody,
 			&i.LastFrom,
 		); err != nil {
@@ -963,8 +992,8 @@ func (q *Queries) ListWAGroups(ctx context.Context) ([]WaGroup, error) {
 }
 
 const listWANumbers = `-- name: ListWANumbers :many
-select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, s.name as sales_name, s.branch as sales_branch
-from wa_numbers n left join sales_users s on s.id = n.sales_id order by s.name
+select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, s.name as sales_name, s.branch as sales_branch
+from wa_numbers n left join sales_users s on s.id = n.sales_id order by s.name nulls last, n.label, n.created_at
 `
 
 type ListWANumbersRow struct {
@@ -980,6 +1009,7 @@ type ListWANumbersRow struct {
 	PairedAt     *time.Time `json:"paired_at"`
 	BackfillDays int32      `json:"backfill_days"`
 	UpdatedAt    time.Time  `json:"updated_at"`
+	CreatedAt    time.Time  `json:"created_at"`
 	SalesName    *string    `json:"sales_name"`
 	SalesBranch  *string    `json:"sales_branch"`
 }
@@ -1006,6 +1036,7 @@ func (q *Queries) ListWANumbers(ctx context.Context) ([]ListWANumbersRow, error)
 			&i.PairedAt,
 			&i.BackfillDays,
 			&i.UpdatedAt,
+			&i.CreatedAt,
 			&i.SalesName,
 			&i.SalesBranch,
 		); err != nil {
@@ -1122,6 +1153,21 @@ func (q *Queries) OpenCommitments(ctx context.Context, dealerID *uuid.UUID) ([]O
 	return items, nil
 }
 
+const outboxApprovedForSend = `-- name: OutboxApprovedForSend :one
+select exists(select 1 from outbox o join proposals p on p.id = o.proposal_id
+  where o.id = $1 and o.channel = 'wa' and o.status in ('pending', 'failed')
+    and p.decided_at is not null and p.status in ('approved', 'edited', 'executed'))::bool as approved
+`
+
+// The bridge asks before every send: the row must be a WhatsApp row of a proposal a person (or the system within
+// policy) approved, and not delivered yet (CLAUDE.md §2 — nothing reaches a dealer without a recorded decision).
+func (q *Queries) OutboxApprovedForSend(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, outboxApprovedForSend, id)
+	var approved bool
+	err := row.Scan(&approved)
+	return approved, err
+}
+
 const pendingOutboxIDs = `-- name: PendingOutboxIDs :many
 select id from outbox where status in ('pending', 'failed') order by created_at
 `
@@ -1145,6 +1191,20 @@ func (q *Queries) PendingOutboxIDs(ctx context.Context) ([]uuid.UUID, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const setChatMessageStatus = `-- name: SetChatMessageStatus :exec
+update chat_messages set status = $1::text where id = $2::uuid
+`
+
+type SetChatMessageStatusParams struct {
+	Status string    `json:"status"`
+	ID     uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetChatMessageStatus(ctx context.Context, arg SetChatMessageStatusParams) error {
+	_, err := q.db.Exec(ctx, setChatMessageStatus, arg.Status, arg.ID)
+	return err
 }
 
 const setMessageReplyTo = `-- name: SetMessageReplyTo :exec
@@ -1263,6 +1323,24 @@ type SetWANumberStateParams struct {
 
 func (q *Queries) SetWANumberState(ctx context.Context, arg SetWANumberStateParams) error {
 	_, err := q.db.Exec(ctx, setWANumberState, arg.WaNumber, arg.State, arg.Jid)
+	return err
+}
+
+const setWANumberUnpaired = `-- name: SetWANumberUnpaired :exec
+update wa_numbers set state = 'unpaired', qr = null, qr_expires_at = null, jid = null, paired_at = null, updated_at = now() where wa_number = $1
+`
+
+func (q *Queries) SetWANumberUnpaired(ctx context.Context, waNumber string) error {
+	_, err := q.db.Exec(ctx, setWANumberUnpaired, waNumber)
+	return err
+}
+
+const setWANumbersTransport = `-- name: SetWANumbersTransport :exec
+update wa_numbers set transport = $1, updated_at = now() where transport <> $1
+`
+
+func (q *Queries) SetWANumbersTransport(ctx context.Context, transport string) error {
+	_, err := q.db.Exec(ctx, setWANumbersTransport, transport)
 	return err
 }
 

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 
@@ -49,6 +50,8 @@ func newTransport(ctx context.Context, cfg config.Config, st *store.Store, log *
 		return wa.NewWhatsmeow(wa.WhatsmeowStore(db), cfg.WABackfillDays, log), nil
 	case "cloudapi":
 		return cloudTransport(cfg), nil
+	case "baileys":
+		return baileysTransport(cfg, st, log), nil
 	case "fake", "":
 		nums, err := st.Q.ListWANumbers(ctx)
 		if err != nil {
@@ -60,7 +63,7 @@ func newTransport(ctx context.Context, cfg config.Config, st *store.Store, log *
 		}
 		return wa.NewFake(accts...), nil
 	default:
-		return nil, fmt.Errorf("WA_TRANSPORT %q: want fake, whatsmeow or cloudapi", cfg.WATransport)
+		return nil, fmt.Errorf("WA_TRANSPORT %q: want fake, baileys, whatsmeow or cloudapi", cfg.WATransport)
 	}
 }
 
@@ -89,4 +92,37 @@ func injectMessage(ctx context.Context, st *store.Store, log *slog.Logger, from,
 	in := wa.NewIngestor(st, log)
 	m := wa.Message{ID: fmt.Sprintf("INJ%d", now.UnixNano()), Account: to, ChatJID: wa.UserJID(from), FromNumber: wa.Digits(from), FromName: name, Text: text, Time: now}
 	return in.Process(ctx, m)
+}
+
+// baileysTransport is the Baileys bridge transport (ADR 0017): the bridge confirms every send against the outbox,
+// and names each linked device after its number's label or sales.
+func baileysTransport(cfg config.Config, st *store.Store, log *slog.Logger) *wa.Baileys {
+	return &wa.Baileys{
+		BridgeURL: cfg.BridgeURL, Secret: cfg.BridgeSecret, Listen: cfg.BridgeListen, HistoryDays: cfg.WABackfillDays, Log: log,
+		Approved: func(ctx context.Context, outboxID string) (bool, error) {
+			id, err := uuid.Parse(outboxID)
+			if err != nil {
+				return false, err
+			}
+			return st.Q.OutboxApprovedForSend(ctx, id)
+		},
+		Accounts: func(ctx context.Context) []string {
+			_ = st.Q.SetWANumbersTransport(ctx, "baileys")
+			rows, err := st.Q.ListWANumbers(ctx)
+			if err != nil {
+				return nil
+			}
+			out := make([]string, 0, len(rows))
+			for _, r := range rows {
+				out = append(out, r.WaNumber)
+			}
+			return out
+		},
+		Label: func(ctx context.Context, account string) string {
+			if n, err := st.Q.GetWANumber(ctx, account); err == nil && n.Label != nil && *n.Label != "" {
+				return *n.Label
+			}
+			return account
+		},
+	}
 }

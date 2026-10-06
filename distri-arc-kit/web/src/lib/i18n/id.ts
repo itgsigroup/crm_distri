@@ -7,7 +7,7 @@ export type ScreenKey = 'today' | 'orch' | 'chat' | 'orbit' | 'net' | 'kuad' | '
 export const TITLES: Record<ScreenKey, [string, string]> = {
   today: ['Pusat kendali', ''],
   orch: ['Orchestrator', 'Mengatur enam agen AI: sinyal → analisis → konflik → keputusan → eksekusi → belajar'],
-  chat: ['Chat', 'WhatsApp 4 nomor sales + grup gudang · order masuk dari sini'],
+  chat: ['Chat', 'WhatsApp banyak nomor (Baileys) + grup gudang · order masuk dari sini'],
   orbit: ['Orbit', 'Semua dealer menurut siklus ordernya · atas = jadwal order · keluar = lewat jadwal'],
   net: ['Orbit', 'Peta relasi: kedekatan nomor sales ↔ dealer dalam 3D'],
   kuad: ['Orbit', 'Segmen: jenis dealer — X seringnya order, Y besarnya order'],

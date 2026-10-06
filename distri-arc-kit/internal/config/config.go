@@ -22,7 +22,10 @@ type Config struct {
 	LogLevel        string
 	WebOrigin       string
 
-	WATransport    string // fake | whatsmeow | cloudapi
+	WATransport    string // fake | baileys | whatsmeow | cloudapi
+	BridgeURL      string // Baileys bridge (apps/wa-bridge), e.g. http://127.0.0.1:8111
+	BridgeSecret   string // shared HMAC secret with the bridge (≥ 16 characters outside dev)
+	BridgeListen   string // where the worker receives the bridge's events, e.g. 127.0.0.1:8112
 	WASendGap      string // "20s-90s"
 	WAReplyDelay   string // "2s-6s"
 	WABackfillDays int
@@ -68,6 +71,9 @@ func Load() Config {
 		LogLevel:        get("LOG_LEVEL", "info"),
 		WebOrigin:       get("WEB_ORIGIN", "http://localhost:5173"),
 		WATransport:     get("WA_TRANSPORT", "fake"),
+		BridgeURL:       get("BRIDGE_URL", "http://127.0.0.1:8111"),
+		BridgeSecret:    get("BRIDGE_SECRET", ""),
+		BridgeListen:    get("BRIDGE_LISTEN", "127.0.0.1:8112"),
 		WASendGap:       get("WA_SEND_GAP", "20s-90s"),
 		WAReplyDelay:    get("WA_REPLY_DELAY", "2s-6s"),
 		WABackfillDays:  atoi(get("WA_BACKFILL_DAYS", "30")),

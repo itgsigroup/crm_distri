@@ -59,6 +59,9 @@ sudo -u arc ssh-keygen -t ed25519 -N "" -f ~arc/.ssh/github_deploy   # + ~/.ssh/
 # /etc/distri-arc/env (root:arc 640): APP_ENV=prod, DATABASE_URL, API_ADDR=127.0.0.1:8110, PUBLIC_URL, SESSION_SECRET, …
 # deploy (juga untuk setiap pembaruan dari GitHub):
 /opt/distri-arc/repo/distri-arc-kit/infra/deploy.sh distri-arc-orbit    # pertama kali: jalankan dari salinan skrip
+# WhatsApp Baileys (banyak nomor): di /etc/distri-arc/env
+#   WA_TRANSPORT=baileys  BRIDGE_SECRET=$(openssl rand -hex 24)  BRIDGE_URL=http://127.0.0.1:8111  BRIDGE_LISTEN=127.0.0.1:8112
+# deploy.sh lalu memasang & menyalakan distri-arc-wa-bridge; nomor ditambah & dipasangkan di Pengaturan → WhatsApp.
 # nginx + TLS
 cp /opt/distri-arc/infra/nginx/distri-arc.conf /etc/nginx/sites-available/crm-distri.gsiindo.id
 ln -s /etc/nginx/sites-available/crm-distri.gsiindo.id /etc/nginx/sites-enabled/ && nginx -t && systemctl reload nginx

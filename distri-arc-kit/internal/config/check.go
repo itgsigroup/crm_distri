@@ -69,6 +69,11 @@ func (c Config) Check() []Issue {
 	switch c.WATransport {
 	case "fake":
 		add(failProd, "WA_TRANSPORT", "fake: tidak ada WhatsApp sungguhan")
+	case "baileys":
+		if len(c.BridgeSecret) < 16 {
+			add(failProd, "BRIDGE_SECRET", "wajib ≥ 16 karakter untuk WA_TRANSPORT=baileys (sama dengan BRIDGE_SECRET di wa-bridge)")
+		}
+		add("ok", "WA_TRANSPORT", "baileys (bridge %s, banyak nomor, penjaga anti-blokir)", c.BridgeURL)
 	case "whatsmeow":
 		add("ok", "WA_TRANSPORT", "whatsmeow (linked device, pasangkan QR di Pengaturan)")
 	case "cloudapi":

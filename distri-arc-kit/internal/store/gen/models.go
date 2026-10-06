@@ -188,6 +188,7 @@ type ChatThread struct {
 	Tag            json.RawMessage `json:"tag"`
 	Suggestions    json.RawMessage `json:"suggestions"`
 	SeedKey        *string         `json:"seed_key"`
+	Account        *string         `json:"account"`
 }
 
 type Commitment struct {
@@ -732,4 +733,5 @@ type WaNumber struct {
 	PairedAt     *time.Time `json:"paired_at"`
 	BackfillDays int32      `json:"backfill_days"`
 	UpdatedAt    time.Time  `json:"updated_at"`
+	CreatedAt    time.Time  `json:"created_at"`
 }

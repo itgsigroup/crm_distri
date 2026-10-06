@@ -310,12 +310,12 @@ func queueWA(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Client[p
 	}
 	jid := wa.UserJID(deref(contact.WaNumber))
 	payload := outbox.WAPayload{From: *d.OwnerWa, To: jid, Text: text, Kind: p.Kind}
-	tid, err := q.FindThreadBySalesJID(ctx, gen.FindThreadBySalesJIDParams{SalesID: d.OwnerID, WaJid: &jid})
+	tid, err := q.FindThreadByAccountJID(ctx, gen.FindThreadByAccountJIDParams{Account: d.OwnerWa, WaJid: &jid})
 	if errors.Is(err, pgx.ErrNoRows) {
 		// first message to this contact: open the thread so the dealer's answer can be linked back (reply tracking)
 		kind, title, subtitle := "dealer", deref(contact.Name)+" · "+wa.ShortDealer(d.Name), d.Name+" · "+deref(contact.Role)
 		var t gen.ChatThread
-		t, err = q.InsertThread(ctx, gen.InsertThreadParams{Kind: &kind, DealerID: p.DealerID, ContactID: &contact.ID, WaJid: &jid, Title: &title, Subtitle: &subtitle, SalesID: d.OwnerID, LastMessageAt: &now})
+		t, err = q.InsertThread(ctx, gen.InsertThreadParams{Kind: &kind, DealerID: p.DealerID, ContactID: &contact.ID, WaJid: &jid, Title: &title, Subtitle: &subtitle, SalesID: d.OwnerID, LastMessageAt: &now, Account: d.OwnerWa})
 		tid = t.ID
 	}
 	if err == nil {

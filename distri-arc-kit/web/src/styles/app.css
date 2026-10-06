@@ -85,3 +85,15 @@
 .rail{z-index:10}
 .appearance.compact .swatches{gap:5px;flex-wrap:nowrap}
 .appearance.compact .swatch{width:19px;height:19px}
+.wa-add{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.wa-add input,.wa-add select{height:34px;border-radius:9px;border:1px solid var(--line);padding:0 10px;font:inherit;font-size:13px;background:var(--surface);color:var(--text);min-width:0}
+@media (max-width:720px){.wa-add{grid-template-columns:1fr}}
+.nums .st{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+/* Chat: WhatsApp numbers bar (many numbers) */
+.wa-bar{display:flex;gap:6px;padding:12px 12px 0;overflow-x:auto;scrollbar-width:none}
+.wa-bar::-webkit-scrollbar{display:none}
+.wa-chip{display:inline-flex;align-items:center;gap:6px;flex:none;height:28px;padding:0 11px;border-radius:999px;font-size:12px;font-weight:600;color:var(--text-2);background:var(--surface-2);border:1px solid var(--line);white-space:nowrap}
+.wa-chip:hover{color:var(--text)}
+.wa-chip.is-active{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+.wa-chip .dot{width:7px;height:7px}
+.dot.neutral{background:var(--text-3)}

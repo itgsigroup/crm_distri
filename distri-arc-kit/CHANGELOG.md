@@ -116,3 +116,9 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Tema **Terang** sebagai default (tidak lagi mengikuti mode gelap OS), dengan pilihan Terang / Gelap / Otomatis.
 - Warna sidebar mejikuhibiniu: Netral, Merah, Jingga, Kuning, Hijau, Biru, Nila, Ungu — dari menu akun (semua peran) dan Pengaturan → Tampilan; disimpan per perangkat. Badge tetap terbaca di semua warna.
 - Sidebar Biru memakai gradasi biru tua → nila (seperti aplikasi GSI lain) dengan penanda putih di menu aktif; sidebar bisa **diringkas** (ikon saja, tooltip nama menu, diingat per perangkat); kartu profil berisi avatar, nama, email, dan tombol keluar langsung.
+
+## WhatsApp Baileys, banyak nomor · 2026-10-06
+- Transport `baileys` (ADR 0017): bridge Node `apps/wa-bridge` (Baileys 7, sesi di Postgres, satu sesi per nomor) + transport di worker (event masuk HMAC, pemeriksaan persetujuan outbox sebelum setiap kirim). Layanan systemd `distri-arc-wa-bridge`, dibangun oleh `infra/deploy.sh`; target Docker `wa-bridge`.
+- Penjaga anti-blokir: hanya membalas kontak yang pernah menghubungi, opt-out, anti-broadcast, jam tenang, 20/jam & 120/hari per nomor, pemanasan nomor baru, jeda acak, "mengetik…". Penolakan jeda menunda, penolakan final menggagalkan dengan alasan.
+- Banyak nomor: migrasi `0013_wa_accounts` (percakapan milik nomor), tambah / pasangkan / lepas nomor di Pengaturan → WhatsApp dengan penghitung anti-blokir, bar nomor di Chat dengan QR langsung, "via nomor" di tiap percakapan.
+- Privasi: sales hanya melihat & membuka percakapan nomornya sendiri; `/wa/pair` dibatasi CEO/admin/pemilik nomor.

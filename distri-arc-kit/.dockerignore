@@ -8,3 +8,5 @@ web/test-results/
 web/playwright-report/
 web/e2e/__screenshots__/
 .git/
+apps/wa-bridge/node_modules/
+apps/wa-bridge/dist/

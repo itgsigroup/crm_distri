@@ -29,7 +29,7 @@ update wa_groups set kind = $2, read_enabled = $3 where id = $1 returning *;
 
 -- name: ListWANumbers :many
 select n.*, s.name as sales_name, s.branch as sales_branch
-from wa_numbers n left join sales_users s on s.id = n.sales_id order by s.name;
+from wa_numbers n left join sales_users s on s.id = n.sales_id order by s.name nulls last, n.label, n.created_at;
 
 -- name: GetWANumber :one
 select * from wa_numbers where wa_number = $1;
@@ -54,12 +54,13 @@ from contacts c join dealers d on d.id = c.dealer_id where c.wa_number = $1 limi
 -- name: GetSalesByNumber :one
 select * from sales_users where wa_number = $1;
 
--- name: GetThreadBySalesJID :one
-select * from chat_threads where wa_jid = $1 and sales_id is not distinct from $2;
+-- name: GetThreadByAccountJID :one
+-- A conversation belongs to the WhatsApp number that holds it (many numbers per sales, team numbers).
+select * from chat_threads where wa_jid = sqlc.arg(wa_jid) and account is not distinct from sqlc.narg(account);
 
 -- name: InsertThread :one
-insert into chat_threads (kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+insert into chat_threads (kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 on conflict (seed_key) do update set title = excluded.title, subtitle = excluded.subtitle, tag = excluded.tag,
   suggestions = excluded.suggestions, identification = excluded.identification, unread = excluded.unread,
   dealer_id = excluded.dealer_id, contact_id = excluded.contact_id, group_id = excluded.group_id
@@ -97,19 +98,24 @@ where id = sqlc.arg(id)::uuid;
 
 -- name: ListThreads :many
 select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
+  coalesce(n.label, s.name, t.account) as account_label,
   (select m.body from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_body,
   (select m.from_name from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_from
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
 left join wa_groups g on g.id = t.group_id
+left join wa_numbers n on n.wa_number = t.account
 order by case t.kind when 'dealer' then 0 when 'group' then 1 else 2 end, t.last_message_at desc nulls last;
 
 -- name: GetThread :one
-select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, s.wa_number as sales_wa
+-- sales_wa is the number replies go out from: the thread's own number, else its sales' main number.
+select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
+  coalesce(n.label, s.name, t.account) as account_label
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
+left join wa_numbers n on n.wa_number = t.account
 where t.id = $1;
 
 -- name: ListThreadMessages :many
@@ -243,3 +249,23 @@ delete from chat_message_keys k using gone where k.message_id = gone.id;
 -- name: PendingOutboxIDs :many
 -- Rows waiting for delivery (pilot rehearsal; the worker uses one job per row).
 select id from outbox where status in ('pending', 'failed') order by created_at;
+
+-- name: DeleteWANumber :exec
+-- Removes a team number (no sales owner) after it was unlinked; a sales' main number stays as "unpaired".
+delete from wa_numbers where wa_number = $1 and sales_id is null;
+
+-- name: SetWANumberUnpaired :exec
+update wa_numbers set state = 'unpaired', qr = null, qr_expires_at = null, jid = null, paired_at = null, updated_at = now() where wa_number = $1;
+
+-- name: OutboxApprovedForSend :one
+-- The bridge asks before every send: the row must be a WhatsApp row of a proposal a person (or the system within
+-- policy) approved, and not delivered yet (CLAUDE.md §2 — nothing reaches a dealer without a recorded decision).
+select exists(select 1 from outbox o join proposals p on p.id = o.proposal_id
+  where o.id = $1 and o.channel = 'wa' and o.status in ('pending', 'failed')
+    and p.decided_at is not null and p.status in ('approved', 'edited', 'executed'))::bool as approved;
+
+-- name: SetChatMessageStatus :exec
+update chat_messages set status = sqlc.arg(status)::text where id = sqlc.arg(id)::uuid;
+
+-- name: SetWANumbersTransport :exec
+update wa_numbers set transport = $1, updated_at = now() where transport <> $1;

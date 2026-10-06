@@ -16,6 +16,7 @@ import (
 	"distri-arc/internal/clock"
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/domain"
+	"distri-arc/internal/events"
 	"distri-arc/internal/identify"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/odoo"
@@ -115,6 +116,9 @@ func (w *OutboxWorker) Work(ctx context.Context, job *river.Job[jobs.OutboxSendA
 	if wait > 0 {
 		return river.JobSnooze(wait)
 	}
+	if errors.Is(err, outbox.ErrRefused) {
+		return river.JobCancel(err) // final: the guard refused this message, retrying cannot change that
+	}
 	return err
 }
 
@@ -135,6 +139,30 @@ func (w *WAPairWorker) Work(ctx context.Context, job *river.Job[jobs.WAPairArgs]
 		return w.ingest.ProcessStatus(ctx, wa.Status{Account: job.Args.WANumber, State: "pairing", QR: qr})
 	}
 	return nil
+}
+
+// WAUnpairWorker logs a linked number out; a team number is removed, a sales' main number stays unpaired.
+type WAUnpairWorker struct {
+	river.WorkerDefaults[jobs.WAUnpairArgs]
+	t  wa.Transport
+	st *store.Store
+}
+
+// Work unlinks the device (when the transport can) and records the state.
+func (w *WAUnpairWorker) Work(ctx context.Context, job *river.Job[jobs.WAUnpairArgs]) error {
+	n := job.Args.WANumber
+	if u, ok := w.t.(wa.Unpairer); ok {
+		if err := u.Unpair(ctx, n); err != nil {
+			return err
+		}
+	}
+	if err := w.st.Q.SetWANumberUnpaired(ctx, n); err != nil {
+		return err
+	}
+	if err := w.st.Q.DeleteWANumber(ctx, n); err != nil {
+		return err
+	}
+	return events.Notify(ctx, w.st.Pool, "wa_status", map[string]string{"account": n, "state": "unpaired"})
 }
 
 // OdooSyncWorker runs the read-only Odoo sync and recomputes the dealers it touched.
@@ -270,6 +298,7 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	if deps.Transport != nil {
 		river.AddWorker(workers, &OutboxWorker{sender: outbox.NewSender(st, deps.Transport, c, deps.Rules).WithOdoo(deps.Odoo)})
 		river.AddWorker(workers, &WAPairWorker{t: deps.Transport, ingest: deps.Ingest})
+		river.AddWorker(workers, &WAUnpairWorker{t: deps.Transport, st: st})
 	}
 	return river.NewClient[pgx.Tx](riverpgxv5.New(st.Pool), &river.Config{
 		Logger:  log,

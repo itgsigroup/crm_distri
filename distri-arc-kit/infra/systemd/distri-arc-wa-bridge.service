@@ -1,0 +1,25 @@
+# WhatsApp Baileys bridge (apps/wa-bridge, ADR 0017): many linked numbers, anti-ban guard, sends only outbox rows
+# the worker confirms as approved. Listens on 127.0.0.1:8111; posts events to the worker on 127.0.0.1:8112.
+[Unit]
+Description=Distri ARC WhatsApp bridge (Baileys)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=arc
+Group=arc
+EnvironmentFile=/etc/distri-arc/env
+Environment=BRIDGE_DATA_DIR=/var/lib/distri-arc/wa-bridge
+Environment=NODE_ENV=production
+WorkingDirectory=/opt/distri-arc/wa-bridge
+ExecStart=/usr/bin/node /opt/distri-arc/wa-bridge/dist/main.js
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/distri-arc
+
+[Install]
+WantedBy=multi-user.target

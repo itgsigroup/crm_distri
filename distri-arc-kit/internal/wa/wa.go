@@ -98,3 +98,36 @@ func NumberOfJID(jid string) string {
 
 // IsGroupJID reports whether a JID is a group chat.
 func IsGroupJID(jid string) bool { return strings.HasSuffix(jid, "@g.us") }
+
+// Unpairer is implemented by transports that can log a linked device out (Pengaturan → WhatsApp → Lepas).
+type Unpairer interface {
+	Unpair(ctx context.Context, account string) error
+}
+
+type actionKey struct{}
+
+// WithAction carries the outbox row id of an approved proposal to the transport, which the Baileys bridge
+// confirms with Distri ARC before it sends (no row, no send).
+func WithAction(ctx context.Context, outboxID string) context.Context {
+	return context.WithValue(ctx, actionKey{}, outboxID)
+}
+
+// ActionFrom is the outbox id set by WithAction ("" when none).
+func ActionFrom(ctx context.Context) string {
+	s, _ := ctx.Value(actionKey{}).(string)
+	return s
+}
+
+// SendRefused is the anti-ban guard saying no. With RetryAfter it is pacing (quiet hours, hourly or daily cap,
+// warm-up of a new device, gap to the same chat): the outbox job waits. Without it the refusal is final for this
+// message (contact never wrote first, opted out, identical text to many chats): a person must change the plan.
+type SendRefused struct {
+	Code       string
+	Reason     string
+	RetryAfter time.Duration
+}
+
+func (e *SendRefused) Error() string { return e.Reason }
+
+// Temporary reports whether the message may go out later unchanged.
+func (e *SendRefused) Temporary() bool { return e.RetryAfter > 0 }
