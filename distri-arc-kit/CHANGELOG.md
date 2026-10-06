@@ -108,3 +108,6 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - `docs/PILOT-REPORT.md` (checklist hari 0, aturan pilot, tabel hasil, temuan, go/no-go untuk ditandatangani Sam). ADR 0016.
 - Perbaikan: `pdp delete` kini juga menghapus sinyal percakapan berdasarkan `payload.from_number`.
 - Gladi pilot (`arc ctl pilot rehearse`, dev): 21 hari simulasi (14 bayangan + 7 live) — `docs/PILOT-REHEARSAL.md`. Perbaikan dari gladi: audit tidak lagi menghitung catatan Odoo atas saran yang ditolak sebagai kirim tanpa persetujuan; transfer/PO/bundle yang sudah disetujui tidak diusulkan ulang selama 7 hari (AI Stok 214 → 82 saran dalam 21 hari).
+
+## Deploy staging · 2026-10-06
+- `https://crm-distri.gsiindo.id` di VPS GSI (nginx + certbot bersama aplikasi lain): user `arc`, database `distri_arc`, API `127.0.0.1:8110`, systemd api/worker/backup, `infra/deploy.sh` (git pull → build → migrasi → restart → cek health), `infra/nginx/distri-arc.conf`. Data contoh, adapter fake, akun dengan kata sandi acak.
