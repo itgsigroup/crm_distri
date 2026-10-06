@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Deploy from GitHub on a server with nginx + systemd (docs/DEPLOY.md §C). Run as root:
-#   /opt/distri-arc/repo/distri-arc-kit/infra/deploy.sh [branch]
+#   /opt/distri-arc/repo/distri-arc-kit/infra/deploy.sh [branch]      (DEPLOY_NO_FETCH=1: build the checked-out commit)
 # Pulls the branch (deploy key of the arc user), builds bin/arc and web/dist as arc, installs them into
 # /opt/distri-arc/{bin,web,infra}, migrates, restarts api + worker, and checks /api/health. A failed build or
 # migration leaves the running version untouched.
@@ -19,6 +19,8 @@ as_arc() { sudo -u arc -H bash -lc "$*"; }
 
 if [[ ! -d $SRC/.git ]]; then
   as_arc "git clone --branch $BRANCH $REPO_URL $SRC"
+elif [[ "${DEPLOY_NO_FETCH:-}" == "1" ]]; then
+  echo "deploy: no fetch — building the checked-out commit"
 else
   as_arc "cd $SRC && git fetch --prune origin && git checkout -q $BRANCH && git reset -q --hard origin/$BRANCH"
 fi
