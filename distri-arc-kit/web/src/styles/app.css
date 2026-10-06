@@ -9,7 +9,7 @@
 .appearance{display:flex;flex-direction:column;gap:6px}
 .appearance .ap-label{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-top:4px}
 .appearance .seg{align-self:flex-start}
-.appearance.compact{padding:4px 4px 8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.appearance.compact{padding:2px}
 .appearance.compact .seg button{padding:5px 9px;font-size:12px}
 .swatches{display:flex;flex-wrap:wrap;gap:7px}
 .swatch{width:20px;height:20px;border-radius:50%;border:1px solid rgba(0,0,0,.12);cursor:pointer;transition:transform .15s,box-shadow .15s}
@@ -17,30 +17,71 @@
 .swatch:hover{transform:scale(1.12)}
 .swatch.is-active{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
 
-:root[data-rail="merah"]{--rail-bg:#D93025}
-:root[data-rail="jingga"]{--rail-bg:#E8590C}
-:root[data-rail="hijau"]{--rail-bg:#1E9E4A}
-:root[data-rail="biru"]{--rail-bg:#0071E3}
-:root[data-rail="nila"]{--rail-bg:#3F3DB8}
-:root[data-rail="ungu"]{--rail-bg:#8E3BD9}
-:root[data-rail]{--rail-fg:#FFFFFF;--rail-fg-2:rgba(255,255,255,.84);--rail-fg-3:rgba(255,255,255,.64);--rail-hover:rgba(255,255,255,.14);--rail-active:rgba(255,255,255,.24)}
-:root[data-rail="kuning"]{--rail-bg:#F2C200;--rail-fg:#1D1D1F;--rail-fg-2:rgba(29,29,31,.80);--rail-fg-3:rgba(29,29,31,.58);--rail-hover:rgba(0,0,0,.08);--rail-active:rgba(255,255,255,.55)}
+/* solid colour of each sidebar (for text on white badges); "biru" is the deep blue → indigo gradient of GSI apps */
+:root[data-rail="merah"]{--rail-bg:#D93025;--rail-solid:#D93025}
+:root[data-rail="jingga"]{--rail-bg:#E8590C;--rail-solid:#E8590C}
+:root[data-rail="hijau"]{--rail-bg:#1E9E4A;--rail-solid:#1E9E4A}
+:root[data-rail="biru"]{--rail-bg:linear-gradient(180deg,#2B3BA0 0%,#3433B8 55%,#3A2EC6 100%);--rail-solid:#3434B6}
+:root[data-rail="nila"]{--rail-bg:#3F3DB8;--rail-solid:#3F3DB8}
+:root[data-rail="ungu"]{--rail-bg:#8E3BD9;--rail-solid:#8E3BD9}
+:root[data-rail]{--rail-fg:#FFFFFF;--rail-fg-2:rgba(255,255,255,.84);--rail-fg-3:rgba(255,255,255,.62);--rail-hover:rgba(255,255,255,.12);--rail-active:rgba(255,255,255,.18);--rail-card:rgba(255,255,255,.10);--rail-card-line:rgba(255,255,255,.14)}
+:root[data-rail="kuning"]{--rail-bg:#F2C200;--rail-solid:#C99F00;--rail-fg:#1D1D1F;--rail-fg-2:rgba(29,29,31,.80);--rail-fg-3:rgba(29,29,31,.58);--rail-hover:rgba(0,0,0,.08);--rail-active:rgba(255,255,255,.55);--rail-card:rgba(255,255,255,.35);--rail-card-line:rgba(0,0,0,.08)}
 :root[data-rail] .rail{background:var(--rail-bg);border-right-color:transparent}
 :root[data-rail] .rail .brand-name{color:var(--rail-fg)}
 :root[data-rail] .rail .brand-sub,
 :root[data-rail] .rail .nav-sec{color:var(--rail-fg-3)}
-:root[data-rail] .rail .brand-mark::after{background:var(--rail-bg)}
+:root[data-rail] .rail .brand-mark::after{background:var(--rail-solid)}
 :root[data-rail] .rail .nav-btn{color:var(--rail-fg-2)}
 :root[data-rail] .rail .nav-btn:hover{background:var(--rail-hover);color:var(--rail-fg)}
 :root[data-rail] .rail .nav-btn.is-active{background:var(--rail-active);color:var(--rail-fg);box-shadow:none}
-:root[data-rail] .rail .agents{background:var(--rail-hover);box-shadow:none}
+:root[data-rail] .rail .nav-btn.is-active::before{content:"";position:absolute;left:-14px;top:22%;bottom:22%;width:4px;border-radius:0 4px 4px 0;background:var(--rail-fg)}
+:root[data-rail] .rail .nav-btn .badge{background:var(--rail-fg) !important;color:var(--rail-solid) !important}
+:root[data-rail] .rail .agents{background:var(--rail-card);box-shadow:none}
 :root[data-rail] .rail .agents-h{color:var(--rail-fg)}
 :root[data-rail] .rail .agents li{color:var(--rail-fg-2)}
 :root[data-rail] .rail .agents li.on::before{background:var(--rail-fg)}
-:root[data-rail] .rail .me b{color:var(--rail-fg)}
-:root[data-rail] .rail .me span{color:var(--rail-fg-3)}
-:root[data-rail] .rail .avatar{background:var(--rail-active);color:var(--rail-fg)}
-/* badges keep their count readable on any sidebar colour (red on red would vanish) */
-:root[data-rail] .rail .nav-btn .badge{background:var(--rail-fg) !important;color:var(--rail-bg) !important}
+:root[data-rail] .rail .me{background:var(--rail-card);border-color:var(--rail-card-line);box-shadow:none}
+:root[data-rail] .rail .me-who b{color:var(--rail-fg)}
+:root[data-rail] .rail .me-who span{color:var(--rail-fg-3)}
+:root[data-rail] .rail .avatar{background:rgba(255,255,255,.22);color:var(--rail-fg)}
+:root[data-rail="kuning"] .rail .avatar{background:rgba(0,0,0,.12)}
+:root[data-rail] .rail .me-out{color:var(--rail-fg-2)}
+:root[data-rail] .rail .me-out:hover{background:var(--rail-hover);color:var(--rail-fg)}
+
+/* ---------- Sidebar: penanda aktif, profil, ringkas ---------- */
+.rail .nav-btn{position:relative}
+.nav-label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail .me{display:flex;align-items:center;gap:6px;padding:8px 8px 8px 10px;border-radius:14px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
+.me-open{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;border-radius:10px}
+.me-who{min-width:0;display:flex;flex-direction:column}
+.me-who b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-who span{font-size:11.5px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-out{flex:none;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:var(--text-2);transition:background .15s,color .15s}
+.me-out:hover{background:var(--surface-3);color:var(--bad)}
+.me-out .i{width:17px;height:17px}
+.me-menu{position:absolute;bottom:calc(100% + 8px);left:0;right:0;min-width:236px;padding:10px;z-index:30}
+.rail-toggle{position:absolute;top:34px;right:-13px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--surface);color:var(--text-2);border:1px solid var(--line-strong);box-shadow:var(--shadow);z-index:5;transition:transform .2s,color .15s}
+.rail-toggle:hover{color:var(--text)}
+.rail-toggle .i{width:14px;height:14px;transform:rotate(90deg)}
+.app{transition:grid-template-columns .2s ease}
+
+:root[data-rail-collapsed]{--rail-w:76px}
+:root[data-rail-collapsed] .rail{padding-left:10px;padding-right:10px}
+:root[data-rail-collapsed] .rail-toggle .i{transform:rotate(-90deg)}
+:root[data-rail-collapsed] .brand{justify-content:center;padding:4px 0 16px}
+:root[data-rail-collapsed] .brand > div:not(.brand-mark){display:none}
+:root[data-rail-collapsed] .nav-sec{font-size:0;padding:8px 0 4px;margin:4px 14px 0;border-top:1px solid var(--line-strong)}
+:root[data-rail][data-rail-collapsed] .nav-sec{border-top-color:var(--rail-card-line)}
+:root[data-rail-collapsed] .nav-sec:first-child{border-top:0;padding-top:0;margin-top:0}
+:root[data-rail-collapsed] .nav-btn{justify-content:center;padding:10px 0}
+:root[data-rail-collapsed] .nav-label{display:none}
+:root[data-rail-collapsed] .nav-btn .badge{position:absolute;top:3px;right:6px;margin:0;min-width:16px;padding:0 4px;font-size:10px;line-height:15px}
+:root[data-rail-collapsed] .nav-btn .live{position:absolute;top:8px;right:12px;margin:0;width:7px;height:7px}
+:root[data-rail-collapsed][data-rail] .rail .nav-btn.is-active::before{left:-10px}
+:root[data-rail-collapsed] .agents{display:none}
+:root[data-rail-collapsed] .rail .me{flex-direction:column;padding:8px 4px;gap:4px}
+:root[data-rail-collapsed] .me-open{justify-content:center}
+:root[data-rail-collapsed] .me-who{display:none}
+.rail{z-index:10}
 .appearance.compact .swatches{gap:5px;flex-wrap:nowrap}
-.appearance.compact .swatch{width:18px;height:18px}
+.appearance.compact .swatch{width:19px;height:19px}

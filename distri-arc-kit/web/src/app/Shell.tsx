@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router'
 import sprite from '../icons/sprite.svg?raw'
 import { Icon } from '../components/Icon'
 import { AppearancePicker } from '../components/AppearancePicker'
+import { useAppearance } from './appearance'
 import { useFeedback } from '../components/feedback'
 import { AGENT_NAMES, TITLES, type ScreenKey } from '../lib/i18n/id'
 import { todayLine } from '../lib/format'
@@ -47,9 +48,9 @@ function NavBtn({ to, cur, icon, children, badge }: { to: ScreenKey; cur: Screen
   if (me && !me.screens.includes(to)) return null
   const hl = cur === 'net' || cur === 'kuad' ? 'orbit' : cur
   return (
-    <button className={`nav-btn ${hl === to ? 'is-active' : ''}`} onClick={() => nav(ROUTES[to])}>
+    <button className={`nav-btn ${hl === to ? 'is-active' : ''}`} title={typeof children === 'string' ? children : undefined} onClick={() => nav(ROUTES[to])}>
       <Icon name={icon} />
-      {children}
+      <span className="nav-label">{children}</span>
       {badge}
     </button>
   )
@@ -83,6 +84,7 @@ export function Shell() {
     if (me && !me.screens.includes(cur)) nav('/', { replace: true })
   }, [me, cur, nav])
   const [menu, setMenu] = useState(false)
+  const { collapsed, setCollapsed } = useAppearance()
   const { subscribe } = useSse()
   useEffect(
     () =>
@@ -153,17 +155,20 @@ export function Shell() {
             </div>
             <div style={{ position: 'relative' }}>
               {menu && (
-                <div className="card" style={{ position: 'absolute', bottom: '105%', left: 0, right: 0, padding: 8, zIndex: 20 }}>
+                <div className="card me-menu">
                   <AppearancePicker compact />
-                  <button className="btn quiet" style={{ width: '100%', justifyContent: 'flex-start' }} onClick={() => void logout()}><Icon name="x" />Keluar</button>
                 </div>
               )}
-              <div className="me" role="button" tabIndex={0} aria-expanded={menu} aria-label={`Akun ${me?.name ?? ''}`} style={{ cursor: 'pointer' }} onClick={() => setMenu(!menu)} onKeyDown={(e) => e.key === 'Enter' && setMenu(!menu)}>
-                <div className="avatar">{me ? initialsOf(me.name) : '··'}</div>
-                <div><b>{me?.name ?? '…'}</b><span>{me ? roleLine(me.role, me.branch) : ''}</span></div>
+              <div className="me">
+                <div className="me-open" role="button" tabIndex={0} aria-expanded={menu} aria-label={`Akun ${me?.name ?? ''} · tema & warna sidebar`} title={me ? `${me.name} · ${roleLine(me.role, me.branch)}` : undefined} onClick={() => setMenu(!menu)} onKeyDown={(e) => e.key === 'Enter' && setMenu(!menu)}>
+                  <div className="avatar">{me ? initialsOf(me.name) : '··'}</div>
+                  <div className="me-who"><b>{me?.name ?? '…'}</b><span>{me?.email ?? ''}</span></div>
+                </div>
+                <button className="me-out" aria-label="Keluar" title="Keluar" onClick={() => void logout()}><Icon name="logout" /></button>
               </div>
             </div>
           </div>
+          <button className="rail-toggle" aria-label={collapsed ? 'Lebarkan sidebar' : 'Ringkas sidebar'} title={collapsed ? 'Lebarkan sidebar' : 'Ringkas sidebar'} onClick={() => { setCollapsed(!collapsed); setMenu(false) }}><Icon name="chev" /></button>
         </aside>
 
         <main className="stage">

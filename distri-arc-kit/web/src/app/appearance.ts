@@ -13,13 +13,14 @@ export const RAIL_COLORS: [RailColor, string, string][] = [
   ['jingga', 'Jingga', '#E8590C'],
   ['kuning', 'Kuning', '#F2C200'],
   ['hijau', 'Hijau', '#1E9E4A'],
-  ['biru', 'Biru', '#0071E3'],
+  ['biru', 'Biru', 'linear-gradient(180deg,#2B3BA0,#3A2EC6)'],
   ['nila', 'Nila', '#3F3DB8'],
   ['ungu', 'Ungu', '#8E3BD9'],
 ]
 
 const KEY_THEME = 'arc.theme'
 const KEY_RAIL = 'arc.rail'
+const KEY_COLLAPSED = 'arc.rail.collapsed'
 const EVENT = 'arc-appearance'
 
 function read<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
@@ -34,9 +35,13 @@ function read<T extends string>(key: string, allowed: readonly T[], fallback: T)
 export const storedTheme = () => read<Theme>(KEY_THEME, ['light', 'dark', 'auto'], 'light')
 export const storedRail = () => read<RailColor>(KEY_RAIL, RAIL_COLORS.map((c) => c[0]), 'netral')
 
+export const storedCollapsed = () => read<'1' | '0'>(KEY_COLLAPSED, ['1', '0'], '0') === '1'
+
 /** Applies the stored appearance to <html> (before the first render and after every change). */
-export function applyAppearance(theme = storedTheme(), rail = storedRail()) {
+export function applyAppearance(theme = storedTheme(), rail = storedRail(), collapsed = storedCollapsed()) {
   const el = document.documentElement
+  if (collapsed) el.dataset.railCollapsed = ''
+  else delete el.dataset.railCollapsed
   if (theme === 'auto') delete el.dataset.theme
   else el.dataset.theme = theme
   if (rail === 'netral') delete el.dataset.rail
@@ -55,10 +60,12 @@ function save(key: string, value: string) {
 export function useAppearance() {
   const [theme, setThemeState] = useState<Theme>(storedTheme)
   const [rail, setRailState] = useState<RailColor>(storedRail)
+  const [collapsed, setCollapsedState] = useState(storedCollapsed)
   useEffect(() => {
     const sync = () => {
       setThemeState(storedTheme())
       setRailState(storedRail())
+      setCollapsedState(storedCollapsed())
     }
     window.addEventListener(EVENT, sync)
     window.addEventListener('storage', sync)
@@ -69,7 +76,7 @@ export function useAppearance() {
   }, [])
   const setTheme = (t: Theme) => {
     save(KEY_THEME, t)
-    applyAppearance(t, storedRail())
+    applyAppearance(t)
     window.dispatchEvent(new Event(EVENT))
   }
   const setRail = (r: RailColor) => {
@@ -77,5 +84,10 @@ export function useAppearance() {
     applyAppearance(storedTheme(), r)
     window.dispatchEvent(new Event(EVENT))
   }
-  return { theme, rail, setTheme, setRail }
+  const setCollapsed = (c: boolean) => {
+    save(KEY_COLLAPSED, c ? '1' : '0')
+    applyAppearance(storedTheme(), storedRail(), c)
+    window.dispatchEvent(new Event(EVENT))
+  }
+  return { theme, rail, collapsed, setTheme, setRail, setCollapsed }
 }
