@@ -1,4 +1,5 @@
-# Bare-metal alternative to docker-compose.prod.yml (docs/DEPLOY.md §B): /opt/distri-arc/bin/arc + /etc/distri-arc/env.
+# Bare-metal alternative to docker-compose.prod.yml (docs/DEPLOY.md §B/§C): /opt/distri-arc/bin/arc + /etc/distri-arc/env.
+# Migrations run in infra/deploy.sh before the binary is switched.
 [Unit]
 Description=Distri ARC Orbit API
 After=network-online.target postgresql.service
@@ -8,7 +9,6 @@ Wants=network-online.target
 User=arc
 Group=arc
 EnvironmentFile=/etc/distri-arc/env
-ExecStartPre=/opt/distri-arc/bin/arc ctl migrate
 ExecStart=/opt/distri-arc/bin/arc api
 Restart=always
 RestartSec=3

@@ -41,8 +41,28 @@ sudo useradd --system --home /var/lib/distri-arc --create-home arc
 make build && sudo install -D bin/arc /opt/distri-arc/bin/arc && sudo cp -r web/dist /opt/distri-arc/web && sudo cp -r infra /opt/distri-arc/
 sudo install -D -m 600 -o arc .env /etc/distri-arc/env            # DATABASE_URL=postgres:///distri_arc?host=/var/run/postgresql
 sudo cp infra/systemd/*.service infra/systemd/*.timer /etc/systemd/system/
+sudo -u arc bash -c 'set -a; . /etc/distri-arc/env; set +a; /opt/distri-arc/bin/arc ctl migrate'
 sudo systemctl daemon-reload && sudo systemctl enable --now distri-arc-api distri-arc-worker distri-arc-backup.timer
 # Caddy: DOMAIN, API_UPSTREAM=127.0.0.1:8080, WEB_ROOT=/opt/distri-arc/web di /etc/default/caddy; Caddyfile = infra/Caddyfile
+```
+
+## C. Server bersama yang sudah memakai nginx + certbot (VPS GSI 187.77.120.78)
+Server ini juga melayani `crm.gsiindo.id`, `ibos`, `cast`, `sales`, `inventaris`, `report`: Distri ARC dipasang
+berdampingan tanpa menyentuh yang lain — database & role PostgreSQL sendiri (`distri_arc`), user sistem `arc`, API di
+`127.0.0.1:8110`, vhost nginx sendiri.
+```bash
+# sekali: user, database, deploy key (public key → GitHub repo → Settings → Deploy keys, read-only)
+useradd --system --home /var/lib/distri-arc --create-home --shell /bin/bash arc
+sudo -u postgres createuser distri_arc -P && sudo -u postgres createdb -O distri_arc distri_arc
+sudo -u postgres psql -d distri_arc -c "create extension if not exists pg_trgm; create extension if not exists pgcrypto"
+sudo -u arc ssh-keygen -t ed25519 -N "" -f ~arc/.ssh/github_deploy   # + ~/.ssh/config: IdentityFile untuk github.com
+# /etc/distri-arc/env (root:arc 640): APP_ENV=prod, DATABASE_URL, API_ADDR=127.0.0.1:8110, PUBLIC_URL, SESSION_SECRET, …
+# deploy (juga untuk setiap pembaruan dari GitHub):
+/opt/distri-arc/repo/distri-arc-kit/infra/deploy.sh distri-arc-orbit    # pertama kali: jalankan dari salinan skrip
+# nginx + TLS
+cp /opt/distri-arc/infra/nginx/distri-arc.conf /etc/nginx/sites-available/crm-distri.gsiindo.id
+ln -s /etc/nginx/sites-available/crm-distri.gsiindo.id /etc/nginx/sites-enabled/ && nginx -t && systemctl reload nginx
+certbot --nginx -d crm-distri.gsiindo.id --redirect
 ```
 
 ## Yang diperiksa setelah deploy (acceptance Stage 13)
