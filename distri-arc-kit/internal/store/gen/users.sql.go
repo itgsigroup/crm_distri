@@ -7,6 +7,7 @@ package gen
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -36,17 +37,43 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UU
 	return id, err
 }
 
+const disableTOTP = `-- name: DisableTOTP :exec
+update users set totp_secret = null, totp_enabled_at = null, totp_last_step = null where id = $1
+`
+
+func (q *Queries) DisableTOTP(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, disableTOTP, id)
+	return err
+}
+
+const enableTOTP = `-- name: EnableTOTP :exec
+update users set totp_enabled_at = $2, totp_last_step = $3 where id = $1
+`
+
+type EnableTOTPParams struct {
+	ID            uuid.UUID  `json:"id"`
+	TotpEnabledAt *time.Time `json:"totp_enabled_at"`
+	TotpLastStep  *int64     `json:"totp_last_step"`
+}
+
+func (q *Queries) EnableTOTP(ctx context.Context, arg EnableTOTPParams) error {
+	_, err := q.db.Exec(ctx, enableTOTP, arg.ID, arg.TotpEnabledAt, arg.TotpLastStep)
+	return err
+}
+
 const getLoginUser = `-- name: GetLoginUser :one
-select id, email, name, role, password_hash, active from users where lower(email) = lower($1)
+select id, email, name, role, password_hash, active, totp_secret, totp_enabled_at from users where lower(email) = lower($1)
 `
 
 type GetLoginUserRow struct {
-	ID           uuid.UUID `json:"id"`
-	Email        *string   `json:"email"`
-	Name         *string   `json:"name"`
-	Role         *string   `json:"role"`
-	PasswordHash *string   `json:"password_hash"`
-	Active       bool      `json:"active"`
+	ID            uuid.UUID  `json:"id"`
+	Email         *string    `json:"email"`
+	Name          *string    `json:"name"`
+	Role          *string    `json:"role"`
+	PasswordHash  *string    `json:"password_hash"`
+	Active        bool       `json:"active"`
+	TotpSecret    *string    `json:"totp_secret"`
+	TotpEnabledAt *time.Time `json:"totp_enabled_at"`
 }
 
 func (q *Queries) GetLoginUser(ctx context.Context, lower string) (GetLoginUserRow, error) {
@@ -59,6 +86,33 @@ func (q *Queries) GetLoginUser(ctx context.Context, lower string) (GetLoginUserR
 		&i.Role,
 		&i.PasswordHash,
 		&i.Active,
+		&i.TotpSecret,
+		&i.TotpEnabledAt,
+	)
+	return i, err
+}
+
+const getUserTOTP = `-- name: GetUserTOTP :one
+select id, email, role, totp_secret, totp_enabled_at from users where id = $1
+`
+
+type GetUserTOTPRow struct {
+	ID            uuid.UUID  `json:"id"`
+	Email         *string    `json:"email"`
+	Role          *string    `json:"role"`
+	TotpSecret    *string    `json:"totp_secret"`
+	TotpEnabledAt *time.Time `json:"totp_enabled_at"`
+}
+
+func (q *Queries) GetUserTOTP(ctx context.Context, id uuid.UUID) (GetUserTOTPRow, error) {
+	row := q.db.QueryRow(ctx, getUserTOTP, id)
+	var i GetUserTOTPRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Role,
+		&i.TotpSecret,
+		&i.TotpEnabledAt,
 	)
 	return i, err
 }
@@ -108,6 +162,18 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 	return items, nil
 }
 
+const resetTOTPByEmail = `-- name: ResetTOTPByEmail :execrows
+update users set totp_secret = null, totp_enabled_at = null, totp_last_step = null where lower(email) = lower($1)
+`
+
+func (q *Queries) ResetTOTPByEmail(ctx context.Context, lower string) (int64, error) {
+	result, err := q.db.Exec(ctx, resetTOTPByEmail, lower)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const salesUserByName = `-- name: SalesUserByName :one
 select id from sales_users where lower(name) = lower($1) limit 1
 `
@@ -117,6 +183,21 @@ func (q *Queries) SalesUserByName(ctx context.Context, lower string) (uuid.UUID,
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const setTOTPSecret = `-- name: SetTOTPSecret :exec
+update users set totp_secret = $2, totp_enabled_at = null, totp_last_step = null where id = $1
+`
+
+type SetTOTPSecretParams struct {
+	ID         uuid.UUID `json:"id"`
+	TotpSecret *string   `json:"totp_secret"`
+}
+
+// A new secret waits for its first code (totp_enabled_at stays null until then).
+func (q *Queries) SetTOTPSecret(ctx context.Context, arg SetTOTPSecretParams) error {
+	_, err := q.db.Exec(ctx, setTOTPSecret, arg.ID, arg.TotpSecret)
+	return err
 }
 
 const setUserPassword = `-- name: SetUserPassword :exec
@@ -156,6 +237,24 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 		arg.ID,
 	)
 	return err
+}
+
+const useTOTPStep = `-- name: UseTOTPStep :execrows
+update users set totp_last_step = $2 where id = $1 and coalesce(totp_last_step, 0) < $2
+`
+
+type UseTOTPStepParams struct {
+	ID           uuid.UUID `json:"id"`
+	TotpLastStep *int64    `json:"totp_last_step"`
+}
+
+// Accepts a step only once (a code cannot be replayed within its 90-second window).
+func (q *Queries) UseTOTPStep(ctx context.Context, arg UseTOTPStepParams) (int64, error) {
+	result, err := q.db.Exec(ctx, useTOTPStep, arg.ID, arg.TotpLastStep)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const usersWithoutPassword = `-- name: UsersWithoutPassword :many

@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// Version is the build version (set with -ldflags "-X distri-arc/internal/config.Version=…").
+var Version = "dev"
+
 // Config is the runtime configuration shared by api, worker and ctl.
 type Config struct {
 	Env             string // dev | prod
@@ -46,6 +49,11 @@ type Config struct {
 	TruecallerKey string // Truecaller API (fake lookups when empty)
 
 	PublicURL string // public base URL (MCP endpoint shown in Pengaturan), e.g. https://distri.gsi.co.id
+
+	MetricsToken string // bearer token for /metrics (empty: loopback only)
+	AlertWAGroup string // internal group JID for ops alerts (empty: the first internal group)
+	AlertWAFrom  string // number that sends ops alerts (empty: the first connected number)
+	BackupDir    string // where infra/backup.sh writes (shown in Status sistem)
 }
 
 // Load reads .env (if present, without overriding real env vars) and returns the configuration.
@@ -82,6 +90,10 @@ func Load() Config {
 		PublicURL:       get("PUBLIC_URL", ""),
 		TruecallerKey:   get("TRUECALLER_API_KEY", ""),
 		SessionSecret:   get("SESSION_SECRET", ""),
+		MetricsToken:    get("METRICS_TOKEN", ""),
+		AlertWAGroup:    get("ALERT_WA_GROUP", ""),
+		AlertWAFrom:     get("ALERT_WA_FROM", ""),
+		BackupDir:       get("BACKUP_DIR", "/var/backups/distri-arc"),
 	}
 }
 

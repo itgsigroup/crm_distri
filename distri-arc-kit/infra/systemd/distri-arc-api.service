@@ -1,0 +1,22 @@
+# Bare-metal alternative to docker-compose.prod.yml (docs/DEPLOY.md §B): /opt/distri-arc/bin/arc + /etc/distri-arc/env.
+[Unit]
+Description=Distri ARC Orbit API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=arc
+Group=arc
+EnvironmentFile=/etc/distri-arc/env
+ExecStartPre=/opt/distri-arc/bin/arc ctl migrate
+ExecStart=/opt/distri-arc/bin/arc api
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/distri-arc
+
+[Install]
+WantedBy=multi-user.target

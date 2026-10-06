@@ -282,7 +282,7 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		}
 		payload, _ := json.Marshal(outbox.WAPayload{From: from, To: *t.WaJid, Text: body, Kind: "reply", MessageID: mid.String(), ThreadID: t.ID.String()})
 		to := *t.WaJid
-		ob, err := q.InsertOutbox(r.Context(), gen.InsertOutboxParams{ProposalID: p.ID, Channel: "wa", ToRef: &to, Payload: payload})
+		ob, err := q.InsertOutbox(r.Context(), gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "wa", ToRef: &to, Payload: payload})
 		if err != nil {
 			return err
 		}

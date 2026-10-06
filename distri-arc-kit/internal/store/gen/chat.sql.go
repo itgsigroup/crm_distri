@@ -372,9 +372,17 @@ func (q *Queries) InsertAIDraftOrder(ctx context.Context, arg InsertAIDraftOrder
 }
 
 const insertChatMessage = `-- name: InsertChatMessage :one
-insert into chat_messages (thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-on conflict (wa_msg_id) do nothing
+with k as (
+  insert into chat_message_keys (wa_msg_id, message_id, sent_at)
+  values (coalesce($2::text, 'local:' || gen_random_uuid()), gen_random_uuid(), $13::timestamptz)
+  on conflict (wa_msg_id) do nothing
+  returning message_id, sent_at
+)
+insert into chat_messages (id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal)
+select k.message_id, $1::uuid, $2::text, $3::text, $4::text,
+       $5::text, $6::text, $7::jsonb, k.sent_at, $8::jsonb,
+       $9::uuid, $10::text, $11::uuid, $12::bool
+from k
 returning id
 `
 
@@ -386,14 +394,15 @@ type InsertChatMessageParams struct {
 	FromName   *string         `json:"from_name"`
 	Body       *string         `json:"body"`
 	Media      json.RawMessage `json:"media"`
-	SentAt     time.Time       `json:"sent_at"`
 	Annotation json.RawMessage `json:"annotation"`
 	SignalID   *uuid.UUID      `json:"signal_id"`
 	Status     string          `json:"status"`
 	ProposalID *uuid.UUID      `json:"proposal_id"`
 	Internal   bool            `json:"internal"`
+	SentAt     time.Time       `json:"sent_at"`
 }
 
+// chat_message_keys keeps wa_msg_id unique across monthly partitions; a known id inserts nothing (no rows).
 func (q *Queries) InsertChatMessage(ctx context.Context, arg InsertChatMessageParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, insertChatMessage,
 		arg.ThreadID,
@@ -403,12 +412,12 @@ func (q *Queries) InsertChatMessage(ctx context.Context, arg InsertChatMessagePa
 		arg.FromName,
 		arg.Body,
 		arg.Media,
-		arg.SentAt,
 		arg.Annotation,
 		arg.SignalID,
 		arg.Status,
 		arg.ProposalID,
 		arg.Internal,
+		arg.SentAt,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
@@ -454,29 +463,42 @@ func (q *Queries) InsertCommitment(ctx context.Context, arg InsertCommitmentPara
 }
 
 const insertManualSignal = `-- name: InsertManualSignal :one
-insert into signals (kind, dealer_id, contact_id, sales_id, occurred_at, dedupe_key, summary, payload)
-values ('manual', $1, $2, $3, $4, $5, $6, $7)
-on conflict (dedupe_key) do update set summary = excluded.summary
-returning id
+with k as (
+  insert into signal_keys (dedupe_key, signal_id, occurred_at)
+  values ($1::text, gen_random_uuid(), $2::timestamptz)
+  on conflict (dedupe_key) do update set dedupe_key = excluded.dedupe_key
+  returning signal_id, occurred_at, (xmax = 0) as fresh
+), ins as (
+  insert into signals (id, kind, dealer_id, contact_id, sales_id, occurred_at, dedupe_key, summary, payload)
+  select k.signal_id, 'manual', $3::uuid, $4::uuid, $5::uuid,
+         k.occurred_at, $1::text, $6::text, $7::jsonb
+  from k where k.fresh
+  returning id
+), upd as (
+  update signals s set summary = $6::text from k
+  where not k.fresh and s.id = k.signal_id and s.occurred_at = k.occurred_at
+  returning s.id
+)
+select k.signal_id as id from k
 `
 
 type InsertManualSignalParams struct {
+	DedupeKey  string          `json:"dedupe_key"`
+	OccurredAt time.Time       `json:"occurred_at"`
 	DealerID   *uuid.UUID      `json:"dealer_id"`
 	ContactID  *uuid.UUID      `json:"contact_id"`
 	SalesID    *uuid.UUID      `json:"sales_id"`
-	OccurredAt time.Time       `json:"occurred_at"`
-	DedupeKey  string          `json:"dedupe_key"`
 	Summary    *string         `json:"summary"`
 	Payload    json.RawMessage `json:"payload"`
 }
 
 func (q *Queries) InsertManualSignal(ctx context.Context, arg InsertManualSignalParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, insertManualSignal,
+		arg.DedupeKey,
+		arg.OccurredAt,
 		arg.DealerID,
 		arg.ContactID,
 		arg.SalesID,
-		arg.OccurredAt,
-		arg.DedupeKey,
 		arg.Summary,
 		arg.Payload,
 	)
@@ -492,7 +514,7 @@ returning id, proposal_id, channel, to_ref, payload, status, attempts, sent_at, 
 `
 
 type InsertOutboxParams struct {
-	ProposalID uuid.UUID       `json:"proposal_id"`
+	ProposalID *uuid.UUID      `json:"proposal_id"`
 	Channel    string          `json:"channel"`
 	ToRef      *string         `json:"to_ref"`
 	Payload    json.RawMessage `json:"payload"`
@@ -1240,22 +1262,27 @@ func (q *Queries) TouchThread(ctx context.Context, arg TouchThreadParams) error 
 }
 
 const updateChatMessageSent = `-- name: UpdateChatMessageSent :exec
-update chat_messages set wa_msg_id = $2, status = $3, sent_at = $4 where id = $1
+with k as (
+  update chat_message_keys set wa_msg_id = $1::text, sent_at = $3::timestamptz
+  where message_id = $4::uuid
+)
+update chat_messages set wa_msg_id = $1::text, status = $2::text, sent_at = $3::timestamptz
+where id = $4::uuid
 `
 
 type UpdateChatMessageSentParams struct {
-	ID      uuid.UUID `json:"id"`
 	WaMsgID *string   `json:"wa_msg_id"`
 	Status  string    `json:"status"`
 	SentAt  time.Time `json:"sent_at"`
+	ID      uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateChatMessageSent(ctx context.Context, arg UpdateChatMessageSentParams) error {
 	_, err := q.db.Exec(ctx, updateChatMessageSent,
-		arg.ID,
 		arg.WaMsgID,
 		arg.Status,
 		arg.SentAt,
+		arg.ID,
 	)
 	return err
 }

@@ -4,7 +4,7 @@ import { api, type Items } from '../api/client'
 import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, MCPCall, MCPClient, MCPInfo, MCPPolicy, Plan, Proposal, Relasi, RelasiInsight } from '../api/types'
 import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAGroup, WANumber } from '../api/types'
 import type {
-  AgendaRow, AgingItem, ARRow, BoardItem, CreditOverview, CriticalItem, ExposureRow, ForecastRow, ProductSales, Brief, DealerDetail, Health, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
+  AgendaRow, AgingItem, ARRow, BoardItem, CreditOverview, CriticalItem, ExposureRow, ForecastRow, ProductSales, Brief, DealerDetail, Health, HealthFull, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
 } from '../api/types'
 
 // Query keys follow docs/design/08-frontend.md (Data & realtime); SSE events invalidate them.
@@ -13,6 +13,8 @@ const q = (sales?: string) => (sales && sales !== 'all' ? `?sales=${encodeURICom
 
 export const useMe = () => useQuery({ queryKey: ['me'], queryFn: () => api.get<Me>('/me'), staleTime: 60_000 })
 export const useHealth = () => useQuery({ queryKey: ['health'], queryFn: () => api.get<Health>('/health'), staleTime: 30_000 })
+/** Full health (CEO/admin): Pengaturan → Status sistem. */
+export const useSystemStatus = () => useQuery({ queryKey: ['health', 'full'], queryFn: () => api.get<HealthFull>('/health'), refetchInterval: 30_000 })
 export const useSales = () => useQuery({ queryKey: ['sales'], queryFn: () => api.get<Items<Sales>>('/sales').then((r) => r.items) })
 export const useDealers = (term = '') =>
   useQuery({ queryKey: ['dealers', term], queryFn: () => api.get<Items<BoardItem>>('/dealers' + (term ? `?q=${encodeURIComponent(term)}` : '')).then((r) => r.items) })

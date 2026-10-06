@@ -1,0 +1,38 @@
+# Distri ARC Orbit — HTTPS (automatic Let's Encrypt), SPA, API, MCP and SSE on one host (no cross-origin).
+# DOMAIN comes from the environment (docker-compose.prod.yml / systemd), e.g. distri.gsi.co.id.
+{
+	email {$ACME_EMAIL:it@gsi.co.id}
+}
+
+{$DOMAIN:localhost} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# SPA: own scripts and styles only; inline styles are used by React style props; fonts are self-hosted (small ones inlined as data: by Vite)
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		-Server
+	}
+
+	# Prometheus scrapes the api directly on the internal network; never public
+	respond /metrics 404
+
+	# SSE must not be buffered
+	reverse_proxy /api/events {$API_UPSTREAM:api:8080} {
+		flush_interval -1
+	}
+	reverse_proxy /api/* {$API_UPSTREAM:api:8080}
+	reverse_proxy /mcp* {$API_UPSTREAM:api:8080} {
+		flush_interval -1
+	}
+
+	root * {$WEB_ROOT:/srv/web}
+	try_files {path} /index.html
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	file_server
+}

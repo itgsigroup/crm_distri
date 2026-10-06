@@ -45,7 +45,7 @@ select x.at, x.kind, x.via, x.who, x.text, x.conclusion, x.ref from (
   select s.occurred_at as at, s.kind, coalesce(s.payload->>'via', '')::text as via, coalesce(s.payload->>'who', s.payload->>'from_name', '')::text as who,
     coalesce(s.payload->>'text', s.summary, '')::text as text,
     coalesce(s.payload->>'conclusion', 'Balasan untuk: ' || rp.title, '')::text as conclusion, s.id::text as ref
-  from signals s left join proposals rp on rp.id::text = s.payload->>'reply_to'
+  from signals s left join proposals rp on rp.id = nullif(s.payload->>'reply_to', '')::uuid
   where s.dealer_id = $1 and (s.payload ? 'conclusion' or s.payload ? 'reply_to')
   union all
   select p.decided_at, 'decision', 'form', coalesce(su.name, 'Orchestrator')::text,

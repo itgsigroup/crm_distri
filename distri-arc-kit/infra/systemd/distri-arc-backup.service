@@ -1,0 +1,11 @@
+[Unit]
+Description=Distri ARC Orbit encrypted database backup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=arc
+Group=arc
+EnvironmentFile=/etc/distri-arc/env
+Environment=BACKUP_DIR=/var/backups/distri-arc
+ExecStart=/opt/distri-arc/infra/backup.sh

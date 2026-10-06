@@ -87,10 +87,25 @@ on conflict (source_key) do update
       invoice_id = excluded.invoice_id;
 
 -- name: UpsertSignal :one
-insert into signals (kind, dealer_id, contact_id, sales_id, occurred_at, dedupe_key, summary, payload)
-values ($1, $2, $3, $4, $5, $6, $7, $8)
-on conflict (dedupe_key) do update set summary = excluded.summary, payload = excluded.payload
-returning id;
+-- signal_keys holds the dedupe key across monthly partitions: a new key inserts the signal, a known key updates
+-- summary and payload of the stored one (its occurred_at stays).
+with k as (
+  insert into signal_keys (dedupe_key, signal_id, occurred_at)
+  values (sqlc.arg(dedupe_key)::text, gen_random_uuid(), sqlc.arg(occurred_at)::timestamptz)
+  on conflict (dedupe_key) do update set dedupe_key = excluded.dedupe_key
+  returning signal_id, occurred_at, (xmax = 0) as fresh
+), ins as (
+  insert into signals (id, kind, dealer_id, contact_id, sales_id, occurred_at, dedupe_key, summary, payload)
+  select k.signal_id, sqlc.arg(kind)::text, sqlc.narg(dealer_id)::uuid, sqlc.narg(contact_id)::uuid, sqlc.narg(sales_id)::uuid,
+         k.occurred_at, sqlc.arg(dedupe_key)::text, sqlc.narg(summary)::text, sqlc.arg(payload)::jsonb
+  from k where k.fresh
+  returning id
+), upd as (
+  update signals s set summary = sqlc.narg(summary)::text, payload = sqlc.arg(payload)::jsonb
+  from k where not k.fresh and s.id = k.signal_id and s.occurred_at = k.occurred_at
+  returning s.id
+)
+select k.signal_id as id from k;
 
 -- name: InsertPolicyIfMissing :exec
 insert into policies (key, value) values ($1, $2) on conflict (key) do nothing;

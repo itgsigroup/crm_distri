@@ -175,7 +175,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 				_ = json.Unmarshal(row.Payload, &pl)
 				what := map[string]string{domain.KindTransfer: "internal_transfer", domain.KindPORequest: "purchase_request"}[row.Kind]
 				payload, _ := json.Marshal(map[string]any{what: pl, "approved_by": who.Name, "note": row.Title + " · proposal " + id.String()})
-				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: id, Channel: "odoo_note", Payload: payload})
+				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: &id, Channel: "odoo_note", Payload: payload})
 				if err != nil {
 					return err
 				}
@@ -187,7 +187,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 				var pl map[string]any
 				_ = json.Unmarshal(row.Payload, &pl)
 				payload, _ := json.Marshal(map[string]any{"create_partner": pl, "approved_by": who.Name, "note": "Dealer baru dari Distri ARC · proposal " + id.String()})
-				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: id, Channel: "odoo_note", Payload: payload})
+				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: &id, Channel: "odoo_note", Payload: payload})
 				if err != nil {
 					return err
 				}
@@ -202,7 +202,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 				}
 			case row.Kind == domain.KindSODraft && odooWrite:
 				payload, _ := json.Marshal(map[string]any{"proposal": row.Payload, "approved_by": who.Name})
-				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: id, Channel: "odoo_so_draft", Payload: payload})
+				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: &id, Channel: "odoo_so_draft", Payload: payload})
 				if err != nil {
 					return err
 				}
@@ -215,7 +215,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 					limit = pl["partial_limit"]
 				}
 				payload, _ := json.Marshal(map[string]any{"note": fmt.Sprintf("Limit kredit diubah ke %v · disetujui %s · proposal %s", limit, who.Name, id), "new_limit": limit})
-				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: id, Channel: "odoo_note", Payload: payload})
+				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: &id, Channel: "odoo_note", Payload: payload})
 				if err != nil {
 					return err
 				}
@@ -306,7 +306,7 @@ func queueWA(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Client[p
 		}
 	}
 	b, _ := json.Marshal(payload)
-	ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: p.ID, Channel: "wa", ToRef: &jid, Payload: b})
+	ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "wa", ToRef: &jid, Payload: b})
 	if err != nil {
 		return nil, err
 	}
@@ -453,7 +453,7 @@ func queueThreadWA(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Cl
 		}
 	}
 	b, _ := json.Marshal(payload)
-	ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: p.ID, Channel: "wa", ToRef: &jid, Payload: b})
+	ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "wa", ToRef: &jid, Payload: b})
 	if err != nil {
 		return nil, err
 	}
@@ -564,7 +564,7 @@ func decisionNote(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Cli
 	}
 	note += " · proposal " + p.ID.String()
 	payload, _ := json.Marshal(map[string]any{"note": note})
-	ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: p.ID, Channel: "odoo_note", Payload: payload})
+	ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "odoo_note", Payload: payload})
 	if err != nil {
 		return err
 	}

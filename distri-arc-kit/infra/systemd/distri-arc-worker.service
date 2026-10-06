@@ -1,0 +1,20 @@
+[Unit]
+Description=Distri ARC Orbit worker (river jobs, Orchestrator, WhatsApp, Odoo sync, outbox)
+After=network-online.target postgresql.service distri-arc-api.service
+Wants=network-online.target
+
+[Service]
+User=arc
+Group=arc
+EnvironmentFile=/etc/distri-arc/env
+ExecStart=/opt/distri-arc/bin/arc worker
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/distri-arc
+
+[Install]
+WantedBy=multi-user.target

@@ -73,13 +73,27 @@ update chat_threads set last_message_at = greatest(coalesce(last_message_at, $2)
 update chat_threads set unread = 0 where id = $1;
 
 -- name: InsertChatMessage :one
-insert into chat_messages (thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-on conflict (wa_msg_id) do nothing
+-- chat_message_keys keeps wa_msg_id unique across monthly partitions; a known id inserts nothing (no rows).
+with k as (
+  insert into chat_message_keys (wa_msg_id, message_id, sent_at)
+  values (coalesce(sqlc.narg(wa_msg_id)::text, 'local:' || gen_random_uuid()), gen_random_uuid(), sqlc.arg(sent_at)::timestamptz)
+  on conflict (wa_msg_id) do nothing
+  returning message_id, sent_at
+)
+insert into chat_messages (id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal)
+select k.message_id, sqlc.narg(thread_id)::uuid, sqlc.narg(wa_msg_id)::text, sqlc.narg(direction)::text, sqlc.narg(from_number)::text,
+       sqlc.narg(from_name)::text, sqlc.narg(body)::text, sqlc.narg(media)::jsonb, k.sent_at, sqlc.narg(annotation)::jsonb,
+       sqlc.narg(signal_id)::uuid, sqlc.arg(status)::text, sqlc.narg(proposal_id)::uuid, sqlc.arg(internal)::bool
+from k
 returning id;
 
 -- name: UpdateChatMessageSent :exec
-update chat_messages set wa_msg_id = $2, status = $3, sent_at = $4 where id = $1;
+with k as (
+  update chat_message_keys set wa_msg_id = sqlc.narg(wa_msg_id)::text, sent_at = sqlc.arg(sent_at)::timestamptz
+  where message_id = sqlc.arg(id)::uuid
+)
+update chat_messages set wa_msg_id = sqlc.narg(wa_msg_id)::text, status = sqlc.arg(status)::text, sent_at = sqlc.arg(sent_at)::timestamptz
+where id = sqlc.arg(id)::uuid;
 
 -- name: ListThreads :many
 select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
@@ -139,10 +153,23 @@ where channel = 'wa' and status = 'sent' and payload->>'from' = sqlc.arg(from_nu
 update proposals set status = 'executed', executed_at = now() where id = $1;
 
 -- name: InsertManualSignal :one
-insert into signals (kind, dealer_id, contact_id, sales_id, occurred_at, dedupe_key, summary, payload)
-values ('manual', $1, $2, $3, $4, $5, $6, $7)
-on conflict (dedupe_key) do update set summary = excluded.summary
-returning id;
+with k as (
+  insert into signal_keys (dedupe_key, signal_id, occurred_at)
+  values (sqlc.arg(dedupe_key)::text, gen_random_uuid(), sqlc.arg(occurred_at)::timestamptz)
+  on conflict (dedupe_key) do update set dedupe_key = excluded.dedupe_key
+  returning signal_id, occurred_at, (xmax = 0) as fresh
+), ins as (
+  insert into signals (id, kind, dealer_id, contact_id, sales_id, occurred_at, dedupe_key, summary, payload)
+  select k.signal_id, 'manual', sqlc.narg(dealer_id)::uuid, sqlc.narg(contact_id)::uuid, sqlc.narg(sales_id)::uuid,
+         k.occurred_at, sqlc.arg(dedupe_key)::text, sqlc.narg(summary)::text, sqlc.arg(payload)::jsonb
+  from k where k.fresh
+  returning id
+), upd as (
+  update signals s set summary = sqlc.narg(summary)::text from k
+  where not k.fresh and s.id = k.signal_id and s.occurred_at = k.occurred_at
+  returning s.id
+)
+select k.signal_id as id from k;
 
 -- name: SetMessageSignal :exec
 update chat_messages set signal_id = $2 where id = $1;

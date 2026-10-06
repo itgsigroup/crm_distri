@@ -41,7 +41,7 @@ func (s *Sender) deliverOdoo(ctx context.Context, ob gen.Outbox) error {
 	if s.odoo == nil {
 		return odoo.ErrWriteDisabled
 	}
-	p, err := s.st.Q.GetProposal(ctx, ob.ProposalID)
+	p, err := s.st.Q.GetProposal(ctx, pidOf(ob))
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (s *Sender) trail(ctx context.Context, ob gen.Outbox, p WAPayload, at time.
 	if p.Kind == "reply" {
 		return nil // a human reply is already a chat message of the thread
 	}
-	pr, err := s.st.Q.GetProposal(ctx, ob.ProposalID)
+	pr, err := s.st.Q.GetProposal(ctx, pidOf(ob))
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func (s *Sender) trail(ctx context.Context, ob gen.Outbox, p WAPayload, at time.
 
 // notifyFailed tells open screens that a row could not be delivered (toast) — the proposal stays approved.
 func (s *Sender) notifyFailed(ctx context.Context, ob gen.Outbox, err error) {
-	_ = events.Notify(ctx, s.st.Pool, "outbox_failed", map[string]string{"outbox_id": ob.ID.String(), "proposal_id": ob.ProposalID.String(), "channel": ob.Channel, "error": err.Error()})
+	_ = events.Notify(ctx, s.st.Pool, "outbox_failed", map[string]string{"outbox_id": ob.ID.String(), "proposal_id": pidOf(ob).String(), "channel": ob.Channel, "error": err.Error()})
 }
 
 func ptr[T any](v T) *T { return &v }

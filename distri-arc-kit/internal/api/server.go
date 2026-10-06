@@ -24,6 +24,7 @@ import (
 	"distri-arc/internal/identify"
 	"distri-arc/internal/mcp"
 	"distri-arc/internal/odoo"
+	"distri-arc/internal/ops"
 	"distri-arc/internal/proposals"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
@@ -45,6 +46,7 @@ type Server struct {
 	mcp   *mcp.Server
 	idf   *identify.Service
 	ask   *ask.Service
+	http  *ops.HTTPMetrics
 }
 
 // WithAsk enables POST /ask (the command bar).
@@ -64,7 +66,7 @@ func (s *Server) WithCloudWebhook(c *wa.CloudAPI) *Server { s.cloud = c; return 
 
 // New builds the API server.
 func New(cfg config.Config, st *store.Store, c clock.Clock, log *slog.Logger) *Server {
-	return &Server{cfg: cfg, st: st, clock: c, log: log, views: views.NewBuilder(st, c), hub: events.NewHub()}
+	return &Server{cfg: cfg, st: st, clock: c, log: log, views: views.NewBuilder(st, c), hub: events.NewHub(), http: ops.NewHTTPMetrics()}
 }
 
 // Hub returns the SSE hub (fed by events.Listen).
@@ -73,7 +75,8 @@ func (s *Server) Hub() *events.Hub { return s.hub }
 // Handler returns the HTTP handler with middleware and routes.
 func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID, httpx.Logger(s.log), middleware.Recoverer)
+	r.Use(middleware.RequestID, httpx.Logger(s.log), middleware.Recoverer, s.http.Middleware)
+	r.Get("/metrics", s.metrics)
 	if s.mcp != nil {
 		r.Handle("/mcp", s.mcp.Handler())
 	}
@@ -106,21 +109,45 @@ func (s *Server) Handler() http.Handler {
 	return r
 }
 
+func (s *Server) opsEnv() ops.Env { return ops.EnvFrom(s.cfg) }
+
+// health is public for uptime checks: anonymous callers get the status of each part; CEO/admin (Pengaturan →
+// Status sistem) get the details (numbers, sync models, alerts).
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	res := map[string]any{"db": "ok", "queue": "ok", "now": s.clock.Now()}
+	h := ops.Check(r.Context(), s.st, s.opsEnv(), s.clock.Now())
 	status := http.StatusOK
-	if _, err := s.st.Q.Ping(r.Context()); err != nil {
-		res["db"], status = "error", http.StatusServiceUnavailable
+	if h.Status == "down" {
+		status = http.StatusServiceUnavailable
 	}
-	var sample bool
-	_ = s.st.Pool.QueryRow(r.Context(), "select exists(select 1 from signals where dedupe_key like 'seed:%')").Scan(&sample)
-	res["sample_data"] = sample
-	if depth, err := s.st.Q.QueueDepth(r.Context()); err != nil {
-		res["queue"], status = "error", http.StatusServiceUnavailable
-	} else {
-		res["queue_depth"] = depth
+	if u, ok := s.userFrom(r); ok && (deref(u.Role) == "ceo" || deref(u.Role) == "admin") {
+		httpx.JSON(w, status, h)
+		return
 	}
-	httpx.JSON(w, status, res)
+	connected := 0
+	for _, n := range h.WA {
+		if n.State == "connected" {
+			connected++
+		}
+	}
+	httpx.JSON(w, status, map[string]any{"status": h.Status, "now": h.Now, "version": h.Version, "db": h.DB, "queue": h.Queue,
+		"queue_depth": h.QueueDepth, "sample_data": h.SampleData, "wa": map[string]int{"connected": connected, "total": len(h.WA)},
+		"odoo": h.Odoo["status"], "llm": h.LLM["status"], "alerts": len(h.Alerts)})
+}
+
+// metrics serves Prometheus text. With METRICS_TOKEN set it needs that bearer token; without, only loopback
+// (Caddy never proxies /metrics).
+func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.MetricsToken != "" {
+		if r.Header.Get("Authorization") != "Bearer "+s.cfg.MetricsToken {
+			httpx.Fail(w, http.StatusUnauthorized, "unauthenticated", "Token metrics salah")
+			return
+		}
+	} else if host, _, _ := strings.Cut(r.RemoteAddr, ":"); !s.cfg.IsDev() && host != "127.0.0.1" && !strings.HasPrefix(r.RemoteAddr, "[::1]") {
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Metrics hanya dari localhost atau dengan METRICS_TOKEN")
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+	s.http.Write(w, ops.Check(r.Context(), s.st, s.opsEnv(), s.clock.Now()))
 }
 
 type ctxKey int
@@ -151,15 +178,7 @@ func (s *Server) secret() []byte {
 // the web dev server works without logging in while the login flow stays testable.
 func (s *Server) auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		email := ""
-		if c, err := r.Cookie(sessionCookie); err == nil && s.secret() != nil {
-			if cl, err := auth.Verify(c.Value, s.secret(), time.Now()); err == nil {
-				email = cl.Email
-			}
-		}
-		if email == "" && s.cfg.IsDev() {
-			email = strings.TrimSpace(r.Header.Get("X-Dev-User"))
-		}
+		email := s.sessionEmail(r)
 		if email == "" {
 			httpx.Fail(w, http.StatusUnauthorized, "unauthenticated", "Login diperlukan")
 			return
@@ -171,6 +190,29 @@ func (s *Server) auth(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userKey, u)))
 	})
+}
+
+func (s *Server) sessionEmail(r *http.Request) string {
+	email := ""
+	if c, err := r.Cookie(sessionCookie); err == nil && s.secret() != nil {
+		if cl, err := auth.Verify(c.Value, s.secret(), time.Now()); err == nil {
+			email = cl.Email
+		}
+	}
+	if email == "" && s.cfg.IsDev() {
+		email = strings.TrimSpace(r.Header.Get("X-Dev-User"))
+	}
+	return email
+}
+
+// userFrom resolves the user on a public route (no 401 when there is none).
+func (s *Server) userFrom(r *http.Request) (User, bool) {
+	email := s.sessionEmail(r)
+	if email == "" {
+		return User{}, false
+	}
+	u, err := s.st.Q.GetUserByEmail(r.Context(), email)
+	return u, err == nil
 }
 
 // CurrentUser returns the authenticated user.
@@ -189,7 +231,8 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"id": u.ID, "email": u.Email, "name": u.Name, "role": u.Role, "branch": u.Branch,
-		"screens": screensFor(role), "decide": decide, "edit_policies": role == "ceo", "manage_users": role == "ceo" || role == "admin"})
+		"screens": screensFor(role), "decide": decide, "edit_policies": role == "ceo", "manage_users": role == "ceo" || role == "admin",
+		"totp_available": totpRoles(role), "totp_enabled": u.TotpEnabledAt != nil})
 }
 
 // screensFor is the menu of a role (Pengaturan only for CEO and admin; finance works on credit, warehouse on stock).

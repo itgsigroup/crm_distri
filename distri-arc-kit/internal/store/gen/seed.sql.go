@@ -387,31 +387,46 @@ func (q *Queries) UpsertSalesUser(ctx context.Context, arg UpsertSalesUserParams
 }
 
 const upsertSignal = `-- name: UpsertSignal :one
-insert into signals (kind, dealer_id, contact_id, sales_id, occurred_at, dedupe_key, summary, payload)
-values ($1, $2, $3, $4, $5, $6, $7, $8)
-on conflict (dedupe_key) do update set summary = excluded.summary, payload = excluded.payload
-returning id
+with k as (
+  insert into signal_keys (dedupe_key, signal_id, occurred_at)
+  values ($1::text, gen_random_uuid(), $2::timestamptz)
+  on conflict (dedupe_key) do update set dedupe_key = excluded.dedupe_key
+  returning signal_id, occurred_at, (xmax = 0) as fresh
+), ins as (
+  insert into signals (id, kind, dealer_id, contact_id, sales_id, occurred_at, dedupe_key, summary, payload)
+  select k.signal_id, $3::text, $4::uuid, $5::uuid, $6::uuid,
+         k.occurred_at, $1::text, $7::text, $8::jsonb
+  from k where k.fresh
+  returning id
+), upd as (
+  update signals s set summary = $7::text, payload = $8::jsonb
+  from k where not k.fresh and s.id = k.signal_id and s.occurred_at = k.occurred_at
+  returning s.id
+)
+select k.signal_id as id from k
 `
 
 type UpsertSignalParams struct {
+	DedupeKey  string          `json:"dedupe_key"`
+	OccurredAt time.Time       `json:"occurred_at"`
 	Kind       string          `json:"kind"`
 	DealerID   *uuid.UUID      `json:"dealer_id"`
 	ContactID  *uuid.UUID      `json:"contact_id"`
 	SalesID    *uuid.UUID      `json:"sales_id"`
-	OccurredAt time.Time       `json:"occurred_at"`
-	DedupeKey  string          `json:"dedupe_key"`
 	Summary    *string         `json:"summary"`
 	Payload    json.RawMessage `json:"payload"`
 }
 
+// signal_keys holds the dedupe key across monthly partitions: a new key inserts the signal, a known key updates
+// summary and payload of the stored one (its occurred_at stays).
 func (q *Queries) UpsertSignal(ctx context.Context, arg UpsertSignalParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, upsertSignal,
+		arg.DedupeKey,
+		arg.OccurredAt,
 		arg.Kind,
 		arg.DealerID,
 		arg.ContactID,
 		arg.SalesID,
-		arg.OccurredAt,
-		arg.DedupeKey,
 		arg.Summary,
 		arg.Payload,
 	)

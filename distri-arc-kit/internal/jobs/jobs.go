@@ -78,3 +78,18 @@ func (IdentifyArgs) Kind() string { return "identify.number" }
 func (IdentifyArgs) InsertOpts() river.InsertOpts {
 	return river.InsertOpts{UniqueOpts: river.UniqueOpts{ByArgs: true, ByPeriod: time.Hour}}
 }
+
+// PartitionsEnsureArgs creates next months' partitions of signals and chat_messages (daily, on start).
+type PartitionsEnsureArgs struct{}
+
+func (PartitionsEnsureArgs) Kind() string { return "partitions.ensure" }
+
+// RetentionPurgeArgs applies policy retention (daily 02.30 WIB).
+type RetentionPurgeArgs struct{}
+
+func (RetentionPurgeArgs) Kind() string { return "retention.purge" }
+
+// AlertsCheckArgs evaluates ops alerts (every 5 minutes).
+type AlertsCheckArgs struct{}
+
+func (AlertsCheckArgs) Kind() string { return "alerts.check" }

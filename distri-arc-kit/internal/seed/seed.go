@@ -436,3 +436,26 @@ func seedProducts(ctx context.Context, q *gen.Queries, fsys fs.FS) error {
 }
 
 func ptrTime(t time.Time) *time.Time { return &t }
+
+// Policies loads only the default policies (production bootstrap: no sample dealers; Odoo brings the real ones).
+func Policies(ctx context.Context, s *store.Store, fsys fs.FS) (int, error) {
+	b, err := fs.ReadFile(fsys, "seed/policies.json")
+	if err != nil {
+		return 0, err
+	}
+	var policies map[string]json.RawMessage
+	if err := json.Unmarshal(b, &policies); err != nil {
+		return 0, err
+	}
+	keys := make([]string, 0, len(policies))
+	for k := range policies {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		if err := s.Q.InsertPolicyIfMissing(ctx, gen.InsertPolicyIfMissingParams{Key: k, Value: policies[k]}); err != nil {
+			return 0, err
+		}
+	}
+	return len(keys), nil
+}

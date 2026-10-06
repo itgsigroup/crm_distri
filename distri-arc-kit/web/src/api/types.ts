@@ -254,8 +254,25 @@ export interface Brief {
   confidence: number
 }
 
-export interface Me { id: string; email: string; name: string; role: string; branch: string; screens: string[]; decide: string[]; edit_policies: boolean; manage_users: boolean }
+export interface Me { id: string; email: string; name: string; role: string; branch: string; screens: string[]; decide: string[]; edit_policies: boolean; manage_users: boolean; totp_available?: boolean; totp_enabled?: boolean }
 export interface Health { db: string; queue: string; now: string; sample_data?: boolean }
+export interface SystemAlert { key: string; message: string; opened_at: string; notified_at: string | null }
+export interface HealthFull {
+  status: 'ok' | 'degraded' | 'down'
+  now: string
+  version: string
+  db: string
+  queue: string
+  queue_depth: number
+  wa: { number: string; sales: string; state: string; transport: string; last_seen_at: string | null }[] | null
+  odoo: { mode: string; write: boolean; status: string; models: { model: string; last_run_at: string | null; records: number; error?: string }[] | null }
+  llm: { provider: string; model: string; status: string; calls_today?: number; cost_today_idr?: number; last_at?: string }
+  cycles: { failed_streak: number; last?: { number: number | null; status: string; started_at: string; duration_ms: number | null } }
+  outbox: Record<string, number>
+  counts: { signals: number; chat_messages: number; dealers: number; open_proposals: number }
+  alerts: SystemAlert[] | null
+  problems: string[]
+}
 
 export interface Tag { k: string; t: string }
 export interface ThreadView {

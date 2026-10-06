@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Distri ARC backup at 02:00 WIB
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 Asia/Jakarta
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

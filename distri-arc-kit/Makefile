@@ -8,7 +8,7 @@ include .env
 export
 endif
 
-.PHONY: help dev api worker web setup check test test-go test-web lint typecheck migrate seed reset sqlc seedgen build e2e db-up
+.PHONY: help dev api worker web setup check test test-go test-web lint typecheck migrate seed reset sqlc seedgen build e2e db-up restore-test vuln loadtest
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-10s %s\n", $$1, $$2}'
@@ -71,3 +71,14 @@ build: ## bin/arc + web/dist
 
 e2e: ## Playwright (needs `make dev` running)
 	cd $(WEB) && npm run e2e
+
+restore-test: ## Backup → restore into a scratch DB → identical metrics (needs DATABASE_URL_TEST, pg_dump matching the server)
+	$(GO) build -o bin/arc ./cmd/arc
+	infra/restore-test.sh
+
+vuln: ## govulncheck + npm audit (production dependencies)
+	$(GO) run golang.org/x/vuln/cmd/govulncheck@latest ./...
+	cd $(WEB) && npm audit --omit=dev --audit-level=high
+
+loadtest: ## 50k signals + p95 per heavy endpoint (needs `make dev` api on :8080; dev only)
+	$(GO) run ./tools/loadtest

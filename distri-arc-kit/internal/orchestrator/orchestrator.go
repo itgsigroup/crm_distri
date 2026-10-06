@@ -655,7 +655,7 @@ func (o *Orchestrator) execute(ctx context.Context, r *stageRun) (map[string]any
 		switch {
 		case p.Kind == domain.KindSODraft && p.Autonomy == "auto" && o.OdooWrite:
 			payload, _ := json.Marshal(map[string]any{"proposal": p.Payload, "approved_by": "Orchestrator · otonom"})
-			ob, err := o.St.Q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: p.ID, Channel: "odoo_so_draft", Payload: payload})
+			ob, err := o.St.Q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "odoo_so_draft", Payload: payload})
 			if err != nil {
 				return nil, err
 			}

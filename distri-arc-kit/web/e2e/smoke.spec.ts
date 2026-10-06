@@ -158,3 +158,18 @@ test('drift threshold 1,5× changes At risk on the next cycle; Cara baca opens P
   await page.waitForURL('**/panduan')
   await expect(page.getByText('Satu gambar, semua istilah')).toBeVisible()
 })
+
+test('Status sistem shows each part from /api/health; 2FA setup shows a key (stage 13)', async ({ page }) => {
+  await page.goto('/pengaturan', { waitUntil: 'networkidle' })
+  const status = page.locator('.card').filter({ has: page.getByRole('heading', { name: 'Status sistem' }) })
+  for (const part of ['Database', 'Antrean job', 'WhatsApp', 'Odoo', 'Siklus Orchestrator', 'Outbox']) {
+    await expect(status.locator('.rules li').filter({ hasText: part }).first()).toBeVisible()
+  }
+  await expect(status).toContainText('partisi bulanan')
+  const security = page.locator('.card').filter({ has: page.getByRole('heading', { name: 'Keamanan akun' }) })
+  await security.getByRole('button', { name: 'Verifikasi dua langkah' }).click()
+  await page.getByRole('button', { name: 'Buat kunci' }).click()
+  await expect(page.getByText('Kunci setup')).toBeVisible()
+  await expect(page.getByLabel('Kode 2FA')).toBeVisible()
+  await page.getByRole('button', { name: 'Batal' }).click()
+})

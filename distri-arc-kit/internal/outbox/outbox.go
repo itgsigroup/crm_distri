@@ -90,6 +90,9 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	if ob.Status == "sent" {
 		return 0, nil // idempotent
 	}
+	if ob.Channel == "wa_system" {
+		return 0, s.sendSystem(ctx, ob)
+	}
 	if ob.Channel != "wa" {
 		return 0, s.sendOdoo(ctx, ob)
 	}
@@ -144,7 +147,7 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 			_ = s.st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &msgID, Status: "sent", SentAt: sent})
 		}
 	}
-	if err := s.st.Q.SetProposalExecuted(ctx, ob.ProposalID); err != nil {
+	if err := s.st.Q.SetProposalExecuted(ctx, pidOf(ob)); err != nil {
 		return 0, err
 	}
 	if err := s.trail(ctx, ob, p, sent); err != nil {
@@ -154,7 +157,7 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	after, _ := json.Marshal(map[string]any{"wa_msg_id": msgID, "from": p.From, "to": p.To, "proposal_id": ob.ProposalID})
 	_ = s.st.Q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &id, After: after})
 	_ = events.Notify(ctx, s.st.Pool, "chat_message", map[string]string{"thread_id": p.ThreadID})
-	_ = events.Notify(ctx, s.st.Pool, "proposal_changed", map[string]string{"id": ob.ProposalID.String(), "status": "executed"})
+	_ = events.Notify(ctx, s.st.Pool, "proposal_changed", map[string]string{"id": pidOf(ob).String(), "status": "executed"})
 	return 0, nil
 }
 
@@ -177,7 +180,7 @@ func (s *Sender) sendOdoo(ctx context.Context, ob gen.Outbox) error {
 	actor, kind, action, entity := "worker", "system", "outbox.odoo", "outbox"
 	after, _ := json.Marshal(map[string]any{"channel": ob.Channel, "proposal_id": ob.ProposalID})
 	_ = s.st.Q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &ob.ID, After: after})
-	_ = events.Notify(ctx, s.st.Pool, "proposal_changed", map[string]string{"id": ob.ProposalID.String(), "channel": ob.Channel})
+	_ = events.Notify(ctx, s.st.Pool, "proposal_changed", map[string]string{"id": pidOf(ob).String(), "channel": ob.Channel})
 	return nil
 }
 
@@ -186,4 +189,44 @@ func jitter(lo, hi time.Duration) time.Duration {
 		return lo
 	}
 	return lo + time.Duration(rand.Int64N(int64(hi-lo)))
+}
+
+// pidOf is the proposal of a row (zero for system rows).
+func pidOf(ob gen.Outbox) uuid.UUID {
+	if ob.ProposalID == nil {
+		return uuid.Nil
+	}
+	return *ob.ProposalID
+}
+
+// ErrNotInternal refuses a system message whose target is not an internal WhatsApp group: system alerts never reach
+// a dealer (CLAUDE.md §2).
+var ErrNotInternal = errors.New("pesan sistem hanya ke grup WhatsApp internal")
+
+// SystemPayload is the payload of a channel=wa_system row (ops alerts).
+type SystemPayload struct {
+	From string `json:"from"`
+	To   string `json:"to"` // internal group JID
+	Text string `json:"text"`
+}
+
+// sendSystem delivers an ops alert to an internal group. No proposal, no send window: the group is GSI staff.
+func (s *Sender) sendSystem(ctx context.Context, ob gen.Outbox) error {
+	var p SystemPayload
+	if err := json.Unmarshal(ob.Payload, &p); err != nil {
+		return err
+	}
+	g, err := s.st.Q.GetWAGroupByJID(ctx, &p.To)
+	if err != nil || g.Kind == nil || *g.Kind != "internal" {
+		e := ErrNotInternal.Error()
+		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
+		return ErrNotInternal
+	}
+	if _, err := s.t.Send(ctx, p.From, p.To, p.Text); err != nil {
+		e := err.Error()
+		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
+		return err
+	}
+	now := s.clock.Now()
+	return s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: ob.ID, Status: "sent", SentAt: &now})
 }

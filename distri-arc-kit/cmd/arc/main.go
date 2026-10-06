@@ -27,6 +27,7 @@ import (
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/mcp"
 	"distri-arc/internal/odoo"
+	"distri-arc/internal/ops"
 	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
@@ -40,7 +41,7 @@ const usage = `arc — Distri ARC Orbit
   arc api                    REST + SSE API (and MCP from stage 07)
   arc worker                 background jobs (river): heartbeat, metrics, orchestrator, ingest, outbox
   arc ctl migrate            apply database migrations (goose)
-  arc ctl seed [--if-empty]  load db/seed (18 sample dealers); idempotent
+  arc ctl seed [--if-empty] [--policies-only]  load db/seed (18 sample dealers) | only default policies (prod); idempotent
   arc ctl reset              drop everything, migrate and seed (dev only)
   arc ctl counts             print row counts
   arc ctl recompute          recompute dealers.metrics_current (all dealers)
@@ -56,6 +57,12 @@ const usage = `arc — Distri ARC Orbit
   arc ctl user passwd --email e --password p
   arc ctl mcp-token --name "Claude Desktop Sam" --scopes read,analyze,orchestrate   create an MCP token (shown once)
   arc ctl mcp-stdio --token <token>   MCP over stdio for local clients (cycles run inline)
+  arc ctl user totp-reset --email e   turn 2FA off for a user who lost the authenticator
+  arc ctl check-env          validate the configuration (fails on production mistakes)
+  arc ctl retention purge|partitions  apply policy retention now | create next months' partitions
+  arc ctl pdp export --dealer <slug> [--out f]   everything stored about a dealer (UU PDP)
+  arc ctl pdp delete --contact <wa> --by <email> --yes   erase a person (aggregates stay)
+  arc ctl fingerprint        hash of all dealer metrics (restore test)
 `
 
 func main() {
@@ -171,7 +178,8 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if pr, ok := t.(wa.ProfileReader); ok {
 		idf.Profiles = pr
 	}
-	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch, Identify: idf})
+	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch, Identify: idf,
+		Ops: ops.EnvFrom(cfg), AlertFrom: cfg.AlertWAFrom, AlertGroup: cfg.AlertWAGroup})
 	if err != nil {
 		return err
 	}
@@ -200,6 +208,23 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 	if len(args) == 0 {
 		fmt.Print(usage)
 		return nil
+	}
+	if args[0] == "check-env" {
+		return runCheckEnv(ctx, cfg)
+	}
+	if args[0] == "pdp" || args[0] == "retention" || args[0] == "fingerprint" {
+		st, clk, err := open(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		defer st.Close()
+		switch args[0] {
+		case "pdp":
+			return runPDPCtl(ctx, st, args[1:])
+		case "retention":
+			return runRetentionCtl(ctx, st, clk, args[1:])
+		}
+		return runFingerprint(ctx, st)
 	}
 	if args[0] == "user" {
 		st, _, err := open(ctx, cfg)
@@ -254,6 +279,7 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 	}
 	fs := flag.NewFlagSet("ctl "+args[0], flag.ExitOnError)
 	ifEmpty := fs.Bool("if-empty", false, "seed only when there are no dealers")
+	policiesOnly := fs.Bool("policies-only", false, "load only the default policies (production)")
 	dealerFlag := fs.String("dealer", "", "dealer slug or id")
 	_ = fs.Parse(args[1:])
 
@@ -273,6 +299,14 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 		}
 		log.Info("migrated")
 	case "seed":
+		if *policiesOnly {
+			n, err := seed.Policies(ctx, st, db.Seed)
+			if err != nil {
+				return err
+			}
+			log.Info("policies loaded", "keys", n)
+			return nil
+		}
 		if *ifEmpty {
 			n, err := st.Q.CountSeeded(ctx)
 			if err != nil {

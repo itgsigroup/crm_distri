@@ -1,0 +1,76 @@
+# Production stack on one Ubuntu 24.04 host (2 vCPU / 4 GB is enough for ≤ 50 users). docs/DEPLOY.md.
+#   docker compose -f infra/docker-compose.prod.yml --env-file .env up -d --build
+# Only Caddy publishes ports (80/443). Postgres and the api stay on the internal network.
+name: distri-arc
+
+x-arc: &arc
+  build: { context: .., dockerfile: infra/Dockerfile, target: arc, args: { VERSION: "${VERSION:-dev}" } }
+  image: distri-arc/arc:${VERSION:-dev}
+  env_file: ../.env
+  environment:
+    APP_ENV: prod
+    DATABASE_URL: postgres://arc:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/distri_arc?sslmode=disable
+  restart: unless-stopped
+  depends_on:
+    migrate: { condition: service_completed_successfully }
+  logging: { driver: json-file, options: { max-size: "20m", max-file: "10" } }
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: arc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: distri_arc
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arc -d distri_arc"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+    shm_size: 256mb
+
+  migrate:
+    <<: *arc
+    command: ["ctl", "migrate"]
+    restart: "no"
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    <<: *arc
+    command: ["api"]
+
+  worker:
+    <<: *arc
+    command: ["worker"]                     # whatsmeow sessions live in Postgres (schema whatsmeow)
+
+  backup:
+    <<: *arc
+    entrypoint: ["/bin/bash", "-c"]
+    # 02:00 WIB daily: encrypted pg_dump + 30-day rotation (systemd timer alternative in infra/systemd)
+    command: ["while true; do now=$$(date +%s); next=$$(date -d 'tomorrow 02:00' +%s); [ $$(date +%H) -lt 2 ] && next=$$(date -d 'today 02:00' +%s); sleep $$((next-now)); backup.sh || echo 'backup failed' >&2; done"]
+    environment:
+      APP_ENV: prod
+      DATABASE_URL: postgres://arc:${POSTGRES_PASSWORD}@postgres:5432/distri_arc?sslmode=disable
+      BACKUP_DIR: /backups
+      TZ: Asia/Jakarta
+    volumes: [backups:/backups]
+
+  caddy:
+    build: { context: .., dockerfile: infra/Dockerfile, target: web }
+    image: distri-arc/web:${VERSION:-dev}
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:-it@gsi.co.id}
+      API_UPSTREAM: api:8080
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes: [caddy_data:/data, caddy_config:/config]
+    depends_on: [api]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  backups:
+  caddy_data:
+  caddy_config:

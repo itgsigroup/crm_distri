@@ -1,0 +1,29 @@
+name: restore-test
+# Weekly: a database restored from an encrypted backup gives identical metrics (stage 13 acceptance).
+on:
+  schedule: [{ cron: "0 19 * * 0" }]   # Monday 02:00 WIB
+  workflow_dispatch:
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: arc, POSTGRES_PASSWORD: arc, POSTGRES_DB: distri_arc_test }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U arc" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgres://arc:arc@localhost:5432/distri_arc_test?sslmode=disable
+      PGPASSWORD: arc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod }
+      - name: postgresql-client-16
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      - run: go build -o bin/arc ./cmd/arc
+      - run: PG_BIN=/usr/lib/postgresql/16/bin infra/restore-test.sh

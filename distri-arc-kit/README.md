@@ -82,3 +82,8 @@ Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (bran
 - Setujui follow-up, lalu simulasikan balasan dealer: `bin/arc ctl wa inject --from 6281900301301 --in 1h --text "INV/0964 saya transfer hari Kamis ya"` (Pak Bayu, Prima) → komitmen Mereka bertanggal dan Timeline "Balasan untuk: …".
 - Produksi: `ODOO_MODE=rpc` + `ODOO_WRITE=true` hanya setelah diuji di instance Odoo uji; status tiap eksekusi ada di tabel `outbox` (gagal → toast + coba ulang).
 
+### Tahap 13: hardening & operasi
+- Pengaturan → **Status sistem** (CEO/admin) dan **Keamanan akun** (2FA). `curl localhost:8080/metrics` untuk Prometheus.
+- `bin/arc ctl check-env` (gagal bila konfigurasi produksi salah) · `bin/arc ctl retention purge` · `bin/arc ctl pdp export --dealer sinar` · `bin/arc ctl pdp delete --contact 62… --yes`.
+- `make restore-test` (backup terenkripsi → restore → metrik identik; butuh `PG_BIN` sesuai versi server dan OpenSSL ≥ 1.1.1 di `OPENSSL`) · `make loadtest` (50k sinyal, p95, EXPLAIN; lalu `make reset`).
+- Produksi: `docs/DEPLOY.md` (Docker Compose atau systemd), insiden: `docs/RUNBOOK.md`, performa: `docs/PERF.md`.

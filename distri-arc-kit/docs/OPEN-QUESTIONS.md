@@ -22,3 +22,8 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-06 · 12 · Uji WA nyata: nomor uji Sam → nomor uji kedua (pairing QR whatsmeow) untuk jam kirim, jeda, dan balasan · diuji dengan `wa.Fake` · —
 - 2026-10-06 · 12 · Transfer internal & PO: picking type / operation type per cabang di Odoo GSI, dan apakah PO dibuat sebagai RFQ draft · baris outbox berstatus `manual` (dikerjakan gudang di Odoo) · manual
 - 2026-10-06 · 12 · Catatan keputusan di partner Odoo (chatter) untuk setiap keputusan dealer — diinginkan, atau terlalu ramai? · kebijakan `odoo.write.notes` · aktif
+- 2026-10-06 · 13 · VPS uji (Ubuntu 24.04, 2 vCPU/4 GB) + subdomain (mis. `distri.gsi.co.id`) untuk membuktikan deploy: HTTPS, login 2FA, siklus per jam 24 jam tanpa error · semua dibuktikan lokal; `docs/DEPLOY.md` siap · —
+- 2026-10-06 · 13 · Lokasi salinan backup di luar server (Backblaze B2 / Google Drive GSI / NAS kantor via rclone) dan siapa yang memegang `BACKUP_PASSPHRASE` · backup hanya di disk server · —
+- 2026-10-06 · 13 · Grup WhatsApp internal mana yang menerima alert sistem (IT / Sam / admin)? · grup internal pertama (Gudang Semarang) · `ALERT_WA_GROUP`
+- 2026-10-06 · 13 · 2FA wajib (bukan opsional) untuk CEO/admin saat pilot? · opsional, disarankan di layar · opsional
+- 2026-10-06 · 13 · Validasi `infra/Caddyfile` dengan biner caddy belum jalan (unduhan modul timeout di jaringan ini); CSP sudah diuji pada build produksi · dijalankan saat deploy (`caddy validate`) · —

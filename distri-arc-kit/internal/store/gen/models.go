@@ -149,6 +149,29 @@ type ChatMessage struct {
 	Internal   bool            `json:"internal"`
 }
 
+type ChatMessageKey struct {
+	WaMsgID   string    `json:"wa_msg_id"`
+	MessageID uuid.UUID `json:"message_id"`
+	SentAt    time.Time `json:"sent_at"`
+}
+
+type ChatMessagesDefault struct {
+	ID         uuid.UUID       `json:"id"`
+	ThreadID   *uuid.UUID      `json:"thread_id"`
+	WaMsgID    *string         `json:"wa_msg_id"`
+	Direction  *string         `json:"direction"`
+	FromNumber *string         `json:"from_number"`
+	FromName   *string         `json:"from_name"`
+	Body       *string         `json:"body"`
+	Media      json.RawMessage `json:"media"`
+	SentAt     time.Time       `json:"sent_at"`
+	Annotation json.RawMessage `json:"annotation"`
+	SignalID   *uuid.UUID      `json:"signal_id"`
+	Status     string          `json:"status"`
+	ProposalID *uuid.UUID      `json:"proposal_id"`
+	Internal   bool            `json:"internal"`
+}
+
 type ChatThread struct {
 	ID             uuid.UUID       `json:"id"`
 	Kind           *string         `json:"kind"`
@@ -430,7 +453,7 @@ type Order struct {
 
 type Outbox struct {
 	ID         uuid.UUID       `json:"id"`
-	ProposalID uuid.UUID       `json:"proposal_id"`
+	ProposalID *uuid.UUID      `json:"proposal_id"`
 	Channel    string          `json:"channel"`
 	ToRef      *string         `json:"to_ref"`
 	Payload    json.RawMessage `json:"payload"`
@@ -603,6 +626,26 @@ type Signal struct {
 	CreatedAt   time.Time       `json:"created_at"`
 }
 
+type SignalKey struct {
+	DedupeKey  string    `json:"dedupe_key"`
+	SignalID   uuid.UUID `json:"signal_id"`
+	OccurredAt time.Time `json:"occurred_at"`
+}
+
+type SignalsDefault struct {
+	ID          uuid.UUID       `json:"id"`
+	Kind        string          `json:"kind"`
+	DealerID    *uuid.UUID      `json:"dealer_id"`
+	ContactID   *uuid.UUID      `json:"contact_id"`
+	SalesID     *uuid.UUID      `json:"sales_id"`
+	OccurredAt  time.Time       `json:"occurred_at"`
+	DedupeKey   string          `json:"dedupe_key"`
+	Summary     *string         `json:"summary"`
+	Payload     json.RawMessage `json:"payload"`
+	ProcessedAt *time.Time      `json:"processed_at"`
+	CreatedAt   time.Time       `json:"created_at"`
+}
+
 type StockItem struct {
 	ID              uuid.UUID  `json:"id"`
 	Branch          string     `json:"branch"`
@@ -619,14 +662,25 @@ type StockItem struct {
 	SourceWriteDate *time.Time `json:"source_write_date"`
 }
 
+type SystemAlert struct {
+	Key        string     `json:"key"`
+	Message    string     `json:"message"`
+	OpenedAt   time.Time  `json:"opened_at"`
+	NotifiedAt *time.Time `json:"notified_at"`
+	ResolvedAt *time.Time `json:"resolved_at"`
+}
+
 type User struct {
-	ID           uuid.UUID  `json:"id"`
-	Email        *string    `json:"email"`
-	Name         *string    `json:"name"`
-	Role         *string    `json:"role"`
-	PasswordHash *string    `json:"password_hash"`
-	SalesUserID  *uuid.UUID `json:"sales_user_id"`
-	Active       bool       `json:"active"`
+	ID            uuid.UUID  `json:"id"`
+	Email         *string    `json:"email"`
+	Name          *string    `json:"name"`
+	Role          *string    `json:"role"`
+	PasswordHash  *string    `json:"password_hash"`
+	SalesUserID   *uuid.UUID `json:"sales_user_id"`
+	Active        bool       `json:"active"`
+	TotpSecret    *string    `json:"totp_secret"`
+	TotpEnabledAt *time.Time `json:"totp_enabled_at"`
+	TotpLastStep  *int64     `json:"totp_last_step"`
 }
 
 type VDealerBoard struct {

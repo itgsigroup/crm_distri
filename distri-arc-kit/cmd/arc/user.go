@@ -17,7 +17,7 @@ import (
 	"distri-arc/internal/store/gen"
 )
 
-// arc ctl user add|passwd
+// arc ctl user add|passwd|totp-reset
 func runUserCtl(ctx context.Context, st *store.Store, args []string) error {
 	if len(args) == 0 {
 		return errors.New("usage: arc ctl user add --email --name --role --password [--sales] | passwd --email --password")
@@ -29,6 +29,17 @@ func runUserCtl(ctx context.Context, st *store.Store, args []string) error {
 	password := fs.String("password", "", "password (≥ 10 characters)")
 	sales := fs.String("sales", "", "sales_users name this account belongs to")
 	_ = fs.Parse(args[1:])
+	if args[0] == "totp-reset" {
+		n, err := st.Q.ResetTOTPByEmail(ctx, *email)
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return errors.New("pengguna tidak ditemukan")
+		}
+		fmt.Println("2FA dimatikan untuk", *email, "— aktifkan lagi di Pengaturan → Keamanan akun")
+		return nil
+	}
 	if *email == "" || len(*password) < 10 {
 		return errors.New("--email and --password (≥ 10 karakter) wajib")
 	}

@@ -1,5 +1,5 @@
 -- name: GetLoginUser :one
-select id, email, name, role, password_hash, active from users where lower(email) = lower($1);
+select id, email, name, role, password_hash, active, totp_secret, totp_enabled_at from users where lower(email) = lower($1);
 
 -- name: ListUsers :many
 select u.id, u.email, u.name, u.role, u.active, u.password_hash is not null as has_password, s.name as sales_name, s.branch
@@ -21,3 +21,23 @@ select email from users where password_hash is null;
 
 -- name: SalesUserByName :one
 select id from sales_users where lower(name) = lower($1) limit 1;
+
+-- name: GetUserTOTP :one
+select id, email, role, totp_secret, totp_enabled_at from users where id = $1;
+
+-- name: SetTOTPSecret :exec
+-- A new secret waits for its first code (totp_enabled_at stays null until then).
+update users set totp_secret = $2, totp_enabled_at = null, totp_last_step = null where id = $1;
+
+-- name: EnableTOTP :exec
+update users set totp_enabled_at = $2, totp_last_step = $3 where id = $1;
+
+-- name: UseTOTPStep :execrows
+-- Accepts a step only once (a code cannot be replayed within its 90-second window).
+update users set totp_last_step = $2 where id = $1 and coalesce(totp_last_step, 0) < $2;
+
+-- name: DisableTOTP :exec
+update users set totp_secret = null, totp_enabled_at = null, totp_last_step = null where id = $1;
+
+-- name: ResetTOTPByEmail :execrows
+update users set totp_secret = null, totp_enabled_at = null, totp_last_step = null where lower(email) = lower($1);
