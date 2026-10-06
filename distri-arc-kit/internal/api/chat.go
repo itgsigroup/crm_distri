@@ -219,7 +219,7 @@ func (s *Server) chatContext(w http.ResponseWriter, r *http.Request) {
 		res["proposals"] = next
 	}
 	if t.DealerSlug != nil {
-		b, ok := s.board(w, r)
+		b, ok := s.fullBoard(w, r)
 		if !ok {
 			return
 		}

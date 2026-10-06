@@ -1,0 +1,524 @@
+      <div class="k-root">
+        <div class="k-intro">
+          <div>
+            <h2>Panduan Orbit</h2>
+            <p>Kanban dibuat untuk deal yang dikejar sampai closing. Distribusi tidak punya closing: dealer yang sama order lagi, dan lagi. Orbit menggambarkan yang sebenarnya terjadi — dealer berputar mengelilingi GSI, dan tugas kita menjaga mereka tetap di orbit.</p>
+          </div>
+          <div class="k-kv"><div><span>Papan utama</span><b>Orbit</b></div><div><span>Satuan waktu</span><b>Siklus order dealer itu sendiri</b></div><div><span>Pertanyaan harian</span><b>Siapa order minggu ini? Siapa lewat jadwal?</b></div><div><span>Skor tunggal</span><b>Skor dealer 0–100</b></div></div>
+        </div>
+        <div class="anchors"><button data-scroll="k-peta">Peta orbit</button><button data-scroll="k-kuadran">Segmen</button><button data-scroll="k-dealer">Satu dealer</button><button data-scroll="k-mesin">Mesin distribusi</button><button data-scroll="k-agen">Siapa menjaga apa</button><button data-scroll="k-pemetaan">Kanban → Orbit</button><button data-scroll="k-baca">Membaca papan</button></div>
+<!-- ===================== PETA ORBIT ===================== -->
+  <div class="k-sec" id="k-peta">
+    <div class="k-sec-h"><h2>Satu gambar, semua istilah</h2><p>Papan Orbit adalah jam dan peta sekaligus. Posisi sudut menunjukkan di mana dealer berada dalam siklus ordernya; jarak dari pusat menunjukkan seberapa erat ia terikat ke GSI.</p></div>
+    <div class="k-map">
+      <figure class="card k-fig k-mapfig">
+        <svg viewBox="0 0 640 560" role="img" aria-label="Papan orbit: GSI di pusat, empat status (Key account, Aktif, At risk, Churn), titik jadwal order di atas, dealer digambar sebagai titik yang ukurannya share of wallet dan warnanya sisa limit; dealer yang lewat jadwal bergeser ke luar">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+            <marker id="ah-bad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--bad)"/></marker>
+            <marker id="ah-acc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/></marker>
+          </defs>
+          <!-- segmen 7 hari terakhir sebelum jadwal order -->
+          <path d="M320 300 L85 300 A235 235 0 0 1 320 65 Z" fill="var(--good)" opacity=".07"/>
+          <!-- status -->
+          <circle cx="320" cy="300" r="235" fill="none" stroke="var(--line-strong)" stroke-width="1.2" stroke-dasharray="4 6"/>
+          <circle cx="320" cy="300" r="180" fill="none" stroke="var(--line-strong)" stroke-width="1.2"/>
+          <circle cx="320" cy="300" r="120" fill="none" stroke="var(--line-strong)" stroke-width="1.2"/>
+          <circle cx="320" cy="300" r="62" fill="none" stroke="var(--line-strong)" stroke-width="1.2"/>
+          <text x="160" y="462" text-anchor="end" class="k-cap">Churn</text>
+          <text x="198" y="424" text-anchor="end" class="k-cap">At risk</text>
+          <text x="241" y="381" text-anchor="end" class="k-cap">Aktif</text>
+          <text x="282" y="340" text-anchor="end" class="k-cap">Key account</text>
+          <!-- siklus order: satu putaran -->
+          <path d="M320 150 A150 150 0 1 1 190 225" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="2 5" marker-end="url(#ah-acc)"/>
+          <text x="604" y="470" text-anchor="end" class="k-lbl" fill="var(--accent)">1 putaran = 1 siklus order</text>
+          <text x="604" y="484" text-anchor="end" class="k-lbl-s">mis. 14 hari untuk dealer dua-mingguan</text>
+          <!-- garis jatuh tempo -->
+          <line x1="320" y1="258" x2="320" y2="52" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="3 5"/>
+          <text x="320" y="40" text-anchor="middle" class="k-strong" fill="var(--good)" font-size="11" letter-spacing="1.5">JADWAL ORDER</text>
+          <text x="118" y="146" class="k-lbl-s" fill="var(--good)">7 hari terakhir</text>
+          <text x="118" y="159" class="k-lbl-s" fill="var(--good)">sebelum jadwal order</text>
+          <text x="562" y="304" class="k-cap">¼ putaran</text>
+          <text x="320" y="552" text-anchor="middle" class="k-cap">½ putaran</text>
+          <text x="78" y="304" text-anchor="end" class="k-cap">¾ putaran</text>
+          <!-- pusat -->
+          <circle cx="320" cy="300" r="24" fill="var(--text)"/>
+          <text x="320" y="304" text-anchor="middle" class="k-strong" fill="var(--bg)" font-size="11">GSI</text>
+          <!-- lewat jadwal: dari Aktif ke At risk -->
+          <line x1="312" y1="186" x2="301" y2="135" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="3 4" marker-end="url(#ah-bad)"/>
+          <!-- dealer -->
+          <!-- A: Key account, share of wallet besar, sisa limit aman, baru order -->
+          <circle cx="357" cy="259" r="17" fill="var(--good)" stroke="var(--surface)" stroke-width="2"/>
+          <text x="380" y="263" class="k-lbl">Key account · share of wallet 72% · aman</text>
+          <!-- F: Key account kecil -->
+          <circle cx="291" cy="318" r="10" fill="var(--good)" stroke="var(--surface)" stroke-width="2"/>
+          <!-- B: Aktif, mendekati jadwal order, dengan aktivitas -->
+          <circle cx="246" cy="246" r="12" fill="var(--good)" stroke="var(--surface)" stroke-width="2"/>
+          <circle cx="246" cy="246" r="19" fill="none" stroke="var(--good)" stroke-width="1.2" opacity=".55"/>
+          <circle cx="246" cy="246" r="26" fill="none" stroke="var(--good)" stroke-width="1" opacity=".25"/>
+          <text x="224" y="226" text-anchor="end" class="k-lbl">jadwal order 2 hr lagi</text>
+          <!-- C: Aktif, sisa limit tipis, setengah siklus order -->
+          <circle cx="366" cy="404" r="9" fill="var(--warn)" stroke="var(--surface)" stroke-width="2"/>
+          <text x="381" y="408" class="k-lbl">tipis · ½ putaran</text>
+          <!-- D: At risk, over limit / overdue, lewat jadwal -->
+          <circle cx="297" cy="122" r="11" fill="var(--bad)" stroke="var(--surface)" stroke-width="2"/>
+          <text x="282" y="126" text-anchor="end" class="k-lbl">lewat jadwal · 1,4× siklus order</text>
+          <!-- E: Churn -->
+          <circle cx="412" cy="86" r="8" fill="var(--text-3)" opacity=".5" stroke="var(--surface)" stroke-width="2"/>
+          <text x="426" y="90" class="k-lbl-s">churn · 2× lebih</text>
+          <!-- nomor callout -->
+          <g font-family="var(--font-display)" font-weight="800" font-size="11">
+            <circle cx="548" cy="104" r="11" fill="var(--text)"/><text x="548" y="108" text-anchor="middle" fill="var(--bg)">1</text>
+            <circle cx="198" cy="462" r="11" fill="var(--text)"/><text x="198" y="466" text-anchor="middle" fill="var(--bg)">2</text>
+            <circle cx="414" cy="466" r="11" fill="var(--text)"/><text x="414" y="470" text-anchor="middle" fill="var(--bg)">3</text>
+            <circle cx="320" cy="62" r="11" fill="var(--text)"/><text x="320" y="66" text-anchor="middle" fill="var(--bg)">4</text>
+            <circle cx="268" cy="152" r="11" fill="var(--text)"/><text x="268" y="156" text-anchor="middle" fill="var(--bg)">5</text>
+            <circle cx="357" cy="229" r="11" fill="var(--text)"/><text x="357" y="233" text-anchor="middle" fill="var(--bg)">6</text>
+            <circle cx="366" cy="380" r="11" fill="var(--text)"/><text x="366" y="384" text-anchor="middle" fill="var(--bg)">7</text>
+            <circle cx="206" cy="274" r="11" fill="var(--text)"/><text x="206" y="278" text-anchor="middle" fill="var(--bg)">8</text>
+            <circle cx="320" cy="340" r="11" fill="var(--text)"/><text x="320" y="344" text-anchor="middle" fill="var(--bg)">9</text>
+          </g>
+          <text x="548" y="84" text-anchor="middle" class="k-lbl-s">papan Orbit</text>
+          <text x="320" y="366" text-anchor="middle" class="k-lbl-s">skor dealer menahan</text>
+          <text x="320" y="378" text-anchor="middle" class="k-lbl-s">dealer di dalam</text>
+        </svg>
+        <figcaption>Semua dealer dalam satu pandangan. Atas = jadwal order. Keluar = lewat jadwal. Besar = share of wallet. Warna = sisa limit.</figcaption>
+      </figure>
+      <div class="k-legend">
+        <ol>
+          <li><span class="k-n">1</span><div><b>Orbit</b>Papan utama: semua dealer mengelilingi GSI. Tidak ada kolom "closing" — tujuannya menjaga dealer tetap berputar.<span class="k-k">menggantikan: pipeline / kanban</span></div></li>
+          <li><span class="k-n">2</span><div><b>Status</b>Key account · Aktif · At risk · Churn. Jarak dari pusat: seberapa erat dealer terikat ke GSI. Dihitung, bukan dipindah tangan.<span class="k-k">menggantikan: stage</span></div></li>
+          <li><span class="k-n">3</span><div><b>Siklus order</b>Satu putaran penuh = jarak rata-rata antar order dealer itu. Dealer mingguan dan bulanan punya jam yang berbeda.<span class="k-k">siklus order = rata-rata jarak order, 6 bulan</span></div></li>
+          <li><span class="k-n">4</span><div><b>Jadwal order</b>Titik atas: hari dealer <em>seharusnya</em> order lagi. Area hijau = 7 hari terakhir, saatnya follow-up dengan rekomendasi order.<span class="k-k">menggantikan: follow-up task</span></div></li>
+          <li><span class="k-n">5</span><div><b>Lewat jadwal</b>Lewat 1,2× siklus order tanpa order: titik bergeser keluar ke At risk. Lewat 2× → Churn.<span class="k-k">menggantikan: churn risk</span></div></li>
+          <li><span class="k-n">6</span><div><b>Share of wallet</b>Ukuran titik = share of wallet GSI di dealer itu.<span class="k-k">share of wallet = belanja ke GSI ÷ total belanja kategori</span></div></li>
+          <li><span class="k-n">7</span><div><b>Sisa limit</b>Warna titik = ruang kredit: hijau aman, kuning tipis, merah over limit, abu-abu cash.<span class="k-k">menggantikan: credit limit + AR aging</span></div></li>
+          <li><span class="k-n">8</span><div><b>Aktivitas</b>Cincin di sekeliling titik: normal, menurun, atau berhenti — relatif terhadap siklus order dealer itu sendiri.<span class="k-k">menggantikan: last activity</span></div></li>
+          <li><span class="k-n">9</span><div><b>Skor dealer</b>Skor 0–100 yang menahan dealer di orbit. Lima komponen yang bisa ditindak satu-satu.<span class="k-k">30% siklus order · 25% share of wallet · 15% product mix · 15% sisa limit · 15% PIC aktif</span></div></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================== KUADRAN ===================== -->
+  <div class="k-sec" id="k-kuadran">
+    <div class="k-sec-h"><h2>Segmen: jenis dealer</h2><p>Orbit menjawab <em>kapan</em> dealer harus di-follow-up. Segmen menjawab <em>dealer jenis apa</em> ini, dari dua angka yang paling jujur di distribusi: seberapa sering ia order (sumbu X) dan seberapa besar tiap ordernya (sumbu Y). Jenisnya menentukan cara melayani; waktunya tetap dari Orbit.</p></div>
+    <div class="k-kuad-grid">
+      <figure class="card k-fig k-kuad-fig" id="t-kuadran">
+        <svg viewBox="0 0 640 440" role="img" aria-label="Segmen dealer: sumbu X seringnya order, sumbu Y besarnya order; empat zona Segmen A, Segmen C, Segmen B, Segmen D dengan contoh dealer dan arah perpindahan">
+          <defs><marker id="ka" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--good)"/></marker></defs>
+          <!-- bidang: x 70–620 (0–3,5 order/bln), y 30–380 (log 5 jt–200 jt); ambang x=306 (1,5×), y=248 (20 jt) -->
+          <rect x="306" y="30" width="314" height="218" fill="var(--accent)" opacity=".07"/>
+          <rect x="70" y="30" width="236" height="218" fill="var(--indigo)" opacity=".07"/>
+          <rect x="306" y="248" width="314" height="132" fill="var(--good)" opacity=".07"/>
+          <rect x="70" y="248" width="236" height="132" fill="var(--text-3)" opacity=".05"/>
+          <g stroke="var(--line)" stroke-width="1"><line x1="70" y1="96" x2="620" y2="96"/><line x1="70" y1="162" x2="620" y2="162"/><line x1="70" y1="314" x2="620" y2="314"/><line x1="149" y1="30" x2="149" y2="380"/><line x1="227" y1="30" x2="227" y2="380"/><line x1="384" y1="30" x2="384" y2="380"/><line x1="463" y1="30" x2="463" y2="380"/><line x1="541" y1="30" x2="541" y2="380"/></g>
+          <line x1="306" y1="30" x2="306" y2="380" stroke="var(--text-3)" stroke-width="1.3" stroke-dasharray="5 4"/>
+          <line x1="70" y1="248" x2="620" y2="248" stroke="var(--text-3)" stroke-width="1.3" stroke-dasharray="5 4"/>
+          <text x="312" y="44" class="k-lbl-s">sering: ≥ 1,5 order/bln · siklus order ≤ 20 hr</text>
+          <text x="616" y="243" text-anchor="end" class="k-lbl-s">besar: ≥ Rp 20 jt per order</text>
+          <g class="k-mono" fill="var(--text-3)"><text x="62" y="34" text-anchor="end">200 jt</text><text x="62" y="100" text-anchor="end">100 jt</text><text x="62" y="166" text-anchor="end">50 jt</text><text x="62" y="252" text-anchor="end">20 jt</text><text x="62" y="318" text-anchor="end">10 jt</text><text x="62" y="384" text-anchor="end">5 jt</text></g>
+          <g class="k-mono" fill="var(--text-3)"><text x="149" y="396" text-anchor="middle">0,5×</text><text x="227" y="396" text-anchor="middle">1×/bln</text><text x="306" y="396" text-anchor="middle">1,5×</text><text x="384" y="396" text-anchor="middle">2×</text><text x="463" y="396" text-anchor="middle">2,5×</text><text x="541" y="396" text-anchor="middle">3×</text></g>
+          <g class="k-lbl-s"><text x="149" y="408" text-anchor="middle">60 hr</text><text x="227" y="408" text-anchor="middle">30 hr</text><text x="306" y="408" text-anchor="middle">20 hr</text><text x="384" y="408" text-anchor="middle">15 hr</text><text x="463" y="408" text-anchor="middle">12 hr</text><text x="541" y="408" text-anchor="middle">10 hr</text></g>
+          <text x="345" y="432" text-anchor="middle" class="k-cap">Seringnya order · order per bulan (30 ÷ siklus order)</text>
+          <text transform="translate(16 205) rotate(-90)" text-anchor="middle" class="k-cap">Besarnya order · Rp per order</text>
+          <g class="k-strong" font-size="13" letter-spacing="1.2"><text x="610" y="52" text-anchor="end" fill="var(--accent)">SEGMEN A</text><text x="80" y="52" fill="var(--indigo)">SEGMEN C</text><text x="610" y="270" text-anchor="end" fill="var(--good)">SEGMEN B</text><text x="80" y="270" fill="var(--text-2)">SEGMEN D</text></g>
+          <g class="k-lbl-s"><text x="610" y="66" text-anchor="end">sering × besar</text><text x="80" y="66">jarang × besar</text><text x="610" y="284" text-anchor="end">sering × kecil</text><text x="80" y="284">jarang × kecil</text></g>
+          <!-- jejak 3 bulan lalu -->
+          <circle cx="365" cy="169" r="7" fill="none" stroke="var(--text-3)" stroke-width="1.2" stroke-dasharray="3 3"/><line x1="358" y1="171" x2="306" y2="185" stroke="var(--text-3)" stroke-width="1.2" stroke-dasharray="3 3"/>
+          <text x="374" y="165" class="k-lbl-s">3 bln lalu · siklus order 16 hr</text>
+          <circle cx="295" cy="348" r="5" fill="none" stroke="var(--text-3)" stroke-width="1.2" stroke-dasharray="3 3"/><line x1="300" y1="348" x2="452" y2="348" stroke="var(--text-3)" stroke-width="1.2" stroke-dasharray="3 3"/>
+          <text x="300" y="362" class="k-lbl-s">3 bln lalu · siklus order 21 hr</text>
+          <!-- contoh dealer (ukuran = share of wallet, warna = sisa limit) -->
+          <circle cx="510" cy="79" r="17" fill="var(--good)" stroke="var(--surface)" stroke-width="2"/><text x="489" y="83" text-anchor="end" class="k-lbl">Indo Vision</text>
+          <circle cx="463" cy="106" r="16" fill="var(--good)" stroke="var(--surface)" stroke-width="2"/><text x="483" y="110" class="k-lbl">Global Secur</text>
+          <circle cx="406" cy="141" r="15" fill="var(--good)" stroke="var(--surface)" stroke-width="2"/><text x="425" y="145" class="k-lbl">Toko Sinar</text>
+          <circle cx="406" cy="201" r="12" fill="var(--good)" stroke="var(--surface)" stroke-width="2"/><text x="422" y="205" class="k-lbl">Jaya Abadi</text>
+          <circle cx="295" cy="188" r="11" fill="var(--bad)" stroke="var(--surface)" stroke-width="2"/><text x="280" y="192" text-anchor="end" class="k-lbl">Mitra Jaya</text>
+          <circle cx="238" cy="231" r="12" fill="var(--good)" stroke="var(--surface)" stroke-width="2"/><text x="254" y="235" class="k-lbl">Bina Teknik</text>
+          <circle cx="332" cy="257" r="12" fill="var(--good)" stroke="var(--surface)" stroke-width="2"/><text x="348" y="261" class="k-lbl">Prima Klaten</text>
+          <circle cx="384" cy="324" r="10" fill="var(--text-3)" stroke="var(--surface)" stroke-width="2"/><text x="398" y="328" class="k-lbl">Cahaya Abadi</text>
+          <circle cx="463" cy="348" r="9" fill="var(--text-3)" stroke="var(--surface)" stroke-width="2"/><text x="476" y="352" class="k-lbl">Citra Komputer</text>
+          <circle cx="205" cy="297" r="9" fill="var(--text-3)" stroke="var(--surface)" stroke-width="2"/><text x="218" y="301" class="k-lbl">Lampu Jaya</text>
+          <circle cx="238" cy="371" r="7" fill="var(--text-3)" stroke="var(--surface)" stroke-width="2"/><text x="250" y="375" class="k-lbl-s">Sumber Rejeki</text>
+          <!-- arah yang diinginkan -->
+          <path d="M346 250 Q380 232 400 218" fill="none" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="2 4" marker-end="url(#ka)"/>
+          <text x="412" y="226" class="k-lbl-s" fill="var(--good)">target: naik ke Segmen A</text>
+        </svg>
+        <figcaption>Ukuran titik = share of wallet, warna = sisa limit, titik putus = posisi 3 bulan lalu. Turun ke kiri (siklus order melambat) terlihat sebelum ordernya hilang.</figcaption><div class="k-go" style="text-align:center;margin-top:10px"><button class="btn ghost" data-nav="kuad"><svg class="i"><use href="#i-arrow"/></svg>Buka papan Segmen</button></div>
+      </figure>
+      <div class="k-kcards">
+        <div class="card k-kcard" style="--kc:var(--accent)"><b>Segmen A</b><span>sering × besar</span><p><strong>Prioritas: jaga & layani terbaik.</strong> Tulang punggung omzet. Prioritas stok dan kecepatan respons, limit tumbuh mengikuti siklus order, PIC aktif minimal 2 kontak, review harga tier setahun sekali.</p><small>Risiko: konsentrasi — sedikit dealer menopang sebagian besar omzet. Agen: AI Follow-up + AI Kredit.</small></div>
+        <div class="card k-kcard" style="--kc:var(--good)"><b>Segmen B</b><span>sering × kecil</span><p><strong>Upsell: naikkan nilai order.</strong> Order rutin tapi kecil, biaya layani per order tinggi. Bundle, minimum order bebas ongkir, konsolidasi kiriman mingguan, tawarkan kategori yang kosong. Target: naik ke Segmen A.</p><small>Risiko: margin tergerus ongkir dan admin. Agen: AI Stok.</small></div>
+        <div class="card k-kcard" style="--kc:var(--indigo)"><b>Segmen C</b><span>jarang × besar</span><p><strong>Ikuti proyeknya, bukan siklus ordernya.</strong> Order datang bersama proyek. Tanya pipeline proyek tiap kuartal, siapkan sisa limit (limit sementara / DP) dan lead time stok. Jangan di-follow-up dengan siklus order.</p><small>Risiko: over limit / overdue saat proyek belum cair. Agen: AI Order + AI Kredit.</small></div>
+        <div class="card k-kcard" style="--kc:var(--text-3)"><b>Segmen D</b><span>jarang × kecil</span><p><strong>Low-touch: layani otomatis.</strong> Cash / transfer, harga tier C, katalog WA self-service, follow-up otomatis sebulan sekali, tanpa kunjungan. Naik ke Segmen B bila mulai rutin.</p><small>Risiko: perhatian sales lebih mahal dari marginnya. Agen: AI Prospek (otomatis).</small></div>
+      </div>
+    </div>
+    <div class="k-knotes">
+      <div class="card k-knote"><b>Cara hitung</b><p class="k-rule">seringnya = 30 ÷ siklus order (order per bulan)<br>besarnya = rata-rata Rp per order, 6 bulan<br>omzet/bln = besarnya × seringnya</p><p>Ambang sering ≥ 1,5×/bln dan besar ≥ Rp 20 jt adalah kebijakan, bukan rumus: diubah di Pengaturan bila profil dealer bergeser. Dealer baru (1 order) ditempatkan sementara dari nilai order pertama dan ditetapkan setelah order kedua.</p></div>
+      <div class="card k-knote"><b>Bergerak antar segmen</b><div class="k-chain"><span>Segmen D</span><i>→</i><span>Segmen B</span><i>→</i><span>Segmen A</span></div><p>Jalur naik yang sehat: makin rutin dulu, baru makin besar. <b>Segmen A → Segmen C</b> (siklus order melambat, nilai tetap) adalah peringatan paling awal: dealer besar yang mulai pindah distributor terlihat di sini sebelum terlihat di piutang. <b>Segmen C → Segmen A</b> terjadi saat installer mulai stok rutin, bukan hanya per proyek.</p></div>
+      <div class="card k-knote"><b>Tiga pandangan, satu dealer</b><p><b>Orbit</b> = kapan (posisi dalam siklus order). <b>Segmen</b> = jenis (sering × besar). <b>Peta relasi 3D</b> = seberapa dekat (PIC aktif). Skor dealer merangkum ketiganya menjadi satu angka; segmen memilih <em>cara melayani</em>, orbit memilih <em>hari follow-up</em>.</p></div>
+    </div>
+  </div>
+
+  <!-- ===================== SATU DEALER ===================== -->
+  <div class="k-sec" id="k-dealer">
+    <div class="k-sec-h"><h2>Membaca satu dealer</h2><p>Sepuluh istilah yang muncul di halaman dealer. Tiap istilah punya satu gambar, satu rumus, dan satu cara baca.</p></div>
+    <div class="k-terms">
+
+      <article class="card k-term" id="t-ritme">
+        <figure class="k-fig"><svg viewBox="0 0 240 120" role="img" aria-label="Empat order dengan jarak sama 14 hari membentuk siklus order">
+          <line x1="18" y1="72" x2="222" y2="72" stroke="var(--line-strong)" stroke-width="1.5"/>
+          <g fill="var(--accent)"><circle cx="34" cy="72" r="6"/><circle cx="84" cy="72" r="6"/><circle cx="134" cy="72" r="6"/><circle cx="184" cy="72" r="6"/></g>
+          <circle cx="222" cy="72" r="6" fill="none" stroke="var(--accent)" stroke-dasharray="2 2"/>
+          <path d="M34 54 v-7 h50 v7" fill="none" stroke="currentColor" stroke-width="1"/><text x="59" y="40" text-anchor="middle" class="k-mono">14 hr</text>
+          <path d="M84 54 v-7 h50 v7" fill="none" stroke="currentColor" stroke-width="1" opacity=".5"/><text x="109" y="40" text-anchor="middle" class="k-mono" opacity=".5">13 hr</text>
+          <path d="M134 54 v-7 h50 v7" fill="none" stroke="currentColor" stroke-width="1" opacity=".5"/><text x="159" y="40" text-anchor="middle" class="k-mono" opacity=".5">15 hr</text>
+          <text x="34" y="94" text-anchor="middle" class="k-lbl-s">order</text><text x="236" y="94" text-anchor="end" class="k-lbl-s">berikutnya</text>
+          <text x="120" y="112" text-anchor="middle" class="k-strong" font-size="11">siklus order 14 hari</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Siklus order <small>satuan waktu</small></h3>
+          <p>Jarak rata-rata antar order dealer itu. Semua istilah waktu lain diukur dalam kelipatan siklus order, bukan hari kalender.</p>
+          <p class="k-rule">siklus order = rata-rata jarak antar order, 6 bulan terakhir<br>cyc = hari sejak order terakhir ÷ siklus order</p>
+          <p class="k-read">Cara baca: <b>cyc 0,9</b> berarti sudah 90% jalan menuju order berikutnya. Dealer baru (1 order) belum punya siklus order.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="orbit"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Orbit</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-tempo">
+        <figure class="k-fig"><svg viewBox="0 0 240 120" role="img" aria-label="Jam siklus order: order terakhir di dekat atas, hari ini mendekati titik jatuh tempo di atas">
+          <circle cx="120" cy="66" r="42" fill="none" stroke="var(--line-strong)" stroke-width="1.2"/>
+          <path d="M120 66 L78 66 A42 42 0 0 1 120 24 Z" fill="var(--good)" opacity=".12"/>
+          <path d="M134 26 A42 42 0 1 1 99 30" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+          <line x1="120" y1="66" x2="120" y2="20" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <circle cx="120" cy="24" r="4" fill="var(--good)"/>
+          <text x="120" y="12" text-anchor="middle" class="k-strong" fill="var(--good)" font-size="9.5" letter-spacing="1">JADWAL ORDER</text>
+          <circle cx="134" cy="26" r="4" fill="var(--accent)"/><text x="142" y="22" class="k-lbl-s">order terakhir</text>
+          <circle cx="99" cy="30" r="5" fill="var(--text)"/><text x="90" y="34" text-anchor="end" class="k-lbl">hari ini</text>
+          <text x="90" y="46" text-anchor="end" class="k-lbl-s">2 hr lagi</text>
+          <text x="120" y="116" text-anchor="middle" class="k-lbl-s">area hijau = 7 hari terakhir</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Jadwal order <small>titik atas</small></h3>
+          <p>Hari ketika dealer <em>seharusnya</em> order lagi menurut siklus ordernya. Bukan tenggat tagihan — tenggat kesempatan.</p>
+          <p class="k-rule">jadwal order = order terakhir + siklus order<br>follow-up H-1 dengan rekomendasi order · maks. 1 follow-up / 14 hari</p>
+          <p class="k-read">Cara baca: daftar <b>"Jadwal order · 7 hari"</b> di Hari ini adalah agenda sales pekan ini, dibuat dari siklus order, bukan dari ingatan.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="today"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Hari ini</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-hanyut">
+        <figure class="k-fig"><svg viewBox="0 0 240 120" role="img" aria-label="Setelah order terakhir, zona 1,2 kali siklus order dan 2 kali siklus order; dealer yang lewat 1,2 kali bergeser keluar">
+          <rect x="158" y="46" width="32" height="28" fill="var(--warn)" opacity=".14"/>
+          <rect x="190" y="46" width="34" height="28" fill="var(--bad)" opacity=".12"/>
+          <line x1="18" y1="74" x2="224" y2="74" stroke="var(--line-strong)" stroke-width="1.5"/>
+          <g fill="var(--accent)"><circle cx="30" cy="74" r="5"/><circle cx="70" cy="74" r="5"/><circle cx="110" cy="74" r="5"/></g>
+          <circle cx="150" cy="74" r="5" fill="none" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="2 2"/>
+          <text x="150" y="92" text-anchor="middle" class="k-lbl-s">jadwal order</text>
+          <line x1="158" y1="46" x2="158" y2="78" stroke="var(--warn)" stroke-width="1"/><text x="158" y="106" text-anchor="middle" class="k-mono" fill="var(--warn)">1,2×</text>
+          <line x1="190" y1="46" x2="190" y2="78" stroke="var(--bad)" stroke-width="1"/><text x="190" y="106" text-anchor="middle" class="k-mono" fill="var(--bad)">2×</text>
+          <path d="M110 74 Q140 40 172 36" fill="none" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <circle cx="174" cy="36" r="7" fill="var(--bad)" stroke="var(--surface)" stroke-width="2"/>
+          <text x="174" y="22" text-anchor="middle" class="k-lbl" fill="var(--bad)">lewat jadwal</text><text x="188" y="40" class="k-lbl-s">At risk</text>
+          <text x="207" y="60" text-anchor="middle" class="k-lbl-s">Churn</text>
+          <text x="70" y="26" text-anchor="middle" class="k-lbl-s">order rutin, siklus order 40 hr</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Lewat jadwal <small>bergerak keluar</small></h3>
+          <p>Dealer yang lewat 1,2× siklus ordernya tanpa order. Terlihat beberapa hari setelah jadwal order — sebelum ordernya hilang ke distributor lain.</p>
+          <p class="k-rule">≤ 1,2× siklus order → di dalam orbit<br>&gt; 1,2× → At risk (lewat jadwal) · &gt; 2× → Churn</p>
+          <p class="k-read">Cara baca: dealer bulanan diam 36 hari = lewat jadwal. Dealer mingguan diam 9 hari = lewat jadwal. <b>Ambang mengikuti siklus order masing-masing</b>, bukan 30/60/90 hari.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="orbit"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Orbit</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-denyut">
+        <figure class="k-fig"><svg viewBox="0 0 240 120" role="img" aria-label="Garis aktivitas: normal dengan detak kuat, menurun dengan detak kecil, berhenti dengan garis datar">
+          <path d="M18 60 h15 l5 -26 l5 42 l5 -16 h18 l5 -26 l5 42 l5 -16 h5" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M90 60 h15 l5 -10 l5 16 l5 -6 h18 l5 -10 l5 16 l5 -6 h5" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M162 60 h60" fill="none" stroke="var(--bad)" stroke-width="2"/>
+          <line x1="88" y1="22" x2="88" y2="90" stroke="var(--line-strong)" stroke-dasharray="2 3"/><line x1="160" y1="22" x2="160" y2="90" stroke="var(--line-strong)" stroke-dasharray="2 3"/>
+          <text x="52" y="100" text-anchor="middle" class="k-strong" font-size="10.5" fill="var(--good)">normal</text><text x="52" y="113" text-anchor="middle" class="k-mono">≤ 1,05×</text>
+          <text x="124" y="100" text-anchor="middle" class="k-strong" font-size="10.5" fill="var(--warn)">menurun</text><text x="124" y="113" text-anchor="middle" class="k-mono">≤ 2×</text>
+          <text x="192" y="100" text-anchor="middle" class="k-strong" font-size="10.5" fill="var(--bad)">berhenti</text><text x="192" y="113" text-anchor="middle" class="k-mono">&gt; 2×</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Aktivitas <small>masih aktif?</small></h3>
+          <p>Apakah dealer masih berdetak pada siklus ordernya. Satu kata di kartu dealer yang merangkum siklus order + jarak sejak order terakhir.</p>
+          <p class="k-rule">normal: cyc ≤ 1,05 · menurun: cyc ≤ 2 · berhenti: cyc &gt; 2<br>baru: belum ada siklus order</p>
+          <p class="k-read">Cara baca: <b>"menurun"</b> adalah momen bertindak. "Berhenti" biasanya sudah terlambat dan masuk prioritas rendah.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="dealer"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Dealer</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-porsi">
+        <figure class="k-fig"><svg viewBox="0 0 240 120" role="img" aria-label="Dompet dealer: 60 persen belanja ke GSI, 40 persen ke distributor lain">
+          <rect x="20" y="30" width="200" height="52" rx="10" fill="none" stroke="var(--line-strong)" stroke-width="1.5"/>
+          <rect x="20" y="30" width="120" height="52" rx="10" fill="var(--accent)"/>
+          <rect x="130" y="30" width="10" height="52" fill="var(--accent)"/>
+          <text x="80" y="52" text-anchor="middle" class="k-strong" fill="#fff" font-size="13">GSI</text><text x="80" y="68" text-anchor="middle" fill="#fff" font-size="11">60%</text>
+          <text x="180" y="52" text-anchor="middle" class="k-lbl-s">distributor lain</text><text x="180" y="68" text-anchor="middle" class="k-lbl">40%</text>
+          <text x="20" y="20" class="k-lbl-s">total belanja dealer di kategori GSI</text>
+          <text x="120" y="108" text-anchor="middle" class="k-strong" font-size="11">naik lewat product mix, bukan diskon</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Share of wallet <small>pangsa belanja dealer</small></h3>
+          <p>Bagian belanja dealer yang jatuh ke GSI. Angka pertumbuhan yang sebenarnya untuk distribusi: dealer yang sama, share of wallet lebih besar.</p>
+          <p class="k-rule">share of wallet = belanja ke GSI ÷ total belanja dealer (kategori GSI)<br>estimasi dari product mix + kompetitor yang disebut · sales konfirmasi 1×/kuartal</p>
+          <p class="k-read">Cara baca: share of wallet 40% dengan siklus order sehat = <b>dealer bagus yang separuh dompetnya ada di tempat lain</b>. Itu peluang terbesar, bukan dealer baru.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="dealer"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Dealer</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-keranjang">
+        <figure class="k-fig"><svg viewBox="0 0 240 120" role="img" aria-label="Enam kategori product mix: empat sudah dibeli, dua kosong yaitu modul LED dan fire alarm">
+          <g font-size="9.5">
+            <rect x="18" y="18" width="66" height="32" rx="7" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1"/><text x="51" y="32" text-anchor="middle" class="k-strong" font-size="8.5">Kamera &amp; NVR</text><text x="51" y="44" text-anchor="middle" fill="var(--good)">dibeli</text>
+            <rect x="88" y="18" width="66" height="32" rx="7" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1"/><text x="120" y="32" text-anchor="middle" class="k-strong" font-size="8.5">HDD</text><text x="120" y="44" text-anchor="middle" fill="var(--good)">dibeli</text>
+            <rect x="158" y="18" width="66" height="32" rx="7" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1"/><text x="191" y="32" text-anchor="middle" class="k-strong" font-size="8.5">Kabel &amp; PoE</text><text x="191" y="44" text-anchor="middle" fill="var(--good)">dibeli</text>
+            <rect x="18" y="56" width="66" height="32" rx="7" fill="none" stroke="var(--line-strong)" stroke-width="1" stroke-dasharray="3 3"/><text x="51" y="70" text-anchor="middle" class="k-strong" font-size="8.5" fill="var(--text-3)">Modul LED</text><text x="51" y="82" text-anchor="middle" fill="var(--accent)">peluang</text>
+            <rect x="88" y="56" width="66" height="32" rx="7" fill="none" stroke="var(--line-strong)" stroke-width="1" stroke-dasharray="3 3"/><text x="120" y="70" text-anchor="middle" class="k-strong" font-size="8.5" fill="var(--text-3)">Fire alarm</text><text x="120" y="82" text-anchor="middle" fill="var(--accent)">peluang</text>
+            <rect x="158" y="56" width="66" height="32" rx="7" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1"/><text x="191" y="70" text-anchor="middle" class="k-strong" font-size="8.5">Aksesoris</text><text x="191" y="82" text-anchor="middle" fill="var(--good)">dibeli</text>
+          </g>
+          <text x="120" y="110" text-anchor="middle" class="k-strong" font-size="11">product mix 4/6 · 2 kategori kosong</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Product mix <small>lebar belanja</small></h3>
+          <p>Enam kategori yang GSI jual, dan mana yang pernah dibeli dealer dalam 6 bulan. Kategori kosong adalah peluang paling murah untuk menaikkan share of wallet.</p>
+          <p class="k-rule">KAT = Kamera &amp; NVR · HDD · Kabel &amp; PoE · Modul LED · Fire alarm · Aksesoris<br>product mix = jumlah kategori dibeli ÷ 6</p>
+          <p class="k-read">Cara baca: dealer Key account dengan product mix 3/6 = <b>setia tapi tipis</b>. AI Stok mencari stok yang cocok dengan kategori kosongnya.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="dealer"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Dealer</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-napas">
+        <figure class="k-fig"><svg viewBox="0 0 240 120" role="img" aria-label="Batang limit kredit: exposure 65 persen, ruang 35 persen, zona aman, tipis dan over limit">
+          <rect x="20" y="46" width="200" height="22" rx="6" fill="var(--surface)" stroke="var(--line-strong)" stroke-width="1"/>
+          <rect x="20" y="46" width="130" height="22" rx="6" fill="var(--warn)"/>
+          <rect x="140" y="46" width="10" height="22" fill="var(--warn)"/>
+          <text x="24" y="38" class="k-lbl-s">exposure Rp 98 jt</text><text x="220" y="38" text-anchor="end" class="k-lbl-s">limit Rp 150 jt</text>
+          <text x="185" y="61" text-anchor="middle" class="k-lbl" font-size="10">ruang 35%</text>
+          <line x1="140" y1="42" x2="140" y2="76" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/>
+          <text x="80" y="88" text-anchor="middle" class="k-strong" font-size="10" fill="var(--good)">aman</text><text x="80" y="100" text-anchor="middle" class="k-mono">ruang ≥ 40%</text>
+          <text x="180" y="88" text-anchor="middle" class="k-strong" font-size="10" fill="var(--warn)">tipis</text><text x="180" y="100" text-anchor="middle" class="k-mono">ruang &lt; 40%</text>
+          <text x="232" y="61" text-anchor="middle" class="k-strong" font-size="10" fill="var(--bad)">→</text>
+          <text x="120" y="115" text-anchor="middle" class="k-lbl-s"><tspan fill="var(--bad)" font-weight="700">over limit</tspan>: lewat limit atau invoice lewat tempo</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Sisa limit <small>ruang kredit</small></h3>
+          <p>Berapa ruang yang tersisa untuk order berikutnya sebelum menyentuh limit. Dibaca <em>sebelum</em> follow-up: tidak ada gunanya menawarkan product mix ke dealer yang tidak punya ruang kredit.</p>
+          <p class="k-rule">ruang = 1 − exposure ÷ limit<br>aman ≥ 40% · tipis &lt; 40% atau pola bayar &gt; 35 hr · over limit: lewat limit / invoice lewat</p>
+          <p class="k-read">Cara baca: jadwal order 4 hari lagi + over limit / overdue = <b>tagih dulu, baru follow-up</b>. Sisa limit yang sering tipis padahal bayar tepat = kandidat kenaikan limit.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="ar"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Kredit · kas</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-ikatan">
+        <figure class="k-fig"><svg viewBox="0 0 240 120" role="img" aria-label="Dua dealer: satu dengan hanya 1 PIC ke satu kontak, satu dengan tiga kontak aktif">
+          <g>
+            <line x1="62" y1="68" x2="62" y2="30" stroke="var(--warn)" stroke-width="1.5"/>
+            <circle cx="62" cy="22" r="8" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.5"/>
+            <rect x="24" y="68" width="76" height="26" rx="7" fill="var(--surface)" stroke="var(--line-strong)"/><text x="62" y="85" text-anchor="middle" class="k-strong" font-size="9.5">Toko A</text>
+            <text x="62" y="110" text-anchor="middle" class="k-lbl-s" fill="var(--warn)">hanya 1 PIC</text>
+          </g>
+          <g>
+            <line x1="178" y1="68" x2="150" y2="30" stroke="var(--good)" stroke-width="1.5"/><line x1="178" y1="68" x2="178" y2="30" stroke="var(--good)" stroke-width="2.5"/><line x1="178" y1="68" x2="206" y2="30" stroke="var(--good)" stroke-width="1.5"/>
+            <circle cx="150" cy="22" r="8" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1.5"/><circle cx="178" cy="22" r="8" fill="var(--good)" stroke="var(--good)" stroke-width="1.5"/><circle cx="206" cy="22" r="8" fill="var(--good-soft)" stroke="var(--good)" stroke-width="1.5"/>
+            <rect x="140" y="68" width="76" height="26" rx="7" fill="var(--surface)" stroke="var(--line-strong)"/><text x="178" y="85" text-anchor="middle" class="k-strong" font-size="9.5">Toko B</text>
+            <text x="178" y="110" text-anchor="middle" class="k-lbl-s" fill="var(--good)">3 kontak aktif</text>
+          </g>
+        </svg></figure>
+        <div class="k-tx"><h3>PIC aktif <small>berapa orang yang menjawab</small></h3>
+          <p>Jumlah kontak di dealer yang aktif berhubungan dengan GSI. Satu orang pergi, dealer ikut pergi — kecuali PIC aktifnya lebih dari satu.</p>
+          <p class="k-rule">kontak aktif = balas WA / order dalam 90 hari<br>hanya 1 PIC = ≤ 1 kontak aktif → minta nomor admin/kasir saat kirim berikutnya</p>
+          <p class="k-read">Cara baca: PIC aktif diukur dari <b>siapa yang membalas</b>, bukan siapa yang tersimpan. Garis tebal = kontak utama.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="dealer"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Dealer</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-gravitasi">
+        <figure class="k-fig"><svg viewBox="0 0 240 120" role="img" aria-label="Skor dealer 71 dari lima komponen: siklus order 30 persen, share of wallet 25, product mix 15, sisa limit 15, PIC aktif 15">
+          <text x="20" y="26" class="k-strong" font-size="13">Skor dealer 71</text><text x="220" y="26" text-anchor="end" class="k-lbl-s">dari 100</text>
+          <g>
+            <rect x="20" y="36" width="60" height="22" rx="4" fill="var(--accent)"/>
+            <rect x="82" y="36" width="50" height="22" rx="4" fill="var(--accent)" opacity=".78"/>
+            <rect x="134" y="36" width="28" height="22" rx="4" fill="var(--accent)" opacity=".58"/>
+            <rect x="164" y="36" width="28" height="22" rx="4" fill="var(--accent)" opacity=".42"/>
+            <rect x="194" y="36" width="26" height="22" rx="4" fill="var(--accent)" opacity=".28"/>
+          </g>
+          <g class="k-mono" fill="currentColor">
+            <text x="50" y="51" text-anchor="middle" fill="#fff" font-size="10">30</text><text x="107" y="51" text-anchor="middle" fill="#fff" font-size="10">25</text><text x="148" y="51" text-anchor="middle" fill="#fff" font-size="10">15</text><text x="178" y="51" text-anchor="middle" font-size="10">15</text><text x="207" y="51" text-anchor="middle" font-size="10">15</text>
+          </g>
+          <g class="k-lbl-s">
+            <text x="50" y="74" text-anchor="middle">siklus</text><text x="107" y="74" text-anchor="middle">SOW</text><text x="148" y="74" text-anchor="middle">produk</text><text x="178" y="74" text-anchor="middle">limit</text><text x="207" y="74" text-anchor="middle">PIC</text>
+          </g>
+          <text x="120" y="110" text-anchor="middle" class="k-lbl-s">tiap komponen punya tindakan sendiri</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Skor dealer <small>skor tunggal</small></h3>
+          <p>Kekuatan yang menahan dealer tetap di orbit GSI. Satu angka untuk mengurutkan, lima komponen untuk bertindak.</p>
+          <p class="k-rule">G = 0,30·siklus order + 0,25·share of wallet + 0,15·product mix + 0,15·sisa limit + 0,15·PIC aktif<br>≥ 70 kuat · 50–69 waspada · &lt; 50 lemah</p>
+          <p class="k-read">Cara baca: dua dealer dengan G 60 bisa butuh tindakan berbeda. <b>Lihat komponen yang paling rendah</b> — itu langkah berikutnya.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="dealer"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Dealer</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-siklus">
+        <figure class="k-fig"><svg viewBox="0 0 240 120" role="img" aria-label="Cincin order-to-cash lima tahap: Order, Siap, Kirim selesai; Invoice sedang berjalan; Bayar belum; lalu order lagi">
+          <g transform="rotate(-90 64 62)" fill="none" stroke-width="10">
+            <circle cx="64" cy="62" r="40" stroke="var(--good)" stroke-dasharray="45.3 206" stroke-dashoffset="0"/>
+            <circle cx="64" cy="62" r="40" stroke="var(--good)" stroke-dasharray="45.3 206" stroke-dashoffset="-50.3"/>
+            <circle cx="64" cy="62" r="40" stroke="var(--good)" stroke-dasharray="45.3 206" stroke-dashoffset="-100.6"/>
+            <circle cx="64" cy="62" r="40" stroke="var(--accent)" stroke-dasharray="45.3 206" stroke-dashoffset="-150.9"/>
+            <circle cx="64" cy="62" r="40" stroke="var(--line-strong)" stroke-dasharray="45.3 206" stroke-dashoffset="-201.2"/>
+          </g>
+          <text x="64" y="59" text-anchor="middle" class="k-strong" font-size="12">Invoice</text><text x="64" y="72" text-anchor="middle" class="k-lbl-s">49 hr/putaran</text>
+          <g font-size="10.5">
+            <text x="128" y="28" fill="var(--good)">● Order</text><text x="128" y="44" fill="var(--good)">● Siap</text><text x="128" y="60" fill="var(--good)">● Kirim</text><text x="128" y="76" fill="var(--accent)" class="k-strong">● Invoice</text><text x="128" y="92" fill="var(--text-3)">○ Bayar</text>
+          </g>
+          <path d="M184 92 h30 v-70 h-34" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" marker-end="url(#ah2)"/>
+          <defs><marker id="ah2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
+          <text x="200" y="110" text-anchor="middle" class="k-lbl-s">order lagi</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Order-to-cash <small>satu putaran</small></h3>
+          <p>Order → Siap → Kirim → Invoice → Bayar, lalu order lagi. Mengganti "deal": tidak ada yang ditutup, hanya putaran yang selesai dan dimulai lagi.</p>
+          <p class="k-rule">lama putaran = hari dari Order sampai Bayar<br>Invoice → Bayar yang lama = DSO melambat · Siap → Kirim yang lama = perputaran stok</p>
+          <p class="k-read">Cara baca: tahap yang menyala menunjukkan <b>di mana putaran ini tersangkut</b>. Tiga agen bekerja di tahap berbeda (lihat Siapa menjaga apa).</p>
+        <div class="k-go"><button class="btn ghost" data-nav="dealer"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Dealer</button></div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+
+  <!-- ===================== MESIN DISTRIBUSI ===================== -->
+  <div class="k-sec" id="k-mesin">
+    <div class="k-sec-h"><h2>Mesin distribusi</h2><p>Tiga istilah yang melihat semua dealer sekaligus: KPI yang harus bergerak seirama, cara stok menjadi alasan follow-up, dan kedekatan sales ↔ dealer dalam ruang.</p></div>
+    <div class="k-mesin">
+
+      <article class="card k-term" id="t-roda">
+        <figure class="k-fig"><svg viewBox="0 0 320 170" role="img" aria-label="KPI utama gigi saling terkait: order tepat jadwal, DSO, perputaran stok; satu melambat yang lain ikut melambat">
+          <g fill="none">
+            <circle cx="72" cy="66" r="40" stroke="var(--good)" stroke-width="12" stroke-dasharray="7 5.2"/><circle cx="72" cy="66" r="27" stroke="var(--good)" stroke-width="1.5"/>
+            <circle cx="160" cy="104" r="40" stroke="var(--warn)" stroke-width="12" stroke-dasharray="7 5.2"/><circle cx="160" cy="104" r="27" stroke="var(--warn)" stroke-width="1.5"/>
+            <circle cx="248" cy="66" r="40" stroke="var(--warn)" stroke-width="12" stroke-dasharray="7 5.2"/><circle cx="248" cy="66" r="27" stroke="var(--warn)" stroke-width="1.5"/>
+          </g>
+          <text x="72" y="62" text-anchor="middle" class="k-strong" font-size="11">Order</text><text x="72" y="76" text-anchor="middle" class="k-mono">85%</text>
+          <text x="160" y="100" text-anchor="middle" class="k-strong" font-size="11">Kas</text><text x="160" y="114" text-anchor="middle" class="k-mono">36 hr</text>
+          <text x="248" y="62" text-anchor="middle" class="k-strong" font-size="11">Stok</text><text x="248" y="76" text-anchor="middle" class="k-mono">46 hr</text>
+          <text x="72" y="14" text-anchor="middle" class="k-lbl-s">order tepat jadwal</text>
+          <text x="160" y="164" text-anchor="middle" class="k-lbl-s">order → bayar</text>
+          <text x="248" y="14" text-anchor="middle" class="k-lbl-s">perputaran stok</text>
+        </svg></figure>
+        <div class="k-tx"><h3>KPI utama <small>kesehatan mesin</small></h3>
+          <p>Distribusi berjalan dengan KPI utama yang saling menggigit: order, kas, stok. Satu melambat, dua lainnya ikut. Tiga angka ini yang dilihat CEO setiap pagi.</p>
+          <div class="k-chain"><span>order melambat</span><i>→</i><span>kas masuk telat</span><i>→</i><span>limit dealer habis</span><i>→</i><span>order tertahan</span><i>→</i><span>stok menua</span></div>
+          <p class="k-rule">order tepat jadwal = % dealer order ≤ 1,2× siklus order (target ≥ 85%) · DSO = hari order → bayar (target 30) · perputaran stok = hari perputaran (target 40)</p>
+          <p class="k-read">Cara baca: KPI yang kuning atau merah menunjukkan <b>di mana mesin tersangkut</b>; Push stok dan Sisa limit adalah dua tuas untuk memutarnya lagi.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="today"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Hari ini</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-dorongan">
+        <figure class="k-fig"><svg viewBox="0 0 320 170" role="img" aria-label="Stok menua dicocokkan ke dealer yang product mix-nya berisi kategori itu dan jadwal order">
+          <rect x="16" y="40" width="96" height="90" rx="10" fill="var(--surface)" stroke="var(--line-strong)"/>
+          <text x="64" y="30" text-anchor="middle" class="k-cap">stok menua</text>
+          <text x="64" y="66" text-anchor="middle" class="k-strong" font-size="11">Modul LED P5</text>
+          <text x="64" y="82" text-anchor="middle" class="k-lbl-s">420 pcs · Rp 210 jt</text>
+          <rect x="30" y="94" width="68" height="8" rx="4" fill="var(--line)"/><rect x="30" y="94" width="62" height="8" rx="4" fill="var(--bad)"/>
+          <text x="64" y="118" text-anchor="middle" class="k-mono" fill="var(--bad)">148 hari</text>
+          <path d="M116 85 h36" stroke="currentColor" stroke-width="1.5" fill="none" marker-end="url(#ah3)"/>
+          <defs><marker id="ah3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
+          <text x="136" y="74" text-anchor="middle" class="k-lbl-s">cocokkan</text>
+          <g>
+            <circle cx="176" cy="46" r="9" fill="var(--good)"/><text x="192" y="43" class="k-lbl">Sarana Vision</text><text x="192" y="55" class="k-lbl-s">LED ✓ · jadwal order 1 hr</text>
+            <circle cx="176" cy="86" r="9" fill="var(--good)"/><text x="192" y="83" class="k-lbl">Lampu Jaya</text><text x="192" y="95" class="k-lbl-s">LED ✓ · lewat jadwal</text>
+            <circle cx="176" cy="126" r="9" fill="none" stroke="var(--line-strong)" stroke-dasharray="2 2"/><text x="192" y="123" class="k-lbl" fill="var(--text-3)">Toko Sinar</text><text x="192" y="135" class="k-lbl-s">LED kosong · lebar baru</text>
+          </g>
+          <text x="168" y="160" text-anchor="middle" class="k-lbl-s">bundle −8%, margin tetap 14%</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Push stok <small>stok → dealer</small></h3>
+          <p>Stok yang menua dicocokkan ke dealer yang product mix-nya memuat kategori itu dan sedang jadwal order. Stok menjadi alasan follow-up, bukan beban gudang.</p>
+          <p class="k-rule">kandidat = product mix cocok ∧ (jadwal order ≤ 7 hr ∨ lewat jadwal) ∧ sisa limit ≠ over limit<br>harga bundle tidak pernah di bawah floor margin 9%</p>
+          <p class="k-read">Cara baca: Push stok menjawab "stok ini ke siapa?" — <b>AI Stok</b> menyusun daftarnya, Anda yang menyetujui.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="stock"><svg class="i"><use href="#i-arrow"/></svg>Lihat di Push stok</button></div>
+        </div>
+      </article>
+
+      <article class="card k-term" id="t-lingkar">
+        <figure class="k-fig"><svg viewBox="0 0 320 170" role="img" aria-label="Peta relasi: dua nomor sales terhubung ke dealer-dealer; tebal garis adalah jumlah interaksi WhatsApp; satu dealer disentuh dua sales">
+          <g stroke="var(--line-strong)" fill="none">
+            <line x1="90" y1="86" x2="40" y2="40" stroke-width="5"/><line x1="90" y1="86" x2="46" y2="130" stroke-width="2"/><line x1="90" y1="86" x2="160" y2="52" stroke-width="3"/>
+            <line x1="230" y1="96" x2="160" y2="52" stroke-width="1"/><line x1="230" y1="96" x2="286" y2="48" stroke-width="6"/><line x1="230" y1="96" x2="274" y2="140" stroke-width="2.5"/>
+          </g>
+          <circle cx="90" cy="86" r="15" fill="var(--accent)"/><text x="90" y="90" text-anchor="middle" fill="#fff" font-size="10" class="k-strong">Andi</text>
+          <circle cx="230" cy="96" r="15" fill="var(--accent)"/><text x="230" y="100" text-anchor="middle" fill="#fff" font-size="10" class="k-strong">Dewi</text>
+          <circle cx="40" cy="40" r="13" fill="var(--good)"/><circle cx="46" cy="130" r="7" fill="var(--warn)"/><circle cx="160" cy="52" r="9" fill="var(--good)"/><circle cx="286" cy="48" r="14" fill="var(--good)"/><circle cx="274" cy="140" r="8" fill="var(--bad)"/>
+          <text x="18" y="20" class="k-lbl-s">Toko Sinar · 74/bln</text>
+          <text x="312" y="26" text-anchor="end" class="k-lbl-s">Sarana Vision · 82/bln</text>
+          <text x="160" y="36" text-anchor="middle" class="k-lbl-s" fill="var(--indigo)">disentuh 2 sales</text>
+          <text x="46" y="152" text-anchor="middle" class="k-lbl-s">Cahaya · 9/bln</text>
+          <text x="262" y="146" text-anchor="end" class="k-lbl-s">Mitra Jaya · menipis</text>
+          <text x="160" y="165" text-anchor="middle" class="k-lbl-s">tebal = interaksi WA · dekat = kedekatan</text>
+        </svg></figure>
+        <div class="k-tx"><h3>Peta relasi 3D <small>kedekatan sales ↔ dealer</small></h3>
+          <p>Relasi dilihat dalam ruang: nomor sales di tengah, dealer mengelilinginya. Dealer yang sering berinteraksi membesar dan mendekat; yang menipis menjauh.</p>
+          <p class="k-rule">ukuran = interaksi WA + order per bulan · jarak = kedekatan · periode 30–180 hari</p>
+          <p class="k-read">Cara baca: dealer besar yang garisnya tipis = <b>hubungan bertumpu transaksi</b>, rentan disentuh kompetitor. Dua sales pada satu dealer = tentukan satu pemilik harga.</p>
+        <div class="k-go"><button class="btn ghost" data-nav="net"><svg class="i"><use href="#i-arrow"/></svg>Buka Peta relasi 3D</button></div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+
+  <!-- ===================== AGEN ===================== -->
+  <div class="k-sec" id="k-agen">
+    <div class="k-sec-h"><h2>Siapa menjaga apa</h2><p>Satu Orchestrator dan enam agen, masing-masing memegang beberapa istilah. Nama agen menyebut pekerjaannya, bukan teknologinya.</p></div>
+    <div class="card k-orch-note">
+      <div class="k-on-h"><span class="k-on-mark"></span><div><b>Orchestrator</b><span>satu pengatur di atas enam agen</span></div></div>
+      <p>Agen tidak bekerja sendiri-sendiri. Setiap jam Orchestrator menjalankan satu siklus: membaca semua sinyal (WA, SO, pembayaran, stok), membagi tugas ke agen, <b>menyelesaikan konflik antar agen</b> (misalnya AI Stok ingin push produk ke dealer yang oleh AI Kredit dinyatakan over limit — urutannya ditetapkan: tagih dulu, push kemudian), lalu memisahkan mana yang boleh berjalan sendiri dan mana yang menunggu Anda. Hasilnya adalah <b>Rencana hari ini</b> di Pusat kendali.</p>
+      <div class="k-chain"><span>Ingest</span><i>→</i><span>Analisis</span><i>→</i><span>Sintesis &amp; konflik</span><i>→</i><span>Keputusan</span><i>→</i><span>Eksekusi</span><i>→</i><span>Belajar</span></div>
+      <p>Orchestrator bisa dipicu dari tiga arah: jadwal internal tiap jam, tombol <em>Analisis ulang</em> di layar mana pun (dengan cakupan layar itu saja), atau <b>klien MCP</b> seperti Claude Desktop lewat <code>orchestrator.reanalyze(scope)</code>. Dari arah mana pun, hasilnya masuk antrean yang sama dan tidak ada yang dikirim ke dealer tanpa persetujuan.</p>
+    </div>
+    <div class="k-agents">
+      <div class="card k-agent"><div class="k-nm"><i></i>AI Order</div><p>Mengubah permintaan WA menjadi SO: cek stok, harga tier, dan sisa limit sebelum mencatat.</p><div class="k-chips"><span>Order-to-cash: Order → Siap</span><span>Sisa limit</span></div><p class="k-auto"><b>Otonom:</b> SO rutin dalam limit. <b>Minta approve:</b> harga di bawah tier, dealer baru.</p></div>
+      <div class="card k-agent"><div class="k-nm"><i></i>AI Follow-up</div><p>Menghitung siklus order tiap dealer, menandai jadwal order dan lewat jadwal, menyiapkan rekomendasi order.</p><div class="k-chips"><span>Siklus order</span><span>Jadwal order</span><span>Lewat jadwal</span><span>Aktivitas</span><span>Status</span></div><p class="k-auto"><b>Otonom:</b> follow-up H-1 bila sisa limit aman. <b>Minta approve:</b> dealer At risk, follow-up ke-2.</p></div>
+      <div class="card k-agent"><div class="k-nm"><i></i>AI Kredit</div><p>Menjaga ruang kredit: menahan rilis di atas limit, mengusulkan DP, mengusulkan kenaikan limit yang layak.</p><div class="k-chips"><span>Sisa limit</span><span>SOP-SEC-001</span><span>Segmen C</span></div><p class="k-auto"><b>Otonom:</b> tidak ada. <b>Selalu approve CEO:</b> rilis di atas limit, perubahan limit.</p></div>
+      <div class="card k-agent"><div class="k-nm"><i></i>AI Stok</div><p>Mencocokkan stok yang menua dengan dealer yang product mix-nya cocok dan sedang masuk jadwal order.</p><div class="k-chips"><span>Push stok</span><span>Product mix</span><span>Share of wallet</span><span>Segmen B</span></div><p class="k-auto"><b>Otonom:</b> menyusun daftar. <b>Minta approve:</b> harga bundle, promo.</p></div>
+      <div class="card k-agent"><div class="k-nm"><i></i>AI Penagihan</div><p>Mengingatkan invoice dengan nada yang mengikuti pola bayar dealer; menyinkronkan dengan jadwal order.</p><div class="k-chips"><span>Order-to-cash: Invoice → Bayar</span><span>Sisa limit</span></div><p class="k-auto"><b>Otonom:</b> pengingat H-3 ramah. <b>Minta approve:</b> nada tegas, skema cicilan.</p></div>
+      <div class="card k-agent"><div class="k-nm"><i></i>AI Prospek</div><p>Mengenali nomor baru yang masuk (profil WA, Getcontact manual) dan mengusulkan tier awal.</p><div class="k-chips"><span>Orbit: masuk</span><span>PIC aktif</span></div><p class="k-auto"><b>Otonom:</b> identifikasi. <b>Minta approve:</b> membuat dealer di Odoo.</p></div>
+    </div>
+  </div>
+
+  <!-- ===================== PEMETAAN ===================== -->
+  <div class="k-sec" id="k-pemetaan">
+    <div class="k-sec-h"><h2>Dari kanban ke orbit</h2><p>Setiap istilah lama punya padanan. Yang berubah bukan namanya saja, tapi cara angkanya dihitung dan kapan ia memicu tindakan.</p></div>
+    <div class="card k-tbl-wrap"><table>
+      <thead><tr><th>CRM / kanban</th><th>Orbit</th><th>Apa yang berubah</th></tr></thead>
+      <tbody>
+        <tr><td class="k-old">Pipeline, kanban</td><td class="k-new"><button class="ev" data-scroll="k-peta">Orbit</button></td><td>Tidak ada kolom akhir. Dealer tidak "closing"; mereka berputar, dan papan menunjukkan siapa yang menjauh.</td></tr>
+        <tr><td class="k-old">Segmentasi ABC, tier, "key account"</td><td class="k-new"><button class="ev" data-scroll="t-kuadran">Segmen</button></td><td>Segmen A · Segmen B · Segmen C · Segmen D dari dua angka terukur (seringnya × besarnya order), masing-masing dengan cara melayani sendiri.</td></tr>
+        <tr><td class="k-old">Stage: Lead → Qualified → Won</td><td class="k-new"><button class="ev" data-scroll="k-peta">Status</button></td><td>Key account · Aktif · At risk · Churn dihitung dari siklus order dan share of wallet, bukan dipindah tangan oleh sales.</td></tr>
+        <tr><td class="k-old">Deal, opportunity</td><td class="k-new"><button class="ev" data-scroll="t-siklus">Order-to-cash</button></td><td>Satu putaran Order → Bayar. Selesai berarti mulai lagi; yang diukur lama putarannya.</td></tr>
+        <tr><td class="k-old">Health score</td><td class="k-new"><button class="ev" data-scroll="t-gravitasi">Skor dealer</button></td><td>Lima komponen yang masing-masing punya tindakan: siklus order, share of wallet, product mix, sisa limit, PIC aktif.</td></tr>
+        <tr><td class="k-old">Churn risk, inactive 90 hari</td><td class="k-new"><button class="ev" data-scroll="t-hanyut">Lewat jadwal</button></td><td>Terlihat pada 1,2× siklus order dealer itu — beberapa hari setelah jadwal order, bukan 90 hari kemudian.</td></tr>
+        <tr><td class="k-old">Last activity</td><td class="k-new"><button class="ev" data-scroll="t-denyut">Aktivitas</button></td><td>Diam 14 hari normal untuk dealer bulanan, darurat untuk dealer mingguan. Diukur relatif terhadap siklus order.</td></tr>
+        <tr><td class="k-old">Follow-up task</td><td class="k-new"><button class="ev" data-scroll="t-tempo">Jadwal order</button></td><td>Agenda lahir dari siklus order, bukan dari ingatan sales. Datang dengan rekomendasi order, bukan "ada kebutuhan?".</td></tr>
+        <tr><td class="k-old">Credit limit, AR aging</td><td class="k-new"><button class="ev" data-scroll="t-napas">Sisa limit</button></td><td>Dipakai sebagai syarat order berikutnya, bukan laporan terpisah di bagian keuangan.</td></tr>
+        <tr><td class="k-old">Cross-sell</td><td class="k-new"><button class="ev" data-scroll="t-keranjang">Product mix</button></td><td>Enam kategori tetap; peluang = kategori yang kosong, bukan daftar produk.</td></tr>
+        <tr><td class="k-old">Share of wallet (jarang ada)</td><td class="k-new"><button class="ev" data-scroll="t-porsi">Share of wallet</button></td><td>Angka pertumbuhan utama. Diestimasi dari product mix dan kompetitor yang disebut di WA.</td></tr>
+        <tr><td class="k-old">Contact, stakeholder</td><td class="k-new"><button class="ev" data-scroll="t-ikatan">PIC aktif</button></td><td>Dihitung dari siapa yang membalas. Hanya 1 PIC ditandai sebagai risiko.</td></tr>
+        <tr><td class="k-old">Promo stok, clearance</td><td class="k-new"><button class="ev" data-scroll="t-dorongan">Push stok</button></td><td>Stok menua dicocokkan ke dealer yang product mix-nya cocok dan masuk jadwal order, dengan floor margin.</td></tr>
+        <tr><td class="k-old">Territory, wilayah</td><td class="k-new"><button class="ev" data-scroll="t-lingkar">Peta relasi 3D</button></td><td>Kedekatan sales ↔ dealer dalam ruang; bukan daftar kota.</td></tr>
+        <tr><td class="k-old">Dashboard KPI</td><td class="k-new"><button class="ev" data-scroll="t-roda">KPI utama</button></td><td>Order, kas, stok: tiga angka yang saling menggigit, dibaca bersama setiap pagi.</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- ===================== CARA BACA ===================== -->
+  <div class="k-sec" id="k-baca">
+    <div class="k-sec-h"><h2>Membaca papan Orbit dalam 10 detik</h2><p>Urutan ini yang dipakai agen untuk menyusun Hari ini, dan urutan yang sama berguna untuk mata manusia.</p></div>
+    <div class="k-steps">
+      <div class="card k-step"><b>Lihat atas</b><p>Siapa yang berada di area hijau: jadwal order minggu ini. Itu agenda sales.</p><span class="k-sw"><i style="background:var(--good)"></i>Jadwal order</span></div>
+      <div class="card k-step"><b>Lihat yang keluar</b><p>Titik di At risk yang bergerak menjauh. Follow-up sekarang, sebelum lewat 2× dan churn.</p><span class="k-sw"><i style="background:var(--warn)"></i>Lewat jadwal</span></div>
+      <div class="card k-step"><b>Lihat yang merah</b><p>Over limit / overdue menahan order. Tagih dulu, atau usulkan DP — baru tawarkan product mix.</p><span class="k-sw"><i style="background:var(--bad)"></i>Sisa limit</span></div>
+      <div class="card k-step"><b>Lihat yang besar</b><p>Titik besar di Aktif, bukan Key account: share of wallet tinggi tapi siklus order belum terjaga. Dealer yang paling layak dijaga.</p><span class="k-sw"><i style="background:var(--accent)"></i>Share of wallet</span></div>
+    </div>
+  </div>
+
+        </div>

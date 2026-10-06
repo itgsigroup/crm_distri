@@ -254,7 +254,7 @@ export interface Brief {
   confidence: number
 }
 
-export interface Me { id: string; email: string; name: string; role: string; branch: string }
+export interface Me { id: string; email: string; name: string; role: string; branch: string; screens: string[]; decide: string[]; edit_policies: boolean; manage_users: boolean }
 export interface Health { db: string; queue: string; now: string; sample_data?: boolean }
 
 export interface Tag { k: string; t: string }

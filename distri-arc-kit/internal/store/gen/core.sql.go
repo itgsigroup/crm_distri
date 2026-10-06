@@ -90,7 +90,7 @@ func (q *Queries) GetPolicy(ctx context.Context, key string) (Policy, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-select u.id, u.email, u.name, u.role, u.sales_user_id, s.branch
+select u.id, u.email, u.name, u.role, u.sales_user_id, s.branch, s.name as sales_name
 from users u left join sales_users s on s.id = u.sales_user_id
 where lower(u.email) = lower($1) and u.active
 `
@@ -102,6 +102,7 @@ type GetUserByEmailRow struct {
 	Role        *string    `json:"role"`
 	SalesUserID *uuid.UUID `json:"sales_user_id"`
 	Branch      *string    `json:"branch"`
+	SalesName   *string    `json:"sales_name"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, lower string) (GetUserByEmailRow, error) {
@@ -114,6 +115,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, lower string) (GetUserByEm
 		&i.Role,
 		&i.SalesUserID,
 		&i.Branch,
+		&i.SalesName,
 	)
 	return i, err
 }

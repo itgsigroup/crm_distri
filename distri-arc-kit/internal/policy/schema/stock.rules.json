@@ -1,0 +1,4 @@
+{"type":"object","additionalProperties":false,"required":["aging_days","bundle_max_discount_pct","critical_days"],"properties":{
+ "aging_days":{"type":"integer","minimum":30,"maximum":365},
+ "bundle_max_discount_pct":{"type":"number","minimum":0,"maximum":30},
+ "critical_days":{"type":"number","minimum":2,"maximum":60}}}

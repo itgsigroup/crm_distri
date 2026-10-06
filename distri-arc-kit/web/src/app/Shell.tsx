@@ -41,6 +41,8 @@ export function screenOf(path: string): ScreenKey {
 
 function NavBtn({ to, cur, icon, children, badge }: { to: ScreenKey; cur: ScreenKey; icon: string; children: ReactNode; badge?: ReactNode }) {
   const nav = useNavigate()
+  const { data: me } = useMe()
+  if (me && !me.screens.includes(to)) return null
   const hl = cur === 'net' || cur === 'kuad' ? 'orbit' : cur
   return (
     <button className={`nav-btn ${hl === to ? 'is-active' : ''}`} onClick={() => nav(ROUTES[to])}>
@@ -75,6 +77,14 @@ export function Shell() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [cur])
+  useEffect(() => {
+    if (me && !me.screens.includes(cur)) nav('/', { replace: true })
+  }, [me, cur, nav])
+  const [menu, setMenu] = useState(false)
+  const logout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
+    window.location.assign('/login')
+  }
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -129,9 +139,16 @@ export function Shell() {
               <div className="agents-h"><span className="dot-live" />Orchestrator · <span>{orch.running ? 'menganalisis…' : 'siap'}</span></div>
               <ul>{AGENT_NAMES.map((a) => <li key={a} className="on">{a}</li>)}</ul>
             </div>
-            <div className="me">
-              <div className="avatar">{me ? initialsOf(me.name) : '··'}</div>
-              <div><b>{me?.name ?? '…'}</b><span>{me ? roleLine(me.role, me.branch) : ''}</span></div>
+            <div style={{ position: 'relative' }}>
+              {menu && (
+                <div className="card" style={{ position: 'absolute', bottom: '105%', left: 0, right: 0, padding: 6, zIndex: 20 }}>
+                  <button className="btn quiet" style={{ width: '100%', justifyContent: 'flex-start' }} onClick={() => void logout()}><Icon name="x" />Keluar</button>
+                </div>
+              )}
+              <div className="me" role="button" tabIndex={0} aria-expanded={menu} aria-label={`Akun ${me?.name ?? ''}`} style={{ cursor: 'pointer' }} onClick={() => setMenu(!menu)} onKeyDown={(e) => e.key === 'Enter' && setMenu(!menu)}>
+                <div className="avatar">{me ? initialsOf(me.name) : '··'}</div>
+                <div><b>{me?.name ?? '…'}</b><span>{me ? roleLine(me.role, me.branch) : ''}</span></div>
+              </div>
             </div>
           </div>
         </aside>
@@ -141,7 +158,7 @@ export function Shell() {
             <div className="tb-left">
               <h1>{title}</h1>
               <div className="sub">{subline}</div>
-              {isOrbit && (
+              {isOrbit && me?.screens.includes('net') !== false && (
                 <div className="vtabs">
                   <button className={cur === 'orbit' ? 'is-active' : ''} onClick={() => nav(ROUTES.orbit)}><Icon name="target" />Orbit</button>
                   <button className={cur === 'kuad' ? 'is-active' : ''} onClick={() => nav(ROUTES.kuad)}><Icon name="chart" />Segmen</button>
@@ -171,7 +188,7 @@ export function Shell() {
         </main>
 
         <nav className="tabbar" aria-label="Navigasi">
-          {([['today', 'sun', 'Kendali'], ['orch', 'spark', 'Orchestrator'], ['orbit', 'target', 'Orbit'], ['dealer', 'building', 'Dealer'], ['chat', 'chat', 'Chat']] as const).map(([k, ic, label]) => (
+          {([['today', 'sun', 'Kendali'], ['orch', 'spark', 'Orchestrator'], ['orbit', 'target', 'Orbit'], ['dealer', 'building', 'Dealer'], ['chat', 'chat', 'Chat']] as const).filter(([k]) => !me || me.screens.includes(k)).map(([k, ic, label]) => (
             <button key={k} className={(isOrbit ? 'orbit' : cur) === k ? 'is-active' : ''} onClick={() => nav(ROUTES[k])}>
               <Icon name={ic} />
               {label}

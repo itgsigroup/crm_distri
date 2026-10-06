@@ -5,6 +5,7 @@ go 1.27.1
 require (
 	github.com/anthropics/anthropic-sdk-go v1.78.0
 	github.com/go-chi/chi/v5 v5.3.2
+	github.com/google/jsonschema-go v0.4.3
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
@@ -25,7 +26,6 @@ require (
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
 	github.com/elliotchance/orderedmap/v3 v3.1.0 // indirect
-	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

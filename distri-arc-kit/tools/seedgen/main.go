@@ -413,6 +413,7 @@ func buildSales(m mockup) []SalesUser {
 		SalesUser{Key: "sam", Name: "Sam Setiadi", Branch: "Semua cabang", WANumber: "6281100000001", Role: "ceo", OdooUser: 2, Email: "sam@gsi.co.id"},
 		SalesUser{Key: "admin", Name: "Admin Distri", Branch: "Semarang", WANumber: "6281100000002", Role: "admin", OdooUser: 3, Email: "admin@gsi.co.id"},
 		SalesUser{Key: "finance", Name: "Rina Keuangan", Branch: "Semarang", WANumber: "6281100000003", Role: "finance", OdooUser: 4, Email: "finance@gsi.co.id"},
+		SalesUser{Key: "joko", Name: "Pak Joko", Branch: "Semarang", WANumber: "6281100001001", Role: "warehouse", OdooUser: 5, Email: "gudang@gsi.co.id"},
 	)
 	return out
 }

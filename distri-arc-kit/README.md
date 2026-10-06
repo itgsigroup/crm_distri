@@ -73,3 +73,7 @@ Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (bran
 - ⌘K: "dealer mana yang berisiko", "stok apa yang harus didorong", "berapa prediksi kas masuk", "siapa yang order minggu ini".
 - Pengaturan → Kalibrasi agen: tiga penolakan dengan alasan sama menjadi satu pelajaran (berlaku 14 hari).
 
+### Tahap 11: login, peran, kebijakan
+- Isi `ARC_DEMO_PASSWORD` di `.env` (dev) lalu `make reset`: akun contoh (sam@, admin@, finance@, andi@/dewi@/rizky@/fajar@, gudang@ `gsi.co.id`) memakai kata sandi itu. Produksi: `bin/arc ctl user add --email … --role ceo --password …`.
+- Pengaturan (CEO): ubah ambang, limit, floor margin, follow-up, matriks otonomi; setiap perubahan berversi dan berlaku di siklus berikutnya.
+

@@ -100,3 +100,61 @@ test('⌘K answers with sources and the memo shows sources per sentence (stage 1
   await s.click()
   await expect(page.locator('.sheet')).toContainText('Sumber klaim')
 })
+
+const demo = process.env.ARC_DEMO_PASSWORD
+
+async function login(page: import('@playwright/test').Page, email: string) {
+  await page.goto('/login')
+  await page.locator('input[name=email]').fill(email)
+  await page.locator('input[name=password]').fill(demo!)
+  await page.getByRole('button', { name: 'Masuk' }).click()
+  await page.waitForURL('**/')
+  await page.waitForLoadState('networkidle')
+}
+
+test('three roles see their own menu (stage 11)', async ({ page }) => {
+  test.skip(!demo, 'ARC_DEMO_PASSWORD not set')
+  const rail = page.locator('aside.rail')
+  await login(page, 'andi@gsi.co.id')
+  await expect(rail.getByRole('button', { name: 'Pengaturan' })).toHaveCount(0)
+  await expect(rail.getByRole('button', { name: /Kredit/ })).toHaveCount(0)
+  await expect(rail.getByRole('button', { name: 'Push stok' })).toBeVisible()
+  await expect(rail.locator('.me')).toContainText('Andi')
+  await login(page, 'finance@gsi.co.id')
+  await expect(rail.getByRole('button', { name: /Kredit/ })).toBeVisible()
+  await expect(rail.getByRole('button', { name: 'Chat' })).toHaveCount(0)
+  await expect(rail.getByRole('button', { name: 'Pengaturan' })).toHaveCount(0)
+  await login(page, 'sam@gsi.co.id')
+  await expect(rail.getByRole('button', { name: 'Pengaturan' })).toBeVisible()
+  await page.goto('/pengaturan', { waitUntil: 'networkidle' })
+  await expect(page.getByText('Pengguna & peran')).toBeVisible()
+  await rail.locator('.me').click()
+  await page.getByRole('button', { name: 'Keluar' }).click()
+  await page.waitForURL('**/login')
+})
+
+test('drift threshold 1,5× changes At risk on the next cycle; Cara baca opens Panduan (stage 11)', async ({ page, request }) => {
+  const atRisk = async () => {
+    const r = await request.get('/api/orbit')
+    const items = (await r.json()).items as { metrics: { status: string } }[]
+    return items.filter((d) => d.metrics.status === 'At risk').length
+  }
+  const before = await atRisk()
+  await page.goto('/pengaturan', { waitUntil: 'networkidle' })
+  const row = page.locator('.rules li').filter({ hasText: 'Ambang lewat jadwal' })
+  try {
+    await row.getByRole('button', { name: '1,5×' }).click()
+    await expect(page.locator('.toast')).toContainText('berlaku di siklus berikutnya')
+    await page.goto('/orbit', { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'Analisis ulang' }).first().click()
+    await expect(page.locator('.toast')).toContainText('selesai', { timeout: 10_000 })
+    expect(await atRisk()).toBeLessThan(before)
+  } finally {
+    await request.put('/api/policies/orbit.thresholds', { data: { drift: 1.2, churn: 2, key_account: { sow_min: 50, on_time_min: 85 } } })
+    await request.post('/api/cycles', { data: { scope: 'screen:orbit' } })
+  }
+  await page.goto('/orbit', { waitUntil: 'networkidle' })
+  await page.getByRole('button', { name: 'Cara baca' }).click()
+  await page.waitForURL('**/panduan')
+  await expect(page.getByText('Satu gambar, semua istilah')).toBeVisible()
+})

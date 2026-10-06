@@ -158,7 +158,7 @@ export function AIConnectionsCard() {
       <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '8px 0 0', lineHeight: 1.5 }}>Tool MCP: <code style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5 }}>{(info?.tools ?? []).map((t) => t.name + (t.scope === 'decide' ? ' (human-only)' : '')).join(' / ')}</code></p>
       <ul className="rules" style={{ marginTop: 10 }}>
         <li><div><b>Analisis per jam</b><span>Batch otomatis 06.00–20.00: API AI bila tersedia, MCP sebagai jalur tambahan — hasilnya sama-sama masuk antrean Keputusan</span></div><Pill tone="good" icon="check">Aktif</Pill></li>
-        <li><div><b>Pertanyaan ad-hoc (⌘K)</b><span>Dijawab lewat jalur yang aktif; sumber data selalu dari server GSI, bukan dari cache klien</span></div><Pill tone="neutral">Stage 10</Pill></li>
+        <li><div><b>Pertanyaan ad-hoc (⌘K)</b><span>Dijawab lewat jalur yang aktif; sumber data selalu dari server GSI, bukan dari cache klien</span></div><Pill tone="good" icon="check">Aktif</Pill></li>
         <li><div><b>Keputusan tetap manusia</b><span>API maupun MCP hanya mengusulkan; setujui / tolak ada di Pusat kendali</span></div><Pill tone="neutral" icon="lock">Terkunci</Pill></li>
       </ul>
     </div>

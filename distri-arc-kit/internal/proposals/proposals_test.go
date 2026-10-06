@@ -294,3 +294,47 @@ func TestApprovePriceListToNewNumber(t *testing.T) {
 		t.Fatalf("%d pending bubbles in the new-number thread", pending)
 	}
 }
+
+// RBAC: finance may decide a collect but not a follow-up; a sales user only for their own dealers; warehouse
+// decides transfers.
+func TestDecideRoles(t *testing.T) {
+	st, r := setup(t)
+	ctx := context.Background()
+	res := run(t, r, "all")
+	user := func(email string) proposals.Decider {
+		var id uuid.UUID
+		var role string
+		if err := st.Pool.QueryRow(ctx, "select sales_user_id, role from users where email = $1", email).Scan(&id, &role); err != nil {
+			t.Fatal(err)
+		}
+		return proposals.Decider{SalesUserID: id, Role: role, Name: email, Email: email}
+	}
+	decide := func(p *stored, who proposals.Decider) error {
+		_, err := proposals.Decide(ctx, st, nil, now, false, p.ID, who, proposals.Decision{Decision: "approve"})
+		return err
+	}
+	nusa := find(res, "collect", "Nusa")
+	prima := find(res, "followup", "Prima")
+	tr := find(res, "transfer", "Kamera IP 4MP")
+	if nusa == nil || prima == nil || tr == nil {
+		t.Fatal("proposals missing")
+	}
+	if err := decide(prima, user("finance@gsi.co.id")); !errors.Is(err, proposals.ErrForbidden) {
+		t.Fatalf("finance approved a follow-up: %v", err)
+	}
+	if err := decide(prima, user("andi@gsi.co.id")); !errors.Is(err, proposals.ErrForbidden) {
+		t.Fatalf("Andi approved Dewi's dealer: %v", err)
+	}
+	if err := decide(prima, user("dewi@gsi.co.id")); err != nil {
+		t.Fatalf("owner: %v", err)
+	}
+	if err := decide(nusa, user("finance@gsi.co.id")); err != nil {
+		t.Fatalf("finance collect: %v", err)
+	}
+	if err := decide(tr, user("andi@gsi.co.id")); !errors.Is(err, proposals.ErrForbidden) {
+		t.Fatalf("sales approved a transfer: %v", err)
+	}
+	if err := decide(tr, user("gudang@gsi.co.id")); err != nil {
+		t.Fatalf("warehouse transfer: %v", err)
+	}
+}

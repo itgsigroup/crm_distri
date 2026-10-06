@@ -12,7 +12,7 @@ values ($1, $2, $3, $4, $5, $6, $7);
 select * from audit_log where action = $1 order by created_at desc limit 1;
 
 -- name: GetUserByEmail :one
-select u.id, u.email, u.name, u.role, u.sales_user_id, s.branch
+select u.id, u.email, u.name, u.role, u.sales_user_id, s.branch, s.name as sales_name
 from users u left join sales_users s on s.id = u.sales_user_id
 where lower(u.email) = lower($1) and u.active;
 

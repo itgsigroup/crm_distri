@@ -19,6 +19,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   })
   const text = await res.text()
   const data = text ? JSON.parse(text) : null
+  if (res.status === 401 && !path.startsWith('/auth/') && typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.assign('/login?next=' + encodeURIComponent(window.location.pathname + window.location.search))
+  }
   if (!res.ok) {
     const e = data?.error ?? {}
     throw new ApiError(res.status, e.code ?? 'error', e.message ?? res.statusText)

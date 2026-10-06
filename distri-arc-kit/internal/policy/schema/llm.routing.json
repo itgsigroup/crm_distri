@@ -1,0 +1,3 @@
+{"type":"object","additionalProperties":false,"required":["mode","provider","model"],"properties":{
+ "mode":{"enum":["api","mcp","both"]},"provider":{"enum":["anthropic","openai","fake"]},"model":{"type":"string","minLength":3},
+ "fallback":{"type":"string"},"batch_hours":{"type":"array","items":{"type":"integer","minimum":0,"maximum":23},"minItems":2,"maxItems":2},"timezone":{"type":"string"}}}

@@ -1,0 +1,1 @@
+{"type":"object","additionalProperties":false,"required":["pct"],"properties":{"pct":{"type":"number","minimum":3,"maximum":40}}}

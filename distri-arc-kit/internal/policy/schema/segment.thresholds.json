@@ -1,0 +1,4 @@
+{"type":"object","additionalProperties":false,"required":["freq_per_month","size_idr","new_dealer_wait_orders"],"properties":{
+ "freq_per_month":{"type":"number","minimum":0.25,"maximum":8},
+ "size_idr":{"type":"integer","minimum":1000000,"maximum":1000000000},
+ "new_dealer_wait_orders":{"type":"integer","minimum":1,"maximum":6}}}

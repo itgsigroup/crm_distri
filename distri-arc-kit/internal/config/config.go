@@ -42,6 +42,7 @@ type Config struct {
 	OpenAIKey    string
 	LLMIDRPerUSD float64 // cost estimate exchange rate (0 = built-in default)
 
+	SessionSecret string // HMAC key of session tokens (required outside dev)
 	TruecallerKey string // Truecaller API (fake lookups when empty)
 
 	PublicURL string // public base URL (MCP endpoint shown in Pengaturan), e.g. https://distri.gsi.co.id
@@ -80,6 +81,7 @@ func Load() Config {
 		LLMIDRPerUSD:    parseFloat(get("LLM_IDR_PER_USD", "")),
 		PublicURL:       get("PUBLIC_URL", ""),
 		TruecallerKey:   get("TRUECALLER_API_KEY", ""),
+		SessionSecret:   get("SESSION_SECRET", ""),
 	}
 }
 

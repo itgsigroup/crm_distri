@@ -253,7 +253,16 @@ func (o *Orchestrator) ingest(ctx context.Context, r *stageRun) (map[string]any,
 			touched[*s.DealerID] = true
 		}
 	}
-	if len(touched) > 0 {
+	// a threshold that feeds the metrics changed since the last cycle: every dealer is recomputed under it
+	policyChanged := false
+	if last, err := o.St.Q.LatestDoneCycle(ctx); err == nil {
+		policyChanged, _ = o.St.Q.PoliciesChangedSince(ctx, last.StartedAt)
+	}
+	if policyChanged {
+		if _, err := dealersvc.New(o.St, o.Clock).Recompute(ctx); err != nil {
+			return nil, err
+		}
+	} else if len(touched) > 0 {
 		ids := make([]uuid.UUID, 0, len(touched))
 		for id := range touched {
 			ids = append(ids, id)
@@ -275,7 +284,7 @@ func (o *Orchestrator) ingest(ctx context.Context, r *stageRun) (map[string]any,
 	wa := counts["wa"] + counts["wa_group"]
 	text := fmt.Sprintf("%d WA · %d SO · %d bayar · stok %d cabang", wa, counts["so"], counts["payment"], len(branches))
 	return map[string]any{"signals": r.recent, "wa": wa, "so": counts["so"], "payments": counts["payment"], "branches": len(branches),
-		"dealers": len(in.Dealers), "recomputed": len(touched), "text": text}, nil
+		"dealers": len(in.Dealers), "recomputed": len(touched), "policy_changed": policyChanged, "text": text}, nil
 }
 
 // ---------- 2. Analisis ----------

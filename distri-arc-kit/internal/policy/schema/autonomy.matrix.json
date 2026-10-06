@@ -1,0 +1,3 @@
+{"type":"object","additionalProperties":{"type":"object","additionalProperties":false,"required":["auto","approve","never"],"properties":{
+ "auto":{"type":"array","items":{"type":"string"}},"approve":{"type":"array","items":{"type":"string"}},"never":{"type":"array","items":{"type":"string"}},
+ "labels":{"type":"object","additionalProperties":{"type":"string"}}}}}

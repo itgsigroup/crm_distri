@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 11,
+  "current_stage": 12,
   "stages": [
     {
       "id": 0,
@@ -118,12 +118,12 @@
     {
       "id": 11,
       "name": "Pengaturan kebijakan, auth & peran, Panduan",
-      "status": "pending",
+      "status": "done",
       "file": "docs/stages/11-pengaturan-kebijakan.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-06",
+      "finished_at": "2026-10-06",
+      "summary": "internal/policy: JSON Schema per key + aturan terkunci, Save (versi, policy_history, audit, NOTIFY), PUT /policies/{key} + history; ambang yang berubah → siklus berikutnya menghitung ulang semua dealer. internal/auth: argon2id, sesi JWT HS256 HttpOnly, rate limit login; /auth/login|logout, /users (CEO/admin), arc ctl user add|passwd, pengguna gudang di seed. RBAC: menu per peran (/me.screens), keputusan per jenis + kepemilikan dealer, daftar sales difilter server. Web: halaman login, menu & tombol aksi per peran, Pengaturan yang bisa diedit (editor kebijakan dengan riwayat, Pengguna & peran, Matriks otonomi per sel + kirim otonom), layar Panduan dari mockup. Migrasi tanpa perubahan skema baru selain query; ADR 0013.",
+      "notes": "Acceptance: ambang 1,5× → siklus berikutnya At risk 3 → 1 (e2e), login sales/finance/CEO menampilkan menu berbeda (e2e), Panduan di /panduan dan dari Cara baca (e2e). 2FA TOTP dan pdp export/delete masuk Stage 13."
     },
     {
       "id": 12,

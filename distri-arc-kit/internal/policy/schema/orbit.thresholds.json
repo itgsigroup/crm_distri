@@ -1,0 +1,5 @@
+{"type":"object","additionalProperties":false,"required":["drift","churn","key_account"],"properties":{
+ "drift":{"type":"number","minimum":1.05,"maximum":3},
+ "churn":{"type":"number","minimum":1.2,"maximum":6},
+ "key_account":{"type":"object","additionalProperties":false,"required":["sow_min","on_time_min"],"properties":{
+   "sow_min":{"type":"integer","minimum":10,"maximum":100},"on_time_min":{"type":"integer","minimum":50,"maximum":100}}}}}

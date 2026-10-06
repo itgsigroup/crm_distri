@@ -42,7 +42,7 @@ func (s *Server) listProposals(w http.ResponseWriter, r *http.Request) {
 		p.Agent = &v
 	}
 	if v := q.Get("dealer_id"); v != "" {
-		if b, ok := s.board(w, r); ok {
+		if b, ok := s.fullBoard(w, r); ok {
 			if it, ok := b.Get(v); ok {
 				p.Dealer = &it.UUID
 			}

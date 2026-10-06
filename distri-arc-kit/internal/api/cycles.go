@@ -369,28 +369,15 @@ func (s *Server) putAutonomy(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "dealer_messages: confirm | auto")
 		return
 	}
-	now := s.clock.Now()
-	err := s.st.Tx(r.Context(), func(q *gen.Queries, _ pgx.Tx) error {
-		write := func(key string, v any) error {
-			b, _ := json.Marshal(v)
-			if _, err := q.SetPolicy(r.Context(), gen.SetPolicyParams{Key: key, Value: b, UpdatedBy: u.SalesUserID, UpdatedAt: now}); err != nil {
-				return err
-			}
-			actor, kind, action, entity := deref(u.Email), "user", "policy.update", "policy:"+key
-			return q.InsertAudit(r.Context(), gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, After: b})
-		}
-		if body.Matrix != nil {
-			if err := write("autonomy.matrix", body.Matrix); err != nil {
-				return err
-			}
-		}
-		if body.Guard != nil {
-			return write("autonomy.guard", body.Guard)
-		}
-		return nil
-	})
+	var err error
+	if body.Matrix != nil {
+		err = s.writePolicy(r, "autonomy.matrix", body.Matrix)
+	}
+	if err == nil && body.Guard != nil {
+		err = s.writePolicy(r, "autonomy.guard", body.Guard)
+	}
 	if err != nil {
-		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		policyError(w, err)
 		return
 	}
 	s.getAutonomy(w, r)

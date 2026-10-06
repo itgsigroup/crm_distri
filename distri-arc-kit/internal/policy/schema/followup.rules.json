@@ -1,0 +1,5 @@
+{"type":"object","additionalProperties":false,"required":["gap_days","h_minus","max_per_day_per_sales","second_followup"],"properties":{
+ "gap_days":{"type":"integer","minimum":3,"maximum":90},
+ "h_minus":{"type":"integer","minimum":0,"maximum":7},
+ "max_per_day_per_sales":{"type":"integer","minimum":1,"maximum":40},
+ "second_followup":{"enum":["approve"]}}}

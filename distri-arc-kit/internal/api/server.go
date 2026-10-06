@@ -5,7 +5,9 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -13,13 +15,16 @@ import (
 	"github.com/riverqueue/river"
 
 	"distri-arc/internal/ask"
+	"distri-arc/internal/auth"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
+	"distri-arc/internal/domain"
 	"distri-arc/internal/events"
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/identify"
 	"distri-arc/internal/mcp"
 	"distri-arc/internal/odoo"
+	"distri-arc/internal/proposals"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
@@ -79,8 +84,11 @@ func (s *Server) Handler() http.Handler {
 			r.Method(http.MethodGet, "/wa/cloud/webhook", s.cloud.Webhook(func(ctx context.Context, m wa.Message) error { _, err := ingest.Process(ctx, m); return err }))
 			r.Method(http.MethodPost, "/wa/cloud/webhook", s.cloud.Webhook(func(ctx context.Context, m wa.Message) error { _, err := ingest.Process(ctx, m); return err }))
 		}
+		r.Post("/auth/login", s.login)
+		r.Post("/auth/logout", s.logout)
 		r.Group(func(r chi.Router) {
 			r.Use(s.auth)
+			s.userRoutes(r)
 			r.Get("/me", s.me)
 			s.readRoutes(r)
 			s.chatRoutes(r)
@@ -122,12 +130,37 @@ const userKey ctxKey = 1
 // User is the authenticated human user of a request.
 type User = gen.GetUserByEmailRow
 
-// auth resolves the user. Until stage 11 (sessions) the only mechanism is the X-Dev-User header (an email),
-// accepted only when APP_ENV=dev; the web dev server sends the CEO's address.
+// sessionCookie carries the signed session token (HttpOnly, SameSite=Strict).
+const sessionCookie = "arc_session"
+
+// sessionTTL is how long a login lasts.
+const sessionTTL = 12 * time.Hour
+
+// secret is the session signing key: SESSION_SECRET, or a fixed development key when APP_ENV=dev.
+func (s *Server) secret() []byte {
+	if s.cfg.SessionSecret != "" {
+		return []byte(s.cfg.SessionSecret)
+	}
+	if s.cfg.IsDev() {
+		return []byte("distri-arc-dev-session-secret")
+	}
+	return nil
+}
+
+// auth resolves the user: the session cookie first; the X-Dev-User header (an email) only when APP_ENV=dev, so
+// the web dev server works without logging in while the login flow stays testable.
 func (s *Server) auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		email := strings.TrimSpace(r.Header.Get("X-Dev-User"))
-		if !s.cfg.IsDev() || email == "" {
+		email := ""
+		if c, err := r.Cookie(sessionCookie); err == nil && s.secret() != nil {
+			if cl, err := auth.Verify(c.Value, s.secret(), time.Now()); err == nil {
+				email = cl.Email
+			}
+		}
+		if email == "" && s.cfg.IsDev() {
+			email = strings.TrimSpace(r.Header.Get("X-Dev-User"))
+		}
+		if email == "" {
 			httpx.Fail(w, http.StatusUnauthorized, "unauthenticated", "Login diperlukan")
 			return
 		}
@@ -148,5 +181,26 @@ func CurrentUser(ctx context.Context) (User, bool) {
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 	u, _ := CurrentUser(r.Context())
-	httpx.JSON(w, http.StatusOK, map[string]any{"id": u.ID, "email": u.Email, "name": u.Name, "role": u.Role, "branch": u.Branch})
+	role := deref(u.Role)
+	decide := []string{}
+	for _, k := range domain.AllKinds {
+		if slices.Contains(proposals.RolesFor(k), role) {
+			decide = append(decide, k)
+		}
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"id": u.ID, "email": u.Email, "name": u.Name, "role": u.Role, "branch": u.Branch,
+		"screens": screensFor(role), "decide": decide, "edit_policies": role == "ceo", "manage_users": role == "ceo" || role == "admin"})
+}
+
+// screensFor is the menu of a role (Pengaturan only for CEO and admin; finance works on credit, warehouse on stock).
+func screensFor(role string) []string {
+	switch role {
+	case "sales":
+		return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "konsep"}
+	case "finance":
+		return []string{"today", "orch", "orbit", "kuad", "dealer", "ar", "konsep"}
+	case "warehouse":
+		return []string{"today", "chat", "stock", "dealer", "konsep"}
+	}
+	return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "ar", "conn", "konsep"}
 }

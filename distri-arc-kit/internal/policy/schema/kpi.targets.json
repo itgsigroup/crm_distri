@@ -1,0 +1,2 @@
+{"type":"object","additionalProperties":false,"required":["on_schedule_pct","dso_days","stock_turn_days"],"properties":{
+ "on_schedule_pct":{"type":"integer","minimum":10,"maximum":100},"dso_days":{"type":"integer","minimum":5,"maximum":180},"stock_turn_days":{"type":"integer","minimum":5,"maximum":365}}}

@@ -16,4 +16,6 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-06 · 09 · Akses API Truecaller (resmi untuk bisnis) — ada? · identifikasi memakai profil WA Business, Getcontact (CSV) dan Odoo; Truecaller fake · —
 - 2026-10-06 · 09 · Stok kritis: bila cabang lain punya stok cukup, AI Stok mengusulkan transfer (HDD 4TB Surabaya → Yogyakarta), mockup menulis PO. Aturan transfer-dulu disetujui? Target 2,5 minggu & sumber ≥ 4 minggu sesuai praktik gudang? · ADR 0011 · transfer dulu
 - 2026-10-06 · 09 · Prediksi kas: konstanta probabilitas dikalibrasi ke mockup (ADR 0011). Bandingkan dengan realisasi kas 2–3 bulan pilot lalu kalibrasi ulang · — · seperti ADR
+- 2026-10-06 · 11 · Peran gudang/finance: menu dan hak keputusan di ADR 0013 (finance: penagihan & limit; gudang: transfer & PO) — sesuai praktik GSI? · ADR 0013 · —
+- 2026-10-06 · 11 · Akun produksi: siapa saja (email) dan perannya, untuk dibuat lewat `arc ctl user add` saat pilot · akun contoh di seed · —
 

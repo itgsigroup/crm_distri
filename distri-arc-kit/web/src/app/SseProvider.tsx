@@ -9,6 +9,7 @@ const INVALIDATES: Record<string, string[][]> = {
   chat_message: [['chat']],
   wa_status: [['wa']],
   mcp_call: [['mcp']],
+  policy_changed: [['policies'], ['agents'], ['mcp']],
 }
 
 type Listener = (event: string, data: unknown) => void

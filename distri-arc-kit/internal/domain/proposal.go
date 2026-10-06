@@ -30,6 +30,10 @@ const (
 	KindPlanChange    = "plan_change" // proposed by an MCP client (orchestrator.plan.update)
 )
 
+// AllKinds lists every proposal kind (access lists, UI).
+var AllKinds = []string{KindFollowup, KindCollect, KindInstallment, KindCreditRelease, KindCreditLimit, KindCreditHold, KindPriceCounter,
+	KindPushStock, KindSODraft, KindReturn, KindTransfer, KindPORequest, KindNewDealer, KindPriceList, KindReply, KindPlanChange}
+
 // QueueKinds are decided in "Keputusan" (outside the agents' autonomy, high stakes).
 var QueueKinds = map[string]bool{KindCreditRelease: true, KindCreditLimit: true, KindPriceCounter: true, KindReturn: true, KindPlanChange: true}
 

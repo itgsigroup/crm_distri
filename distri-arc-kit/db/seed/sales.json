@@ -61,5 +61,14 @@
   "role": "finance",
   "odoo_user_id": 4,
   "email": "finance@gsi.co.id"
+ },
+ {
+  "key": "joko",
+  "name": "Pak Joko",
+  "branch": "Semarang",
+  "wa_number": "6281100001001",
+  "role": "warehouse",
+  "odoo_user_id": 5,
+  "email": "gudang@gsi.co.id"
  }
 ]

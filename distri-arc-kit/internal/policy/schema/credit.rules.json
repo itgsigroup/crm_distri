@@ -1,0 +1,12 @@
+{"type":"object","additionalProperties":false,"required":["room_min","pay_max_days","default_limit","limit_up","limit_down","release_over_limit","sop_sec_001_required"],"properties":{
+ "room_min":{"type":"number","minimum":0.05,"maximum":0.9},
+ "pay_max_days":{"type":"integer","minimum":7,"maximum":120},
+ "default_limit":{"type":"object","additionalProperties":false,"required":["A","B","C","new"],"properties":{
+   "A":{"type":"integer","minimum":0,"maximum":5000000000},"B":{"type":"integer","minimum":0,"maximum":5000000000},
+   "C":{"type":"integer","minimum":0,"maximum":5000000000},"new":{"type":"integer","minimum":0,"maximum":500000000}}},
+ "limit_up":{"type":"object","additionalProperties":false,"required":["on_time_min","tight_months_min"],"properties":{
+   "on_time_min":{"type":"integer","minimum":50,"maximum":100},"tight_months_min":{"type":"integer","minimum":1,"maximum":12}}},
+ "limit_down":{"type":"object","additionalProperties":false,"required":["late_invoices","late_days"],"properties":{
+   "late_invoices":{"type":"integer","minimum":1,"maximum":12},"late_days":{"type":"integer","minimum":1,"maximum":120}}},
+ "release_over_limit":{"const":"ceo_approve"},
+ "sop_sec_001_required":{"const":true}}}

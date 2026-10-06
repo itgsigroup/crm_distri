@@ -47,5 +47,12 @@
   "mobile": "6281100000003",
   "name": "Rina Keuangan",
   "write_date": "2026-10-04 23:00:00"
+ },
+ {
+  "id": 5,
+  "login": "gudang@gsi.co.id",
+  "mobile": "6281100001001",
+  "name": "Pak Joko",
+  "write_date": "2026-10-04 23:00:00"
  }
 ]

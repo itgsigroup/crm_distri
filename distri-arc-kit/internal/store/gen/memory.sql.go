@@ -110,6 +110,30 @@ func (q *Queries) GetBrief(ctx context.Context, briefDate time.Time) (Brief, err
 	return i, err
 }
 
+const insertPolicyHistory = `-- name: InsertPolicyHistory :exec
+insert into policy_history (key, version, value, updated_by, updated_at) values ($1, $2, $3, $4, $5)
+on conflict (key, version) do nothing
+`
+
+type InsertPolicyHistoryParams struct {
+	Key       string          `json:"key"`
+	Version   int32           `json:"version"`
+	Value     json.RawMessage `json:"value"`
+	UpdatedBy *uuid.UUID      `json:"updated_by"`
+	UpdatedAt *time.Time      `json:"updated_at"`
+}
+
+func (q *Queries) InsertPolicyHistory(ctx context.Context, arg InsertPolicyHistoryParams) error {
+	_, err := q.db.Exec(ctx, insertPolicyHistory,
+		arg.Key,
+		arg.Version,
+		arg.Value,
+		arg.UpdatedBy,
+		arg.UpdatedAt,
+	)
+	return err
+}
+
 const listLessons = `-- name: ListLessons :many
 select id, agent, kind, reason, scope, product, rejections, text, suppress_until, created_at from calibration_lessons order by created_at desc limit $1
 `
@@ -143,6 +167,65 @@ func (q *Queries) ListLessons(ctx context.Context, limit int32) ([]CalibrationLe
 		return nil, err
 	}
 	return items, nil
+}
+
+const listPolicyHistory = `-- name: ListPolicyHistory :many
+select h.key, h.version, h.value, h.updated_by, h.updated_at, s.name as updated_by_name from policy_history h left join sales_users s on s.id = h.updated_by
+where h.key = $1 order by h.version desc limit $2
+`
+
+type ListPolicyHistoryParams struct {
+	Key   string `json:"key"`
+	Limit int32  `json:"limit"`
+}
+
+type ListPolicyHistoryRow struct {
+	Key           string          `json:"key"`
+	Version       int32           `json:"version"`
+	Value         json.RawMessage `json:"value"`
+	UpdatedBy     *uuid.UUID      `json:"updated_by"`
+	UpdatedAt     *time.Time      `json:"updated_at"`
+	UpdatedByName *string         `json:"updated_by_name"`
+}
+
+func (q *Queries) ListPolicyHistory(ctx context.Context, arg ListPolicyHistoryParams) ([]ListPolicyHistoryRow, error) {
+	rows, err := q.db.Query(ctx, listPolicyHistory, arg.Key, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPolicyHistoryRow{}
+	for rows.Next() {
+		var i ListPolicyHistoryRow
+		if err := rows.Scan(
+			&i.Key,
+			&i.Version,
+			&i.Value,
+			&i.UpdatedBy,
+			&i.UpdatedAt,
+			&i.UpdatedByName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const policiesChangedSince = `-- name: PoliciesChangedSince :one
+select exists (select 1 from policies where key in ('orbit.thresholds','segment.thresholds','credit.rules','stock.rules','margin.floor')
+  and updated_at > $1::timestamptz) as changed
+`
+
+// Whether a threshold that feeds metrics changed after a moment (the next cycle recomputes every dealer).
+func (q *Queries) PoliciesChangedSince(ctx context.Context, since time.Time) (bool, error) {
+	row := q.db.QueryRow(ctx, policiesChangedSince, since)
+	var changed bool
+	err := row.Scan(&changed)
+	return changed, err
 }
 
 const rejectionsForLessons = `-- name: RejectionsForLessons :many

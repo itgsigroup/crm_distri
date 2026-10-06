@@ -1,0 +1,3 @@
+{"type":"object","additionalProperties":false,"required":["allow_reanalyze","allow_plan_update_proposal","allow_send","mask_pii_in_read","max_cycles_per_hour"],"properties":{
+ "allow_reanalyze":{"type":"boolean"},"allow_plan_update_proposal":{"type":"boolean"},"allow_send":{"const":false},
+ "mask_pii_in_read":{"type":"boolean"},"max_cycles_per_hour":{"type":"integer","minimum":1,"maximum":30}}}

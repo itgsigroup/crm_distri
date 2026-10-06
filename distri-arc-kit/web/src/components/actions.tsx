@@ -7,7 +7,7 @@ import { Icon } from './Icon'
 import { SheetHead, useFeedback } from './feedback'
 import { hhmm, shortDate } from '../lib/format'
 import { PENDING_ORCH } from '../lib/i18n/id'
-import { useProposal } from '../app/queries'
+import { useMe, useProposal } from '../app/queries'
 
 const REASONS: [string, string][] = [
   ['tidak_tepat_waktu', 'Tidak tepat waktu'], ['salah_dealer', 'Salah dealer / kontak'], ['sudah_dilakukan', 'Sudah dilakukan'],
@@ -38,13 +38,15 @@ export function ProposalSheet({ id }: { id: string }) {
   const { closeSheet } = useFeedback()
   const nav = useNavigate()
   const decide = useDecide()
+  const { data: me } = useMe()
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
   const [reasonText, setReasonText] = useState('')
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   if (!p) return <div className="sec"><p>Memuat…</p></div>
-  const open = p.status === 'proposed'
+  const allowed = !me || me.decide.includes(p.kind)
+  const open = p.status === 'proposed' && allowed
   const go = (s: { kind: string }) => {
     closeSheet()
     if (s.kind === 'wa' || s.kind === 'wa_group') nav('/chat')
@@ -85,7 +87,7 @@ export function ProposalSheet({ id }: { id: string }) {
         <div className="sec"><h4>Setelah Anda setujui</h4><ul className="steps">{p.steps.map((x) => <li key={x}><Icon name="check" /><span>{x}</span></li>)}</ul></div>
       )}
       {!open && (
-        <div className="sec"><h4>Keputusan</h4><p>{statusText(p)}</p></div>
+        <div className="sec"><h4>Keputusan</h4><p>{p.status === 'proposed' && !allowed ? 'Menunggu keputusan peran yang berwenang (mis. CEO atau sales pemilik dealer).' : statusText(p)}</p></div>
       )}
       {rejecting && (
         <div className="rej">
@@ -126,6 +128,7 @@ function statusText(p: Proposal) {
 /** Action button of a list row (mockup actBtn): opens the proposal, or shows how it was decided. */
 export function ActBtn({ next, small, label, icon, ghost }: { next?: NextAction | null; small?: boolean; label?: string; icon?: string; ghost?: boolean }) {
   const { openSheet, toast } = useFeedback()
+  const { data: me } = useMe()
   const style = small ? { height: 28, fontSize: 12 } : undefined
   if (!next) {
     if (!label) return null
@@ -136,6 +139,7 @@ export function ActBtn({ next, small, label, icon, ghost }: { next?: NextAction 
   if (next.status === 'approved' || next.status === 'edited') return <span className="pill accent"><Icon name="send" />Disetujui · mengirim</span>
   if (next.status === 'rejected') return <span className="pill bad"><Icon name="x" />Ditolak</span>
   if (next.status !== 'proposed') return null
+  if (me && !me.decide.includes(next.kind)) return <span className="pill neutral" title="Diputuskan peran lain"><Icon name="lock" />menunggu keputusan</span>
   if (next.wait_for) return <span className="pill neutral"><Icon name="cash" />setelah {next.wait_for.replace(/^payment:/, '')} dibayar</span>
   return (
     <button className={`btn ${ghost ? 'ghost' : 'primary'}`} style={style} onClick={() => openSheet(<ProposalSheet id={next.id} />)}>

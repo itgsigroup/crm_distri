@@ -42,7 +42,22 @@ func (s *Server) readRoutes(r chi.Router) {
 	r.Get("/credit/forecast", s.creditPart("forecast"))
 }
 
+// board is the dealers the user works with: a sales user sees only the dealers they own in every list (07-api ›
+// RBAC); other roles see all. Pages of one dealer use fullBoard (a sales user may open a dealer from a group chat).
 func (s *Server) board(w http.ResponseWriter, r *http.Request) (*views.Board, bool) {
+	b, ok := s.fullBoard(w, r)
+	if !ok {
+		return nil, false
+	}
+	if u, _ := CurrentUser(r.Context()); deref(u.Role) == "sales" && u.SalesName != nil {
+		own := *b
+		own.Items = b.Filter(*u.SalesName)
+		return &own, true
+	}
+	return b, true
+}
+
+func (s *Server) fullBoard(w http.ResponseWriter, r *http.Request) (*views.Board, bool) {
 	b, err := s.views.Board(r.Context())
 	if err != nil {
 		s.log.Error("board", "err", err)
@@ -141,7 +156,7 @@ func (s *Server) dealersCreditTight(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) dealerByID(w http.ResponseWriter, r *http.Request) (*views.Board, views.BoardItem, bool) {
-	b, ok := s.board(w, r)
+	b, ok := s.fullBoard(w, r)
 	if !ok {
 		return nil, views.BoardItem{}, false
 	}

@@ -32,3 +32,16 @@ on conflict (brief_date) do update set cycle_id = excluded.cycle_id, brief = exc
 
 -- name: GetBrief :one
 select * from briefs where brief_date = $1;
+
+-- name: InsertPolicyHistory :exec
+insert into policy_history (key, version, value, updated_by, updated_at) values ($1, $2, $3, $4, $5)
+on conflict (key, version) do nothing;
+
+-- name: ListPolicyHistory :many
+select h.*, s.name as updated_by_name from policy_history h left join sales_users s on s.id = h.updated_by
+where h.key = $1 order by h.version desc limit $2;
+
+-- name: PoliciesChangedSince :one
+-- Whether a threshold that feeds metrics changed after a moment (the next cycle recomputes every dealer).
+select exists (select 1 from policies where key in ('orbit.thresholds','segment.thresholds','credit.rules','stock.rules','margin.floor')
+  and updated_at > sqlc.arg(since)::timestamptz) as changed;

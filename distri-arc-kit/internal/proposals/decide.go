@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -69,15 +70,8 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 	if p.Status != "proposed" {
 		return Outcome{}, ErrNotOpen
 	}
-	switch p.Kind {
-	case domain.KindCreditRelease:
-		if who.Role != "ceo" {
-			return Outcome{}, fmt.Errorf("%w: rilis di atas limit butuh approve CEO", ErrForbidden)
-		}
-	case domain.KindCreditLimit:
-		if who.Role != "ceo" && who.Role != "finance" {
-			return Outcome{}, fmt.Errorf("%w: perubahan limit oleh CEO atau finance", ErrForbidden)
-		}
+	if err := authorize(ctx, st.Q, p.Kind, p.DealerID, p.Payload, who); err != nil {
+		return Outcome{}, err
 	}
 	var options []domain.Option
 	_ = json.Unmarshal(p.Options, &options)
@@ -452,4 +446,79 @@ func queueThreadWA(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Cl
 		}
 	}
 	return &ob.ID, nil
+}
+
+// Who may decide which proposals (09-policies-security › RBAC). The CEO decides everything; a release above the
+// limit only the CEO. Sales decide proposals of the dealers they own (and the new numbers that wrote to them).
+var deciders = map[string][]string{
+	domain.KindCreditRelease: {"ceo"},
+	domain.KindCreditLimit:   {"ceo", "finance"},
+	domain.KindCollect:       {"ceo", "admin", "finance", "sales"},
+	domain.KindInstallment:   {"ceo", "admin", "finance", "sales"},
+	domain.KindTransfer:      {"ceo", "admin", "warehouse"},
+	domain.KindPORequest:     {"ceo", "admin", "warehouse"},
+	domain.KindPlanChange:    {"ceo", "admin"},
+	domain.KindPushStock:     {"ceo", "admin"},
+	domain.KindPriceCounter:  {"ceo", "admin"},
+}
+
+var roleLabel = map[string]string{"ceo": "CEO", "admin": "admin", "finance": "finance", "sales": "sales pemilik dealer", "warehouse": "gudang"}
+
+func kindLabel(kind string) string {
+	l := map[string]string{domain.KindCreditLimit: "Perubahan limit", domain.KindCollect: "Pengingat penagihan", domain.KindInstallment: "Skema cicilan",
+		domain.KindTransfer: "Transfer stok", domain.KindPORequest: "Permintaan PO", domain.KindPlanChange: "Perubahan rencana", domain.KindPushStock: "Bundle stok",
+		domain.KindPriceCounter: "Harga khusus"}[kind]
+	if l == "" {
+		l = "Saran ini"
+	}
+	return l
+}
+
+// defaultDeciders applies to the other kinds (follow-up, SO draft, return, new dealer, price list, reply).
+var defaultDeciders = []string{"ceo", "admin", "sales"}
+
+// RolesFor lists the roles that may decide a kind.
+func RolesFor(kind string) []string {
+	if r, ok := deciders[kind]; ok {
+		return r
+	}
+	return defaultDeciders
+}
+
+func authorize(ctx context.Context, q *gen.Queries, kind string, dealerID *uuid.UUID, payload json.RawMessage, who Decider) error {
+	roles := RolesFor(kind)
+	if !slices.Contains(roles, who.Role) {
+		if kind == domain.KindCreditRelease {
+			return fmt.Errorf("%w: rilis di atas limit butuh approve CEO", ErrForbidden)
+		}
+		var names []string
+		for _, r := range roles {
+			names = append(names, roleLabel[r])
+		}
+		return fmt.Errorf("%w: %s diputuskan oleh %s", ErrForbidden, kindLabel(kind), strings.Join(names, ", "))
+	}
+	if who.Role != "sales" {
+		return nil
+	}
+	// sales: only their own dealers, or the new number that wrote to their WhatsApp
+	if dealerID != nil {
+		d, err := q.GetDealer(ctx, ptrStr(dealerID.String()))
+		if err != nil {
+			return err
+		}
+		if d.OwnerID == nil || *d.OwnerID != who.SalesUserID {
+			return fmt.Errorf("%w: dealer ini milik sales lain", ErrForbidden)
+		}
+		return nil
+	}
+	var pl struct {
+		ThreadID uuid.UUID `json:"thread_id"`
+	}
+	_ = json.Unmarshal(payload, &pl)
+	if pl.ThreadID != uuid.Nil {
+		if t, err := q.GetThread(ctx, pl.ThreadID); err == nil && t.SalesID != nil && *t.SalesID == who.SalesUserID {
+			return nil
+		}
+	}
+	return fmt.Errorf("%w: bukan dealer atau chat Anda", ErrForbidden)
 }

@@ -1,0 +1,2 @@
+{"type":"object","additionalProperties":false,"required":["min_confidence","dealer_messages"],"properties":{
+ "min_confidence":{"type":"number","minimum":0.6,"maximum":1},"dealer_messages":{"enum":["confirm","auto"]}}}

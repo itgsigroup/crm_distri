@@ -1,0 +1,2 @@
+{"type":"object","additionalProperties":false,"required":["chat_days","signals_months","llm_calls_days"],"properties":{
+ "chat_days":{"type":"integer","minimum":30,"maximum":730},"signals_months":{"type":"integer","minimum":6,"maximum":120},"llm_calls_days":{"type":"integer","minimum":30,"maximum":730}}}

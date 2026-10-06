@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -15,8 +14,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/argon2"
 
+	"distri-arc/internal/auth"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 )
@@ -41,31 +40,9 @@ type Client struct {
 // Has reports whether the client holds a scope.
 func (c *Client) Has(scope string) bool { return c != nil && slices.Contains(c.Scopes, scope) }
 
-// argon2id parameters (OWASP minimum for interactive logins); verified tokens are cached, so this cost is paid
-// once per token and process.
-const (
-	argonTime    = 2
-	argonMemory  = 19 * 1024
-	argonThreads = 1
-	argonKeyLen  = 32
-)
+func hashSecret(secret string, salt []byte) string { return auth.HashWithSalt(secret, salt) }
 
-func hashSecret(secret string, salt []byte) string {
-	k := argon2.IDKey([]byte(secret), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
-	return fmt.Sprintf("argon2id$%s$%s", base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(k))
-}
-
-func checkSecret(secret, stored string) bool {
-	parts := strings.Split(stored, "$")
-	if len(parts) != 3 || parts[0] != "argon2id" {
-		return false
-	}
-	salt, err := base64.RawStdEncoding.DecodeString(parts[1])
-	if err != nil {
-		return false
-	}
-	return subtle.ConstantTimeCompare([]byte(hashSecret(secret, salt)), []byte(stored)) == 1
-}
+func checkSecret(secret, stored string) bool { return auth.Check(secret, stored) }
 
 // CreateToken registers a client and returns its token — shown once, stored only as an argon2id hash.
 // Format: arc_<client id hex>_<secret>.

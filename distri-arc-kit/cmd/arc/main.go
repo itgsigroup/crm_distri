@@ -52,6 +52,8 @@ const usage = `arc — Distri ARC Orbit
   arc ctl reanalyze --scope all|screen:orbit|dealer:<slug>|agent:<name> [--if-empty]  run an Orchestrator cycle
   arc ctl agents run [--agent "AI Order"] [--dealer <slug>]  alias of reanalyze with that scope
   arc ctl cycle status       last cycles: status, counters, note
+  arc ctl user add --email e --name n --role ceo|admin|finance|sales|warehouse --password p [--sales Andi]
+  arc ctl user passwd --email e --password p
   arc ctl mcp-token --name "Claude Desktop Sam" --scopes read,analyze,orchestrate   create an MCP token (shown once)
   arc ctl mcp-stdio --token <token>   MCP over stdio for local clients (cycles run inline)
 `
@@ -123,6 +125,9 @@ func runAPI(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	m := mcp.New(st, c, log, &orchestrator.Orchestrator{St: st, Clock: c, Log: log, OdooWrite: cfg.OdooWrite})
 	m.Jobs = ins // MCP cycles run in the worker like every other cycle
+	if !cfg.IsDev() && len(cfg.SessionSecret) < 32 {
+		return errors.New("SESSION_SECRET (≥ 32 karakter) wajib di luar APP_ENV=dev")
+	}
 	a := api.New(cfg, st, c, log).WithJobs(ins).WithOdoo(src).WithMCP(m).WithIdentify(&identify.Service{St: st, Clock: c, Truecaller: truecaller(cfg)}).WithAsk(&ask.Service{St: st, Clock: c, Router: newRouter(ctx, cfg, st, log)})
 	if cfg.WATransport == "cloudapi" {
 		a.WithCloudWebhook(cloudTransport(cfg))
@@ -195,6 +200,14 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 	if len(args) == 0 {
 		fmt.Print(usage)
 		return nil
+	}
+	if args[0] == "user" {
+		st, _, err := open(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		defer st.Close()
+		return runUserCtl(ctx, st, args[1:])
 	}
 	if args[0] == "mcp-token" || args[0] == "mcp-stdio" {
 		st, clk, err := open(ctx, cfg)
@@ -274,6 +287,9 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 		if err != nil {
 			return err
 		}
+		if err := demoPasswords(ctx, cfg, st, log); err != nil {
+			return err
+		}
 		if _, err := svc.Recompute(ctx); err != nil {
 			return err
 		}
@@ -293,6 +309,9 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 		}
 		res, err := seed.Run(ctx, st, db.Seed)
 		if err != nil {
+			return err
+		}
+		if err := demoPasswords(ctx, cfg, st, log); err != nil {
 			return err
 		}
 		if _, err := svc.Recompute(ctx); err != nil {

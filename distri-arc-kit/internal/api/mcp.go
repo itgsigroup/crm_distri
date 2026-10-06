@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 
 	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
@@ -28,6 +28,8 @@ func (s *Server) mcpRoutes(r chi.Router) {
 	r.Put("/policies/mcp", s.putMCPPolicy)
 	r.Get("/policies/llm", s.getLLMPolicy)
 	r.Put("/policies/llm", s.putLLMPolicy)
+	r.Put("/policies/{key}", s.putPolicy)
+	r.Get("/policies/{key}/history", s.policyHistory)
 }
 
 func ceo(r *http.Request) (User, bool) {
@@ -170,7 +172,7 @@ func (s *Server) putMCPPolicy(w http.ResponseWriter, r *http.Request) {
 		m.MaxCyclesPerHour = 6
 	}
 	if err := s.writePolicy(r, "mcp.permissions", m); err != nil {
-		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		policyError(w, err)
 		return
 	}
 	s.getMCPPolicy(w, r)
@@ -206,7 +208,7 @@ func (s *Server) putLLMPolicy(w http.ResponseWriter, r *http.Request) {
 	l := pol.LLM
 	l.Mode = body.Mode
 	if err := s.writePolicy(r, "llm.routing", l); err != nil {
-		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		policyError(w, err)
 		return
 	}
 	httpx.JSON(w, http.StatusOK, l)
@@ -215,13 +217,8 @@ func (s *Server) putLLMPolicy(w http.ResponseWriter, r *http.Request) {
 func (s *Server) writePolicy(r *http.Request, key string, v any) error {
 	u, _ := CurrentUser(r.Context())
 	b, _ := json.Marshal(v)
-	return s.st.Tx(r.Context(), func(q *gen.Queries, _ pgx.Tx) error {
-		if _, err := q.SetPolicy(r.Context(), gen.SetPolicyParams{Key: key, Value: b, UpdatedBy: u.SalesUserID, UpdatedAt: s.clock.Now()}); err != nil {
-			return err
-		}
-		actor, kind, action, entity := deref(u.Email), "user", "policy.update", "policy:"+key
-		return q.InsertAudit(r.Context(), gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, After: b})
-	})
+	_, err := policy.Save(r.Context(), s.st, key, b, u.SalesUserID, deref(u.Email), time.Now())
+	return err
 }
 
 func (s *Server) auditUser(r *http.Request, action, entity string, after any) {
