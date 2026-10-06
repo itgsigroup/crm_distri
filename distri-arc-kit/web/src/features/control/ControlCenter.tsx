@@ -152,7 +152,7 @@ export function ControlCenter() {
               <li><span className="ag">{AGENT_NAMES[1]}</span><div>{due.length} dealer jadwal order minggu ini, {drift.length} lewat jadwal{up ? `; ${up} dealer naik segmen` : ''}{down.length ? `, ${down.length} turun (${down.map((m) => m.name.replace(/^(PT|CV|UD|Toko)\s/, '') + `: ${m.from} → ${m.to}`).join(', ')})` : ''}</div></li>
               <li><span className="ag">{AGENT_NAMES[2]}</span><div>{bad.length} dealer over limit / overdue, {tight.length - bad.length} tipis</div></li>
               <li><span className="ag">{AGENT_NAMES[3]}</span><div>{push.map((p) => `${p.name} → ${(p.candidates ?? []).length} dealer`).join('; ') || 'tidak ada stok menua'}</div></li>
-              <li><span className="ag">{AGENT_NAMES[4]}</span><div>{brief?.points[2]?.dealers.filter((d) => d.late_days).length ?? 0} dealer dengan invoice lewat tempo; nada pengingat mengikuti pola bayar</div></li>
+              <li><span className="ag">{AGENT_NAMES[4]}</span><div>{(brief?.points[2]?.dealers ?? []).filter((d) => d.late_days).length} dealer dengan invoice lewat tempo; nada pengingat mengikuti pola bayar</div></li>
               <li><span className="ag">{AGENT_NAMES[5]}</span><div>Nomor baru dikenali setelah WhatsApp tersambung (Stage 03)</div></li>
             </ul>
           </div>

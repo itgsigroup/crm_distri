@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -390,9 +391,23 @@ func nonNil[T any](v []T) []T {
 
 func (s *Server) briefToday(w http.ResponseWriter, r *http.Request) {
 	if row, err := s.st.Q.GetBrief(r.Context(), clockToday(s)); err == nil {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(row.Brief) // written by the last full cycle (text + signal_ids per point)
-		return
+		// written by the last full cycle (text + signal_ids per point); lists normalised for briefs stored by older builds
+		var stored views.Brief
+		if json.Unmarshal(row.Brief, &stored) == nil {
+			for i := range stored.Points {
+				if stored.Points[i].Dealers == nil {
+					stored.Points[i].Dealers = []views.BriefDealer{}
+				}
+				if stored.Points[i].SignalIDs == nil {
+					stored.Points[i].SignalIDs = []string{}
+				}
+			}
+			if stored.Points == nil {
+				stored.Points = []views.BriefPoint{}
+			}
+			httpx.JSON(w, http.StatusOK, stored)
+			return
+		}
 	}
 	b, ok := s.board(w, r)
 	if !ok {
