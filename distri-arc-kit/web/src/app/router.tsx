@@ -14,6 +14,7 @@ import { StockPage } from '../features/stock/StockPage'
 import { GuidePage } from '../features/guide/GuidePage'
 import { CreditPage } from '../features/credit/CreditPage'
 import { SettingsPage } from '../features/settings/SettingsPage'
+import { PilotPage } from '../features/pilot/PilotPage'
 
 // Routes of docs/design/08-frontend.md.
 export const router = createBrowserRouter([
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       { path: 'stok', element: <StockPage /> },
       { path: 'kredit', element: <CreditPage /> },
       { path: 'pengaturan', element: <SettingsPage /> },
+      { path: 'pengaturan/pilot', element: <PilotPage /> },
       { path: 'panduan', element: <GuidePage /> },
     ],
   },

@@ -92,6 +92,14 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 	if d.Decision == "option" && key == "reject" {
 		d.Decision = "reject"
 	}
+	pol, err := policy.Load(ctx, st.Q)
+	if err != nil {
+		return Outcome{}, err
+	}
+	shadow := pol.Pilot.Shadow()
+	if shadow { // pilot shadow mode: the decision calibrates the agents, nothing leaves Distri ARC
+		ins, odooWrite = nil, false
+	}
 	now := c.Now()
 	out := Outcome{}
 	err = st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
@@ -240,6 +248,18 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 		if err := decisionNote(ctx, q, tx, ins, odooWrite, row, out.Status, who, reason); err != nil {
 			return err
 		}
+		if shadow {
+			n, err := q.ShadowOutbox(ctx, &id)
+			if err != nil {
+				return err
+			}
+			if err := q.DropPendingBubble(ctx, &id); err != nil {
+				return err
+			}
+			if n > 0 {
+				out.Result = row.Title + " · disetujui · mode bayangan: tidak dikirim"
+			}
+		}
 		if err := q.SyncPlanStatus(ctx, clock.Today(now)); err != nil {
 			return err
 		}
@@ -253,6 +273,9 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 	})
 	return out, err
 }
+
+// ErrShadow refuses an automatic send while the pilot runs in shadow mode.
+var ErrShadow = errors.New("mode bayangan pilot: tidak ada langkah otomatis")
 
 // queueWA writes the outbox row for a WhatsApp draft: from the dealer owner's number to the contact the
 // proposal addresses (else the main contact), plus a pending bubble in the chat thread.
@@ -323,6 +346,11 @@ func ptrStr(s string) *string { return &s }
 // ApproveBySystem carries out an auto step the Orchestrator may send on its own (autonomy.guard.dealer_messages =
 // "auto", ADR 0008): approved without a human, recorded as such, queued through the outbox like any approval.
 func ApproveBySystem(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c clock.Clock, id uuid.UUID) (Outcome, error) {
+	if pol, err := policy.Load(ctx, st.Q); err != nil {
+		return Outcome{}, err
+	} else if pol.Pilot.Shadow() {
+		return Outcome{}, ErrShadow
+	}
 	now := c.Now()
 	out := Outcome{}
 	err := st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {

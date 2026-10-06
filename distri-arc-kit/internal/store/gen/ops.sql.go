@@ -471,7 +471,7 @@ const pDPDeleteSignals = `-- name: PDPDeleteSignals :execrows
 with gone as (
   delete from signals s
   where s.kind in ('wa', 'wa_group', 'manual')
-    and (s.contact_id = any($1::uuid[]) or s.payload->>'from' = $2::text)
+    and (s.contact_id = any($1::uuid[]) or coalesce(s.payload->>'from_number', s.payload->>'from') = $2::text)
   returning s.dedupe_key
 )
 delete from signal_keys k using gone where k.dedupe_key = gone.dedupe_key

@@ -93,3 +93,8 @@ func (RetentionPurgeArgs) Kind() string { return "retention.purge" }
 type AlertsCheckArgs struct{}
 
 func (AlertsCheckArgs) Kind() string { return "alerts.check" }
+
+// PilotSnapshotArgs stores the pilot week (Monday 00.45 WIB, for the week that ended).
+type PilotSnapshotArgs struct{}
+
+func (PilotSnapshotArgs) Kind() string { return "pilot.snapshot" }

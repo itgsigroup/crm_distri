@@ -74,6 +74,21 @@ func (w *SnapshotWorker) Work(ctx context.Context, _ *river.Job[jobs.SnapshotArg
 // Daily is a periodic schedule firing once a day at hour:minute WIB.
 type Daily struct{ Hour, Minute int }
 
+// Weekly runs once a week at a WIB weekday and time.
+type Weekly struct {
+	Weekday      time.Weekday
+	Hour, Minute int
+}
+
+// Next implements river.PeriodicSchedule.
+func (w Weekly) Next(t time.Time) time.Time {
+	n := Daily{Hour: w.Hour, Minute: w.Minute}.Next(t)
+	for n.Weekday() != w.Weekday {
+		n = n.AddDate(0, 0, 1)
+	}
+	return n
+}
+
 // Next implements river.PeriodicSchedule.
 func (d Daily) Next(t time.Time) time.Time {
 	t = t.In(clock.WIB)
@@ -234,6 +249,7 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	river.AddWorker(workers, &SnapshotWorker{svc: svc})
 	river.AddWorker(workers, &PartitionsWorker{st: st, clock: c})
 	river.AddWorker(workers, &RetentionWorker{st: st, clock: c, log: log})
+	river.AddWorker(workers, &PilotWorker{st: st, clock: c})
 	river.AddWorker(workers, &AlertsWorker{st: st, clock: c, log: log, env: deps.Ops, from: deps.AlertFrom, group: deps.AlertGroup})
 	var periodic []*river.PeriodicJob
 	if deps.Odoo != nil {
@@ -272,6 +288,9 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 			river.NewPeriodicJob(Daily{Hour: 0, Minute: 10}, func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.PartitionsEnsureArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: time.Hour}}
 			}, &river.PeriodicJobOpts{RunOnStart: true}),
+			river.NewPeriodicJob(Weekly{Weekday: time.Monday, Hour: 0, Minute: 45}, func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.PilotSnapshotArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 24 * time.Hour}}
+			}, nil),
 			river.NewPeriodicJob(Daily{Hour: 2, Minute: 30}, func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.RetentionPurgeArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 24 * time.Hour}}
 			}, nil),

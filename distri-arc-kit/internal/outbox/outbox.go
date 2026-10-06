@@ -87,8 +87,13 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	if err != nil {
 		return 0, err
 	}
-	if ob.Status == "sent" {
-		return 0, nil // idempotent
+	if ob.Status == "sent" || ob.Status == "shadow" {
+		return 0, nil // idempotent; shadow rows are never delivered
+	}
+	if pol, err := policy.Load(ctx, s.st.Q); err == nil && pol.Pilot.Shadow() && ob.Channel != "wa_system" {
+		// a row queued before the pilot switched to shadow mode: keep it, do not deliver
+		_, err := s.st.Q.ShadowOutbox(ctx, ob.ProposalID)
+		return 0, err
 	}
 	if ob.Channel == "wa_system" {
 		return 0, s.sendSystem(ctx, ob)

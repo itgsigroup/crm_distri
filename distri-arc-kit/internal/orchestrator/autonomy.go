@@ -33,6 +33,12 @@ func Evaluate(c *Cand, p domain.PolicySet) Verdict {
 	if !ok || !slices.Contains(row.Auto, c.P.Kind) {
 		return Verdict{Reason: "matriks: butuh approve"}
 	}
+	if !p.Pilot.AutoAllowed(primaryAgent(c.P.Agent)) {
+		if p.Pilot.Shadow() {
+			return Verdict{Reason: "pilot: mode bayangan, semua butuh approve"}
+		}
+		return Verdict{Reason: "pilot: otonomi agen belum dibuka"}
+	}
 	if strings.Contains(c.P.Agent, " + ") {
 		return Verdict{Reason: "gabungan dua agen: butuh approve"}
 	}

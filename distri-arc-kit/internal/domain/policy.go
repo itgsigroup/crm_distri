@@ -16,6 +16,7 @@ type PolicySet struct {
 	MCP       MCPPermissions         `json:"mcp.permissions"`
 	LLM       LLMRouting             `json:"llm.routing"`
 	Retention Retention              `json:"retention"`
+	Pilot     PilotPolicy            `json:"pilot"`
 }
 
 type OrbitPolicy struct {
@@ -119,6 +120,39 @@ type Retention struct {
 	LLMCallsDays  int `json:"llm_calls_days"`
 }
 
+// PilotPolicy runs a branch pilot (stage 14). Shadow: the Orchestrator analyses and people decide, but nothing is
+// executed automatically and nothing is sent (decisions only calibrate). Live: sends after human approval; automatic
+// steps only for agents unlocked after two weeks of confidence ≥ unlock_confidence. Off: the autonomy matrix as is.
+type PilotPolicy struct {
+	Mode                string   `json:"mode"` // off | shadow | live
+	Branch              string   `json:"branch"`
+	StartedAt           string   `json:"started_at"` // YYYY-MM-DD, empty before the pilot
+	ShadowDays          int      `json:"shadow_days"`
+	UnlockConfidence    int      `json:"unlock_confidence"`
+	UnlockWeeks         int      `json:"unlock_weeks"`
+	MinDecisionsPerWeek int      `json:"min_decisions_per_week"`
+	Unlocked            []string `json:"unlocked"` // agents whose automatic steps are open again
+}
+
+// Shadow reports whether nothing may leave Distri ARC (no sends, no Odoo writes, no automatic steps).
+func (p PilotPolicy) Shadow() bool { return p.Mode == "shadow" }
+
+// AutoAllowed reports whether an agent may take automatic steps under the pilot.
+func (p PilotPolicy) AutoAllowed(agent string) bool {
+	switch p.Mode {
+	case "shadow":
+		return false
+	case "live":
+		for _, a := range p.Unlocked {
+			if a == agent {
+				return true
+			}
+		}
+		return false
+	}
+	return true
+}
+
 // DefaultPolicies returns the glossary defaults (used by unit tests and as a fallback for missing keys).
 func DefaultPolicies() PolicySet {
 	var p PolicySet
@@ -139,5 +173,6 @@ func DefaultPolicies() PolicySet {
 	p.MCP = MCPPermissions{AllowReanalyze: true, AllowPlanUpdateProposal: true, MaskPIIInRead: true, MaxCyclesPerHour: 6}
 	p.LLM = LLMRouting{Mode: "both", Provider: "anthropic", Model: "claude-sonnet-5-5", Fallback: "openai:gpt-4.1", BatchHours: []int{6, 20}, Timezone: "Asia/Jakarta"}
 	p.Retention = Retention{ChatDays: 90, SignalsMonths: 24, LLMCallsDays: 180}
+	p.Pilot = PilotPolicy{Mode: "off", Branch: "Semarang", ShadowDays: 14, UnlockConfidence: 80, UnlockWeeks: 2, MinDecisionsPerWeek: 5, Unlocked: []string{}}
 	return p
 }

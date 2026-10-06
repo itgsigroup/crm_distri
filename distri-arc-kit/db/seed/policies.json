@@ -27,6 +27,7 @@
                    "labels": {"auto": "Identifikasi", "approve": "Membuat dealer di Odoo", "never": "Mengirim harga sebelum approve"}}
  },
  "odoo.write": {"notes": true},
+ "pilot": {"mode": "off", "branch": "Semarang", "started_at": "", "shadow_days": 14, "unlock_confidence": 80, "unlock_weeks": 2, "min_decisions_per_week": 5, "unlocked": []},
  "autonomy.guard": {"min_confidence": 0.8, "dealer_messages": "confirm"},
  "mcp.permissions": {"allow_reanalyze": true, "allow_plan_update_proposal": true, "allow_send": false, "mask_pii_in_read": true, "max_cycles_per_hour": 6},
  "llm.routing": {"mode": "both", "provider": "anthropic", "model": "claude-sonnet-5-5", "fallback": "openai:gpt-4.1", "batch_hours": [6, 20], "timezone": "Asia/Jakarta"},

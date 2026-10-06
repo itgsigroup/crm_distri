@@ -99,3 +99,11 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Observabilitas: `/api/health` rinci untuk CEO/admin, `/metrics` Prometheus (histogram per rute), kartu **Status sistem**, alert WA terputus / siklus gagal 2× / antrean > 500 ke grup WhatsApp internal (outbox `wa_system`, ditolak bila bukan grup internal).
 - Deploy: `infra/Dockerfile`, `infra/docker-compose.prod.yml`, `infra/Caddyfile`, `infra/systemd/`, `docs/DEPLOY.md`, `docs/RUNBOOK.md`; `arc ctl seed --policies-only` untuk produksi.
 - Performa: `tools/loadtest` (+ `k6.js`, `make loadtest`), `docs/PERF.md`; timeline dealer 1,9 → 0,2 ms (join uuid + indeks parsial). ADR 0015.
+
+## Stage 14 — Pilot cabang Semarang: perangkat pilot · 2026-10-06 (in-progress — menunggu pilot nyata)
+- Kebijakan `pilot` (off / bayangan / live) + migrasi `0012_pilot`. Mode bayangan: tidak ada langkah otomatis, keputusan tetap mengkalibrasi, outbox `shadow` tidak pernah dikirim, balasan dari layar Chat ditolak, `ApproveBySystem` menolak.
+- `internal/pilot`: % saran diterima & median waktu keputusan per agen, confidence mingguan, order tepat jadwal, DSO, lewat jadwal tertangkap sebelum churn, audit privasi & kirim, aturan buka otonomi ≥ 80% dua minggu (dicek server), snapshot mingguan (`pilot.snapshot`) & CSV.
+- API `/pilot`, `/pilot/export.csv`, `/pilot/mode`, `/pilot/unlock`, `/sow/top`, `/sow/confirm`; `arc ctl pilot start|live|off|status|audit|snapshot|export`, `arc ctl wa import-internal`.
+- Web: Pengaturan → **Pilot** (mode, KPI, per agen, audit, laporan mingguan), kartu Pilot di Pengaturan, chip **Mode bayangan** di topbar, Dealer → **Konfirmasi share of wallet** (20 dealer teratas, per kuartal).
+- `docs/PILOT-REPORT.md` (checklist hari 0, aturan pilot, tabel hasil, temuan, go/no-go untuk ditandatangani Sam). ADR 0016.
+- Perbaikan: `pdp delete` kini juga menghapus sinyal percakapan berdasarkan `payload.from_number`.

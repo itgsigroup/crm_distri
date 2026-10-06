@@ -16,6 +16,7 @@ import (
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/outbox"
+	"distri-arc/internal/policy"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
 	"distri-arc/internal/wa"
@@ -251,6 +252,10 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 	}
 	if t.SalesWa == nil || t.WaJid == nil {
 		httpx.Fail(w, http.StatusConflict, "no_number", "Percakapan ini belum terhubung ke nomor sales")
+		return
+	}
+	if pol, err := policy.Load(r.Context(), s.st.Q); err == nil && pol.Pilot.Shadow() {
+		httpx.Fail(w, http.StatusConflict, "pilot_shadow", "Mode bayangan pilot: balas dari WhatsApp di ponsel — Distri ARC belum mengirim")
 		return
 	}
 	now := s.clock.Now()

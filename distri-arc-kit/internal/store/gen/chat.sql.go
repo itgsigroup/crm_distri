@@ -116,6 +116,17 @@ func (q *Queries) DeleteInternalNumber(ctx context.Context, waNumber string) err
 	return err
 }
 
+const dropPendingBubble = `-- name: DropPendingBubble :exec
+with gone as (delete from chat_messages where proposal_id = $1 and status = 'pending' and direction = 'out' returning id)
+delete from chat_message_keys k using gone where k.message_id = gone.id
+`
+
+// The pending chat bubble of a row that will not be sent (shadow mode) is removed with its dedupe key.
+func (q *Queries) DropPendingBubble(ctx context.Context, proposalID *uuid.UUID) error {
+	_, err := q.db.Exec(ctx, dropPendingBubble, proposalID)
+	return err
+}
+
 const findContactByNumber = `-- name: FindContactByNumber :one
 select c.id, c.dealer_id, c.name, c.role, c.wa_number, c.is_primary, c.last_interaction_at, c.interactions_90d, c.source_system, c.source_id, c.interactions_base, c.base_as_of, d.slug as dealer_slug, d.name as dealer_name, d.owner_id as dealer_owner
 from contacts c join dealers d on d.id = c.dealer_id where c.wa_number = $1 limit 1
@@ -1228,6 +1239,19 @@ type SetWANumberStateParams struct {
 func (q *Queries) SetWANumberState(ctx context.Context, arg SetWANumberStateParams) error {
 	_, err := q.db.Exec(ctx, setWANumberState, arg.WaNumber, arg.State, arg.Jid)
 	return err
+}
+
+const shadowOutbox = `-- name: ShadowOutbox :execrows
+update outbox set status = 'shadow', error = 'mode bayangan pilot: tidak dikirim' where proposal_id = $1 and status = 'pending'
+`
+
+// Pilot shadow mode: an approved proposal's rows are kept for the record but never delivered.
+func (q *Queries) ShadowOutbox(ctx context.Context, proposalID *uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, shadowOutbox, proposalID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const touchContact = `-- name: TouchContact :exec

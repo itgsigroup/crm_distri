@@ -1,0 +1,12 @@
+{"type":"object","additionalProperties":false,
+ "required":["mode","branch","started_at","shadow_days","unlock_confidence","unlock_weeks","min_decisions_per_week","unlocked"],
+ "properties":{
+  "mode":{"enum":["off","shadow","live"]},
+  "branch":{"type":"string","minLength":1},
+  "started_at":{"type":"string","pattern":"^$|^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+  "shadow_days":{"type":"integer","minimum":7,"maximum":60},
+  "unlock_confidence":{"type":"integer","minimum":60,"maximum":100},
+  "unlock_weeks":{"type":"integer","minimum":1,"maximum":8},
+  "min_decisions_per_week":{"type":"integer","minimum":1,"maximum":100},
+  "unlocked":{"type":"array","items":{"enum":["AI Order","AI Follow-up","AI Kredit","AI Stok","AI Penagihan","AI Prospek"]},"uniqueItems":true}
+ }}

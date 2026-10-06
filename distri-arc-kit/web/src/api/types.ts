@@ -254,7 +254,7 @@ export interface Brief {
   confidence: number
 }
 
-export interface Me { id: string; email: string; name: string; role: string; branch: string; screens: string[]; decide: string[]; edit_policies: boolean; manage_users: boolean; totp_available?: boolean; totp_enabled?: boolean }
+export interface Me { id: string; email: string; name: string; role: string; branch: string; screens: string[]; decide: string[]; edit_policies: boolean; manage_users: boolean; totp_available?: boolean; totp_enabled?: boolean; pilot_mode?: 'off' | 'shadow' | 'live' }
 export interface Health { db: string; queue: string; now: string; sample_data?: boolean }
 export interface SystemAlert { key: string; message: string; opened_at: string; notified_at: string | null }
 export interface HealthFull {
@@ -416,3 +416,16 @@ export interface RelasiNode { id: string; type: 'sales' | 'dealer'; name: string
 export interface RelasiEdge { sales: string; dealer: string; w: number; monthly: number[] }
 export interface Relasi { period_days: number; months: number; month_labels: string[]; nodes: RelasiNode[]; edges: RelasiEdge[]; pairs: { sales: string; dealer: string; w: number }[]; connections: number; interactions: number }
 export interface RelasiInsight { tone: string; icon: string; title: string; text: string; dealer: string }
+
+export interface PilotConf { week: string; accepted: number; rejected: number; pct: number }
+export interface PilotAgent {
+  agent: string; proposed: number; approved: number; edited: number; rejected: number; expired: number; open: number; autonomous: number
+  accept_pct: number | null; median_decision_min: number | null; weeks: PilotConf[]; eligible: boolean; unlocked: boolean; eligible_note: string
+}
+export interface PilotReport {
+  mode: 'off' | 'shadow' | 'live'; branch: string; started_at: string; shadow_until: string; day: number; from: string; to: string
+  agents: PilotAgent[]; on_schedule_pct: number; dso_days: number; Targets: { on_schedule_pct: number; dso_days: number }
+  at_risk: number; caught_before_churn: number; churned: number; audit: { key: string; label: string; violations: number }[]; audit_ok: boolean
+  decisions: number; accept_pct: number | null; sent_in_shadow: number
+}
+export interface SOWRow { id: string; slug: string; name: string; branch: string; sales_name: string | null; sow: number; sow_source: string; omzet_bln: number; confirmed_sow: number | null; confirmed_note: string | null; confirmed_at: string | null }

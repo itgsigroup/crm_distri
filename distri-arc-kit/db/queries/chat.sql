@@ -230,3 +230,12 @@ update signals set payload = payload || jsonb_build_object('reply_to', $2::text)
 -- name: DealerOpenInvoiceList :many
 select id, number, due_at, (total - coalesce(paid, 0))::bigint as residual from invoices
 where dealer_id = $1 and total > coalesce(paid, 0) and state <> 'cancel' order by due_at;
+
+-- name: ShadowOutbox :execrows
+-- Pilot shadow mode: an approved proposal's rows are kept for the record but never delivered.
+update outbox set status = 'shadow', error = 'mode bayangan pilot: tidak dikirim' where proposal_id = $1 and status = 'pending';
+
+-- name: DropPendingBubble :exec
+-- The pending chat bubble of a row that will not be sent (shadow mode) is removed with its dedupe key.
+with gone as (delete from chat_messages where proposal_id = $1 and status = 'pending' and direction = 'out' returning id)
+delete from chat_message_keys k using gone where k.message_id = gone.id;

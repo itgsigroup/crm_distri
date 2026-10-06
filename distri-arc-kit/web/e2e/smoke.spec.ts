@@ -173,3 +173,20 @@ test('Status sistem shows each part from /api/health; 2FA setup shows a key (sta
   await expect(page.getByLabel('Kode 2FA')).toBeVisible()
   await page.getByRole('button', { name: 'Batal' }).click()
 })
+
+test('Pilot: shadow mode chip, dashboard per agent + audit; Konfirmasi share of wallet (stage 14)', async ({ page, request }) => {
+  await request.post('/api/pilot/mode', { data: { mode: 'shadow', branch: 'Semarang' } })
+  try {
+    await page.goto('/pengaturan/pilot', { waitUntil: 'networkidle' })
+    await expect(page.locator('.chip-sample').filter({ hasText: 'Mode bayangan' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Pilot cabang Semarang' })).toBeVisible()
+    await expect(page.locator('.tbl tbody tr')).toHaveCount(6)
+    await expect(page.getByText('Kirim selama mode bayangan')).toBeVisible()
+    await page.goto('/dealer/sinar', { waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'Konfirmasi share of wallet' }).click()
+    await expect(page.locator('.sheet .tbl tbody tr').first()).toBeVisible()
+    await page.getByRole('button', { name: 'Batal' }).click()
+  } finally {
+    await request.post('/api/pilot/mode', { data: { mode: 'off' } })
+  }
+})

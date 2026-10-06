@@ -8,6 +8,8 @@ import { contactIni, fmtRp, hb, hcol, hhmm, shortDate } from '../../lib/format'
 import { KAT, KUAD } from '../../lib/i18n/id'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { MemoText } from './Memo'
+import { SOWSheet } from './SOWSheet'
+import { useFeedback } from '../../components/feedback'
 import { useDealer, useDealers } from '../../app/queries'
 import { creditTone } from '../control/lists'
 
@@ -27,9 +29,11 @@ function DealerList({ active }: { active?: string }) {
   }, [q])
   const { data: list = [] } = useDealers(term)
   const nav = useNavigate()
+  const { openSheet } = useFeedback()
   return (
     <div className="card acc-list">
       <div className="search"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} type="text" placeholder="Cari dealer, kota, produk…" /></div>
+      <button className="btn quiet" style={{ height: 28, fontSize: 12, margin: '8px 0 4px', alignSelf: 'flex-start' }} onClick={() => openSheet(<SOWSheet />)}><Icon name="check" />Konfirmasi share of wallet</button>
       <div className="list">
         {list.map((d) => {
           const m = d.metrics

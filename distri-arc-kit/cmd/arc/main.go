@@ -63,6 +63,10 @@ const usage = `arc — Distri ARC Orbit
   arc ctl pdp export --dealer <slug> [--out f]   everything stored about a dealer (UU PDP)
   arc ctl pdp delete --contact <wa> --by <email> --yes   erase a person (aggregates stay)
   arc ctl fingerprint        hash of all dealer metrics (restore test)
+  arc ctl wa import-internal --csv f   internal numbers (wa_number,label,department,is_sales)
+  arc ctl pilot start [--branch Semarang] | live | off   pilot mode (start = shadow: no sends, everything approve)
+  arc ctl pilot status|audit [--week d]   pilot numbers per agent, KPI, privacy & send audit (exit 1 on a violation)
+  arc ctl pilot snapshot|export [--week d] [--out f]   store a pilot week | weekly CSV
 `
 
 func main() {
@@ -211,6 +215,14 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 	}
 	if args[0] == "check-env" {
 		return runCheckEnv(ctx, cfg)
+	}
+	if args[0] == "pilot" {
+		st, clk, err := open(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		defer st.Close()
+		return runPilotCtl(ctx, st, clk, args[1:])
 	}
 	if args[0] == "pdp" || args[0] == "retention" || args[0] == "fingerprint" {
 		st, clk, err := open(ctx, cfg)
@@ -427,7 +439,7 @@ func deref[T any](p *T) T {
 
 func runWACtl(ctx context.Context, st *store.Store, c clock.Clock, log *slog.Logger, args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: arc ctl wa inject|numbers")
+		return errors.New("usage: arc ctl wa inject|numbers|import-internal --csv f")
 	}
 	fs := flag.NewFlagSet("wa "+args[0], flag.ExitOnError)
 	from := fs.String("from", "", "sender number")
@@ -435,8 +447,15 @@ func runWACtl(ctx context.Context, st *store.Store, c clock.Clock, log *slog.Log
 	text := fs.String("text", "", "message text")
 	name := fs.String("name", "", "sender push name")
 	in := fs.Duration("in", 0, "message time after now (dev clock: a reply arrives after the sent follow-up)")
+	csvPath := fs.String("csv", "", "internal numbers CSV: wa_number,label,department,is_sales")
 	_ = fs.Parse(args[1:])
 	switch args[0] {
+	case "import-internal":
+		n, err := importInternal(ctx, st, *csvPath)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%d nomor internal diimpor (DM antar nomor ini tidak disimpan)\n", n)
 	case "inject":
 		if *from == "" || *text == "" {
 			return errors.New("--from and --text are required")

@@ -653,7 +653,7 @@ func (o *Orchestrator) execute(ctx context.Context, r *stageRun) (map[string]any
 	}
 	for _, p := range pending {
 		switch {
-		case p.Kind == domain.KindSODraft && p.Autonomy == "auto" && o.OdooWrite:
+		case p.Kind == domain.KindSODraft && p.Autonomy == "auto" && o.OdooWrite && !r.in.Policies.Pilot.Shadow():
 			payload, _ := json.Marshal(map[string]any{"proposal": p.Payload, "approved_by": "Orchestrator · otonom"})
 			ob, err := o.St.Q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "odoo_so_draft", Payload: payload})
 			if err != nil {
@@ -673,7 +673,7 @@ func (o *Orchestrator) execute(ctx context.Context, r *stageRun) (map[string]any
 		}
 	}
 	// ADR 0008: auto steps that message dealers are sent by the Orchestrator only when the owner enabled it
-	if r.in.Policies.Guard.AutoSendsMessages() {
+	if r.in.Policies.Guard.AutoSendsMessages() && !r.in.Policies.Pilot.Shadow() {
 		n, err := o.autoSend(ctx, today, now)
 		if err != nil {
 			return nil, err

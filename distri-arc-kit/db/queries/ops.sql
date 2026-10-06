@@ -70,7 +70,7 @@ delete from chat_threads where contact_id = any(sqlc.arg(contact_ids)::uuid[]) o
 with gone as (
   delete from signals s
   where s.kind in ('wa', 'wa_group', 'manual')
-    and (s.contact_id = any(sqlc.arg(contact_ids)::uuid[]) or s.payload->>'from' = sqlc.arg(wa_number)::text)
+    and (s.contact_id = any(sqlc.arg(contact_ids)::uuid[]) or coalesce(s.payload->>'from_number', s.payload->>'from') = sqlc.arg(wa_number)::text)
   returning s.dedupe_key
 )
 delete from signal_keys k using gone where k.dedupe_key = gone.dedupe_key;

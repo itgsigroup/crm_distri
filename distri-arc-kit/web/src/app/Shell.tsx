@@ -186,6 +186,7 @@ export function Shell() {
                 </form>
               </div>
               <OrchPill />
+              {me?.pilot_mode === 'shadow' && <span className="chip-sample" title="Pilot: Orchestrator menganalisis, tidak ada yang dikirim ke dealer">Mode bayangan</span>}
               {health?.sample_data && <span className="chip-sample">Data contoh</span>}
               <button className="icon-btn" aria-label="Notifikasi" onClick={() => toast('Semua yang butuh Anda ada di Pusat kendali.')}>
                 <Icon name="bell" />

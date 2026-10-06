@@ -13,6 +13,8 @@ import (
 	"distri-arc/internal/clock"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/ops"
+	"distri-arc/internal/pilot"
+	"distri-arc/internal/policy"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 )
@@ -84,5 +86,22 @@ func (w *AlertsWorker) Work(ctx context.Context, _ *river.Job[jobs.AlertsCheckAr
 	if len(lines) > 0 {
 		w.log.Warn("ops alert", "lines", lines)
 	}
+	return err
+}
+
+// PilotWorker handles pilot.snapshot: the week that just ended, while a pilot runs.
+type PilotWorker struct {
+	river.WorkerDefaults[jobs.PilotSnapshotArgs]
+	st    *store.Store
+	clock clock.Clock
+}
+
+// Work snapshots last week (nothing when the pilot is off).
+func (w *PilotWorker) Work(ctx context.Context, _ *river.Job[jobs.PilotSnapshotArgs]) error {
+	pol, err := policy.Load(ctx, w.st.Q)
+	if err != nil || pol.Pilot.Mode == "off" {
+		return err
+	}
+	_, err = pilot.Service{St: w.st, Clock: w.clock}.Snapshot(ctx, w.clock.Now().AddDate(0, 0, -7))
 	return err
 }

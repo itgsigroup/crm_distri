@@ -10,6 +10,7 @@ import { AIConnectionsCard } from './AIConnections'
 import { IdentifyPanel } from './IdentifyPanel'
 import { OdooPanel } from './OdooPanel'
 import { SecurityCard, SystemCard } from './SystemCard'
+import { PilotCard } from '../pilot/PilotPage'
 
 type Obj = Record<string, unknown>
 const num = (o: Obj | undefined, k: string, d: number) => (o && typeof o[k] === 'number' ? (o[k] as number) : d)
@@ -91,6 +92,7 @@ export function SettingsPage() {
           </div>
         </div>
         <AIConnectionsCard />
+        {me?.manage_users && <PilotCard />}
         {me?.manage_users && <SystemCard />}
         <div className="card">
           <div className="card-h"><h2>Kalibrasi agen</h2><Pill tone="good" icon="check">Belajar dari keputusan Anda</Pill></div>

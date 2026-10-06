@@ -474,6 +474,13 @@ type Payment struct {
 	SourceID     *string    `json:"source_id"`
 }
 
+type PilotWeek struct {
+	Week      time.Time       `json:"week"`
+	Branch    string          `json:"branch"`
+	Data      json.RawMessage `json:"data"`
+	CreatedAt time.Time       `json:"created_at"`
+}
+
 type PlanItem struct {
 	ID          uuid.UUID   `json:"id"`
 	PlanDate    time.Time   `json:"plan_date"`

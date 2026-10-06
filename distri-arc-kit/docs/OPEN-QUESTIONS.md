@@ -27,3 +27,7 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-06 · 13 · Grup WhatsApp internal mana yang menerima alert sistem (IT / Sam / admin)? · grup internal pertama (Gudang Semarang) · `ALERT_WA_GROUP`
 - 2026-10-06 · 13 · 2FA wajib (bukan opsional) untuk CEO/admin saat pilot? · opsional, disarankan di layar · opsional
 - 2026-10-06 · 13 · Validasi `infra/Caddyfile` dengan biner caddy belum jalan (unduhan modul timeout di jaringan ini); CSP sudah diuji pada build produksi · dijalankan saat deploy (`caddy validate`) · —
+- 2026-10-06 · 14 · Tanggal mulai pilot Semarang dan dua nomor sales yang dipasangkan (Andi + ?) · perangkat pilot siap, menunggu deploy produksi (pertanyaan Stage 13) · —
+- 2026-10-06 · 14 · Daftar nomor internal karyawan (CSV `wa_number,label,department,is_sales`) untuk `arc ctl wa import-internal` · hanya 4 nomor sales di seed · —
+- 2026-10-06 · 14 · Target pilot di `docs/PILOT-REPORT.md` (saran diterima ≥ 70%, median keputusan < 4 jam kerja, lewat jadwal tertangkap ≥ 50%) — setuju, atau Sam punya angka lain? · dipakai sebagai usulan · —
+- 2026-10-06 · 14 · Saran tanpa dealer (transfer stok, PO) dihitung untuk semua cabang di dashboard pilot; perlu dipisah per gudang cabang? · dihitung semua · —

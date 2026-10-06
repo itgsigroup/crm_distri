@@ -87,3 +87,8 @@ Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (bran
 - `bin/arc ctl check-env` (gagal bila konfigurasi produksi salah) · `bin/arc ctl retention purge` · `bin/arc ctl pdp export --dealer sinar` · `bin/arc ctl pdp delete --contact 62… --yes`.
 - `make restore-test` (backup terenkripsi → restore → metrik identik; butuh `PG_BIN` sesuai versi server dan OpenSSL ≥ 1.1.1 di `OPENSSL`) · `make loadtest` (50k sinyal, p95, EXPLAIN; lalu `make reset`).
 - Produksi: `docs/DEPLOY.md` (Docker Compose atau systemd), insiden: `docs/RUNBOOK.md`, performa: `docs/PERF.md`.
+
+### Tahap 14: pilot cabang
+- Checklist & laporan: `docs/PILOT-REPORT.md`. Mulai: Pengaturan → Pilot → *Bayangan* atau `bin/arc ctl pilot start --branch Semarang`.
+- Selama pilot: `bin/arc ctl pilot status` (per agen + KPI), `bin/arc ctl pilot audit` (exit 1 bila ada pelanggaran), `bin/arc ctl pilot export --week 2026-10-05 --out minggu.csv`.
+- Sales: Dealer → **Konfirmasi share of wallet** (20 dealer teratas per kuartal). Nomor internal: `bin/arc ctl wa import-internal --csv internal.csv`.

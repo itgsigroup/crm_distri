@@ -25,6 +25,7 @@ import (
 	"distri-arc/internal/mcp"
 	"distri-arc/internal/odoo"
 	"distri-arc/internal/ops"
+	"distri-arc/internal/policy"
 	"distri-arc/internal/proposals"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
@@ -101,6 +102,7 @@ func (s *Server) Handler() http.Handler {
 			s.mcpRoutes(r)
 			s.relasiRoutes(r)
 			s.identifyRoutes(r)
+			s.pilotRoutes(r)
 			r.Post("/ask", s.askHandler)
 			r.Get("/events", s.events)
 			r.Get("/brief/today", s.briefToday)
@@ -230,9 +232,13 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 			decide = append(decide, k)
 		}
 	}
+	pilotMode := "off"
+	if pol, err := policy.Load(r.Context(), s.st.Q); err == nil {
+		pilotMode = pol.Pilot.Mode
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"id": u.ID, "email": u.Email, "name": u.Name, "role": u.Role, "branch": u.Branch,
 		"screens": screensFor(role), "decide": decide, "edit_policies": role == "ceo", "manage_users": role == "ceo" || role == "admin",
-		"totp_available": totpRoles(role), "totp_enabled": u.TotpEnabledAt != nil})
+		"totp_available": totpRoles(role), "totp_enabled": u.TotpEnabledAt != nil, "pilot_mode": pilotMode})
 }
 
 // screensFor is the menu of a role (Pengaturan only for CEO and admin; finance works on credit, warehouse on stock).
