@@ -277,6 +277,15 @@ type CycleStage struct {
 	Detail     json.RawMessage `json:"detail"`
 }
 
+type DataMapping struct {
+	Kind        string    `json:"kind"`
+	SourceValue string    `json:"source_value"`
+	Target      *string   `json:"target"`
+	Seen        int32     `json:"seen"`
+	UpdatedBy   *string   `json:"updated_by"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type Dealer struct {
 	ID               uuid.UUID       `json:"id"`
 	Slug             *string         `json:"slug"`
@@ -298,6 +307,9 @@ type Dealer struct {
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 	MemoSentences    json.RawMessage `json:"memo_sentences"`
+	CustomerType     string          `json:"customer_type"`
+	MasterLocked     []string        `json:"master_locked"`
+	Phone            *string         `json:"phone"`
 }
 
 type DealerMetricsDaily struct {
@@ -349,6 +361,30 @@ type Identification struct {
 	CreatedAt    time.Time       `json:"created_at"`
 	IdentifiedAt *time.Time      `json:"identified_at"`
 	Potential    *string         `json:"potential"`
+}
+
+type ImportRow struct {
+	Entity    string          `json:"entity"`
+	Key       string          `json:"key"`
+	Data      json.RawMessage `json:"data"`
+	Source    string          `json:"source"`
+	UpdatedAt time.Time       `json:"updated_at"`
+}
+
+type ImportRun struct {
+	ID         uuid.UUID       `json:"id"`
+	Source     string          `json:"source"`
+	Entity     string          `json:"entity"`
+	Status     string          `json:"status"`
+	Rows       int32           `json:"rows"`
+	Upserted   int32           `json:"upserted"`
+	Skipped    int32           `json:"skipped"`
+	Unmapped   int32           `json:"unmapped"`
+	Error      *string         `json:"error"`
+	Notes      json.RawMessage `json:"notes"`
+	StartedBy  *string         `json:"started_by"`
+	StartedAt  time.Time       `json:"started_at"`
+	FinishedAt *time.Time      `json:"finished_at"`
 }
 
 type InteractionsMonthly struct {
@@ -618,6 +654,15 @@ type SalesUser struct {
 	SourceSystem *string   `json:"source_system"`
 	SourceID     *string   `json:"source_id"`
 	CreatedAt    time.Time `json:"created_at"`
+	Email        *string   `json:"email"`
+	ExternalName *string   `json:"external_name"`
+}
+
+type Secret struct {
+	Key       string    `json:"key"`
+	Value     string    `json:"value"`
+	UpdatedBy *string   `json:"updated_by"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type Signal struct {

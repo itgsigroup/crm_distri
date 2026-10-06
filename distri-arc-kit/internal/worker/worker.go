@@ -265,6 +265,7 @@ type Deps struct {
 	Identify     *identify.Service
 	Ops          ops.Env
 	AlertFrom    string // ALERT_WA_FROM
+	SessionKey   []byte // opens sealed secrets (BigQuery key)
 	AlertGroup   string // ALERT_WA_GROUP
 }
 
@@ -278,6 +279,8 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	river.AddWorker(workers, &PartitionsWorker{st: st, clock: c})
 	river.AddWorker(workers, &RetentionWorker{st: st, clock: c, log: log})
 	river.AddWorker(workers, &PilotWorker{st: st, clock: c})
+	river.AddWorker(workers, &DataSyncWorker{st: st, clock: c, log: log, secret: deps.SessionKey})
+	river.AddWorker(workers, &DataApplyWorker{st: st, clock: c, log: log})
 	river.AddWorker(workers, &AlertsWorker{st: st, clock: c, log: log, env: deps.Ops, from: deps.AlertFrom, group: deps.AlertGroup})
 	var periodic []*river.PeriodicJob
 	if deps.Odoo != nil {
@@ -322,6 +325,9 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 			}, nil),
 			river.NewPeriodicJob(Daily{Hour: 2, Minute: 30}, func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.RetentionPurgeArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 24 * time.Hour}}
+			}, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(15*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.DataSyncArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 15 * time.Minute}}
 			}, nil),
 			river.NewPeriodicJob(river.PeriodicInterval(5*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.AlertsCheckArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 5 * time.Minute}}

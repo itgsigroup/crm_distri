@@ -103,6 +103,7 @@ func (s *Server) Handler() http.Handler {
 			s.relasiRoutes(r)
 			s.identifyRoutes(r)
 			s.pilotRoutes(r)
+			s.dataRoutes(r)
 			r.Post("/ask", s.askHandler)
 			r.Get("/events", s.events)
 			r.Get("/brief/today", s.briefToday)
@@ -166,15 +167,7 @@ const sessionCookie = "arc_session"
 const sessionTTL = 12 * time.Hour
 
 // secret is the session signing key: SESSION_SECRET, or a fixed development key when APP_ENV=dev.
-func (s *Server) secret() []byte {
-	if s.cfg.SessionSecret != "" {
-		return []byte(s.cfg.SessionSecret)
-	}
-	if s.cfg.IsDev() {
-		return []byte("distri-arc-dev-session-secret")
-	}
-	return nil
-}
+func (s *Server) secret() []byte { return s.cfg.SessionKey() }
 
 // auth resolves the user: the session cookie first; the X-Dev-User header (an email) only when APP_ENV=dev, so
 // the web dev server works without logging in while the login flow stays testable.

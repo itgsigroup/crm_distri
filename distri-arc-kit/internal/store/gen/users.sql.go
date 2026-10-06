@@ -12,6 +12,30 @@ import (
 	"github.com/google/uuid"
 )
 
+const createPersonProfile = `-- name: CreatePersonProfile :one
+insert into sales_users (name, branch, role, email) values ($1, $2, $3, $4) returning id
+`
+
+type CreatePersonProfileParams struct {
+	Name   string  `json:"name"`
+	Branch string  `json:"branch"`
+	Role   string  `json:"role"`
+	Email  *string `json:"email"`
+}
+
+// Every account gets a person profile (sales_users): decisions are recorded against it (proposals.decided_by).
+func (q *Queries) CreatePersonProfile(ctx context.Context, arg CreatePersonProfileParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, createPersonProfile,
+		arg.Name,
+		arg.Branch,
+		arg.Role,
+		arg.Email,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const createUser = `-- name: CreateUser :one
 insert into users (email, name, role, password_hash, sales_user_id, active) values ($1, $2, $3, $4, $5, true) returning id
 `

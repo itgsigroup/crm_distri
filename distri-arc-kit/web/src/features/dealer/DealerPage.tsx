@@ -27,12 +27,16 @@ function DealerList({ active }: { active?: string }) {
     const t = window.setTimeout(() => setTerm(q.trim()), 200)
     return () => window.clearTimeout(t)
   }, [q])
-  const { data: list = [] } = useDealers(term)
+  const [type, setType] = useState('')
+  const { data: list = [] } = useDealers(term, type)
   const nav = useNavigate()
   const { openSheet } = useFeedback()
   return (
     <div className="card acc-list">
       <div className="search"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} type="text" placeholder="Cari dealer, kota, produk…" /></div>
+      <div className="seg" style={{ margin: '10px 0 2px', alignSelf: 'flex-start' }} role="radiogroup" aria-label="Jenis pelanggan">
+        {[['', 'Semua'], ['reseller', 'Dealer'], ['si', 'Freelance / SI']].map(([k, l]) => <button key={k} role="radio" aria-checked={type === k} className={type === k ? 'is-active' : ''} onClick={() => setType(k)}>{l}</button>)}
+      </div>
       <button className="btn quiet" style={{ height: 28, fontSize: 12, margin: '8px 0 4px', alignSelf: 'flex-start' }} onClick={() => openSheet(<SOWSheet />)}><Icon name="check" />Konfirmasi share of wallet</button>
       <div className="list">
         {list.map((d) => {
@@ -42,7 +46,7 @@ function DealerList({ active }: { active?: string }) {
               <span className={`dot ${hb(m.score)}`} />
               <div>
                 <b>{d.name}</b>
-                <span>{m.status === 'Baru' ? 'Aktif' : m.status} · {KUAD[m.segment].n} · {d.city} · tier {d.tier}</span>
+                <span>{m.status === 'Baru' ? 'Aktif' : m.status} · {d.customer_type === 'si' ? 'SI' : 'Dealer'} · {KUAD[m.segment].n} · {d.city}{d.tier ? ` · tier ${d.tier}` : ''}</span>
                 <div className="row2">
                   <span>{m.rhythm_days ? (m.due_in! >= 0 ? `jadwal order ${m.due_in} hr` : `lewat ${-m.due_in!} hr`) : 'baru'} · {d.owner.name}</span>
                   <em className="num">{fmtRp(m.avg_order)}/order</em>
@@ -116,8 +120,9 @@ function DealerBody({ d }: { d: DealerDetail }) {
           <h2>{d.name}</h2>
           <div className="tags">
             <Pill tone={statusTone(m.status)} icon="target">{status}</Pill>
+            <Pill tone="neutral" icon="people">{d.customer_type === 'si' ? 'Freelance / System Integrator' : 'Dealer (reseller)'}</Pill>
             <Pill tone="neutral" icon="building">{d.city} · cabang {d.branch}</Pill>
-            <Pill tone="neutral">Tier {d.tier} · {d.segment_desc}</Pill>
+            {(d.tier || d.segment_desc) && <Pill tone="neutral">{[d.tier && `Tier ${d.tier}`, d.segment_desc].filter(Boolean).join(' · ')}</Pill>}
             <Pill tone="neutral" icon="chart">{KUAD[m.segment].n} · {KUAD[m.segment].s}</Pill>
             <Pill tone="neutral">Sales {d.owner.name}</Pill>
             <button className="btn ghost" style={{ height: 26, fontSize: 12, marginLeft: 'auto' }} disabled={orch.running} onClick={() => reanalyze('dealer:' + d.id)}><Icon name="refresh" />Analisis ulang</button>

@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"os"
 
+	db2 "distri-arc/db"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
 	"distri-arc/internal/ops"
+	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
 )
 
@@ -120,5 +122,35 @@ func runFingerprint(ctx context.Context, st *store.Store) error {
 	}
 	sum := sha256.Sum256([]byte(metrics + "\n" + daily))
 	fmt.Println(hex.EncodeToString(sum[:]))
+	return nil
+}
+
+// runWipe empties every data schema (public, WhatsApp sessions) and re-creates the empty installation: migrations
+// and default policies. Production needs --confirm with the exact database name; take a backup first.
+func runWipe(ctx context.Context, cfg config.Config, st *store.Store, args []string) error {
+	fs := flag.NewFlagSet("wipe", flag.ExitOnError)
+	confirm := fs.String("confirm", "", "the database name, typed exactly")
+	_ = fs.Parse(args)
+	var db string
+	if err := st.Pool.QueryRow(ctx, "select current_database()").Scan(&db); err != nil {
+		return err
+	}
+	if *confirm != db {
+		return fmt.Errorf("menghapus semua data database %q tidak bisa dibatalkan: ulangi dengan --confirm %s (buat backup dulu: infra/backup.sh)", db, db)
+	}
+	if _, err := st.Pool.Exec(ctx, "drop schema if exists wa_bridge cascade; drop schema if exists whatsmeow cascade; drop schema public cascade; create schema public"); err != nil {
+		return err
+	}
+	if err := st.Migrate(ctx); err != nil {
+		return err
+	}
+	if err := upgradeWhatsmeow(ctx, cfg); err != nil {
+		return err
+	}
+	n, err := seed.Policies(ctx, st, db2.Seed)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("database %s dikosongkan · migrasi ulang · %d kebijakan default · buat akun: arc ctl user add …\n", db, n)
 	return nil
 }

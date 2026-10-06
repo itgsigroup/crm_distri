@@ -159,3 +159,14 @@ func parseFloat(s string) float64 {
 	f, _ := strconv.ParseFloat(s, 64)
 	return f
 }
+
+// SessionKey is the key of session tokens and sealed secrets: SESSION_SECRET, or a fixed key in development.
+func (c Config) SessionKey() []byte {
+	if c.SessionSecret != "" {
+		return []byte(c.SessionSecret)
+	}
+	if c.IsDev() {
+		return []byte("distri-arc-dev-session-secret")
+	}
+	return nil
+}

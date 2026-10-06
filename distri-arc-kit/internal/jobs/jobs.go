@@ -105,3 +105,20 @@ type WAUnpairArgs struct {
 }
 
 func (WAUnpairArgs) Kind() string { return "wa.unpair" }
+
+// DataSyncArgs pulls real data from BigQuery (every 15 min the worker checks data.source.sync_minutes; Force runs now).
+type DataSyncArgs struct {
+	Force bool   `json:"force"`
+	Full  bool   `json:"full"`
+	By    string `json:"by"`
+}
+
+func (DataSyncArgs) Kind() string { return "data.sync" }
+
+// DataApplyArgs re-runs the transform from staging (after a CSV import or a mapping change).
+type DataApplyArgs struct {
+	Full bool   `json:"full"`
+	By   string `json:"by"`
+}
+
+func (DataApplyArgs) Kind() string { return "data.apply" }

@@ -14,7 +14,7 @@ import (
 )
 
 const getDealerBySlug = `-- name: GetDealerBySlug :one
-select d.id, d.slug, d.name, d.city, d.branch, d.tier, d.segment_desc, d.owner_id, d.credit_limit, d.payment_terms_days, d.source_system, d.source_id, d.source_write_date, d.memo, d.memo_signal_ids, d.memo_updated_at, d.metrics_current, d.created_at, d.updated_at, d.memo_sentences, s.name as owner_name
+select d.id, d.slug, d.name, d.city, d.branch, d.tier, d.segment_desc, d.owner_id, d.credit_limit, d.payment_terms_days, d.source_system, d.source_id, d.source_write_date, d.memo, d.memo_signal_ids, d.memo_updated_at, d.metrics_current, d.created_at, d.updated_at, d.memo_sentences, d.customer_type, d.master_locked, d.phone, s.name as owner_name
 from dealers d left join sales_users s on s.id = d.owner_id
 where d.slug = $1
 `
@@ -40,6 +40,9 @@ type GetDealerBySlugRow struct {
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 	MemoSentences    json.RawMessage `json:"memo_sentences"`
+	CustomerType     string          `json:"customer_type"`
+	MasterLocked     []string        `json:"master_locked"`
+	Phone            *string         `json:"phone"`
 	OwnerName        *string         `json:"owner_name"`
 }
 
@@ -67,6 +70,9 @@ func (q *Queries) GetDealerBySlug(ctx context.Context, slug *string) (GetDealerB
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.MemoSentences,
+		&i.CustomerType,
+		&i.MasterLocked,
+		&i.Phone,
 		&i.OwnerName,
 	)
 	return i, err
@@ -172,7 +178,7 @@ func (q *Queries) LastAudit(ctx context.Context, action *string) (AuditLog, erro
 }
 
 const listDealersBasic = `-- name: ListDealersBasic :many
-select d.id, d.slug, d.name, d.city, d.branch, d.tier, d.segment_desc, d.owner_id, d.credit_limit, d.payment_terms_days, d.source_system, d.source_id, d.source_write_date, d.memo, d.memo_signal_ids, d.memo_updated_at, d.metrics_current, d.created_at, d.updated_at, d.memo_sentences, s.name as owner_name
+select d.id, d.slug, d.name, d.city, d.branch, d.tier, d.segment_desc, d.owner_id, d.credit_limit, d.payment_terms_days, d.source_system, d.source_id, d.source_write_date, d.memo, d.memo_signal_ids, d.memo_updated_at, d.metrics_current, d.created_at, d.updated_at, d.memo_sentences, d.customer_type, d.master_locked, d.phone, s.name as owner_name
 from dealers d left join sales_users s on s.id = d.owner_id
 order by d.name
 `
@@ -198,6 +204,9 @@ type ListDealersBasicRow struct {
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 	MemoSentences    json.RawMessage `json:"memo_sentences"`
+	CustomerType     string          `json:"customer_type"`
+	MasterLocked     []string        `json:"master_locked"`
+	Phone            *string         `json:"phone"`
 	OwnerName        *string         `json:"owner_name"`
 }
 
@@ -231,6 +240,9 @@ func (q *Queries) ListDealersBasic(ctx context.Context) ([]ListDealersBasicRow, 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.MemoSentences,
+			&i.CustomerType,
+			&i.MasterLocked,
+			&i.Phone,
 			&i.OwnerName,
 		); err != nil {
 			return nil, err
@@ -377,7 +389,7 @@ func (q *Queries) ListRecentCycles(ctx context.Context, limit int32) ([]Cycle, e
 }
 
 const listSalesUsers = `-- name: ListSalesUsers :many
-select id, name, branch, wa_number, odoo_user_id, role, active, source_system, source_id, created_at from sales_users where active order by odoo_user_id nulls last, name
+select id, name, branch, wa_number, odoo_user_id, role, active, source_system, source_id, created_at, email, external_name from sales_users where active order by odoo_user_id nulls last, name
 `
 
 func (q *Queries) ListSalesUsers(ctx context.Context) ([]SalesUser, error) {
@@ -400,6 +412,8 @@ func (q *Queries) ListSalesUsers(ctx context.Context) ([]SalesUser, error) {
 			&i.SourceSystem,
 			&i.SourceID,
 			&i.CreatedAt,
+			&i.Email,
+			&i.ExternalName,
 		); err != nil {
 			return nil, err
 		}

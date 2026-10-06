@@ -63,6 +63,7 @@ const usage = `arc — Distri ARC Orbit
   arc ctl pdp export --dealer <slug> [--out f]   everything stored about a dealer (UU PDP)
   arc ctl pdp delete --contact <wa> --by <email> --yes   erase a person (aggregates stay)
   arc ctl fingerprint        hash of all dealer metrics (restore test)
+  arc ctl wipe --confirm <db>   empty every data schema, migrate, default policies (back up first; irreversible)
   arc ctl wa import-internal --csv f   internal numbers (wa_number,label,department,is_sales)
   arc ctl pilot start [--branch Semarang] | live | off   pilot mode (start = shadow: no sends, everything approve)
   arc ctl pilot status|audit [--week d]   pilot numbers per agent, KPI, privacy & send audit (exit 1 on a violation)
@@ -184,7 +185,7 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		idf.Profiles = pr
 	}
 	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch, Identify: idf,
-		Ops: ops.EnvFrom(cfg), AlertFrom: cfg.AlertWAFrom, AlertGroup: cfg.AlertWAGroup})
+		Ops: ops.EnvFrom(cfg), AlertFrom: cfg.AlertWAFrom, AlertGroup: cfg.AlertWAGroup, SessionKey: cfg.SessionKey()})
 	if err != nil {
 		return err
 	}
@@ -227,6 +228,14 @@ func runCtl(ctx context.Context, cfg config.Config, log *slog.Logger, args []str
 			return runRehearsal(ctx, cfg, st, clk, log, args[2:])
 		}
 		return runPilotCtl(ctx, st, clk, args[1:])
+	}
+	if args[0] == "wipe" {
+		st, _, err := open(ctx, cfg)
+		if err != nil {
+			return err
+		}
+		defer st.Close()
+		return runWipe(ctx, cfg, st, args[1:])
 	}
 	if args[0] == "pdp" || args[0] == "retention" || args[0] == "fingerprint" {
 		st, clk, err := open(ctx, cfg)

@@ -1,0 +1,12 @@
+{"type":"object","additionalProperties":false,"required":["mode","bigquery"],
+ "properties":{
+  "mode":{"enum":["none","bigquery","csv"]},
+  "bigquery":{"type":"object","additionalProperties":false,"required":["project_id","location","sync_minutes","queries"],
+   "properties":{
+    "project_id":{"type":"string"},
+    "location":{"type":"string"},
+    "sync_minutes":{"type":"integer","minimum":15,"maximum":1440},
+    "queries":{"type":"object","additionalProperties":false,
+     "properties":{"sales":{"type":"string"},"customers":{"type":"string"},"invoices":{"type":"string"},"invoice_lines":{"type":"string"},"stock":{"type":"string"}}}
+   }}
+ }}

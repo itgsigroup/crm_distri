@@ -16,8 +16,17 @@ export const useHealth = () => useQuery({ queryKey: ['health'], queryFn: () => a
 /** Full health (CEO/admin): Pengaturan → Status sistem. */
 export const useSystemStatus = () => useQuery({ queryKey: ['health', 'full'], queryFn: () => api.get<HealthFull>('/health'), refetchInterval: 30_000 })
 export const useSales = () => useQuery({ queryKey: ['sales'], queryFn: () => api.get<Items<Sales>>('/sales').then((r) => r.items) })
-export const useDealers = (term = '') =>
-  useQuery({ queryKey: ['dealers', term], queryFn: () => api.get<Items<BoardItem>>('/dealers' + (term ? `?q=${encodeURIComponent(term)}` : '')).then((r) => r.items) })
+export const useDealers = (term = '', type = '') =>
+  useQuery({
+    queryKey: ['dealers', term, type],
+    queryFn: () => {
+      const q = new URLSearchParams()
+      if (term) q.set('q', term)
+      if (type) q.set('type', type)
+      const qs = q.toString()
+      return api.get<Items<BoardItem>>('/dealers' + (qs ? '?' + qs : '')).then((r) => r.items)
+    },
+  })
 export const useDealer = (id: string | undefined) =>
   useQuery({ queryKey: ['dealer', id], enabled: !!id, queryFn: () => api.get<DealerDetail>(`/dealers/${id}`) })
 export const useOrbit = (sales?: string) => useQuery({ queryKey: ['orbit', sales ?? 'all'], queryFn: () => api.get<Items<BoardItem>>('/orbit' + q(sales)).then((r) => r.items) })

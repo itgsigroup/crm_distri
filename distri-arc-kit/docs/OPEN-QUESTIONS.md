@@ -36,3 +36,6 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-06 · 13 · `https://crm-distri.gsiindo.id` berjalan sebagai staging (data contoh, adapter fake). Kapan diganti data nyata: hapus database `distri_arc`, `arc ctl migrate`, `seed --policies-only`, isi ODOO_*/WA_*/ANTHROPIC_* di /etc/distri-arc/env · staging · —
 - 2026-10-06 · WA · Nomor WhatsApp mana yang dipasangkan dulu di server (nomor kerja yang sudah lama aktif, bukan nomor baru) dan labelnya · staging berisi 4 nomor sales contoh (unpaired) · —
 - 2026-10-06 · WA · Penjaga "hanya membalas kontak yang pernah menghubungi" membuat follow-up ke dealer yang belum pernah chat ke nomor itu ditolak. Tetap aktif (disarankan) atau dilonggarkan per nomor? · aktif · `BRIDGE_REQUIRE_PRIOR_INBOUND=on`
+- 2026-10-06 · data · Dataset & tabel BigQuery (project, lokasi, nama tabel/kolom) untuk 5 query impor, dan service account baca-saja · impor CSV tersedia; contoh query di docs/DATA-IMPORT.md · —
+- 2026-10-06 · data · Di sumber, kolom apa yang membedakan Dealer (reseller) dan Freelance/SI? · default reseller, ubah per pelanggan di Master pelanggan atau lewat mapping Jenis pelanggan · reseller
+- 2026-10-06 · data · Tier dan limit kredit per pelanggan belum ada di Accurate — diisi di Master pelanggan, atau ada sumber lain? · tanpa limit = cash · —

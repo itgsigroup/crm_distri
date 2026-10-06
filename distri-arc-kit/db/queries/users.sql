@@ -41,3 +41,7 @@ update users set totp_secret = null, totp_enabled_at = null, totp_last_step = nu
 
 -- name: ResetTOTPByEmail :execrows
 update users set totp_secret = null, totp_enabled_at = null, totp_last_step = null where lower(email) = lower($1);
+
+-- name: CreatePersonProfile :one
+-- Every account gets a person profile (sales_users): decisions are recorded against it (proposals.decided_by).
+insert into sales_users (name, branch, role, email) values ($1, $2, $3, $4) returning id;

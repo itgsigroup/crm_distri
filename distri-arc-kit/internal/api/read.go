@@ -52,7 +52,18 @@ func (s *Server) board(w http.ResponseWriter, r *http.Request) (*views.Board, bo
 	if u, _ := CurrentUser(r.Context()); deref(u.Role) == "sales" && u.SalesName != nil {
 		own := *b
 		own.Items = b.Filter(*u.SalesName)
-		return &own, true
+		b = &own
+	}
+	// ?type=reseller|si: dealer (reseller) or freelance / system integrator
+	if t := r.URL.Query().Get("type"); t == "reseller" || t == "si" {
+		typed := *b
+		typed.Items = nil
+		for _, it := range b.Items {
+			if it.Type == t {
+				typed.Items = append(typed.Items, it)
+			}
+		}
+		b = &typed
 	}
 	return b, true
 }

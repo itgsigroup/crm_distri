@@ -47,6 +47,7 @@ type BoardItem struct {
 	Branch      string                 `json:"branch"`
 	Tier        string                 `json:"tier"`
 	SegmentDesc string                 `json:"segment_desc"`
+	Type        string                 `json:"customer_type"` // reseller | si
 	Owner       Owner                  `json:"owner"`
 	CreditLimit int64                  `json:"credit_limit"`
 	Metrics     domain.DealerMetrics   `json:"metrics"`
@@ -136,7 +137,7 @@ func (b *Builder) Board(ctx context.Context) (*Board, error) {
 		m := metrics.Compute(h, ds.Policies, ds.Today)
 		it := BoardItem{
 			ID: deref(d.Slug), UUID: d.ID, Name: d.Name, ShortName: dealersvc.ShortName(d.Name), City: deref(d.City), Branch: d.Branch,
-			Tier: deref(d.Tier), SegmentDesc: deref(d.SegmentDesc), CreditLimit: d.CreditLimit, Metrics: m,
+			Tier: deref(d.Tier), SegmentDesc: deref(d.SegmentDesc), Type: d.CustomerType, CreditLimit: d.CreditLimit, Metrics: m,
 			Composition: metrics.Composition(h.Orders, ds.Today, 4), Prev: prev[deref(d.Slug)],
 		}
 		if it.ID == "" {

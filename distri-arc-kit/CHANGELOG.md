@@ -122,3 +122,9 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Penjaga anti-blokir: hanya membalas kontak yang pernah menghubungi, opt-out, anti-broadcast, jam tenang, 20/jam & 120/hari per nomor, pemanasan nomor baru, jeda acak, "mengetik…". Penolakan jeda menunda, penolakan final menggagalkan dengan alasan.
 - Banyak nomor: migrasi `0013_wa_accounts` (percakapan milik nomor), tambah / pasangkan / lepas nomor di Pengaturan → WhatsApp dengan penghitung anti-blokir, bar nomor di Chat dengan QR langsung, "via nomor" di tiap percakapan.
 - Privasi: sales hanya melihat & membuka percakapan nomornya sendiri; `/wa/pair` dibatasi CEO/admin/pemilik nomor.
+
+## Data asli & master data · 2026-10-06
+- Impor data asli (ADR 0018): kontrak kolom baku untuk tim sales, pelanggan, faktur, item faktur, stok; sumber **BigQuery** (SQL per entitas, kunci service account terenkripsi, sinkron berkala, tes query) atau **CSV** (unggah + template). Staging → transformasi idempoten → metrik dihitung ulang.
+- Master data: mapping cabang, gudang → cabang, kategori → 6 kategori product mix, sales, jenis pelanggan (nilai baru tercatat sebagai "belum dipetakan"); master pelanggan (jenis, tier, limit, termin, sales) yang tidak tertimpa impor; tim sales.
+- Dua jenis pelanggan: **Dealer (reseller)** dan **Freelance / System Integrator** — filter di Dealer, badge di halaman dealer, `?type=` di API board.
+- Pengaturan → **Data & master**; `arc ctl wipe --confirm <db>`; setiap akun baru mendapat profil keputusan otomatis. Panduan: `docs/DATA-IMPORT.md`.

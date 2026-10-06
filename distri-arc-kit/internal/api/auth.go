@@ -115,6 +115,7 @@ type userBody struct {
 	Role     string `json:"role"`
 	Password string `json:"password"`
 	Sales    string `json:"sales"` // sales_users name the account belongs to (role sales)
+	Branch   string `json:"branch"`
 	Active   *bool  `json:"active"`
 }
 
@@ -144,6 +145,18 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 		if id, err := s.st.Q.SalesUserByName(r.Context(), b.Sales); err == nil {
 			sales = &id
 		}
+	}
+	if sales == nil { // every account needs a person profile to record its decisions
+		branch := strings.TrimSpace(b.Branch)
+		if branch == "" {
+			branch = "Semua cabang"
+		}
+		id, err := s.st.Q.CreatePersonProfile(r.Context(), gen.CreatePersonProfileParams{Name: b.Name, Branch: branch, Role: b.Role, Email: &b.Email})
+		if err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+		sales = &id
 	}
 	id, err := s.st.Q.CreateUser(r.Context(), gen.CreateUserParams{Email: &b.Email, Name: &b.Name, Role: &b.Role, PasswordHash: &hash, SalesUserID: sales})
 	if err != nil {

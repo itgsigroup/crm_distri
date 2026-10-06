@@ -15,6 +15,7 @@ import { GuidePage } from '../features/guide/GuidePage'
 import { CreditPage } from '../features/credit/CreditPage'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { PilotPage } from '../features/pilot/PilotPage'
+import { DataPage } from '../features/data/DataPage'
 
 // Routes of docs/design/08-frontend.md.
 export const router = createBrowserRouter([
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
       { path: 'kredit', element: <CreditPage /> },
       { path: 'pengaturan', element: <SettingsPage /> },
       { path: 'pengaturan/pilot', element: <PilotPage /> },
+      { path: 'pengaturan/data', element: <DataPage /> },
       { path: 'panduan', element: <GuidePage /> },
     ],
   },

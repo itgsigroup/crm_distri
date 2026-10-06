@@ -13,7 +13,7 @@ import (
 )
 
 // Channels relayed to the browser.
-var Channels = []string{"cycle_stage", "cycle_done", "proposal_changed", "chat_message", "wa_status", "mcp_call", "policy_changed", "outbox_failed"}
+var Channels = []string{"cycle_stage", "cycle_done", "proposal_changed", "chat_message", "wa_status", "mcp_call", "policy_changed", "outbox_failed", "data_synced"}
 
 // Event is one server-sent event.
 type Event struct {

@@ -54,6 +54,7 @@ export interface BoardItem {
   branch: string
   tier: string
   segment_desc: string
+  customer_type?: 'reseller' | 'si'
   owner: Owner
   credit_limit: number
   metrics: DealerMetrics
@@ -434,3 +435,28 @@ export interface PilotReport {
   decisions: number; accept_pct: number | null; sent_in_shadow: number
 }
 export interface SOWRow { id: string; slug: string; name: string; branch: string; sales_name: string | null; sow: number; sow_source: string; omzet_bln: number; confirmed_sow: number | null; confirmed_note: string | null; confirmed_at: string | null }
+
+// ---------- Data asli & master data ----------
+export type DataEntity = 'sales' | 'customers' | 'invoices' | 'invoice_lines' | 'stock'
+export interface ContractColumn { name: string; required: boolean; desc: string }
+export interface DataSource { mode: 'none' | 'bigquery' | 'csv'; bigquery: { project_id: string; location: string; sync_minutes: number; queries: Partial<Record<DataEntity, string>> } }
+export interface ImportRun { id: string; source: string; entity: string; status: 'running' | 'done' | 'failed'; rows: number; upserted: number; skipped: number; unmapped: number; error: string | null; started_by: string | null; started_at: string; finished_at: string | null }
+export interface DataStatus {
+  source: DataSource
+  credentials: { set: boolean; client_email?: string; project_id?: string; error?: string }
+  staged: { entity: string; n: number; last_at: string }[]
+  mappings: { kind: string; total: number; unmapped: number }[]
+  runs: ImportRun[]
+  contract: Record<DataEntity, ContractColumn[]>
+  entities: DataEntity[]
+  categories: string[]
+  dealers: number
+  invoices: number
+}
+export type MappingKind = 'branch' | 'warehouse' | 'category' | 'sales' | 'ctype'
+export interface DataMapping { kind: MappingKind; source_value: string; target: string | null; seen: number; updated_by: string | null }
+export interface MasterCustomer {
+  id: string; slug: string; name: string; city: string | null; branch: string; tier: string | null; customer_type: 'reseller' | 'si'
+  credit_limit: number; payment_terms_days: number; phone: string | null; master_locked: string[]; owner_name: string | null; owner_id: string | null; omzet_bln: number; status: string
+}
+export interface TeamMember { id: string; name: string; branch: string; role: string; wa_number: string | null; email: string | null; external_name: string | null; active: boolean; dealers: number; login_email: string | null }

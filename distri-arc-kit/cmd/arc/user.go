@@ -28,6 +28,7 @@ func runUserCtl(ctx context.Context, st *store.Store, args []string) error {
 	role := fs.String("role", "sales", "ceo | admin | finance | sales | warehouse")
 	password := fs.String("password", "", "password (≥ 10 characters)")
 	sales := fs.String("sales", "", "sales_users name this account belongs to")
+	branch := fs.String("branch", "", "branch of a new person profile (default: Semua cabang)")
 	_ = fs.Parse(args[1:])
 	if args[0] == "totp-reset" {
 		n, err := st.Q.ResetTOTPByEmail(ctx, *email)
@@ -57,6 +58,16 @@ func runUserCtl(ctx context.Context, st *store.Store, args []string) error {
 			id, err := st.Q.SalesUserByName(ctx, *sales)
 			if err != nil {
 				return fmt.Errorf("sales %q tidak ditemukan", *sales)
+			}
+			sid = &id
+		} else { // a person profile records this account's decisions
+			b := *branch
+			if b == "" {
+				b = "Semua cabang"
+			}
+			id, err := st.Q.CreatePersonProfile(ctx, gen.CreatePersonProfileParams{Name: *name, Branch: b, Role: *role, Email: email})
+			if err != nil {
+				return err
 			}
 			sid = &id
 		}
