@@ -23,6 +23,8 @@ elif [[ "${DEPLOY_NO_FETCH:-}" == "1" ]]; then
   echo "deploy: no fetch — building the checked-out commit"
 else
   as_arc "cd $SRC && git fetch --prune origin && git checkout -q $BRANCH && git reset -q --hard origin/$BRANCH"
+  # the pull may have changed this very script: run the new version from the top (bash reads scripts lazily)
+  exec env DEPLOY_NO_FETCH=1 bash "$KIT/infra/deploy.sh" "$BRANCH"
 fi
 REV="$(as_arc "cd $SRC && git rev-parse --short HEAD")"
 echo "deploy: $BRANCH @ $REV"
