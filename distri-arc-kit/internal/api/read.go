@@ -304,7 +304,7 @@ func (s *Server) agenda(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"items": b.Agenda(sales)})
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(b.Agenda(sales))})
 }
 
 func (s *Server) stockAging(w http.ResponseWriter, r *http.Request) {

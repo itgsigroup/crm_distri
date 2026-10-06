@@ -81,7 +81,7 @@ func (b *Board) TemplateBrief(stock []domain.StockItem, counts BriefCounts) Brie
 	br := Brief{GeneratedAt: b.Today, Source: "template", Counts: counts, Confidence: 0.92}
 
 	due := b.Due(7)
-	p1 := BriefPoint{Kind: "on_schedule", Tone: "good", Count: len(due), SignalIDs: []string{}}
+	p1 := BriefPoint{Kind: "on_schedule", Tone: "good", Count: len(due), SignalIDs: []string{}, Dealers: []BriefDealer{}}
 	for _, it := range due {
 		if *it.Metrics.DueIn <= 1 {
 			p1.Dealers = append(p1.Dealers, bd(it))
@@ -101,13 +101,13 @@ func (b *Board) TemplateBrief(stock []domain.StockItem, counts BriefCounts) Brie
 
 	drift := b.Drift()
 	sort.SliceStable(drift, func(i, j int) bool { return drift[i].Metrics.Cyc < drift[j].Metrics.Cyc })
-	p2 := BriefPoint{Kind: "drift", Tone: "warn", Count: len(drift), SignalIDs: []string{}}
+	p2 := BriefPoint{Kind: "drift", Tone: "warn", Count: len(drift), SignalIDs: []string{}, Dealers: []BriefDealer{}}
 	for _, it := range drift {
 		p2.Dealers = append(p2.Dealers, bd(it))
 		p2.Amount += it.Metrics.OmzetBln
 	}
 
-	p3 := BriefPoint{Kind: "credit", Tone: "bad", SignalIDs: []string{}}
+	p3 := BriefPoint{Kind: "credit", Tone: "bad", SignalIDs: []string{}, Dealers: []BriefDealer{}}
 	for _, it := range b.CreditTight() {
 		h := b.Data.Histories[it.UUID]
 		d := bd(it)
@@ -133,7 +133,7 @@ func (b *Board) TemplateBrief(stock []domain.StockItem, counts BriefCounts) Brie
 		p3.Count++
 	}
 
-	p4 := BriefPoint{Kind: "push", Tone: "accent", SignalIDs: []string{}}
+	p4 := BriefPoint{Kind: "push", Tone: "accent", SignalIDs: []string{}, Dealers: []BriefDealer{}}
 	for _, a := range b.StockAging(stock, "") {
 		if a.AgeDays > b.Policies.Stock.AgingDays {
 			item := a

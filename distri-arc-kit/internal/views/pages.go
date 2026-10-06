@@ -124,7 +124,7 @@ func (b *Board) Agenda(sales []gen.SalesUser) []AgendaRow {
 			continue
 		}
 		mine := b.Filter(s.Name)
-		row := AgendaRow{Sales: Owner{Key: lower(s.Name), Name: s.Name, Initials: Initials(s.Name), Branch: s.Branch}, Dealers: len(mine)}
+		row := AgendaRow{Sales: Owner{Key: lower(s.Name), Name: s.Name, Initials: Initials(s.Name), Branch: s.Branch}, Dealers: len(mine), Items: []AgendaItem{}}
 		var due, drift, tight []BoardItem
 		for _, it := range mine {
 			m := it.Metrics

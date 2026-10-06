@@ -98,7 +98,7 @@ func BuildRelasi(b *Board, sales []RelasiSales, rows []MonthCount, periodDays in
 	for i := range months {
 		months[i] = since.AddDate(0, i, 0)
 	}
-	r := Relasi{PeriodDays: periodDays, Months: k}
+	r := Relasi{PeriodDays: periodDays, Months: k, Nodes: []RelasiNode{}, Edges: []RelasiEdge{}, Pairs: []RelasiPair{}}
 	for _, m := range months {
 		r.MonthLabels = append(r.MonthLabels, idMonth(m.Month()))
 	}

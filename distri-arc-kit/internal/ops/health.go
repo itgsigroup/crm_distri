@@ -74,7 +74,7 @@ type Health struct {
 
 // Check gathers the health of every dependency. It never fails: a broken part is reported in the result.
 func Check(ctx context.Context, st *store.Store, env Env, now time.Time) Health {
-	h := Health{Status: "ok", Now: now, Version: env.Version, DB: "ok", Queue: "ok", Outbox: map[string]int64{}, Problems: []string{}}
+	h := Health{Status: "ok", Now: now, Version: env.Version, DB: "ok", Queue: "ok", Outbox: map[string]int64{}, Problems: []string{}, WA: []WAState{}, Alerts: []gen.SystemAlert{}}
 	if _, err := st.Q.Ping(ctx); err != nil {
 		h.DB, h.Status = "error", "down"
 		h.Problems = append(h.Problems, "Database tidak terjangkau")
@@ -103,7 +103,7 @@ func Check(ctx context.Context, st *store.Store, env Env, now time.Time) Health 
 		h.Problems = append(h.Problems, "WhatsApp terputus")
 	}
 	odooStatus := "ok"
-	var models []OdooModel
+	models := []OdooModel{}
 	if rows, err := st.Q.HealthOdoo(ctx); err == nil {
 		for _, r := range rows {
 			m := OdooModel{Model: r.Model, LastRun: r.LastRunAt, Records: r.Records, Error: deref(r.Error)}
