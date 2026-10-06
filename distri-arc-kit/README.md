@@ -64,3 +64,7 @@ Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (bran
 ### Tahap 08: Peta relasi
 - Orbit → *Peta relasi 3D* (`/orbit/relasi`): periode 30–180 hari, filter sales, pasangan terkuat, pola relasi; klik dua kali dealer → halaman dealer. API: `/api/relasi?period=90&sales=dewi`.
 
+### Tahap 09: Push stok, Kredit · kas, nomor baru
+- `/stok` dan `/kredit`: KPI, push stok (bundle), stok kritis (Usulkan transfer / Ajukan PO), sisa limit, exposure, prediksi kas — semua dari API.
+- Chat → Nomor baru: identifikasi + *Buat dealer tier C* / *Kirim harga*. Impor Getcontact: Pengaturan → Identifikasi nomor, atau `curl -X POST --data-binary @getcontact.csv localhost:8080/api/identifications/import`.
+

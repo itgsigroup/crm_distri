@@ -26,11 +26,12 @@ const (
 
 // Result tells what Process did with a message.
 type Result struct {
-	Stored   bool
-	Reason   string
-	ThreadID uuid.UUID
-	SignalID uuid.UUID
-	DealerID *uuid.UUID
+	Stored    bool
+	Reason    string
+	ThreadID  uuid.UUID
+	SignalID  uuid.UUID
+	DealerID  *uuid.UUID
+	NewNumber string // an unknown inbound number (identification)
 }
 
 // Ingestor turns WhatsApp events into chat threads, messages and signals, idempotently.
@@ -39,6 +40,8 @@ type Ingestor struct {
 	log *slog.Logger
 	// OnDealer is called after a dealer's message is stored (the worker enqueues metrics.recompute).
 	OnDealer func(ctx context.Context, dealerID uuid.UUID)
+	// OnNewNumber is called after an unknown number wrote to a sales number (the worker enqueues identify.number).
+	OnNewNumber func(ctx context.Context, number string)
 }
 
 // NewIngestor builds the pipeline.
@@ -164,8 +167,14 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if threadKind == "dealer" {
 			res.DealerID = dealerID
 		}
+		if threadKind == "new" && dir == "in" {
+			res.NewNumber = Digits(strings.SplitN(m.ChatJID, "@", 2)[0])
+		}
 		return nil
 	})
+	if err == nil && res.NewNumber != "" && in.OnNewNumber != nil {
+		in.OnNewNumber(ctx, res.NewNumber)
+	}
 	if err == nil && res.DealerID != nil && in.OnDealer != nil {
 		in.OnDealer(ctx, *res.DealerID)
 	}

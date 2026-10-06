@@ -172,6 +172,7 @@ type ForecastRow struct {
 	LateCount   int     `json:"late_count"`
 	Probability float64 `json:"probability"`
 	Expected    int64   `json:"expected"`
+	AskedTempo  bool    `json:"asked_tempo"` // dealer asked for more time (akar: proyek belum cair)
 }
 
 // Credit computes the Kredit · kas page.
@@ -192,7 +193,7 @@ func (b *Board) Credit(days int) (CreditOverview, []ARRow, []ExposureRow, []Fore
 				Pct: int(math.Round(100 * float64(it.Metrics.Credit.Exposure) / float64(it.CreditLimit)))})
 		}
 		row := ARRow{DealerID: it.ID, Name: it.Name, Owner: it.Owner.Name, PayDays: it.Metrics.Credit.PayDays, OnTime: it.Metrics.Credit.OnTime, Credit: it.Metrics.Credit.State}
-		f := ForecastRow{DealerID: it.ID, Name: it.Name, PayDays: it.Metrics.Credit.PayDays}
+		f := ForecastRow{DealerID: it.ID, Name: it.Name, PayDays: it.Metrics.Credit.PayDays, AskedTempo: it.RootCause == domain.RootProjectUnpaid}
 		var expected float64
 		for _, inv := range OpenInvoices(h, b.Today) {
 			ov.Receivable += inv.Residual
@@ -209,7 +210,7 @@ func (b *Board) Credit(days int) (CreditOverview, []ARRow, []ExposureRow, []Fore
 			}
 			for _, di := range h.Invoices {
 				if di.Number == inv.Number {
-					expected += float64(inv.Residual) * metrics.PayProbability(di, it.Metrics.Credit.PayDays, it.Metrics.Credit.OnTime, b.Today, days)
+					expected += float64(inv.Residual) * metrics.PayProbability(di, it.Metrics.Credit.PayDays, it.Metrics.Credit.OnTime, b.Today, days, it.RootCause == domain.RootProjectUnpaid)
 				}
 			}
 		}

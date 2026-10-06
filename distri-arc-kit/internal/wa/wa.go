@@ -53,6 +53,20 @@ type Transport interface {
 	Events() <-chan Event
 }
 
+// Profile is what WhatsApp shows about a number: the verified WA Business name, category and address.
+type Profile struct {
+	Name     string `json:"name"`
+	Category string `json:"category"`
+	Address  string `json:"address"`
+	Business bool   `json:"business"`
+}
+
+// ProfileReader is implemented by transports that can read a number's WhatsApp Business profile (AI Prospek
+// identification of inbound numbers; never used for numbers that did not write first).
+type ProfileReader interface {
+	Profile(ctx context.Context, account, jid string) (Profile, error)
+}
+
 // Digits normalises a phone number to E.164 digits (62…): "+62 812-3450-4471" → "6281234504471", "0812…" → "62812…".
 func Digits(s string) string {
 	var b strings.Builder

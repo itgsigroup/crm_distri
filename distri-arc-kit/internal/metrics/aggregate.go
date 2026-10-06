@@ -269,21 +269,28 @@ func categoryOf(comp []ProductShare, product string) string {
 	return ""
 }
 
-// PayProbability is the chance that an open invoice is paid within horizon days, from the dealer's pattern:
-// pola bayar vs the days the invoice still has to reach that pattern, discounted when already overdue.
-func PayProbability(inv domain.Invoice, payDays, onTime int, today time.Time, horizon int) float64 {
-	age := DaysBetween(inv.IssuedAt, today)
-	expected := payDays - age // days until the dealer usually pays
-	base := float64(onTime) / 100
-	var p float64
+// PayProbability is the chance that an open invoice is paid within horizon days (prediksi kas masuk):
+//
+//	base = min(0.95, 0.42 + 0.55 × on_time)                      reliability of the dealer
+//	due by its pattern within the horizon (issued + pola bayar)  → base
+//	pattern falls after the horizon                               → base × horizon / days until the pattern
+//	already overdue                                               → base × max(0.2, 1 − days late / 60)
+//	dealer asked for more time (akar: proyek belum cair)          → × 0.65
+//
+// Calibrated on the sample data to the approved mockup (Indo 92%, Sinar 90%, Graha 55%, Mitra 45%).
+func PayProbability(inv domain.Invoice, payDays, onTime int, today time.Time, horizon int, askedTempo bool) float64 {
+	base := math.Min(0.95, 0.42+0.55*float64(onTime)/100)
+	late := DaysBetween(inv.DueAt, today)
+	toPattern := payDays - DaysBetween(inv.IssuedAt, today)
+	p := base
 	switch {
-	case expected <= horizon && expected >= 0:
-		p = 0.55 + 0.45*base
-	case expected < 0: // already beyond the usual pattern
-		late := -expected
-		p = math.Max(0.2, (0.35+0.45*base)*(1-float64(late)/60))
-	default:
-		p = math.Max(0.05, 0.5*float64(horizon)/float64(expected))
+	case late > 0:
+		p = base * math.Max(0.2, 1-float64(late)/60)
+	case toPattern > horizon:
+		p = base * float64(horizon) / float64(toPattern)
 	}
-	return math.Min(0.98, p)
+	if askedTempo {
+		p *= 0.65
+	}
+	return p
 }

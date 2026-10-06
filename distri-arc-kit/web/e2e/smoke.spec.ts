@@ -7,6 +7,8 @@ const routes = [
   ['dealer-mitra', '/dealer/mitra', 'CV Mitra Jaya Teknik'],
   ['orchestrator', '/orchestrator', 'Orchestrator'],
   ['chat', '/chat', 'Grup internal'],
+  ['stok', '/stok', 'Stok kritis'],
+  ['kredit', '/kredit', 'Prediksi kas masuk 30 hari'],
 ] as const
 
 for (const [name, path, text] of routes) {

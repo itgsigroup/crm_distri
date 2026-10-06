@@ -84,6 +84,7 @@ export interface ProposalOption { key: string; label: string; style: 'primary' |
 export interface ImpactItem { label: string; value: string; tone?: string }
 export interface Proposal {
   payload?: Record<string, unknown> | null
+  dealer_ids?: string[] | null
   id: string
   agent: string
   dealer_id: string | null
@@ -207,6 +208,12 @@ export interface StockItem {
 }
 export interface PushCandidate { dealer_id: string; name: string; reason: string; due_in: number | null; drifting: boolean; omzet_bln: number }
 export interface AgingItem extends StockItem { candidates: PushCandidate[] | null; due_this_week: number }
+export interface CriticalItem extends StockItem { days_left: number; dependents: number; other_branches: { branch: string; qty: number }[] | null }
+export interface ProductSales { product: string; category: string; value: number; margin_pct: number }
+export interface CreditOverview { dso_days: number; terms_avg: number; receivable: number; open_invoices: number; open_dealers: number; overdue: number; overdue_dealers: number; overdue_over_30: number; forecast_30: number }
+export interface ARRow { dealer_id: string; name: string; owner: string; pay_days: number; on_time: number; open: number; overdue: number; late_days: number; credit_state: CreditState }
+export interface ExposureRow { dealer_id: string; short_name: string; exposure: number; limit: number; pct: number }
+export interface ForecastRow { dealer_id: string; name: string; invoices: number; open: number; pay_days: number; late_count: number; probability: number; expected: number; asked_tempo: boolean }
 
 export interface BriefDealer {
   id: string
@@ -292,6 +299,7 @@ export interface ChatContext {
   dealer?: BoardItem
   extracted: { annotation: Annotation; sent_at: string; from_name: string }[]
   identification: Identification | null
+  proposals?: Record<string, NextAction>
 }
 export interface WANumber {
   wa_number: string

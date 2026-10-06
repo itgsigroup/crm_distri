@@ -16,6 +16,7 @@ import (
 	"distri-arc/internal/config"
 	"distri-arc/internal/events"
 	"distri-arc/internal/httpx"
+	"distri-arc/internal/identify"
 	"distri-arc/internal/mcp"
 	"distri-arc/internal/odoo"
 	"distri-arc/internal/store"
@@ -36,7 +37,11 @@ type Server struct {
 	cloud *wa.CloudAPI
 	odoo  odoo.Source
 	mcp   *mcp.Server
+	idf   *identify.Service
 }
+
+// WithIdentify enables POST /chat/identify (sources the API can read; the worker adds the WA Business profile).
+func (s *Server) WithIdentify(i *identify.Service) *Server { s.idf = i; return s }
 
 // WithMCP mounts the MCP server at /mcp (bearer tokens, not the user session).
 func (s *Server) WithMCP(m *mcp.Server) *Server { s.mcp = m; return s }
@@ -79,6 +84,7 @@ func (s *Server) Handler() http.Handler {
 			s.cycleRoutes(r)
 			s.mcpRoutes(r)
 			s.relasiRoutes(r)
+			s.identifyRoutes(r)
 			r.Get("/events", s.events)
 			r.Get("/brief/today", s.briefToday)
 		})

@@ -52,7 +52,7 @@ export function ProposalSheet({ id }: { id: string }) {
   }
   return (
     <>
-      <SheetHead icon={p.icon ?? 'spark'} title={p.title} sub={`${p.dealer_name ?? 'Beberapa dealer'} · tenggat ${p.due_label ?? '—'}`} onClose={closeSheet} />
+      <SheetHead icon={p.icon ?? 'spark'} title={p.title} sub={`${p.dealer_name ?? (typeof p.payload?.name === 'string' && !p.dealer_ids ? `Nomor baru · ${p.payload.name}` : 'Beberapa dealer')} · tenggat ${p.due_label ?? '—'}`} onClose={closeSheet} />
       <div className="prov-line">
         <span className="prov"><span className="ai" style={{ fontSize: 0 }} />{p.agent}</span>
         <span className="prov"><Icon name="doc" />dianalisis dari WhatsApp, SO, stok, dan pembayaran dealer ini</span>
@@ -124,7 +124,7 @@ function statusText(p: Proposal) {
 }
 
 /** Action button of a list row (mockup actBtn): opens the proposal, or shows how it was decided. */
-export function ActBtn({ next, small, label, icon }: { next?: NextAction | null; small?: boolean; label?: string; icon?: string }) {
+export function ActBtn({ next, small, label, icon, ghost }: { next?: NextAction | null; small?: boolean; label?: string; icon?: string; ghost?: boolean }) {
   const { openSheet, toast } = useFeedback()
   const style = small ? { height: 28, fontSize: 12 } : undefined
   if (!next) {
@@ -138,7 +138,7 @@ export function ActBtn({ next, small, label, icon }: { next?: NextAction | null;
   if (next.status !== 'proposed') return null
   if (next.wait_for) return <span className="pill neutral"><Icon name="cash" />setelah {next.wait_for.replace(/^payment:/, '')} dibayar</span>
   return (
-    <button className="btn primary" style={style} onClick={() => openSheet(<ProposalSheet id={next.id} />)}>
+    <button className={`btn ${ghost ? 'ghost' : 'primary'}`} style={style} onClick={() => openSheet(<ProposalSheet id={next.id} />)}>
       <Icon name={next.icon || 'check'} />
       {next.button || 'Lihat'}
     </button>

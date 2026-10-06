@@ -3,17 +3,19 @@ package wa
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
 
 // Fake is an in-memory transport: Inject simulates an incoming message, Send records and acknowledges.
 type Fake struct {
-	mu     sync.Mutex
-	events chan Event
-	sent   []Message
-	seq    atomic.Int64
-	states map[string]string
+	mu       sync.Mutex
+	events   chan Event
+	profiles map[string]Profile
+	sent     []Message
+	seq      atomic.Int64
+	states   map[string]string
 }
 
 // NewFake returns a fake transport whose numbers are all "connected".
@@ -59,6 +61,24 @@ func (f *Fake) Send(_ context.Context, account, chatJID, text string) (string, e
 	f.sent = append(f.sent, Message{ID: id, Account: Digits(account), ChatJID: chatJID, FromNumber: Digits(account), FromMe: true, Text: text})
 	f.mu.Unlock()
 	return id, nil
+}
+
+// SetProfile registers a WhatsApp Business profile the fake returns for a number (tests, seed demo).
+func (f *Fake) SetProfile(number string, p Profile) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.profiles == nil {
+		f.profiles = map[string]Profile{}
+	}
+	f.profiles[Digits(number)] = p
+}
+
+// Profile returns the registered profile (empty when the number is not a business account).
+func (f *Fake) Profile(_ context.Context, _ string, jid string) (Profile, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	num, _, _ := strings.Cut(jid, "@")
+	return f.profiles[Digits(num)], nil
 }
 
 // Inject queues an incoming message as if WhatsApp delivered it.

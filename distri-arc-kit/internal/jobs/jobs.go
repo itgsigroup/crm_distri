@@ -3,6 +3,8 @@
 package jobs
 
 import (
+	"time"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -64,3 +66,15 @@ type CycleRunArgs struct {
 }
 
 func (CycleRunArgs) Kind() string { return "cycle.run" }
+
+// IdentifyArgs identifies an inbound unknown number (AI Prospek): the worker can read its WhatsApp Business profile.
+type IdentifyArgs struct {
+	WANumber string `json:"wa_number"`
+}
+
+func (IdentifyArgs) Kind() string { return "identify.number" }
+
+// InsertOpts: one identification per number per hour.
+func (IdentifyArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{UniqueOpts: river.UniqueOpts{ByArgs: true, ByPeriod: time.Hour}}
+}

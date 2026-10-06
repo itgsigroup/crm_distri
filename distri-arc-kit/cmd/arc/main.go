@@ -22,6 +22,7 @@ import (
 	"distri-arc/internal/config"
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/events"
+	"distri-arc/internal/identify"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/mcp"
 	"distri-arc/internal/odoo"
@@ -121,7 +122,7 @@ func runAPI(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	m := mcp.New(st, c, log, &orchestrator.Orchestrator{St: st, Clock: c, Log: log, OdooWrite: cfg.OdooWrite})
 	m.Jobs = ins // MCP cycles run in the worker like every other cycle
-	a := api.New(cfg, st, c, log).WithJobs(ins).WithOdoo(src).WithMCP(m)
+	a := api.New(cfg, st, c, log).WithJobs(ins).WithOdoo(src).WithMCP(m).WithIdentify(&identify.Service{St: st, Clock: c, Truecaller: truecaller(cfg)})
 	if cfg.WATransport == "cloudapi" {
 		a.WithCloudWebhook(cloudTransport(cfg))
 	}
@@ -160,13 +161,20 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if err := st.Q.FailStaleCycles(ctx, c.Now().Add(-time.Hour)); err != nil {
 		return err
 	}
-	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch})
+	idf := &identify.Service{St: st, Clock: c, Truecaller: truecaller(cfg)}
+	if pr, ok := t.(wa.ProfileReader); ok {
+		idf.Profiles = pr
+	}
+	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch, Identify: idf})
 	if err != nil {
 		return err
 	}
 	orch.Jobs = client
 	ingest.OnDealer = func(ctx context.Context, id uuid.UUID) {
 		_, _ = client.Insert(ctx, jobs.RecomputeArgs{DealerIDs: []string{id.String()}}, nil)
+	}
+	ingest.OnNewNumber = func(ctx context.Context, number string) {
+		_, _ = client.Insert(ctx, jobs.IdentifyArgs{WANumber: number}, nil)
 	}
 	if err := t.Start(ctx); err != nil {
 		log.Error("wa transport start", "transport", t.Name(), "err", err)
@@ -468,4 +476,13 @@ func runOdooCtl(ctx context.Context, cfg config.Config, st *store.Store, c clock
 		return fmt.Errorf("unknown odoo command %q", args[0])
 	}
 	return nil
+}
+
+// truecaller returns the Truecaller adapter: there is no public API key yet (OPEN-QUESTIONS), so lookups use the
+// fake, which knows no numbers — identification relies on WA Business, Getcontact and Odoo.
+func truecaller(cfg config.Config) identify.Truecaller {
+	if cfg.TruecallerKey != "" {
+		slog.Warn("TRUECALLER_API_KEY is set but no Truecaller client is wired yet; using the fake")
+	}
+	return identify.FakeTruecaller{}
 }

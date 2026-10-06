@@ -175,6 +175,19 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 				if out.Result == "" {
 					out.Result = fmt.Sprintf("Bundle disetujui · %d draft masuk antrean sales", n)
 				}
+			case row.Kind == domain.KindTransfer || row.Kind == domain.KindPORequest:
+				var pl map[string]any
+				_ = json.Unmarshal(row.Payload, &pl)
+				what := map[string]string{domain.KindTransfer: "internal_transfer", domain.KindPORequest: "purchase_request"}[row.Kind]
+				payload, _ := json.Marshal(map[string]any{what: pl, "approved_by": who.Name, "note": row.Title + " · proposal " + id.String()})
+				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: id, Channel: "odoo_note", Payload: payload})
+				if err != nil {
+					return err
+				}
+				obID = &ob.ID
+				if out.Result == "" {
+					out.Result = row.Title + " · dicatat untuk gudang/Purchasing"
+				}
 			case row.Kind == domain.KindNewDealer:
 				var pl map[string]any
 				_ = json.Unmarshal(row.Payload, &pl)
@@ -242,7 +255,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 // proposal addresses (else the main contact), plus a pending bubble in the chat thread.
 func queueWA(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Client[pgx.Tx], p gen.Proposal, text string, now time.Time) (*uuid.UUID, error) {
 	if p.DealerID == nil {
-		return nil, errors.New("proposal without dealer cannot be sent")
+		return queueThreadWA(ctx, q, tx, ins, p, text, now)
 	}
 	d, err := q.GetDealer(ctx, ptrStr(p.DealerID.String()))
 	if err != nil {
@@ -400,4 +413,43 @@ func applyPlanChange(ctx context.Context, q *gen.Queries, p gen.Proposal, now ti
 			TextHtml: &pl.Text, Status: domain.PlanScheduled}) // a step of its own: the plan_change proposal is already decided
 	}
 	return fmt.Errorf("unknown plan action %q", pl.Action)
+}
+
+// queueThreadWA sends to the thread a proposal is about when there is no dealer yet (a new inbound number):
+// from the sales number that received the message, to that number.
+func queueThreadWA(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Client[pgx.Tx], p gen.Proposal, text string, now time.Time) (*uuid.UUID, error) {
+	var pl struct {
+		ThreadID uuid.UUID `json:"thread_id"`
+	}
+	_ = json.Unmarshal(p.Payload, &pl)
+	if pl.ThreadID == uuid.Nil {
+		return nil, errors.New("proposal without dealer or thread cannot be sent")
+	}
+	t, err := q.GetThread(ctx, pl.ThreadID)
+	if err != nil {
+		return nil, err
+	}
+	if t.SalesWa == nil || t.WaJid == nil {
+		return nil, errors.New("thread has no sales number")
+	}
+	jid := *t.WaJid
+	payload := outbox.WAPayload{From: *t.SalesWa, To: jid, Text: text, Kind: p.Kind}
+	dir, name, pending := "out", deref(t.SalesName), "outbox:"+p.ID.String()
+	if mid, err := q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &t.ID, WaMsgID: &pending, Direction: &dir, FromNumber: t.SalesWa, FromName: &name, Body: &text, SentAt: now, Status: "pending", ProposalID: &p.ID}); err == nil {
+		payload.MessageID, payload.ThreadID = mid.String(), t.ID.String()
+		if err := q.TouchThread(ctx, gen.TouchThreadParams{ID: t.ID, LastMessageAt: &now}); err != nil {
+			return nil, err
+		}
+	}
+	b, _ := json.Marshal(payload)
+	ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: p.ID, Channel: "wa", ToRef: &jid, Payload: b})
+	if err != nil {
+		return nil, err
+	}
+	if ins != nil {
+		if _, err := ins.InsertTx(ctx, tx, jobs.OutboxSendArgs{OutboxID: ob.ID.String()}, nil); err != nil {
+			return nil, err
+		}
+	}
+	return &ob.ID, nil
 }

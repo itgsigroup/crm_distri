@@ -286,13 +286,23 @@ type DealerSowEstimate struct {
 	ConfirmedAt time.Time  `json:"confirmed_at"`
 }
 
+type GetcontactImport struct {
+	WaNumber   string     `json:"wa_number"`
+	Name       string     `json:"name"`
+	Tags       int32      `json:"tags"`
+	ImportedBy *uuid.UUID `json:"imported_by"`
+	ImportedAt time.Time  `json:"imported_at"`
+}
+
 type Identification struct {
-	WaNumber  string          `json:"wa_number"`
-	Sources   json.RawMessage `json:"sources"`
-	BestName  *string         `json:"best_name"`
-	BestOrg   *string         `json:"best_org"`
-	Score     *int16          `json:"score"`
-	CreatedAt time.Time       `json:"created_at"`
+	WaNumber     string          `json:"wa_number"`
+	Sources      json.RawMessage `json:"sources"`
+	BestName     *string         `json:"best_name"`
+	BestOrg      *string         `json:"best_org"`
+	Score        *int16          `json:"score"`
+	CreatedAt    time.Time       `json:"created_at"`
+	IdentifiedAt *time.Time      `json:"identified_at"`
+	Potential    *string         `json:"potential"`
 }
 
 type InteractionsMonthly struct {

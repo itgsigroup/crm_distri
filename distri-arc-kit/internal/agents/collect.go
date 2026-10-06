@@ -60,7 +60,7 @@ func (a Collect) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domai
 				total += i.Residual
 			}
 			p.Payload["invoices"] = numbers(late)
-			if inv.LateDays > 14 {
+			if inv.LateDays > 14 || d.RootCause == domain.RootProjectUnpaid { // asked for time → a scheme, not a third reminder
 				half := total / 2
 				p.Kind, p.Button, p.DueLabel, p.Confidence = domain.KindInstallment, "Kirim skema cicilan", "Hari ini", 0.82
 				p.Title = fmt.Sprintf("Skema cicilan 2× untuk %s — %s lewat %d hari", d.Name, inv.Number, inv.LateDays)

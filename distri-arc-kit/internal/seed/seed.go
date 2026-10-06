@@ -142,6 +142,9 @@ type stockItem struct {
 // Anchor is the date the sample data describes ("Senin, 5 Oktober 2026"); seeded source_write_date.
 var Anchor = time.Date(2026, 10, 5, 6, 0, 0, 0, clock.WIB)
 
+// stockWriteDate is the write_date of the exported stock.quant records (db/seed/odoo/stock.quant.json).
+const stockWriteDate = "2026-10-04 23:00:00"
+
 // HistoryAsOf ends the imported interaction history (the whole anchor day, so the sample chats of that day are
 // not counted twice); live counting of Peta relasi and PIC aktif starts after it.
 var HistoryAsOf = time.Date(2026, 10, 5, 23, 59, 59, 0, clock.WIB)
@@ -292,6 +295,14 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 			src := it.OdooID
 			if err := q.UpsertStockItem(ctx, gen.UpsertStockItemParams{Branch: it.Branch, Sku: it.SKU, Name: it.Name, Category: it.Category, Qty: it.Qty, UnitCost: it.UnitCost, Value: int64(it.Qty) * it.UnitCost, AgeDays: it.AgeDays, WeeklyVelocity: it.WeeklyVelocity, SourceSystem: &ss, SourceID: &src, SourceWriteDate: &Anchor}); err != nil {
 				return fmt.Errorf("stock %s: %w", it.SKU, err)
+			}
+			// the same stock signal the Odoo sync writes (same dedupe key), so AI Stok has provenance on seed data
+			key := it.OdooID + ":" + stockWriteDate
+			summary := fmt.Sprintf("Stok %s %s: %d", it.Name, it.Branch, it.Qty)
+			at := Anchor.Add(-7 * time.Hour)
+			payload, _ := json.Marshal(map[string]any{"model": "stock.quant", "name": it.Name, "write_date": stockWriteDate, "source": "odoo"})
+			if _, err := q.UpsertSignal(ctx, gen.UpsertSignalParams{Kind: "stock", OccurredAt: at, DedupeKey: key, Summary: &summary, Payload: payload}); err != nil {
+				return err
 			}
 		}
 

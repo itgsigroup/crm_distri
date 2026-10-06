@@ -17,8 +17,10 @@ import (
 // way back for dealers that drift past 1,2× their cycle. It never offers discounts below tier.
 type Followup struct{}
 
-func (Followup) Name() string    { return "AI Follow-up" }
-func (Followup) Kinds() []string { return []string{domain.KindFollowup} }
+func (Followup) Name() string { return "AI Follow-up" }
+
+// Kinds: a follow-up to a dealer that asked for more time is an installment scheme (with AI Penagihan).
+func (Followup) Kinds() []string { return []string{domain.KindFollowup, domain.KindInstallment} }
 
 func provenance(d *Dealer, n int) []uuid.UUID {
 	var out []uuid.UUID
@@ -82,7 +84,8 @@ func (a Followup) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]doma
 			case domain.RootProjectUnpaid:
 				inv := lateInvoice(d)
 				half := inv.Residual / 2
-				p.Agent = "AI Follow-up + AI Penagihan"
+				p.Agent, p.Kind, p.Icon = "AI Follow-up + AI Penagihan", domain.KindInstallment, "cash"
+				p.DedupeKey = fmt.Sprintf("installment:%s:%s", d.ID, day)
 				p.DueLabel = "Hari ini"
 				p.Title = fmt.Sprintf("Follow-up %s dengan skema cicilan 2× + order kecil cash", d.Name)
 				p.Why = fmt.Sprintf("Lewat siklus order %d hari dan invoice lewat %d hari — dua masalah yang sama akarnya (proyek belum cair). Cicilan 2× + order cash kecil menjaga hubungan dan mengembalikan piutang.", late, inv.LateDays)

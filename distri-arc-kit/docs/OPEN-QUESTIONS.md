@@ -13,4 +13,7 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-05 · 06 · Bundle stok: mockup menulis LED P5 −8% ke 6 dealer, rumus (floor margin 9% dari modal, kandidat glossary) memberi −1,5% ke 2 dealer. Floor dihitung dari modal stok (`unit_cost`) — benar, atau dari HPP lain di Odoo? · rumus dipakai · −1,5%
 - 2026-10-05 · 07 · Uji nyata dari Claude Desktop Sam dan connector ChatGPT tim sales ke `https://distri.gsi.co.id/mcp` (butuh domain + TLS, Stage 13) · diuji dengan klien SDK (`tools/mcpcheck`) ke localhost · —
 - 2026-10-05 · 07 · `jadwal.due {sales:"Dewi"}` memberi 2 dealer (Prima besok, Bina 3 hari); acceptance menulis 3 (mockup menghitung Mitra yang lewat jadwal di agenda Dewi). Tetap pisahkan *jadwal* dan *lewat jadwal*? · dipisah seperti glossary · 2
+- 2026-10-06 · 09 · Akses API Truecaller (resmi untuk bisnis) — ada? · identifikasi memakai profil WA Business, Getcontact (CSV) dan Odoo; Truecaller fake · —
+- 2026-10-06 · 09 · Stok kritis: bila cabang lain punya stok cukup, AI Stok mengusulkan transfer (HDD 4TB Surabaya → Yogyakarta), mockup menulis PO. Aturan transfer-dulu disetujui? Target 2,5 minggu & sumber ≥ 4 minggu sesuai praktik gudang? · ADR 0011 · transfer dulu
+- 2026-10-06 · 09 · Prediksi kas: konstanta probabilitas dikalibrasi ke mockup (ADR 0011). Bandingkan dengan realisasi kas 2–3 bulan pilot lalu kalibrasi ulang · — · seperti ADR
 

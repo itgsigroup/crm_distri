@@ -122,7 +122,97 @@ func (a Stock) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domain.
 			"dealers": list}, nil)
 		out = append(out, p)
 	}
-	return out, nil
+	return append(out, a.critical(in, day)...), nil
+}
+
+// Stock rules for critical SKUs (ADR 0011): refill a branch to TransferCoverWeeks of sales from another branch that
+// keeps at least SourceKeepWeeks; without such a branch ask purchasing for POCoverWeeks of sales.
+const (
+	TransferCoverWeeks = 2.5
+	SourceKeepWeeks    = 4.0
+	POCoverWeeks       = 5.0
+)
+
+// round10 rounds to the nearest 10 units (a carton line in the warehouse).
+func round10(v float64) int { return int(math.Round(v/10)) * 10 }
+
+// critical proposes a transfer or a purchase order for each SKU that runs out before the next cycle.
+func (a Stock) critical(in *Input, day string) []domain.Proposal {
+	var out []domain.Proposal
+	for _, s := range in.Stock {
+		if !metrics.IsCritical(s, in.Policies) {
+			continue
+		}
+		dependents := 0
+		if ci := domain.CategoryIndex(s.Category); ci >= 0 {
+			for _, d := range in.Dealers {
+				if d.Branch == s.Branch && d.Metrics.MixCats[ci] && d.Metrics.Status != domain.StatusChurn {
+					dependents++
+				}
+			}
+		}
+		days := *s.DaysLeft()
+		sigs := []uuid.UUID{}
+		if id, ok := in.StockSignals[s.Name+"|"+s.Branch]; ok {
+			sigs = append(sigs, id)
+		}
+		var src *domain.StockItem
+		need := round10(TransferCoverWeeks*s.WeeklyVelocity - float64(s.Qty))
+		if need < 10 {
+			need = 10
+		}
+		for i := range in.Stock {
+			o := &in.Stock[i]
+			if o.SKU == s.SKU && o.Branch != s.Branch && float64(o.Qty-need) >= SourceKeepWeeks*o.WeeklyVelocity && (src == nil || o.Qty > src.Qty) {
+				src = o
+			}
+		}
+		if src != nil {
+			if id, ok := in.StockSignals[src.Name+"|"+src.Branch]; ok {
+				sigs = append(sigs, id)
+			}
+		}
+		if len(sigs) == 0 {
+			continue
+		}
+		short := shortName(s.Name)
+		depText := ""
+		if dependents > 0 {
+			depText = fmt.Sprintf(", %d dealer bergantung", dependents)
+		}
+		p := domain.Proposal{Agent: a.Name(), Icon: "refresh", DueLabel: "Hari ini", Confidence: 0.86, SignalIDs: sigs, Autonomy: "approve",
+			Pills: [][2]string{{"warn", a.Name()}, {"neutral", fmt.Sprintf("habis ±%.0f hari", math.Ceil(days))}}}
+		if src != nil {
+			after := float64(s.Qty+need) / s.WeeklyVelocity
+			p.Kind, p.Button = domain.KindTransfer, "Usulkan transfer"
+			p.Title = fmt.Sprintf("Transfer %d %s %s → %s", need, short, src.Branch, s.Branch)
+			p.Summary = fmt.Sprintf("%s sisa %d, %s/minggu%s · %s stok %d", s.Branch, s.Qty, trimFloat(s.WeeklyVelocity), depText, src.Branch, src.Qty)
+			p.Why = fmt.Sprintf("%s sisa %d unit, terjual %s/minggu — habis ±%.0f hari%s. %s stok %d. Transfer internal tanpa SO/PO sesuai aturan multi-company.",
+				s.Branch, s.Qty, trimFloat(s.WeeklyVelocity), math.Ceil(days), depText, src.Branch, src.Qty)
+			p.Prep = "Transfer internal di Odoo (internal transfer), ekspedisi 2 hari."
+			p.Steps = []string{"Transfer dibuat di Odoo", fmt.Sprintf("Gudang %s & %s diberi tahu di grup", src.Branch, s.Branch), fmt.Sprintf("Stok %s aman ±%s minggu", s.Branch, trimFloat(math.Round(after*10)/10))}
+			p.Impact = []domain.Impact{{Label: "Sisa " + s.Branch, Value: fmt.Sprintf("%d", s.Qty), Tone: "bad"}, {Label: "Transfer", Value: fmt.Sprintf("%d", need)}, {Label: "Sisa " + src.Branch, Value: fmt.Sprintf("%d", src.Qty-need)}}
+			p.Payload = map[string]any{"sku": s.SKU, "name": s.Name, "from": src.Branch, "to": s.Branch, "qty": need}
+			p.DedupeKey = fmt.Sprintf("transfer:%s:%s:%s", s.SKU, s.Branch, day)
+		} else {
+			qty := round10(POCoverWeeks*s.WeeklyVelocity - float64(s.Qty))
+			p.Kind, p.Button, p.Icon = domain.KindPORequest, "Ajukan PO", "doc"
+			p.Title = fmt.Sprintf("PO %d %s untuk %s", qty, short, s.Branch)
+			p.Summary = fmt.Sprintf("%s sisa %d, %s/minggu%s · tidak ada cabang lain yang bisa transfer", s.Branch, s.Qty, trimFloat(s.WeeklyVelocity), depText)
+			p.Why = fmt.Sprintf("%s sisa %d unit, terjual %s/minggu — habis ±%.0f hari%s. Tidak ada cabang yang bisa transfer tanpa ikut kritis.", s.Branch, s.Qty, trimFloat(s.WeeklyVelocity), math.Ceil(days), depText)
+			p.Prep = fmt.Sprintf("Permintaan PO %d unit ke Purchasing (± %s minggu penjualan).", qty, trimFloat(POCoverWeeks))
+			p.Steps = []string{"Permintaan PO masuk ke Purchasing", "Purchasing konfirmasi lead time supplier", "AI Stok memantau stok " + s.Branch}
+			p.Impact = []domain.Impact{{Label: "Sisa", Value: fmt.Sprintf("%d", s.Qty), Tone: "bad"}, {Label: "PO", Value: fmt.Sprintf("%d", qty)}}
+			p.Payload = map[string]any{"sku": s.SKU, "name": s.Name, "branch": s.Branch, "qty": qty}
+			p.DedupeKey = fmt.Sprintf("po:%s:%s:%s", s.SKU, s.Branch, day)
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+func trimFloat(f float64) string {
+	return strings.Replace(strings.TrimSuffix(strings.TrimRight(fmt.Sprintf("%.1f", f), "0"), "."), ".", ",", 1)
 }
 
 func ownersOf(ds []map[string]any) []string {

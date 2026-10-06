@@ -4,6 +4,7 @@ import { fmtRp, shortDate } from '../../lib/format'
 import { useCalibration, useConnections, usePolicies, useWAGroups, useWAStatus } from '../../app/queries'
 import { WhatsAppPanel } from './WhatsAppPanel'
 import { AIConnectionsCard } from './AIConnections'
+import { IdentifyPanel } from './IdentifyPanel'
 import { OdooPanel } from './OdooPanel'
 
 type Obj = Record<string, unknown>
@@ -53,7 +54,7 @@ export function SettingsPage() {
           <div className="conn-grid" style={{ gridTemplateColumns: '1fr' }}>
             <button className="cc" onClick={() => openSheet(<OdooPanel />)}><div className="ch"><span className="lg" style={{ background: '#714B67' }}>odoo</span><div><b>Odoo Sales · Inventory · Accounting</b><small>SO, stok per cabang, harga tier, invoice, pembayaran</small></div></div><div className="cs"><span className={`dot ${synced ? 'good' : 'warn'}`} />{synced ? `Terhubung · ${conn?.odoo.mode === 'fake' ? 'data contoh' : 'baca'}${conn?.odoo.write ? ' & tulis SO draft' : ' saja'}` : 'Belum sinkron'}</div></button>
             <button className="cc" onClick={() => openSheet(<WhatsAppPanel />)}><div className="ch"><span className="lg" style={{ background: '#25D366' }}>WA</span><div><b>WhatsApp</b><small>{wa?.items.length ?? 0} nomor sales + {internalGroups} grup gudang</small></div></div><div className="cs"><span className={`dot ${connected ? 'good' : 'warn'}`} />{connected ? `Terhubung · ${wa?.transport}` : 'Belum terhubung'} · {connected}/{wa?.items.length ?? 0} nomor</div></button>
-            <button className="cc" onClick={() => toast('Identifikasi nomor oleh AI Prospek di Stage 09')}><div className="ch"><span className="lg" style={{ background: '#1E88E5' }}>ID</span><div><b>Identifikasi nomor</b><small>Profil WA Business · Truecaller · Getcontact (manual)</small></div></div><div className="cs"><span className="dot good" />Hanya nomor inbound</div></button>
+            <button className="cc" onClick={() => openSheet(<IdentifyPanel />)}><div className="ch"><span className="lg" style={{ background: '#1E88E5' }}>ID</span><div><b>Identifikasi nomor</b><small>Profil WA Business · Truecaller · Getcontact (manual)</small></div></div><div className="cs"><span className="dot good" />Hanya nomor inbound</div></button>
           </div>
         </div>
         <AIConnectionsCard />

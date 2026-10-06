@@ -206,13 +206,13 @@ function ContextPane({ id }: { id: string }) {
           <h3>Siapa ini</h3>
           <div className="box">
             <b style={{ fontFamily: 'var(--font-display)', fontSize: 14 }}>{idf?.best_name ?? 'Belum dikenali'}</b>
-            <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{idf ? `${idf.best_org} · skor ${idf.score}` : 'AI Prospek mengidentifikasi nomor inbound (Stage 09)'}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{idf ? `${idf.best_org} · skor ${idf.score}` : 'AI Prospek mengidentifikasi nomor ini setelah ia mengirim pesan'}</div>
             <div className="hr" />
             <ul className="ext">{(idf?.sources ?? []).map((s) => <li key={s.source}><Icon name={s.ok === 'true' ? 'check' : 'alert'} /><span>{s.value}</span></li>)}</ul>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-            <ActBtn label="Buat dealer tier C" icon="building" />
-            <button className="btn ghost" onClick={() => toast('Harga tier C masuk draft setelah disetujui (Stage 09)')}>Kirim harga</button>
+            <ActBtn next={data.proposals?.new_dealer} label="Buat dealer tier C" icon="building" />
+            <ActBtn next={data.proposals?.price_list} label="Kirim harga" icon="send" ghost />
           </div>
         </div>
         {idf?.potential && <div><h3>Potensi</h3><div className="box" style={{ fontSize: 13, lineHeight: 1.5 }}>{idf.potential}</div></div>}

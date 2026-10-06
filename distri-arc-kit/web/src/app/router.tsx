@@ -10,6 +10,8 @@ import { SegmenPage } from '../features/segmen/SegmenPage'
 import { DealerPage } from '../features/dealer/DealerPage'
 import { Upcoming } from '../features/placeholder/Upcoming'
 import { ChatPage } from '../features/chat/ChatPage'
+import { StockPage } from '../features/stock/StockPage'
+import { CreditPage } from '../features/credit/CreditPage'
 import { SettingsPage } from '../features/settings/SettingsPage'
 
 // Routes of docs/design/08-frontend.md.
@@ -26,8 +28,8 @@ export const router = createBrowserRouter([
       { path: 'orbit/segmen', element: <SegmenPage /> },
       { path: 'orbit/relasi', element: <RelasiPage /> },
       { path: 'dealer/:id?', element: <DealerPage /> },
-      { path: 'stok', element: <Upcoming title="Push stok" stage="09" text="KPI stok, kandidat push per SKU dengan floor margin, stok kritis dengan usulan transfer / PO, dan penjualan per produk." /> },
-      { path: 'kredit', element: <Upcoming title="Kredit · kas" stage="09" text="DSO, piutang, lewat tempo, sisa limit tiap dealer, exposure vs limit, dan prediksi kas masuk 30 hari tertimbang pola bayar." /> },
+      { path: 'stok', element: <StockPage /> },
+      { path: 'kredit', element: <CreditPage /> },
       { path: 'pengaturan', element: <SettingsPage /> },
       { path: 'panduan', element: <Upcoming title="Panduan Orbit" stage="11" text="Satu gambar, 14 istilah, cara baca papan — konsep Orbit untuk tim." /> },
     ],

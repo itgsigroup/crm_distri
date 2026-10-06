@@ -151,6 +151,33 @@ func (w *Whatsmeow) Status(context.Context) []Status {
 	return out
 }
 
+// Profile reads the verified business name and the business profile of jid through account's connection.
+func (w *Whatsmeow) Profile(ctx context.Context, account, jid string) (Profile, error) {
+	w.mu.Lock()
+	cli := w.clients[Digits(account)]
+	w.mu.Unlock()
+	if cli == nil || !cli.IsLoggedIn() {
+		return Profile{}, fmt.Errorf("number %s is not connected", account)
+	}
+	to, err := types.ParseJID(jid)
+	if err != nil {
+		return Profile{}, err
+	}
+	var p Profile
+	if info, err := cli.GetUserInfo(ctx, []types.JID{to}); err == nil {
+		if u, ok := info[to]; ok && u.VerifiedName != nil && u.VerifiedName.Details != nil {
+			p.Name, p.Business = u.VerifiedName.Details.GetVerifiedName(), true
+		}
+	}
+	if bp, err := cli.GetBusinessProfile(ctx, to); err == nil && bp != nil {
+		p.Business, p.Address = true, bp.Address
+		if len(bp.Categories) > 0 {
+			p.Category = bp.Categories[0].Name
+		}
+	}
+	return p, nil
+}
+
 // Send delivers a text message from account.
 func (w *Whatsmeow) Send(ctx context.Context, account, chatJID, text string) (string, error) {
 	w.mu.Lock()

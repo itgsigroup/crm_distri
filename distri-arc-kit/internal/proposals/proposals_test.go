@@ -264,3 +264,33 @@ func TestApproveNewDealer(t *testing.T) {
 		t.Fatalf("channel %s", channel)
 	}
 }
+
+// "Kirim harga" to a new number: after approve it leaves through the outbox from the sales number that received
+// the question, to that number's thread (there is no dealer yet).
+func TestApprovePriceListToNewNumber(t *testing.T) {
+	st, r := setup(t)
+	ctx := context.Background()
+	res := run(t, r, "all")
+	pl := find(res, "price_list", "Toko Mandiri")
+	if pl == nil {
+		t.Fatal("no price_list proposal")
+	}
+	out, err := proposals.Decide(ctx, st, nil, now, false, pl.ID, sam(t, st), proposals.Decision{Decision: "approve"})
+	if err != nil || out.OutboxID == nil {
+		t.Fatalf("decide %+v %v", out, err)
+	}
+	var to, from string
+	if err := st.Pool.QueryRow(ctx, "select to_ref, payload->>'from' from outbox where id = $1", *out.OutboxID).Scan(&to, &from); err != nil {
+		t.Fatal(err)
+	}
+	var salesWA string
+	_ = st.Pool.QueryRow(ctx, "select wa_number from sales_users where name = 'Andi'").Scan(&salesWA)
+	if to != "6282212343310@s.whatsapp.net" || from != salesWA {
+		t.Fatalf("to %s from %s (Andi %s)", to, from, salesWA)
+	}
+	var pending int
+	_ = st.Pool.QueryRow(ctx, "select count(*) from chat_messages m join chat_threads t on t.id = m.thread_id where t.kind = 'new' and m.status = 'pending'").Scan(&pending)
+	if pending != 1 {
+		t.Fatalf("%d pending bubbles in the new-number thread", pending)
+	}
+}

@@ -287,7 +287,8 @@ func creditOverStock(cands []*Cand, in RuleInput) ([]*Cand, []domain.Conflict) {
 			}
 			continue
 		}
-		if c.P.Kind != domain.KindFollowup || !creditBad(c.Dealer) {
+		offer := c.P.Kind == domain.KindFollowup || (c.P.Kind == domain.KindInstallment && c.P.Covers(domain.KindCollect)) // follow-up with a scheme
+		if !offer || !creditBad(c.Dealer) {
 			continue
 		}
 		d := c.Dealer

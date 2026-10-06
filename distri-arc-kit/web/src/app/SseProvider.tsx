@@ -4,8 +4,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 // One EventSource('/api/events') per tab; each event invalidates the queries it affects (08-frontend).
 const INVALIDATES: Record<string, string[][]> = {
   cycle_stage: [['cycle']],
-  cycle_done: [['cycle'], ['cycles'], ['plan'], ['proposals'], ['brief'], ['orbit'], ['segmen'], ['dealers'], ['dealer'], ['kpi'], ['agenda'], ['agents']],
-  proposal_changed: [['proposals'], ['plan'], ['dealer'], ['dealers'], ['cycle']],
+  cycle_done: [['cycle'], ['cycles'], ['plan'], ['proposals'], ['brief'], ['orbit'], ['segmen'], ['dealers'], ['dealer'], ['kpi'], ['agenda'], ['agents'], ['stock'], ['credit']],
+  proposal_changed: [['proposals'], ['plan'], ['dealer'], ['dealers'], ['cycle'], ['orbit'], ['chat']],
   chat_message: [['chat']],
   wa_status: [['wa']],
   mcp_call: [['mcp']],

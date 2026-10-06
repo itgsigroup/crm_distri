@@ -16,6 +16,7 @@ import (
 	"distri-arc/internal/clock"
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/domain"
+	"distri-arc/internal/identify"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/odoo"
 	"distri-arc/internal/orchestrator"
@@ -195,6 +196,21 @@ func (h Hourly) Next(t time.Time) time.Time {
 	return n
 }
 
+// IdentifyWorker runs identify.number with the transport's profile reader.
+type IdentifyWorker struct {
+	river.WorkerDefaults[jobs.IdentifyArgs]
+	svc *identify.Service
+}
+
+// Work identifies; numbers that did not write first are cancelled (privacy), not retried.
+func (w *IdentifyWorker) Work(ctx context.Context, job *river.Job[jobs.IdentifyArgs]) error {
+	_, err := w.svc.Identify(ctx, job.Args.WANumber)
+	if errors.Is(err, identify.ErrNotInbound) {
+		return river.JobCancel(err)
+	}
+	return err
+}
+
 // Deps are the long-lived connections the worker owns.
 type Deps struct {
 	Transport    wa.Transport
@@ -202,6 +218,7 @@ type Deps struct {
 	Rules        outbox.Rules
 	Odoo         odoo.Source
 	Orchestrator *orchestrator.Orchestrator
+	Identify     *identify.Service
 }
 
 // New builds the river client with all workers and periodic jobs registered.
@@ -217,6 +234,9 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 		periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(10*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
 			return jobs.OdooSyncArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 10 * time.Minute}}
 		}, nil))
+	}
+	if deps.Identify != nil {
+		river.AddWorker(workers, &IdentifyWorker{svc: deps.Identify})
 	}
 	if deps.Orchestrator != nil {
 		river.AddWorker(workers, &CycleWorker{o: deps.Orchestrator})

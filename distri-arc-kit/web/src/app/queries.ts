@@ -4,7 +4,7 @@ import { api, type Items } from '../api/client'
 import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, MCPCall, MCPClient, MCPInfo, MCPPolicy, Plan, Proposal, Relasi, RelasiInsight } from '../api/types'
 import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAGroup, WANumber } from '../api/types'
 import type {
-  AgendaRow, AgingItem, BoardItem, Brief, DealerDetail, Health, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
+  AgendaRow, AgingItem, ARRow, BoardItem, CreditOverview, CriticalItem, ExposureRow, ForecastRow, ProductSales, Brief, DealerDetail, Health, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
 } from '../api/types'
 
 // Query keys follow docs/design/08-frontend.md (Data & realtime); SSE events invalidate them.
@@ -100,3 +100,12 @@ const rq = (period: number, sales: string) => `?period=${period}${sales !== 'all
 export const useRelasi = (period: number, sales: string) => useQuery({ queryKey: ['relasi', period, sales], queryFn: () => api.get<Relasi>('/relasi' + rq(period, sales)) })
 export const useRelasiInsights = (period: number, sales: string) =>
   useQuery({ queryKey: ['relasi', 'insights', period, sales], queryFn: () => api.get<Items<RelasiInsight>>('/relasi/insights' + rq(period, sales)).then((r) => r.items) })
+
+// ---------- Push stok · Kredit ----------
+export const useStockAging = () => useQuery({ queryKey: ['stock', 'aging'], queryFn: () => api.get<Items<AgingItem>>('/stock/aging').then((r) => r.items) })
+export const useStockCritical = () => useQuery({ queryKey: ['stock', 'critical'], queryFn: () => api.get<Items<CriticalItem>>('/stock/critical').then((r) => r.items) })
+export const useSalesByProduct = () => useQuery({ queryKey: ['stock', 'sales'], queryFn: () => api.get<Items<ProductSales>>('/stock/sales-by-product?days=30').then((r) => r.items) })
+export const useCreditOverview = () => useQuery({ queryKey: ['credit', 'overview'], queryFn: () => api.get<CreditOverview>('/credit/overview') })
+export const useCreditDealers = () => useQuery({ queryKey: ['credit', 'dealers'], queryFn: () => api.get<Items<ARRow>>('/credit/dealers').then((r) => r.items) })
+export const useCreditExposure = () => useQuery({ queryKey: ['credit', 'exposure'], queryFn: () => api.get<Items<ExposureRow>>('/credit/exposure').then((r) => r.items) })
+export const useCreditForecast = () => useQuery({ queryKey: ['credit', 'forecast'], queryFn: () => api.get<Items<ForecastRow>>('/credit/forecast?days=30').then((r) => r.items) })

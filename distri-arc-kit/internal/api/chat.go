@@ -17,6 +17,7 @@ import (
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/outbox"
 	"distri-arc/internal/store/gen"
+	"distri-arc/internal/views"
 	"distri-arc/internal/wa"
 )
 
@@ -202,6 +203,21 @@ func (s *Server) chatContext(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	res := map[string]any{"kind": deref(t.Kind), "extracted": extracted, "identification": t.Identification}
+	if deref(t.Kind) == "new" {
+		rows, err := s.st.Q.ThreadProposals(r.Context(), t.ID.String())
+		if err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+		next := map[string]views.NextAction{}
+		for _, p := range rows {
+			if _, ok := next[p.Kind]; !ok {
+				next[p.Kind] = views.NextAction{ID: p.ID, Kind: p.Kind, Title: p.Title, Button: deref(p.Button), Icon: deref(p.Icon), Agent: p.Agent,
+					DueLabel: deref(p.DueLabel), Status: p.Status, Why: p.Why, DecidedAt: p.DecidedAt, ExecutedAt: p.ExecutedAt, Autonomy: p.Autonomy}
+			}
+		}
+		res["proposals"] = next
+	}
 	if t.DealerSlug != nil {
 		b, ok := s.board(w, r)
 		if !ok {

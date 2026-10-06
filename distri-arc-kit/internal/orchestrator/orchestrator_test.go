@@ -218,3 +218,52 @@ func TestScopedRun(t *testing.T) {
 		t.Errorf("plan changed by a scoped run: %d", len(plan))
 	}
 }
+
+// docs/stages/09 acceptance on the seed: bundle LED P5, collect H-3 Nusa (auto), installment Mitra (approve),
+// new dealer Toko Mandiri Pati (approve). The bundle reaches the dealers the glossary rule allows (OPEN-QUESTIONS).
+func TestStage09AgentsInCycle(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	rep, err := o.Run(ctx, all, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cid := rep.Cycle.ID
+	rows, err := st.Q.ProposalsOfCycle(ctx, &cid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	find := func(kind, dealer string) (string, string, bool) {
+		for _, p := range rows {
+			if p.Kind == kind && (dealer == "" || deref(p.DealerSlug) == dealer || strings.Contains(p.Title, dealer)) {
+				return p.Autonomy, p.Status, true
+			}
+		}
+		return "", "", false
+	}
+	if a, _, ok := find("push_stock", "Modul LED P5"); !ok || a != "approve" {
+		t.Errorf("push_stock LED P5: %v %s", ok, a)
+	}
+	if a, _, ok := find("collect", "nusa"); !ok || a != "auto" {
+		t.Errorf("collect Nusa: %v %s", ok, a)
+	}
+	if a, s, ok := find("installment", "mitra"); !ok || a != "approve" || s != "proposed" {
+		t.Errorf("installment Mitra: %v %s %s", ok, a, s)
+	}
+	if a, _, ok := find("new_dealer", "Toko Mandiri"); !ok || a != "approve" {
+		t.Errorf("new_dealer Mandiri: %v %s", ok, a)
+	}
+	if len(rep.Plan) != 8 {
+		t.Errorf("plan %d steps", len(rep.Plan))
+	}
+	titles := map[string]string{}
+	for _, p := range rows {
+		titles[p.Kind] += p.Title + "; "
+	}
+	if !strings.Contains(titles["transfer"], "Transfer 40 Kamera IP 4MP dome Jakarta → Semarang") {
+		t.Errorf("transfers: %s", titles["transfer"])
+	}
+	if !strings.Contains(titles["po_request"], "Power supply 12V 10A untuk Surabaya") {
+		t.Errorf("PO requests: %s", titles["po_request"])
+	}
+}

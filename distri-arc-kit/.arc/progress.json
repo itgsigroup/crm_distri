@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 9,
+  "current_stage": 10,
   "stages": [
     {
       "id": 0,
@@ -98,12 +98,12 @@
     {
       "id": 9,
       "name": "Agen v2 (Stok, Penagihan, Prospek) + Push stok & Kredit · kas",
-      "status": "pending",
+      "status": "done-with-fakes",
       "file": "docs/stages/09-agents-v2.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-06",
+      "finished_at": "2026-10-06",
+      "summary": "AI Stok: bundle stok menua + transfer antar cabang / permintaan PO untuk stok kritis (Transfer 40 kamera 4MP Jakarta → Semarang, PO PSU Surabaya). AI Penagihan: installment untuk dealer minta tempo; usulan gabungan Mitra berjenis installment. AI Prospek: new_dealer + price_list (Kirim harga ke thread nomor baru). internal/identify (profil WA Business lewat worker, Truecaller adapter fake, impor CSV Getcontact, Odoo; skor 74 sampel), job identify.number, API /chat/identify, /identifications/import. Prediksi kas terkalibrasi (Rp 0,99 M pada seed). Web: layar Push stok dan Kredit · kas dari API, Chat → Nomor baru dengan tombol Buat dealer tier C / Kirim harga, Pengaturan → Identifikasi nomor (impor CSV). Migrasi 0009, ADR 0011.",
+      "notes": "Acceptance: collect H-3 Nusa (auto), installment Mitra (approve), new_dealer Toko Mandiri (approve), forecast Rp 0,99 M (−3%), diuji Go + e2e. push_stock LED P5 menjangkau 2 dealer (Lampu, Borneo) bukan 6: seed hanya punya 3 dealer dengan product mix LED dan rumus glossary mensyaratkan jadwal order ≤ 7 hari / lewat jadwal — rumus menang (OPEN-QUESTIONS). Truecaller memakai fake (tanpa API). HDD 4TB Yogyakarta menjadi transfer dari Surabaya (seed punya 170 unit di sana), mockup menulis PO."
     },
     {
       "id": 10,

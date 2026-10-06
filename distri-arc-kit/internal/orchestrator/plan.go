@@ -68,6 +68,8 @@ func approvePriority(c PlanCand) int {
 	switch {
 	case c.Kind == domain.KindCreditRelease:
 		return 0
+	case strings.Contains(c.Agent, " + "):
+		return 3 // follow-up with an installment scheme: after the release and the bundle (mockup order)
 	case c.Kind == domain.KindInstallment || c.Kind == domain.KindCollect:
 		return 1
 	case c.Kind == domain.KindPushStock:
@@ -271,6 +273,13 @@ func approveText(c PlanCand) string {
 		sales, _ := c.Payload["sales"].(string)
 		return fmt.Sprintf("Nomor baru %s (%s) → usul dealer tier C, harga tier C dari %s", name, city, sales)
 	case domain.KindInstallment, domain.KindCollect:
+		if d != nil && strings.Contains(c.Agent, " + ") {
+			late := 0
+			if m := d.Metrics; m.Last != nil && m.Rhythm != nil {
+				late = *m.Last - *m.Rhythm
+			}
+			return fmt.Sprintf("Skema cicilan 2× + order cash kecil untuk %s (lewat jadwal %d hr, %s)", planLink(d), late, d.Metrics.Credit.State)
+		}
 		return fmt.Sprintf("%s %s — %s", map[string]string{domain.KindInstallment: "Skema cicilan", domain.KindCollect: "Pengingat"}[c.Kind], planLink(d), firstInvoice(c))
 	case domain.KindFollowup:
 		if d == nil {
