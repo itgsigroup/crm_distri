@@ -44,6 +44,10 @@ sudo -u arc bash -c "set -a; . $ENV_FILE; set +a; $ROOT/bin/arc.new ctl migrate"
 mv -f "$ROOT/bin/arc.new" "$ROOT/bin/arc"
 rm -rf "$ROOT/web.old" && [[ -d $ROOT/web ]] && mv "$ROOT/web" "$ROOT/web.old"
 mv "$ROOT/web.new" "$ROOT/web"
+# nginx (www-data) reads only the public web build; source, scripts and the binary stay private to arc
+chmod 711 "$ROOT"
+chmod 750 "$SRC" "$ROOT/infra"
+chmod -R a+rX "$ROOT/web"
 
 for f in distri-arc-api.service distri-arc-worker.service distri-arc-backup.service distri-arc-backup.timer; do
   install -m 644 "$KIT/infra/systemd/$f" "/etc/systemd/system/$f"
