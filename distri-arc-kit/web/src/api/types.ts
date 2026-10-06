@@ -382,3 +382,9 @@ export interface MCPInfo { endpoint: string; enabled: boolean; tools: MCPTool[];
 export interface MCPClient { id: string; name: string; scopes: string[]; token_prefix: string; active: boolean; last_seen_at: string | null; created_at: string; calls_today: number }
 export interface MCPCall { id: string; client_id: string | null; client_name: string | null; tool: string; args: Record<string, unknown> | null; result_summary: string | null; status: string; duration_ms: number | null; created_at: string }
 export interface MCPPolicy { allow_reanalyze: boolean; allow_plan_update_proposal: boolean; allow_send: false; mask_pii_in_read: boolean; max_cycles_per_hour: number }
+
+// ---------- Peta relasi (stage 08) ----------
+export interface RelasiNode { id: string; type: 'sales' | 'dealer'; name: string; sub: string; tone: string; score?: number; total: number; number?: string }
+export interface RelasiEdge { sales: string; dealer: string; w: number; monthly: number[] }
+export interface Relasi { period_days: number; months: number; month_labels: string[]; nodes: RelasiNode[]; edges: RelasiEdge[]; pairs: { sales: string; dealer: string; w: number }[]; connections: number; interactions: number }
+export interface RelasiInsight { tone: string; icon: string; title: string; text: string; dealer: string }

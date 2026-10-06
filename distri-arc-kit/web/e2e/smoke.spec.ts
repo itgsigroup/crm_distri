@@ -72,3 +72,16 @@ test('MCP panel and Koneksi AI come from the server (stage 07)', async ({ page }
   await page.goto('/pengaturan', { waitUntil: 'networkidle' })
   await expect(page.locator('.ep')).toContainText('/mcp')
 })
+
+test('Peta relasi loads the graph from the API (stage 08)', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', (e) => errors.push(String(e)))
+  await page.goto('/orbit/relasi', { waitUntil: 'networkidle' })
+  await expect(page.locator('.pairs li').nth(1)).toContainText('Rizky ↔ Indo Vision Security')
+  await expect(page.locator('.pairs li').nth(1).locator('em')).toHaveText('104')
+  await page.getByRole('button', { name: '180 hr' }).click()
+  await expect(page.locator('.pairs li').nth(1).locator('em')).toHaveText('553')
+  await expect(page.locator('.ins')).toContainText('Mitra Jaya Teknik: 30 hari tanpa order (siklus 21) — intensitas WA turun')
+  await expect(page.locator('.net-lbl')).toHaveCount(22)
+  expect(errors).toEqual([])
+})

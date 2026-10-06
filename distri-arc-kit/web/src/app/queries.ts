@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api, type Items } from '../api/client'
-import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, MCPCall, MCPClient, MCPInfo, MCPPolicy, Plan, Proposal } from '../api/types'
+import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, MCPCall, MCPClient, MCPInfo, MCPPolicy, Plan, Proposal, Relasi, RelasiInsight } from '../api/types'
 import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAGroup, WANumber } from '../api/types'
 import type {
   AgendaRow, AgingItem, BoardItem, Brief, DealerDetail, Health, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
@@ -94,3 +94,9 @@ export const useMCPInfo = () => useQuery({ queryKey: ['mcp', 'info'], queryFn: (
 export const useMCPClients = () => useQuery({ queryKey: ['mcp', 'clients'], queryFn: () => api.get<Items<MCPClient>>('/mcp/clients').then((r) => r.items) })
 export const useMCPCalls = () => useQuery({ queryKey: ['mcp', 'calls'], queryFn: () => api.get<Items<MCPCall>>('/mcp/calls?limit=20').then((r) => r.items) })
 export const useMCPPolicy = () => useQuery({ queryKey: ['policies', 'mcp'], queryFn: () => api.get<MCPPolicy>('/policies/mcp') })
+
+// ---------- Peta relasi ----------
+const rq = (period: number, sales: string) => `?period=${period}${sales !== 'all' ? '&sales=' + encodeURIComponent(sales) : ''}`
+export const useRelasi = (period: number, sales: string) => useQuery({ queryKey: ['relasi', period, sales], queryFn: () => api.get<Relasi>('/relasi' + rq(period, sales)) })
+export const useRelasiInsights = (period: number, sales: string) =>
+  useQuery({ queryKey: ['relasi', 'insights', period, sales], queryFn: () => api.get<Items<RelasiInsight>>('/relasi/insights' + rq(period, sales)).then((r) => r.items) })

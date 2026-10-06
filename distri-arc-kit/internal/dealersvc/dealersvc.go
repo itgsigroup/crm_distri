@@ -105,6 +105,10 @@ func (s *Service) Load(ctx context.Context) (*Dataset, error) {
 
 // Recompute computes and stores metrics for the given dealers (all when ids is empty).
 func (s *Service) Recompute(ctx context.Context, ids ...uuid.UUID) (map[uuid.UUID]domain.DealerMetrics, error) {
+	// PIC aktif first: interactions_90d / last_interaction_at from the messages of each contact's number
+	if err := s.st.Q.RecountContacts(ctx, s.clock.Now().AddDate(0, 0, -90)); err != nil {
+		return nil, err
+	}
 	ds, err := s.Load(ctx)
 	if err != nil {
 		return nil, err

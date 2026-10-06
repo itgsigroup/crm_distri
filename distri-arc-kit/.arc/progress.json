@@ -3,7 +3,7 @@
   "owner": "Sam Setiadi (GSI)",
   "stack": "Go 1.23 · React 19 · PostgreSQL 16",
   "phase_note": "Fase 1 (00–07): fondasi → metrik → UI → WhatsApp → Odoo → agen v1 → Orchestrator → MCP. Fase 2 (08–14): peta relasi, agen v2, memori & kalibrasi, pengaturan, eksekusi nyata, hardening, pilot.",
-  "current_stage": 8,
+  "current_stage": 9,
   "stages": [
     {
       "id": 0,
@@ -88,12 +88,12 @@
     {
       "id": 8,
       "name": "Peta relasi 3D + pola relasi + PIC aktif",
-      "status": "pending",
+      "status": "done",
       "file": "docs/stages/08-relasi-3d.md",
-      "started_at": null,
-      "finished_at": null,
-      "summary": "",
-      "notes": ""
+      "started_at": "2026-10-05",
+      "finished_at": "2026-10-06",
+      "summary": "Migrasi 0008: interactions_monthly (riwayat impor + as_of) dan baseline kontak; seedgen menulis db/seed/interactions.json dari EDGES_M mockup. views.BuildRelasi (graf per periode 30/60/90/180, filter sales, pasangan terkuat) dan RelasiInsights (lewat jadwal & WA turun, dua sales satu dealer, order besar WA tipis); API /relasi, /relasi/insights. dealersvc menghitung ulang interactions_90d/last_interaction_at (PIC aktif); AI Follow-up meminta nomor admin/kasir bila ≤ 1 PIC. Web: Peta relasi 3D (three 0.160, port createNet → NetView.ts), layout force di Web Worker ber-seed, fallback canvas 2D, reduced-motion, tooltip, klik dua kali → dealer, filter, periode, pasangan terkuat, pola relasi. ADR 0010.",
+      "notes": "Acceptance: 4 sales + 18 dealer, Rizky ↔ Indo Vision 104 (180 hr: 553), insight \"Mitra Jaya Teknik: 30 hari tanpa order (siklus 21) — intensitas WA turun\", Mitra 2 PIC aktif; diuji API + e2e. Mini peta di halaman Dealer (opsional) belum dibuat — masuk Stage 13 bila diperlukan."
     },
     {
       "id": 9,

@@ -188,6 +188,8 @@ type Contact struct {
 	Interactions90d   int32      `json:"interactions_90d"`
 	SourceSystem      *string    `json:"source_system"`
 	SourceID          *string    `json:"source_id"`
+	InteractionsBase  *int32     `json:"interactions_base"`
+	BaseAsOf          *time.Time `json:"base_as_of"`
 }
 
 type Cycle struct {
@@ -291,6 +293,15 @@ type Identification struct {
 	BestOrg   *string         `json:"best_org"`
 	Score     *int16          `json:"score"`
 	CreatedAt time.Time       `json:"created_at"`
+}
+
+type InteractionsMonthly struct {
+	SalesID  uuid.UUID `json:"sales_id"`
+	DealerID uuid.UUID `json:"dealer_id"`
+	Month    time.Time `json:"month"`
+	N        int32     `json:"n"`
+	Source   string    `json:"source"`
+	AsOf     time.Time `json:"as_of"`
 }
 
 type InternalNumber struct {

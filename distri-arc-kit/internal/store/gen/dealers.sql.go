@@ -96,7 +96,7 @@ func (q *Queries) GetDealer(ctx context.Context, slug *string) (GetDealerRow, er
 }
 
 const listContacts = `-- name: ListContacts :many
-select id, dealer_id, name, role, wa_number, is_primary, last_interaction_at, interactions_90d, source_system, source_id from contacts order by dealer_id, interactions_90d desc, name
+select id, dealer_id, name, role, wa_number, is_primary, last_interaction_at, interactions_90d, source_system, source_id, interactions_base, base_as_of from contacts order by dealer_id, interactions_90d desc, name
 `
 
 func (q *Queries) ListContacts(ctx context.Context) ([]Contact, error) {
@@ -119,6 +119,8 @@ func (q *Queries) ListContacts(ctx context.Context) ([]Contact, error) {
 			&i.Interactions90d,
 			&i.SourceSystem,
 			&i.SourceID,
+			&i.InteractionsBase,
+			&i.BaseAsOf,
 		); err != nil {
 			return nil, err
 		}
@@ -188,7 +190,7 @@ func (q *Queries) ListDealerCommitments(ctx context.Context, dealerID *uuid.UUID
 }
 
 const listDealerContacts = `-- name: ListDealerContacts :many
-select id, dealer_id, name, role, wa_number, is_primary, last_interaction_at, interactions_90d, source_system, source_id from contacts where dealer_id = $1 order by interactions_90d desc, name
+select id, dealer_id, name, role, wa_number, is_primary, last_interaction_at, interactions_90d, source_system, source_id, interactions_base, base_as_of from contacts where dealer_id = $1 order by interactions_90d desc, name
 `
 
 func (q *Queries) ListDealerContacts(ctx context.Context, dealerID *uuid.UUID) ([]Contact, error) {
@@ -211,6 +213,8 @@ func (q *Queries) ListDealerContacts(ctx context.Context, dealerID *uuid.UUID) (
 			&i.Interactions90d,
 			&i.SourceSystem,
 			&i.SourceID,
+			&i.InteractionsBase,
+			&i.BaseAsOf,
 		); err != nil {
 			return nil, err
 		}

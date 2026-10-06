@@ -218,7 +218,7 @@ func (q *Queries) ExpireOpenProposals(ctx context.Context, createdAt time.Time) 
 }
 
 const findContactByName = `-- name: FindContactByName :one
-select id, dealer_id, name, role, wa_number, is_primary, last_interaction_at, interactions_90d, source_system, source_id from contacts where dealer_id = $1 and name = $2 limit 1
+select id, dealer_id, name, role, wa_number, is_primary, last_interaction_at, interactions_90d, source_system, source_id, interactions_base, base_as_of from contacts where dealer_id = $1 and name = $2 limit 1
 `
 
 type FindContactByNameParams struct {
@@ -240,6 +240,8 @@ func (q *Queries) FindContactByName(ctx context.Context, arg FindContactByNamePa
 		&i.Interactions90d,
 		&i.SourceSystem,
 		&i.SourceID,
+		&i.InteractionsBase,
+		&i.BaseAsOf,
 	)
 	return i, err
 }

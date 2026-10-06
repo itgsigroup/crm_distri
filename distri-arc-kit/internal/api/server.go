@@ -78,6 +78,7 @@ func (s *Server) Handler() http.Handler {
 			s.proposalRoutes(r)
 			s.cycleRoutes(r)
 			s.mcpRoutes(r)
+			s.relasiRoutes(r)
 			r.Get("/events", s.events)
 			r.Get("/brief/today", s.briefToday)
 		})

@@ -119,6 +119,31 @@ type mockup struct {
 	KAT     []string  `json:"KAT"`
 	DEALERS []mDealer `json:"DEALERS"`
 	CHATS   []mChat   `json:"CHATS"`
+	EdgesM  [][]any   `json:"EDGES_M"` // [sales id, dealer id, [6 monthly counts Mei..Okt]]
+}
+
+// Interaction is one (sales, dealer) pair's monthly WhatsApp + order interactions before Distri ARC (Peta relasi).
+type Interaction struct {
+	Sales  string   `json:"sales"`
+	Dealer string   `json:"dealer"`
+	Months []string `json:"months"` // YYYY-MM
+	N      []int    `json:"n"`
+}
+
+func buildInteractions(m mockup) []Interaction {
+	var months []string
+	for i := 5; i >= 0; i-- {
+		months = append(months, anchor.AddDate(0, -i, 0).Format("2006-01"))
+	}
+	var out []Interaction
+	for _, e := range m.EdgesM {
+		var n []int
+		for _, v := range e[2].([]any) {
+			n = append(n, int(v.(float64)))
+		}
+		out = append(out, Interaction{Sales: strings.TrimPrefix(e[0].(string), "s-"), Dealer: e[1].(string), Months: months, N: n})
+	}
+	return out
 }
 
 // ---------- output records ----------
@@ -364,6 +389,7 @@ func main() {
 	write(filepath.Join(out, "stock.json"), stock)
 	write(filepath.Join(out, "metrics_prev.json"), prev)
 	write(filepath.Join(out, "chats.json"), buildChats(m))
+	write(filepath.Join(out, "interactions.json"), buildInteractions(m))
 	exportOdoo(filepath.Join(out, "odoo"), sales, dealers, stock)
 	nOrders, nWA := 0, 0
 	for _, d := range dealers {

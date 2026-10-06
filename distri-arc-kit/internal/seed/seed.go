@@ -142,6 +142,17 @@ type stockItem struct {
 // Anchor is the date the sample data describes ("Senin, 5 Oktober 2026"); seeded source_write_date.
 var Anchor = time.Date(2026, 10, 5, 6, 0, 0, 0, clock.WIB)
 
+// HistoryAsOf ends the imported interaction history (the whole anchor day, so the sample chats of that day are
+// not counted twice); live counting of Peta relasi and PIC aktif starts after it.
+var HistoryAsOf = time.Date(2026, 10, 5, 23, 59, 59, 0, clock.WIB)
+
+type interaction struct {
+	Sales  string   `json:"sales"`
+	Dealer string   `json:"dealer"`
+	Months []string `json:"months"`
+	N      []int    `json:"n"`
+}
+
 // Categories is the fixed product-mix list (01-glossary) with the Odoo category ids used by the sample data.
 var Categories = []struct {
 	OdooID int32
@@ -159,7 +170,8 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 	var stock []stockItem
 	var policies map[string]json.RawMessage
 	var chats []chatMeta
-	for name, dst := range map[string]any{"seed/sales.json": &sales, "seed/dealers.json": &dealers, "seed/signals.json": &signals, "seed/stock.json": &stock, "seed/policies.json": &policies, "seed/chats.json": &chats} {
+	var inter []interaction
+	for name, dst := range map[string]any{"seed/sales.json": &sales, "seed/dealers.json": &dealers, "seed/signals.json": &signals, "seed/stock.json": &stock, "seed/policies.json": &policies, "seed/chats.json": &chats, "seed/interactions.json": &inter} {
 		b, err := fs.ReadFile(fsys, name)
 		if err != nil {
 			return Result{}, err
@@ -212,6 +224,9 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 					return fmt.Errorf("contact %s: %w", c.Key, err)
 				}
 				contactID[c.Key] = cid
+				if err := q.SetContactBaseline(ctx, gen.SetContactBaselineParams{ID: cid, BaseAsOf: ptrTime(HistoryAsOf)}); err != nil {
+					return err
+				}
 			}
 			note := d.SOW.Note
 			if err := q.UpsertSowEstimate(ctx, gen.UpsertSowEstimateParams{DealerID: &id, Quarter: d.SOW.Quarter, Sow: d.SOW.SOW, Note: &note, ConfirmedBy: &owner, ConfirmedAt: Anchor.AddDate(0, 0, -20)}); err != nil {
@@ -314,6 +329,23 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 			return fmt.Errorf("chat: %w", err)
 		}
 
+		// interaction history before Distri ARC (Peta relasi)
+		for _, x := range inter {
+			sid, did := salesID[x.Sales], dealerID[x.Dealer]
+			if sid == uuid.Nil || did == uuid.Nil {
+				return fmt.Errorf("interaction %s ↔ %s: unknown sales or dealer", x.Sales, x.Dealer)
+			}
+			for i, m := range x.Months {
+				month, err := time.ParseInLocation("2006-01", m, clock.WIB)
+				if err != nil {
+					return err
+				}
+				if err := q.UpsertInteractionMonth(ctx, gen.UpsertInteractionMonthParams{SalesID: sid, DealerID: did, Month: month, N: int32(x.N[i]), Source: "seed", AsOf: HistoryAsOf}); err != nil {
+					return err
+				}
+			}
+		}
+
 		keys := make([]string, 0, len(policies))
 		for k := range policies {
 			keys = append(keys, k)
@@ -383,3 +415,5 @@ func seedProducts(ctx context.Context, q *gen.Queries, fsys fs.FS) error {
 	}
 	return nil
 }
+
+func ptrTime(t time.Time) *time.Time { return &t }

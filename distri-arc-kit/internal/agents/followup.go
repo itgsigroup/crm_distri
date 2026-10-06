@@ -133,6 +133,12 @@ func (a Followup) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]doma
 			p.Preview = fmt.Sprintf("%s, biasanya minggu ini %s order ya. Stok %s siap%s. Mau saya siapkan seperti biasa?", pic.Name, Bapak(pic.Name), ready, criticalPreview(rec))
 			p.Steps = []string{"Masuk antrean " + d.Owner.Name, "Balasan → AI Order membuat SO"}
 		}
+		if m.PICActive <= 1 { // Hanya 1 PIC: one person leaves, the dealer leaves with them (glossary)
+			p.Prep = strings.TrimSpace(p.Prep + " Hanya 1 PIC aktif — draft meminta nomor admin/kasir.")
+			p.Preview = strings.TrimSpace(p.Preview + " Boleh minta juga nomor admin atau kasir toko untuk konfirmasi pengiriman?")
+			p.Steps = append(p.Steps, "Simpan nomor admin/kasir sebagai PIC kedua")
+			p.Payload["ask_second_pic"] = true
+		}
 		polish(ctx, r, in, &p, "followup", map[string]any{"dealer": d.Name, "pic": pic.Name, "sales": d.Owner.Name, "rhythm_days": rhythm, "days_since_order": last,
 			"due_in": due, "recommendation": rec, "root_cause": d.RootCause, "credit_state": m.Credit.State}, names)
 		out = append(out, p)

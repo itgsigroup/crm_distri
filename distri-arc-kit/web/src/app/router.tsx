@@ -3,6 +3,7 @@ import { Shell } from './Shell'
 import { FeedbackProvider } from '../components/feedback'
 import { OrchProvider } from './orch'
 import { OrchestratorPage } from '../features/orchestrator/OrchestratorPage'
+import { RelasiPage } from '../features/relasi/RelasiPage'
 import { ControlCenter } from '../features/control/ControlCenter'
 import { OrbitPage } from '../features/orbit/OrbitPage'
 import { SegmenPage } from '../features/segmen/SegmenPage'
@@ -23,7 +24,7 @@ export const router = createBrowserRouter([
       { path: 'chat/:threadId?', element: <ChatPage /> },
       { path: 'orbit', element: <OrbitPage /> },
       { path: 'orbit/segmen', element: <SegmenPage /> },
-      { path: 'orbit/relasi', element: <Upcoming title="Peta relasi 3D" stage="08" text="Graph nomor sales ↔ dealer dari interaksi WhatsApp + order per periode 30–180 hari, pasangan terkuat, dan pola relasi." /> },
+      { path: 'orbit/relasi', element: <RelasiPage /> },
       { path: 'dealer/:id?', element: <DealerPage /> },
       { path: 'stok', element: <Upcoming title="Push stok" stage="09" text="KPI stok, kandidat push per SKU dengan floor margin, stok kritis dengan usulan transfer / PO, dan penjualan per produk." /> },
       { path: 'kredit', element: <Upcoming title="Kredit · kas" stage="09" text="DSO, piutang, lewat tempo, sisa limit tiap dealer, exposure vs limit, dan prediksi kas masuk 30 hari tertimbang pola bayar." /> },

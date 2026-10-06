@@ -40,7 +40,7 @@ func (q *Queries) DeleteInternalNumber(ctx context.Context, waNumber string) err
 }
 
 const findContactByNumber = `-- name: FindContactByNumber :one
-select c.id, c.dealer_id, c.name, c.role, c.wa_number, c.is_primary, c.last_interaction_at, c.interactions_90d, c.source_system, c.source_id, d.slug as dealer_slug, d.name as dealer_name, d.owner_id as dealer_owner
+select c.id, c.dealer_id, c.name, c.role, c.wa_number, c.is_primary, c.last_interaction_at, c.interactions_90d, c.source_system, c.source_id, c.interactions_base, c.base_as_of, d.slug as dealer_slug, d.name as dealer_name, d.owner_id as dealer_owner
 from contacts c join dealers d on d.id = c.dealer_id where c.wa_number = $1 limit 1
 `
 
@@ -55,6 +55,8 @@ type FindContactByNumberRow struct {
 	Interactions90d   int32      `json:"interactions_90d"`
 	SourceSystem      *string    `json:"source_system"`
 	SourceID          *string    `json:"source_id"`
+	InteractionsBase  *int32     `json:"interactions_base"`
+	BaseAsOf          *time.Time `json:"base_as_of"`
 	DealerSlug        *string    `json:"dealer_slug"`
 	DealerName        string     `json:"dealer_name"`
 	DealerOwner       *uuid.UUID `json:"dealer_owner"`
@@ -74,6 +76,8 @@ func (q *Queries) FindContactByNumber(ctx context.Context, waNumber *string) (Fi
 		&i.Interactions90d,
 		&i.SourceSystem,
 		&i.SourceID,
+		&i.InteractionsBase,
+		&i.BaseAsOf,
 		&i.DealerSlug,
 		&i.DealerName,
 		&i.DealerOwner,

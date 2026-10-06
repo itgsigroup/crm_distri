@@ -61,3 +61,6 @@ Catatan lokal: proyek ini berada di `distri-arc-kit/` di repo `crm_distri` (bran
 - `bin/arc ctl mcp-token --name "Claude Desktop Sam" --scopes read,analyze,orchestrate` (atau Pengaturan → Koneksi AI → Buat token) lalu ikuti `docs/mcp-clients.md`.
 - Uji cepat: `go run ./tools/mcpcheck -token arc_… jadwal.due '{"sales":"Dewi"}'` dan `… orchestrator.reanalyze '{"scope":"dealer:mitra"}'` → siklus `MCP` di Riwayat analisis + log panggilan di layar Orchestrator.
 
+### Tahap 08: Peta relasi
+- Orbit → *Peta relasi 3D* (`/orbit/relasi`): periode 30–180 hari, filter sales, pasangan terkuat, pola relasi; klik dua kali dealer → halaman dealer. API: `/api/relasi?period=90&sales=dewi`.
+
