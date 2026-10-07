@@ -12,8 +12,9 @@ values ($1, $2, $3, $4, $5, $6, $7);
 select * from audit_log where action = $1 order by created_at desc limit 1;
 
 -- name: GetUserByEmail :one
-select u.id, u.email, u.name, u.role, u.sales_user_id, s.branch, s.name as sales_name, u.totp_enabled_at
-from users u left join sales_users s on s.id = u.sales_user_id
+select u.id, u.email, u.name, u.role, u.sales_user_id, s.branch, s.name as sales_name, u.totp_enabled_at,
+  u.wa_number, r.key as role_key, r.name as role_name, r.screens as role_screens, r.decide as role_decide, coalesce(r.wa_allowed, true) as role_wa
+from users u left join sales_users s on s.id = u.sales_user_id left join roles r on r.key = u.role_key
 where lower(u.email) = lower($1) and u.active;
 
 -- name: ListPolicies :many

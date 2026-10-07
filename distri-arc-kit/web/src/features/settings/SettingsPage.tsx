@@ -3,7 +3,7 @@ import { Pill } from '../../components/ui'
 import { fmtRp, shortDate } from '../../lib/format'
 import { useCalibration, useConnections, useMe, usePolicies, useWAGroups, useWAStatus } from '../../app/queries'
 import { PolicyEditor, useSavePolicy, type PolicyField } from './PolicyEditor'
-import { UsersCard } from './UsersCard'
+import { RolesCard, UsersCard } from './UsersCard'
 import { AutonomyCard } from './AutonomyCard'
 import { WhatsAppPanel } from './WhatsAppPanel'
 import { AIConnectionsCard } from './AIConnections'
@@ -82,6 +82,7 @@ export function SettingsPage() {
       </div>
       <AutonomyCard />
       <UsersCard />
+      <RolesCard />
       <SecurityCard />
       <div className="card">
         <div className="card-h"><h2>Tampilan</h2><span className="meta">Disimpan di perangkat ini</span></div>

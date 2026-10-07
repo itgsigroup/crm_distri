@@ -4,7 +4,8 @@ import { api } from '../../api/client'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
-import { useInternalNumbers, useSales, useWAGroups, useWAStatus } from '../../app/queries'
+import { useInternalNumbers, useWAGroups, useWAStatus } from '../../app/queries'
+import { AddNumberForm } from '../chat/Connect'
 
 const STATE: Record<string, [string, 'good' | 'warn' | 'bad' | 'neutral']> = {
   connected: ['Terhubung', 'good'], pairing: ['Menunggu scan QR', 'warn'], disconnected: ['Terputus', 'bad'], logged_out: ['Keluar dari perangkat', 'bad'], unpaired: ['Belum dipasangkan', 'neutral'],
@@ -17,15 +18,6 @@ export function WhatsAppPanel() {
   const { data: status } = useWAStatus()
   const { data: internal = [] } = useInternalNumbers()
   const { data: groups = [] } = useWAGroups()
-  const { data: sales = [] } = useSales()
-  const [newNo, setNewNo] = useState('')
-  const [newLabel, setNewLabel] = useState('')
-  const [owner, setOwner] = useState('')
-  const addNumber = useMutation({
-    mutationFn: () => api.post('/wa/numbers', { wa_number: newNo, label: newLabel, sales_name: owner }),
-    onSuccess: () => { setNewNo(''); setNewLabel(''); setOwner(''); qc.invalidateQueries({ queryKey: ['wa'] }); toast('Nomor ditambahkan · klik Pasangkan lalu scan QR dari HP nomor itu') },
-    onError: (e: Error) => toast(e.message),
-  })
   const unpair = useMutation({
     mutationFn: (n: string) => api.del(`/wa/numbers/${n}`),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['wa'] }); toast('Nomor dilepas · perangkat tertaut dikeluarkan') },
@@ -63,7 +55,7 @@ export function WhatsAppPanel() {
         <h4>Nomor WhatsApp <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>· {(status?.items ?? []).filter((n) => n.state === 'connected').length}/{status?.items.length ?? 0} terhubung</span></h4>
         <ul className="nums">
           {(status?.items ?? []).map((n) => {
-            const name = n.label || n.sales || n.masked
+            const name = n.user_name || n.label || n.sales || n.masked
             const lim = n.limits
             return (
               <li key={n.wa_number}>
@@ -82,15 +74,7 @@ export function WhatsAppPanel() {
             )
           })}
         </ul>
-        <form className="wa-add" onSubmit={(e) => { e.preventDefault(); if (newNo.trim() && newLabel.trim()) addNumber.mutate() }}>
-          <input value={newNo} onChange={(e) => setNewNo(e.target.value)} placeholder="Nomor, mis. 0812 3456 7890" aria-label="Nomor WhatsApp baru" inputMode="tel" />
-          <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Label, mis. CS Kantor" aria-label="Label nomor" />
-          <select value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Pemilik nomor">
-            <option value="">Nomor tim (tanpa sales)</option>
-            {sales.map((x) => <option key={x.key} value={x.name}>{x.name} · {x.branch}</option>)}
-          </select>
-          <button className="btn primary" type="submit" disabled={addNumber.isPending || !newNo.trim() || !newLabel.trim()}><Icon name="plug" />Tambah nomor</button>
-        </form>
+        <div className="connect" style={{ marginTop: 12, gap: 10 }}><AddNumberForm /></div>
       </div>
       {pairing && (
         <div className="sec qr">

@@ -255,7 +255,7 @@ export interface Brief {
   confidence: number
 }
 
-export interface Me { id: string; email: string; name: string; role: string; branch: string; screens: string[]; decide: string[]; edit_policies: boolean; manage_users: boolean; totp_available?: boolean; totp_enabled?: boolean; pilot_mode?: 'off' | 'shadow' | 'live' }
+export interface Me { id: string; email: string; name: string; role: string; branch: string; screens: string[]; decide: string[]; edit_policies: boolean; manage_users: boolean; totp_available?: boolean; totp_enabled?: boolean; pilot_mode?: 'off' | 'shadow' | 'live'; role_key?: string; role_name?: string; wa_number?: string | null; wa_allowed?: boolean }
 export interface Health { db: string; queue: string; now: string; sample_data?: boolean }
 export interface SystemAlert { key: string; message: string; opened_at: string; notified_at: string | null }
 export interface HealthFull {
@@ -335,6 +335,10 @@ export interface WANumber {
   paired_at: string | null
   qr_png?: string
   pair_code?: string
+  user_id?: string | null
+  user_name?: string
+  user_email?: string
+  mine?: boolean
   label: string
   sales_id: string | null
   limits?: { last_hour: number; per_hour: number; today: number; per_day: number; warmup: boolean }

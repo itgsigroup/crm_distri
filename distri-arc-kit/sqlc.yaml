@@ -16,6 +16,7 @@ sql:
       - db/migrations/0012_pilot.sql
       - db/migrations/0013_wa_accounts.sql
       - db/migrations/0014_master_data.sql
+      - db/migrations/0015_roles_access.sql
     queries: db/queries
     gen:
       go:

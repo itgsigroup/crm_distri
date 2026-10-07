@@ -28,16 +28,21 @@ returning *;
 update wa_groups set kind = $2, read_enabled = $3 where id = $1 returning *;
 
 -- name: ListWANumbers :many
-select n.*, s.name as sales_name, s.branch as sales_branch
-from wa_numbers n left join sales_users s on s.id = n.sales_id order by s.name nulls last, n.label, n.created_at;
+select n.*, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email
+from wa_numbers n left join sales_users s on s.id = n.sales_id left join users u on u.id = n.user_id
+order by s.name nulls last, n.label, n.created_at;
+
+-- name: GetWANumberByUser :one
+select * from wa_numbers where user_id = $1;
 
 -- name: GetWANumber :one
 select * from wa_numbers where wa_number = $1;
 
 -- name: UpsertWANumber :exec
-insert into wa_numbers (wa_number, sales_id, label, transport, state)
-values ($1, $2, $3, $4, $5)
-on conflict (wa_number) do update set sales_id = excluded.sales_id, label = excluded.label, transport = excluded.transport;
+insert into wa_numbers (wa_number, sales_id, label, transport, state, user_id)
+values ($1, $2, $3, $4, $5, $6)
+on conflict (wa_number) do update set sales_id = excluded.sales_id, label = excluded.label, transport = excluded.transport,
+  user_id = coalesce(excluded.user_id, wa_numbers.user_id);
 
 -- name: SetWANumberState :exec
 update wa_numbers set state = $2, jid = coalesce($3, jid), last_seen_at = now(),

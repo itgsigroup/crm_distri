@@ -140,3 +140,8 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Nama kontak dari HP (nama tersimpan / bisnis / push name) jadi judul percakapan nomor baru; riwayat setelah menautkan masuk sebagai sudah dibaca dan tidak memicu identifikasi profil.
 - Anti-blokir: chat dibaca (centang biru) hanya tepat sebelum membalas, dengan jeda membaca 1–3 dtk, lalu "mengetik…".
 - Chat **banyak nomor**: rel nomor WhatsApp di kiri (seperti akun di WhatsApp Business) — "Semua" + tiap nomor dengan avatar, status tertaut, dan jumlah belum dibaca; klik untuk melihat chat nomor itu saja, nomor yang belum tertaut langsung dibuka untuk ditautkan, **+ Nomor** untuk menambah. Kepala daftar menunjukkan nomor terpilih / jumlah nomor terhubung. Di HP rel menjadi baris yang bisa digeser.
+
+## Master peran & akses · satu pengguna satu nomor WhatsApp · 2026-10-07
+- **Peran & akses** (Pengaturan, ADR 0019): tambah/ubah peran — nama, jenis akses dasar (Admin / Finance / Sales / Gudang), menu yang dibuka, jenis saran AI yang boleh diputuskan, boleh memegang nomor WhatsApp. Peran hanya mempersempit akses dasarnya; menu ditegakkan juga di API (403), keputusan di luar peran ditolak. Hanya CEO yang mengubah; admin melihat. Migrasi `0015_roles_access`.
+- **Pengguna**: peran dipilih dari master peran, cabang, dan **satu nomor WhatsApp** per pengguna (unik); daftar menunjukkan nomor dan status WA-nya. Harus selalu ada satu CEO aktif.
+- **Tambah nomor di Chat dari master pengguna**: pilih pengguna → nomornya terisi dari master → Tambah & tautkan; satu pengguna satu nomor; pengguna non-admin bisa menautkan nomornya sendiri. Form yang sama di Pengaturan → WhatsApp.

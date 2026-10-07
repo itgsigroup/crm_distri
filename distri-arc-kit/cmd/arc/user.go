@@ -71,7 +71,7 @@ func runUserCtl(ctx context.Context, st *store.Store, args []string) error {
 			}
 			sid = &id
 		}
-		id, err := st.Q.CreateUser(ctx, gen.CreateUserParams{Email: email, Name: name, Role: role, PasswordHash: &hash, SalesUserID: sid})
+		id, err := st.Q.CreateUser(ctx, gen.CreateUserParams{Email: email, Name: name, Role: role, PasswordHash: &hash, SalesUserID: sid, RoleKey: role})
 		if err != nil {
 			return err
 		}

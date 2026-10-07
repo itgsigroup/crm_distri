@@ -3,6 +3,7 @@ package api
 
 import (
 	"context"
+	"distri-arc/internal/access"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -18,7 +19,6 @@ import (
 	"distri-arc/internal/auth"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
-	"distri-arc/internal/domain"
 	"distri-arc/internal/events"
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/identify"
@@ -93,6 +93,7 @@ func (s *Server) Handler() http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(s.auth)
 			s.userRoutes(r)
+			s.roleRoutes(r)
 			r.Get("/me", s.me)
 			s.readRoutes(r)
 			s.chatRoutes(r)
@@ -183,6 +184,11 @@ func (s *Server) auth(next http.Handler) http.Handler {
 			httpx.Fail(w, http.StatusUnauthorized, "unknown_user", "Pengguna tidak dikenal")
 			return
 		}
+		// a role without a screen cannot call that screen's API either (not only a hidden menu)
+		if sc := access.ScreenForPath(r.URL.Path); sc != "" && !slices.Contains(roleOf(u).Screens, sc) {
+			httpx.Fail(w, http.StatusForbidden, "forbidden", "Peran Anda tidak membuka menu ini — atur di Pengaturan → Peran & akses")
+			return
+		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userKey, u)))
 	})
 }
@@ -216,33 +222,28 @@ func CurrentUser(ctx context.Context) (User, bool) {
 	return u, ok
 }
 
+// roleOf is the user's effective access (role master narrowing their base role).
+func roleOf(u User) access.Role {
+	return access.Resolve(deref(u.RoleKey), deref(u.RoleName), deref(u.Role), u.RoleScreens, u.RoleDecide, u.RoleWa)
+}
+
+// decider is the person deciding a proposal, with the kinds their role lets them decide.
+func decider(u User) proposals.Decider {
+	ro := roleOf(u)
+	return proposals.Decider{SalesUserID: *u.SalesUserID, Name: deref(u.Name), Role: deref(u.Role), Email: deref(u.Email), Decide: ro.Decide, RoleName: ro.Name}
+}
+
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 	u, _ := CurrentUser(r.Context())
 	role := deref(u.Role)
-	decide := []string{}
-	for _, k := range domain.AllKinds {
-		if slices.Contains(proposals.RolesFor(k), role) {
-			decide = append(decide, k)
-		}
-	}
+	ro := roleOf(u)
+	decide := ro.Decide
 	pilotMode := "off"
 	if pol, err := policy.Load(r.Context(), s.st.Q); err == nil {
 		pilotMode = pol.Pilot.Mode
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"id": u.ID, "email": u.Email, "name": u.Name, "role": u.Role, "branch": u.Branch,
-		"screens": screensFor(role), "decide": decide, "edit_policies": role == "ceo", "manage_users": role == "ceo" || role == "admin",
+		"screens": ro.Screens, "decide": decide, "edit_policies": role == "ceo", "manage_users": role == "ceo" || role == "admin",
+		"role_key": ro.Key, "role_name": ro.Name, "wa_number": u.WaNumber, "wa_allowed": ro.WAAllowed,
 		"totp_available": totpRoles(role), "totp_enabled": u.TotpEnabledAt != nil, "pilot_mode": pilotMode})
-}
-
-// screensFor is the menu of a role (Pengaturan only for CEO and admin; finance works on credit, warehouse on stock).
-func screensFor(role string) []string {
-	switch role {
-	case "sales":
-		return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "konsep"}
-	case "finance":
-		return []string{"today", "orch", "orbit", "kuad", "dealer", "ar", "konsep"}
-	case "warehouse":
-		return []string{"today", "chat", "stock", "dealer", "konsep"}
-	}
-	return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "ar", "conn", "konsep"}
 }

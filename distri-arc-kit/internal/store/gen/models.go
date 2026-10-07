@@ -643,6 +643,20 @@ type RiverQueue struct {
 	UpdatedAt time.Time       `json:"updated_at"`
 }
 
+type Role struct {
+	Key         string    `json:"key"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Base        string    `json:"base"`
+	Screens     []string  `json:"screens"`
+	Decide      []string  `json:"decide"`
+	WaAllowed   bool      `json:"wa_allowed"`
+	System      bool      `json:"system"`
+	Active      bool      `json:"active"`
+	UpdatedBy   *string   `json:"updated_by"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type SalesUser struct {
 	ID           uuid.UUID `json:"id"`
 	Name         string    `json:"name"`
@@ -734,6 +748,8 @@ type User struct {
 	TotpSecret    *string    `json:"totp_secret"`
 	TotpEnabledAt *time.Time `json:"totp_enabled_at"`
 	TotpLastStep  *int64     `json:"totp_last_step"`
+	RoleKey       *string    `json:"role_key"`
+	WaNumber      *string    `json:"wa_number"`
 }
 
 type VDealerBoard struct {
@@ -779,4 +795,5 @@ type WaNumber struct {
 	BackfillDays int32      `json:"backfill_days"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 	CreatedAt    time.Time  `json:"created_at"`
+	UserID       *uuid.UUID `json:"user_id"`
 }

@@ -127,7 +127,7 @@ test('three roles see their own menu (stage 11)', async ({ page }) => {
   await login(page, 'sam@gsi.co.id')
   await expect(rail.getByRole('button', { name: 'Pengaturan' })).toBeVisible()
   await page.goto('/pengaturan', { waitUntil: 'networkidle' })
-  await expect(page.getByText('Pengguna & peran')).toBeVisible()
+  await expect(page.getByText('Peran & akses')).toBeVisible()
   await rail.getByRole('button', { name: 'Keluar' }).click()
   await page.waitForURL('**/login')
 })

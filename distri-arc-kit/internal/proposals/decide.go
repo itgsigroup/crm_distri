@@ -46,6 +46,9 @@ type Decider struct {
 	SalesUserID uuid.UUID
 	Name, Role  string
 	Email       string
+	// Decide narrows the kinds this person decides (their role in the role master); nil = all their Role allows.
+	Decide   []string
+	RoleName string
 }
 
 // Outcome is what deciding did.
@@ -532,6 +535,9 @@ func RolesFor(kind string) []string {
 
 func authorize(ctx context.Context, q *gen.Queries, kind string, dealerID *uuid.UUID, payload json.RawMessage, who Decider) error {
 	roles := RolesFor(kind)
+	if who.Decide != nil && slices.Contains(roles, who.Role) && !slices.Contains(who.Decide, kind) {
+		return fmt.Errorf("%w: peran %s tidak memutuskan %s — atur di Pengaturan → Peran & akses", ErrForbidden, who.RoleName, strings.ToLower(kindLabel(kind)))
+	}
 	if !slices.Contains(roles, who.Role) {
 		if kind == domain.KindCreditRelease {
 			return fmt.Errorf("%w: rilis di atas limit butuh approve CEO", ErrForbidden)

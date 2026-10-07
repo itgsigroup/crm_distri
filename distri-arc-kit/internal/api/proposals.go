@@ -108,7 +108,7 @@ func (s *Server) decideProposal(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusForbidden, "no_sales_user", "Pengguna tidak terhubung ke data sales")
 		return
 	}
-	out, err := proposals.Decide(r.Context(), s.st, s.jobs, s.clock, s.cfg.OdooWrite, id, proposals.Decider{SalesUserID: *u.SalesUserID, Name: deref(u.Name), Role: deref(u.Role), Email: deref(u.Email)}, d)
+	out, err := proposals.Decide(r.Context(), s.st, s.jobs, s.clock, s.cfg.OdooWrite, id, decider(u), d)
 	switch {
 	case errors.Is(err, proposals.ErrNotOpen):
 		httpx.Fail(w, http.StatusConflict, "not_open", "Proposal sudah diputuskan")

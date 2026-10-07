@@ -64,7 +64,7 @@ func (s *Server) adminOnly(w http.ResponseWriter, r *http.Request) (User, bool) 
 func (s *Server) ceoOnly(w http.ResponseWriter, r *http.Request) (User, bool) {
 	u, _ := CurrentUser(r.Context())
 	if deref(u.Role) != "ceo" {
-		httpx.Fail(w, http.StatusForbidden, "forbidden", "Sumber data dan kuncinya diatur CEO")
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO yang bisa mengubah ini")
 		return u, false
 	}
 	return u, true

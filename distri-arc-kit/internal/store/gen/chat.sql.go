@@ -347,7 +347,7 @@ func (q *Queries) GetWAGroupByJID(ctx context.Context, jid *string) (WaGroup, er
 }
 
 const getWANumber = `-- name: GetWANumber :one
-select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at from wa_numbers where wa_number = $1
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id from wa_numbers where wa_number = $1
 `
 
 func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, error) {
@@ -367,6 +367,33 @@ func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, e
 		&i.BackfillDays,
 		&i.UpdatedAt,
 		&i.CreatedAt,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getWANumberByUser = `-- name: GetWANumberByUser :one
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id from wa_numbers where user_id = $1
+`
+
+func (q *Queries) GetWANumberByUser(ctx context.Context, userID *uuid.UUID) (WaNumber, error) {
+	row := q.db.QueryRow(ctx, getWANumberByUser, userID)
+	var i WaNumber
+	err := row.Scan(
+		&i.WaNumber,
+		&i.SalesID,
+		&i.Label,
+		&i.Transport,
+		&i.Jid,
+		&i.State,
+		&i.Qr,
+		&i.QrExpiresAt,
+		&i.LastSeenAt,
+		&i.PairedAt,
+		&i.BackfillDays,
+		&i.UpdatedAt,
+		&i.CreatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
@@ -994,8 +1021,9 @@ func (q *Queries) ListWAGroups(ctx context.Context) ([]WaGroup, error) {
 }
 
 const listWANumbers = `-- name: ListWANumbers :many
-select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, s.name as sales_name, s.branch as sales_branch
-from wa_numbers n left join sales_users s on s.id = n.sales_id order by s.name nulls last, n.label, n.created_at
+select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, n.user_id, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email
+from wa_numbers n left join sales_users s on s.id = n.sales_id left join users u on u.id = n.user_id
+order by s.name nulls last, n.label, n.created_at
 `
 
 type ListWANumbersRow struct {
@@ -1012,8 +1040,11 @@ type ListWANumbersRow struct {
 	BackfillDays int32      `json:"backfill_days"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 	CreatedAt    time.Time  `json:"created_at"`
+	UserID       *uuid.UUID `json:"user_id"`
 	SalesName    *string    `json:"sales_name"`
 	SalesBranch  *string    `json:"sales_branch"`
+	UserName     *string    `json:"user_name"`
+	UserEmail    *string    `json:"user_email"`
 }
 
 func (q *Queries) ListWANumbers(ctx context.Context) ([]ListWANumbersRow, error) {
@@ -1039,8 +1070,11 @@ func (q *Queries) ListWANumbers(ctx context.Context) ([]ListWANumbersRow, error)
 			&i.BackfillDays,
 			&i.UpdatedAt,
 			&i.CreatedAt,
+			&i.UserID,
 			&i.SalesName,
 			&i.SalesBranch,
+			&i.UserName,
+			&i.UserEmail,
 		); err != nil {
 			return nil, err
 		}
@@ -1545,9 +1579,10 @@ func (q *Queries) UpsertWAGroup(ctx context.Context, arg UpsertWAGroupParams) (W
 }
 
 const upsertWANumber = `-- name: UpsertWANumber :exec
-insert into wa_numbers (wa_number, sales_id, label, transport, state)
-values ($1, $2, $3, $4, $5)
-on conflict (wa_number) do update set sales_id = excluded.sales_id, label = excluded.label, transport = excluded.transport
+insert into wa_numbers (wa_number, sales_id, label, transport, state, user_id)
+values ($1, $2, $3, $4, $5, $6)
+on conflict (wa_number) do update set sales_id = excluded.sales_id, label = excluded.label, transport = excluded.transport,
+  user_id = coalesce(excluded.user_id, wa_numbers.user_id)
 `
 
 type UpsertWANumberParams struct {
@@ -1556,6 +1591,7 @@ type UpsertWANumberParams struct {
 	Label     *string    `json:"label"`
 	Transport string     `json:"transport"`
 	State     string     `json:"state"`
+	UserID    *uuid.UUID `json:"user_id"`
 }
 
 func (q *Queries) UpsertWANumber(ctx context.Context, arg UpsertWANumberParams) error {
@@ -1565,6 +1601,7 @@ func (q *Queries) UpsertWANumber(ctx context.Context, arg UpsertWANumberParams) 
 		arg.Label,
 		arg.Transport,
 		arg.State,
+		arg.UserID,
 	)
 	return err
 }

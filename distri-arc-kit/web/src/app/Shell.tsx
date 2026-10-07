@@ -69,7 +69,7 @@ export function Shell() {
   const { data: health } = useHealth()
   const now = useNow()
   const { data: dealers } = useOrbit()
-  const { data: threads } = useThreads('all')
+  const { data: threads } = useThreads('all', '', !!me?.screens.includes('chat'))
   const unread = threads?.reduce((a, t) => a + t.unread, 0)
   const orch = useOrchStatus()
   const run = useCommand()

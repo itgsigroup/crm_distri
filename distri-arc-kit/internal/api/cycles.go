@@ -301,7 +301,7 @@ func (s *Server) runPlanStep(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusForbidden, "no_sales_user", "Pengguna tidak terhubung ke data sales")
 		return
 	}
-	who := proposals.Decider{SalesUserID: *u.SalesUserID, Name: deref(u.Name), Role: deref(u.Role), Email: deref(u.Email)}
+	who := decider(u)
 	ids := it.ProposalIds
 	if len(ids) == 0 && it.ProposalID != nil {
 		ids = []uuid.UUID{*it.ProposalID}

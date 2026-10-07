@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router'
 import { api } from '../../api/client'
 import type { WANumber } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
-import { useMe, useSales, useWAStatus } from '../../app/queries'
+import { useMe, useWAStatus } from '../../app/queries'
+import { useUsers } from '../settings/UsersCard'
 
 export const labelOf = (n: WANumber) => (n.label || n.sales || n.masked).replace(/^Nomor\s+/, '')
 const STATE: Record<string, [string, 'good' | 'warn' | 'bad' | 'neutral']> = {
@@ -63,26 +65,62 @@ export function PairSheet({ wa, method: initial = 'qr' }: { wa: string; method?:
   )
 }
 
-/** Numbers and how to link them: the Chat page's empty state, and the "+ Nomor" sheet. */
-export function ConnectPanel() {
+/** Adds a number for a user of the user master (one user, one number); a non-admin links their own number. */
+export function AddNumberForm() {
   const { data: me } = useMe()
   const admin = me?.role === 'ceo' || me?.role === 'admin'
   const { data: status } = useWAStatus()
-  const { data: sales = [] } = useSales()
+  const { data: users = [] } = useUsers(admin)
   const { openSheet, toast } = useFeedback()
   const qc = useQueryClient()
-  const [f, setF] = useState({ wa_number: '', label: '', sales_name: '' })
+  const [userId, setUserId] = useState('')
+  const [manual, setManual] = useState('')
   const [busy, setBusy] = useState(false)
   const items = status?.items ?? []
-  const connected = items.filter((n) => n.state === 'connected')
-  const add = () => {
+  const free = users.filter((u) => u.active && (u.wa_allowed || u.role === 'ceo') && !u.wa_linked)
+  const picked = free.find((u) => u.id === userId)
+  const ownFree = !admin && me?.wa_allowed !== false && !items.some((n) => n.mine)
+  const add = (id: string, wa?: string) => {
     setBusy(true)
-    api.post<{ wa_number: string }>('/wa/numbers', f).then((r) => {
-      setF({ wa_number: '', label: '', sales_name: '' })
+    api.post<{ wa_number: string }>('/wa/numbers', { user_id: id, wa_number: wa || undefined }).then((r) => {
+      setUserId('')
+      setManual('')
       qc.invalidateQueries({ queryKey: ['wa'] })
+      qc.invalidateQueries({ queryKey: ['users'] })
       openSheet(<PairSheet wa={r.wa_number} />)
     }, (e: Error) => toast(e.message)).finally(() => setBusy(false))
   }
+  return (
+    <>
+      {admin && <div className="connect-sub">{items.length ? 'Tambah nomor pengguna lain' : 'Tambah nomor pertama'} <span>· dari master pengguna; satu pengguna satu nomor, tiap nomor punya batas anti-blokir sendiri</span></div>}
+      {admin ? (
+        <form className="wa-add connect-add" onSubmit={(e) => { e.preventDefault(); if (picked) add(picked.id, picked.wa_number ? undefined : manual) }}>
+          <select value={userId} onChange={(e) => { setUserId(e.target.value); setManual('') }} aria-label="Pengguna">
+            <option value="">{free.length ? 'Pilih pengguna…' : 'Semua pengguna sudah memegang nomor'}</option>
+            {free.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.role_name}{u.branch ? ` · ${u.branch}` : ''}</option>)}
+          </select>
+          {picked?.wa_number
+            ? <input value={'+' + picked.wa_number} readOnly aria-label="Nomor WhatsApp dari master pengguna" title="Dari master pengguna — ubah di Pengaturan → Pengguna" />
+            : <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder={picked ? 'Pengguna belum punya nomor — isi, mis. 0812…' : 'Nomor WhatsApp dari master pengguna'} disabled={!picked} aria-label="Nomor WhatsApp" inputMode="tel" />}
+          <button className="btn primary" type="submit" disabled={busy || !picked || (!picked.wa_number && !manual.trim())}><Icon name="plug" />Tambah &amp; tautkan</button>
+        </form>
+      ) : ownFree ? (
+        me?.wa_number
+          ? <button className="btn primary" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => add(me.id)}><Icon name="plug" />Tautkan nomor saya (+{me.wa_number})</button>
+          : <p className="connect-note">Nomor WhatsApp Anda belum ada di master pengguna — minta admin mengisinya di Pengaturan → Pengguna.</p>
+      ) : null}
+      {admin && <p className="connect-hint">Pengguna atau nomornya belum ada? Tambahkan di <Link to="/pengaturan">Pengaturan → Pengguna</Link>; peran yang boleh memegang nomor diatur di Peran &amp; akses.</p>}
+    </>
+  )
+}
+
+/** Numbers and how to link them: the Chat page's empty state, and the "+ Nomor" sheet. A number belongs to one user
+ * of the user master (Pengaturan → Pengguna) and comes from there. */
+export function ConnectPanel() {
+  const { data: status } = useWAStatus()
+  const { openSheet } = useFeedback()
+  const items = status?.items ?? []
+  const connected = items.filter((n) => n.state === 'connected')
   return (
     <div className="connect">
       <div className="connect-h">
@@ -91,16 +129,16 @@ export function ConnectPanel() {
           <h2>{connected.length ? `${connected.length} nomor terhubung — menunggu pesan` : 'Hubungkan nomor WhatsApp tim'}</h2>
           <p>{connected.length
             ? 'Riwayat chat 30 hari terakhir sedang disinkronkan dari HP (beberapa menit). Pesan baru dari semua nomor langsung tampil di sini.'
-            : 'Chat di sini adalah WhatsApp asli dari banyak nomor sekaligus — satu nomor per sales, CS kantor, atau cabang. Tiap nomor ditautkan sebagai perangkat (seperti WhatsApp Web) lewat Baileys; balasan keluar dari nomor yang menerima chat, lewat penjaga anti-blokir.'}</p>
+            : 'Chat di sini adalah WhatsApp asli dari banyak nomor sekaligus — satu pengguna memegang satu nomor. Tiap nomor ditautkan sebagai perangkat (seperti WhatsApp Web) lewat Baileys; balasan keluar dari nomor yang menerima chat, lewat penjaga anti-blokir.'}</p>
         </div>
       </div>
-      {items.length > 0 && <h4 className="connect-sub">Nomor WhatsApp tim · {items.length} nomor · {connected.length} terhubung</h4>}
+      {items.length > 0 && <div className="connect-sub">Nomor WhatsApp tim · {items.length} nomor · {connected.length} terhubung</div>}
       {items.length > 0 && (
         <ul className="nums">
           {items.map((n) => (
             <li key={n.wa_number}>
               <span className="av">{labelOf(n).slice(0, 2).toUpperCase()}</span>
-              <div><b>{labelOf(n)}{n.sales && !labelOf(n).includes(n.sales) ? ` · ${n.sales}` : ''}</b><span className="no">{n.masked}{n.limits ? ` · hari ini ${n.limits.today}/${n.limits.per_day}${n.limits.warmup ? ' · pemanasan' : ''}` : ''}</span></div>
+              <div><b>{n.user_name || labelOf(n)}</b><span className="no">{n.masked}{n.user_email ? ` · ${n.user_email}` : ' · belum dikaitkan ke pengguna'}{n.limits ? ` · hari ini ${n.limits.today}/${n.limits.per_day}${n.limits.warmup ? ' · pemanasan' : ''}` : ''}</span></div>
               <div className="st">
                 <Pill tone={STATE[n.state]?.[1] ?? 'neutral'}>{STATE[n.state]?.[0] ?? n.state}</Pill>
                 {n.state !== 'connected' && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<PairSheet wa={n.wa_number} />)}><Icon name="qr" />Tautkan</button>}
@@ -109,18 +147,7 @@ export function ConnectPanel() {
           ))}
         </ul>
       )}
-      {admin && <h4 className="connect-sub">{items.length ? 'Tambah nomor lain' : 'Tambah nomor pertama'} <span>· tambah sebanyak yang dibutuhkan; tiap nomor punya batas anti-blokir sendiri</span></h4>}
-      {admin ? (
-        <form className="wa-add connect-add" onSubmit={(e) => { e.preventDefault(); if (f.wa_number.trim() && f.label.trim()) add() }}>
-          <input value={f.wa_number} onChange={(e) => setF({ ...f, wa_number: e.target.value })} placeholder="Nomor WhatsApp, mis. 0812 3456 7890" aria-label="Nomor WhatsApp" inputMode="tel" />
-          <input value={f.label} onChange={(e) => setF({ ...f, label: e.target.value })} placeholder="Label, mis. Andi Sales / CS Kantor" aria-label="Label nomor" />
-          <select value={f.sales_name} onChange={(e) => setF({ ...f, sales_name: e.target.value })} aria-label="Pemilik nomor">
-            <option value="">Nomor tim (tanpa sales)</option>
-            {sales.map((x) => <option key={x.key} value={x.name}>{x.name} · {x.branch}</option>)}
-          </select>
-          <button className="btn primary" type="submit" disabled={busy || !f.wa_number.trim() || !f.label.trim()}><Icon name="plug" />Tambah &amp; tautkan</button>
-        </form>
-      ) : items.length === 0 && <p className="connect-note">Belum ada nomor WhatsApp atas nama Anda — minta admin menambahkan nomor Anda di halaman ini.</p>}
+      <AddNumberForm />
       <ul className="connect-rules">
         <li><Icon name="shield" /><span><b>Hanya membalas</b> kontak yang pernah menghubungi nomor itu — tidak ada pesan pertama ke kontak dingin, tidak ada broadcast</span></li>
         <li><Icon name="refresh" /><span><b>Seperti manusia:</b> membaca chat dulu, "mengetik…", jeda acak, maksimal 20 pesan/jam & 120/hari per nomor, jam tenang 21.00–07.00</span></li>
@@ -153,6 +180,7 @@ export function NumberRail({ account, setAccount, unread }: { account: string; s
   const { data: me } = useMe()
   const { openSheet } = useFeedback()
   const admin = me?.role === 'ceo' || me?.role === 'admin'
+  const canAdd = admin || (me?.wa_allowed !== false && !(data?.items ?? []).some((n) => n.mine))
   const items = data?.items ?? []
   const total = Object.values(unread).reduce((a, b) => a + b, 0)
   const pick = (n: WANumber) => {
@@ -176,7 +204,7 @@ export function NumberRail({ account, setAccount, unread }: { account: string; s
           <span className="wr-l">{labelOf(n)}</span>
         </button>
       ))}
-      {admin && (
+      {canAdd && (
         <button className="wr-i add" onClick={() => openSheet(<ConnectSheet />)} title="Tambah nomor WhatsApp">
           <span className="wr-av">+</span><span className="wr-l">Nomor</span>
         </button>

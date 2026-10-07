@@ -96,8 +96,9 @@ func (q *Queries) GetPolicy(ctx context.Context, key string) (Policy, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-select u.id, u.email, u.name, u.role, u.sales_user_id, s.branch, s.name as sales_name, u.totp_enabled_at
-from users u left join sales_users s on s.id = u.sales_user_id
+select u.id, u.email, u.name, u.role, u.sales_user_id, s.branch, s.name as sales_name, u.totp_enabled_at,
+  u.wa_number, r.key as role_key, r.name as role_name, r.screens as role_screens, r.decide as role_decide, coalesce(r.wa_allowed, true) as role_wa
+from users u left join sales_users s on s.id = u.sales_user_id left join roles r on r.key = u.role_key
 where lower(u.email) = lower($1) and u.active
 `
 
@@ -110,6 +111,12 @@ type GetUserByEmailRow struct {
 	Branch        *string    `json:"branch"`
 	SalesName     *string    `json:"sales_name"`
 	TotpEnabledAt *time.Time `json:"totp_enabled_at"`
+	WaNumber      *string    `json:"wa_number"`
+	RoleKey       *string    `json:"role_key"`
+	RoleName      *string    `json:"role_name"`
+	RoleScreens   []string   `json:"role_screens"`
+	RoleDecide    []string   `json:"role_decide"`
+	RoleWa        bool       `json:"role_wa"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, lower string) (GetUserByEmailRow, error) {
@@ -124,6 +131,12 @@ func (q *Queries) GetUserByEmail(ctx context.Context, lower string) (GetUserByEm
 		&i.Branch,
 		&i.SalesName,
 		&i.TotpEnabledAt,
+		&i.WaNumber,
+		&i.RoleKey,
+		&i.RoleName,
+		&i.RoleScreens,
+		&i.RoleDecide,
+		&i.RoleWa,
 	)
 	return i, err
 }

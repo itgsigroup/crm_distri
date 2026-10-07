@@ -9,9 +9,10 @@ on conflict (source_system, source_id) do update
 returning id;
 
 -- name: UpsertUser :one
-insert into users (email, name, role, sales_user_id)
-values ($1, $2, $3, $4)
-on conflict (email) do update set name = excluded.name, role = excluded.role, sales_user_id = excluded.sales_user_id
+insert into users (email, name, role, sales_user_id, role_key, wa_number)
+values ($1, $2, $3, $4, $3, (select s.wa_number from sales_users s where s.id = $4 and not exists (select 1 from users x where x.wa_number = s.wa_number and lower(x.email) <> lower($1))))
+on conflict (email) do update set name = excluded.name, role = excluded.role, sales_user_id = excluded.sales_user_id,
+  role_key = coalesce(users.role_key, excluded.role_key), wa_number = coalesce(users.wa_number, excluded.wa_number)
 returning id;
 
 -- name: UpsertDealer :one

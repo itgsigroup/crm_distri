@@ -16,78 +16,90 @@ import (
 	"distri-arc/internal/wa"
 )
 
-// canManageNumber: CEO/admin manage every number; a sales user only their own numbers.
+// canManageNumber: CEO/admin manage every number; anyone else only the number they hold.
 func canManageNumber(u User, n gen.WaNumber) bool {
 	if isAdmin(u) {
+		return true
+	}
+	if n.UserID != nil && *n.UserID == u.ID {
 		return true
 	}
 	return deref(u.Role) == "sales" && u.SalesUserID != nil && n.SalesID != nil && *n.SalesID == *u.SalesUserID
 }
 
-// addWANumber registers another WhatsApp number (many numbers per sales, or a team number such as CS kantor).
-// The number is internal: direct messages between internal numbers are never stored (09-policies-security).
+// addWANumber gives a user their WhatsApp number in Chat (ADR 0019: one user holds one number). The number comes
+// from the user master (Pengaturan → Pengguna & peran); when the user has none yet it may be filled here and is saved
+// on the user. CEO/admin add for anyone, other users only for themselves. The number is internal: direct messages
+// between internal numbers are never stored (09-policies-security).
 func (s *Server) addWANumber(w http.ResponseWriter, r *http.Request) {
-	u, _ := CurrentUser(r.Context())
-	if !isAdmin(u) {
-		httpx.Fail(w, http.StatusForbidden, "forbidden", "Menambah nomor WhatsApp oleh CEO atau admin")
-		return
-	}
+	me, _ := CurrentUser(r.Context())
 	var in struct {
-		WANumber  string     `json:"wa_number"`
-		Label     string     `json:"label"`
-		SalesID   *uuid.UUID `json:"sales_id"`
-		SalesName string     `json:"sales_name"` // owner by name (Pengaturan form); empty = team number
+		UserID   uuid.UUID `json:"user_id"`
+		WANumber string    `json:"wa_number"` // only when the user has no number yet
 	}
-	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&in); err != nil {
-		httpx.Fail(w, http.StatusBadRequest, "invalid", "Body tidak valid")
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&in); err != nil || in.UserID == uuid.Nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pilih pengguna dari master pengguna")
 		return
 	}
-	n := wa.Digits(in.WANumber)
-	label := strings.TrimSpace(in.Label)
-	if !strings.HasPrefix(n, "62") || len(n) < 10 || len(n) > 15 {
-		httpx.Fail(w, http.StatusBadRequest, "invalid", "Nomor harus nomor Indonesia, mis. 0812… atau +62812…")
+	if !isAdmin(me) && in.UserID != me.ID {
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Menambah nomor pengguna lain oleh CEO atau admin")
 		return
 	}
-	if label == "" {
-		httpx.Fail(w, http.StatusBadRequest, "invalid", "Isi nama/label nomor, mis. \"CS Kantor\" atau \"Andi (nomor 2)\"")
+	ctx := r.Context()
+	usr, err := s.st.Q.GetUserByID(ctx, in.UserID)
+	if err != nil || !usr.Active {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Pengguna tidak ditemukan atau nonaktif")
 		return
 	}
-	if in.SalesID == nil && strings.TrimSpace(in.SalesName) != "" {
-		sales, err := s.st.Q.ListSalesUsers(r.Context())
-		if err != nil {
-			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
-			return
-		}
-		for _, su := range sales {
-			if strings.EqualFold(su.Name, strings.TrimSpace(in.SalesName)) {
-				id := su.ID
-				in.SalesID = &id
-			}
-		}
-		if in.SalesID == nil {
-			httpx.Fail(w, http.StatusBadRequest, "invalid", "Sales tidak ditemukan")
+	if !usr.WaAllowed && deref(usr.Role) != "ceo" {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Peran pengguna ini tidak memegang nomor WhatsApp — ubah di Pengaturan → Peran & akses")
+		return
+	}
+	n := deref(usr.WaNumber)
+	if n == "" {
+		n = wa.Digits(in.WANumber)
+		if !strings.HasPrefix(n, "62") || len(n) < 10 || len(n) > 15 {
+			httpx.Fail(w, http.StatusBadRequest, "invalid", "Pengguna ini belum punya nomor WhatsApp — isi nomor Indonesia, mis. 0812… atau +62812…")
 			return
 		}
 	}
-	if existing, err := s.st.Q.GetWANumber(r.Context(), n); err == nil && existing.State == "connected" {
-		httpx.Fail(w, http.StatusConflict, "exists", "Nomor ini sudah terhubung")
+	if held, err := s.st.Q.GetWANumberByUser(ctx, &usr.ID); err == nil && held.WaNumber != n {
+		httpx.Fail(w, http.StatusConflict, "has_number", deref(usr.Name)+" sudah memegang "+wa.MaskNumber(held.WaNumber)+" — satu pengguna satu nomor")
 		return
+	}
+	if existing, err := s.st.Q.GetWANumber(ctx, n); err == nil && existing.UserID != nil && *existing.UserID != usr.ID {
+		httpx.Fail(w, http.StatusConflict, "exists", "Nomor ini sudah dipegang pengguna lain")
+		return
+	}
+	if deref(usr.WaNumber) == "" {
+		if err := s.st.Q.SetUserProfile(ctx, gen.SetUserProfileParams{ID: usr.ID, WaNumber: &n}); err != nil {
+			httpx.Fail(w, http.StatusConflict, "wa_taken", "Nomor WhatsApp ini sudah dipegang pengguna lain — satu nomor untuk satu pengguna")
+			return
+		}
+	}
+	if usr.SalesUserID != nil {
+		_ = s.st.Q.SetSalesProfileWA(ctx, gen.SetSalesProfileWAParams{ID: *usr.SalesUserID, WaNumber: n})
 	}
 	transport := s.cfg.WATransport
 	if transport == "" {
 		transport = "fake"
 	}
-	if err := s.st.Q.UpsertWANumber(r.Context(), gen.UpsertWANumberParams{WaNumber: n, SalesID: in.SalesID, Label: &label, Transport: transport, State: "unpaired"}); err != nil {
+	var sales *uuid.UUID
+	if deref(usr.Role) == "sales" {
+		sales = usr.SalesUserID // a sales' conversations follow their dealers and stay visible only to them
+	}
+	label := deref(usr.Name)
+	if err := s.st.Q.UpsertWANumber(ctx, gen.UpsertWANumberParams{WaNumber: n, SalesID: sales, Label: &label, Transport: transport, State: "unpaired", UserID: &usr.ID}); err != nil {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", err.Error())
 		return
 	}
 	dept := "WhatsApp tim"
-	if err := s.st.Q.UpsertInternalNumber(r.Context(), gen.UpsertInternalNumberParams{WaNumber: n, Label: &label, Department: &dept, IsSales: in.SalesID != nil}); err != nil {
+	if err := s.st.Q.UpsertInternalNumber(ctx, gen.UpsertInternalNumberParams{WaNumber: n, Label: &label, Department: &dept, IsSales: sales != nil}); err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	s.audit(r, "wa.number_added", "wa_number", nil, map[string]any{"wa_number": n, "label": label})
-	httpx.JSON(w, http.StatusCreated, map[string]any{"wa_number": n, "label": label, "state": "unpaired"})
+	s.audit(r, "wa.number_added", "wa_number", nil, map[string]any{"wa_number": n, "user_id": usr.ID})
+	httpx.JSON(w, http.StatusCreated, map[string]any{"wa_number": n, "label": label, "user_id": usr.ID, "state": "unpaired"})
 }
 
 // deleteWANumber unlinks the device (worker) and removes a team number; a sales' main number stays, unpaired.

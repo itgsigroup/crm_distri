@@ -58,9 +58,10 @@ export function useNow(): Date {
 
 // ---------- Chat & WhatsApp (stage 03) ----------
 
-export const useThreads = (tab = 'all', account = '') =>
+export const useThreads = (tab = 'all', account = '', enabled = true) =>
   useQuery({
     queryKey: ['chat', 'threads', tab, account],
+    enabled,
     queryFn: () => {
       const q = new URLSearchParams()
       if (tab !== 'all') q.set('tab', tab)

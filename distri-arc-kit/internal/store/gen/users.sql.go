@@ -37,7 +37,7 @@ func (q *Queries) CreatePersonProfile(ctx context.Context, arg CreatePersonProfi
 }
 
 const createUser = `-- name: CreateUser :one
-insert into users (email, name, role, password_hash, sales_user_id, active) values ($1, $2, $3, $4, $5, true) returning id
+insert into users (email, name, role, password_hash, sales_user_id, active, role_key, wa_number) values ($1, $2, $3, $4, $5, true, $6, $7) returning id
 `
 
 type CreateUserParams struct {
@@ -46,6 +46,8 @@ type CreateUserParams struct {
 	Role         *string    `json:"role"`
 	PasswordHash *string    `json:"password_hash"`
 	SalesUserID  *uuid.UUID `json:"sales_user_id"`
+	RoleKey      *string    `json:"role_key"`
+	WaNumber     *string    `json:"wa_number"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UUID, error) {
@@ -55,10 +57,24 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UU
 		arg.Role,
 		arg.PasswordHash,
 		arg.SalesUserID,
+		arg.RoleKey,
+		arg.WaNumber,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const deleteRole = `-- name: DeleteRole :execrows
+delete from roles r where r.key = $1 and not r.system and not exists (select 1 from users u where u.role_key = r.key)
+`
+
+func (q *Queries) DeleteRole(ctx context.Context, key string) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteRole, key)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const disableTOTP = `-- name: DisableTOTP :exec
@@ -116,6 +132,63 @@ func (q *Queries) GetLoginUser(ctx context.Context, lower string) (GetLoginUserR
 	return i, err
 }
 
+const getRole = `-- name: GetRole :one
+select key, name, description, base, screens, decide, wa_allowed, system, active, updated_by, updated_at from roles where key = $1
+`
+
+func (q *Queries) GetRole(ctx context.Context, key string) (Role, error) {
+	row := q.db.QueryRow(ctx, getRole, key)
+	var i Role
+	err := row.Scan(
+		&i.Key,
+		&i.Name,
+		&i.Description,
+		&i.Base,
+		&i.Screens,
+		&i.Decide,
+		&i.WaAllowed,
+		&i.System,
+		&i.Active,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+select u.id, u.email, u.name, u.role, u.role_key, u.wa_number, u.sales_user_id, u.active, coalesce(r.wa_allowed, true) as wa_allowed
+from users u left join roles r on r.key = u.role_key where u.id = $1
+`
+
+type GetUserByIDRow struct {
+	ID          uuid.UUID  `json:"id"`
+	Email       *string    `json:"email"`
+	Name        *string    `json:"name"`
+	Role        *string    `json:"role"`
+	RoleKey     *string    `json:"role_key"`
+	WaNumber    *string    `json:"wa_number"`
+	SalesUserID *uuid.UUID `json:"sales_user_id"`
+	Active      bool       `json:"active"`
+	WaAllowed   bool       `json:"wa_allowed"`
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i GetUserByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.Role,
+		&i.RoleKey,
+		&i.WaNumber,
+		&i.SalesUserID,
+		&i.Active,
+		&i.WaAllowed,
+	)
+	return i, err
+}
+
 const getUserTOTP = `-- name: GetUserTOTP :one
 select id, email, role, totp_secret, totp_enabled_at from users where id = $1
 `
@@ -141,9 +214,66 @@ func (q *Queries) GetUserTOTP(ctx context.Context, id uuid.UUID) (GetUserTOTPRow
 	return i, err
 }
 
+const listRoles = `-- name: ListRoles :many
+select r.key, r.name, r.description, r.base, r.screens, r.decide, r.wa_allowed, r.system, r.active, r.updated_by, r.updated_at, (select count(*) from users u where u.role_key = r.key and u.active) as users
+from roles r order by r.system desc, array_position(array['ceo','admin','finance','sales','warehouse'], r.base), r.name
+`
+
+type ListRolesRow struct {
+	Key         string    `json:"key"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Base        string    `json:"base"`
+	Screens     []string  `json:"screens"`
+	Decide      []string  `json:"decide"`
+	WaAllowed   bool      `json:"wa_allowed"`
+	System      bool      `json:"system"`
+	Active      bool      `json:"active"`
+	UpdatedBy   *string   `json:"updated_by"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Users       int64     `json:"users"`
+}
+
+func (q *Queries) ListRoles(ctx context.Context) ([]ListRolesRow, error) {
+	rows, err := q.db.Query(ctx, listRoles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListRolesRow{}
+	for rows.Next() {
+		var i ListRolesRow
+		if err := rows.Scan(
+			&i.Key,
+			&i.Name,
+			&i.Description,
+			&i.Base,
+			&i.Screens,
+			&i.Decide,
+			&i.WaAllowed,
+			&i.System,
+			&i.Active,
+			&i.UpdatedBy,
+			&i.UpdatedAt,
+			&i.Users,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
-select u.id, u.email, u.name, u.role, u.active, u.password_hash is not null as has_password, s.name as sales_name, s.branch
-from users u left join sales_users s on s.id = u.sales_user_id order by array_position(array['ceo','admin','finance','sales','warehouse'], u.role), u.name
+select u.id, u.email, u.name, u.role, u.active, u.password_hash is not null as has_password, s.name as sales_name, s.branch,
+  coalesce(u.role_key, u.role) as role_key, coalesce(r.name, u.role) as role_name, coalesce(r.wa_allowed, true) as wa_allowed,
+  u.wa_number, n.state as wa_state, n.wa_number as wa_linked
+from users u left join sales_users s on s.id = u.sales_user_id left join roles r on r.key = u.role_key
+left join wa_numbers n on n.user_id = u.id
+order by array_position(array['ceo','admin','finance','sales','warehouse'], u.role), u.name
 `
 
 type ListUsersRow struct {
@@ -155,6 +285,12 @@ type ListUsersRow struct {
 	HasPassword interface{} `json:"has_password"`
 	SalesName   *string     `json:"sales_name"`
 	Branch      *string     `json:"branch"`
+	RoleKey     *string     `json:"role_key"`
+	RoleName    string      `json:"role_name"`
+	WaAllowed   bool        `json:"wa_allowed"`
+	WaNumber    *string     `json:"wa_number"`
+	WaState     *string     `json:"wa_state"`
+	WaLinked    *string     `json:"wa_linked"`
 }
 
 func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
@@ -175,6 +311,12 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 			&i.HasPassword,
 			&i.SalesName,
 			&i.Branch,
+			&i.RoleKey,
+			&i.RoleName,
+			&i.WaAllowed,
+			&i.WaNumber,
+			&i.WaState,
+			&i.WaLinked,
 		); err != nil {
 			return nil, err
 		}
@@ -209,6 +351,28 @@ func (q *Queries) SalesUserByName(ctx context.Context, lower string) (uuid.UUID,
 	return id, err
 }
 
+const setSalesProfileWA = `-- name: SetSalesProfileWA :exec
+update sales_users set wa_number = nullif($1::text, ''), branch = coalesce($2, branch), role = coalesce($3, role)
+where id = $4
+`
+
+type SetSalesProfileWAParams struct {
+	WaNumber string    `json:"wa_number"`
+	Branch   *string   `json:"branch"`
+	Role     *string   `json:"role"`
+	ID       uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetSalesProfileWA(ctx context.Context, arg SetSalesProfileWAParams) error {
+	_, err := q.db.Exec(ctx, setSalesProfileWA,
+		arg.WaNumber,
+		arg.Branch,
+		arg.Role,
+		arg.ID,
+	)
+	return err
+}
+
 const setTOTPSecret = `-- name: SetTOTPSecret :exec
 update users set totp_secret = $2, totp_enabled_at = null, totp_last_step = null where id = $1
 `
@@ -238,6 +402,45 @@ func (q *Queries) SetUserPassword(ctx context.Context, arg SetUserPasswordParams
 	return err
 }
 
+const setUserProfile = `-- name: SetUserProfile :exec
+update users set role_key = coalesce($1, role_key), role = coalesce($2, role),
+  wa_number = case when $3::text is null then wa_number when $3::text = '' then null else $3::text end
+where id = $4
+`
+
+type SetUserProfileParams struct {
+	RoleKey  *string   `json:"role_key"`
+	Role     *string   `json:"role"`
+	WaNumber *string   `json:"wa_number"`
+	ID       uuid.UUID `json:"id"`
+}
+
+// Role, WhatsApp number and branch of an account (null = unchanged; empty wa_number clears it).
+func (q *Queries) SetUserProfile(ctx context.Context, arg SetUserProfileParams) error {
+	_, err := q.db.Exec(ctx, setUserProfile,
+		arg.RoleKey,
+		arg.Role,
+		arg.WaNumber,
+		arg.ID,
+	)
+	return err
+}
+
+const syncRoleBase = `-- name: SyncRoleBase :exec
+update users set role = $2 where role_key = $1
+`
+
+type SyncRoleBaseParams struct {
+	RoleKey *string `json:"role_key"`
+	Role    *string `json:"role"`
+}
+
+// A role's base changed: its users follow (users.role is what every server check reads).
+func (q *Queries) SyncRoleBase(ctx context.Context, arg SyncRoleBaseParams) error {
+	_, err := q.db.Exec(ctx, syncRoleBase, arg.RoleKey, arg.Role)
+	return err
+}
+
 const updateUser = `-- name: UpdateUser :exec
 update users set role = coalesce($1, role), active = coalesce($2, active),
   password_hash = coalesce($3, password_hash), name = coalesce($4, name)
@@ -259,6 +462,41 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 		arg.PasswordHash,
 		arg.Name,
 		arg.ID,
+	)
+	return err
+}
+
+const upsertRole = `-- name: UpsertRole :exec
+insert into roles (key, name, description, base, screens, decide, wa_allowed, active, updated_by, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+on conflict (key) do update set name = excluded.name, description = excluded.description, base = excluded.base,
+  screens = excluded.screens, decide = excluded.decide, wa_allowed = excluded.wa_allowed, active = excluded.active,
+  updated_by = excluded.updated_by, updated_at = now()
+`
+
+type UpsertRoleParams struct {
+	Key         string   `json:"key"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Base        string   `json:"base"`
+	Screens     []string `json:"screens"`
+	Decide      []string `json:"decide"`
+	WaAllowed   bool     `json:"wa_allowed"`
+	Active      bool     `json:"active"`
+	UpdatedBy   *string  `json:"updated_by"`
+}
+
+func (q *Queries) UpsertRole(ctx context.Context, arg UpsertRoleParams) error {
+	_, err := q.db.Exec(ctx, upsertRole,
+		arg.Key,
+		arg.Name,
+		arg.Description,
+		arg.Base,
+		arg.Screens,
+		arg.Decide,
+		arg.WaAllowed,
+		arg.Active,
+		arg.UpdatedBy,
 	)
 	return err
 }

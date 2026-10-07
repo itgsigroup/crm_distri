@@ -5,17 +5,33 @@ import (
 	"testing"
 )
 
-// Many numbers: CEO/admin add a team number; sales cannot; a sales user reads only their own numbers' chats.
+// Many numbers, one per user: a number is added for a user of the user master (its number comes from there);
+// sales cannot add for others; a user holds one number; a sales user reads only their own number's chats.
 func TestWANumbersAndChatScope(t *testing.T) {
 	srv, _ := chatServer(t)
-	if code, _ := post(t, srv.URL+"/api/wa/numbers", "andi@gsi.co.id", map[string]string{"wa_number": "0812 9999 0000", "label": "CS Kantor"}); code != http.StatusForbidden {
-		t.Fatalf("sales adds number: %d", code)
+	code, cs := post(t, srv.URL+"/api/users", "sam@gsi.co.id", map[string]any{"email": "cs@gsi.co.id", "name": "CS Kantor", "role_key": "admin", "password": "rahasia-panjang-1", "wa_number": "0812 9999 0000"})
+	if code != http.StatusCreated {
+		t.Fatalf("create user: %d %v", code, cs)
 	}
-	if code, out := post(t, srv.URL+"/api/wa/numbers", "sam@gsi.co.id", map[string]string{"wa_number": "0812 9999 0000", "label": "CS Kantor"}); code != http.StatusCreated || out["wa_number"] != "6281299990000" {
-		t.Fatalf("ceo adds number: %d %v", code, out)
+	csID := cs["id"].(string)
+	if code, _ := post(t, srv.URL+"/api/wa/numbers", "andi@gsi.co.id", map[string]string{"user_id": csID}); code != http.StatusForbidden {
+		t.Fatalf("sales adds another user's number: %d", code)
 	}
-	if code, _ := post(t, srv.URL+"/api/wa/numbers", "sam@gsi.co.id", map[string]string{"wa_number": "12345", "label": "x"}); code != http.StatusBadRequest {
+	if code, out := post(t, srv.URL+"/api/wa/numbers", "sam@gsi.co.id", map[string]string{"user_id": csID}); code != http.StatusCreated || out["wa_number"] != "6281299990000" || out["label"] != "CS Kantor" {
+		t.Fatalf("ceo adds the user's number: %d %v", code, out)
+	}
+	if code, _ := post(t, srv.URL+"/api/users", "sam@gsi.co.id", map[string]any{"email": "cs2@gsi.co.id", "name": "CS 2", "role_key": "admin", "password": "rahasia-panjang-1", "wa_number": "+62 812-9999-0000"}); code != http.StatusConflict {
+		t.Fatalf("second user with the same number: %d", code)
+	}
+	code, u2 := post(t, srv.URL+"/api/users", "sam@gsi.co.id", map[string]any{"email": "cs3@gsi.co.id", "name": "CS 3", "role_key": "admin", "password": "rahasia-panjang-1"})
+	if code != http.StatusCreated {
+		t.Fatalf("user without number: %d", code)
+	}
+	if code, _ := post(t, srv.URL+"/api/wa/numbers", "sam@gsi.co.id", map[string]string{"user_id": u2["id"].(string), "wa_number": "12345"}); code != http.StatusBadRequest {
 		t.Fatalf("bad number accepted: %d", code)
+	}
+	if code, out := put(t, srv.URL+"/api/users/"+csID, "sam@gsi.co.id", map[string]any{"wa_number": "0812 7777 0000"}); code != http.StatusConflict {
+		t.Fatalf("number changed while linked in Chat: %d %v", code, out)
 	}
 	_, all := get(t, srv, "/api/wa/status", "sam@gsi.co.id")
 	_, own := get(t, srv, "/api/wa/status", "andi@gsi.co.id")

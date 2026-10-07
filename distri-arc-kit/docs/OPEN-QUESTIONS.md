@@ -39,3 +39,7 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - 2026-10-06 · data · Dataset & tabel BigQuery (project, lokasi, nama tabel/kolom) untuk 5 query impor, dan service account baca-saja · impor CSV tersedia; contoh query di docs/DATA-IMPORT.md · —
 - 2026-10-06 · data · Di sumber, kolom apa yang membedakan Dealer (reseller) dan Freelance/SI? · default reseller, ubah per pelanggan di Master pelanggan atau lewat mapping Jenis pelanggan · reseller
 - 2026-10-06 · data · Tier dan limit kredit per pelanggan belum ada di Accurate — diisi di Master pelanggan, atau ada sumber lain? · tanpa limit = cash · —
+
+## Peran & akses (2026-10-07)
+- Pengguna yang sudah ada di server memakai peran bawaan base-nya. Bila perlu peran khusus (mis. "Sales Telemarketing", "CS Kantor"), CEO membuatnya di Pengaturan → Peran & akses lalu menetapkannya ke pengguna.
+- Nomor WhatsApp tiap pengguna diisi di Pengaturan → Pengguna sebelum ditautkan di Chat.

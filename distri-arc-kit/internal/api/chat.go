@@ -429,11 +429,13 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 	u, _ := CurrentUser(r.Context())
 	out := []map[string]any{}
 	for _, n := range rows {
-		if deref(u.Role) == "sales" && (u.SalesUserID == nil || n.SalesID == nil || *n.SalesID != *u.SalesUserID) {
-			continue // a sales user sees and pairs only their own numbers
+		mine := (n.UserID != nil && *n.UserID == u.ID) || (u.SalesUserID != nil && n.SalesID != nil && *n.SalesID == *u.SalesUserID)
+		if deref(u.Role) == "sales" && !mine {
+			continue // a sales user sees and pairs only their own number
 		}
 		v := map[string]any{"wa_number": n.WaNumber, "masked": wa.MaskNumber(n.WaNumber), "sales": deref(n.SalesName), "branch": deref(n.SalesBranch), "transport": n.Transport,
-			"state": n.State, "last_seen_at": n.LastSeenAt, "paired_at": n.PairedAt, "backfill_days": n.BackfillDays, "label": deref(n.Label), "sales_id": n.SalesID}
+			"state": n.State, "last_seen_at": n.LastSeenAt, "paired_at": n.PairedAt, "backfill_days": n.BackfillDays, "label": deref(n.Label), "sales_id": n.SalesID,
+			"user_id": n.UserID, "user_name": deref(n.UserName), "user_email": deref(n.UserEmail), "mine": mine}
 		if l, ok := limits[n.WaNumber]; ok {
 			v["limits"] = l
 		}
