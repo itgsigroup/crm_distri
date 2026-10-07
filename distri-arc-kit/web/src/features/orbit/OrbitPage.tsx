@@ -52,8 +52,10 @@ export function Tip({ d, pos, extra }: { d: BoardItem | null; pos: { x: number; 
   )
 }
 
-/** How many dealers the orbit draws with names: a person reads a few dozen labelled dealers, not thousands. */
-export const ORBIT_TOP = 50
+/** Prioritas: the orbit draws the ORBIT_TOP largest dealers and names the ORBIT_NAMED largest of them — a person
+ * reads a few dozen names, not thousands; the other dots give the shape. */
+export const ORBIT_TOP = 150
+export const ORBIT_NAMED = 30
 
 /** The dealers worth a name on the orbit: the largest monthly revenue first. */
 export function topByOmzet(list: BoardItem[], n = ORBIT_TOP) {
@@ -63,7 +65,10 @@ export function topByOmzet(list: BoardItem[], n = ORBIT_TOP) {
 export function OrbitBoard({ list, onOpen, dense = false }: { list: BoardItem[]; onOpen: (id: string) => void; dense?: boolean }) {
   const wrap = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
-  const nodes = useMemo(() => layoutOrbit(list, 1.2, dense), [list, dense])
+  const nodes = useMemo(() => {
+    const named = !dense && list.length > ORBIT_NAMED ? new Set(topByOmzet(list, ORBIT_NAMED).map((d) => d.id)) : undefined
+    return layoutOrbit(list, 1.2, dense, named)
+  }, [list, dense])
   const LA = 0.62 * Math.PI * 2
   const move = (e: MouseEvent, d: BoardItem) => {
     const r = wrap.current!.getBoundingClientRect()
@@ -96,7 +101,7 @@ export function OrbitBoard({ list, onOpen, dense = false }: { list: BoardItem[];
         {nodes.map(({ d, x, y, size, tone, ring, name, sm, side }) => (
           <g key={d.id} className="dn" tabIndex={0} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onKeyDown={(e) => e.key === 'Enter' && onOpen(d.id)}>
             <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={ring === 'Churn' ? 'ghost' : ''} />
-            {!dense && <text x={(x + side * (size + 5)).toFixed(1)} y={(y + 4).toFixed(1)} textAnchor={side > 0 ? 'start' : 'end'} className={`dn-t ${sm ? 'sm' : ''}`}>{name}</text>}
+            {!dense && name && <text x={(x + side * (size + 5)).toFixed(1)} y={(y + 4).toFixed(1)} textAnchor={side > 0 ? 'start' : 'end'} className={`dn-t ${sm ? 'sm' : ''}`}>{name}</text>}
           </g>
         ))}
       </svg>
@@ -171,7 +176,7 @@ export function OrbitPage() {
           <div className="orbit-hud">
             <SalesFilters value={sales} onChange={setSales} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span className="meta">{many && !all ? `${ORBIT_TOP} teratas (omzet) dari ${list.length} dealer` : `${list.length} dealer`} · share of wallet rata-rata {avgSow}%</span>
+              <span className="meta">{many && !all ? `${ORBIT_TOP} teratas (omzet) dari ${list.length} dealer · ${ORBIT_NAMED} terbesar bernama` : `${list.length} dealer`} · share of wallet rata-rata {avgSow}%</span>
               {many && (
                 <div className="seg" role="radiogroup" aria-label="Tampilan orbit">
                   <button role="radio" aria-checked={!all} className={!all ? 'is-active' : ''} onClick={() => setAll(false)}>Prioritas</button>
