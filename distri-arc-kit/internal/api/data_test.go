@@ -54,6 +54,15 @@ func TestDataMasterAccess(t *testing.T) {
 	if code, body := send(t, "PUT", srv.URL+"/api/data/mappings", "admin@gsi.co.id", "application/json", []byte(`[{"kind":"branch","source_value":"Kantor Pusat","target":"Semarang"}]`)); code != 200 {
 		t.Fatalf("mapping %d %s", code, body)
 	}
+	if code, body := send(t, "PUT", srv.URL+"/api/data/mappings", "admin@gsi.co.id", "application/json", []byte(`[{"kind":"category","source_value":"IP Camera","target":""}]`)); code != 200 {
+		t.Fatalf("clear mapping %d %s", code, body)
+	}
+	if code, body := send(t, "GET", srv.URL+"/api/data/mappings?kind=category", "admin@gsi.co.id", "", nil); code != 200 || !strings.Contains(body, `"source_value":"IP Camera","target":null`) || !strings.Contains(body, `"suggested":"Kamera \u0026 NVR"`) {
+		t.Fatalf("mapping suggestion %d %s", code, body)
+	}
+	if code, body := send(t, "GET", srv.URL+"/api/data/schema", "admin@gsi.co.id", "", nil); code != http.StatusBadRequest || !strings.Contains(body, "no_credentials") {
+		t.Fatalf("schema without key %d %s", code, body)
+	}
 	if code, body := send(t, "GET", srv.URL+"/api/data/template/invoices", "admin@gsi.co.id", "", nil); code != 200 || !strings.HasPrefix(body, "number,customer_code,date") {
 		t.Fatalf("template %d %q", code, body)
 	}

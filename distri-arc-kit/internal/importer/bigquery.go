@@ -157,7 +157,7 @@ type bqResult struct {
 	} `json:"error"`
 }
 
-func (b *BigQuery) call(ctx context.Context, method, path string, body any, out *bqResult) error {
+func (b *BigQuery) call(ctx context.Context, method, path string, body any, out any) error {
 	tok, err := b.accessToken(ctx)
 	if err != nil {
 		return err

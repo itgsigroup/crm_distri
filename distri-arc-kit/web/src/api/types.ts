@@ -454,7 +454,11 @@ export interface DataStatus {
   invoices: number
 }
 export type MappingKind = 'branch' | 'warehouse' | 'category' | 'sales' | 'ctype'
-export interface DataMapping { kind: MappingKind; source_value: string; target: string | null; seen: number; updated_by: string | null }
+export interface DataMapping { kind: MappingKind; source_value: string; target: string | null; seen: number; updated_by: string | null; suggested?: string }
+export interface BQTable { dataset: string; table: string; type: string; rows: number; location: string; columns: { name: string; type: string }[] | null }
+export interface BQCandidate { table: string; score: number; columns: Record<string, string> }
+export interface BQSuggestion { entity: DataEntity; table: string; columns: Record<string, string>; missing: string[]; sql: string; candidates: BQCandidate[] }
+export interface BQSchema { project: string; tables: BQTable[]; suggestions: BQSuggestion[] }
 export interface MasterCustomer {
   id: string; slug: string; name: string; city: string | null; branch: string; tier: string | null; customer_type: 'reseller' | 'si'
   credit_limit: number; payment_terms_days: number; phone: string | null; master_locked: string[]; owner_name: string | null; owner_id: string | null; omzet_bln: number; status: string

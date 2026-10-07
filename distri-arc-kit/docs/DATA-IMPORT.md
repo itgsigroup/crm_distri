@@ -17,6 +17,19 @@ semua data tanpa impor ulang.
 6. **Master pelanggan**: tier, limit kredit, termin, sales pemegang, jenis — isian di sini **tidak tertimpa** impor berikutnya.
 7. Pengguna login (Pengaturan → Pengguna & peran) dan nomor WhatsApp (Pengaturan → WhatsApp).
 
+## Menghubungkan BigQuery (data Accurate)
+1. Google Cloud console → project (mis. `empyrean-surge-505203-u5`) → **IAM & Admin → Service Accounts → Create**
+   (mis. `distri-arc-reader`), peran **BigQuery Data Viewer** + **BigQuery Job User**.
+2. Service account itu → **Keys → Add key → JSON**. Unggah file di Pengaturan → Data & master → Sumber data asli →
+   BigQuery → **Unggah JSON** (hanya CEO; disimpan terenkripsi dengan `SESSION_SECRET`). Jangan kirim kunci lewat chat/email.
+3. Isi **Project ID** (dan Lokasi bila dataset di luar US, mis. `asia-southeast2`), Simpan.
+4. Kartu **Pemetaan BigQuery** → **Jelajahi BigQuery**: Distri ARC membaca daftar tabel dan kolom (baca saja), lalu
+   menyarankan tabel dan kolom untuk tiap jenis data. Periksa per tab (Tim sales, Pelanggan, Faktur, Item faktur, Stok),
+   betulkan kolom yang salah (boleh ekspresi, mis. `IFNULL(sisa, 0)`), tambah filter bila perlu, **Simpan query**.
+5. **Tes query** (5 baris contoh per query) → **Sinkron sekarang**.
+6. Mapping master: nilai kategori dan jenis pelanggan yang muncul diberi **saran** (mis. "IP Camera" → Kamera & NVR,
+   "System Integrator" → Freelance / SI). **Isi saran** → periksa → **Simpan**. Cabang, gudang, dan sales dipetakan manual.
+
 ## Kontrak kolom (* wajib)
 | Data | Kolom |
 |---|---|

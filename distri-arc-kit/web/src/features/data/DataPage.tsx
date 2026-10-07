@@ -8,6 +8,7 @@ import { useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { fmtRp, hhmm, shortDate } from '../../lib/format'
 import { useMe } from '../../app/queries'
+import { SchemaMapper } from './SchemaMapper'
 
 const ENTITY: Record<DataEntity, string> = { sales: 'Tim sales', customers: 'Pelanggan', invoices: 'Faktur', invoice_lines: 'Item faktur', stock: 'Stok per gudang' }
 const KIND: [MappingKind, string, string][] = [
@@ -136,6 +137,7 @@ function MappingCard({ st }: { st: DataStatus }) {
   const act = useAct()
   const counts = Object.fromEntries(st.mappings.map((m) => [m.kind, m]))
   const changed = Object.entries(edits)
+  const suggestable = rows.filter((m) => !m.target && m.suggested && edits[m.source_value] === undefined)
   const control = (m: DataMapping) => {
     const v = edits[m.source_value] ?? m.target ?? ''
     const set = (t: string) => setEdits({ ...edits, [m.source_value]: t })
@@ -156,12 +158,13 @@ function MappingCard({ st }: { st: DataStatus }) {
             <thead><tr><th>Nilai di data sumber</th><th>Muncul</th><th>Dipetakan ke</th></tr></thead>
             <tbody>{rows.map((m) => (
               <tr key={m.source_value} style={!m.target && edits[m.source_value] === undefined ? { background: 'var(--warn-soft)' } : undefined}>
-                <td><b>{m.source_value}</b>{m.updated_by && <div className="mono">{m.updated_by}</div>}</td><td className="num">{m.seen}</td><td>{control(m)}</td></tr>
+                <td><b>{m.source_value}</b>{m.updated_by && <div className="mono">{m.updated_by}</div>}</td><td className="num">{m.seen}</td><td>{control(m)}{!m.target && m.suggested && edits[m.source_value] === undefined && <div style={{ fontSize: 11, color: 'var(--text-3)' }}>saran: {kind === 'ctype' ? (m.suggested === 'si' ? 'Freelance / SI' : 'Dealer (reseller)') : m.suggested}</div>}</td></tr>
             ))}</tbody>
           </table>
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
+        {suggestable.length > 0 && <button className="btn quiet" onClick={() => setEdits({ ...edits, ...Object.fromEntries(suggestable.map((m) => [m.source_value, m.suggested!])) })}><Icon name="spark" />Isi {suggestable.length} saran</button>}
         <button className="btn primary" disabled={!changed.length} onClick={() => act(() => api.put('/data/mappings', changed.map(([source_value, target]) => ({ kind, source_value, target }))).then((r) => { setEdits({}); return r }))}><Icon name="check" />Simpan {changed.length || ''} mapping</button>
         <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Setelah disimpan, data diproses ulang dengan mapping baru</span>
       </div>
@@ -239,6 +242,7 @@ export function DataPage() {
   return (
     <div className="stack">
       <SourceCard key={JSON.stringify(st.source)} st={st} />
+      {st.source.mode !== 'csv' && <SchemaMapper st={st} />}
       <div className="ai-grid">
         <div className="stack"><MappingCard st={st} /><TeamCard /></div>
         <div className="stack"><CSVCard st={st} /><RunsCard st={st} /></div>

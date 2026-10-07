@@ -33,6 +33,7 @@ func (s *Server) dataRoutes(r chi.Router) {
 	r.Put("/data/credentials", s.dataCredentials)
 	r.Delete("/data/credentials", s.dataCredentialsDelete)
 	r.Post("/data/test", s.dataTest)
+	r.Get("/data/schema", s.dataSchema)
 	r.Post("/data/sync", s.dataSync)
 	r.Post("/data/apply", s.dataApply)
 	r.Post("/data/import/{entity}", s.dataImport)
@@ -189,6 +190,32 @@ func (s *Server) dataTest(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"results": out})
 }
 
+// dataSchema lists the BigQuery project's tables and columns (read-only) and proposes, per entity, a table, a
+// column mapping and the import SQL. Nothing is saved: the person reviews and saves the queries.
+func (s *Server) dataSchema(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.adminOnly(w, r); !ok {
+		return
+	}
+	ctx := r.Context()
+	im := s.importer()
+	cfg, _ := im.LoadConfig(ctx)
+	bq, err := im.BigQueryClient(ctx, cfg, s.secret())
+	if err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "no_credentials", err.Error())
+		return
+	}
+	tables, err := bq.Schema(ctx, 400)
+	if err != nil {
+		httpx.Fail(w, http.StatusBadGateway, "bigquery", err.Error())
+		return
+	}
+	project := bq.Project
+	if project == "" {
+		project = bq.SA.ProjectID
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"project": project, "tables": nonNil(tables), "suggestions": importer.Suggest(project, tables)})
+}
+
 func (s *Server) enqueue(w http.ResponseWriter, r *http.Request, args interface{ Kind() string }) bool {
 	if s.jobs == nil {
 		httpx.Fail(w, http.StatusServiceUnavailable, "no_queue", "Antrean tidak tersedia")
@@ -309,7 +336,19 @@ func (s *Server) dataMappings(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(rows)})
+	type item struct {
+		gen.DataMapping
+		Suggested string `json:"suggested,omitempty"`
+	}
+	items := make([]item, 0, len(rows))
+	for _, m := range rows {
+		it := item{DataMapping: m}
+		if m.Target == nil {
+			it.Suggested = importer.SuggestTarget(m.Kind, m.SourceValue)
+		}
+		items = append(items, it)
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": items})
 }
 
 // dataSetMappings saves mappings (target "" clears) and re-applies the staged data with them.
