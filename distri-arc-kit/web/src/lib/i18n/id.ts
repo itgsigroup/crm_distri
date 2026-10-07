@@ -2,7 +2,7 @@
 // Terms follow docs/design/01-glossary.md exactly.
 import type { RootCause, Segment } from '../../api/types'
 
-export type ScreenKey = 'today' | 'orch' | 'chat' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'ar' | 'conn' | 'konsep'
+export type ScreenKey = 'today' | 'orch' | 'chat' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'ar' | 'users' | 'conn' | 'konsep'
 
 export const TITLES: Record<ScreenKey, [string, string]> = {
   today: ['Pusat kendali', ''],
@@ -14,6 +14,7 @@ export const TITLES: Record<ScreenKey, [string, string]> = {
   dealer: ['Dealer', 'Frekuensi order, order-to-cash, share of wallet, product mix, sisa limit, PIC aktif — satu halaman per dealer'],
   stock: ['Push stok', 'Perputaran stok: stok yang menua menjadi alasan follow-up dealer yang jadwal order'],
   ar: ['Sisa limit', 'DSO (order → bayar): ruang kredit tiap dealer, pola bayar, prediksi kas masuk'],
+  users: ['Pengguna', 'Master pengguna: akun login, peran & akses, dan satu nomor WhatsApp per pengguna'],
   conn: ['Pengaturan', 'Kebijakan orbit, sumber sinyal, koneksi AI (API & MCP), kalibrasi agen'],
   konsep: ['Konsep orbit', 'Panduan Orbit: satu gambar, 14 istilah, cara baca papan'],
 }

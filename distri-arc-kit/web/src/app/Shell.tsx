@@ -23,6 +23,7 @@ export const ROUTES: Record<ScreenKey, string> = {
   dealer: '/dealer',
   stock: '/stok',
   ar: '/kredit',
+  users: '/pengguna',
   conn: '/pengaturan',
   konsep: '/panduan',
 }
@@ -37,6 +38,7 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/dealer')) return 'dealer'
   if (path.startsWith('/stok')) return 'stock'
   if (path.startsWith('/kredit')) return 'ar'
+  if (path.startsWith('/pengguna')) return 'users'
   if (path.startsWith('/pengaturan')) return 'conn'
   if (path.startsWith('/panduan')) return 'konsep'
   return 'today'
@@ -147,6 +149,7 @@ export function Shell() {
           <div className="rail-sec">
             <nav className="nav" aria-label="Pengaturan">
               <NavBtn to="konsep" cur={cur} icon="doc">Panduan</NavBtn>
+              <NavBtn to="users" cur={cur} icon="people">Pengguna</NavBtn>
               <NavBtn to="conn" cur={cur} icon="gear">Pengaturan</NavBtn>
             </nav>
             <div className="agents">

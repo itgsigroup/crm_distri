@@ -26,7 +26,7 @@ type Screen struct {
 // Screens in menu order.
 var Screens = []Screen{
 	{"today", "Pusat kendali"}, {"orch", "Orchestrator"}, {"chat", "Chat WhatsApp"}, {"orbit", "Orbit"}, {"kuad", "Segmen"},
-	{"net", "Peta relasi"}, {"dealer", "Dealer"}, {"stock", "Push stok"}, {"ar", "Kredit · kas"}, {"conn", "Pengaturan"}, {"konsep", "Panduan"},
+	{"net", "Peta relasi"}, {"dealer", "Dealer"}, {"stock", "Push stok"}, {"ar", "Kredit · kas"}, {"users", "Pengguna & peran"}, {"conn", "Pengaturan"}, {"konsep", "Panduan"},
 }
 
 // KindLabels name the proposal kinds a role may decide.
@@ -49,7 +49,7 @@ func BaseScreens(base string) []string {
 	case "warehouse":
 		return []string{"today", "chat", "stock", "dealer", "konsep"}
 	}
-	return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "ar", "conn", "konsep"}
+	return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "ar", "users", "conn", "konsep"}
 }
 
 // BaseKinds are the proposal kinds a base role may decide.
@@ -104,6 +104,7 @@ func Resolve(key, name, base string, screens, decide []string, wa bool) Role {
 var guarded = []struct{ prefix, screen string }{
 	{"/api/chat/", "chat"}, {"/api/wa/groups", "chat"}, {"/api/wa/pair", "chat"},
 	{"/api/credit/", "ar"},
+	{"/api/roles", "users"},
 	{"/api/relasi", "net"},
 	{"/api/stock/aging", "stock"}, {"/api/stock/critical", "stock"}, {"/api/stock/sales-by-product", "stock"},
 }

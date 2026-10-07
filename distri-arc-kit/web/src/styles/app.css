@@ -182,3 +182,5 @@
 .connect .connect-hint{margin:-6px 0 0;font-size:12px;line-height:1.5;color:var(--text-3)}
 .connect-hint a{color:var(--accent)}
 @media (max-width:860px){.connect-add{grid-template-columns:1fr}}
+/* Short screens (laptop 720–820 px tall): the agents card gives way so the profile card stays visible */
+@media (max-height:820px) and (min-width:901px){.rail .agents{display:none}.rail{gap:4px}}

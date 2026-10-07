@@ -1,9 +1,10 @@
+import { Icon } from '../../components/Icon'
+import { Link } from 'react-router'
 import { useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { fmtRp, shortDate } from '../../lib/format'
 import { useCalibration, useConnections, useMe, usePolicies, useWAGroups, useWAStatus } from '../../app/queries'
 import { PolicyEditor, useSavePolicy, type PolicyField } from './PolicyEditor'
-import { RolesCard, UsersCard } from './UsersCard'
 import { AutonomyCard } from './AutonomyCard'
 import { WhatsAppPanel } from './WhatsAppPanel'
 import { AIConnectionsCard } from './AIConnections'
@@ -81,8 +82,13 @@ export function SettingsPage() {
         </ul>
       </div>
       <AutonomyCard />
-      <UsersCard />
-      <RolesCard />
+      {me?.manage_users && (
+        <div className="card">
+          <div className="card-h"><h2>Pengguna &amp; peran</h2><span className="meta">Pindah ke menu Pengguna di sidebar</span></div>
+          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-2)' }}>Akun login, peran &amp; akses, dan satu nomor WhatsApp per pengguna.</p>
+          <Link className="btn ghost" to="/pengguna"><Icon name="people" />Buka master pengguna</Link>
+        </div>
+      )}
       <SecurityCard />
       <div className="card">
         <div className="card-h"><h2>Tampilan</h2><span className="meta">Disimpan di perangkat ini</span></div>

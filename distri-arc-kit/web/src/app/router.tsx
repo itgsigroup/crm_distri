@@ -13,6 +13,7 @@ import { ChatPage } from '../features/chat/ChatPage'
 import { StockPage } from '../features/stock/StockPage'
 import { GuidePage } from '../features/guide/GuidePage'
 import { CreditPage } from '../features/credit/CreditPage'
+import { UsersPage } from '../features/settings/UsersPage'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { PilotPage } from '../features/pilot/PilotPage'
 import { DataPage } from '../features/data/DataPage'
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: 'dealer/:id?', element: <DealerPage /> },
       { path: 'stok', element: <StockPage /> },
       { path: 'kredit', element: <CreditPage /> },
+      { path: 'pengguna', element: <UsersPage /> },
       { path: 'pengaturan', element: <SettingsPage /> },
       { path: 'pengaturan/pilot', element: <PilotPage /> },
       { path: 'pengaturan/data', element: <DataPage /> },
