@@ -59,13 +59,13 @@ func (im Importer) Stage(ctx context.Context, e Entity, rows []Row, source, by s
 	if _, ok := Contract[e]; !ok {
 		return rep, fmt.Errorf("entitas %q tidak dikenal", e)
 	}
-	started := time.Now()
 	run, err := im.St.Q.StartImportRun(ctx, gen.StartImportRunParams{Source: source, Entity: string(e), StartedBy: &by})
 	if err != nil {
 		return rep, err
 	}
 	err = im.St.Tx(ctx, func(q *gen.Queries, _ pgx.Tx) error {
 		lines := map[string]int{} // invoice → next line number
+		keys := make([]string, 0, len(rows))
 		for i, r := range rows {
 			if miss := Missing(e, r); len(miss) > 0 {
 				rep.Skipped++
@@ -77,11 +77,6 @@ func (im Importer) Stage(ctx context.Context, e Entity, rows []Row, source, by s
 			k := key(e, r)
 			if e == InvoiceLines {
 				inv := r.Get("invoice_number")
-				if _, seen := lines[inv]; !seen {
-					if err := q.DeleteImportRowsPrefix(ctx, gen.DeleteImportRowsPrefixParams{Entity: string(e), Prefix: inv + "#"}); err != nil {
-						return err
-					}
-				}
 				lines[inv]++
 				k = fmt.Sprintf("%s#%04d", inv, lines[inv])
 			}
@@ -89,10 +84,20 @@ func (im Importer) Stage(ctx context.Context, e Entity, rows []Row, source, by s
 			if err := q.UpsertImportRow(ctx, gen.UpsertImportRowParams{Entity: string(e), Key: k, Data: data, Source: source}); err != nil {
 				return err
 			}
+			keys = append(keys, k)
 			rep.Staged++
 		}
-		if e == Stock && rep.Staged > 0 {
-			if _, err := q.DeleteImportRows(ctx, gen.DeleteImportRowsParams{Entity: string(e), Source: source, UpdatedAt: started}); err != nil {
+		switch {
+		case e == InvoiceLines && len(lines) > 0: // delivered invoices replace their lines
+			invs := make([]string, 0, len(lines))
+			for inv := range lines {
+				invs = append(invs, inv)
+			}
+			if _, err := q.DeleteInvoiceLinesNotIn(ctx, gen.DeleteInvoiceLinesNotInParams{Invoices: invs, Keys: keys}); err != nil {
+				return err
+			}
+		case e == Stock && rep.Staged > 0: // a stock batch is a snapshot
+			if _, err := q.DeleteImportRowsNotIn(ctx, gen.DeleteImportRowsNotInParams{Entity: string(e), Source: source, Keys: keys}); err != nil {
 				return err
 			}
 		}

@@ -44,6 +44,11 @@ type DataSyncWorker struct {
 	secret []byte
 }
 
+// Timeout: a full BigQuery pull (tens of thousands of invoice lines) takes minutes, not the queue's default minute.
+func (w *DataSyncWorker) Timeout(*river.Job[jobs.DataSyncArgs]) time.Duration {
+	return 30 * time.Minute
+}
+
 // Work runs one sync.
 func (w *DataSyncWorker) Work(ctx context.Context, job *river.Job[jobs.DataSyncArgs]) error {
 	im := importer.Importer{St: w.st, Clock: w.clock, Log: w.log}
@@ -89,6 +94,11 @@ type DataApplyWorker struct {
 }
 
 // Work applies staged rows.
+// Timeout: rebuilding every imported invoice takes minutes.
+func (w *DataApplyWorker) Timeout(*river.Job[jobs.DataApplyArgs]) time.Duration {
+	return 30 * time.Minute
+}
+
 func (w *DataApplyWorker) Work(ctx context.Context, job *river.Job[jobs.DataApplyArgs]) error {
 	return withDataLock(ctx, w.st, func() error {
 		rep, err := importer.Importer{St: w.st, Clock: w.clock, Log: w.log}.Apply(ctx, job.Args.Full, job.Args.By)

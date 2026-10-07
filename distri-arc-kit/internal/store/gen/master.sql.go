@@ -113,6 +113,25 @@ func (q *Queries) DeleteImportRows(ctx context.Context, arg DeleteImportRowsPara
 	return result.RowsAffected(), nil
 }
 
+const deleteImportRowsNotIn = `-- name: DeleteImportRowsNotIn :execrows
+delete from import_rows where entity = $1 and source = $2 and not (key = any($3::text[]))
+`
+
+type DeleteImportRowsNotInParams struct {
+	Entity string   `json:"entity"`
+	Source string   `json:"source"`
+	Keys   []string `json:"keys"`
+}
+
+// A snapshot (stock) replaces what the same source delivered before: rows missing from it go.
+func (q *Queries) DeleteImportRowsNotIn(ctx context.Context, arg DeleteImportRowsNotInParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteImportRowsNotIn, arg.Entity, arg.Source, arg.Keys)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteImportRowsPrefix = `-- name: DeleteImportRowsPrefix :exec
 delete from import_rows where entity = $1 and key like $2::text || '%'
 `
@@ -134,6 +153,25 @@ delete from stock_items where source_system = 'import'
 func (q *Queries) DeleteImportedStock(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, deleteImportedStock)
 	return err
+}
+
+const deleteInvoiceLinesNotIn = `-- name: DeleteInvoiceLinesNotIn :execrows
+delete from import_rows where entity = 'invoice_lines' and split_part(key, '#', 1) = any($1::text[])
+  and not (key = any($2::text[]))
+`
+
+type DeleteInvoiceLinesNotInParams struct {
+	Invoices []string `json:"invoices"`
+	Keys     []string `json:"keys"`
+}
+
+// Lines of the delivered invoices that are no longer in the delivery (an invoice lost a line).
+func (q *Queries) DeleteInvoiceLinesNotIn(ctx context.Context, arg DeleteInvoiceLinesNotInParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteInvoiceLinesNotIn, arg.Invoices, arg.Keys)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const deleteSecret = `-- name: DeleteSecret :exec
@@ -811,6 +849,7 @@ const upsertImportRow = `-- name: UpsertImportRow :exec
 
 insert into import_rows (entity, key, data, source, updated_at) values ($1, $2, $3, $4, now())
 on conflict (entity, key) do update set data = excluded.data, source = excluded.source, updated_at = now()
+where import_rows.data is distinct from excluded.data or import_rows.source is distinct from excluded.source
 `
 
 type UpsertImportRowParams struct {
@@ -821,6 +860,7 @@ type UpsertImportRowParams struct {
 }
 
 // Real data import (BigQuery / CSV) and master data (Pengaturan → Data & master).
+// An unchanged row keeps its updated_at, so the next apply rebuilds only what changed at the source.
 func (q *Queries) UpsertImportRow(ctx context.Context, arg UpsertImportRowParams) error {
 	_, err := q.db.Exec(ctx, upsertImportRow,
 		arg.Entity,

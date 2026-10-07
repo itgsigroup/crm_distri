@@ -201,3 +201,33 @@ func TestStockFromInvoicesAndReceipts(t *testing.T) {
 		t.Fatalf("K1 age %d velocity %v", age, vel)
 	}
 }
+
+// Re-staging: a stock snapshot drops what is no longer delivered; an invoice drops lines it lost; unchanged rows keep
+// their timestamp (the next apply rebuilds only what changed).
+func TestStageReplacesSnapshotsAndLines(t *testing.T) {
+	im, st := newImporter(t)
+	ctx := context.Background()
+	stage := func(e importer.Entity, csv string) {
+		t.Helper()
+		if _, err := im.Stage(ctx, e, parse(t, csv), "bigquery", "test"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	stage(importer.Stock, "sku,product,warehouse,qty\nA,Satu,Semarang,1\nB,Dua,Semarang,2\n")
+	stage(importer.InvoiceLines, "invoice_number,product\nF1,Satu\nF1,Dua\nF2,Tiga\n")
+	var before time.Time
+	_ = st.Pool.QueryRow(ctx, "select updated_at from import_rows where entity = 'invoice_lines' and key = 'F2#0001'").Scan(&before)
+	stage(importer.Stock, "sku,product,warehouse,qty\nA,Satu,Semarang,1\n")
+	stage(importer.InvoiceLines, "invoice_number,product\nF1,Satu\nF2,Tiga\n")
+	if n := count(t, st, "select count(*) from import_rows where entity = 'stock'"); n != 1 {
+		t.Fatalf("stock rows %d", n)
+	}
+	if n := count(t, st, "select count(*) from import_rows where entity = 'invoice_lines' and key like 'F1#%'"); n != 1 {
+		t.Fatalf("F1 lines %d", n)
+	}
+	var after time.Time
+	_ = st.Pool.QueryRow(ctx, "select updated_at from import_rows where entity = 'invoice_lines' and key = 'F2#0001'").Scan(&after)
+	if !after.Equal(before) {
+		t.Fatalf("unchanged line touched: %v → %v", before, after)
+	}
+}
