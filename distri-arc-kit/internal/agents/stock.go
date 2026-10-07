@@ -84,10 +84,15 @@ func (a Stock) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domain.
 		if id, ok := in.StockSignals[s.Name+"|"+s.Branch]; ok {
 			sigs = append(sigs, id)
 		}
+		matched := 0
 		for _, c := range cands {
 			d := bySlug[c.DealerID]
 			if d == nil || d.Metrics.Status == domain.StatusChurn {
 				continue // churn: low priority, no proactive offers (same as AI Follow-up)
+			}
+			matched++
+			if len(ids) >= MaxPushDealers {
+				continue // candidates are sorted (jadwal order, then omzet): the first ones get the offer
 			}
 			if c.DueIn != nil && *c.DueIn >= 0 && *c.DueIn <= 7 {
 				due++
@@ -117,7 +122,7 @@ func (a Stock) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domain.
 		}
 		p := domain.Proposal{
 			Agent: a.Name(), DealerIDs: ids, Kind: domain.KindPushStock, Icon: "box", Button: "Buat bundle", DueLabel: "Minggu ini",
-			Title:   fmt.Sprintf("Bundle %s %s ke %d dealer product mix %s%s", shortName(s.Name), discText, len(ids), cat, dueText),
+			Title:   fmt.Sprintf("Bundle %s %s ke %d dealer product mix %s%s%s", shortName(s.Name), discText, len(ids), cat, dueText, moreText(matched, len(ids))),
 			Summary: fmt.Sprintf("%d pcs · %d hari · %s di %s → %s", s.Qty, s.AgeDays, Rp(s.Value), s.Branch, Join(names)),
 			Why: fmt.Sprintf("%s menua %d hari di %s (%s). %d dealer cocok product mix-nya%s dan limitnya aman. Harga bundle %s, margin %s — di atas floor %s.",
 				s.Name, s.AgeDays, s.Branch, Rp(s.Value), len(ids), dueText, Unit(bundle), Pct(margin), pctWhole(pol.Margin.Pct)),
@@ -144,6 +149,16 @@ func (a Stock) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domain.
 
 // MaxPushPerCycle caps the bundle proposals of one cycle (largest aging value first).
 const MaxPushPerCycle = 20
+
+// MaxPushDealers caps the dealers of one bundle: a sales team follows up a few dozen dealers, not hundreds.
+const MaxPushDealers = 30
+
+func moreText(matched, offered int) string {
+	if matched <= offered {
+		return ""
+	}
+	return fmt.Sprintf(" · %d teratas dari %d yang cocok", offered, matched)
+}
 
 // Stock rules for critical SKUs (ADR 0011): refill a branch to TransferCoverWeeks of sales from another branch that
 // keeps at least SourceKeepWeeks; without such a branch ask purchasing for POCoverWeeks of sales.

@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -111,6 +112,21 @@ type Builder struct {
 	st    *store.Store
 	svc   *dealersvc.Service
 	clock clock.Clock
+
+	mu     sync.Mutex
+	cached *Board // dealers with metrics, without today's next actions
+	at     time.Time
+}
+
+// BoardTTL is how long the computed board is reused: metrics change with imports and cycles (minutes to an
+// hour apart), not per request. Next actions (decisions) are attached fresh on every request.
+const BoardTTL = time.Minute
+
+// Invalidate drops the cached board (after an import or a recompute in this process).
+func (b *Builder) Invalidate() {
+	b.mu.Lock()
+	b.cached = nil
+	b.mu.Unlock()
 }
 
 // NewBuilder builds a read-model builder.
@@ -123,6 +139,27 @@ func (b *Builder) Service() *dealersvc.Service { return b.svc }
 
 // Board loads every dealer with fresh metrics (computed from the same history the cache is built from).
 func (b *Builder) Board(ctx context.Context) (*Board, error) {
+	b.mu.Lock()
+	base := b.cached
+	if base == nil || time.Since(b.at) > BoardTTL || !base.Today.Equal(clock.Today(b.clock.Now())) {
+		var err error
+		if base, err = b.build(ctx); err != nil {
+			b.mu.Unlock()
+			return nil, err
+		}
+		b.cached, b.at = base, time.Now()
+	}
+	b.mu.Unlock()
+	board := *base
+	board.Items = append([]BoardItem(nil), base.Items...) // per request: next actions are written on a copy
+	if err := b.attachNext(ctx, &board); err != nil {
+		return nil, err
+	}
+	return &board, nil
+}
+
+// build computes every dealer's metrics (the heavy part, cached by Board).
+func (b *Builder) build(ctx context.Context) (*Board, error) {
 	ds, err := b.svc.Load(ctx)
 	if err != nil {
 		return nil, err
@@ -160,9 +197,6 @@ func (b *Builder) Board(ctx context.Context) (*Board, error) {
 		board.byID[it.ID] = len(board.Items)
 		board.byID[d.ID.String()] = len(board.Items)
 		board.Items = append(board.Items, it)
-	}
-	if err := b.attachNext(ctx, board); err != nil {
-		return nil, err
 	}
 	return board, nil
 }

@@ -1,10 +1,11 @@
-import { useRef, useState, type MouseEvent } from 'react'
+import { useRef, useState, type MouseEvent, useMemo } from 'react'
 import { useNavigate } from 'react-router'
 import type { BoardItem, Mover, Segment } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
 import { fmtRp, fx1, shortName } from '../../lib/format'
 import { KUAD, SEGMENT_ORDER } from '../../lib/i18n/id'
+import { useMore } from '../../components/More'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { useSegmen, useSegmenMovers, useSegmenSummary } from '../../app/queries'
 import { Legend, MoverList, SalesFilters } from '../orbit/OrbitPage'
@@ -27,22 +28,30 @@ interface Node {
   la: 'start' | 'end' | 'middle'
   lx: number
   ly: number
+  label: boolean // named on the chart (largest revenue first); the rest are plain points
 }
 
+/** How many dealers get a name on the segment chart: every point stays (it is data), names only for the top ones. */
+const SEGMEN_LABELS = 80
+
 function layout(list: BoardItem[]): Node[] {
+  const named = new Set([...list].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, SEGMEN_LABELS).map((d) => d.id))
+  const dense = list.length > 300
   const nodes: Node[] = list.map((d) => {
     const m = d.metrics
     const x = xOf(m.freq)
     const y = clampY(m.avg_order)
     const name = shortName(d.name)
     const pv = d.prev ? { x: xOf(d.prev.freq), y: clampY(d.prev.avg_order) } : null
-    return { d, x, y, size: 7 + Math.sqrt(m.sow) * 1.3, name, k: m.segment, baru: m.freq == null, pv, tw: name.length * (m.avg_order < 10e6 ? 5.6 : 6.4) + 6, la: 'start', lx: 0, ly: 0 }
+    const label = named.has(d.id)
+    const size = (7 + Math.sqrt(m.sow) * 1.3) * (dense && !label ? 0.4 : 1)
+    return { d, x, y, size, name, k: m.segment, baru: m.freq == null, pv: label ? pv : null, tw: name.length * (m.avg_order < 10e6 ? 5.6 : 6.4) + 6, la: 'start', lx: 0, ly: 0, label }
   })
   // point positions are data and never move; only labels look for free space
   const obst: number[][] = [[W - R - 130, W - R - 8, T + 6, T + 44], [L + 8, L + 130, T + 6, T + 44], [W - R - 130, W - R - 8, H - B - 46, H - B - 6], [L + 8, L + 130, H - B - 46, H - B - 6]]
   nodes.forEach((a) => obst.push([a.x - a.size, a.x + a.size, a.y - a.size, a.y + a.size]))
   const ovl = (A: number[], C: number[]) => Math.max(0, Math.min(A[1], C[1]) - Math.max(A[0], C[0])) * Math.max(0, Math.min(A[3], C[3]) - Math.max(A[2], C[2]))
-  ;[...nodes].sort((a, b) => b.size - a.size).forEach((a) => {
+  ;nodes.filter((a) => a.label).sort((a, b) => b.size - a.size).forEach((a) => {
     const tw = a.tw
     const h = 14
     const c: ['start' | 'end' | 'middle', number, number, number[]][] = [
@@ -76,7 +85,7 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
   const xq = px(thresholds.freq_per_month)
   const yq = py(thresholds.size_idr)
-  const nodes = layout(list)
+  const nodes = useMemo(() => layout(list), [list])
   const Z: [Segment, number, number, number, number][] = [['A', xq, T, W - R - xq, yq - T], ['C', L, T, xq - L, yq - T], ['B', xq, yq, W - R - xq, H - B - yq], ['D', L, yq, xq - L, H - B - yq]]
   const ZL: [Segment, number, number, 'start' | 'end'][] = [['A', W - R - 10, T + 22, 'end'], ['C', L + 10, T + 22, 'start'], ['B', W - R - 10, H - B - 28, 'end'], ['D', L + 10, H - B - 28, 'start']]
   const move = (e: MouseEvent, d: BoardItem) => {
@@ -132,12 +141,12 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
             <circle cx={a.pv!.x.toFixed(1)} cy={a.pv!.y.toFixed(1)} r={(a.size * 0.6).toFixed(1)} className="kprev" />
           </g>
         ))}
-        {nodes.map(({ d, x, y, size, name, k, baru, la, lx, ly }) => {
+        {nodes.map(({ d, x, y, size, name, k, baru, la, lx, ly, label }) => {
           const tone = toneOf(d.metrics.credit.state)
           return (
             <g key={d.id} className={`dn ${sel && sel !== k ? 'ghost' : ''}`} tabIndex={0} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)}>
               <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: '3 3' } : {})} />
-              <text x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor={la} className={`dn-t ${d.metrics.avg_order < 10e6 ? 'sm' : ''}`}>{name}</text>
+              {label && <text x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor={la} className={`dn-t ${d.metrics.avg_order < 10e6 ? 'sm' : ''}`}>{name}</text>}
             </g>
           )
         })}
@@ -182,10 +191,11 @@ export function SegmenPage() {
   const { data } = useSegmen(sales)
   const { data: sum } = useSegmenSummary(sales)
   const { data: movers = [] } = useSegmenMovers(sales)
-  const list = data?.items ?? []
+  const list = useMemo(() => data?.items ?? [], [data])
   const toggle = (k: Segment) => setSel(sel === k ? null : k)
   const total = sum?.total_omzet_bln ?? 0
-  const selList = sel ? list.filter((d) => d.metrics.segment === sel).sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln) : []
+  const selList = useMemo(() => (sel ? list.filter((d) => d.metrics.segment === sel).sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln) : []), [list, sel])
+  const [selShown, selMore] = useMore(selList, 15)
   return (
     <div className="net">
       <div>
@@ -228,7 +238,7 @@ export function SegmenPage() {
                 </div>
                 <ul className="kdl">
                   {selList.length === 0 && <li><span style={{ color: 'var(--text-3)' }}>Tidak ada dealer</span></li>}
-                  {selList.map((d) => (
+                  {selShown.map((d) => (
                     <li key={d.id}>
                       <button className="ev" onClick={() => nav('/dealer/' + d.id)}>{d.name}</button>
                       <span>{d.metrics.rhythm_days ? fx1(30 / d.metrics.rhythm_days) + '×/bln' : 'baru'} · {fmtRp(d.metrics.avg_order)}/order</span>
@@ -236,6 +246,7 @@ export function SegmenPage() {
                     </li>
                   ))}
                 </ul>
+                {selMore}
                 <button className="btn quiet" style={{ height: 28, fontSize: 12, marginTop: 10 }} onClick={() => setSel(null)}>Tutup</button>
               </>
             ) : (

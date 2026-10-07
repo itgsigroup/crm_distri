@@ -82,6 +82,8 @@ func (s *Server) Handler() http.Handler {
 		r.Handle("/mcp", s.mcp.Handler())
 	}
 	r.Route("/api", func(r chi.Router) {
+		// JSON is gzip-compressed (a board of thousands of dealers is ~10× smaller); the SSE stream is not touched
+		r.Use(middleware.Compress(5, "application/json"))
 		r.Get("/health", s.health)
 		if s.cloud != nil {
 			ingest := wa.NewIngestor(s.st, s.log)
@@ -92,6 +94,7 @@ func (s *Server) Handler() http.Handler {
 		r.Post("/auth/logout", s.logout)
 		r.Group(func(r chi.Router) {
 			r.Use(s.auth)
+			r.Use(s.freshAfterWrite)
 			s.userRoutes(r)
 			s.roleRoutes(r)
 			s.branchRoutes(r)
@@ -205,6 +208,17 @@ func (s *Server) sessionEmail(r *http.Request) string {
 		email = strings.TrimSpace(r.Header.Get("X-Dev-User"))
 	}
 	return email
+}
+
+// freshAfterWrite drops the cached dealer board after any change made through the API (a policy, a dealer's
+// master data, a mapping, a decision), so the next read shows it at once.
+func (s *Server) freshAfterWrite(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			s.views.Invalidate()
+		}
+	})
 }
 
 // userFrom resolves the user on a public route (no 401 when there is none).

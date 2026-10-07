@@ -67,9 +67,10 @@ export function StockPage() {
             {shown.map((x) => {
               const k = x.age_days > 120 ? 'bad' : 'warn'
               const p = pushOf(x.name)
-              const ds = (p?.payload?.dealers as { name: string }[] | undefined)?.map((d) => shortName(d.name)) ?? (x.candidates ?? []).map((c) => shortName(c.name))
-              const dealers = ds.length ? `${ds.slice(0, 2).join(', ')}${ds.length > 2 ? `, +${ds.length - 2}` : ''}` : 'belum ada yang cocok'
-              const note = ds.length ? '' : x.age_days > 180 ? ' · Usul: diskon atau retur ke supplier' : ' · Usul: bundle untuk dealer tier C'
+              const ds = (x.candidates ?? []).map((c) => shortName(c.name))
+              const total = x.candidate_count ?? ds.length
+              const dealers = total ? `${ds.slice(0, 2).join(', ')}${total > 2 ? `, +${total - 2}` : ''}` : 'belum ada yang cocok'
+              const note = total ? '' : x.age_days > 180 ? ' · Usul: diskon atau retur ke supplier' : ' · Usul: bundle untuk dealer tier C'
               return (
                 <li key={x.id}>
                   <div><b>{x.name}</b><span className="s">{x.qty} {unit(x.name)} · {x.branch} · {fmtRp(x.value)}</span></div>

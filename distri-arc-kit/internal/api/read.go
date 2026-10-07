@@ -328,7 +328,7 @@ func (s *Server) stockCritical(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// stockPush is the compact push list of Pusat kendali: aging items that have at least one candidate.
+// stockPush is the compact push list of Pusat kendali: the PushTop aging items (largest value) that have candidates.
 func (s *Server) stockPush(w http.ResponseWriter, r *http.Request) {
 	b, ok := s.board(w, r)
 	if !ok {
@@ -340,12 +340,18 @@ func (s *Server) stockPush(w http.ResponseWriter, r *http.Request) {
 	}
 	var out []views.AgingItem
 	for _, a := range b.StockAging(st, "") {
-		if a.AgeDays > b.Policies.Stock.AgingDays && len(a.Candidates) > 0 {
+		if a.AgeDays > b.Policies.Stock.AgingDays && a.CandidateCount > 0 {
 			out = append(out, a)
+			if len(out) == pushTop {
+				break
+			}
 		}
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(out)})
 }
+
+// pushTop is the size of Pusat kendali's push list.
+const pushTop = 10
 
 func (s *Server) stockSales(w http.ResponseWriter, r *http.Request) {
 	if b, ok := s.board(w, r); ok {

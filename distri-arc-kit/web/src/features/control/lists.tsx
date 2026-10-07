@@ -7,6 +7,7 @@ import { Icon } from '../../components/Icon'
 import { Pill } from '../../components/ui'
 import { fmtRp, shortName } from '../../lib/format'
 import { ROOT_CAUSE } from '../../lib/i18n/id'
+import { useMore } from '../../components/More'
 
 export const creditTone = (s: string) => (s === 'aman' ? 'good' : s === 'tipis' ? 'warn' : s === 'cash' ? 'neutral' : 'bad')
 const isBad = (d: BoardItem) => creditTone(d.metrics.credit.state) === 'bad'
@@ -25,9 +26,11 @@ export const dueLabel = (n: number) => (n === 0 ? 'hari ini' : n === 1 ? 'besok'
 
 /** "Jadwal order · 7 hari" (mockup renderDue). */
 export function DueList({ items }: { items: BoardItem[] }) {
+  const [shown, more] = useMore(items, 8)
   return (
+    <>
     <ul className="row-list">
-      {items.map((d) => {
+      {shown.map((d) => {
         const due = d.metrics.due_in ?? 0
         const basket = d.composition.slice(0, 3).map((c) => c.product).join(' · ')
         return (
@@ -42,14 +45,18 @@ export function DueList({ items }: { items: BoardItem[] }) {
         )
       })}
     </ul>
+    {more}
+    </>
   )
 }
 
 /** "Lewat jadwal" (mockup renderDrift). */
 export function DriftList({ items }: { items: BoardItem[] }) {
+  const [shown, more] = useMore(items, 8)
   return (
+    <>
     <ul className="row-list">
-      {items.map((d) => {
+      {shown.map((d) => {
         const churn = d.metrics.status === 'Churn'
         return (
           <li key={d.id}>
@@ -63,6 +70,8 @@ export function DriftList({ items }: { items: BoardItem[] }) {
         )
       })}
     </ul>
+    {more}
+    </>
   )
 }
 
@@ -77,15 +86,16 @@ export function PushList({ items }: { items: AgingItem[] }) {
     <ul className="row-list">
       {items.slice(0, 3).map((x) => {
         const c = x.candidates ?? []
+        const n = x.candidate_count ?? c.length
         const unit = x.category === 'Kamera & NVR' && !/kamera/i.test(x.name) ? 'unit' : /modul|detektor/i.test(x.name) ? 'pcs' : 'unit'
         const names = c.slice(0, 3).map((k) => shortName(k.name)).join(', ')
         return (
           <li key={x.id}>
             <div>
               <div className="t"><b>{x.name}</b> · {x.qty} {unit} · {x.age_days} hari · {fmtRp(x.value)}</div>
-              <div className="s">→ {c.length} dealer {c.length ? `(${names}${c.length > 3 ? ', +' + (c.length - 3) : ''})` : 'belum ada yang cocok'}{x.due_this_week ? ` · ${x.due_this_week} jadwal order minggu ini` : ''}</div>
+              <div className="s">→ {n} dealer {n ? `(${names}${n > c.length ? ', +' + (n - c.length) : ''})` : 'belum ada yang cocok'}{x.due_this_week ? ` · ${x.due_this_week} jadwal order minggu ini` : ''}</div>
             </div>
-            {c.length > 0 && <ActBtn small next={bundleOf(x.name)} label="Buat bundle" icon="box" />}
+            {n > 0 && <ActBtn small next={bundleOf(x.name)} label="Buat bundle" icon="box" />}
           </li>
         )
       })}
@@ -95,9 +105,11 @@ export function PushList({ items }: { items: AgingItem[] }) {
 
 /** "Limit tipis" (mockup renderBreath). */
 export function TightList({ items }: { items: BoardItem[] }) {
+  const [shown, more] = useMore(items, 8)
   return (
+    <>
     <ul className="row-list">
-      {items.map((d) => {
+      {shown.map((d) => {
         const due = d.metrics.due_in
         const soon = d.metrics.rhythm_days != null && due != null && due >= 0 && due <= 7
         return (
@@ -112,6 +124,8 @@ export function TightList({ items }: { items: BoardItem[] }) {
         )
       })}
     </ul>
+    {more}
+    </>
   )
 }
 

@@ -45,8 +45,9 @@ export function place(d: BoardItem, drift = 1.2): { rad: number; ang: number; si
   return { rad, ang, size: 7 + Math.sqrt(sow) * 1.3 }
 }
 
-/** Lay out all nodes: polar placement, then 80 rounds of node+label overlap avoidance pulled back gently. */
-export function layoutOrbit(list: BoardItem[], drift = 1.2): OrbitNode[] {
+/** Lay out all nodes: polar placement, then 80 rounds of node+label overlap avoidance pulled back gently. The
+ * avoidance is quadratic: it only runs for a readable number of labelled nodes (dense = plain dots, no labels). */
+export function layoutOrbit(list: BoardItem[], drift = 1.2, dense = false): OrbitNode[] {
   const nodes: OrbitNode[] = list.map((d) => {
     const { rad, ang, size } = place(d, drift)
     const x = CX + rad * Math.sin(ang)
@@ -60,6 +61,10 @@ export function layoutOrbit(list: BoardItem[], drift = 1.2): OrbitNode[] {
   const box = (a: OrbitNode) => {
     const h = Math.max(a.size, 8)
     return a.side > 0 ? [a.x - a.size, a.x + a.size + a.tw, a.y - h, a.y + h] : [a.x - a.size - a.tw, a.x + a.size, a.y - h, a.y + h]
+  }
+  if (dense) {
+    nodes.forEach((n) => { n.size = Math.max(2.5, n.size * 0.35) })
+    return nodes.sort((a, b) => b.size - a.size)
   }
   for (let it = 0; it < 80; it++) {
     for (let i = 0; i < nodes.length; i++)

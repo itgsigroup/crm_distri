@@ -209,7 +209,7 @@ export interface StockItem {
   weekly_velocity: number
 }
 export interface PushCandidate { dealer_id: string; name: string; reason: string; due_in: number | null; drifting: boolean; omzet_bln: number }
-export interface AgingItem extends StockItem { candidates: PushCandidate[] | null; due_this_week: number }
+export interface AgingItem extends StockItem { candidates: PushCandidate[] | null; candidate_count: number; due_this_week: number }
 export interface CriticalItem extends StockItem { days_left: number; dependents: number; other_branches: { branch: string; qty: number }[] | null }
 export interface ProductSales { product: string; category: string; value: number; margin_pct: number }
 export interface CreditOverview { dso_days: number; terms_avg: number; receivable: number; open_invoices: number; open_dealers: number; overdue: number; overdue_dealers: number; overdue_over_30: number; forecast_30: number }

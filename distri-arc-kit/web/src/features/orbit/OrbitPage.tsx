@@ -1,4 +1,4 @@
-import { useRef, useState, type MouseEvent } from 'react'
+import { useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router'
 import type { BoardItem, Mover } from '../../api/types'
 import { Icon } from '../../components/Icon'
@@ -42,10 +42,18 @@ export function Tip({ d, pos, extra }: { d: BoardItem | null; pos: { x: number; 
   )
 }
 
-export function OrbitBoard({ list, onOpen }: { list: BoardItem[]; onOpen: (id: string) => void }) {
+/** How many dealers the orbit draws with names: a person reads a few dozen labelled dealers, not thousands. */
+export const ORBIT_TOP = 120
+
+/** The dealers worth a name on the orbit: the largest monthly revenue first. */
+export function topByOmzet(list: BoardItem[], n = ORBIT_TOP) {
+  return list.length <= n ? list : [...list].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, n)
+}
+
+export function OrbitBoard({ list, onOpen, dense = false }: { list: BoardItem[]; onOpen: (id: string) => void; dense?: boolean }) {
   const wrap = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
-  const nodes = layoutOrbit(list)
+  const nodes = useMemo(() => layoutOrbit(list, 1.2, dense), [list, dense])
   const LA = 0.62 * Math.PI * 2
   const move = (e: MouseEvent, d: BoardItem) => {
     const r = wrap.current!.getBoundingClientRect()
@@ -78,7 +86,7 @@ export function OrbitBoard({ list, onOpen }: { list: BoardItem[]; onOpen: (id: s
         {nodes.map(({ d, x, y, size, tone, ring, name, sm, side }) => (
           <g key={d.id} className="dn" tabIndex={0} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onKeyDown={(e) => e.key === 'Enter' && onOpen(d.id)}>
             <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={ring === 'Churn' ? 'ghost' : ''} />
-            <text x={(x + side * (size + 5)).toFixed(1)} y={(y + 4).toFixed(1)} textAnchor={side > 0 ? 'start' : 'end'} className={`dn-t ${sm ? 'sm' : ''}`}>{name}</text>
+            {!dense && <text x={(x + side * (size + 5)).toFixed(1)} y={(y + 4).toFixed(1)} textAnchor={side > 0 ? 'start' : 'end'} className={`dn-t ${sm ? 'sm' : ''}`}>{name}</text>}
           </g>
         ))}
       </svg>
@@ -140,6 +148,9 @@ export function OrbitPage() {
   const { reanalyze } = useOrch()
   const orch = useOrchStatus()
   const { data: list = [] } = useOrbit(sales)
+  const [all, setAll] = useState(false)
+  const many = list.length > ORBIT_TOP
+  const shown = useMemo(() => (all ? list : topByOmzet(list)), [list, all])
   const { data: summary = [] } = useOrbitSummary(sales)
   const { data: movers = [] } = useOrbitMovers(sales)
   const avgSow = list.length ? Math.round(list.reduce((a, d) => a + d.metrics.sow, 0) / list.length) : 0
@@ -150,12 +161,18 @@ export function OrbitPage() {
           <div className="orbit-hud">
             <SalesFilters value={sales} onChange={setSales} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span className="meta">{list.length} dealer · share of wallet rata-rata {avgSow}%</span>
+              <span className="meta">{many && !all ? `${ORBIT_TOP} teratas (omzet) dari ${list.length} dealer` : `${list.length} dealer`} · share of wallet rata-rata {avgSow}%</span>
+              {many && (
+                <div className="seg" role="radiogroup" aria-label="Tampilan orbit">
+                  <button role="radio" aria-checked={!all} className={!all ? 'is-active' : ''} onClick={() => setAll(false)}>Prioritas</button>
+                  <button role="radio" aria-checked={all} className={all ? 'is-active' : ''} onClick={() => setAll(true)}>Semua titik</button>
+                </div>
+              )}
               <button className="btn ghost" style={{ height: 30, fontSize: 12 }} disabled={orch.running} onClick={() => reanalyze('screen:orbit')}><Icon name="refresh" />Analisis ulang</button>
               <button className="btn ghost" style={{ height: 30, fontSize: 12 }} onClick={() => nav('/panduan')}><Icon name="doc" />Cara baca</button>
             </div>
           </div>
-          <OrbitBoard list={list} onOpen={(id) => nav('/dealer/' + id)} />
+          <OrbitBoard list={shown} dense={all && many} onOpen={(id) => nav('/dealer/' + id)} />
           <Legend tail="Ukuran = share of wallet · Sudut = posisi dalam siklus order (atas = jadwal order) · Status = Key account / Aktif / At risk / Churn" />
         </div>
       </div>

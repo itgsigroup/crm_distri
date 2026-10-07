@@ -11,6 +11,7 @@ import { MemoText } from './Memo'
 import { SOWSheet } from './SOWSheet'
 import { useFeedback } from '../../components/feedback'
 import { useDealer, useDealers } from '../../app/queries'
+import { useMore } from '../../components/More'
 import { creditTone } from '../control/lists'
 
 const VIA_ICON: Record<string, string> = { mail: 'mail', chat: 'chat', people: 'people', doc: 'doc', form: 'form', box: 'box', phone: 'phone' }
@@ -29,6 +30,7 @@ function DealerList({ active }: { active?: string }) {
   }, [q])
   const [type, setType] = useState('')
   const { data: list = [] } = useDealers(term, type)
+  const [shown, more] = useMore(list, 40)
   const nav = useNavigate()
   const { openSheet } = useFeedback()
   return (
@@ -39,7 +41,7 @@ function DealerList({ active }: { active?: string }) {
       </div>
       <button className="btn quiet" style={{ height: 28, fontSize: 12, margin: '8px 0 4px', alignSelf: 'flex-start' }} onClick={() => openSheet(<SOWSheet />)}><Icon name="check" />Konfirmasi share of wallet</button>
       <div className="list">
-        {list.map((d) => {
+        {shown.map((d) => {
           const m = d.metrics
           return (
             <button key={d.id} className={`acc-item ${d.id === active ? 'is-active' : ''}`} onClick={() => nav('/dealer/' + d.id)}>
@@ -55,6 +57,7 @@ function DealerList({ active }: { active?: string }) {
             </button>
           )
         })}
+        {more}
       </div>
     </div>
   )

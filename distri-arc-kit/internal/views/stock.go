@@ -11,9 +11,14 @@ import (
 // AgingItem is a stock item older than policy.aging_days with the dealers it fits.
 type AgingItem struct {
 	domain.StockItem
-	Candidates  []metrics.PushCandidate `json:"candidates"`
-	DueThisWeek int                     `json:"due_this_week"`
+	Candidates     []metrics.PushCandidate `json:"candidates"` // the first AgingTopCandidates (jadwal order nearest)
+	CandidateCount int                     `json:"candidate_count"`
+	DueThisWeek    int                     `json:"due_this_week"`
 }
+
+// AgingTopCandidates is how many matching dealers each aging item carries to the screen: a person reads the
+// first few names and the count, never hundreds (the AI Stok proposal holds the dealers it will contact).
+const AgingTopCandidates = 3
 
 // StockAging returns aging stock (oldest value first) with push candidates; includes items close to the
 // threshold (≥ 75% of aging_days) that the mockup lists as "menua".
@@ -27,8 +32,9 @@ func (b *Board) StockAging(stock []domain.StockItem, branch string) []AgingItem 
 		if float64(s.AgeDays) < 0.75*float64(b.Policies.Stock.AgingDays) {
 			continue
 		}
-		ai := AgingItem{StockItem: s, Candidates: metrics.PushCandidates(s, views, b.Policies)}
-		for _, c := range ai.Candidates {
+		all := metrics.PushCandidates(s, views, b.Policies)
+		ai := AgingItem{StockItem: s, Candidates: all[:min(len(all), AgingTopCandidates)], CandidateCount: len(all)}
+		for _, c := range all {
 			if c.DueIn != nil && *c.DueIn >= 0 && *c.DueIn <= 7 {
 				ai.DueThisWeek++
 			}
