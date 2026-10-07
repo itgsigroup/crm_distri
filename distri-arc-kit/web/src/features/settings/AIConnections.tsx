@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import type { MCPClient, MCPPolicy } from '../../api/types'
@@ -45,8 +46,8 @@ export function MCPRules() {
   const flip = (k: 'allow_reanalyze' | 'allow_plan_update_proposal') => pol && set.mutate({ ...pol, [k]: !pol[k] })
   return (
     <ul className="rules">
-      <li><div><b>Klien MCP boleh memicu analisis ulang</b><span>orchestrator.reanalyze(scope) · hasil masuk antrean, bukan langsung ke dealer · maks {pol?.max_cycles_per_hour ?? 6} siklus/jam</span></div><button className={`sw ${pol?.allow_reanalyze ? 'on' : ''}`} aria-label="toggle" onClick={() => flip('allow_reanalyze')} /></li>
-      <li><div><b>Klien MCP boleh mengubah rencana hari ini</b><span>orchestrator.plan.update · setiap perubahan butuh approve Anda</span></div><button className={`sw ${pol?.allow_plan_update_proposal ? 'on' : ''}`} aria-label="toggle" onClick={() => flip('allow_plan_update_proposal')} /></li>
+      <li><div><b>Klien MCP boleh memicu analisis ulang</b><span>orchestrator_reanalyze(scope) · hasil masuk antrean, bukan langsung ke dealer · maks {pol?.max_cycles_per_hour ?? 6} siklus/jam</span></div><button className={`sw ${pol?.allow_reanalyze ? 'on' : ''}`} aria-label="toggle" onClick={() => flip('allow_reanalyze')} /></li>
+      <li><div><b>Klien MCP boleh mengubah rencana hari ini</b><span>orchestrator_plan_update · setiap perubahan butuh approve Anda</span></div><button className={`sw ${pol?.allow_plan_update_proposal ? 'on' : ''}`} aria-label="toggle" onClick={() => flip('allow_plan_update_proposal')} /></li>
       <li><div><b>Klien MCP boleh mengirim ke dealer</b><span>Tidak pernah. Pengiriman hanya lewat tombol Setujui di aplikasi ini</span></div><Pill tone="neutral" icon="lock">Terkunci</Pill></li>
     </ul>
   )
@@ -129,7 +130,8 @@ export function MCPClientsPanel() {
 export function AIConnectionsCard() {
   const { data: info } = useMCPInfo()
   const { data: clients = [] } = useMCPClients()
-  const { openSheet, toast } = useFeedback()
+  const { toast } = useFeedback()
+  const nav = useNavigate()
   const active = clients.filter((c) => c.active)
   const llm = info?.llm
   const apiOK = llm?.provider === 'anthropic' && llm.api_key
@@ -145,9 +147,9 @@ export function AIConnectionsCard() {
           <div className="ch"><span className="lg" style={{ background: '#D97706' }}>API</span><div><b>API AI langsung</b><small>Claude API ({llm?.model ?? 'claude-sonnet-5-5'}) · cadangan OpenAI · batch analisis tiap jam dari server GSI</small></div></div>
           <div className="cs"><span className={`dot ${apiOK ? 'good' : 'warn'}`} />{apiOK ? 'Terhubung · API key tersimpan di server' : 'Mode template · API key belum diisi'}</div>
         </button>
-        <button className="cc" onClick={() => openSheet(<MCPClientsPanel />)}>
-          <div className="ch"><span className="lg" style={{ background: '#5E5CE6' }}>MCP</span><div><b>MCP · Distri ARC sebagai server</b><small>Claude Desktop, ChatGPT, atau agent eksternal membaca dan menganalisis data lewat tool MCP</small></div></div>
-          <div className="cs"><span className={`dot ${active.length ? 'good' : 'warn'}`} />{active.length ? `Aktif · ${active.length} klien: ${active.map((c) => c.name).join(' · ')}` : 'Aktif · belum ada klien — buat token'}</div>
+        <button className="cc" onClick={() => nav('/claude')}>
+          <div className="ch"><span className="lg" style={{ background: '#5E5CE6' }}>MCP</span><div><b>MCP · Distri ARC sebagai server</b><small>Claude (claude.ai, Desktop, Code) membaca dan menganalisis semua data lewat tool MCP — atur di menu MCP Claude</small></div></div>
+          <div className="cs"><span className={`dot ${active.length ? 'good' : 'warn'}`} />{active.length ? `Aktif · ${active.length} koneksi: ${active.map((c) => c.name).join(' · ')}` : 'Aktif · belum ada koneksi — buka MCP Claude'}</div>
         </button>
         <button className="cc" onClick={() => toast('Distri ARC sebagai klien MCP (Odoo MCP) disiapkan di Stage 13')}>
           <div className="ch"><span className="lg" style={{ background: '#1E88E5' }}>MCP</span><div><b>MCP · Distri ARC sebagai klien</b><small>Memakai MCP server lain: Odoo MCP, WhatsApp bridge, Getcontact (manual)</small></div></div>

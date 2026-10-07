@@ -32,9 +32,10 @@ var ValidScopes = []string{ScopeRead, ScopeAnalyze, ScopeOrchestrate}
 
 // Client is an authenticated MCP client.
 type Client struct {
-	ID     uuid.UUID
-	Name   string
-	Scopes []string
+	ID      uuid.UUID
+	Name    string
+	Scopes  []string
+	Expires time.Time // OAuth access tokens expire (AccessTTL); manual tokens do not (zero)
 }
 
 // Has reports whether the client holds a scope.
@@ -101,7 +102,7 @@ func NewVerifier(st *store.Store) *Verifier {
 func (v *Verifier) Verify(ctx context.Context, token string) (*Client, error) {
 	key := sha256.Sum256([]byte(token))
 	v.mu.Lock()
-	if c, ok := v.cache[key]; ok && time.Since(c.at) < v.ttl {
+	if c, ok := v.cache[key]; ok && time.Since(c.at) < v.ttl && (c.c.Expires.IsZero() || c.c.Expires.After(time.Now())) {
 		v.mu.Unlock()
 		cl := c.c
 		return &cl, nil
@@ -121,7 +122,13 @@ func (v *Verifier) Verify(ctx context.Context, token string) (*Client, error) {
 	if err != nil || !row.Active || row.TokenHash == nil || !checkSecret(secret, *row.TokenHash) {
 		return nil, ErrInvalidToken
 	}
+	if row.ExpiresAt != nil && !row.ExpiresAt.After(time.Now()) {
+		return nil, ErrInvalidToken
+	}
 	c := Client{ID: row.ID, Name: deref(row.Name), Scopes: row.Scopes}
+	if row.ExpiresAt != nil {
+		c.Expires = *row.ExpiresAt
+	}
 	v.mu.Lock()
 	v.cache[key] = cached{c: c, at: time.Now()}
 	v.mu.Unlock()
@@ -141,4 +148,85 @@ func deref[T any](p *T) T {
 		return z
 	}
 	return *p
+}
+
+// OAuth lifetimes (ADR 0021): a short access token, a rotating refresh token.
+const (
+	AccessTTL  = time.Hour
+	RefreshTTL = 90 * 24 * time.Hour
+)
+
+// newSecret returns an access token for a client id and the argon2id hash and prefix to store.
+func newSecret(id uuid.UUID) (token, hash, prefix string, err error) {
+	raw := make([]byte, 32)
+	salt := make([]byte, 16)
+	if _, err = rand.Read(raw); err != nil {
+		return
+	}
+	if _, err = rand.Read(salt); err != nil {
+		return
+	}
+	secret := base64.RawURLEncoding.EncodeToString(raw)
+	token = "arc_" + hex.EncodeToString(id[:]) + "_" + secret
+	return token, hashSecret(secret, salt), token[:12] + "…", nil
+}
+
+// newRefresh returns a refresh token and its sha256 (high-entropy random: a plain hash is enough to look it up).
+func newRefresh() (token, hash string, err error) {
+	raw := make([]byte, 32)
+	if _, err = rand.Read(raw); err != nil {
+		return
+	}
+	token = "arcr_" + base64.RawURLEncoding.EncodeToString(raw)
+	return token, RefreshHash(token), nil
+}
+
+// RefreshHash is how a refresh token is stored and looked up.
+func RefreshHash(token string) string {
+	h := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(h[:])
+}
+
+// Grant is what the token endpoint returns.
+type Grant struct {
+	Access, Refresh string
+	Expires         time.Time
+	Client          gen.McpClient
+}
+
+// IssueOAuth creates the connection of an approved authorization (one mcp_clients row per connection).
+func IssueOAuth(ctx context.Context, q *gen.Queries, name string, scopes []string, owner, user *uuid.UUID, oauthClient string, now time.Time) (Grant, error) {
+	for _, s := range scopes {
+		if !slices.Contains(ValidScopes, s) {
+			return Grant{}, fmt.Errorf("unknown scope %q", s)
+		}
+	}
+	id := uuid.New()
+	access, hash, prefix, err := newSecret(id)
+	if err != nil {
+		return Grant{}, err
+	}
+	refresh, rhash, err := newRefresh()
+	if err != nil {
+		return Grant{}, err
+	}
+	exp, rexp := now.Add(AccessTTL), now.Add(RefreshTTL)
+	c, err := q.InsertOAuthConnection(ctx, gen.InsertOAuthConnectionParams{ID: id, Name: &name, TokenHash: &hash, Scopes: scopes, OwnerID: owner, TokenPrefix: &prefix,
+		UserID: user, OauthClientID: &oauthClient, ExpiresAt: &exp, RefreshHash: &rhash, RefreshExpiresAt: &rexp})
+	return Grant{Access: access, Refresh: refresh, Expires: exp, Client: c}, err
+}
+
+// Rotate replaces a connection's access and refresh tokens (refresh_token grant); the old refresh token dies.
+func Rotate(ctx context.Context, q *gen.Queries, c gen.McpClient, now time.Time) (Grant, error) {
+	access, hash, prefix, err := newSecret(c.ID)
+	if err != nil {
+		return Grant{}, err
+	}
+	refresh, rhash, err := newRefresh()
+	if err != nil {
+		return Grant{}, err
+	}
+	exp, rexp := now.Add(AccessTTL), now.Add(RefreshTTL)
+	err = q.RotateMCPToken(ctx, gen.RotateMCPTokenParams{ID: c.ID, TokenHash: &hash, TokenPrefix: &prefix, ExpiresAt: &exp, RefreshHash: &rhash, RefreshExpiresAt: &rexp})
+	return Grant{Access: access, Refresh: refresh, Expires: exp, Client: c}, err
 }

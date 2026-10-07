@@ -18,6 +18,7 @@ sql:
       - db/migrations/0014_master_data.sql
       - db/migrations/0015_roles_access.sql
       - db/migrations/0016_roles_custom_branches_wa_links.sql
+      - db/migrations/0017_mcp_oauth.sql
     queries: db/queries
     gen:
       go:

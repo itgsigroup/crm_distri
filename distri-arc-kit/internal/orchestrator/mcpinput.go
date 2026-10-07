@@ -84,7 +84,7 @@ type mcpNewNumber struct {
 	Text     string    `json:"text"`
 }
 
-const mcpInstructions = "Kembalikan proposal untuk agen ini lewat orchestrator.submit. Setiap proposal wajib: kind dari 'kinds', " +
+const mcpInstructions = "Kembalikan proposal untuk agen ini lewat orchestrator_submit. Setiap proposal wajib: kind dari 'kinds', " +
 	"dealer_id = uuid dealer di Input (kecuali dealer baru), signal_ids hanya dari Input, confidence 0–1, why, dan preview (draft WA ≤ 3 kalimat) bila mengirim. " +
 	"Angka (harga, limit, jumlah) ambil dari 'candidates' — jangan menghitung ulang. Placeholder <PIC_n>/<NO_n> biarkan apa adanya."
 

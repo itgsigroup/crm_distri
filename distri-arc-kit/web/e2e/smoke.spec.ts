@@ -70,7 +70,7 @@ test('MCP panel and Koneksi AI come from the server (stage 07)', async ({ page }
   await page.goto('/orchestrator', { waitUntil: 'networkidle' })
   const panel = page.locator('.card').filter({ hasText: 'MCP sebagai orchestrator' })
   await expect(panel.getByText('Terkunci')).toBeVisible()
-  await expect(panel.locator('.tools')).toContainText('orchestrator.submit')
+  await expect(panel.locator('.tools')).toContainText('orchestrator_submit')
   await page.goto('/pengaturan', { waitUntil: 'networkidle' })
   await expect(page.locator('.ep')).toContainText('/mcp')
 })

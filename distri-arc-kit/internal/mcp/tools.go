@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,9 +29,43 @@ type empty struct{}
 type dealerListIn struct {
 	Status  string `json:"status,omitempty" jsonschema:"Key account | Aktif | At risk | Churn | Baru"`
 	Segment string `json:"segment,omitempty" jsonschema:"A | B | C | D | Baru"`
-	Sales   string `json:"sales,omitempty" jsonschema:"nama sales pemilik (Andi, Dewi, Rizky, Fajar)"`
-	Q       string `json:"q,omitempty" jsonschema:"cari nama dealer"`
-	Limit   int    `json:"limit,omitempty"`
+	Sales   string `json:"sales,omitempty" jsonschema:"nama sales pemilik"`
+	Branch  string `json:"branch,omitempty" jsonschema:"cabang, mis. Semarang"`
+	Type    string `json:"type,omitempty" jsonschema:"reseller (dealer) | si (freelance / system integrator)"`
+	Q       string `json:"q,omitempty" jsonschema:"cari nama dealer atau kota"`
+	Sort    string `json:"sort,omitempty" jsonschema:"omzet (default) | skor | jadwal | lewat | nama"`
+	pageIn
+}
+
+// pageIn pages long lists: Claude reads a page, then asks for the next (offset = next_offset).
+type pageIn struct {
+	Limit  int `json:"limit,omitempty" jsonschema:"baris per halaman (default 50, maks 500)"`
+	Offset int `json:"offset,omitempty" jsonschema:"mulai dari baris ke- (0 = awal)"`
+}
+
+// DefaultPage and MaxPage bound list tools (thousands of dealers do not fit one answer).
+const (
+	DefaultPage = 50
+	MaxPage     = 500
+)
+
+// page cuts a list and says how to get the rest.
+func page[T any](items []T, in pageIn) map[string]any {
+	limit := in.Limit
+	if limit <= 0 {
+		limit = DefaultPage
+	}
+	limit = min(limit, MaxPage)
+	from := min(max(in.Offset, 0), len(items))
+	to := min(from+limit, len(items))
+	out := map[string]any{"items": items[from:to], "total": len(items), "offset": from, "limit": limit, "next_offset": nil}
+	if to < len(items) {
+		out["next_offset"] = to
+	}
+	if items == nil {
+		out["items"] = []T{}
+	}
+	return out
 }
 
 type dealerIn struct {
@@ -41,10 +76,12 @@ type dealerIn struct {
 type dueIn struct {
 	Days  int    `json:"days,omitempty" jsonschema:"horizon hari (default 7)"`
 	Sales string `json:"sales,omitempty"`
+	pageIn
 }
 
 type salesIn struct {
 	Sales string `json:"sales,omitempty"`
+	pageIn
 }
 
 type creditIn struct {
@@ -55,6 +92,17 @@ type creditIn struct {
 type stockIn struct {
 	Branch  string `json:"branch,omitempty"`
 	MinDays int    `json:"min_days,omitempty"`
+	pageIn
+}
+
+type monthsIn struct {
+	Months int    `json:"months,omitempty" jsonschema:"berapa bulan ke belakang (default 12, maks 24)"`
+	Branch string `json:"branch,omitempty"`
+}
+
+type topIn struct {
+	Days  int `json:"days,omitempty" jsonschema:"rentang hari (default 30)"`
+	Limit int `json:"limit,omitempty" jsonschema:"jumlah produk (default 20, maks 100)"`
 }
 
 type threadIn struct {
@@ -157,24 +205,105 @@ func (s *Server) dealer(b *views.Board, id, name string) (views.BoardItem, error
 	return views.BoardItem{}, fmt.Errorf("dealer %q tidak ditemukan", strings.TrimSpace(id+" "+name))
 }
 
+func sortDealers(list []views.BoardItem, by string) {
+	due := func(it views.BoardItem) int {
+		if it.Metrics.DueIn == nil {
+			return 1 << 20
+		}
+		return *it.Metrics.DueIn
+	}
+	sort.SliceStable(list, func(i, j int) bool {
+		a, b := list[i], list[j]
+		switch by {
+		case "skor":
+			return a.Metrics.Score > b.Metrics.Score
+		case "jadwal":
+			return due(a) < due(b)
+		case "lewat":
+			return a.Metrics.Cyc > b.Metrics.Cyc
+		case "nama":
+			return a.Name < b.Name
+		}
+		return a.Metrics.OmzetBln > b.Metrics.OmzetBln
+	})
+}
+
 func (s *Server) registerRead() {
+	tool(s, "data.ringkasan", ScopeRead, "Gambaran SEMUA data dalam satu panggilan — mulai analisis dari sini: dealer per status, segmen, jenis, cabang dan sales (jumlah, omzet/bln), KPI, kredit/piutang, stok (nilai, menua > 90 hari, kritis), product mix, 10 dealer terbesar.", func(ctx context.Context, _ *Client, in branchIn) (any, result, error) {
+		b, err := s.views.Board(ctx)
+		if err != nil {
+			return nil, result{}, err
+		}
+		st, _ := s.St.Q.ListStockItems(ctx)
+		return s.summary(b, views.StockItems(st), in.Branch), result{Summary: "ringkasan " + map[bool]string{true: "semua cabang", false: in.Branch}[in.Branch == ""]}, nil
+	})
+	tool(s, "penjualan.bulanan", ScopeRead, "Tren penjualan per bulan (omzet, jumlah order, dealer aktif, margin rata-rata) untuk N bulan terakhir, bisa per cabang.", func(ctx context.Context, _ *Client, in monthsIn) (any, result, error) {
+		b, err := s.views.Board(ctx)
+		if err != nil {
+			return nil, result{}, err
+		}
+		months := in.Months
+		if months <= 0 {
+			months = 12
+		}
+		rows := monthly(b, min(months, 24), in.Branch)
+		return map[string]any{"months": rows, "branch": in.Branch}, result{Summary: fmt.Sprintf("%d bulan", len(rows))}, nil
+	})
+	tool(s, "produk.terlaris", ScopeRead, "Produk terlaris menurut nilai penjualan dalam N hari, dengan kategori dan margin.", func(ctx context.Context, _ *Client, in topIn) (any, result, error) {
+		b, err := s.views.Board(ctx)
+		if err != nil {
+			return nil, result{}, err
+		}
+		days, limit := in.Days, in.Limit
+		if days <= 0 {
+			days = 30
+		}
+		if limit <= 0 {
+			limit = 20
+		}
+		items := b.SalesByProduct(days, min(limit, 100))
+		return map[string]any{"days": days, "items": items}, result{Summary: fmt.Sprintf("%d produk", len(items))}, nil
+	})
+	tool(s, "piutang.ringkas", ScopeRead, "Piutang dan kas: DSO, total piutang, lewat tempo, prediksi kas masuk N hari, dealer dengan piutang terbesar / paling telat (halaman).", func(ctx context.Context, _ *Client, in struct {
+		Days int `json:"days,omitempty" jsonschema:"horizon prediksi kas (default 30)"`
+		pageIn
+	}) (any, result, error) {
+		b, err := s.views.Board(ctx)
+		if err != nil {
+			return nil, result{}, err
+		}
+		days := in.Days
+		if days <= 0 {
+			days = 30
+		}
+		ov, ar, _, _, total := b.Credit(days)
+		out := page(ar, in.pageIn)
+		out["ringkasan"], out["prediksi_kas"] = ov, total
+		return out, result{Summary: fmt.Sprintf("%d dealer berpiutang", len(ar))}, nil
+	})
+
 	tool(s, "dealer.list", ScopeRead, "Daftar dealer dengan siklus order, status, segmen, sisa limit dan omzet/bln.", func(ctx context.Context, _ *Client, in dealerListIn) (any, result, error) {
 		b, err := s.views.Board(ctx)
 		if err != nil {
 			return nil, result{}, err
 		}
-		var out []map[string]any
+		var list []views.BoardItem
+		q := strings.ToLower(strings.TrimSpace(in.Q))
 		for _, it := range bySales(b.Items, in.Sales) {
 			if (in.Status != "" && it.Metrics.Status != in.Status) || (in.Segment != "" && it.Metrics.Segment != in.Segment) ||
-				(in.Q != "" && !strings.Contains(strings.ToLower(it.Name), strings.ToLower(in.Q))) {
+				(in.Branch != "" && !strings.EqualFold(it.Branch, in.Branch)) || (in.Type != "" && it.Type != in.Type) ||
+				(q != "" && !strings.Contains(strings.ToLower(it.Name+" "+it.City), q)) {
 				continue
 			}
-			out = append(out, dealerRow(it))
-			if in.Limit > 0 && len(out) >= in.Limit {
-				break
-			}
+			list = append(list, it)
 		}
-		return map[string]any{"items": out, "count": len(out)}, result{Summary: fmt.Sprintf("%d dealer", len(out))}, nil
+		sortDealers(list, in.Sort)
+		rows := make([]map[string]any, 0, len(list))
+		for _, it := range list {
+			rows = append(rows, dealerRow(it))
+		}
+		out := page(rows, in.pageIn)
+		return out, result{Summary: fmt.Sprintf("%d dealer (total %d)", len(out["items"].([]map[string]any)), len(rows))}, nil
 	})
 	tool(s, "dealer.get", ScopeRead, "Satu dealer lengkap: metrics, 5 komponen skor, PIC, memo, komitmen, sinyal terbaru.", func(ctx context.Context, _ *Client, in dealerIn) (any, result, error) {
 		b, err := s.views.Board(ctx)
@@ -213,24 +342,28 @@ func (s *Server) registerRead() {
 		}
 		st, _ := s.St.Q.ListStockItems(ctx)
 		stock := views.StockItems(st)
-		var out []map[string]any
-		for _, it := range bySales(b.Due(days), in.Sales) {
+		due := bySales(b.Due(days), in.Sales)
+		pg := page(due, in.pageIn)
+		rows := []map[string]any{}
+		for _, it := range pg["items"].([]views.BoardItem) { // recommendations only for the page asked
 			row := dealerRow(it)
 			row["rekomendasi_order"] = metrics.OrderRecommendation(metrics.DealerView{ID: it.ID, Name: it.Name, Metrics: it.Metrics, Composition: it.Composition}, it.Branch, stock, b.Policies)
-			out = append(out, row)
+			rows = append(rows, row)
 		}
-		return map[string]any{"items": out, "count": len(out), "days": days}, result{Summary: fmt.Sprintf("%d dealer", len(out))}, nil
+		pg["items"], pg["days"] = rows, days
+		return pg, result{Summary: fmt.Sprintf("%d dealer (total %d)", len(rows), len(due))}, nil
 	})
 	tool(s, "jadwal.lewat", ScopeRead, "Dealer lewat 1,2× siklus order, dengan akar terduga.", func(ctx context.Context, _ *Client, in salesIn) (any, result, error) {
 		b, err := s.views.Board(ctx)
 		if err != nil {
 			return nil, result{}, err
 		}
-		var out []map[string]any
+		rows := []map[string]any{}
 		for _, it := range bySales(b.Drift(), in.Sales) {
-			out = append(out, dealerRow(it))
+			rows = append(rows, dealerRow(it))
 		}
-		return map[string]any{"items": out, "count": len(out)}, result{Summary: fmt.Sprintf("%d dealer", len(out))}, nil
+		pg := page(rows, in.pageIn)
+		return pg, result{Summary: fmt.Sprintf("%d dealer lewat jadwal", len(rows))}, nil
 	})
 	tool(s, "kredit.check", ScopeRead, "Sisa limit dealer, state, dan simulasi rilis sebesar amount.", func(ctx context.Context, _ *Client, in creditIn) (any, result, error) {
 		b, err := s.views.Board(ctx)
@@ -265,7 +398,7 @@ func (s *Server) registerRead() {
 				out = append(out, x)
 			}
 		}
-		return map[string]any{"items": out}, result{Summary: fmt.Sprintf("%d SKU", len(out))}, nil
+		return page(out, in.pageIn), result{Summary: fmt.Sprintf("%d SKU", len(out))}, nil
 	})
 	tool(s, "chat.thread", ScopeRead, "Pesan WhatsApp dengan dealer (PII dimasking bila mask_pii_in_read).", func(ctx context.Context, _ *Client, in threadIn) (any, result, error) {
 		b, err := s.views.Board(ctx)
@@ -513,7 +646,7 @@ func (s *Server) cycle(ctx context.Context, c *Client, sc domain.Scope) (map[str
 	out := map[string]any{"cycle_id": id, "number": cyc.Number, "status": cyc.Status, "scope": cyc.Scope, "signals": cyc.SignalsCount,
 		"auto": cyc.AutoCount, "decisions": cyc.DecisionCount, "conflicts": cyc.ConflictCount, "note": deref(cyc.Note)}
 	if cyc.Status == "queued" || cyc.Status == "running" {
-		out["hint"] = "siklus masih berjalan — cek orchestrator.status"
+		out["hint"] = "siklus masih berjalan — cek orchestrator_status"
 	}
 	return out, result{Summary: fmt.Sprintf("siklus #%d · %s · %s", deref(cyc.Number), cyc.Scope, cyc.Status), CycleID: &id}, nil
 }
@@ -577,7 +710,7 @@ func (s *Server) registerOrchestrate() {
 		}
 		return s.planChange(ctx, c, in)
 	})
-	tool(s, "orchestrator.input.get", ScopeOrchestrate, "Input agen untuk satu siklus (dimasking) — klien MCP menjadi mesin analisis lalu memanggil orchestrator.submit.", func(ctx context.Context, _ *Client, in inputGetIn) (any, result, error) {
+	tool(s, "orchestrator.input.get", ScopeOrchestrate, "Input agen untuk satu siklus (dimasking) — klien MCP menjadi mesin analisis lalu memanggil orchestrator_submit.", func(ctx context.Context, _ *Client, in inputGetIn) (any, result, error) {
 		id, err := uuid.Parse(in.CycleID)
 		if err != nil {
 			return nil, result{}, fmt.Errorf("cycle_id: %w", err)
@@ -691,4 +824,142 @@ func (s *Server) registerTools() {
 	s.registerRead()
 	s.registerAnalyze()
 	s.registerOrchestrate()
+}
+
+type count struct {
+	Count    int   `json:"count"`
+	OmzetBln int64 `json:"omzet_bln"`
+}
+
+func add(m map[string]*count, k string, omzet int64) {
+	if k == "" {
+		k = "(kosong)"
+	}
+	c := m[k]
+	if c == nil {
+		c = &count{}
+		m[k] = c
+	}
+	c.Count++
+	c.OmzetBln += omzet
+}
+
+// summary is data.ringkasan: the whole book in one answer, aggregated (no dealer lists beyond the top 10).
+func (s *Server) summary(b *views.Board, stock []domain.StockItem, branch string) map[string]any {
+	byStatus, bySeg, byType, byBranch, bySales := map[string]*count{}, map[string]*count{}, map[string]*count{}, map[string]*count{}, map[string]*count{}
+	var items []views.BoardItem
+	var omzet int64
+	mix := make([]int, len(domain.Categories))
+	for _, it := range b.Items {
+		if branch != "" && !strings.EqualFold(it.Branch, branch) {
+			continue
+		}
+		items = append(items, it)
+		m := it.Metrics
+		omzet += m.OmzetBln
+		add(byStatus, m.Status, m.OmzetBln)
+		add(bySeg, m.Segment, m.OmzetBln)
+		add(byType, it.Type, m.OmzetBln)
+		add(byBranch, it.Branch, m.OmzetBln)
+		add(bySales, it.Owner.Name, m.OmzetBln)
+		for i, on := range m.MixCats {
+			if on && i < len(mix) {
+				mix[i]++
+			}
+		}
+	}
+	sort.SliceStable(items, func(i, j int) bool { return items[i].Metrics.OmzetBln > items[j].Metrics.OmzetBln })
+	top := []map[string]any{}
+	for _, it := range items[:min(10, len(items))] {
+		top = append(top, map[string]any{"id": it.ID, "name": it.Name, "branch": it.Branch, "sales": it.Owner.Name, "status": it.Metrics.Status,
+			"segment": it.Metrics.Segment, "omzet_bln": it.Metrics.OmzetBln, "credit": it.Metrics.Credit.State})
+	}
+	type salesRow struct {
+		Name string `json:"name"`
+		count
+	}
+	sales := []salesRow{}
+	for k, v := range bySales {
+		sales = append(sales, salesRow{Name: k, count: *v})
+	}
+	sort.Slice(sales, func(i, j int) bool { return sales[i].OmzetBln > sales[j].OmzetBln })
+	mixOut := map[string]any{}
+	for i, c := range domain.Categories {
+		mixOut[c] = map[string]any{"dealers": mix[i], "pct": pct(mix[i], len(items))}
+	}
+	var stockValue, agingValue int64
+	agingCount := 0
+	for _, x := range stock {
+		if branch != "" && !strings.EqualFold(x.Branch, branch) {
+			continue
+		}
+		stockValue += x.Value
+		if x.AgeDays > b.Policies.Stock.AgingDays {
+			agingValue += x.Value
+			agingCount++
+		}
+	}
+	ov, _, _, _, cash := b.Credit(30)
+	return map[string]any{
+		"tanggal": b.Today.Format("2006-01-02"), "cabang": map[bool]string{true: "semua", false: branch}[branch == ""],
+		"dealer": map[string]any{"total": len(items), "omzet_bln": omzet, "per_status": byStatus, "per_segmen": bySeg, "per_jenis": byType, "per_cabang": byBranch},
+		"sales":  sales[:min(20, len(sales))], "product_mix": mixOut, "dealer_terbesar": top,
+		"kpi": b.KPI(branch, stock), "kredit": ov, "prediksi_kas_30_hari": cash,
+		"stok": map[string]any{"nilai": stockValue, "menua_lebih_90_hari": map[string]any{"sku": agingCount, "nilai": agingValue},
+			"kritis_sku": len(b.StockCritical(stock))},
+		"catatan": "Angka dihitung Distri ARC dari data Accurate (BigQuery). Untuk detail: dealer_list (filter/urut/halaman), dealer_get, jadwal_due, jadwal_lewat, stok_aging, piutang_ringkas, penjualan_bulanan, produk_terlaris.",
+	}
+}
+
+func pct(a, b int) int {
+	if b == 0 {
+		return 0
+	}
+	return int(float64(a) * 100 / float64(b))
+}
+
+type monthRow struct {
+	Bulan     string  `json:"bulan"`
+	Omzet     int64   `json:"omzet"`
+	Order     int     `json:"order"`
+	Dealer    int     `json:"dealer_aktif"`
+	MarginPct float64 `json:"margin_pct"`
+}
+
+// monthly totals confirmed orders per calendar month (newest last).
+func monthly(b *views.Board, months int, branch string) []monthRow {
+	start := time.Date(b.Today.Year(), b.Today.Month(), 1, 0, 0, 0, 0, b.Today.Location()).AddDate(0, -(months - 1), 0)
+	rows := make([]monthRow, months)
+	dealers := make([]map[string]bool, months)
+	margin := make([]float64, months)
+	for i := range rows {
+		rows[i].Bulan = start.AddDate(0, i, 0).Format("2006-01")
+		dealers[i] = map[string]bool{}
+	}
+	for _, it := range b.Items {
+		if branch != "" && !strings.EqualFold(it.Branch, branch) {
+			continue
+		}
+		for _, o := range b.Data.Histories[it.UUID].Orders {
+			if o.State == "cancel" || o.ConfirmedAt == nil || o.ConfirmedAt.Before(start) {
+				continue
+			}
+			t := o.ConfirmedAt.In(b.Today.Location())
+			i := (t.Year()-start.Year())*12 + int(t.Month()) - int(start.Month())
+			if i < 0 || i >= months {
+				continue
+			}
+			rows[i].Omzet += o.Total
+			rows[i].Order++
+			dealers[i][it.ID] = true
+			margin[i] += float64(o.Total) * o.MarginPct
+		}
+	}
+	for i := range rows {
+		rows[i].Dealer = len(dealers[i])
+		if rows[i].Omzet > 0 {
+			rows[i].MarginPct = float64(int(margin[i]/float64(rows[i].Omzet)*10)) / 10
+		}
+	}
+	return rows
 }

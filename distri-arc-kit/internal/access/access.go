@@ -26,7 +26,7 @@ var Screens = []Screen{
 	{"orbit", "Orbit", "Dealer", false}, {"kuad", "Segmen", "Dealer", false}, {"net", "Peta relasi", "Dealer", false}, {"dealer", "Dealer", "Dealer", false},
 	{"stock", "Push stok", "Operasi", false}, {"ar", "Kredit · kas", "Operasi", true},
 	{"users", "Pengguna", "Master data", true}, {"roles", "Peran & akses", "Master data", true}, {"branches", "Cabang", "Master data", true},
-	{"conn", "Pengaturan", "Sistem", true}, {"konsep", "Panduan", "Sistem", false},
+	{"mcp", "MCP Claude", "Sistem", true}, {"conn", "Pengaturan", "Sistem", true}, {"konsep", "Panduan", "Sistem", false},
 }
 
 // Kind is a proposal kind a role may decide.
@@ -116,7 +116,7 @@ func LegacyScreens(base string) []string {
 	case "warehouse":
 		return []string{"today", "chat", "stock", "dealer", "konsep"}
 	}
-	return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "ar", "users", "roles", "branches", "conn", "konsep"}
+	return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "ar", "users", "roles", "branches", "mcp", "conn", "konsep"}
 }
 
 // LegacyKinds is what an account without a role row decides, by its base.
@@ -155,6 +155,7 @@ var guarded = []struct{ prefix, screen string }{
 	{"/api/stock/aging", "stock"}, {"/api/stock/critical", "stock"}, {"/api/stock/sales-by-product", "stock"},
 	{"/api/users", "users"},
 	{"/api/roles", "roles"},
+	{"/api/mcp/", "mcp"},
 }
 
 // ScreenForPath is the page an API path needs, or "" when any signed-in user may call it.

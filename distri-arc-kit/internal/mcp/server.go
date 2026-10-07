@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -51,6 +52,8 @@ type Server struct {
 	Jobs     *river.Client[pgx.Tx]      // nil: cycles run inline (tests, stdio)
 	Fixed    *Client                    // stdio: the client of the --token flag
 	CycleCap time.Duration              // how long orchestrator.* waits for its cycle (default 25 s)
+	// ResourceMetadataURL is sent in the 401 WWW-Authenticate header (OAuth discovery for Claude).
+	ResourceMetadataURL string
 
 	views    *views.Builder
 	verifier *Verifier
@@ -92,15 +95,22 @@ func (s *Server) MCP() *sdk.Server { return s.srv }
 
 // Handler serves Streamable HTTP at /mcp behind bearer authentication.
 func (s *Server) Handler() http.Handler {
-	h := sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return s.srv }, &sdk.StreamableHTTPOptions{Logger: s.Log, SessionTimeout: 30 * time.Minute})
+	h := sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server { return s.srv }, &sdk.StreamableHTTPOptions{Logger: s.Log, SessionTimeout: 30 * time.Minute, DisableLocalhostProtection: true})
 	verify := func(ctx context.Context, token string, _ *http.Request) (*auth.TokenInfo, error) {
 		c, err := s.verifier.Verify(ctx, token)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", auth.ErrInvalidToken, err)
 		}
-		return &auth.TokenInfo{Scopes: c.Scopes, UserID: c.ID.String(), Expiration: time.Now().Add(time.Hour), Extra: map[string]any{"client": c}}, nil
+		exp := c.Expires
+		if exp.IsZero() {
+			exp = time.Now().Add(time.Hour) // manual tokens do not expire; the SDK wants an expiry per request
+		}
+		return &auth.TokenInfo{Scopes: c.Scopes, UserID: c.ID.String(), Expiration: exp, Extra: map[string]any{"client": c}}, nil
 	}
-	return auth.RequireBearerToken(verify, nil)(h)
+	// a 401 tells the client where to start OAuth (RFC 9728); behind nginx the API listens on loopback while the
+	// Host header is the public name, so the SDK's DNS-rebinding guard (meant for local servers) stays off —
+	// every request is authenticated by token anyway.
+	return auth.RequireBearerToken(verify, &auth.RequireBearerTokenOptions{ResourceMetadataURL: s.ResourceMetadataURL})(h)
 }
 
 // client resolves the caller of a tool call.
@@ -142,6 +152,8 @@ type handler[In any] func(ctx context.Context, c *Client, in In) (any, result, e
 
 // tool registers a tool with scope check, rate limit and recording.
 func tool[In any](s *Server, name, scope, desc string, h handler[In]) {
+	// Claude accepts tool names of letters, digits, _ and - only: dealer.list is served as dealer_list
+	name = strings.ReplaceAll(name, ".", "_")
 	s.tools = append(s.tools, ToolInfo{Name: name, Scope: scope, Description: desc})
 	sdk.AddTool(s.srv, &sdk.Tool{Name: name, Description: desc}, func(ctx context.Context, req *sdk.CallToolRequest, in In) (*sdk.CallToolResult, any, error) {
 		t0 := time.Now()

@@ -24,12 +24,31 @@ func (s *Server) mcpRoutes(r chi.Router) {
 	r.Post("/mcp/clients", s.createMCPClient)
 	r.Delete("/mcp/clients/{id}", s.revokeMCPClient)
 	r.Get("/mcp/calls", s.mcpCalls)
+	r.Get("/oauth/requests/{id}", s.oauthRequest)
+	r.Post("/oauth/requests/{id}/approve", s.oauthDecide(true))
+	r.Post("/oauth/requests/{id}/deny", s.oauthDecide(false))
 	r.Get("/policies/mcp", s.getMCPPolicy)
 	r.Put("/policies/mcp", s.putMCPPolicy)
 	r.Get("/policies/llm", s.getLLMPolicy)
 	r.Put("/policies/llm", s.putLLMPolicy)
 	r.Put("/policies/{key}", s.putPolicy)
 	r.Get("/policies/{key}/history", s.policyHistory)
+}
+
+// publicBase is the public URL of the app (PUBLIC_URL, else the request's scheme and host).
+func (s *Server) publicBase(r *http.Request) string {
+	if b := strings.TrimRight(s.cfg.PublicURL, "/"); b != "" {
+		return b
+	}
+	scheme := "http"
+	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	host := r.Header.Get("X-Forwarded-Host")
+	if host == "" {
+		host = r.Host
+	}
+	return scheme + "://" + host
 }
 
 func ceo(r *http.Request) (User, bool) {
@@ -39,18 +58,7 @@ func ceo(r *http.Request) (User, bool) {
 
 // mcpInfo: endpoint, tools and the LLM path (Pengaturan → Koneksi AI).
 func (s *Server) mcpInfo(w http.ResponseWriter, r *http.Request) {
-	endpoint := strings.TrimRight(s.cfg.PublicURL, "/")
-	if endpoint == "" {
-		scheme := "http"
-		if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
-			scheme = "https"
-		}
-		host := r.Header.Get("X-Forwarded-Host")
-		if host == "" {
-			host = r.Host
-		}
-		endpoint = scheme + "://" + host
-	}
+	endpoint := s.publicBase(r)
 	var tools []mcp.ToolInfo
 	if s.mcp != nil {
 		tools = s.mcp.Tools()
@@ -69,6 +77,9 @@ type mcpClientView struct {
 	LastSeenAt any       `json:"last_seen_at"`
 	CreatedAt  any       `json:"created_at"`
 	CallsToday int64     `json:"calls_today"`
+	Kind       string    `json:"kind"` // bearer (manual token) | oauth (Claude connector)
+	User       string    `json:"user,omitempty"`
+	RefreshAt  any       `json:"refresh_expires_at,omitempty"`
 }
 
 func (s *Server) mcpClients(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +90,8 @@ func (s *Server) mcpClients(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]mcpClientView, 0, len(rows))
 	for _, c := range rows {
-		out = append(out, mcpClientView{ID: c.ID, Name: deref(c.Name), Scopes: c.Scopes, Prefix: deref(c.TokenPrefix), Active: c.Active, LastSeenAt: c.LastSeenAt, CreatedAt: c.CreatedAt, CallsToday: c.CallsToday})
+		out = append(out, mcpClientView{ID: c.ID, Name: deref(c.Name), Scopes: c.Scopes, Prefix: deref(c.TokenPrefix), Active: c.Active, LastSeenAt: c.LastSeenAt, CreatedAt: c.CreatedAt, CallsToday: c.CallsToday,
+			Kind: deref(c.Kind), User: deref(c.UserName), RefreshAt: c.RefreshExpiresAt})
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": out})
 }

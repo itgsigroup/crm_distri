@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -120,9 +121,39 @@ func TestToolsAndScopes(t *testing.T) {
 		t.Fatalf("tools: %d %v", len(tools.Tools), err)
 	}
 
-	out, _, ok := call(t, full, "jadwal.due", map[string]any{"sales": "Dewi"})
-	if !ok || out["count"].(float64) < 2 {
+	out, _, ok := call(t, full, "jadwal_due", map[string]any{"sales": "Dewi"})
+	if !ok || out["total"].(float64) < 2 {
 		t.Fatalf("jadwal.due Dewi: %v", out)
+	}
+	// Claude accepts tool names of letters, digits, _ and - only
+	for _, tl := range tools.Tools {
+		if !regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`).MatchString(tl.Name) {
+			t.Fatalf("tool name %q not accepted by Claude", tl.Name)
+		}
+	}
+	// lists are paged: a page, the total, where the next page starts
+	pg, _, ok := call(t, full, "dealer_list", map[string]any{"limit": 5, "sort": "omzet"})
+	if !ok || len(pg["items"].([]any)) != 5 || pg["total"].(float64) != 18 || pg["next_offset"].(float64) != 5 {
+		t.Fatalf("dealer_list page: total %v next %v", pg["total"], pg["next_offset"])
+	}
+	first := pg["items"].([]any)[0].(map[string]any)["omzet_bln"].(float64)
+	second := pg["items"].([]any)[1].(map[string]any)["omzet_bln"].(float64)
+	if first < second {
+		t.Fatal("dealer_list not sorted by omzet")
+	}
+	// the whole book in one call, and the analysis tools behind it
+	sum, _, ok := call(t, full, "data_ringkasan", map[string]any{})
+	if !ok || sum["dealer"].(map[string]any)["total"].(float64) != 18 || len(sum["dealer_terbesar"].([]any)) != 10 || sum["kpi"] == nil || sum["stok"] == nil {
+		t.Fatalf("data_ringkasan: %v", sum)
+	}
+	if m, _, ok := call(t, full, "penjualan_bulanan", map[string]any{"months": 6}); !ok || len(m["months"].([]any)) != 6 {
+		t.Fatalf("penjualan_bulanan: %v", m)
+	}
+	if p, _, ok := call(t, full, "produk_terlaris", map[string]any{"days": 90, "limit": 5}); !ok || len(p["items"].([]any)) == 0 {
+		t.Fatalf("produk_terlaris: %v", p)
+	}
+	if a, _, ok := call(t, full, "piutang_ringkas", map[string]any{"limit": 3}); !ok || a["ringkasan"] == nil {
+		t.Fatalf("piutang_ringkas: %v", a)
 	}
 	for _, it := range out["items"].([]any) {
 		if it.(map[string]any)["sales"] != "Dewi" {
@@ -130,7 +161,7 @@ func TestToolsAndScopes(t *testing.T) {
 		}
 	}
 
-	out, txt, ok := call(t, full, "orchestrator.reanalyze", map[string]any{"scope": "dealer:mitra"})
+	out, txt, ok := call(t, full, "orchestrator_reanalyze", map[string]any{"scope": "dealer:mitra"})
 	if !ok || out["status"] != "done" {
 		t.Fatalf("reanalyze: %v %s", out, txt)
 	}
@@ -146,21 +177,21 @@ func TestToolsAndScopes(t *testing.T) {
 	if proposed == 0 {
 		t.Fatal("no proposed proposal for Mitra")
 	}
-	if lastCall(t, e.st, "orchestrator.reanalyze") != "ok" {
+	if lastCall(t, e.st, "orchestrator_reanalyze") != "ok" {
 		t.Fatal("reanalyze not recorded")
 	}
 
 	read := e.connect(t, e.token(t, "ChatGPT tim sales", "read"))
-	if _, txt, ok := call(t, read, "orchestrator.run", map[string]any{}); ok || !strings.Contains(txt, "forbidden") {
+	if _, txt, ok := call(t, read, "orchestrator_run", map[string]any{}); ok || !strings.Contains(txt, "forbidden") {
 		t.Fatalf("read token ran the orchestrator: %s", txt)
 	}
-	if lastCall(t, e.st, "orchestrator.run") != "forbidden" {
+	if lastCall(t, e.st, "orchestrator_run") != "forbidden" {
 		t.Fatal("forbidden call not recorded")
 	}
-	if _, txt, ok := call(t, full, "actions.decide", map[string]any{"proposal_id": uuid.NewString(), "decision": "approve"}); ok || !strings.Contains(txt, "human_only") {
+	if _, txt, ok := call(t, full, "actions_decide", map[string]any{"proposal_id": uuid.NewString(), "decision": "approve"}); ok || !strings.Contains(txt, "human_only") {
 		t.Fatalf("decide: %s", txt)
 	}
-	if lastCall(t, e.st, "actions.decide") != "human_only" {
+	if lastCall(t, e.st, "actions_decide") != "human_only" {
 		t.Fatal("human_only not recorded")
 	}
 	var audits int
@@ -190,7 +221,7 @@ func TestBearerRequired(t *testing.T) {
 func TestChatThreadMasked(t *testing.T) {
 	e := setup(t)
 	cs := e.connect(t, e.token(t, "Claude", "read"))
-	out, txt, ok := call(t, cs, "chat.thread", map[string]any{"dealer_id": "sinar"})
+	out, txt, ok := call(t, cs, "chat_thread", map[string]any{"dealer_id": "sinar"})
 	if !ok || out["masked"] != true || len(out["messages"].([]any)) == 0 {
 		t.Fatalf("chat.thread: %v %s", out, txt)
 	}
@@ -206,11 +237,11 @@ func TestRateLimit(t *testing.T) {
 	cs := e.connect(t, e.token(t, "Bot", "read"))
 	limited := false
 	for i := 0; i < mcp.CallsPerMinute+1; i++ {
-		if _, txt, ok := call(t, cs, "cycles.recent", map[string]any{"limit": 1}); !ok {
+		if _, txt, ok := call(t, cs, "cycles_recent", map[string]any{"limit": 1}); !ok {
 			limited = strings.Contains(txt, "rate_limited")
 		}
 	}
-	if !limited || lastCall(t, e.st, "cycles.recent") != "rate_limited" {
+	if !limited || lastCall(t, e.st, "cycles_recent") != "rate_limited" {
 		t.Fatal("rate limit not applied")
 	}
 }
@@ -225,7 +256,7 @@ func TestSubmitValidatesProvenance(t *testing.T) {
 	}
 	cs := e.connect(t, e.token(t, "Model eksternal", "orchestrate"))
 	cid := rep.Cycle.ID.String()
-	in, txt, ok := call(t, cs, "orchestrator.input.get", map[string]any{"cycle_id": cid, "agent": "AI Kredit"})
+	in, txt, ok := call(t, cs, "orchestrator_input_get", map[string]any{"cycle_id": cid, "agent": "AI Kredit"})
 	if !ok || len(in["candidates"].([]any)) == 0 {
 		t.Fatalf("input.get: %v %s", in, txt)
 	}
@@ -239,7 +270,7 @@ func TestSubmitValidatesProvenance(t *testing.T) {
 	}
 	bad["signal_ids"] = []string{uuid.NewString()}
 	bad["dedupe_key"] = "mcp:test:bad"
-	if _, txt, ok := call(t, cs, "orchestrator.submit", map[string]any{"cycle_id": cid, "agent": "AI Kredit", "proposals": []any{bad}}); ok || !strings.Contains(txt, "tidak ada di Input") {
+	if _, txt, ok := call(t, cs, "orchestrator_submit", map[string]any{"cycle_id": cid, "agent": "AI Kredit", "proposals": []any{bad}}); ok || !strings.Contains(txt, "tidak ada di Input") {
 		t.Fatalf("foreign signal accepted: %s", txt)
 	}
 	good := map[string]any{}
@@ -248,7 +279,7 @@ func TestSubmitValidatesProvenance(t *testing.T) {
 	}
 	good["dedupe_key"] = "mcp:test:good"
 	good["why"] = "Dari model eksternal: " + cand["why"].(string)
-	out, txt, ok := call(t, cs, "orchestrator.submit", map[string]any{"cycle_id": cid, "agent": "AI Kredit", "proposals": []any{good}})
+	out, txt, ok := call(t, cs, "orchestrator_submit", map[string]any{"cycle_id": cid, "agent": "AI Kredit", "proposals": []any{good}})
 	if !ok || out["accepted"].(float64) != 1 || out["mode"] != "stored" {
 		t.Fatalf("submit: %v %s", out, txt)
 	}
@@ -286,7 +317,7 @@ func TestRoutingMCP(t *testing.T) {
 	if cid == "" {
 		t.Fatal("Analisis did not publish an Input")
 	}
-	in, txt, ok := call(t, cs, "orchestrator.input.get", map[string]any{"cycle_id": cid, "agent": "AI Kredit"})
+	in, txt, ok := call(t, cs, "orchestrator_input_get", map[string]any{"cycle_id": cid, "agent": "AI Kredit"})
 	if !ok {
 		t.Fatal(txt)
 	}
@@ -297,7 +328,7 @@ func TestRoutingMCP(t *testing.T) {
 		p["dedupe_key"] = "mcp:kredit:" + string(rune('a'+i))
 		props = append(props, p)
 	}
-	out, txt, ok := call(t, cs, "orchestrator.submit", map[string]any{"cycle_id": cid, "agent": "AI Kredit", "proposals": props})
+	out, txt, ok := call(t, cs, "orchestrator_submit", map[string]any{"cycle_id": cid, "agent": "AI Kredit", "proposals": props})
 	if !ok || out["mode"] != "waiting" {
 		t.Fatalf("submit: %v %s", out, txt)
 	}

@@ -418,7 +418,7 @@ export interface AutonomyPolicy { matrix: Record<string, AutonomyRow>; guard: { 
 // ---------- MCP (stage 07) ----------
 export interface MCPTool { name: string; scope: string; description: string }
 export interface MCPInfo { endpoint: string; enabled: boolean; tools: MCPTool[]; llm: { mode: 'api' | 'mcp' | 'both'; provider: string; model: string; api_key: boolean; fallback: string } }
-export interface MCPClient { id: string; name: string; scopes: string[]; token_prefix: string; active: boolean; last_seen_at: string | null; created_at: string; calls_today: number }
+export interface MCPClient { id: string; name: string; scopes: string[]; token_prefix: string; active: boolean; last_seen_at: string | null; created_at: string; calls_today: number; kind: 'bearer' | 'oauth'; user?: string; refresh_expires_at?: string | null }
 export interface MCPCall { id: string; client_id: string | null; client_name: string | null; tool: string; args: Record<string, unknown> | null; result_summary: string | null; status: string; duration_ms: number | null; created_at: string }
 export interface MCPPolicy { allow_reanalyze: boolean; allow_plan_update_proposal: boolean; allow_send: false; mask_pii_in_read: boolean; max_cycles_per_hour: number }
 

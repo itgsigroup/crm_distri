@@ -459,16 +459,52 @@ type McpCall struct {
 }
 
 type McpClient struct {
-	ID          uuid.UUID  `json:"id"`
-	Name        *string    `json:"name"`
-	Kind        *string    `json:"kind"`
-	TokenHash   *string    `json:"token_hash"`
-	Scopes      []string   `json:"scopes"`
-	OwnerID     *uuid.UUID `json:"owner_id"`
-	LastSeenAt  *time.Time `json:"last_seen_at"`
-	Active      bool       `json:"active"`
-	CreatedAt   time.Time  `json:"created_at"`
-	TokenPrefix *string    `json:"token_prefix"`
+	ID               uuid.UUID  `json:"id"`
+	Name             *string    `json:"name"`
+	Kind             *string    `json:"kind"`
+	TokenHash        *string    `json:"token_hash"`
+	Scopes           []string   `json:"scopes"`
+	OwnerID          *uuid.UUID `json:"owner_id"`
+	LastSeenAt       *time.Time `json:"last_seen_at"`
+	Active           bool       `json:"active"`
+	CreatedAt        time.Time  `json:"created_at"`
+	TokenPrefix      *string    `json:"token_prefix"`
+	UserID           *uuid.UUID `json:"user_id"`
+	OauthClientID    *string    `json:"oauth_client_id"`
+	ExpiresAt        *time.Time `json:"expires_at"`
+	RefreshHash      *string    `json:"refresh_hash"`
+	RefreshExpiresAt *time.Time `json:"refresh_expires_at"`
+}
+
+type OauthClient struct {
+	ClientID     string     `json:"client_id"`
+	ClientName   string     `json:"client_name"`
+	RedirectUris []string   `json:"redirect_uris"`
+	CreatedAt    time.Time  `json:"created_at"`
+	LastUsedAt   *time.Time `json:"last_used_at"`
+}
+
+type OauthCode struct {
+	CodeHash      string     `json:"code_hash"`
+	ClientID      string     `json:"client_id"`
+	UserID        uuid.UUID  `json:"user_id"`
+	RedirectUri   string     `json:"redirect_uri"`
+	CodeChallenge string     `json:"code_challenge"`
+	Scopes        []string   `json:"scopes"`
+	ExpiresAt     time.Time  `json:"expires_at"`
+	UsedAt        *time.Time `json:"used_at"`
+}
+
+type OauthRequest struct {
+	ID            string    `json:"id"`
+	ClientID      string    `json:"client_id"`
+	RedirectUri   string    `json:"redirect_uri"`
+	State         string    `json:"state"`
+	CodeChallenge string    `json:"code_challenge"`
+	Scopes        []string  `json:"scopes"`
+	Resource      string    `json:"resource"`
+	ExpiresAt     time.Time `json:"expires_at"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type OdooSyncState struct {

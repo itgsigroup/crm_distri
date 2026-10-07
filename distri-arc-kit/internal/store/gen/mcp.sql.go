@@ -13,6 +13,26 @@ import (
 	"github.com/google/uuid"
 )
 
+const countOAuthClientsSince = `-- name: CountOAuthClientsSince :one
+select count(*)::bigint from oauth_clients where created_at >= $1
+`
+
+func (q *Queries) CountOAuthClientsSince(ctx context.Context, createdAt time.Time) (int64, error) {
+	row := q.db.QueryRow(ctx, countOAuthClientsSince, createdAt)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const deleteOAuthRequest = `-- name: DeleteOAuthRequest :exec
+delete from oauth_requests where id = $1
+`
+
+func (q *Queries) DeleteOAuthRequest(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteOAuthRequest, id)
+	return err
+}
+
 const getCycleInput = `-- name: GetCycleInput :one
 select cycle_id, agent, input, signal_ids, mapping, submitted, submitted_by, submitted_at, created_at from cycle_inputs where cycle_id = $1 and agent = $2
 `
@@ -40,7 +60,7 @@ func (q *Queries) GetCycleInput(ctx context.Context, arg GetCycleInputParams) (C
 }
 
 const getMCPClient = `-- name: GetMCPClient :one
-select id, name, kind, token_hash, scopes, owner_id, last_seen_at, active, created_at, token_prefix from mcp_clients where id = $1
+select id, name, kind, token_hash, scopes, owner_id, last_seen_at, active, created_at, token_prefix, user_id, oauth_client_id, expires_at, refresh_hash, refresh_expires_at from mcp_clients where id = $1
 `
 
 func (q *Queries) GetMCPClient(ctx context.Context, id uuid.UUID) (McpClient, error) {
@@ -57,6 +77,90 @@ func (q *Queries) GetMCPClient(ctx context.Context, id uuid.UUID) (McpClient, er
 		&i.Active,
 		&i.CreatedAt,
 		&i.TokenPrefix,
+		&i.UserID,
+		&i.OauthClientID,
+		&i.ExpiresAt,
+		&i.RefreshHash,
+		&i.RefreshExpiresAt,
+	)
+	return i, err
+}
+
+const getMCPClientByRefresh = `-- name: GetMCPClientByRefresh :one
+select id, name, kind, token_hash, scopes, owner_id, last_seen_at, active, created_at, token_prefix, user_id, oauth_client_id, expires_at, refresh_hash, refresh_expires_at from mcp_clients where refresh_hash = $1 and active and kind = 'oauth' and refresh_expires_at > now()
+`
+
+func (q *Queries) GetMCPClientByRefresh(ctx context.Context, refreshHash *string) (McpClient, error) {
+	row := q.db.QueryRow(ctx, getMCPClientByRefresh, refreshHash)
+	var i McpClient
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Kind,
+		&i.TokenHash,
+		&i.Scopes,
+		&i.OwnerID,
+		&i.LastSeenAt,
+		&i.Active,
+		&i.CreatedAt,
+		&i.TokenPrefix,
+		&i.UserID,
+		&i.OauthClientID,
+		&i.ExpiresAt,
+		&i.RefreshHash,
+		&i.RefreshExpiresAt,
+	)
+	return i, err
+}
+
+const getOAuthClient = `-- name: GetOAuthClient :one
+select client_id, client_name, redirect_uris, created_at, last_used_at from oauth_clients where client_id = $1
+`
+
+func (q *Queries) GetOAuthClient(ctx context.Context, clientID string) (OauthClient, error) {
+	row := q.db.QueryRow(ctx, getOAuthClient, clientID)
+	var i OauthClient
+	err := row.Scan(
+		&i.ClientID,
+		&i.ClientName,
+		&i.RedirectUris,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+	)
+	return i, err
+}
+
+const getOAuthRequest = `-- name: GetOAuthRequest :one
+select r.id, r.client_id, r.redirect_uri, r.state, r.code_challenge, r.scopes, r.resource, r.expires_at, r.created_at, c.client_name from oauth_requests r join oauth_clients c using (client_id) where r.id = $1 and r.expires_at > now()
+`
+
+type GetOAuthRequestRow struct {
+	ID            string    `json:"id"`
+	ClientID      string    `json:"client_id"`
+	RedirectUri   string    `json:"redirect_uri"`
+	State         string    `json:"state"`
+	CodeChallenge string    `json:"code_challenge"`
+	Scopes        []string  `json:"scopes"`
+	Resource      string    `json:"resource"`
+	ExpiresAt     time.Time `json:"expires_at"`
+	CreatedAt     time.Time `json:"created_at"`
+	ClientName    string    `json:"client_name"`
+}
+
+func (q *Queries) GetOAuthRequest(ctx context.Context, id string) (GetOAuthRequestRow, error) {
+	row := q.db.QueryRow(ctx, getOAuthRequest, id)
+	var i GetOAuthRequestRow
+	err := row.Scan(
+		&i.ID,
+		&i.ClientID,
+		&i.RedirectUri,
+		&i.State,
+		&i.CodeChallenge,
+		&i.Scopes,
+		&i.Resource,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.ClientName,
 	)
 	return i, err
 }
@@ -91,7 +195,7 @@ func (q *Queries) InsertMCPCall(ctx context.Context, arg InsertMCPCallParams) er
 }
 
 const insertMCPClient = `-- name: InsertMCPClient :one
-insert into mcp_clients (id, name, kind, token_hash, scopes, owner_id, token_prefix) values ($1, $2, $3, $4, $5, $6, $7) returning id, name, kind, token_hash, scopes, owner_id, last_seen_at, active, created_at, token_prefix
+insert into mcp_clients (id, name, kind, token_hash, scopes, owner_id, token_prefix) values ($1, $2, $3, $4, $5, $6, $7) returning id, name, kind, token_hash, scopes, owner_id, last_seen_at, active, created_at, token_prefix, user_id, oauth_client_id, expires_at, refresh_hash, refresh_expires_at
 `
 
 type InsertMCPClientParams struct {
@@ -126,8 +230,148 @@ func (q *Queries) InsertMCPClient(ctx context.Context, arg InsertMCPClientParams
 		&i.Active,
 		&i.CreatedAt,
 		&i.TokenPrefix,
+		&i.UserID,
+		&i.OauthClientID,
+		&i.ExpiresAt,
+		&i.RefreshHash,
+		&i.RefreshExpiresAt,
 	)
 	return i, err
+}
+
+const insertOAuthClient = `-- name: InsertOAuthClient :one
+insert into oauth_clients (client_id, client_name, redirect_uris) values ($1, $2, $3) returning client_id, client_name, redirect_uris, created_at, last_used_at
+`
+
+type InsertOAuthClientParams struct {
+	ClientID     string   `json:"client_id"`
+	ClientName   string   `json:"client_name"`
+	RedirectUris []string `json:"redirect_uris"`
+}
+
+func (q *Queries) InsertOAuthClient(ctx context.Context, arg InsertOAuthClientParams) (OauthClient, error) {
+	row := q.db.QueryRow(ctx, insertOAuthClient, arg.ClientID, arg.ClientName, arg.RedirectUris)
+	var i OauthClient
+	err := row.Scan(
+		&i.ClientID,
+		&i.ClientName,
+		&i.RedirectUris,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+	)
+	return i, err
+}
+
+const insertOAuthCode = `-- name: InsertOAuthCode :exec
+insert into oauth_codes (code_hash, client_id, user_id, redirect_uri, code_challenge, scopes, expires_at)
+values ($1, $2, $3, $4, $5, $6, $7)
+`
+
+type InsertOAuthCodeParams struct {
+	CodeHash      string    `json:"code_hash"`
+	ClientID      string    `json:"client_id"`
+	UserID        uuid.UUID `json:"user_id"`
+	RedirectUri   string    `json:"redirect_uri"`
+	CodeChallenge string    `json:"code_challenge"`
+	Scopes        []string  `json:"scopes"`
+	ExpiresAt     time.Time `json:"expires_at"`
+}
+
+func (q *Queries) InsertOAuthCode(ctx context.Context, arg InsertOAuthCodeParams) error {
+	_, err := q.db.Exec(ctx, insertOAuthCode,
+		arg.CodeHash,
+		arg.ClientID,
+		arg.UserID,
+		arg.RedirectUri,
+		arg.CodeChallenge,
+		arg.Scopes,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const insertOAuthConnection = `-- name: InsertOAuthConnection :one
+insert into mcp_clients (id, name, kind, token_hash, scopes, owner_id, token_prefix, user_id, oauth_client_id, expires_at, refresh_hash, refresh_expires_at)
+values ($1, $2, 'oauth', $3, $4, $5, $6, $7, $8, $9, $10, $11) returning id, name, kind, token_hash, scopes, owner_id, last_seen_at, active, created_at, token_prefix, user_id, oauth_client_id, expires_at, refresh_hash, refresh_expires_at
+`
+
+type InsertOAuthConnectionParams struct {
+	ID               uuid.UUID  `json:"id"`
+	Name             *string    `json:"name"`
+	TokenHash        *string    `json:"token_hash"`
+	Scopes           []string   `json:"scopes"`
+	OwnerID          *uuid.UUID `json:"owner_id"`
+	TokenPrefix      *string    `json:"token_prefix"`
+	UserID           *uuid.UUID `json:"user_id"`
+	OauthClientID    *string    `json:"oauth_client_id"`
+	ExpiresAt        *time.Time `json:"expires_at"`
+	RefreshHash      *string    `json:"refresh_hash"`
+	RefreshExpiresAt *time.Time `json:"refresh_expires_at"`
+}
+
+func (q *Queries) InsertOAuthConnection(ctx context.Context, arg InsertOAuthConnectionParams) (McpClient, error) {
+	row := q.db.QueryRow(ctx, insertOAuthConnection,
+		arg.ID,
+		arg.Name,
+		arg.TokenHash,
+		arg.Scopes,
+		arg.OwnerID,
+		arg.TokenPrefix,
+		arg.UserID,
+		arg.OauthClientID,
+		arg.ExpiresAt,
+		arg.RefreshHash,
+		arg.RefreshExpiresAt,
+	)
+	var i McpClient
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Kind,
+		&i.TokenHash,
+		&i.Scopes,
+		&i.OwnerID,
+		&i.LastSeenAt,
+		&i.Active,
+		&i.CreatedAt,
+		&i.TokenPrefix,
+		&i.UserID,
+		&i.OauthClientID,
+		&i.ExpiresAt,
+		&i.RefreshHash,
+		&i.RefreshExpiresAt,
+	)
+	return i, err
+}
+
+const insertOAuthRequest = `-- name: InsertOAuthRequest :exec
+insert into oauth_requests (id, client_id, redirect_uri, state, code_challenge, scopes, resource, expires_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8)
+`
+
+type InsertOAuthRequestParams struct {
+	ID            string    `json:"id"`
+	ClientID      string    `json:"client_id"`
+	RedirectUri   string    `json:"redirect_uri"`
+	State         string    `json:"state"`
+	CodeChallenge string    `json:"code_challenge"`
+	Scopes        []string  `json:"scopes"`
+	Resource      string    `json:"resource"`
+	ExpiresAt     time.Time `json:"expires_at"`
+}
+
+func (q *Queries) InsertOAuthRequest(ctx context.Context, arg InsertOAuthRequestParams) error {
+	_, err := q.db.Exec(ctx, insertOAuthRequest,
+		arg.ID,
+		arg.ClientID,
+		arg.RedirectUri,
+		arg.State,
+		arg.CodeChallenge,
+		arg.Scopes,
+		arg.Resource,
+		arg.ExpiresAt,
+	)
+	return err
 }
 
 const listCycleInputs = `-- name: ListCycleInputs :many
@@ -213,22 +457,30 @@ func (q *Queries) ListMCPCalls(ctx context.Context, limit int32) ([]ListMCPCalls
 }
 
 const listMCPClients = `-- name: ListMCPClients :many
-select c.id, c.name, c.kind, c.token_hash, c.scopes, c.owner_id, c.last_seen_at, c.active, c.created_at, c.token_prefix, (select count(*) from mcp_calls m where m.client_id = c.id and m.created_at >= $1::timestamptz)::bigint as calls_today
-from mcp_clients c order by c.created_at
+select c.id, c.name, c.kind, c.token_hash, c.scopes, c.owner_id, c.last_seen_at, c.active, c.created_at, c.token_prefix, c.user_id, c.oauth_client_id, c.expires_at, c.refresh_hash, c.refresh_expires_at, (select count(*) from mcp_calls m where m.client_id = c.id and m.created_at >= $1::timestamptz)::bigint as calls_today,
+  u.name as user_name, u.email as user_email
+from mcp_clients c left join users u on u.id = c.user_id order by c.created_at
 `
 
 type ListMCPClientsRow struct {
-	ID          uuid.UUID  `json:"id"`
-	Name        *string    `json:"name"`
-	Kind        *string    `json:"kind"`
-	TokenHash   *string    `json:"token_hash"`
-	Scopes      []string   `json:"scopes"`
-	OwnerID     *uuid.UUID `json:"owner_id"`
-	LastSeenAt  *time.Time `json:"last_seen_at"`
-	Active      bool       `json:"active"`
-	CreatedAt   time.Time  `json:"created_at"`
-	TokenPrefix *string    `json:"token_prefix"`
-	CallsToday  int64      `json:"calls_today"`
+	ID               uuid.UUID  `json:"id"`
+	Name             *string    `json:"name"`
+	Kind             *string    `json:"kind"`
+	TokenHash        *string    `json:"token_hash"`
+	Scopes           []string   `json:"scopes"`
+	OwnerID          *uuid.UUID `json:"owner_id"`
+	LastSeenAt       *time.Time `json:"last_seen_at"`
+	Active           bool       `json:"active"`
+	CreatedAt        time.Time  `json:"created_at"`
+	TokenPrefix      *string    `json:"token_prefix"`
+	UserID           *uuid.UUID `json:"user_id"`
+	OauthClientID    *string    `json:"oauth_client_id"`
+	ExpiresAt        *time.Time `json:"expires_at"`
+	RefreshHash      *string    `json:"refresh_hash"`
+	RefreshExpiresAt *time.Time `json:"refresh_expires_at"`
+	CallsToday       int64      `json:"calls_today"`
+	UserName         *string    `json:"user_name"`
+	UserEmail        *string    `json:"user_email"`
 }
 
 func (q *Queries) ListMCPClients(ctx context.Context, since time.Time) ([]ListMCPClientsRow, error) {
@@ -251,7 +503,14 @@ func (q *Queries) ListMCPClients(ctx context.Context, since time.Time) ([]ListMC
 			&i.Active,
 			&i.CreatedAt,
 			&i.TokenPrefix,
+			&i.UserID,
+			&i.OauthClientID,
+			&i.ExpiresAt,
+			&i.RefreshHash,
+			&i.RefreshExpiresAt,
 			&i.CallsToday,
+			&i.UserName,
+			&i.UserEmail,
 		); err != nil {
 			return nil, err
 		}
@@ -280,12 +539,49 @@ func (q *Queries) MCPCyclesSince(ctx context.Context, arg MCPCyclesSinceParams) 
 	return column_1, err
 }
 
+const purgeOAuth = `-- name: PurgeOAuth :exec
+with a as (delete from oauth_requests where expires_at < now() returning 1)
+delete from oauth_codes where expires_at < now() - interval '1 day'
+`
+
+// Expired requests and codes go (called on every authorize).
+func (q *Queries) PurgeOAuth(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, purgeOAuth)
+	return err
+}
+
 const revokeMCPClient = `-- name: RevokeMCPClient :exec
 update mcp_clients set active = false where id = $1
 `
 
 func (q *Queries) RevokeMCPClient(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, revokeMCPClient, id)
+	return err
+}
+
+const rotateMCPToken = `-- name: RotateMCPToken :exec
+update mcp_clients set token_hash = $2, token_prefix = $3, expires_at = $4, refresh_hash = $5, refresh_expires_at = $6, last_seen_at = now()
+where id = $1
+`
+
+type RotateMCPTokenParams struct {
+	ID               uuid.UUID  `json:"id"`
+	TokenHash        *string    `json:"token_hash"`
+	TokenPrefix      *string    `json:"token_prefix"`
+	ExpiresAt        *time.Time `json:"expires_at"`
+	RefreshHash      *string    `json:"refresh_hash"`
+	RefreshExpiresAt *time.Time `json:"refresh_expires_at"`
+}
+
+func (q *Queries) RotateMCPToken(ctx context.Context, arg RotateMCPTokenParams) error {
+	_, err := q.db.Exec(ctx, rotateMCPToken,
+		arg.ID,
+		arg.TokenHash,
+		arg.TokenPrefix,
+		arg.ExpiresAt,
+		arg.RefreshHash,
+		arg.RefreshExpiresAt,
+	)
 	return err
 }
 
@@ -326,6 +622,15 @@ func (q *Queries) TouchMCPClient(ctx context.Context, arg TouchMCPClientParams) 
 	return err
 }
 
+const touchOAuthClient = `-- name: TouchOAuthClient :exec
+update oauth_clients set last_used_at = now() where client_id = $1
+`
+
+func (q *Queries) TouchOAuthClient(ctx context.Context, clientID string) error {
+	_, err := q.db.Exec(ctx, touchOAuthClient, clientID)
+	return err
+}
+
 const upsertCycleInput = `-- name: UpsertCycleInput :exec
 insert into cycle_inputs (cycle_id, agent, input, signal_ids, mapping) values ($1, $2, $3, $4, $5)
 on conflict (cycle_id, agent) do update set input = excluded.input, signal_ids = excluded.signal_ids, mapping = excluded.mapping
@@ -348,4 +653,25 @@ func (q *Queries) UpsertCycleInput(ctx context.Context, arg UpsertCycleInputPara
 		arg.Mapping,
 	)
 	return err
+}
+
+const useOAuthCode = `-- name: UseOAuthCode :one
+update oauth_codes set used_at = now() where code_hash = $1 and used_at is null and expires_at > now() returning code_hash, client_id, user_id, redirect_uri, code_challenge, scopes, expires_at, used_at
+`
+
+// A code works once, before it expires.
+func (q *Queries) UseOAuthCode(ctx context.Context, codeHash string) (OauthCode, error) {
+	row := q.db.QueryRow(ctx, useOAuthCode, codeHash)
+	var i OauthCode
+	err := row.Scan(
+		&i.CodeHash,
+		&i.ClientID,
+		&i.UserID,
+		&i.RedirectUri,
+		&i.CodeChallenge,
+		&i.Scopes,
+		&i.ExpiresAt,
+		&i.UsedAt,
+	)
+	return i, err
 }

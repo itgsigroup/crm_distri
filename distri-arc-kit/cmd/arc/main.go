@@ -138,6 +138,9 @@ func runAPI(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	m := mcp.New(st, c, log, &orchestrator.Orchestrator{St: st, Clock: c, Log: log, OdooWrite: cfg.OdooWrite})
 	m.Jobs = ins // MCP cycles run in the worker like every other cycle
+	if base := strings.TrimRight(cfg.PublicURL, "/"); base != "" {
+		m.ResourceMetadataURL = base + "/.well-known/oauth-protected-resource" // 401 → OAuth discovery (Claude)
+	}
 	if !cfg.IsDev() && len(cfg.SessionSecret) < 32 {
 		return errors.New("SESSION_SECRET (≥ 32 karakter) wajib di luar APP_ENV=dev")
 	}

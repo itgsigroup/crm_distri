@@ -13,6 +13,8 @@ import { ChatPage } from '../features/chat/ChatPage'
 import { StockPage } from '../features/stock/StockPage'
 import { GuidePage } from '../features/guide/GuidePage'
 import { CreditPage } from '../features/credit/CreditPage'
+import { ClaudePage } from '../features/claude/ClaudePage'
+import { ConsentPage } from '../features/claude/ConsentPage'
 import { BranchesPage } from '../features/master/BranchesPage'
 import { RolesPage } from '../features/master/RolesPage'
 import { UsersPage } from '../features/master/UsersPage'
@@ -40,6 +42,8 @@ export const router = createBrowserRouter([
       { path: 'pengguna', element: <UsersPage /> },
       { path: 'peran', element: <RolesPage /> },
       { path: 'cabang', element: <BranchesPage /> },
+      { path: 'claude', element: <ClaudePage /> },
+      { path: 'claude/izin', element: <ConsentPage /> },
       { path: 'pengaturan', element: <SettingsPage /> },
       { path: 'pengaturan/pilot', element: <PilotPage /> },
       { path: 'pengaturan/data', element: <DataPage /> },

@@ -29,6 +29,10 @@
 	reverse_proxy /mcp* {$API_UPSTREAM:api:8080} {
 		flush_interval -1
 	}
+	# MCP OAuth 2.1 (ADR 0021): discovery + authorization server
+	reverse_proxy /.well-known/oauth-protected-resource* {$API_UPSTREAM:api:8080}
+	reverse_proxy /.well-known/oauth-authorization-server {$API_UPSTREAM:api:8080}
+	reverse_proxy /oauth/* {$API_UPSTREAM:api:8080}
 
 	root * {$WEB_ROOT:/srv/web}
 	try_files {path} /index.html

@@ -4,6 +4,7 @@ package api
 import (
 	"context"
 	"distri-arc/internal/access"
+	"distri-arc/internal/oauth"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -80,6 +81,7 @@ func (s *Server) Handler() http.Handler {
 	r.Get("/metrics", s.metrics)
 	if s.mcp != nil {
 		r.Handle("/mcp", s.mcp.Handler())
+		(&oauth.Server{St: s.st, Base: s.publicBase, Log: s.log}).Routes(r) // OAuth 2.1 for Claude (ADR 0021)
 	}
 	r.Route("/api", func(r chi.Router) {
 		// JSON is gzip-compressed (a board of thousands of dealers is ~10× smaller); the SSE stream is not touched

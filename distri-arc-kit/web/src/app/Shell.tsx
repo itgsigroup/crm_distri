@@ -26,6 +26,7 @@ export const ROUTES: Record<ScreenKey, string> = {
   users: '/pengguna',
   roles: '/peran',
   branches: '/cabang',
+  mcp: '/claude',
   conn: '/pengaturan',
   konsep: '/panduan',
 }
@@ -43,6 +44,7 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/pengguna')) return 'users'
   if (path.startsWith('/peran')) return 'roles'
   if (path.startsWith('/cabang')) return 'branches'
+  if (path.startsWith('/claude')) return 'mcp'
   if (path.startsWith('/pengaturan')) return 'conn'
   if (path.startsWith('/panduan')) return 'konsep'
   return 'today'
@@ -87,8 +89,9 @@ export function Shell() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [cur])
   useEffect(() => {
-    if (me && !me.screens.includes(cur)) nav('/', { replace: true })
-  }, [me, cur, nav])
+    // the consent page explains itself to people whose role cannot connect Claude
+    if (me && !me.screens.includes(cur) && loc.pathname !== '/claude/izin') nav('/', { replace: true })
+  }, [me, cur, nav, loc.pathname])
   const [menu, setMenu] = useState(false)
   const { collapsed, setCollapsed } = useAppearance()
   const { subscribe } = useSse()
@@ -156,6 +159,7 @@ export function Shell() {
           </nav>
           <div className="rail-sec">
             <nav className="nav" aria-label="Pengaturan">
+              <NavBtn to="mcp" cur={cur} icon="spark">MCP Claude</NavBtn>
               <NavBtn to="konsep" cur={cur} icon="doc">Panduan</NavBtn>
               <NavBtn to="conn" cur={cur} icon="gear">Pengaturan</NavBtn>
             </nav>
