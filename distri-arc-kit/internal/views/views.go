@@ -141,7 +141,7 @@ func (b *Builder) Service() *dealersvc.Service { return b.svc }
 func (b *Builder) Board(ctx context.Context) (*Board, error) {
 	b.mu.Lock()
 	base := b.cached
-	if base == nil || time.Since(b.at) > BoardTTL || !base.Today.Equal(clock.Today(b.clock.Now())) {
+	if base == nil || time.Since(b.at) > BoardTTL || !clock.Today(base.Today).Equal(clock.Today(b.clock.Now())) {
 		var err error
 		if base, err = b.build(ctx); err != nil {
 			b.mu.Unlock()
