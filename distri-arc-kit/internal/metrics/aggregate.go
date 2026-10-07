@@ -182,7 +182,8 @@ func IsCritical(s domain.StockItem, p domain.PolicySet) bool {
 
 // PushCandidates applies the glossary rule for aging stock:
 // mix fits (category bought, or an empty category for a Key account in Segmen A — "lebar baru") ∧
-// (due_in ≤ 7 ∨ lewat jadwal) ∧ sisa limit ∉ {over limit, overdue}. Sorted by jadwal order, then omzet.
+// (due_in ≤ 7 ∨ lewat jadwal) ∧ sisa limit ∉ {over limit, overdue}. "Lewat jadwal" is At risk; a Churn dealer has
+// stopped ordering (cyc > 2) and is a win-back, not a push target. Sorted by jadwal order, then omzet.
 func PushCandidates(item domain.StockItem, dealers []DealerView, p domain.PolicySet) []PushCandidate {
 	ci := domain.CategoryIndex(item.Category)
 	var out []PushCandidate
@@ -198,6 +199,9 @@ func PushCandidates(item domain.StockItem, dealers []DealerView, p domain.Policy
 		case m.Status == domain.StatusKeyAccount && m.Segment == domain.SegmentA:
 			reason = "lebar baru"
 		default:
+			continue
+		}
+		if m.Status == domain.StatusChurn {
 			continue
 		}
 		drifting := m.Cyc > p.Orbit.Drift

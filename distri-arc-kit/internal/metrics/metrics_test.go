@@ -213,7 +213,9 @@ func TestGlossaryPush(t *testing.T) {
 	fit.MixCats[3] = true
 	over := fit
 	over.Credit.State = domain.CreditOverLimit
-	got := PushCandidates(led, []DealerView{{ID: "fit", Metrics: fit}, {ID: "over", Metrics: over}}, p)
+	churn := fit
+	churn.Status, churn.Cyc, churn.DueIn = domain.StatusChurn, 2.5, nil
+	got := PushCandidates(led, []DealerView{{ID: "fit", Metrics: fit}, {ID: "over", Metrics: over}, {ID: "churn", Metrics: churn}}, p)
 	if len(got) != 1 || got[0].DealerID != "fit" {
 		t.Fatalf("push candidates %+v", got)
 	}

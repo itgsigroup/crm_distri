@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { NextAction, Proposal } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
@@ -25,6 +26,8 @@ export function StockPage() {
   const { data: critical = [] } = useStockCritical()
   const { data: sales = [] } = useSalesByProduct()
   const { data: props = [] } = useStockProposals()
+  const [branch, setBranch] = useState('')
+  const [showAll, setShowAll] = useState(false)
 
   const open = (p: Proposal) => p.status !== 'rejected' && p.status !== 'expired' && p.status !== 'suppressed'
   const pushes = props.filter((p) => p.kind === 'push_stock' && !p.payload?.parent && open(p))
@@ -32,6 +35,9 @@ export function StockPage() {
   const fixOf = (sku: string, branch: string) =>
     props.find((p) => (p.kind === 'transfer' && p.payload?.sku === sku && p.payload?.to === branch) || (p.kind === 'po_request' && p.payload?.sku === sku && p.payload?.branch === branch))
 
+  const branches = [...new Set(aging.map((x) => x.branch))].sort()
+  const inBranch = aging.filter((x) => !branch || x.branch === branch)
+  const shown = showAll ? inBranch : inBranch.slice(0, 12)
   const old = aging.filter((x) => x.age_days > 90)
   const oldValue = old.reduce((a, x) => a + x.value, 0)
   const activeValue = pushes.reduce((a, p) => a + Number(p.payload?.stock_value ?? 0), 0)
@@ -52,8 +58,13 @@ export function StockPage() {
             <h2>Push stok</h2><span className="ai" style={{ marginLeft: 6 }}>AI Stok</span><span className="meta">Stok menua → dealer yang product mix-nya cocok &amp; jadwal order</span>
             <button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 8 }} disabled={orch.running} onClick={() => reanalyze('screen:stock')}><Icon name="refresh" />Analisis ulang</button>
           </div>
+          {branches.length > 1 && (
+            <div className="chips" style={{ marginBottom: 8 }}>
+              {['', ...branches].map((b) => <button key={b || 'all'} className={`chip ${branch === b ? 'is-active' : ''}`} onClick={() => setBranch(b)}>{b || 'Semua cabang'}</button>)}
+            </div>
+          )}
           <ul className="l2c">
-            {aging.map((x) => {
+            {shown.map((x) => {
               const k = x.age_days > 120 ? 'bad' : 'warn'
               const p = pushOf(x.name)
               const ds = (p?.payload?.dealers as { name: string }[] | undefined)?.map((d) => shortName(d.name)) ?? (x.candidates ?? []).map((c) => shortName(c.name))
@@ -67,11 +78,16 @@ export function StockPage() {
                     <div className="stg"><span>umur stok</span><em className="num" style={{ color: `var(--${k})` }}>{x.age_days} hr</em></div>
                   </div>
                   <div className="note">Dealer yang cocok: {dealers}{note}</div>
-                  <div>{p ? <ActBtn small next={toNext(p)} /> : <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => toast('Promo belum otomatis: atur pricelist di Odoo — tulis-balik dari Distri ARC aktif di Stage 12')}>Buat promo</button>}</div>
+                  <div>{p ? <ActBtn small next={toNext(p)} /> : <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => toast('Promo belum otomatis: atur harga promo di Accurate — data Distri ARC dibaca dari BigQuery (baca saja)')}>Buat promo</button>}</div>
                 </li>
               )
             })}
           </ul>
+          {inBranch.length > 12 && (
+            <button className="btn quiet" style={{ marginTop: 8, height: 30, fontSize: 12.5 }} onClick={() => setShowAll(!showAll)}>
+              {showAll ? 'Ringkas' : `Tampilkan semua ${inBranch.length} stok menua · ${fmtRp(inBranch.reduce((a, x) => a + x.value, 0))}`}
+            </button>
+          )}
         </div>
         <div className="stack">
           <div className="card">

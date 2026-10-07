@@ -66,6 +66,7 @@ type OrderLine struct {
 	Qty      int64  `json:"qty"`
 	Price    int64  `json:"price"`
 	Subtotal int64  `json:"subtotal"`
+	Cost     int64  `json:"cost,omitempty"` // HPP per unit when the source has it (margin per product)
 }
 
 // Value returns the line value (subtotal, or qty × price when subtotal is missing).

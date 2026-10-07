@@ -86,7 +86,8 @@ type ProductSales struct {
 	MarginPct float64 `json:"margin_pct"`
 }
 
-// SalesByProduct sums line values of confirmed orders within days, top first.
+// SalesByProduct sums line values of confirmed orders within days, top first; margin per product from the lines'
+// HPP (imported data), else the order's margin.
 func (b *Board) SalesByProduct(days, limit int) []ProductSales {
 	type acc struct {
 		v      int64
@@ -106,7 +107,11 @@ func (b *Board) SalesByProduct(days, limit int) []ProductSales {
 					by[l.Product] = a
 				}
 				a.v += l.Value()
-				a.margin += float64(l.Value()) * o.MarginPct
+				m := o.MarginPct // the order's margin, unless the line carries its own HPP
+				if l.Cost > 0 && l.Value() > 0 {
+					m = (1 - float64(l.Cost*l.Qty)/float64(l.Value())) * 100
+				}
+				a.margin += float64(l.Value()) * m
 			}
 		}
 	}

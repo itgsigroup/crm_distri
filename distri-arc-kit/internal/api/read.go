@@ -340,7 +340,7 @@ func (s *Server) stockPush(w http.ResponseWriter, r *http.Request) {
 	}
 	var out []views.AgingItem
 	for _, a := range b.StockAging(st, "") {
-		if a.AgeDays > b.Policies.Stock.AgingDays {
+		if a.AgeDays > b.Policies.Stock.AgingDays && len(a.Candidates) > 0 {
 			out = append(out, a)
 		}
 	}

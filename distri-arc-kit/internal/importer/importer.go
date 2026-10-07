@@ -478,7 +478,6 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 						amount = qty * price
 					}
 					k := kat(l.Get("category"))
-					ls = append(ls, domain.OrderLine{Product: l.Get("product"), Category: k, Qty: qty, Price: price, Subtotal: amount})
 					sku := l.Get("sku")
 					if sku == "" {
 						sku = l.Get("product")
@@ -487,6 +486,7 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 					if cost == 0 {
 						cost = stockCost[sku]
 					}
+					ls = append(ls, domain.OrderLine{Product: l.Get("product"), Category: k, Qty: qty, Price: price, Subtotal: amount, Cost: cost})
 					if cost > 0 && amount > 0 {
 						costed += amount
 						costSum += cost * qty
