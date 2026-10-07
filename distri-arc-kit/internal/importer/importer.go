@@ -18,6 +18,7 @@ import (
 	"distri-arc/internal/clock"
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/domain"
+	"distri-arc/internal/metrics"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/wa"
@@ -323,6 +324,8 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 		}
 	}
 	terms := map[string]int{}
+	custBranch := map[string]string{}
+	today := clock.Today(im.Clock.Now())
 	usedSlug := map[string]bool{}
 	var slugs []string
 	if err := im.St.Pool.QueryRow(ctx, "select coalesce(array_agg(slug), '{}') from dealers where slug is not null and (source_system is distinct from 'import')").Scan(&slugs); err == nil {
@@ -347,6 +350,7 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 				fallback = salesBranch[owner.String()]
 			}
 			branch := branchOf(r.Get("branch"), fallback)
+			custBranch[code] = branch
 			var tier *string
 			if t := strings.ToUpper(r.Get("tier")); t == "A" || t == "B" || t == "C" {
 				tier = &t
@@ -390,11 +394,22 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 		return err
 	}
 
-	// 3. invoices (+ order with lines, payment, signals)
+	// 3. invoices (+ order with lines, margin, payment, signals)
 	lineRows, err := im.rows(ctx, InvoiceLines)
 	if err != nil {
 		return err
 	}
+	stockRows, err := im.rows(ctx, Stock)
+	if err != nil {
+		return err
+	}
+	stockCost := map[string]int64{} // HPP per SKU from the stock snapshot (margin when a line has no cost)
+	for _, r := range stockRows {
+		if c := Rupiah(r.Get("unit_cost")); c > 0 {
+			stockCost[r.Get("sku")] = c
+		}
+	}
+	sold90 := map[[2]string]float64{} // units sold in the last 90 days per SKU × branch (velocity when the stock has no sold_90d)
 	lines := map[string][]Row{}
 	for _, r := range lineRows {
 		inv := r.Get("invoice_number")
@@ -448,6 +463,8 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 					continue
 				}
 				var ls []domain.OrderLine
+				var costed, costSum int64 // revenue and HPP of the lines whose HPP is known
+				recent := metrics.DaysBetween(*date, today) <= 90
 				for _, l := range lines[num] {
 					qty := int64(math.Round(Number(l.Get("qty"))))
 					price := Rupiah(l.Get("price"))
@@ -460,6 +477,25 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 					sku := l.Get("sku")
 					if sku == "" {
 						sku = l.Get("product")
+					}
+					cost := Rupiah(l.Get("cost"))
+					if cost == 0 {
+						cost = stockCost[sku]
+					}
+					if cost > 0 && amount > 0 {
+						costed += amount
+						costSum += cost * qty
+					}
+					if recent && qty > 0 {
+						// same key as the stock snapshot: mapped warehouse, else the raw warehouse, else the sale's branch
+						br, ok := m.get("warehouse", l.Get("warehouse"))
+						if !ok {
+							br = strings.TrimSpace(l.Get("warehouse"))
+						}
+						if br == "" {
+							br = branchOf(r.Get("branch"), custBranch[cust])
+						}
+						sold90[[2]string{sku, br}] += float64(qty)
 					}
 					if p, seen := products[sku]; !seen || date.After(p.at) {
 						products[sku] = product{name: l.Get("product"), kat: k, price: price, at: *date}
@@ -490,8 +526,13 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 				}
 				lj, _ := json.Marshal(ls)
 				osrc, isrc := "order:"+num, "inv:"+num
+				var margin *float64
+				if costed > 0 {
+					v := math.Round((1-float64(costSum)/float64(costed))*10000) / 100
+					margin = &v
+				}
 				oid, err := q.UpsertOrder(ctx, gen.UpsertOrderParams{DealerID: &did, Number: &num, State: state, OrderedAt: date, ConfirmedAt: date, InvoicedAt: date, PaidAt: orderPaid,
-					Total: total, Lines: lj, CreatedBy: "import", SourceSystem: strp("import"), SourceID: &osrc, SourceWriteDate: &now})
+					Total: total, MarginPct: margin, Lines: lj, CreatedBy: "import", SourceSystem: strp("import"), SourceID: &osrc, SourceWriteDate: &now})
 				if err != nil {
 					return fmt.Errorf("order %s: %w", num, err)
 				}
@@ -525,16 +566,14 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 	}
 
 	// 4. stock snapshot: warehouses → branches, aggregated per SKU and branch
-	stock, err := im.rows(ctx, Stock)
-	if err != nil {
-		return err
-	}
+	stock := stockRows
 	type agg struct {
 		name, kat  string
 		qty, value int64
 		cost       int64
 		age        int
 		sold90     float64
+		hasSold    bool
 	}
 	byKey := map[[2]string]*agg{}
 	for _, r := range stock {
@@ -559,8 +598,17 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 		if cost > 0 {
 			a.cost = cost
 		}
-		a.age = max(a.age, int(Number(r.Get("age_days"))))
-		a.sold90 += Number(r.Get("sold_90d"))
+		age := int(Number(r.Get("age_days")))
+		if strings.TrimSpace(r.Get("age_days")) == "" {
+			if d := Date(r.Get("received_date")); d != nil {
+				age = max(metrics.DaysBetween(*d, today), 0)
+			}
+		}
+		a.age = max(a.age, age)
+		if strings.TrimSpace(r.Get("sold_90d")) != "" {
+			a.sold90 += Number(r.Get("sold_90d"))
+			a.hasSold = true
+		}
 		sku := r.Get("sku")
 		if p, seen := products[sku]; !seen {
 			products[sku] = product{name: r.Get("product"), kat: a.kat}
@@ -583,6 +631,9 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 		}
 		for _, k := range keys {
 			a := byKey[k]
+			if !a.hasSold { // no sold_90d from the source: units sold on invoices in the last 90 days
+				a.sold90 = sold90[k]
+			}
 			if a.qty <= 0 && a.sold90 == 0 {
 				continue
 			}

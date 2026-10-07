@@ -155,3 +155,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - **Tambah pengguna** tanpa nomor WhatsApp; cabang dari master; **lihat kata sandi** (ikon mata) di form pengguna dan halaman login.
 - **Chat → + Nomor**: scan QR (atau kode di HP) → nomor terbaca otomatis → pilih nama pengguna pemegangnya; nomor yang belum dipegang bisa dipilih penggunanya kemudian. `POST /wa/links`, `GET /wa/links/{id}`, `PUT /wa/numbers/{wa}/user`; bridge menyertakan nomor HP di setiap event.
 - Sidebar: grup **Master data** (Pengguna, Peran & akses, Cabang).
+
+## Push stok dari BigQuery · 2026-10-07
+- Halaman Push stok sepenuhnya dari data impor (BigQuery/CSV) sesuai rumus glossary: **margin** order dihitung dari HPP (`invoice_lines.cost`, else HPP stok) sehingga **Perputaran stok** (nilai stok ÷ HPP harian) dan **Penjualan per produk** (nilai · margin) benar; **umur stok** dari `received_date` bila `age_days` kosong; **kecepatan jual** (stok kritis) dari item faktur 90 hari per SKU × cabang bila `sold_90d` kosong.
+- Kontrak: `invoice_lines.cost`, `stock.received_date`; saran kolom BigQuery mengenali `hpp`/`harga_pokok`, `tanggal_masuk`/`last_purchase_date`. Tabel "bagian halaman → kolom" dan contoh SQL Accurate di `docs/DATA-IMPORT.md`.

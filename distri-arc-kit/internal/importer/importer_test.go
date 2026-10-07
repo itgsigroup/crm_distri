@@ -157,3 +157,47 @@ HDD-4,HDD 4TB,Harddisk,04. Jakarta,8,"1.400.000",20,13
 		t.Fatalf("incremental %+v %v", ar, err)
 	}
 }
+
+// Push stok from BigQuery: margin from HPP (line cost, else the stock's HPP), stock age from the last receipt date,
+// and the weekly velocity from invoice lines when the stock query has no sold_90d (glossary: perputaran stok,
+// stok menua, stok kritis).
+func TestStockFromInvoicesAndReceipts(t *testing.T) {
+	im, st := newImporter(t)
+	ctx := context.Background()
+	stage := func(e importer.Entity, csv string) {
+		t.Helper()
+		if _, err := im.Stage(ctx, e, parse(t, csv), "bigquery", "test"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	stage(importer.Customers, "code,name,branch\nC1,Toko Satu,Semarang\n")
+	stage(importer.Invoices, "number,customer_code,date,total,residual\nF1,C1,2026-09-20,1000000,0\nF2,C1,2026-03-01,500000,0\n")
+	// F1: one line with its own HPP, one with HPP from the stock; F2 is older than 90 days (no velocity)
+	stage(importer.InvoiceLines, "invoice_number,product,sku,qty,price,amount,cost,warehouse\nF1,Kamera A,K1,2,300000,600000,240000,\nF1,Modul LED,L1,4,100000,400000,,\nF2,Modul LED,L1,5,100000,500000,,\n")
+	stage(importer.Stock, "sku,product,warehouse,qty,unit_cost,received_date,sold_90d\nL1,Modul LED,Semarang,26,70000,2026-05-01,\nK1,Kamera A,Semarang,10,240000,,13\n")
+	if _, err := im.Apply(ctx, true, "test"); err != nil {
+		t.Fatal(err)
+	}
+	// F1: revenue 1.000.000, HPP 2×240.000 + 4×70.000 = 760.000 → margin 24%
+	if n := count(t, st, "select count(*) from orders where number = 'F1' and margin_pct = 24"); n != 1 {
+		var m *float64
+		_ = st.Pool.QueryRow(ctx, "select margin_pct from orders where number = 'F1'").Scan(&m)
+		t.Fatalf("margin %v", m)
+	}
+	// L1: received 2026-05-01 → 158 days old on 2026-10-06; 4 sold in 90 days → 4/13 per week
+	var age int
+	var vel float64
+	if err := st.Pool.QueryRow(ctx, "select age_days, weekly_velocity from stock_items where sku = 'L1' and branch = 'Semarang'").Scan(&age, &vel); err != nil {
+		t.Fatal(err)
+	}
+	if age != 158 || vel != 0.31 {
+		t.Fatalf("L1 age %d velocity %v", age, vel)
+	}
+	// K1: sold_90d from the source wins (13/13 = 1 per week); no received date → age 0
+	if err := st.Pool.QueryRow(ctx, "select age_days, weekly_velocity from stock_items where sku = 'K1'").Scan(&age, &vel); err != nil {
+		t.Fatal(err)
+	}
+	if age != 0 || vel != 1 {
+		t.Fatalf("K1 age %d velocity %v", age, vel)
+	}
+}

@@ -81,6 +81,7 @@ var Contract = map[Entity][]Column{
 		{"qty", false, "Kuantitas"},
 		{"price", false, "Harga satuan (Rp)"},
 		{"amount", false, "Nilai baris (Rp); default qty × harga"},
+		{"cost", false, "HPP satuan saat jual (Rp); untuk margin & perputaran stok — default HPP dari data stok"},
 		{"warehouse", false, "Gudang"},
 	},
 	Stock: {
@@ -91,8 +92,9 @@ var Contract = map[Entity][]Column{
 		{"qty", true, "Stok"},
 		{"unit_cost", false, "HPP satuan (Rp)"},
 		{"value", false, "Nilai stok (Rp); default qty × HPP"},
-		{"age_days", false, "Umur stok tertua (hari)"},
-		{"sold_90d", false, "Terjual 90 hari (unit)"},
+		{"age_days", false, "Umur stok tertua (hari); kosong = dihitung dari received_date"},
+		{"received_date", false, "Tanggal masuk / pembelian terakhir; dipakai bila age_days kosong"},
+		{"sold_90d", false, "Terjual 90 hari (unit); kosong = dihitung dari item faktur 90 hari"},
 	},
 }
 

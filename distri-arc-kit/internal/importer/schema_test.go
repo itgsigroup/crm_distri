@@ -43,8 +43,8 @@ func TestSuggestCategory(t *testing.T) {
 var accurateTables = []Table{
 	{Dataset: "accurate", Table: "pelanggan", Columns: []TColumn{{"kode_pelanggan", "STRING"}, {"nama_pelanggan", "STRING"}, {"kota", "STRING"}, {"kategori_pelanggan", "STRING"}, {"limit_kredit", "NUMERIC"}, {"termin", "INTEGER"}, {"telepon", "STRING"}}},
 	{Dataset: "accurate", Table: "faktur_penjualan", Columns: []TColumn{{"nomor_faktur", "STRING"}, {"kode_pelanggan", "STRING"}, {"tanggal_faktur", "DATE"}, {"jatuh_tempo", "DATE"}, {"total_faktur", "NUMERIC"}, {"sisa_tagihan", "NUMERIC"}, {"cabang", "STRING"}, {"nama_sales", "STRING"}}},
-	{Dataset: "accurate", Table: "faktur_penjualan_detail", Columns: []TColumn{{"nomor_faktur", "STRING"}, {"kode_item", "STRING"}, {"nama_item", "STRING"}, {"kategori", "STRING"}, {"kuantitas", "NUMERIC"}, {"harga_satuan", "NUMERIC"}, {"gudang", "STRING"}}},
-	{Dataset: "accurate", Table: "stok_gudang", Columns: []TColumn{{"kode_item", "STRING"}, {"nama_item", "STRING"}, {"gudang", "STRING"}, {"kuantitas", "NUMERIC"}, {"harga_pokok", "NUMERIC"}}},
+	{Dataset: "accurate", Table: "faktur_penjualan_detail", Columns: []TColumn{{"nomor_faktur", "STRING"}, {"kode_item", "STRING"}, {"nama_item", "STRING"}, {"kategori", "STRING"}, {"kuantitas", "NUMERIC"}, {"harga_satuan", "NUMERIC"}, {"hpp", "NUMERIC"}, {"gudang", "STRING"}}},
+	{Dataset: "accurate", Table: "stok_gudang", Columns: []TColumn{{"kode_item", "STRING"}, {"nama_item", "STRING"}, {"gudang", "STRING"}, {"kuantitas", "NUMERIC"}, {"harga_pokok", "NUMERIC"}, {"tanggal_masuk", "DATE"}}},
 	{Dataset: "accurate", Table: "salesman", Columns: []TColumn{{"nama_sales", "STRING"}, {"cabang", "STRING"}, {"no_hp", "STRING"}}},
 }
 
@@ -61,6 +61,12 @@ func TestSuggestTables(t *testing.T) {
 		if len(got[e].Missing) != 0 {
 			t.Errorf("%s: missing %v", e, got[e].Missing)
 		}
+	}
+	if c := got[Stock].Columns; c["received_date"] != "tanggal_masuk" || c["unit_cost"] != "harga_pokok" {
+		t.Fatalf("stock columns %v", c)
+	}
+	if c := got[InvoiceLines].Columns; c["cost"] != "hpp" {
+		t.Fatalf("line columns %v", c)
 	}
 	inv := got[Invoices]
 	if inv.Columns["number"] != "nomor_faktur" || inv.Columns["residual"] != "sisa_tagihan" || inv.Columns["sales"] != "nama_sales" {

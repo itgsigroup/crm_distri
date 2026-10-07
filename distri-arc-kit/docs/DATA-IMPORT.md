@@ -36,11 +36,23 @@ semua data tanpa impor ulang.
 | `sales` | code*, name*, branch, wa_number, email, title |
 | `customers` | code*, name*, customer_type, branch, city, sales, phone, pic_name, tier, credit_limit, payment_terms_days, segment |
 | `invoices` | number*, customer_code*, date*, due_date, total*, residual, paid_date, branch, sales |
-| `invoice_lines` | invoice_number*, product*, sku, category, brand, qty, price, amount, warehouse |
-| `stock` | sku*, product*, category, warehouse*, qty*, unit_cost, value, age_days, sold_90d |
+| `invoice_lines` | invoice_number*, product*, sku, category, brand, qty, price, amount, cost, warehouse |
+| `stock` | sku*, product*, category, warehouse*, qty*, unit_cost, value, age_days, received_date, sold_90d |
 
 Angka boleh format Indonesia (`1.234.567,50`) atau internasional; tanggal `YYYY-MM-DD`, `DD/MM/YYYY`, atau timestamp.
 `residual` = sisa tagihan (0 = lunas); tanpa `residual` dan tanpa `paid_date`, faktur dianggap belum dibayar.
+
+## Halaman Push stok dari BigQuery
+Setiap angka di halaman Push stok dihitung dari rumus `01-glossary.md` atas data impor:
+
+| Bagian halaman | Rumus (glossary) | Kolom BigQuery yang dipakai |
+|---|---|---|
+| **Perputaran stok** (target ≤ 40 hari) | nilai stok ÷ HPP harian 90 hari | `stock.value` (atau `qty × unit_cost`); HPP penjualan dari `invoice_lines.cost` — bila kosong, `stock.unit_cost` per SKU |
+| **Stok > 90 hari** & **Push stok** | stok menua `age_days > policy.aging_days (90)`; kandidat = product mix cocok ∧ jadwal order ≤ 7 hari / lewat jadwal ∧ limit tidak over/overdue | `stock.age_days`, atau dihitung dari `stock.received_date` (tanggal masuk / pembelian terakhir); `stock.category` → 6 kategori lewat mapping; kandidat dari pelanggan & faktur |
+| **Stok kritis** (habis < 10 hari) | `qty ÷ (terjual 90 hari ÷ 13) × 7` | `stock.qty`; `stock.sold_90d`, atau dihitung dari `invoice_lines.qty` 90 hari terakhir per SKU × cabang (gudang item faktur, else cabang faktur/pelanggan) |
+| **Penjualan per produk · 30 hari** (nilai · margin) | Σ nilai baris; margin = 1 − HPP ÷ nilai | `invoice_lines.amount`, `qty`, `cost` (atau HPP stok) |
+
+Gudang dipetakan ke cabang (Pengaturan → Data & master → Mapping → Gudang) — stok dijumlah per SKU × cabang.
 
 ## Contoh query BigQuery
 Setiap query cukup memberi nama kolom sesuai kontrak (`AS …`). Contoh untuk tabel hasil ekspor Accurate:
@@ -58,13 +70,14 @@ FROM `gsi-data.accurate.faktur` WHERE tanggal_faktur >= DATE_SUB(CURRENT_DATE(),
 
 -- invoice_lines
 SELECT nomor_faktur AS invoice_number, kode_item AS sku, nama_item AS product, kategori AS category, merek AS brand,
-       kuantitas AS qty, harga_satuan AS price, nilai_penjualan AS amount, gudang AS warehouse
+       kuantitas AS qty, harga_satuan AS price, nilai_penjualan AS amount, hpp AS cost, gudang AS warehouse
 FROM `gsi-data.accurate.faktur_item` WHERE tanggal_faktur >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
 
--- stock
+-- stock (snapshot per gudang hari ini). Tanpa kolom umur/terjual: kirim tanggal masuk terakhir saja —
+-- umur dihitung dari received_date dan kecepatan jual dari item faktur 90 hari.
 SELECT kode_item AS sku, nama_item AS product, kategori AS category, gudang AS warehouse, kuantitas AS qty,
-       harga_pokok AS unit_cost, nilai_stok AS value, umur_hari AS age_days, terjual_90_hari AS sold_90d
-FROM `gsi-data.accurate.stok_item`
+       harga_pokok AS unit_cost, kuantitas * harga_pokok AS value, tanggal_masuk_terakhir AS received_date
+FROM `gsi-data.accurate.stok_item` WHERE kuantitas <> 0
 ```
 **Kunci**: Google Cloud → IAM → Service accounts → buat akun, peran **BigQuery Data Viewer** + **BigQuery Job User**
 → Keys → JSON. Unggah di kartu Sumber data (CEO); kunci disimpan terenkripsi dengan `SESSION_SECRET`.
