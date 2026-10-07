@@ -35,7 +35,9 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Patch("/wa/groups/{id}", s.patchWAGroup)
 	r.Get("/wa/status", s.waStatus)
 	r.Post("/wa/pair", s.waPair)
-	r.Post("/wa/numbers", s.addWANumber)
+	r.Post("/wa/links", s.createWALink)
+	r.Get("/wa/links/{id}", s.getWALink)
+	r.Put("/wa/numbers/{wa}/user", s.assignWANumber)
 	r.Delete("/wa/numbers/{wa}", s.deleteWANumber)
 }
 

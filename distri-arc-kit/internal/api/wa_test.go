@@ -1,41 +1,74 @@
 package api_test
 
 import (
+	"context"
+	"io"
+	"log/slog"
 	"net/http"
 	"testing"
+
+	"distri-arc/internal/wa"
 )
 
-// Many numbers, one per user: a number is added for a user of the user master (its number comes from there);
-// sales cannot add for others; a user holds one number; a sales user reads only their own number's chats.
+// Many numbers, one per user: a new number is linked first (scan in Chat) and reported by WhatsApp, then given to
+// a user of the user master; one user holds one number; a sales user reads only their own number's chats.
 func TestWANumbersAndChatScope(t *testing.T) {
-	srv, _ := chatServer(t)
-	code, cs := post(t, srv.URL+"/api/users", "sam@gsi.co.id", map[string]any{"email": "cs@gsi.co.id", "name": "CS Kantor", "role_key": "admin", "password": "rahasia-panjang-1", "wa_number": "0812 9999 0000"})
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	code, cs := post(t, srv.URL+"/api/users", "sam@gsi.co.id", map[string]any{"email": "cs@gsi.co.id", "name": "CS Kantor", "role_key": "admin", "password": "rahasia-panjang-1"})
 	if code != http.StatusCreated {
 		t.Fatalf("create user: %d %v", code, cs)
 	}
 	csID := cs["id"].(string)
-	if code, _ := post(t, srv.URL+"/api/wa/numbers", "andi@gsi.co.id", map[string]string{"user_id": csID}); code != http.StatusForbidden {
-		t.Fatalf("sales adds another user's number: %d", code)
+	// the phone scans: the link is pending, then WhatsApp reports its number
+	if _, err := st.Pool.Exec(ctx, "insert into wa_links (session_id, created_by) values ('link-t1', 'sam@gsi.co.id')"); err != nil {
+		t.Fatal(err)
 	}
-	if code, out := post(t, srv.URL+"/api/wa/numbers", "sam@gsi.co.id", map[string]string{"user_id": csID}); code != http.StatusCreated || out["wa_number"] != "6281299990000" || out["label"] != "CS Kantor" {
-		t.Fatalf("ceo adds the user's number: %d %v", code, out)
+	in := wa.NewIngestor(st, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err := in.ProcessStatus(ctx, wa.Status{Session: "link-t1", State: "pairing", QR: "2@qr"}); err != nil {
+		t.Fatal(err)
 	}
-	if code, _ := post(t, srv.URL+"/api/users", "sam@gsi.co.id", map[string]any{"email": "cs2@gsi.co.id", "name": "CS 2", "role_key": "admin", "password": "rahasia-panjang-1", "wa_number": "+62 812-9999-0000"}); code != http.StatusConflict {
-		t.Fatalf("second user with the same number: %d", code)
+	if code, l := get(t, srv, "/api/wa/links/link-t1", "sam@gsi.co.id"); code != 200 || l["state"] != "pairing" || l["qr_png"] == nil {
+		t.Fatalf("pending link %d %v", code, l)
 	}
-	code, u2 := post(t, srv.URL+"/api/users", "sam@gsi.co.id", map[string]any{"email": "cs3@gsi.co.id", "name": "CS 3", "role_key": "admin", "password": "rahasia-panjang-1"})
-	if code != http.StatusCreated {
-		t.Fatalf("user without number: %d", code)
+	if err := in.ProcessStatus(ctx, wa.Status{Session: "link-t1", Account: "6281299990000", State: "connected"}); err != nil {
+		t.Fatal(err)
 	}
-	if code, _ := post(t, srv.URL+"/api/wa/numbers", "sam@gsi.co.id", map[string]string{"user_id": u2["id"].(string), "wa_number": "12345"}); code != http.StatusBadRequest {
-		t.Fatalf("bad number accepted: %d", code)
+	if code, l := get(t, srv, "/api/wa/links/link-t1", "sam@gsi.co.id"); code != 200 || l["state"] != "connected" || l["wa_number"] != "6281299990000" {
+		t.Fatalf("linked %d %v", code, l)
 	}
-	if code, out := put(t, srv.URL+"/api/users/"+csID, "sam@gsi.co.id", map[string]any{"wa_number": "0812 7777 0000"}); code != http.StatusConflict {
-		t.Fatalf("number changed while linked in Chat: %d %v", code, out)
+	if code, _ := put(t, srv.URL+"/api/wa/numbers/6281299990000/user", "andi@gsi.co.id", map[string]any{"user_id": csID}); code != http.StatusForbidden {
+		t.Fatalf("sales gives a number to another user: %d", code)
+	}
+	if code, out := put(t, srv.URL+"/api/wa/numbers/6281299990000/user", "sam@gsi.co.id", map[string]any{"user_id": csID}); code != 200 || out["label"] != "CS Kantor" {
+		t.Fatalf("assign: %d %v", code, out)
+	}
+	// Andi already holds a number: a second one is refused
+	var andiID string
+	_ = st.Pool.QueryRow(ctx, "select id from users where email = 'andi@gsi.co.id'").Scan(&andiID)
+	if _, err := st.Pool.Exec(ctx, "insert into wa_links (session_id) values ('link-t2')"); err != nil {
+		t.Fatal(err)
+	}
+	if err := in.ProcessStatus(ctx, wa.Status{Session: "link-t2", Account: "6281277770000", State: "connected"}); err != nil {
+		t.Fatal(err)
+	}
+	if code, _ := put(t, srv.URL+"/api/wa/numbers/6281277770000/user", "sam@gsi.co.id", map[string]any{"user_id": andiID}); code != http.StatusConflict {
+		t.Fatalf("second number for one user: %d", code)
+	}
+	_, users := get(t, srv, "/api/users", "sam@gsi.co.id")
+	for _, x := range users["items"].([]any) {
+		if m := x.(map[string]any); m["email"] == "cs@gsi.co.id" && (m["wa_number"] != "6281299990000" || m["wa_state"] != "connected") {
+			t.Fatalf("user master shows the number: %v", m)
+		}
+	}
+	var session string
+	_ = st.Pool.QueryRow(ctx, "select session_id from wa_numbers where wa_number = '6281299990000'").Scan(&session)
+	if session != "link-t1" {
+		t.Fatalf("number keeps its link session: %q", session)
 	}
 	_, all := get(t, srv, "/api/wa/status", "sam@gsi.co.id")
 	_, own := get(t, srv, "/api/wa/status", "andi@gsi.co.id")
-	if n, m := len(all["items"].([]any)), len(own["items"].([]any)); n != 5 || m != 1 {
+	if n, m := len(all["items"].([]any)), len(own["items"].([]any)); n != 6 || m != 1 {
 		t.Fatalf("numbers: ceo %d, andi %d", n, m)
 	}
 	_, ceo := get(t, srv, "/api/chat/threads", "sam@gsi.co.id")

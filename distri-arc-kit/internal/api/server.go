@@ -94,6 +94,7 @@ func (s *Server) Handler() http.Handler {
 			r.Use(s.auth)
 			s.userRoutes(r)
 			s.roleRoutes(r)
+			s.branchRoutes(r)
 			r.Get("/me", s.me)
 			s.readRoutes(r)
 			s.chatRoutes(r)
@@ -123,7 +124,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	if h.Status == "down" {
 		status = http.StatusServiceUnavailable
 	}
-	if u, ok := s.userFrom(r); ok && (deref(u.Role) == "ceo" || deref(u.Role) == "admin") {
+	if u, ok := s.userFrom(r); ok && isAdmin(u) {
 		httpx.JSON(w, status, h)
 		return
 	}
@@ -224,7 +225,7 @@ func CurrentUser(ctx context.Context) (User, bool) {
 
 // roleOf is the user's effective access (role master narrowing their base role).
 func roleOf(u User) access.Role {
-	return access.Resolve(deref(u.RoleKey), deref(u.RoleName), deref(u.Role), u.RoleScreens, u.RoleDecide, u.RoleWa)
+	return access.Resolve(deref(u.RoleKey), deref(u.RoleName), deref(u.Role), u.RoleScreens, u.RoleDecide, u.RoleScope, u.RolePolicies, u.RoleWa)
 }
 
 // decider is the person deciding a proposal, with the kinds their role lets them decide.
@@ -243,7 +244,7 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 		pilotMode = pol.Pilot.Mode
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"id": u.ID, "email": u.Email, "name": u.Name, "role": u.Role, "branch": u.Branch,
-		"screens": ro.Screens, "decide": decide, "edit_policies": role == "ceo", "manage_users": role == "ceo" || role == "admin",
+		"screens": ro.Screens, "decide": decide, "edit_policies": role == "ceo", "manage_users": can(u, "users"), "scope": ro.Scope,
 		"role_key": ro.Key, "role_name": ro.Name, "wa_number": u.WaNumber, "wa_allowed": ro.WAAllowed,
 		"totp_available": totpRoles(role), "totp_enabled": u.TotpEnabledAt != nil, "pilot_mode": pilotMode})
 }

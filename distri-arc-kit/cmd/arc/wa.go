@@ -114,9 +114,15 @@ func baileysTransport(cfg config.Config, st *store.Store, log *slog.Logger) *wa.
 			}
 			out := make([]string, 0, len(rows))
 			for _, r := range rows {
-				out = append(out, r.WaNumber)
+				out = append(out, r.SessionID)
 			}
 			return out
+		},
+		Session: func(ctx context.Context, account string) string {
+			if n, err := st.Q.GetWANumber(ctx, account); err == nil {
+				return n.SessionID
+			}
+			return ""
 		},
 		Label: func(ctx context.Context, account string) string {
 			if n, err := st.Q.GetWANumber(ctx, account); err == nil && n.Label != nil && *n.Label != "" {

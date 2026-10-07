@@ -61,6 +61,7 @@ export class Session implements SendTarget {
   private waiters: ((s: Snapshot) => void)[] = []
   /** Link with a code typed on the phone instead of a QR scan. */
   codeMode = false
+  codePhone = '' // the number the code is requested for
   private codeRequested = false
 
   constructor(
@@ -140,7 +141,7 @@ export class Session implements SendTarget {
       if (!this.codeRequested && this.sock) {
         this.codeRequested = true
         try {
-          const code = await this.sock.requestPairingCode(this.meta.id)
+          const code = await this.sock.requestPairingCode(this.codePhone || this.meta.id)
           this.qr = 'code:' + formatPairCode(code)
           this.setStatus('pairing')
         } catch (err) {
@@ -343,7 +344,7 @@ export class Manager {
   }
 
   /** Starts pairing (QR). An already linked session is returned as is. */
-  async create(id: string, label: string, historyDays: number, phoneCode = false): Promise<Snapshot> {
+  async create(id: string, label: string, historyDays: number, phoneCode = false, phone = ''): Promise<Snapshot> {
     const existing = this.sessions.get(id)
     if (existing && (existing.status === 'connected' || (existing.meta.pairedAt && existing.reason === 'reconnecting'))) return existing.snapshot()
     if (existing) await existing.stop(false)
@@ -352,6 +353,7 @@ export class Manager {
     await this.store.upsertSession(meta)
     const s = new Session(meta, this.store, this.fwd, this.policy, this.log.child({ session: id }), this.deviceName)
     s.codeMode = phoneCode
+    s.codePhone = phone.replace(/\D/g, '')
     this.sessions.set(id, s)
     const first = s.firstState(20_000)
     await s.start()

@@ -57,6 +57,7 @@ describe('bridge HTTP', () => {
     expect(await ok.json()).toEqual({ wamid: 'W1', duplicate: false })
     expect(await (await post('/sessions', { id: '6281234567890', label: 'Andi', phone_code: true })).json()).toMatchObject({ qr: 'code:ABCD-1234' })
     expect((await post('/sessions', { id: 'cs-kantor', label: 'CS', phone_code: true })).status).toBe(400)
+    expect(await (await post('/sessions', { id: 'link-ab12cd', label: 'Distri ARC', phone_code: true, phone: '0812-3456-7890' })).json()).toMatchObject({ qr: 'code:ABCD-1234' })
     const health = await (await fetch(bridge + '/health')).json()
     expect(health).toMatchObject({ ok: true, sessions: { s1: 'connected' }, limits: { s1: { last_hour: 1, per_hour: 20, today: 1 } } })
   })

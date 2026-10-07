@@ -5,7 +5,7 @@ import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { useInternalNumbers, useWAGroups, useWAStatus } from '../../app/queries'
-import { AddNumberForm } from '../chat/Connect'
+import { LinkSheet } from '../chat/Connect'
 
 const STATE: Record<string, [string, 'good' | 'warn' | 'bad' | 'neutral']> = {
   connected: ['Terhubung', 'good'], pairing: ['Menunggu scan QR', 'warn'], disconnected: ['Terputus', 'bad'], logged_out: ['Keluar dari perangkat', 'bad'], unpaired: ['Belum dipasangkan', 'neutral'],
@@ -13,7 +13,7 @@ const STATE: Record<string, [string, 'good' | 'warn' | 'bad' | 'neutral']> = {
 
 /** Pengaturan → Sumber sinyal → WhatsApp: numbers, QR pairing, internal numbers and groups (stage 03). */
 export function WhatsAppPanel() {
-  const { closeSheet, toast } = useFeedback()
+  const { closeSheet, openSheet, toast } = useFeedback()
   const qc = useQueryClient()
   const { data: status } = useWAStatus()
   const { data: internal = [] } = useInternalNumbers()
@@ -74,7 +74,7 @@ export function WhatsAppPanel() {
             )
           })}
         </ul>
-        <div className="connect" style={{ marginTop: 12, gap: 10 }}><AddNumberForm /></div>
+        <button className="btn primary" style={{ marginTop: 12 }} onClick={() => openSheet(<LinkSheet />)}><Icon name="qr" />Hubungkan nomor baru (scan)</button>
       </div>
       {pairing && (
         <div className="sec qr">

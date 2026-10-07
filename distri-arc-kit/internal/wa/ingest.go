@@ -43,6 +43,8 @@ type Ingestor struct {
 	OnDealer func(ctx context.Context, dealerID uuid.UUID)
 	// OnNewNumber is called after an unknown number wrote to a sales number (the worker enqueues identify.number).
 	OnNewNumber func(ctx context.Context, number string)
+	// Transport names numbers registered when a new link connects (fake | baileys).
+	Transport string
 }
 
 // NewIngestor builds the pipeline.
@@ -197,21 +199,76 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 	return res, err
 }
 
-// ProcessStatus records a number's connection state and tells the browsers.
+// ProcessStatus records a number's connection state and tells the browsers. A new link (Chat → + Nomor) is pending
+// under its session id until WhatsApp reports the linked phone's number; then the number is registered under that
+// session and waits for a person to give it to a user.
 func (in *Ingestor) ProcessStatus(ctx context.Context, s Status) error {
 	acc := Digits(s.Account)
+	sess := s.Session
+	if sess == "" {
+		sess = acc
+	}
 	var jid *string
 	if s.JID != "" {
 		jid = &s.JID
 	}
-	if s.QR != "" {
-		if err := in.st.Q.SetWANumberQR(ctx, gen.SetWANumberQRParams{WaNumber: acc, Qr: &s.QR}); err != nil {
+	row, err := in.st.Q.GetWANumberBySession(ctx, sess)
+	known := err == nil
+	if !known && s.Session == "" && acc != "" { // transports that name sessions after the number
+		if r, err := in.st.Q.GetWANumber(ctx, acc); err == nil {
+			row, known = r, true
+		}
+	}
+	switch {
+	case s.State == "connected" && acc != "" && (!known || row.WaNumber != acc):
+		label := ""
+		if n, err := in.st.Q.GetWANumber(ctx, acc); err == nil && n.Label != nil {
+			label = *n.Label
+		}
+		transport := in.Transport
+		if transport == "" {
+			transport = "baileys"
+		}
+		if err := in.st.Q.LinkWANumber(ctx, gen.LinkWANumberParams{WaNumber: acc, SessionID: sess, Label: &label, Transport: transport, Jid: jid}); err != nil {
 			return err
 		}
-	} else if err := in.st.Q.SetWANumberState(ctx, gen.SetWANumberStateParams{WaNumber: acc, State: s.State, Jid: jid}); err != nil {
-		return err
+		if err := in.st.Q.SetWALink(ctx, gen.SetWALinkParams{SessionID: sess, State: "connected", WaNumber: &acc}); err != nil {
+			return err
+		}
+	case known:
+		acc = row.WaNumber
+		if s.QR != "" {
+			if row.State == "connected" {
+				return nil // a late QR for a device that is already linked
+			}
+			if err := in.st.Q.SetWANumberQR(ctx, gen.SetWANumberQRParams{WaNumber: acc, Qr: &s.QR}); err != nil {
+				return err
+			}
+		} else if err := in.st.Q.SetWANumberState(ctx, gen.SetWANumberStateParams{WaNumber: acc, State: s.State, Jid: jid}); err != nil {
+			return err
+		}
+	default: // a new link still pairing (or given up)
+		l, err := in.st.Q.GetWALink(ctx, sess)
+		if err != nil || l.State == "connected" {
+			return nil
+		}
+		state, qr := "pairing", (*string)(nil)
+		var msg *string
+		if s.QR != "" {
+			qr = &s.QR
+		} else {
+			qr = l.Qr
+		}
+		if s.State == "disconnected" || s.State == "logged_out" || s.State == "unpaired" {
+			state, qr = "failed", nil
+			m := "Waktu menautkan habis atau dibatalkan di HP — mulai lagi"
+			msg = &m
+		}
+		if err := in.st.Q.SetWALink(ctx, gen.SetWALinkParams{SessionID: sess, State: state, Qr: qr, Error: msg}); err != nil {
+			return err
+		}
 	}
-	return events.Notify(ctx, in.st.Pool, "wa_status", map[string]string{"account": acc, "state": s.State})
+	return events.Notify(ctx, in.st.Pool, "wa_status", map[string]string{"account": acc, "session": sess, "state": s.State})
 }
 
 // Run consumes a transport's events until ctx ends.

@@ -1,3 +1,4 @@
+import { PasswordInput } from '../../components/PasswordInput'
 import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
 
@@ -38,11 +39,11 @@ export function LoginPage() {
           <div><div className="brand-name">Distri ARC</div><div className="brand-sub">Orbit · AI-native</div></div>
         </div>
         <label style={{ fontSize: 12, color: 'var(--text-2)' }}>Email<input style={field} type="email" name="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
-        <label style={{ fontSize: 12, color: 'var(--text-2)' }}>Kata sandi<input style={field} type="password" name="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
+        <label style={{ fontSize: 12, color: 'var(--text-2)' }}>Kata sandi<PasswordInput style={field} name="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
         {needCode && <label style={{ fontSize: 12, color: 'var(--text-2)' }}>Kode 2FA<input style={{ ...field, letterSpacing: '.2em', fontSize: 18 }} name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required /></label>}
         {error && <div className="pill bad" style={{ alignSelf: 'flex-start' }}>{error}</div>}
         <button className="btn primary" type="submit" disabled={busy} style={{ justifyContent: 'center', height: 40 }}>{busy ? 'Masuk…' : 'Masuk'}</button>
-        <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Akun dibuat oleh CEO / admin di Pengaturan → Pengguna &amp; peran.</span>
+        <span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>Akun dibuat lewat menu Master data → Pengguna.</span>
       </form>
     </div>
   )

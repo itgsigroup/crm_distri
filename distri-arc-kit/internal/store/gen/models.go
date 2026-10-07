@@ -94,6 +94,16 @@ type AuditLog struct {
 	CreatedAt time.Time       `json:"created_at"`
 }
 
+type Branch struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	City      string    `json:"city"`
+	Address   string    `json:"address"`
+	Active    bool      `json:"active"`
+	UpdatedBy *string   `json:"updated_by"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Brief struct {
 	BriefDate time.Time       `json:"brief_date"`
 	CycleID   *uuid.UUID      `json:"cycle_id"`
@@ -655,6 +665,8 @@ type Role struct {
 	Active      bool      `json:"active"`
 	UpdatedBy   *string   `json:"updated_by"`
 	UpdatedAt   time.Time `json:"updated_at"`
+	Scope       string    `json:"scope"`
+	Policies    bool      `json:"policies"`
 }
 
 type SalesUser struct {
@@ -781,6 +793,19 @@ type WaGroup struct {
 	ReadEnabled bool      `json:"read_enabled"`
 }
 
+type WaLink struct {
+	SessionID string    `json:"session_id"`
+	Method    string    `json:"method"`
+	Phone     *string   `json:"phone"`
+	State     string    `json:"state"`
+	Qr        *string   `json:"qr"`
+	WaNumber  *string   `json:"wa_number"`
+	Error     *string   `json:"error"`
+	CreatedBy *string   `json:"created_by"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 type WaNumber struct {
 	WaNumber     string     `json:"wa_number"`
 	SalesID      *uuid.UUID `json:"sales_id"`
@@ -796,4 +821,5 @@ type WaNumber struct {
 	UpdatedAt    time.Time  `json:"updated_at"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UserID       *uuid.UUID `json:"user_id"`
+	SessionID    string     `json:"session_id"`
 }

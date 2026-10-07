@@ -84,8 +84,8 @@ export function SettingsPage() {
       <AutonomyCard />
       {me?.manage_users && (
         <div className="card">
-          <div className="card-h"><h2>Pengguna &amp; peran</h2><span className="meta">Pindah ke menu Pengguna di sidebar</span></div>
-          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-2)' }}>Akun login, peran &amp; akses, dan satu nomor WhatsApp per pengguna.</p>
+          <div className="card-h"><h2>Master data</h2><span className="meta">Pengguna, Peran &amp; akses, Cabang — di sidebar</span></div>
+          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-2)' }}>Akun login, peran dengan akses per halaman, dan master cabang. Nomor WhatsApp ditautkan di Chat.</p>
           <Link className="btn ghost" to="/pengguna"><Icon name="people" />Buka master pengguna</Link>
         </div>
       )}

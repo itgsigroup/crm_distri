@@ -54,8 +54,8 @@ func (s *Server) importer() importer.Importer {
 
 func (s *Server) adminOnly(w http.ResponseWriter, r *http.Request) (User, bool) {
 	u, _ := CurrentUser(r.Context())
-	if !isAdmin(u) {
-		httpx.Fail(w, http.StatusForbidden, "forbidden", "Data & master untuk CEO dan admin")
+	if !can(u, "conn") {
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Data & master untuk peran yang membuka Pengaturan")
 		return u, false
 	}
 	return u, true
@@ -387,6 +387,12 @@ func (s *Server) dataSetMappings(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		case "branch", "warehouse":
+			if t != "" {
+				if b, err := s.st.Q.BranchByName(r.Context(), t); err != nil || !b.Active {
+					httpx.Fail(w, http.StatusBadRequest, "invalid", "Cabang \""+t+"\" belum ada di master Cabang — tambahkan dulu")
+					return
+				}
+			}
 		default:
 			httpx.Fail(w, http.StatusBadRequest, "invalid", "Jenis mapping tidak dikenal")
 			return

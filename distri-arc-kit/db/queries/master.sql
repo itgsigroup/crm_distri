@@ -129,11 +129,8 @@ insert into sales_users (name, branch, wa_number, role, email, external_name) va
 update sales_users set name = $2, branch = $3, wa_number = $4, active = $5 where id = $1;
 
 -- name: Branches :many
--- Branch names in use (dealers, sales, stock, branch mappings) for pickers.
-select b from (
-  select branch as b from dealers union select branch from sales_users union select branch from stock_items
-  union select target from data_mappings where kind in ('branch', 'warehouse') and target is not null
-) x where b is not null and b <> '' and b <> 'Semua cabang' order by b;
+-- Active branches of the branch master, for pickers.
+select name from branches where active order by name;
 
 -- name: DeleteImportRowsPrefix :exec
 delete from import_rows where entity = $1 and key like sqlc.arg(prefix)::text || '%';

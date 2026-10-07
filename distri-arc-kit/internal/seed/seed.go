@@ -377,6 +377,12 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 		}
 		return nil
 	})
+	if err == nil {
+		err = s.Q.EnsureBranches(ctx) // the branch master starts with the branches in use
+	}
+	if err == nil {
+		err = s.Q.LinkNumbersToUsers(ctx)
+	}
 	if err != nil {
 		return Result{}, err
 	}

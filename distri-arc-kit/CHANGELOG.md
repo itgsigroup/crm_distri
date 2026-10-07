@@ -148,3 +148,10 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Menu **Pengguna** di sidebar (CEO/admin, menu `users` di master peran): halaman sendiri berisi master pengguna dan Peran & akses; Pengaturan menautkan ke sana. Di layar laptop pendek kartu agen di sidebar disembunyikan agar kartu profil tetap terlihat.
 - Pop-up (tambah pengguna, tautkan nomor, keputusan, dll.) muncul **di tengah layar** di laptop/desktop; di HP tetap dari bawah.
 - Siklus "terakhir" diurutkan menurut nomor siklus, bukan jam mulai — jam yang mundur (jam simulasi dev, koreksi NTP) tidak lagi menyembunyikan siklus baru.
+
+## Peran custom · master cabang · WhatsApp scan lalu pilih pengguna · 2026-10-07
+- **Peran & akses tanpa hardcode** (ADR 0020, migrasi `0016`): tiap peran dicentang akses per halaman (14 halaman, dikunci juga di server), cakupan data (semua / hanya miliknya), jenis keputusan, hak kebijakan (setara CEO), dan izin memegang WhatsApp. Peran bawaan bisa diubah/dihapus; selalu ada satu pemegang hak kebijakan aktif; rilis kredit di atas limit tetap butuh hak kebijakan.
+- **Master cabang** (menu Master data → Cabang): tambah/ubah/nonaktifkan; ganti nama ikut ke pengguna, dealer, dan mapping data; cabang pengguna dan mapping cabang/gudang dipilih dari master.
+- **Tambah pengguna** tanpa nomor WhatsApp; cabang dari master; **lihat kata sandi** (ikon mata) di form pengguna dan halaman login.
+- **Chat → + Nomor**: scan QR (atau kode di HP) → nomor terbaca otomatis → pilih nama pengguna pemegangnya; nomor yang belum dipegang bisa dipilih penggunanya kemudian. `POST /wa/links`, `GET /wa/links/{id}`, `PUT /wa/numbers/{wa}/user`; bridge menyertakan nomor HP di setiap event.
+- Sidebar: grup **Master data** (Pengguna, Peran & akses, Cabang).

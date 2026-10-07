@@ -33,10 +33,12 @@ type Baileys struct {
 	Approved func(ctx context.Context, outboxID string) (bool, error)
 	// Label names a number for its linked-device entry (sales name or team label).
 	Label func(ctx context.Context, account string) string
-	// Accounts lists the registered numbers; those without a bridge session are announced "unpaired" on start
-	// (no number looks connected when it is not).
+	// Accounts lists the session ids of the registered numbers; those the bridge does not hold are announced
+	// "unpaired" on start (no number looks connected when it is not).
 	Accounts func(ctx context.Context) []string
-	Log      *slog.Logger
+	// Session resolves a number to its bridge session id (numbers linked from Chat get a session id first).
+	Session func(ctx context.Context, account string) string
+	Log     *slog.Logger
 
 	events chan Event
 	client *http.Client
@@ -88,6 +90,7 @@ type bridgeEvent struct {
 	FromMe     bool   `json:"from_me"`
 	IsHistory  bool   `json:"is_history"`
 	ChatName   string `json:"chat_name"`
+	Account    string `json:"account"` // the linked phone's own number
 	GroupMeta  *struct {
 		Name string `json:"name"`
 	} `json:"group_meta"`
@@ -129,7 +132,11 @@ func (e bridgeEvent) message() Message {
 	if err != nil {
 		t = time.Now()
 	}
-	m := Message{ID: e.WAMID, Account: Digits(e.Session), ChatJID: e.ChatID, FromNumber: Digits(e.From), FromName: e.SenderName,
+	acc := Digits(e.Account)
+	if acc == "" {
+		acc = Digits(e.Session) // sessions named after their number
+	}
+	m := Message{ID: e.WAMID, Account: acc, ChatJID: e.ChatID, FromNumber: Digits(e.From), FromName: e.SenderName,
 		IsGroup: e.IsGroup, FromMe: e.FromMe, Text: text, Time: t, ChatName: strings.TrimSpace(e.ChatName), History: e.IsHistory}
 	if e.GroupMeta != nil {
 		m.GroupName = e.GroupMeta.Name
@@ -145,7 +152,7 @@ func (s bridgeStatus) status() Status {
 	case s.Status == "disconnected" && s.Reason == "forbidden":
 		state = "logged_out" // WhatsApp refused the device (403): a person must re-link after checking the number
 	}
-	out := Status{Account: Digits(s.Session), State: state, QR: s.QR}
+	out := Status{Session: s.Session, Account: Digits(s.Phone), State: state, QR: s.QR}
 	if s.Phone != "" {
 		out.JID = Digits(s.Phone) + "@s.whatsapp.net"
 	}
@@ -177,13 +184,13 @@ func (b *Baileys) Start(ctx context.Context) error {
 	go func() {
 		live := map[string]bool{}
 		for _, s := range b.Status(ctx) {
-			live[s.Account] = true
+			live[s.Session] = true
 			b.events <- Event{Status: &s}
 		}
 		if b.Accounts != nil {
-			for _, a := range b.Accounts(ctx) {
-				if !live[Digits(a)] {
-					b.events <- Event{Status: &Status{Account: Digits(a), State: "unpaired"}}
+			for _, sid := range b.Accounts(ctx) {
+				if !live[sid] {
+					b.events <- Event{Status: &Status{Session: sid, State: "unpaired"}}
 				}
 			}
 		}
@@ -290,43 +297,62 @@ func (e *bridgeError) Error() string {
 	return "wa-bridge HTTP " + strconv.Itoa(e.Status)
 }
 
-// Pair links a number: the bridge returns the first QR (or "connected" when it is already linked).
-func (b *Baileys) Pair(ctx context.Context, account string) (string, error) {
-	acc := Digits(account)
-	label := acc
-	if b.Label != nil {
-		label = b.Label(ctx, acc)
+// session is the bridge session of a number.
+func (b *Baileys) session(ctx context.Context, account string) string {
+	if b.Session != nil {
+		if s := b.Session(ctx, Digits(account)); s != "" {
+			return s
+		}
 	}
+	return Digits(account)
+}
+
+func (b *Baileys) open(ctx context.Context, session, label, phone string, code bool) (bridgeStatus, error) {
 	days := b.HistoryDays
 	if days <= 0 {
 		days = 30
 	}
+	body := map[string]any{"id": session, "label": label, "history_days": days}
+	if code {
+		body["phone_code"], body["phone"] = true, Digits(phone)
+	}
 	var snap bridgeStatus
-	if _, _, err := b.call(ctx, http.MethodPost, "/sessions", map[string]any{"id": acc, "label": label, "history_days": days}, &snap); err != nil {
+	_, _, err := b.call(ctx, http.MethodPost, "/sessions", body, &snap)
+	return snap, err
+}
+
+func (b *Baileys) label(ctx context.Context, account string) string {
+	if b.Label != nil {
+		return b.Label(ctx, Digits(account))
+	}
+	return Digits(account)
+}
+
+// Pair re-links a registered number: the bridge returns the first QR (or "connected" when it is already linked).
+func (b *Baileys) Pair(ctx context.Context, account string) (string, error) {
+	snap, err := b.open(ctx, b.session(ctx, account), b.label(ctx, account), "", false)
+	return snap.QR, err
+}
+
+// PairCode re-links a registered number with a code typed on the phone; the bridge returns "code:XXXX-XXXX".
+func (b *Baileys) PairCode(ctx context.Context, account string) (string, error) {
+	snap, err := b.open(ctx, b.session(ctx, account), b.label(ctx, account), account, true)
+	if err != nil || snap.Status == "connected" {
 		return "", err
+	}
+	if !strings.HasPrefix(snap.QR, PairCodePrefix) {
+		return "", errors.New("wa-bridge tidak memberi kode tautan — coba lagi atau pakai QR")
 	}
 	return snap.QR, nil
 }
 
-// PairCode links a number with a code typed on the phone; the bridge returns "code:XXXX-XXXX".
-func (b *Baileys) PairCode(ctx context.Context, account string) (string, error) {
-	acc := Digits(account)
-	label := acc
-	if b.Label != nil {
-		label = b.Label(ctx, acc)
-	}
-	days := b.HistoryDays
-	if days <= 0 {
-		days = 30
-	}
-	var snap bridgeStatus
-	if _, _, err := b.call(ctx, http.MethodPost, "/sessions", map[string]any{"id": acc, "label": label, "history_days": days, "phone_code": true}, &snap); err != nil {
+// Link starts linking a new device under a fresh session id; its number arrives with the "connected" status.
+func (b *Baileys) Link(ctx context.Context, session, phone string, code bool) (string, error) {
+	snap, err := b.open(ctx, session, "Distri ARC", phone, code)
+	if err != nil {
 		return "", err
 	}
-	if snap.Status == "connected" {
-		return "", nil
-	}
-	if !strings.HasPrefix(snap.QR, PairCodePrefix) {
+	if code && !strings.HasPrefix(snap.QR, PairCodePrefix) {
 		return "", errors.New("wa-bridge tidak memberi kode tautan — coba lagi atau pakai QR")
 	}
 	return snap.QR, nil
@@ -343,7 +369,7 @@ func (b *Baileys) Status(ctx context.Context) []Status {
 	}
 	out := make([]Status, 0, len(h.Sessions))
 	for id, st := range h.Sessions {
-		out = append(out, Status{Account: Digits(id), State: st})
+		out = append(out, Status{Session: id, State: st})
 	}
 	return out
 }
@@ -364,7 +390,7 @@ func (b *Baileys) Send(ctx context.Context, account, chatJID, text string) (stri
 	var out struct {
 		WAMID string `json:"wamid"`
 	}
-	_, hdr, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(Digits(account))+"/send", map[string]string{"chat_id": chatJID, "text": text, "action_id": action}, &out)
+	_, hdr, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/send", map[string]string{"chat_id": chatJID, "text": text, "action_id": action}, &out)
 	var be *bridgeError
 	if errors.As(err, &be) && (be.Status == http.StatusForbidden || be.Status == http.StatusConflict || be.Status == http.StatusTooManyRequests) {
 		r := &SendRefused{Code: be.Code, Reason: be.Msg}
@@ -388,7 +414,7 @@ func (b *Baileys) Profile(ctx context.Context, account, jid string) (Profile, er
 		Name     string `json:"name"`
 		Business string `json:"business"`
 	}
-	if _, _, err := b.call(ctx, http.MethodGet, "/sessions/"+url.PathEscape(Digits(account))+"/contacts/"+url.PathEscape(jid), nil, &p); err != nil {
+	if _, _, err := b.call(ctx, http.MethodGet, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/contacts/"+url.PathEscape(jid), nil, &p); err != nil {
 		return Profile{}, err
 	}
 	name := p.Business
@@ -400,7 +426,7 @@ func (b *Baileys) Profile(ctx context.Context, account, jid string) (Profile, er
 
 // Unpair logs the linked device out and forgets it.
 func (b *Baileys) Unpair(ctx context.Context, account string) error {
-	_, _, err := b.call(ctx, http.MethodDelete, "/sessions/"+url.PathEscape(Digits(account)), nil, nil)
+	_, _, err := b.call(ctx, http.MethodDelete, "/sessions/"+url.PathEscape(b.session(ctx, account)), nil, nil)
 	var be *bridgeError
 	if errors.As(err, &be) && be.Status == http.StatusNotFound {
 		return nil

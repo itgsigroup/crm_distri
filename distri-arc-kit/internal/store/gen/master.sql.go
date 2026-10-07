@@ -14,13 +14,10 @@ import (
 )
 
 const branches = `-- name: Branches :many
-select b from (
-  select branch as b from dealers union select branch from sales_users union select branch from stock_items
-  union select target from data_mappings where kind in ('branch', 'warehouse') and target is not null
-) x where b is not null and b <> '' and b <> 'Semua cabang' order by b
+select name from branches where active order by name
 `
 
-// Branch names in use (dealers, sales, stock, branch mappings) for pickers.
+// Active branches of the branch master, for pickers.
 func (q *Queries) Branches(ctx context.Context) ([]string, error) {
 	rows, err := q.db.Query(ctx, branches)
 	if err != nil {
@@ -29,11 +26,11 @@ func (q *Queries) Branches(ctx context.Context) ([]string, error) {
 	defer rows.Close()
 	items := []string{}
 	for rows.Next() {
-		var b string
-		if err := rows.Scan(&b); err != nil {
+		var name string
+		if err := rows.Scan(&name); err != nil {
 			return nil, err
 		}
-		items = append(items, b)
+		items = append(items, name)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

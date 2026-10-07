@@ -15,7 +15,7 @@ export interface BridgeSession extends SendTarget {
 export interface BridgeManager {
   get(id: string): BridgeSession | undefined
   statuses(): Record<string, string>
-  create(id: string, label: string, historyDays: number, phoneCode?: boolean): Promise<unknown>
+  create(id: string, label: string, historyDays: number, phoneCode?: boolean, phone?: string): Promise<unknown>
   remove(id: string): Promise<boolean>
 }
 
@@ -49,8 +49,8 @@ async function readBody(req: IncomingMessage): Promise<string> {
 
 /**
  * Endpoints (all except /health require X-ARC-Signature = HMAC-SHA256(BRIDGE_SECRET, raw body)):
- *   POST   /sessions                      {id, label, history_days, phone_code?} → {session, status, qr}
- *                                         (phone_code: qr = "code:XXXX-XXXX" to type on the phone)
+ *   POST   /sessions                      {id, label, history_days, phone_code?, phone?} → {session, status, qr}
+ *                                         (phone_code: qr = "code:XXXX-XXXX" to type on the phone of `phone`)
  *   GET    /sessions/{id}/qr              current QR / status
  *   GET    /sessions/{id}/groups          joined groups with members
  *   GET    /sessions/{id}/contacts/{jid}  profile (name, about, has_photo, business)
@@ -83,10 +83,11 @@ export function handler(d: Deps) {
       if (parts[0] !== 'sessions') return json(res, 404, { error: 'tidak ditemukan' })
 
       if (method === 'POST' && parts.length === 1) {
-        const inp = JSON.parse(body || '{}') as { id?: string; label?: string; history_days?: number; phone_code?: boolean }
+        const inp = JSON.parse(body || '{}') as { id?: string; label?: string; history_days?: number; phone_code?: boolean; phone?: string }
         if (!inp.id || !SESSION_ID.test(inp.id)) return json(res, 400, { error: 'id sesi tidak valid' })
-        if (inp.phone_code && !/^\d{10,15}$/.test(inp.id)) return json(res, 400, { error: 'kode tautan butuh id sesi berupa nomor telepon' })
-        return json(res, 200, await d.manager.create(inp.id, inp.label ?? inp.id, Number(inp.history_days ?? 30), !!inp.phone_code))
+        const phone = (inp.phone ?? (/^\d+$/.test(inp.id) ? inp.id : '')).replace(/\D/g, '')
+        if (inp.phone_code && !/^\d{10,15}$/.test(phone)) return json(res, 400, { error: 'kode tautan butuh nomor telepon' })
+        return json(res, 200, await d.manager.create(inp.id, inp.label ?? inp.id, Number(inp.history_days ?? 30), !!inp.phone_code, phone))
       }
 
       const id = parts[1]

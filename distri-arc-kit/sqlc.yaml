@@ -17,6 +17,7 @@ sql:
       - db/migrations/0013_wa_accounts.sql
       - db/migrations/0014_master_data.sql
       - db/migrations/0015_roles_access.sql
+      - db/migrations/0016_roles_custom_branches_wa_links.sql
     queries: db/queries
     gen:
       go:

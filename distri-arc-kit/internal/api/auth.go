@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -94,15 +95,13 @@ func (s *Server) userRoutes(r chi.Router) {
 	r.Put("/users/{id}", s.updateUser)
 }
 
-// isAdmin: CEO and admin manage users.
-func isAdmin(u User) bool { r := deref(u.Role); return r == "ceo" || r == "admin" }
+// isAdmin: the role manages the team or the settings (pages Pengguna or Pengaturan).
+func isAdmin(u User) bool { return can(u, "users") || can(u, "conn") }
+
+// can reports whether the user's role opens a page (role master).
+func can(u User, screen string) bool { return slices.Contains(roleOf(u).Screens, screen) }
 
 func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
-	u, _ := CurrentUser(r.Context())
-	if !isAdmin(u) {
-		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO dan admin yang melihat pengguna")
-		return
-	}
 	rows, err := s.st.Q.ListUsers(r.Context())
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
@@ -112,18 +111,17 @@ func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 type userBody struct {
-	Email    string  `json:"email"`
-	Name     string  `json:"name"`
-	RoleKey  string  `json:"role_key"` // a role of the role master
-	Role     string  `json:"role"`     // older clients: a base role key
-	Password string  `json:"password"`
-	Sales    string  `json:"sales"` // sales_users name the account belongs to (imported sales)
-	Branch   string  `json:"branch"`
-	WANumber *string `json:"wa_number"` // one WhatsApp number per user; "" clears
-	Active   *bool   `json:"active"`
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	RoleKey  string `json:"role_key"` // a role of the role master
+	Role     string `json:"role"`     // older clients
+	Password string `json:"password"`
+	Sales    string `json:"sales"`  // sales_users name the account belongs to (imported sales)
+	Branch   string `json:"branch"` // a branch of the branch master
+	Active   *bool  `json:"active"`
 }
 
-// userRole resolves the requested role; the CEO base is assigned only by the CEO.
+// userRole resolves the requested role; a role with policy rights is given only by a policy holder.
 func (s *Server) userRole(w http.ResponseWriter, r *http.Request, me User, b userBody) (gen.Role, bool) {
 	key := b.RoleKey
 	if key == "" {
@@ -134,50 +132,33 @@ func (s *Server) userRole(w http.ResponseWriter, r *http.Request, me User, b use
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pilih peran dari master Peran & akses")
 		return ro, false
 	}
-	if ro.Base == "ceo" && deref(me.Role) != "ceo" {
-		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO yang menetapkan peran CEO")
+	if ro.Policies && deref(me.Role) != "ceo" {
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Peran dengan hak kebijakan hanya diberikan oleh pemegang hak kebijakan (CEO)")
 		return ro, false
 	}
 	return ro, true
 }
 
-// userWA validates a user's WhatsApp number (Indonesian, 62…); "" clears it.
-func userWA(w http.ResponseWriter, raw *string, ro gen.Role) (*string, bool) {
-	if raw == nil {
-		return nil, true
+// userBranch checks a branch against the branch master ("" = all branches).
+func (s *Server) userBranch(w http.ResponseWriter, r *http.Request, name string) (string, bool) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "Semua cabang", true
 	}
-	n := wa.Digits(*raw)
-	if n == "" {
-		return &n, true
+	b, err := s.st.Q.BranchByName(r.Context(), name)
+	if err != nil || !b.Active {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pilih cabang dari master Cabang")
+		return "", false
 	}
-	if !strings.HasPrefix(n, "62") || len(n) < 10 || len(n) > 15 {
-		httpx.Fail(w, http.StatusBadRequest, "invalid", "Nomor WhatsApp harus nomor Indonesia, mis. 0812… atau +62812…")
-		return nil, false
-	}
-	if !ro.WaAllowed && ro.Base != "ceo" {
-		httpx.Fail(w, http.StatusBadRequest, "invalid", "Peran "+ro.Name+" tidak memegang nomor WhatsApp — ubah di Peran & akses")
-		return nil, false
-	}
-	return &n, true
+	return b.Name, true
 }
 
-func waTaken(w http.ResponseWriter, err error) bool {
-	if err != nil && strings.Contains(err.Error(), "wa_number") {
-		httpx.Fail(w, http.StatusConflict, "wa_taken", "Nomor WhatsApp ini sudah dipegang pengguna lain — satu nomor untuk satu pengguna")
-		return true
-	}
-	return false
-}
-
-// createUser (CEO/admin): only the CEO creates another CEO.
+// createUser adds a login account (page Pengguna). Its WhatsApp number is not typed here: it is linked in Chat
+// (scan, then pick the user).
 func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	me, _ := CurrentUser(r.Context())
 	var b userBody
-	if !isAdmin(me) {
-		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO dan admin yang menambah pengguna")
-		return
-	}
-	if err := json.NewDecoder(r.Body).Decode(&b); err != nil || !strings.Contains(b.Email, "@") || b.Name == "" || len(b.Password) < 10 {
+	if err := json.NewDecoder(r.Body).Decode(&b); err != nil || !strings.Contains(b.Email, "@") || strings.TrimSpace(b.Name) == "" || len(b.Password) < 10 {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Isi email, nama, peran dan kata sandi ≥ 10 karakter")
 		return
 	}
@@ -185,12 +166,9 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	waNo, ok := userWA(w, b.WANumber, ro)
+	branch, ok := s.userBranch(w, r, b.Branch)
 	if !ok {
 		return
-	}
-	if waNo != nil && *waNo == "" {
-		waNo = nil
 	}
 	hash, err := auth.Hash(b.Password)
 	if err != nil {
@@ -204,40 +182,27 @@ func (s *Server) createUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if sales == nil { // every account needs a person profile to record its decisions
-		branch := strings.TrimSpace(b.Branch)
-		if branch == "" {
-			branch = "Semua cabang"
-		}
-		id, err := s.st.Q.CreatePersonProfile(r.Context(), gen.CreatePersonProfileParams{Name: b.Name, Branch: branch, Role: ro.Base, Email: &b.Email})
+		id, err := s.st.Q.CreatePersonProfile(r.Context(), gen.CreatePersonProfileParams{Name: strings.TrimSpace(b.Name), Branch: branch, Role: ro.Base, Email: &b.Email})
 		if err != nil {
 			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 			return
 		}
 		sales = &id
 	}
-	id, err := s.st.Q.CreateUser(r.Context(), gen.CreateUserParams{Email: &b.Email, Name: &b.Name, Role: &ro.Base, PasswordHash: &hash, SalesUserID: sales, RoleKey: &ro.Key, WaNumber: waNo})
-	if waTaken(w, err) {
-		return
-	}
+	name := strings.TrimSpace(b.Name)
+	id, err := s.st.Q.CreateUser(r.Context(), gen.CreateUserParams{Email: &b.Email, Name: &name, Role: &ro.Base, PasswordHash: &hash, SalesUserID: sales, RoleKey: &ro.Key})
 	if err != nil {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Email sudah dipakai")
 		return
 	}
-	if waNo != nil {
-		_ = s.st.Q.SetSalesProfileWA(r.Context(), gen.SetSalesProfileWAParams{ID: *sales, WaNumber: *waNo})
-	}
-	s.auditUser(r, "user.create", "user:"+id.String(), map[string]any{"email": b.Email, "role": ro.Key, "wa_number": waNo})
+	s.auditUser(r, "user.create", "user:"+id.String(), map[string]any{"email": b.Email, "role": ro.Key, "branch": branch})
 	httpx.JSON(w, http.StatusCreated, map[string]any{"id": id})
 }
 
-// updateUser changes role, WhatsApp number, branch, active flag, name or password (CEO/admin; CEO role changes only
-// by the CEO). A number that is linked in Chat must be released there before it changes.
+// updateUser changes role, branch, active flag, name or password. There is always one active policy holder; an
+// account holding a WhatsApp number cannot move to a role without WhatsApp before the number is released in Chat.
 func (s *Server) updateUser(w http.ResponseWriter, r *http.Request) {
 	me, _ := CurrentUser(r.Context())
-	if !isAdmin(me) {
-		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO dan admin yang mengubah pengguna")
-		return
-	}
 	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Pengguna tidak ditemukan")
@@ -254,52 +219,47 @@ func (s *Server) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if deref(cur.Role) == "ceo" && deref(me.Role) != "ceo" {
-		httpx.Fail(w, http.StatusForbidden, "forbidden", "Akun CEO hanya diubah oleh CEO")
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Akun dengan hak kebijakan hanya diubah oleh pemegang hak kebijakan")
 		return
 	}
 	if id == me.ID && b.Active != nil && !*b.Active {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Tidak bisa menonaktifkan akun sendiri")
 		return
 	}
-	ro, err := s.st.Q.GetRole(r.Context(), coalesceStr(deref(cur.RoleKey), deref(cur.Role)))
-	if err != nil {
-		ro = gen.Role{Key: deref(cur.Role), Name: deref(cur.Role), Base: deref(cur.Role), WaAllowed: true}
-	}
+	var ro *gen.Role
 	if b.RoleKey != "" || b.Role != "" {
+		x, ok := s.userRole(w, r, me, b)
+		if !ok {
+			return
+		}
+		ro = &x
+	}
+	losesPolicies := deref(cur.Role) == "ceo" && ((ro != nil && !ro.Policies) || (b.Active != nil && !*b.Active))
+	if losesPolicies {
+		if n, _ := s.st.Q.PolicyHoldersExcept(r.Context(), gen.PolicyHoldersExceptParams{RoleKey: "", UserID: id}); n == 0 {
+			httpx.Fail(w, http.StatusBadRequest, "invalid", "Harus tetap ada satu pengguna aktif dengan hak kebijakan (setara CEO)")
+			return
+		}
+	}
+	if ro != nil && !ro.WaAllowed {
+		if held, err := s.st.Q.GetWANumberByUser(r.Context(), &id); err == nil {
+			httpx.Fail(w, http.StatusConflict, "wa_linked", "Pengguna ini memegang "+wa.MaskNumber(held.WaNumber)+" — lepas nomornya di Chat sebelum pindah ke peran tanpa WhatsApp")
+			return
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+	}
+	branch := ""
+	if strings.TrimSpace(b.Branch) != "" {
 		var ok bool
-		if ro, ok = s.userRole(w, r, me, b); !ok {
+		if branch, ok = s.userBranch(w, r, b.Branch); !ok {
 			return
 		}
-		if deref(cur.Role) == "ceo" && ro.Base != "ceo" {
-			var others int
-			_ = s.st.Pool.QueryRow(r.Context(), "select count(*) from users where role = 'ceo' and active and id <> $1", id).Scan(&others)
-			if others == 0 {
-				httpx.Fail(w, http.StatusBadRequest, "invalid", "Harus tetap ada satu CEO aktif")
-				return
-			}
-		}
-	}
-	waNo, ok := userWA(w, b.WANumber, ro)
-	if !ok {
-		return
-	}
-	held, holdErr := s.st.Q.GetWANumberByUser(r.Context(), &id)
-	if holdErr == nil {
-		if waNo != nil && *waNo != held.WaNumber {
-			httpx.Fail(w, http.StatusConflict, "wa_linked", "Nomor "+wa.MaskNumber(held.WaNumber)+" masih tertaut di Chat — lepas dulu di Chat → nomor itu, baru ganti")
-			return
-		}
-		if !ro.WaAllowed && ro.Base != "ceo" {
-			httpx.Fail(w, http.StatusConflict, "wa_linked", "Pengguna ini memegang nomor WhatsApp — lepas dulu sebelum pindah ke peran tanpa WhatsApp")
-			return
-		}
-	} else if !errors.Is(holdErr, pgx.ErrNoRows) {
-		httpx.Fail(w, http.StatusInternalServerError, "internal", holdErr.Error())
-		return
 	}
 	p := gen.UpdateUserParams{ID: id, Active: b.Active}
-	if b.Name != "" {
-		p.Name = &b.Name
+	if n := strings.TrimSpace(b.Name); n != "" {
+		p.Name = &n
 	}
 	if b.Password != "" {
 		h, err := auth.Hash(b.Password)
@@ -313,40 +273,31 @@ func (s *Server) updateUser(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	prof := gen.SetUserProfileParams{ID: id, WaNumber: waNo}
-	if b.RoleKey != "" || b.Role != "" {
-		prof.RoleKey, prof.Role = &ro.Key, &ro.Base
-	}
-	if err := s.st.Q.SetUserProfile(r.Context(), prof); err != nil {
-		if waTaken(w, err) {
-			return
-		}
-		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
-		return
-	}
-	if cur.SalesUserID != nil && (waNo != nil || b.Branch != "" || prof.Role != nil) {
-		wn := deref(cur.WaNumber)
-		if waNo != nil {
-			wn = *waNo
-		}
-		sp := gen.SetSalesProfileWAParams{ID: *cur.SalesUserID, WaNumber: wn, Role: prof.Role}
-		if br := strings.TrimSpace(b.Branch); br != "" {
-			sp.Branch = &br
-		}
-		if err := s.st.Q.SetSalesProfileWA(r.Context(), sp); err != nil && !strings.Contains(err.Error(), "wa_number") {
+	if ro != nil {
+		if err := s.st.Q.SetUserProfile(r.Context(), gen.SetUserProfileParams{ID: id, RoleKey: &ro.Key, Role: &ro.Base}); err != nil {
 			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 			return
 		}
 	}
-	s.auditUser(r, "user.update", "user:"+id.String(), map[string]any{"role": ro.Key, "active": b.Active, "wa_number": waNo, "password_reset": b.Password != ""})
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func coalesceStr(a, b string) string {
-	if a != "" {
-		return a
+	if cur.SalesUserID != nil && (branch != "" || ro != nil) {
+		sp := gen.SetSalesProfileWAParams{ID: *cur.SalesUserID, WaNumber: deref(cur.WaNumber)}
+		if branch != "" {
+			sp.Branch = &branch
+		}
+		if ro != nil {
+			sp.Role = &ro.Base
+		}
+		if err := s.st.Q.SetSalesProfileWA(r.Context(), sp); err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
 	}
-	return b
+	roleKey := ""
+	if ro != nil {
+		roleKey = ro.Key
+	}
+	s.auditUser(r, "user.update", "user:"+id.String(), map[string]any{"role": roleKey, "branch": branch, "active": b.Active, "password_reset": b.Password != ""})
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // checkTOTP verifies a code against a sealed secret and burns its time step (no replay).
@@ -363,8 +314,8 @@ func (s *Server) checkTOTP(r *http.Request, id uuid.UUID, sealed, code string, n
 	return err == nil && n == 1
 }
 
-// totpRoles may turn on 2FA (09-policies-security: CEO and admin).
-func totpRoles(role string) bool { return role == "ceo" || role == "admin" }
+// totpRoles may turn on 2FA (09-policies-security: policy holders and administrators; everyone with all data).
+func totpRoles(role string) bool { return role == "ceo" || role == "admin" || role == "finance" }
 
 // totpSetup creates a new secret (not active until the first code is confirmed) and returns it once.
 func (s *Server) totpSetup(w http.ResponseWriter, r *http.Request) {

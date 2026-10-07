@@ -133,6 +133,19 @@ type WAPairWorker struct {
 func (w *WAPairWorker) Work(ctx context.Context, job *river.Job[jobs.WAPairArgs]) error {
 	var qr string
 	var err error
+	if job.Args.Session != "" {
+		lk, ok := w.t.(wa.Linker)
+		if !ok {
+			return river.JobCancel(errors.New("transport ini tidak bisa menautkan perangkat baru"))
+		}
+		if qr, err = lk.Link(ctx, job.Args.Session, job.Args.Phone, job.Args.Method == "code"); err != nil {
+			return err
+		}
+		if qr != "" {
+			return w.ingest.ProcessStatus(ctx, wa.Status{Session: job.Args.Session, State: "pairing", QR: qr})
+		}
+		return nil
+	}
 	if cp, ok := w.t.(wa.CodePairer); ok && job.Args.Method == "code" {
 		qr, err = cp.PairCode(ctx, job.Args.WANumber)
 	} else {

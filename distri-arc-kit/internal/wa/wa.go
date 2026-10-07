@@ -28,8 +28,9 @@ type Message struct {
 
 // Status is the connection state of one paired number.
 type Status struct {
-	Account string `json:"account"`
-	State   string `json:"state"` // unpaired | pairing | connected | disconnected | logged_out
+	Account string `json:"account"`           // the number (empty while a new link is still pairing)
+	Session string `json:"session,omitempty"` // the transport's session id (a new link gets one before its number is known)
+	State   string `json:"state"`             // unpaired | pairing | connected | disconnected | logged_out
 	JID     string `json:"jid,omitempty"`
 	QR      string `json:"qr,omitempty"`
 }
@@ -100,6 +101,13 @@ func NumberOfJID(jid string) string {
 
 // IsGroupJID reports whether a JID is a group chat.
 func IsGroupJID(jid string) bool { return strings.HasSuffix(jid, "@g.us") }
+
+// Linker is implemented by transports that link a new device before its number is known (Chat → + Nomor: scan, then
+// pick the user). The session id is ours; the number arrives with the "connected" status. code: link with a code
+// typed on the phone, which needs the phone number up front.
+type Linker interface {
+	Link(ctx context.Context, session, phone string, code bool) (string, error)
+}
 
 // CodePairer is implemented by transports that can link with an 8-character code typed on the phone
 // (WhatsApp → Perangkat tertaut → Tautkan dengan nomor telepon) instead of scanning a QR code.

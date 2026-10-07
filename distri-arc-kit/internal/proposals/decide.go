@@ -535,10 +535,14 @@ func RolesFor(kind string) []string {
 
 func authorize(ctx context.Context, q *gen.Queries, kind string, dealerID *uuid.UUID, payload json.RawMessage, who Decider) error {
 	roles := RolesFor(kind)
-	if who.Decide != nil && slices.Contains(roles, who.Role) && !slices.Contains(who.Decide, kind) {
-		return fmt.Errorf("%w: peran %s tidak memutuskan %s — atur di Pengaturan → Peran & akses", ErrForbidden, who.RoleName, strings.ToLower(kindLabel(kind)))
+	if kind == domain.KindCreditRelease && who.Role != "ceo" {
+		return fmt.Errorf("%w: rilis di atas limit butuh approve CEO", ErrForbidden)
 	}
-	if !slices.Contains(roles, who.Role) {
+	if who.Decide != nil { // the role master decides who decides what
+		if !slices.Contains(who.Decide, kind) {
+			return fmt.Errorf("%w: peran %s tidak memutuskan %s — atur di Peran & akses", ErrForbidden, who.RoleName, strings.ToLower(kindLabel(kind)))
+		}
+	} else if !slices.Contains(roles, who.Role) {
 		if kind == domain.KindCreditRelease {
 			return fmt.Errorf("%w: rilis di atas limit butuh approve CEO", ErrForbidden)
 		}

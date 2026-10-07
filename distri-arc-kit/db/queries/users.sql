@@ -31,18 +31,51 @@ from roles r order by r.system desc, array_position(array['ceo','admin','finance
 select * from roles where key = $1;
 
 -- name: UpsertRole :exec
-insert into roles (key, name, description, base, screens, decide, wa_allowed, active, updated_by, updated_at)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+insert into roles (key, name, description, base, screens, decide, wa_allowed, active, scope, policies, updated_by, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())
 on conflict (key) do update set name = excluded.name, description = excluded.description, base = excluded.base,
   screens = excluded.screens, decide = excluded.decide, wa_allowed = excluded.wa_allowed, active = excluded.active,
-  updated_by = excluded.updated_by, updated_at = now();
+  scope = excluded.scope, policies = excluded.policies, updated_by = excluded.updated_by, updated_at = now();
 
 -- name: DeleteRole :execrows
-delete from roles r where r.key = $1 and not r.system and not exists (select 1 from users u where u.role_key = r.key);
+delete from roles r where r.key = $1 and not exists (select 1 from users u where u.role_key = r.key);
 
 -- name: SyncRoleBase :exec
--- A role's base changed: its users follow (users.role is what every server check reads).
-update users set role = $2 where role_key = $1;
+-- A role's derived base changed: its users and their person profiles follow (users.role is what the server's
+-- data-scope checks read).
+with u as (update users set role = $2 where role_key = $1 returning sales_user_id)
+update sales_users s set role = $2 from u where s.id = u.sales_user_id;
+
+-- name: PolicyHoldersExcept :one
+-- Active users holding policy rights, not counting one role (being changed) or one user (being moved).
+select count(*) from users u join roles r on r.key = u.role_key
+where u.active and r.active and r.policies and r.key <> sqlc.arg(role_key)::text and u.id <> sqlc.arg(user_id)::uuid;
+
+-- name: ListBranches :many
+select b.*, (select count(*) from sales_users s join users u on u.sales_user_id = s.id where s.branch = b.name and u.active) as users,
+  (select count(*) from dealers d where d.branch = b.name) as dealers
+from branches b order by b.active desc, b.name;
+
+-- name: GetBranch :one
+select * from branches where id = $1;
+
+-- name: BranchByName :one
+select * from branches where lower(name) = lower($1);
+
+-- name: InsertBranch :one
+insert into branches (name, city, address, updated_by) values ($1, $2, $3, $4) returning id;
+
+-- name: UpdateBranch :exec
+update branches set name = $2, city = $3, address = $4, active = $5, updated_by = $6 where id = $1;
+
+-- name: RenameBranchRefs :exec
+-- A branch renamed in the master: people, dealers and source mappings follow.
+with a as (update sales_users set branch = sqlc.arg(new_name)::text where branch = sqlc.arg(old_name)::text returning 1),
+     b as (update dealers set branch = sqlc.arg(new_name)::text where branch = sqlc.arg(old_name)::text returning 1)
+update data_mappings set target = sqlc.arg(new_name)::text where kind in ('branch','warehouse') and target = sqlc.arg(old_name)::text;
+
+-- name: SetPersonBranch :exec
+update sales_users set branch = $2 where id = $1;
 
 -- name: CreateUser :one
 insert into users (email, name, role, password_hash, sales_user_id, active, role_key, wa_number) values ($1, $2, $3, $4, $5, true, $6, $7) returning id;
@@ -84,3 +117,14 @@ update users set totp_secret = null, totp_enabled_at = null, totp_last_step = nu
 -- name: CreatePersonProfile :one
 -- Every account gets a person profile (sales_users): decisions are recorded against it (proposals.decided_by).
 insert into sales_users (name, branch, role, email) values ($1, $2, $3, $4) returning id;
+
+-- name: EnsureBranches :exec
+-- Branches in use by people and dealers join the branch master (seed, first install).
+insert into branches (name)
+select distinct b from (select branch as b from sales_users union select branch from dealers) x
+where b is not null and b <> '' and b <> 'Semua cabang'
+on conflict do nothing;
+
+-- name: LinkNumbersToUsers :exec
+-- Numbers whose holder is known by the user's own number (seed, older installs) are given to that user.
+update wa_numbers n set user_id = u.id from users u where u.wa_number = n.wa_number and n.user_id is null;

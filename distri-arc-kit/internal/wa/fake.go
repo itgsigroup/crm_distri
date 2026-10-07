@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // Fake is an in-memory transport: Inject simulates an incoming message, Send records and acknowledges.
@@ -38,6 +39,26 @@ func (f *Fake) Pair(_ context.Context, account string) (string, error) {
 	f.mu.Unlock()
 	f.events <- Event{Status: &Status{Account: Digits(account), State: "connected", JID: UserJID(account)}}
 	return "", nil
+}
+
+// Link simulates scanning: a QR (or code), then the phone reports its number (phone, or a generated one).
+func (f *Fake) Link(_ context.Context, session, phone string, code bool) (string, error) {
+	n := Digits(phone)
+	if n == "" {
+		n = fmt.Sprintf("62899%07d", f.seq.Add(1))
+	}
+	f.mu.Lock()
+	f.states[n] = "connected"
+	f.mu.Unlock()
+	qr := "2@fake-qr-" + session
+	if code {
+		qr = PairCodePrefix + "FAKE-0000"
+	}
+	go func() { // the "phone" scans a moment later
+		time.Sleep(1500 * time.Millisecond)
+		f.events <- Event{Status: &Status{Session: session, Account: n, State: "connected", JID: UserJID(n)}}
+	}()
+	return qr, nil
 }
 
 // Status lists fake numbers.

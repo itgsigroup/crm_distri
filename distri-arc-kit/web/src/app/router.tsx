@@ -13,7 +13,9 @@ import { ChatPage } from '../features/chat/ChatPage'
 import { StockPage } from '../features/stock/StockPage'
 import { GuidePage } from '../features/guide/GuidePage'
 import { CreditPage } from '../features/credit/CreditPage'
-import { UsersPage } from '../features/settings/UsersPage'
+import { BranchesPage } from '../features/master/BranchesPage'
+import { RolesPage } from '../features/master/RolesPage'
+import { UsersPage } from '../features/master/UsersPage'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { PilotPage } from '../features/pilot/PilotPage'
 import { DataPage } from '../features/data/DataPage'
@@ -36,6 +38,8 @@ export const router = createBrowserRouter([
       { path: 'stok', element: <StockPage /> },
       { path: 'kredit', element: <CreditPage /> },
       { path: 'pengguna', element: <UsersPage /> },
+      { path: 'peran', element: <RolesPage /> },
+      { path: 'cabang', element: <BranchesPage /> },
       { path: 'pengaturan', element: <SettingsPage /> },
       { path: 'pengaturan/pilot', element: <PilotPage /> },
       { path: 'pengaturan/data', element: <DataPage /> },

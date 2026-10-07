@@ -24,6 +24,8 @@ export const ROUTES: Record<ScreenKey, string> = {
   stock: '/stok',
   ar: '/kredit',
   users: '/pengguna',
+  roles: '/peran',
+  branches: '/cabang',
   conn: '/pengaturan',
   konsep: '/panduan',
 }
@@ -39,6 +41,8 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/stok')) return 'stock'
   if (path.startsWith('/kredit')) return 'ar'
   if (path.startsWith('/pengguna')) return 'users'
+  if (path.startsWith('/peran')) return 'roles'
+  if (path.startsWith('/cabang')) return 'branches'
   if (path.startsWith('/pengaturan')) return 'conn'
   if (path.startsWith('/panduan')) return 'konsep'
   return 'today'
@@ -145,11 +149,14 @@ export function Shell() {
             <div className="nav-sec">Operasi</div>
             <NavBtn to="stock" cur={cur} icon="box">Push stok</NavBtn>
             <NavBtn to="ar" cur={cur} icon="cash" badge={<Badge n={creditBad} color="var(--bad)" />}>Kredit · kas</NavBtn>
+            {me && ['users', 'roles', 'branches'].some((k) => me.screens.includes(k)) && <div className="nav-sec">Master data</div>}
+            <NavBtn to="users" cur={cur} icon="people">Pengguna</NavBtn>
+            <NavBtn to="roles" cur={cur} icon="shield">Peran &amp; akses</NavBtn>
+            <NavBtn to="branches" cur={cur} icon="building">Cabang</NavBtn>
           </nav>
           <div className="rail-sec">
             <nav className="nav" aria-label="Pengaturan">
               <NavBtn to="konsep" cur={cur} icon="doc">Panduan</NavBtn>
-              <NavBtn to="users" cur={cur} icon="people">Pengguna</NavBtn>
               <NavBtn to="conn" cur={cur} icon="gear">Pengaturan</NavBtn>
             </nav>
             <div className="agents">

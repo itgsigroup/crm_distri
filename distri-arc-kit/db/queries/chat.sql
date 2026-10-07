@@ -35,12 +35,47 @@ order by s.name nulls last, n.label, n.created_at;
 -- name: GetWANumberByUser :one
 select * from wa_numbers where user_id = $1;
 
+-- name: GetWANumberBySession :one
+select * from wa_numbers where session_id = $1;
+
+-- name: LinkWANumber :exec
+-- A linked device reported its number: the number is registered (or re-linked) under the link's session.
+insert into wa_numbers (wa_number, session_id, label, transport, state, jid, paired_at, last_seen_at)
+values ($1, $2, $3, $4, 'connected', $5, now(), now())
+on conflict (wa_number) do update set session_id = excluded.session_id, transport = excluded.transport, state = 'connected',
+  jid = coalesce(excluded.jid, wa_numbers.jid), qr = null, paired_at = coalesce(wa_numbers.paired_at, now()), last_seen_at = now(), updated_at = now();
+
+-- name: SetWANumberUser :exec
+-- Gives a linked number to a user (one user, one number; null releases it).
+update wa_numbers set user_id = sqlc.narg(user_id), sales_id = sqlc.narg(sales_id), label = sqlc.narg(label), updated_at = now()
+where wa_number = sqlc.arg(wa_number);
+
+-- name: AssignThreadsSales :exec
+-- Conversations of a number follow the sales who holds it.
+update chat_threads set sales_id = sqlc.narg(sales_id) where account = sqlc.arg(account);
+
+-- name: InsertWALink :exec
+insert into wa_links (session_id, method, phone, created_by) values ($1, $2, $3, $4);
+
+-- name: GetWALink :one
+select * from wa_links where session_id = $1;
+
+-- name: SetWALink :exec
+update wa_links set state = $2, qr = $3, wa_number = coalesce(sqlc.narg(wa_number), wa_number), error = sqlc.narg(error), updated_at = now()
+where session_id = $1;
+
+-- name: SetUserWANumber :exec
+update users set wa_number = sqlc.narg(wa_number) where id = sqlc.arg(id);
+
+-- name: ClearUserWANumber :exec
+update users set wa_number = null where wa_number = $1;
+
 -- name: GetWANumber :one
 select * from wa_numbers where wa_number = $1;
 
 -- name: UpsertWANumber :exec
-insert into wa_numbers (wa_number, sales_id, label, transport, state, user_id)
-values ($1, $2, $3, $4, $5, $6)
+insert into wa_numbers (wa_number, sales_id, label, transport, state, user_id, session_id)
+values ($1, $2, $3, $4, $5, $6, $1)
 on conflict (wa_number) do update set sales_id = excluded.sales_id, label = excluded.label, transport = excluded.transport,
   user_id = coalesce(excluded.user_id, wa_numbers.user_id);
 

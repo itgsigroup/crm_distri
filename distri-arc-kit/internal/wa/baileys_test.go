@@ -115,7 +115,7 @@ func TestBaileysEventsAndStatus(t *testing.T) {
 	seen := map[string]string{}
 	for range 2 {
 		e := <-b.Events()
-		seen[e.Status.Account] = e.Status.State
+		seen[e.Status.Session] = e.Status.State
 	}
 	if seen["6281234504471"] != "connected" || seen["6281299990000"] != "pairing" {
 		t.Fatalf("start statuses %v", seen)
@@ -138,5 +138,16 @@ func TestBaileysEventsAndStatus(t *testing.T) {
 	}
 	if qr, err := b.Pair(context.Background(), "0812-9999-0000"); err != nil || qr != "2@abc" {
 		t.Fatalf("pair %q %v", qr, err)
+	}
+	// a new link: the session is named before the number; the number arrives with "connected" and on every event
+	st = `{"status":{"session":"link-ab12","status":"connected","phone":"6281277770000","qr":""}}`
+	_ = post(st, sign(secret, []byte(st)))
+	if s := (<-b.Events()).Status; s == nil || s.Session != "link-ab12" || s.Account != "6281277770000" || s.State != "connected" {
+		t.Fatalf("link status %+v", s)
+	}
+	ev = `{"event":{"wamid":"W2","session":"link-ab12","account":"6281277770000","from":"6281900300102","to":"6281277770000","chat_id":"6281900300102@s.whatsapp.net","is_group":false,"sender_name":"","text":"halo","timestamp":"2026-10-05T07:00:00Z","from_me":false,"is_history":false,"transport":"bridge"}}`
+	_ = post(ev, sign(secret, []byte(ev)))
+	if m := (<-b.Events()).Message; m == nil || m.Account != "6281277770000" {
+		t.Fatalf("link message %+v", m)
 	}
 }

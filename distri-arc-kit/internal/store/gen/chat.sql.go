@@ -44,6 +44,30 @@ func (q *Queries) AdoptKamiCommitment(ctx context.Context, arg AdoptKamiCommitme
 	return id, err
 }
 
+const assignThreadsSales = `-- name: AssignThreadsSales :exec
+update chat_threads set sales_id = $1 where account = $2
+`
+
+type AssignThreadsSalesParams struct {
+	SalesID *uuid.UUID `json:"sales_id"`
+	Account *string    `json:"account"`
+}
+
+// Conversations of a number follow the sales who holds it.
+func (q *Queries) AssignThreadsSales(ctx context.Context, arg AssignThreadsSalesParams) error {
+	_, err := q.db.Exec(ctx, assignThreadsSales, arg.SalesID, arg.Account)
+	return err
+}
+
+const clearUserWANumber = `-- name: ClearUserWANumber :exec
+update users set wa_number = null where wa_number = $1
+`
+
+func (q *Queries) ClearUserWANumber(ctx context.Context, waNumber *string) error {
+	_, err := q.db.Exec(ctx, clearUserWANumber, waNumber)
+	return err
+}
+
 const closeCommitment = `-- name: CloseCommitment :exec
 update commitments set status = 'done' where id = $1
 `
@@ -346,8 +370,30 @@ func (q *Queries) GetWAGroupByJID(ctx context.Context, jid *string) (WaGroup, er
 	return i, err
 }
 
+const getWALink = `-- name: GetWALink :one
+select session_id, method, phone, state, qr, wa_number, error, created_by, created_at, updated_at from wa_links where session_id = $1
+`
+
+func (q *Queries) GetWALink(ctx context.Context, sessionID string) (WaLink, error) {
+	row := q.db.QueryRow(ctx, getWALink, sessionID)
+	var i WaLink
+	err := row.Scan(
+		&i.SessionID,
+		&i.Method,
+		&i.Phone,
+		&i.State,
+		&i.Qr,
+		&i.WaNumber,
+		&i.Error,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getWANumber = `-- name: GetWANumber :one
-select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id from wa_numbers where wa_number = $1
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id from wa_numbers where wa_number = $1
 `
 
 func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, error) {
@@ -368,12 +414,40 @@ func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, e
 		&i.UpdatedAt,
 		&i.CreatedAt,
 		&i.UserID,
+		&i.SessionID,
+	)
+	return i, err
+}
+
+const getWANumberBySession = `-- name: GetWANumberBySession :one
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id from wa_numbers where session_id = $1
+`
+
+func (q *Queries) GetWANumberBySession(ctx context.Context, sessionID string) (WaNumber, error) {
+	row := q.db.QueryRow(ctx, getWANumberBySession, sessionID)
+	var i WaNumber
+	err := row.Scan(
+		&i.WaNumber,
+		&i.SalesID,
+		&i.Label,
+		&i.Transport,
+		&i.Jid,
+		&i.State,
+		&i.Qr,
+		&i.QrExpiresAt,
+		&i.LastSeenAt,
+		&i.PairedAt,
+		&i.BackfillDays,
+		&i.UpdatedAt,
+		&i.CreatedAt,
+		&i.UserID,
+		&i.SessionID,
 	)
 	return i, err
 }
 
 const getWANumberByUser = `-- name: GetWANumberByUser :one
-select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id from wa_numbers where user_id = $1
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id from wa_numbers where user_id = $1
 `
 
 func (q *Queries) GetWANumberByUser(ctx context.Context, userID *uuid.UUID) (WaNumber, error) {
@@ -394,6 +468,7 @@ func (q *Queries) GetWANumberByUser(ctx context.Context, userID *uuid.UUID) (WaN
 		&i.UpdatedAt,
 		&i.CreatedAt,
 		&i.UserID,
+		&i.SessionID,
 	)
 	return i, err
 }
@@ -759,6 +834,27 @@ func (q *Queries) InsertThread(ctx context.Context, arg InsertThreadParams) (Cha
 	return i, err
 }
 
+const insertWALink = `-- name: InsertWALink :exec
+insert into wa_links (session_id, method, phone, created_by) values ($1, $2, $3, $4)
+`
+
+type InsertWALinkParams struct {
+	SessionID string  `json:"session_id"`
+	Method    string  `json:"method"`
+	Phone     *string `json:"phone"`
+	CreatedBy *string `json:"created_by"`
+}
+
+func (q *Queries) InsertWALink(ctx context.Context, arg InsertWALinkParams) error {
+	_, err := q.db.Exec(ctx, insertWALink,
+		arg.SessionID,
+		arg.Method,
+		arg.Phone,
+		arg.CreatedBy,
+	)
+	return err
+}
+
 const isInternalNumber = `-- name: IsInternalNumber :one
 select exists(select 1 from internal_numbers where wa_number = $1)::bool as internal
 `
@@ -825,6 +921,33 @@ func (q *Queries) LatestThreadSignal(ctx context.Context, threadID *uuid.UUID) (
 	var signal_id *uuid.UUID
 	err := row.Scan(&signal_id)
 	return signal_id, err
+}
+
+const linkWANumber = `-- name: LinkWANumber :exec
+insert into wa_numbers (wa_number, session_id, label, transport, state, jid, paired_at, last_seen_at)
+values ($1, $2, $3, $4, 'connected', $5, now(), now())
+on conflict (wa_number) do update set session_id = excluded.session_id, transport = excluded.transport, state = 'connected',
+  jid = coalesce(excluded.jid, wa_numbers.jid), qr = null, paired_at = coalesce(wa_numbers.paired_at, now()), last_seen_at = now(), updated_at = now()
+`
+
+type LinkWANumberParams struct {
+	WaNumber  string  `json:"wa_number"`
+	SessionID string  `json:"session_id"`
+	Label     *string `json:"label"`
+	Transport string  `json:"transport"`
+	Jid       *string `json:"jid"`
+}
+
+// A linked device reported its number: the number is registered (or re-linked) under the link's session.
+func (q *Queries) LinkWANumber(ctx context.Context, arg LinkWANumberParams) error {
+	_, err := q.db.Exec(ctx, linkWANumber,
+		arg.WaNumber,
+		arg.SessionID,
+		arg.Label,
+		arg.Transport,
+		arg.Jid,
+	)
+	return err
 }
 
 const listInternalNumbers = `-- name: ListInternalNumbers :many
@@ -1021,7 +1144,7 @@ func (q *Queries) ListWAGroups(ctx context.Context) ([]WaGroup, error) {
 }
 
 const listWANumbers = `-- name: ListWANumbers :many
-select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, n.user_id, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email
+select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, n.user_id, n.session_id, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email
 from wa_numbers n left join sales_users s on s.id = n.sales_id left join users u on u.id = n.user_id
 order by s.name nulls last, n.label, n.created_at
 `
@@ -1041,6 +1164,7 @@ type ListWANumbersRow struct {
 	UpdatedAt    time.Time  `json:"updated_at"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UserID       *uuid.UUID `json:"user_id"`
+	SessionID    string     `json:"session_id"`
 	SalesName    *string    `json:"sales_name"`
 	SalesBranch  *string    `json:"sales_branch"`
 	UserName     *string    `json:"user_name"`
@@ -1071,6 +1195,7 @@ func (q *Queries) ListWANumbers(ctx context.Context) ([]ListWANumbersRow, error)
 			&i.UpdatedAt,
 			&i.CreatedAt,
 			&i.UserID,
+			&i.SessionID,
 			&i.SalesName,
 			&i.SalesBranch,
 			&i.UserName,
@@ -1346,6 +1471,44 @@ func (q *Queries) SetSignalReply(ctx context.Context, arg SetSignalReplyParams) 
 	return err
 }
 
+const setUserWANumber = `-- name: SetUserWANumber :exec
+update users set wa_number = $1 where id = $2
+`
+
+type SetUserWANumberParams struct {
+	WaNumber *string   `json:"wa_number"`
+	ID       uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetUserWANumber(ctx context.Context, arg SetUserWANumberParams) error {
+	_, err := q.db.Exec(ctx, setUserWANumber, arg.WaNumber, arg.ID)
+	return err
+}
+
+const setWALink = `-- name: SetWALink :exec
+update wa_links set state = $2, qr = $3, wa_number = coalesce($4, wa_number), error = $5, updated_at = now()
+where session_id = $1
+`
+
+type SetWALinkParams struct {
+	SessionID string  `json:"session_id"`
+	State     string  `json:"state"`
+	Qr        *string `json:"qr"`
+	WaNumber  *string `json:"wa_number"`
+	Error     *string `json:"error"`
+}
+
+func (q *Queries) SetWALink(ctx context.Context, arg SetWALinkParams) error {
+	_, err := q.db.Exec(ctx, setWALink,
+		arg.SessionID,
+		arg.State,
+		arg.Qr,
+		arg.WaNumber,
+		arg.Error,
+	)
+	return err
+}
+
 const setWANumberQR = `-- name: SetWANumberQR :exec
 update wa_numbers set qr = $2, qr_expires_at = $3, state = 'pairing', updated_at = now() where wa_number = $1
 `
@@ -1384,6 +1547,29 @@ update wa_numbers set state = 'unpaired', qr = null, qr_expires_at = null, jid =
 
 func (q *Queries) SetWANumberUnpaired(ctx context.Context, waNumber string) error {
 	_, err := q.db.Exec(ctx, setWANumberUnpaired, waNumber)
+	return err
+}
+
+const setWANumberUser = `-- name: SetWANumberUser :exec
+update wa_numbers set user_id = $1, sales_id = $2, label = $3, updated_at = now()
+where wa_number = $4
+`
+
+type SetWANumberUserParams struct {
+	UserID   *uuid.UUID `json:"user_id"`
+	SalesID  *uuid.UUID `json:"sales_id"`
+	Label    *string    `json:"label"`
+	WaNumber string     `json:"wa_number"`
+}
+
+// Gives a linked number to a user (one user, one number; null releases it).
+func (q *Queries) SetWANumberUser(ctx context.Context, arg SetWANumberUserParams) error {
+	_, err := q.db.Exec(ctx, setWANumberUser,
+		arg.UserID,
+		arg.SalesID,
+		arg.Label,
+		arg.WaNumber,
+	)
 	return err
 }
 
@@ -1579,8 +1765,8 @@ func (q *Queries) UpsertWAGroup(ctx context.Context, arg UpsertWAGroupParams) (W
 }
 
 const upsertWANumber = `-- name: UpsertWANumber :exec
-insert into wa_numbers (wa_number, sales_id, label, transport, state, user_id)
-values ($1, $2, $3, $4, $5, $6)
+insert into wa_numbers (wa_number, sales_id, label, transport, state, user_id, session_id)
+values ($1, $2, $3, $4, $5, $6, $1)
 on conflict (wa_number) do update set sales_id = excluded.sales_id, label = excluded.label, transport = excluded.transport,
   user_id = coalesce(excluded.user_id, wa_numbers.user_id)
 `

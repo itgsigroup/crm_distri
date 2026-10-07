@@ -42,8 +42,10 @@ func (OutboxSendArgs) InsertOpts() river.InsertOpts {
 
 // WAPairArgs starts pairing a sales number (QR) in the worker, which owns the WhatsApp connections.
 type WAPairArgs struct {
-	WANumber string `json:"wa_number"`
-	Method   string `json:"method,omitempty"` // "" = QR, "code" = code typed on the phone
+	WANumber string `json:"wa_number,omitempty"` // re-link a registered number
+	Session  string `json:"session,omitempty"`   // or link a new device under this session id (Chat → + Nomor)
+	Phone    string `json:"phone,omitempty"`     // the phone a code is requested for (method code)
+	Method   string `json:"method,omitempty"`    // "" = QR, "code" = code typed on the phone
 }
 
 func (WAPairArgs) Kind() string { return "wa.pair" }

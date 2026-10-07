@@ -171,6 +171,7 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	ingest := wa.NewIngestor(st, log)
+	ingest.Transport = t.Name()
 	src, err := odooSource(cfg)
 	if err != nil {
 		return err

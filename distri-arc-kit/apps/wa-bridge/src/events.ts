@@ -7,6 +7,7 @@ export interface MediaMeta { kind: string; mime: string; file_name: string; size
 export interface WaEvent {
   wamid: string
   session: string
+  account: string // the linked phone's own number (sessions are named before the number is known)
   from: string
   to: string
   chat_id: string
@@ -78,6 +79,7 @@ export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, hi
   const ev: WaEvent = {
     wamid: key.id,
     session,
+    account: r.ownPhone,
     from,
     to: fromMe ? (group ? '' : digits(chat)) : r.ownPhone,
     chat_id: chat,

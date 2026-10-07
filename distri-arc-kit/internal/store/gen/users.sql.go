@@ -12,6 +12,25 @@ import (
 	"github.com/google/uuid"
 )
 
+const branchByName = `-- name: BranchByName :one
+select id, name, city, address, active, updated_by, created_at from branches where lower(name) = lower($1)
+`
+
+func (q *Queries) BranchByName(ctx context.Context, lower string) (Branch, error) {
+	row := q.db.QueryRow(ctx, branchByName, lower)
+	var i Branch
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.City,
+		&i.Address,
+		&i.Active,
+		&i.UpdatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const createPersonProfile = `-- name: CreatePersonProfile :one
 insert into sales_users (name, branch, role, email) values ($1, $2, $3, $4) returning id
 `
@@ -66,7 +85,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UU
 }
 
 const deleteRole = `-- name: DeleteRole :execrows
-delete from roles r where r.key = $1 and not r.system and not exists (select 1 from users u where u.role_key = r.key)
+delete from roles r where r.key = $1 and not exists (select 1 from users u where u.role_key = r.key)
 `
 
 func (q *Queries) DeleteRole(ctx context.Context, key string) (int64, error) {
@@ -101,6 +120,38 @@ func (q *Queries) EnableTOTP(ctx context.Context, arg EnableTOTPParams) error {
 	return err
 }
 
+const ensureBranches = `-- name: EnsureBranches :exec
+insert into branches (name)
+select distinct b from (select branch as b from sales_users union select branch from dealers) x
+where b is not null and b <> '' and b <> 'Semua cabang'
+on conflict do nothing
+`
+
+// Branches in use by people and dealers join the branch master (seed, first install).
+func (q *Queries) EnsureBranches(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, ensureBranches)
+	return err
+}
+
+const getBranch = `-- name: GetBranch :one
+select id, name, city, address, active, updated_by, created_at from branches where id = $1
+`
+
+func (q *Queries) GetBranch(ctx context.Context, id uuid.UUID) (Branch, error) {
+	row := q.db.QueryRow(ctx, getBranch, id)
+	var i Branch
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.City,
+		&i.Address,
+		&i.Active,
+		&i.UpdatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getLoginUser = `-- name: GetLoginUser :one
 select id, email, name, role, password_hash, active, totp_secret, totp_enabled_at from users where lower(email) = lower($1)
 `
@@ -133,7 +184,7 @@ func (q *Queries) GetLoginUser(ctx context.Context, lower string) (GetLoginUserR
 }
 
 const getRole = `-- name: GetRole :one
-select key, name, description, base, screens, decide, wa_allowed, system, active, updated_by, updated_at from roles where key = $1
+select key, name, description, base, screens, decide, wa_allowed, system, active, updated_by, updated_at, scope, policies from roles where key = $1
 `
 
 func (q *Queries) GetRole(ctx context.Context, key string) (Role, error) {
@@ -151,6 +202,8 @@ func (q *Queries) GetRole(ctx context.Context, key string) (Role, error) {
 		&i.Active,
 		&i.UpdatedBy,
 		&i.UpdatedAt,
+		&i.Scope,
+		&i.Policies,
 	)
 	return i, err
 }
@@ -214,8 +267,89 @@ func (q *Queries) GetUserTOTP(ctx context.Context, id uuid.UUID) (GetUserTOTPRow
 	return i, err
 }
 
+const insertBranch = `-- name: InsertBranch :one
+insert into branches (name, city, address, updated_by) values ($1, $2, $3, $4) returning id
+`
+
+type InsertBranchParams struct {
+	Name      string  `json:"name"`
+	City      string  `json:"city"`
+	Address   string  `json:"address"`
+	UpdatedBy *string `json:"updated_by"`
+}
+
+func (q *Queries) InsertBranch(ctx context.Context, arg InsertBranchParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertBranch,
+		arg.Name,
+		arg.City,
+		arg.Address,
+		arg.UpdatedBy,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const linkNumbersToUsers = `-- name: LinkNumbersToUsers :exec
+update wa_numbers n set user_id = u.id from users u where u.wa_number = n.wa_number and n.user_id is null
+`
+
+// Numbers whose holder is known by the user's own number (seed, older installs) are given to that user.
+func (q *Queries) LinkNumbersToUsers(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, linkNumbersToUsers)
+	return err
+}
+
+const listBranches = `-- name: ListBranches :many
+select b.id, b.name, b.city, b.address, b.active, b.updated_by, b.created_at, (select count(*) from sales_users s join users u on u.sales_user_id = s.id where s.branch = b.name and u.active) as users,
+  (select count(*) from dealers d where d.branch = b.name) as dealers
+from branches b order by b.active desc, b.name
+`
+
+type ListBranchesRow struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	City      string    `json:"city"`
+	Address   string    `json:"address"`
+	Active    bool      `json:"active"`
+	UpdatedBy *string   `json:"updated_by"`
+	CreatedAt time.Time `json:"created_at"`
+	Users     int64     `json:"users"`
+	Dealers   int64     `json:"dealers"`
+}
+
+func (q *Queries) ListBranches(ctx context.Context) ([]ListBranchesRow, error) {
+	rows, err := q.db.Query(ctx, listBranches)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListBranchesRow{}
+	for rows.Next() {
+		var i ListBranchesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.City,
+			&i.Address,
+			&i.Active,
+			&i.UpdatedBy,
+			&i.CreatedAt,
+			&i.Users,
+			&i.Dealers,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRoles = `-- name: ListRoles :many
-select r.key, r.name, r.description, r.base, r.screens, r.decide, r.wa_allowed, r.system, r.active, r.updated_by, r.updated_at, (select count(*) from users u where u.role_key = r.key and u.active) as users
+select r.key, r.name, r.description, r.base, r.screens, r.decide, r.wa_allowed, r.system, r.active, r.updated_by, r.updated_at, r.scope, r.policies, (select count(*) from users u where u.role_key = r.key and u.active) as users
 from roles r order by r.system desc, array_position(array['ceo','admin','finance','sales','warehouse'], r.base), r.name
 `
 
@@ -231,6 +365,8 @@ type ListRolesRow struct {
 	Active      bool      `json:"active"`
 	UpdatedBy   *string   `json:"updated_by"`
 	UpdatedAt   time.Time `json:"updated_at"`
+	Scope       string    `json:"scope"`
+	Policies    bool      `json:"policies"`
 	Users       int64     `json:"users"`
 }
 
@@ -255,6 +391,8 @@ func (q *Queries) ListRoles(ctx context.Context) ([]ListRolesRow, error) {
 			&i.Active,
 			&i.UpdatedBy,
 			&i.UpdatedAt,
+			&i.Scope,
+			&i.Policies,
 			&i.Users,
 		); err != nil {
 			return nil, err
@@ -328,6 +466,41 @@ func (q *Queries) ListUsers(ctx context.Context) ([]ListUsersRow, error) {
 	return items, nil
 }
 
+const policyHoldersExcept = `-- name: PolicyHoldersExcept :one
+select count(*) from users u join roles r on r.key = u.role_key
+where u.active and r.active and r.policies and r.key <> $1::text and u.id <> $2::uuid
+`
+
+type PolicyHoldersExceptParams struct {
+	RoleKey string    `json:"role_key"`
+	UserID  uuid.UUID `json:"user_id"`
+}
+
+// Active users holding policy rights, not counting one role (being changed) or one user (being moved).
+func (q *Queries) PolicyHoldersExcept(ctx context.Context, arg PolicyHoldersExceptParams) (int64, error) {
+	row := q.db.QueryRow(ctx, policyHoldersExcept, arg.RoleKey, arg.UserID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const renameBranchRefs = `-- name: RenameBranchRefs :exec
+with a as (update sales_users set branch = $1::text where branch = $2::text returning 1),
+     b as (update dealers set branch = $1::text where branch = $2::text returning 1)
+update data_mappings set target = $1::text where kind in ('branch','warehouse') and target = $2::text
+`
+
+type RenameBranchRefsParams struct {
+	NewName string `json:"new_name"`
+	OldName string `json:"old_name"`
+}
+
+// A branch renamed in the master: people, dealers and source mappings follow.
+func (q *Queries) RenameBranchRefs(ctx context.Context, arg RenameBranchRefsParams) error {
+	_, err := q.db.Exec(ctx, renameBranchRefs, arg.NewName, arg.OldName)
+	return err
+}
+
 const resetTOTPByEmail = `-- name: ResetTOTPByEmail :execrows
 update users set totp_secret = null, totp_enabled_at = null, totp_last_step = null where lower(email) = lower($1)
 `
@@ -349,6 +522,20 @@ func (q *Queries) SalesUserByName(ctx context.Context, lower string) (uuid.UUID,
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const setPersonBranch = `-- name: SetPersonBranch :exec
+update sales_users set branch = $2 where id = $1
+`
+
+type SetPersonBranchParams struct {
+	ID     uuid.UUID `json:"id"`
+	Branch string    `json:"branch"`
+}
+
+func (q *Queries) SetPersonBranch(ctx context.Context, arg SetPersonBranchParams) error {
+	_, err := q.db.Exec(ctx, setPersonBranch, arg.ID, arg.Branch)
+	return err
 }
 
 const setSalesProfileWA = `-- name: SetSalesProfileWA :exec
@@ -427,17 +614,44 @@ func (q *Queries) SetUserProfile(ctx context.Context, arg SetUserProfileParams) 
 }
 
 const syncRoleBase = `-- name: SyncRoleBase :exec
-update users set role = $2 where role_key = $1
+with u as (update users set role = $2 where role_key = $1 returning sales_user_id)
+update sales_users s set role = $2 from u where s.id = u.sales_user_id
 `
 
 type SyncRoleBaseParams struct {
 	RoleKey *string `json:"role_key"`
-	Role    *string `json:"role"`
+	Role    string  `json:"role"`
 }
 
-// A role's base changed: its users follow (users.role is what every server check reads).
+// A role's derived base changed: its users and their person profiles follow (users.role is what the server's
+// data-scope checks read).
 func (q *Queries) SyncRoleBase(ctx context.Context, arg SyncRoleBaseParams) error {
 	_, err := q.db.Exec(ctx, syncRoleBase, arg.RoleKey, arg.Role)
+	return err
+}
+
+const updateBranch = `-- name: UpdateBranch :exec
+update branches set name = $2, city = $3, address = $4, active = $5, updated_by = $6 where id = $1
+`
+
+type UpdateBranchParams struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	City      string    `json:"city"`
+	Address   string    `json:"address"`
+	Active    bool      `json:"active"`
+	UpdatedBy *string   `json:"updated_by"`
+}
+
+func (q *Queries) UpdateBranch(ctx context.Context, arg UpdateBranchParams) error {
+	_, err := q.db.Exec(ctx, updateBranch,
+		arg.ID,
+		arg.Name,
+		arg.City,
+		arg.Address,
+		arg.Active,
+		arg.UpdatedBy,
+	)
 	return err
 }
 
@@ -467,11 +681,11 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 }
 
 const upsertRole = `-- name: UpsertRole :exec
-insert into roles (key, name, description, base, screens, decide, wa_allowed, active, updated_by, updated_at)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, now())
+insert into roles (key, name, description, base, screens, decide, wa_allowed, active, scope, policies, updated_by, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())
 on conflict (key) do update set name = excluded.name, description = excluded.description, base = excluded.base,
   screens = excluded.screens, decide = excluded.decide, wa_allowed = excluded.wa_allowed, active = excluded.active,
-  updated_by = excluded.updated_by, updated_at = now()
+  scope = excluded.scope, policies = excluded.policies, updated_by = excluded.updated_by, updated_at = now()
 `
 
 type UpsertRoleParams struct {
@@ -483,6 +697,8 @@ type UpsertRoleParams struct {
 	Decide      []string `json:"decide"`
 	WaAllowed   bool     `json:"wa_allowed"`
 	Active      bool     `json:"active"`
+	Scope       string   `json:"scope"`
+	Policies    bool     `json:"policies"`
 	UpdatedBy   *string  `json:"updated_by"`
 }
 
@@ -496,6 +712,8 @@ func (q *Queries) UpsertRole(ctx context.Context, arg UpsertRoleParams) error {
 		arg.Decide,
 		arg.WaAllowed,
 		arg.Active,
+		arg.Scope,
+		arg.Policies,
 		arg.UpdatedBy,
 	)
 	return err
