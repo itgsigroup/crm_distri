@@ -209,3 +209,9 @@
 .assign small a{color:var(--accent)}
 .linked-ok{display:flex;gap:8px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--good-soft,#e8f8ee);color:var(--text);font-size:13px;margin-bottom:12px}
 .linked-ok .i{color:var(--good);width:16px;height:16px;flex:none}
+/* Pengaturan → Data asli · BigQuery */
+.bq-card .card-h{gap:10px}
+.bq-lg{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;background:linear-gradient(135deg,#4285F4,#669DF6);flex:none}
+.bq-steps{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;line-height:1.5;color:var(--text-2)}
+.bq-note{margin:0;font-size:12.5px;padding:9px 12px;border-radius:10px;background:var(--surface-2)}
+.bq-note.bad{color:var(--bad)}

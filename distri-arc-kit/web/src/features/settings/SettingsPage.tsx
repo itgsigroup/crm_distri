@@ -12,7 +12,7 @@ import { IdentifyPanel } from './IdentifyPanel'
 import { OdooPanel } from './OdooPanel'
 import { SecurityCard, SystemCard } from './SystemCard'
 import { PilotCard } from '../pilot/PilotPage'
-import { DataCard } from '../data/DataPage'
+import { BigQueryCard } from '../data/BigQueryCard'
 import { AppearancePicker } from '../../components/AppearancePicker'
 
 type Obj = Record<string, unknown>
@@ -96,6 +96,7 @@ export function SettingsPage() {
       </div>
       </div>
       <div className="stack">
+        {me?.screens.includes('conn') && <BigQueryCard />}
         <div className="card">
           <div className="card-h"><h2>Sumber sinyal</h2></div>
           <div className="conn-grid" style={{ gridTemplateColumns: '1fr' }}>
@@ -105,7 +106,6 @@ export function SettingsPage() {
           </div>
         </div>
         <AIConnectionsCard />
-        {me?.manage_users && <DataCard />}
         {me?.manage_users && <PilotCard />}
         {me?.manage_users && <SystemCard />}
         <div className="card">

@@ -9,6 +9,7 @@ import { Pill } from '../../components/ui'
 import { fmtRp, hhmm, shortDate } from '../../lib/format'
 import { useMe } from '../../app/queries'
 import { SchemaMapper } from './SchemaMapper'
+import { BigQueryCard } from './BigQueryCard'
 
 const ENTITY: Record<DataEntity, string> = { sales: 'Tim sales', customers: 'Pelanggan', invoices: 'Faktur', invoice_lines: 'Item faktur', stock: 'Stok per gudang' }
 const KIND: [MappingKind, string, string][] = [
@@ -241,6 +242,7 @@ export function DataPage() {
   if (!st) return null
   return (
     <div className="stack">
+      <BigQueryCard />
       <SourceCard key={JSON.stringify(st.source)} st={st} />
       {st.source.mode !== 'csv' && <SchemaMapper st={st} />}
       <div className="ai-grid">
@@ -249,22 +251,6 @@ export function DataPage() {
       </div>
       <CustomersCard />
       <p style={{ fontSize: 12, color: 'var(--text-3)', margin: 0 }}><Link to="/pengaturan">← Pengaturan</Link></p>
-    </div>
-  )
-}
-
-/** Pengaturan card: data source at a glance. */
-export function DataCard() {
-  const { data: st } = useDataStatus()
-  if (!st) return null
-  const unmapped = st.mappings.reduce((n, m) => n + m.unmapped, 0)
-  const last = st.runs.find((r) => r.entity === 'apply')
-  return (
-    <div className="card">
-      <div className="card-h"><h2>Data &amp; master</h2><Pill tone={st.source.mode === 'none' ? 'warn' : 'good'}>{{ none: 'Belum ada sumber', bigquery: 'BigQuery', csv: 'Impor CSV' }[st.source.mode]}</Pill></div>
-      <ul className="rules">
-        <li><div><b>{st.dealers} pelanggan · {st.invoices} faktur</b><span>{last ? `Diproses ${shortDate(last.started_at)} ${hhmm(last.started_at)}` : 'Belum ada impor'}{unmapped ? ` · ${unmapped} nilai belum dipetakan` : ''}</span></div><Link className="btn quiet" style={{ height: 26, fontSize: 12 }} to="/pengaturan/data">Buka</Link></li>
-      </ul>
     </div>
   )
 }
