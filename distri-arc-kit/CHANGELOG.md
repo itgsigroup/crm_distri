@@ -169,4 +169,5 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 
 ## Efisiensi untuk data asli (ribuan dealer) · 2026-10-07
 - Server: papan dealer di-cache 60 detik (langkah berikutnya tetap segar tiap request; cache dibuang setelah perubahan lewat API); JSON dikompresi gzip; stok menua membawa 3 dealer kandidat teratas + jumlahnya (bukan ratusan); daftar Push di Pusat kendali 10 teratas; bundle AI Stok maksimal 30 dealer teratas ("30 teratas dari N yang cocok").
-- Orbit: mode **Prioritas** (120 dealer omzet terbesar, bernama) dan **Semua titik** (semua dealer sebagai titik kecil tanpa label); penataan label hanya untuk dealer bernama. Segmen: semua titik tetap, nama hanya 80 omzet terbesar. Daftar Dealer, daftar segmen, dan daftar Pusat kendali (jadwal order, lewat jadwal, limit tipis) dimuat bertahap ("Tampilkan N lagi").
+- Orbit: mode **Prioritas** (50 dealer omzet terbesar, bernama) dan **Semua titik** (semua dealer sebagai titik kecil tanpa label); penataan label hanya untuk dealer bernama. Segmen: semua titik tetap, nama hanya 50 omzet terbesar. Daftar Dealer, daftar segmen, dan daftar Pusat kendali (jadwal order, lewat jadwal, limit tipis) dimuat bertahap ("Tampilkan N lagi").
+- Filter sales menjadi dropdown bila sales lebih dari 8 (Orbit, Segmen, Peta relasi).

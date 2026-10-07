@@ -10,6 +10,16 @@ import { CX, CY, H, RINGS, RING_R, W, layoutOrbit } from './geometry'
 
 export function SalesFilters({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const { data: sales = [] } = useSales()
+  if (sales.length > 8) { // a real team: a picker, not a wall of buttons
+    return (
+      <div className="net-filters">
+        <select className="sales-pick" value={value} onChange={(e) => onChange(e.target.value)} aria-label="Sales">
+          <option value="all">Semua sales ({sales.length})</option>
+          {[...sales].sort((a, b) => a.name.localeCompare(b.name)).map((s) => <option key={s.name} value={s.name}>{s.name}{s.branch ? ` · ${s.branch}` : ''}</option>)}
+        </select>
+      </div>
+    )
+  }
   return (
     <div className="net-filters">
       {[['all', 'Semua sales'] as const, ...sales.map((s) => [s.name, s.name] as const)].map(([id, n]) => (
@@ -43,7 +53,7 @@ export function Tip({ d, pos, extra }: { d: BoardItem | null; pos: { x: number; 
 }
 
 /** How many dealers the orbit draws with names: a person reads a few dozen labelled dealers, not thousands. */
-export const ORBIT_TOP = 120
+export const ORBIT_TOP = 50
 
 /** The dealers worth a name on the orbit: the largest monthly revenue first. */
 export function topByOmzet(list: BoardItem[], n = ORBIT_TOP) {

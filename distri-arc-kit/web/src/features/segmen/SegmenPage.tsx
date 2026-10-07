@@ -32,7 +32,7 @@ interface Node {
 }
 
 /** How many dealers get a name on the segment chart: every point stays (it is data), names only for the top ones. */
-const SEGMEN_LABELS = 80
+const SEGMEN_LABELS = 50
 
 function layout(list: BoardItem[]): Node[] {
   const named = new Set([...list].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, SEGMEN_LABELS).map((d) => d.id))
