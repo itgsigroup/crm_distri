@@ -188,7 +188,7 @@ export function Shell() {
               <div className="searchwrap">
                 <form className="search" autoComplete="off" onSubmit={submit}>
                   <Icon name="spark" />
-                  <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tanya atau perintahkan Orchestrator… mis. “analisis ulang Mitra Jaya”" aria-label="Tanya" />
+                  <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tanya atau perintahkan Orchestrator… mis. “dealer mana yang lewat jadwal?”" aria-label="Tanya" />
                   <kbd>⌘K</kbd>
                 </form>
               </div>

@@ -211,8 +211,8 @@ func (b *Builder) attachNext(ctx context.Context, board *Board) error {
 	return nil
 }
 
-// prev returns the 3-months-ago position from the snapshot 90 days back, or db/seed/metrics_prev.json when
-// no snapshot that old exists yet (docs/stages/01).
+// prev returns the 3-months-ago position from the snapshot 90 days back, or — for the sample installation only —
+// db/seed/metrics_prev.json when no snapshot that old exists yet (docs/stages/01).
 func (b *Builder) prev(ctx context.Context, ds *dealersvc.Dataset) (map[string]*Prev, error) {
 	out := map[string]*Prev{}
 	snaps, err := b.st.Q.ListSnapshotsOn(ctx, clock.Today(ds.Today).AddDate(0, 0, -90))
@@ -235,6 +235,12 @@ func (b *Builder) prev(ctx context.Context, ds *dealersvc.Dataset) (map[string]*
 		out[slug[s.DealerID]] = p
 	}
 	if len(out) > 0 {
+		return out, nil
+	}
+	// the sample installation's "3 months ago" file is only for the sample dealers; with real data the comparison
+	// waits for the first 90-day-old snapshot
+	var sample bool
+	if err := b.st.Pool.QueryRow(ctx, "select exists(select 1 from signal_keys where dedupe_key like 'seed:%')").Scan(&sample); err != nil || !sample {
 		return out, nil
 	}
 	raw, err := fs.ReadFile(db.Seed, "seed/metrics_prev.json")
