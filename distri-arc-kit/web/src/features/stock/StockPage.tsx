@@ -63,7 +63,7 @@ export function StockPage() {
               {['', ...branches].map((b) => <button key={b || 'all'} className={`chip ${branch === b ? 'is-active' : ''}`} onClick={() => setBranch(b)}>{b || 'Semua cabang'}</button>)}
             </div>
           )}
-          <ul className="l2c">
+          <ul className="l2c stockl">
             {shown.map((x) => {
               const k = x.age_days > 120 ? 'bad' : 'warn'
               const p = pushOf(x.name)
