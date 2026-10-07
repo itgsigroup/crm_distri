@@ -438,9 +438,10 @@ func (q *Queries) LastSentFollowup(ctx context.Context, dealerID *uuid.UUID) (ti
 }
 
 const latestCycle = `-- name: LatestCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles order by started_at desc, number desc limit 1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles order by number desc limit 1
 `
 
+// Latest by number (insertion order): a clock that moved back (dev ARC_NOW, NTP) never hides a new cycle.
 func (q *Queries) LatestCycle(ctx context.Context) (Cycle, error) {
 	row := q.db.QueryRow(ctx, latestCycle)
 	var i Cycle
@@ -466,7 +467,7 @@ func (q *Queries) LatestCycle(ctx context.Context) (Cycle, error) {
 }
 
 const latestDoneCycle = `-- name: LatestDoneCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles where status in ('done', 'partial') order by started_at desc, number desc limit 1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles where status in ('done', 'partial') order by number desc limit 1
 `
 
 func (q *Queries) LatestDoneCycle(ctx context.Context) (Cycle, error) {
@@ -494,7 +495,7 @@ func (q *Queries) LatestDoneCycle(ctx context.Context) (Cycle, error) {
 }
 
 const latestFullCycle = `-- name: LatestFullCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles where status in ('done', 'partial') and scope = 'all' order by started_at desc, number desc limit 1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles where status in ('done', 'partial') and scope = 'all' order by number desc limit 1
 `
 
 // The last finished cycle with scope all (Rencana hari ini, Ringkasan, conflicts come from it).
@@ -714,7 +715,7 @@ func (q *Queries) ListCycleStages(ctx context.Context, cycleID uuid.UUID) ([]Cyc
 }
 
 const listCycles = `-- name: ListCycles :many
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles order by started_at desc, number desc limit $1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles order by number desc limit $1
 `
 
 func (q *Queries) ListCycles(ctx context.Context, limit int32) ([]Cycle, error) {

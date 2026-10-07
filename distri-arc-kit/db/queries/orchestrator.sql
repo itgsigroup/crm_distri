@@ -24,17 +24,18 @@ where status = 'running' or (status = 'queued' and started_at < sqlc.arg(before)
 select * from cycles where id = $1;
 
 -- name: LatestCycle :one
-select * from cycles order by started_at desc, number desc limit 1;
+-- Latest by number (insertion order): a clock that moved back (dev ARC_NOW, NTP) never hides a new cycle.
+select * from cycles order by number desc limit 1;
 
 -- name: LatestDoneCycle :one
-select * from cycles where status in ('done', 'partial') order by started_at desc, number desc limit 1;
+select * from cycles where status in ('done', 'partial') order by number desc limit 1;
 
 -- name: LatestFullCycle :one
 -- The last finished cycle with scope all (Rencana hari ini, Ringkasan, conflicts come from it).
-select * from cycles where status in ('done', 'partial') and scope = 'all' order by started_at desc, number desc limit 1;
+select * from cycles where status in ('done', 'partial') and scope = 'all' order by number desc limit 1;
 
 -- name: ListCycles :many
-select * from cycles order by started_at desc, number desc limit $1;
+select * from cycles order by number desc limit $1;
 
 -- name: UpsertCycleStage :exec
 insert into cycle_stages (cycle_id, stage, status, started_at, finished_at, detail)
