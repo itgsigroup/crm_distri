@@ -115,10 +115,16 @@ func Missing(e Entity, r Row) []string {
 	return out
 }
 
+var sciNum = regexp.MustCompile(`^-?\d+(\.\d+)?[eE][+-]?\d+$`)
+
 var numClean = regexp.MustCompile(`[^0-9,.\-]`)
 
 // Number parses amounts as sources write them: "1.234.567,50" (id), "1,234,567.50" (en), "1234567.5", "Rp 12.000".
 func Number(s string) float64 {
+	if sciNum.MatchString(strings.TrimSpace(s)) { // BigQuery FLOAT64 as text: 4.6355E7
+		v, _ := strconv.ParseFloat(strings.TrimSpace(s), 64)
+		return v
+	}
 	s = numClean.ReplaceAllString(strings.TrimSpace(s), "")
 	if s == "" {
 		return 0

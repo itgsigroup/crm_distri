@@ -42,7 +42,7 @@ func count(t *testing.T, st *store.Store, sql string, args ...any) int {
 }
 
 func TestNumbersDatesTypes(t *testing.T) {
-	for in, want := range map[string]float64{"1.234.567,50": 1234567.5, "1,234,567.50": 1234567.5, "Rp 12.000": 12000, "12,000": 12000, "1234567.5": 1234567.5, "0.5": 0.5, "": 0, "-2.500": -2500} {
+	for in, want := range map[string]float64{"1.234.567,50": 1234567.5, "1,234,567.50": 1234567.5, "Rp 12.000": 12000, "12,000": 12000, "1234567.5": 1234567.5, "0.5": 0.5, "": 0, "-2.500": -2500, "4.6355E7": 46355000, "1.5E9": 1500000000, "2.5e-1": 0.25} {
 		if got := importer.Number(in); got != want {
 			t.Errorf("Number(%q) = %v, want %v", in, got, want)
 		}
