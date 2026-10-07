@@ -50,14 +50,14 @@ func BuildInput(ctx context.Context, st *store.Store, c clock.Clock, only string
 		if _, ok := in.Catalog[p.Name]; !ok {
 			var prices map[string]int64
 			_ = json.Unmarshal(p.Prices, &prices)
-			in.Catalog[p.Name] = agents.Product{ID: p.ID, Name: p.Name, Category: deref(p.Category), Prices: prices, Cost: p.Cost, SKU: deref(p.Sku)}
+			in.Catalog[p.Name] = agents.Product{ID: p.ID, Name: p.Name, Category: deref(p.Category), Prices: prices, List: p.ListPrice, Cost: p.Cost, SKU: deref(p.Sku)}
 		}
 		if !sold[p.Name] || seen[p.Name] {
 			continue // stock SKUs are matched separately; requests are matched to the sales catalog
 		}
 		var prices map[string]int64
 		_ = json.Unmarshal(p.Prices, &prices)
-		ap := agents.Product{ID: p.ID, Name: p.Name, Category: deref(p.Category), Prices: prices, Cost: p.Cost, SKU: deref(p.Sku)}
+		ap := agents.Product{ID: p.ID, Name: p.Name, Category: deref(p.Category), Prices: prices, List: p.ListPrice, Cost: p.Cost, SKU: deref(p.Sku)}
 		if p.SourceID != nil {
 			if _, after, ok := strings.Cut(*p.SourceID, ":"); ok {
 				ap.OdooID, _ = strconv.Atoi(after)

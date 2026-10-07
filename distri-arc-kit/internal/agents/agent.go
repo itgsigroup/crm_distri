@@ -80,6 +80,7 @@ type Product struct {
 	Name     string
 	Category string
 	Prices   map[string]int64
+	List     int64 // list price (imported data: the last selling price) when there are no tier prices
 	Cost     int64
 }
 
@@ -88,7 +89,10 @@ func (p Product) Price(tier string) int64 {
 	if v, ok := p.Prices[tier]; ok && v > 0 {
 		return v
 	}
-	return p.Prices["A"]
+	if v := p.Prices["A"]; v > 0 {
+		return v
+	}
+	return p.List
 }
 
 // Input is what the runner (Orchestrator) prepares for the agents.

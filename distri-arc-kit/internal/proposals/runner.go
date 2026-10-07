@@ -3,6 +3,7 @@ package proposals
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,7 +24,10 @@ func Insert(ctx context.Context, q *gen.Queries, p domain.Proposal, status strin
 	impact, _ := json.Marshal(nonNil(p.Impact))
 	pills, _ := json.Marshal(nonNil(p.Pills))
 	options, _ := json.Marshal(nonNil(p.Options))
-	payload, _ := json.Marshal(p.Payload)
+	payload, err := json.Marshal(p.Payload)
+	if err != nil { // e.g. a NaN from a division by zero: never store a proposal without its payload
+		return uuid.Nil, fmt.Errorf("payload %s %q: %w", p.Kind, p.Title, err)
+	}
 	var cyc *uuid.UUID
 	if cycleID != nil {
 		if id, err := uuid.Parse(*cycleID); err == nil {

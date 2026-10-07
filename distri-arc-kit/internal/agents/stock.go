@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
@@ -44,9 +45,18 @@ func (a Stock) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domain.
 		bySlug[d.ID] = d
 	}
 	day := in.Today.Format("2006-01-02")
+	// largest aging value first; at most MaxPushPerCycle bundles per cycle — a team reviews a short list, not hundreds
+	aging := make([]domain.StockItem, 0, len(in.Stock))
 	for _, s := range in.Stock {
-		if !metrics.IsAging(s, pol) {
-			continue
+		if metrics.IsAging(s, pol) {
+			aging = append(aging, s)
+		}
+	}
+	sort.SliceStable(aging, func(i, j int) bool { return aging[i].Value > aging[j].Value })
+	pushes := 0
+	for _, s := range aging {
+		if pushes >= MaxPushPerCycle {
+			break
 		}
 		cands := metrics.PushCandidates(s, views, pol)
 		if len(cands) == 0 {
@@ -57,8 +67,14 @@ func (a Stock) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domain.
 			continue
 		}
 		price := prod.Price("A")
+		if price <= 0 {
+			continue // no selling price known: no bundle price can be offered
+		}
 		disc := BundleDiscount(price, s.UnitCost, pol)
 		bundle := int64(math.Round(float64(price)*(1-disc/100)/1000)) * 1000
+		if bundle <= 0 {
+			continue
+		}
 		margin := float64(bundle-s.UnitCost) / float64(bundle) * 100
 		var ids []uuid.UUID
 		var names, list []string
@@ -121,9 +137,13 @@ func (a Stock) Analyze(ctx context.Context, in *Input, r *llm.Router) ([]domain.
 		polish(ctx, r, in, &p, "stock", map[string]any{"sku": s.Name, "age_days": s.AgeDays, "branch": s.Branch, "bundle_price": Unit(bundle), "discount_pct": disc,
 			"dealers": list}, nil)
 		out = append(out, p)
+		pushes++
 	}
 	return append(out, a.critical(in, day)...), nil
 }
+
+// MaxPushPerCycle caps the bundle proposals of one cycle (largest aging value first).
+const MaxPushPerCycle = 20
 
 // Stock rules for critical SKUs (ADR 0011): refill a branch to TransferCoverWeeks of sales from another branch that
 // keeps at least SourceKeepWeeks; without such a branch ask purchasing for POCoverWeeks of sales.
