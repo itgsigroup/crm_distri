@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
@@ -8,8 +8,8 @@ import { ActBtn, ProposalSheet } from '../../components/actions'
 import { useFeedback } from '../../components/feedback'
 import { ScoreRing } from '../../components/ui'
 import { fmtRp, hhmm, shortDate, wib } from '../../lib/format'
-import { useChatContext, useMe, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
-import { ConnectPanel, ConnectSheet, labelOf, PairSheet } from './Connect'
+import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
+import { ConnectPanel, labelOf, NumberRail } from './Connect'
 
 const TABS: [string, string][] = [['all', 'Semua'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['new', 'Nomor baru']]
 const SECTION: Record<string, string> = { dealer: 'Dealer', group: 'Grup internal', new: 'Nomor baru' }
@@ -45,35 +45,14 @@ function timeLabel(d: string | null, now: Date) {
   return l === 'Hari ini' ? hhmm(d) : l
 }
 
-const DOT: Record<string, string> = { connected: 'good', pairing: 'warn', disconnected: 'bad', logged_out: 'bad', unpaired: 'neutral' }
-/** Numbers bar: filter conversations by WhatsApp number; a number that is not linked can be paired here. */
-function NumberBar({ account, setAccount }: { account: string; setAccount: (a: string) => void }) {
-  const { data } = useWAStatus()
-  const { data: me } = useMe()
-  const { openSheet } = useFeedback()
-  const admin = me?.role === 'ceo' || me?.role === 'admin'
-  const items = data?.items ?? []
-  if (items.length < 1) return null
-  return (
-    <div className="wa-bar" role="tablist" aria-label="Nomor WhatsApp">
-      <button className={`wa-chip ${account === '' ? 'is-active' : ''}`} onClick={() => setAccount('')}>Semua nomor</button>
-      {items.map((n) => (
-        <button key={n.wa_number} className={`wa-chip ${account === n.wa_number ? 'is-active' : ''}`} title={`${labelOf(n)} · ${n.masked} · ${n.state === 'connected' ? 'terhubung' : 'belum terhubung — klik untuk pasangkan'}`}
-          onClick={() => (n.state === 'connected' || data?.transport === 'fake' ? setAccount(account === n.wa_number ? '' : n.wa_number) : openSheet(<PairSheet wa={n.wa_number} />))}>
-          <span className={`dot ${DOT[n.state] ?? 'neutral'}`} />{labelOf(n)}
-        </button>
-      ))}
-      {admin && <button className="wa-chip add" onClick={() => openSheet(<ConnectSheet />)} title="Tambah / tautkan nomor WhatsApp">+ Nomor</button>}
-    </div>
-  )
-}
-
-function ThreadList({ tab, setTab, account, setAccount, active, onPick }: { tab: string; setTab: (t: string) => void; account: string; setAccount: (a: string) => void; active?: string; onPick: (id: string) => void }) {
+function ThreadList({ tab, setTab, account, active, onPick }: { tab: string; setTab: (t: string) => void; account: string; active?: string; onPick: (id: string) => void }) {
   const { data: list = [], isSuccess } = useThreads(tab, account)
+  const { data: wa } = useWAStatus()
   const now = useNow()
+  const n = wa?.items.find((x) => x.wa_number === account)
   return (
     <div className="pane list-pane">
-      <NumberBar account={account} setAccount={setAccount} />
+      <div className="list-acc">{n ? <><b>{labelOf(n)}</b><span>{n.masked}</span></> : <><b>Semua nomor</b><span>{wa?.items.length ?? 0} nomor WhatsApp · {wa?.items.filter((x) => x.state === 'connected').length ?? 0} terhubung</span></>}</div>
       <div className="chat-tabs">
         {TABS.map(([k, l]) => <button key={k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>{l}</button>)}
       </div>
@@ -289,19 +268,28 @@ export function ChatPage() {
   const [tab, setTab] = useState('all')
   const [account, setAccount] = useState('')
   const { data: list } = useThreads('all', account)
+  const { data: all } = useThreads('all')
   const { data: wa } = useWAStatus()
+  const unread = useMemo(() => {
+    const m: Record<string, number> = {}
+    for (const t of all ?? []) if (t.account) m[t.account] = (m[t.account] ?? 0) + t.unread
+    return m
+  }, [all])
   const active = threadId ?? list?.[0]?.id
-  // No conversation yet (no number linked, or history still syncing): show how to connect WhatsApp.
+  const rail = <NumberRail account={account} setAccount={setAccount} unread={unread} />
+  // No conversation yet (no number linked, or history still syncing): show how to connect the team's numbers.
   if (!threadId && account === '' && list && wa && list.length === 0) {
     return (
-      <div className="chat chat-empty">
+      <div className="chat multi chat-empty">
+        {rail}
         <div className="pane connect-pane"><ConnectPanel /></div>
       </div>
     )
   }
   return (
-    <div className={`chat ${threadId ? 'show-thread' : ''}`}>
-      <ThreadList tab={tab} setTab={setTab} account={account} setAccount={setAccount} active={active} onPick={(id) => nav('/chat/' + id)} />
+    <div className={`chat multi ${threadId ? 'show-thread' : ''}`}>
+      {rail}
+      <ThreadList tab={tab} setTab={setTab} account={account} active={active} onPick={(id) => nav('/chat/' + id)} />
       {active ? <ThreadPane id={active} picked={!!threadId} onBack={() => nav('/chat')} /> : <div className="pane th-pane" />}
       {active ? <ContextPane id={active} /> : <div className="pane ctx-pane ctx" />}
     </div>

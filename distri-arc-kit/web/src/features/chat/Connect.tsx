@@ -88,12 +88,13 @@ export function ConnectPanel() {
       <div className="connect-h">
         <span className="connect-ic"><Icon name="chat" /></span>
         <div>
-          <h2>{connected.length ? 'WhatsApp terhubung — menunggu pesan' : 'Hubungkan WhatsApp'}</h2>
+          <h2>{connected.length ? `${connected.length} nomor terhubung — menunggu pesan` : 'Hubungkan nomor WhatsApp tim'}</h2>
           <p>{connected.length
-            ? 'Riwayat chat 30 hari terakhir sedang disinkronkan dari HP (beberapa menit). Pesan baru langsung tampil di sini.'
-            : 'Chat di sini adalah WhatsApp asli nomor tim: ditautkan sebagai perangkat (seperti WhatsApp Web) lewat Baileys. Pesan masuk tampil otomatis, balasan dikirim dari nomor itu lewat penjaga anti-blokir.'}</p>
+            ? 'Riwayat chat 30 hari terakhir sedang disinkronkan dari HP (beberapa menit). Pesan baru dari semua nomor langsung tampil di sini.'
+            : 'Chat di sini adalah WhatsApp asli dari banyak nomor sekaligus — satu nomor per sales, CS kantor, atau cabang. Tiap nomor ditautkan sebagai perangkat (seperti WhatsApp Web) lewat Baileys; balasan keluar dari nomor yang menerima chat, lewat penjaga anti-blokir.'}</p>
         </div>
       </div>
+      {items.length > 0 && <h4 className="connect-sub">Nomor WhatsApp tim · {items.length} nomor · {connected.length} terhubung</h4>}
       {items.length > 0 && (
         <ul className="nums">
           {items.map((n) => (
@@ -108,6 +109,7 @@ export function ConnectPanel() {
           ))}
         </ul>
       )}
+      {admin && <h4 className="connect-sub">{items.length ? 'Tambah nomor lain' : 'Tambah nomor pertama'} <span>· tambah sebanyak yang dibutuhkan; tiap nomor punya batas anti-blokir sendiri</span></h4>}
       {admin ? (
         <form className="wa-add connect-add" onSubmit={(e) => { e.preventDefault(); if (f.wa_number.trim() && f.label.trim()) add() }}>
           <input value={f.wa_number} onChange={(e) => setF({ ...f, wa_number: e.target.value })} placeholder="Nomor WhatsApp, mis. 0812 3456 7890" aria-label="Nomor WhatsApp" inputMode="tel" />
@@ -136,5 +138,49 @@ export function ConnectSheet() {
       <SheetHead icon="chat" title="Nomor WhatsApp" sub="Tambah dan tautkan nomor · banyak nomor sekaligus" onClose={closeSheet} />
       <div className="sec"><ConnectPanel /></div>
     </>
+  )
+}
+
+const HUES = [210, 152, 28, 280, 340, 190, 45, 120]
+const hueOf = (s: string) => HUES[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % HUES.length]
+const initialsOf = (n: WANumber) => labelOf(n).replace(/^(Pak|Bu|Mbak|Mas)\s+/, '').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '#'
+const STATE_DOT: Record<string, string> = { connected: 'good', pairing: 'warn', disconnected: 'bad', logged_out: 'bad', unpaired: 'neutral' }
+
+/** The WhatsApp numbers of the team, like accounts in WhatsApp Business: pick one to see only its chats (or all),
+ * see which are linked and their unread counts, link one that is not, add more. */
+export function NumberRail({ account, setAccount, unread }: { account: string; setAccount: (a: string) => void; unread: Record<string, number> }) {
+  const { data } = useWAStatus()
+  const { data: me } = useMe()
+  const { openSheet } = useFeedback()
+  const admin = me?.role === 'ceo' || me?.role === 'admin'
+  const items = data?.items ?? []
+  const total = Object.values(unread).reduce((a, b) => a + b, 0)
+  const pick = (n: WANumber) => {
+    if (n.state !== 'connected' && data?.transport !== 'fake') openSheet(<PairSheet wa={n.wa_number} />)
+    else setAccount(account === n.wa_number ? '' : n.wa_number)
+  }
+  return (
+    <nav className="wa-rail" aria-label="Nomor WhatsApp">
+      <button className={`wr-i all ${account === '' ? 'is-active' : ''}`} onClick={() => setAccount('')} title={`Semua nomor · ${items.length} nomor`}>
+        <span className="wr-av"><Icon name="chat" /></span>
+        {total > 0 && <span className="wr-un">{total > 99 ? '99+' : total}</span>}
+        <span className="wr-l">Semua</span>
+      </button>
+      {items.length > 0 && <span className="wr-sep" />}
+      {items.map((n) => (
+        <button key={n.wa_number} className={`wr-i ${account === n.wa_number ? 'is-active' : ''} ${n.state !== 'connected' ? 'off' : ''}`} onClick={() => pick(n)}
+          title={`${labelOf(n)} · ${n.masked} · ${STATE[n.state]?.[0] ?? n.state}${n.state !== 'connected' ? ' — klik untuk menautkan' : ''}`}>
+          <span className="wr-av" style={{ background: `hsl(${hueOf(n.wa_number)} 62% 46%)` }}>{initialsOf(n)}</span>
+          <span className={`dot ${STATE_DOT[n.state] ?? 'neutral'}`} />
+          {(unread[n.wa_number] ?? 0) > 0 && <span className="wr-un">{unread[n.wa_number] > 99 ? '99+' : unread[n.wa_number]}</span>}
+          <span className="wr-l">{labelOf(n)}</span>
+        </button>
+      ))}
+      {admin && (
+        <button className="wr-i add" onClick={() => openSheet(<ConnectSheet />)} title="Tambah nomor WhatsApp">
+          <span className="wr-av">+</span><span className="wr-l">Nomor</span>
+        </button>
+      )}
+    </nav>
   )
 }
