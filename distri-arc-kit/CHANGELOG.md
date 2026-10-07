@@ -133,3 +133,9 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - `GET /api/data/schema`: daftar dataset, tabel, kolom, dan jumlah baris project BigQuery (REST baca saja), plus saran per jenis data: tabel paling cocok (dan kandidat lain), pemetaan kolom → kontrak dari nama kolom Accurate / Indonesia (`nomor_faktur`, `sisa_tagihan`, `gudang`, …), dan SQL siap pakai.
 - Pengaturan → Data & master → **Pemetaan BigQuery**: pilih tabel, cocokkan kolom (boleh ekspresi SQL), filter WHERE, pratinjau SQL, simpan semua query (CEO), tes query, jelajahi semua tabel.
 - Mapping master: saran otomatis untuk kategori → 6 kategori product mix dan jenis pelanggan → reseller / SI ("saran: …", tombol **Isi saran**); tetap dikonfirmasi manusia sebelum disimpan.
+
+## Chat WhatsApp (Baileys) · 2026-10-07
+- Halaman Chat tanpa percakapan kini menampilkan **Hubungkan WhatsApp**: tambah nomor (CEO/admin) lalu tautkan, daftar nomor dan statusnya, ringkasan aturan anti-blokir; sales tanpa nomor diberi petunjuk. Chip **+ Nomor** di bar nomor.
+- Menautkan dengan **kode di HP** (8 karakter, "Tautkan dengan nomor telepon saja") selain QR — `POST /wa/pair {method:"code"}`, bridge `POST /sessions {phone_code:true}`.
+- Nama kontak dari HP (nama tersimpan / bisnis / push name) jadi judul percakapan nomor baru; riwayat setelah menautkan masuk sebagai sudah dibaca dan tidak memicu identifikasi profil.
+- Anti-blokir: chat dibaca (centang biru) hanya tepat sebelum membalas, dengan jeda membaca 1–3 dtk, lalu "mengetik…".

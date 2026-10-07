@@ -19,6 +19,7 @@ export interface WaEvent {
   quoted?: string
   from_me: boolean
   is_history: boolean
+  chat_name?: string // saved contact / business / push name of a direct chat
   transport: 'bridge'
 }
 

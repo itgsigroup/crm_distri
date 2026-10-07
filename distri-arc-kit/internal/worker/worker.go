@@ -131,7 +131,13 @@ type WAPairWorker struct {
 
 // Work requests the first QR code.
 func (w *WAPairWorker) Work(ctx context.Context, job *river.Job[jobs.WAPairArgs]) error {
-	qr, err := w.t.Pair(ctx, job.Args.WANumber)
+	var qr string
+	var err error
+	if cp, ok := w.t.(wa.CodePairer); ok && job.Args.Method == "code" {
+		qr, err = cp.PairCode(ctx, job.Args.WANumber)
+	} else {
+		qr, err = w.t.Pair(ctx, job.Args.WANumber)
+	}
 	if err != nil {
 		return err
 	}

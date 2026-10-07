@@ -1,6 +1,6 @@
 import makeWASocket, {
   Browsers, DisconnectReason, fetchLatestBaileysVersion, isJidGroup, isLidUser, jidNormalizedUser, makeCacheableSignalKeyStore,
-  type Contact, type GroupMetadata, type WASocket, type proto,
+  type Contact, type GroupMetadata, type WAMessageKey, type WASocket, type proto,
 } from 'baileys'
 import type { Logger } from 'pino'
 import type { Policy } from './config.js'
@@ -25,6 +25,15 @@ const STABLE_MS = 5 * 60_000
 const FATAL = new Set<number>([DisconnectReason.loggedOut, DisconnectReason.forbidden, DisconnectReason.connectionReplaced, DisconnectReason.multideviceMismatch, DisconnectReason.badSession])
 
 const digits = (jid?: string | null) => (jid ?? '').split('@')[0].split(':')[0].replace(/\D/g, '')
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/** "ABCD1234" → "ABCD-1234", as WhatsApp shows it. */
+export const formatPairCode = (c: string) => (c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c)
+
+/** How the phone knows a contact: saved name, verified business name, then their own push name. */
+export function contactName(c: Partial<Contact> | undefined): string {
+  return (c?.name ?? c?.verifiedName ?? c?.notify ?? '').trim()
+}
 
 /**
  * One linked WhatsApp number. Connection hygiene to stay under WhatsApp's radar:
@@ -48,7 +57,11 @@ export class Session implements SendTarget {
   private lookups: number[] = []
   private contacts = new Map<string, Partial<Contact>>()
   private recent = new Map<string, proto.IMessage>() // for retry receipts (getMessage)
+  private unread = new Map<string, WAMessageKey[]>() // inbound not yet read, per chat: read before replying
   private waiters: ((s: Snapshot) => void)[] = []
+  /** Link with a code typed on the phone instead of a QR scan. */
+  codeMode = false
+  private codeRequested = false
 
   constructor(
     public meta: SessionMeta,
@@ -111,7 +124,10 @@ export class Session implements SendTarget {
       if (type !== 'notify' && type !== 'append') return
       void this.forwardMessages(messages, false)
     })
-    sock.ev.on('messaging-history.set', ({ messages }) => void this.forwardMessages(messages, true))
+    sock.ev.on('messaging-history.set', ({ messages, contacts }) => {
+      for (const c of contacts ?? []) this.contacts.set(c.id, { ...this.contacts.get(c.id), ...c })
+      void this.forwardMessages(messages, true)
+    })
     sock.ev.on('contacts.upsert', cs => { for (const c of cs) this.contacts.set(c.id, { ...this.contacts.get(c.id), ...c }) })
     sock.ev.on('contacts.update', cs => { for (const c of cs) if (c.id) this.contacts.set(c.id, { ...this.contacts.get(c.id), ...c }) })
     sock.ev.on('groups.update', gs => { for (const g of gs) if (g.id) this.groups.delete(g.id); this.groupList = undefined })
@@ -119,11 +135,25 @@ export class Session implements SendTarget {
   }
 
   private async onConnection(u: Partial<import('baileys').ConnectionState>, wasRegistered: boolean) {
-    if (u.qr) {
+    if (u.qr && this.codeMode) {
+      // The socket is ready to link: ask WhatsApp for a code once; later QR rotations are ignored (the code stays valid).
+      if (!this.codeRequested && this.sock) {
+        this.codeRequested = true
+        try {
+          const code = await this.sock.requestPairingCode(this.meta.id)
+          this.qr = 'code:' + formatPairCode(code)
+          this.setStatus('pairing')
+        } catch (err) {
+          this.log.warn({ session: this.id, err: String(err) }, 'pairing code request failed')
+          this.codeRequested = false
+        }
+      }
+    } else if (u.qr) {
       this.qr = u.qr
       this.setStatus('pairing')
     }
     if (u.connection === 'open') {
+      this.codeMode = false
       this.openedAt = Date.now()
       this.meta.phone = digits(this.sock?.user?.id)
       if (!this.meta.pairedAt) this.meta.pairedAt = new Date()
@@ -185,6 +215,11 @@ export class Session implements SendTarget {
       const ts = Number(m.messageTimestamp ?? 0)
       const ev = await toWaEvent(this.id, m, r, history).catch(err => { this.log.warn({ err: String(err) }, 'map message failed'); return null })
       if (!ev) continue
+      if (!ev.is_group) {
+        const name = contactName(this.contacts.get(ev.chat_id)) || contactName(this.contacts.get(m.key.remoteJid ?? ''))
+        if (name) ev.chat_name = name
+      }
+      if (!history) this.trackUnread(ev.chat_id, m.key, ev.from_me)
       if (!ev.from_me) {
         // Inbound marks the chat as "known" (replies allowed) — even beyond history_days, without
         // keeping content. STOP opts out; any later live message opts back in.
@@ -199,6 +234,18 @@ export class Session implements SendTarget {
       }
     }
     if (batch.length) await this.fwd.send({ events: batch })
+  }
+
+  /** Remembers live inbound keys per chat; a message sent from the phone means the person read the chat there. */
+  private trackUnread(chat: string, key: WAMessageKey, fromMe: boolean) {
+    if (fromMe) {
+      this.unread.delete(chat)
+      return
+    }
+    const keys = this.unread.get(chat) ?? []
+    keys.push(key)
+    this.unread.set(chat, keys.slice(-20))
+    if (this.unread.size > 2000) this.unread.delete(this.unread.keys().next().value as string)
   }
 
   private async cachedGroup(jid: string): Promise<GroupMetadata | undefined> {
@@ -246,11 +293,17 @@ export class Session implements SendTarget {
     return p
   }
 
-  /** Sends like a person: briefly available, "typing…", then the message. */
+  /** Sends like a person: online, reads the chat (blue ticks), pauses, "typing…", then the message. */
   async sendText(chat: string, text: string, typing: number): Promise<string> {
     const sock = this.sock
     if (!sock) throw new Error('sesi belum terhubung')
     await sock.sendPresenceUpdate('available').catch(() => {})
+    const keys = this.unread.get(chat)
+    if (keys?.length) {
+      this.unread.delete(chat)
+      await sock.readMessages(keys).catch(() => {})
+      await sleep(1_200 + Math.floor(Math.random() * 1_800)) // reading before typing
+    }
     await sock.sendPresenceUpdate('composing', chat).catch(() => {})
     await new Promise(r => setTimeout(r, typing))
     await sock.sendPresenceUpdate('paused', chat).catch(() => {})
@@ -290,7 +343,7 @@ export class Manager {
   }
 
   /** Starts pairing (QR). An already linked session is returned as is. */
-  async create(id: string, label: string, historyDays: number): Promise<Snapshot> {
+  async create(id: string, label: string, historyDays: number, phoneCode = false): Promise<Snapshot> {
     const existing = this.sessions.get(id)
     if (existing && (existing.status === 'connected' || (existing.meta.pairedAt && existing.reason === 'reconnecting'))) return existing.snapshot()
     if (existing) await existing.stop(false)
@@ -298,6 +351,7 @@ export class Manager {
     const meta: SessionMeta = { id, label, historyDays: historyDays > 0 ? historyDays : 30, pairedAt: null, phone: '' }
     await this.store.upsertSession(meta)
     const s = new Session(meta, this.store, this.fwd, this.policy, this.log.child({ session: id }), this.deviceName)
+    s.codeMode = phoneCode
     this.sessions.set(id, s)
     const first = s.firstState(20_000)
     await s.start()

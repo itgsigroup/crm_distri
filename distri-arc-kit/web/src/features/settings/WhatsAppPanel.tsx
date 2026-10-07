@@ -106,7 +106,7 @@ export function WhatsAppPanel() {
           <li><div><b>Batas per nomor 20/jam, 120/hari · per chat 6/jam, jeda ≥ 20 dtk</b><span>Nomor baru tertaut: pemanasan 15 pesan/hari, naik bertahap selama 7 hari</span></div><Pill tone="neutral" icon="lock">Aktif</Pill></li>
           <li><div><b>Jam kirim 08.00–18.00 WIB · jam tenang 21.00–07.00</b><span>Di luar jam itu pesan menunggu, tidak dibuang</span></div><Pill tone="neutral" icon="lock">Aktif</Pill></li>
           <li><div><b>Teks identik ke &gt; 3 chat/jam ditolak · "STOP" / "berhenti" dihormati</b><span>Pola broadcast tidak dikirim; personalisasi pesannya</span></div><Pill tone="neutral" icon="lock">Aktif</Pill></li>
-          <li><div><b>Seperti manusia: "mengetik…", jeda acak 2–6 dtk, tidak online terus</b><span>Tidak membaca otomatis (centang biru tetap dari HP), tidak mengunduh media, reconnect pelan; setelah logout/diblokir tidak menyambung sendiri</span></div><Pill tone="neutral" icon="lock">Aktif</Pill></li>
+          <li><div><b>Seperti manusia: "mengetik…", jeda acak 2–6 dtk, tidak online terus</b><span>Chat dibaca (centang biru) hanya tepat sebelum membalas, tidak mengunduh media, reconnect pelan; setelah logout/diblokir tidak menyambung sendiri</span></div><Pill tone="neutral" icon="lock">Aktif</Pill></li>
         </ul>
         <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '8px 0 0', lineHeight: 1.5 }}>Pakai nomor kerja yang sudah lama aktif, bukan nomor baru. WhatsApp tetap bisa membatasi nomor yang dilaporkan penerima — volume besar atau kontak baru lewat WhatsApp Cloud API resmi.</p>
       </div>

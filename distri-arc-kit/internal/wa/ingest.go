@@ -111,7 +111,10 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 				title = deref(c.Name) + " · " + ShortDealer(c.DealerName)
 				subtitle = c.DealerName + " · " + deref(c.Role)
 			} else if errors.Is(err, pgx.ErrNoRows) {
-				threadKind, title, subtitle = "new", MaskNumber(remote), m.FromName
+				threadKind, title, subtitle = "new", MaskNumber(remote), "Nomor baru"
+				if name := contactName(m); name != "" {
+					title, subtitle = name, MaskNumber(remote)
+				}
 			} else {
 				return err
 			}
@@ -123,6 +126,11 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		}
 		if err != nil {
 			return fmt.Errorf("thread: %w", err)
+		}
+		if name := contactName(m); threadKind == "new" && name != "" && deref(thread.Title) != name {
+			if err := q.NameNewThread(ctx, gen.NameNewThreadParams{ID: thread.ID, Title: &name}); err != nil {
+				return err
+			}
 		}
 		res.ThreadID = thread.ID
 		dir := "in"
@@ -152,7 +160,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			return err
 		}
 		unread := int32(0)
-		if !m.FromMe {
+		if !m.FromMe && !m.History { // synced history arrives read: only live messages count as new
 			unread = 1
 		}
 		if err := q.TouchThread(ctx, gen.TouchThreadParams{ID: thread.ID, LastMessageAt: &m.Time, Unread: unread}); err != nil {
@@ -175,7 +183,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if threadKind == "dealer" {
 			res.DealerID = dealerID
 		}
-		if threadKind == "new" && dir == "in" {
+		if threadKind == "new" && dir == "in" && !m.History { // no profile lookups for old chats right after linking
 			res.NewNumber = Digits(strings.SplitN(m.ChatJID, "@", 2)[0])
 		}
 		return nil
@@ -227,6 +235,21 @@ func (in *Ingestor) Run(ctx context.Context, t Transport) {
 			}
 		}
 	}
+}
+
+// contactName is how the linked phone knows the other side of a direct chat: the saved contact or business name,
+// else the sender's own WhatsApp name on an inbound message.
+func contactName(m Message) string {
+	if m.IsGroup {
+		return ""
+	}
+	if n := strings.TrimSpace(m.ChatName); n != "" {
+		return n
+	}
+	if !m.FromMe {
+		return strings.TrimSpace(m.FromName)
+	}
+	return ""
 }
 
 func ShortDealer(name string) string {

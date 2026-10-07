@@ -87,6 +87,7 @@ type bridgeEvent struct {
 	Timestamp  string `json:"timestamp"`
 	FromMe     bool   `json:"from_me"`
 	IsHistory  bool   `json:"is_history"`
+	ChatName   string `json:"chat_name"`
 	GroupMeta  *struct {
 		Name string `json:"name"`
 	} `json:"group_meta"`
@@ -129,7 +130,7 @@ func (e bridgeEvent) message() Message {
 		t = time.Now()
 	}
 	m := Message{ID: e.WAMID, Account: Digits(e.Session), ChatJID: e.ChatID, FromNumber: Digits(e.From), FromName: e.SenderName,
-		IsGroup: e.IsGroup, FromMe: e.FromMe, Text: text, Time: t}
+		IsGroup: e.IsGroup, FromMe: e.FromMe, Text: text, Time: t, ChatName: strings.TrimSpace(e.ChatName), History: e.IsHistory}
 	if e.GroupMeta != nil {
 		m.GroupName = e.GroupMeta.Name
 	}
@@ -303,6 +304,30 @@ func (b *Baileys) Pair(ctx context.Context, account string) (string, error) {
 	var snap bridgeStatus
 	if _, _, err := b.call(ctx, http.MethodPost, "/sessions", map[string]any{"id": acc, "label": label, "history_days": days}, &snap); err != nil {
 		return "", err
+	}
+	return snap.QR, nil
+}
+
+// PairCode links a number with a code typed on the phone; the bridge returns "code:XXXX-XXXX".
+func (b *Baileys) PairCode(ctx context.Context, account string) (string, error) {
+	acc := Digits(account)
+	label := acc
+	if b.Label != nil {
+		label = b.Label(ctx, acc)
+	}
+	days := b.HistoryDays
+	if days <= 0 {
+		days = 30
+	}
+	var snap bridgeStatus
+	if _, _, err := b.call(ctx, http.MethodPost, "/sessions", map[string]any{"id": acc, "label": label, "history_days": days, "phone_code": true}, &snap); err != nil {
+		return "", err
+	}
+	if snap.Status == "connected" {
+		return "", nil
+	}
+	if !strings.HasPrefix(snap.QR, PairCodePrefix) {
+		return "", errors.New("wa-bridge tidak memberi kode tautan — coba lagi atau pakai QR")
 	}
 	return snap.QR, nil
 }

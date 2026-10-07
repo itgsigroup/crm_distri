@@ -39,7 +39,7 @@ describe('bridge HTTP', () => {
       id: 's1', connected: () => true, sendText: async (_c, text) => { sent.push(text); return 'W1' },
       snapshot: () => ({ session: 's1', status: 'connected', phone: '628', qr: '' }), listGroups: async () => [], profile: async () => ({}),
     }
-    const manager: BridgeManager = { get: id => (id === 's1' ? session : undefined), statuses: () => ({ s1: 'connected' }), create: async () => ({}), remove: async () => true }
+    const manager: BridgeManager = { get: id => (id === 's1' ? session : undefined), statuses: () => ({ s1: 'connected' }), create: async (id, _l, _d, code) => ({ session: id, status: 'pairing', qr: code ? 'code:ABCD-1234' : '2@qr' }), remove: async () => true }
     const fwd = new Forwarder(api, SECRET, await mkdtemp(join(tmpdir(), 'br-')), log)
     const policy = { ...defaultPolicy, quietStartHour: 0, quietEndHour: 0, typingMinMs: 0, typingMaxMs: 0 }
     const bridge = await listen(handler({ secret: SECRET, manager, sender: new Sender(store, fwd, policy), store, policy, queueLength: async () => 0, lastEvent: () => null }))
@@ -55,6 +55,8 @@ describe('bridge HTTP', () => {
     const ok = await post('/sessions/s1/send', { chat_id: '6281@s.whatsapp.net', text: 'Halo', action_id: 'ok-1' })
     expect(ok.status).toBe(200)
     expect(await ok.json()).toEqual({ wamid: 'W1', duplicate: false })
+    expect(await (await post('/sessions', { id: '6281234567890', label: 'Andi', phone_code: true })).json()).toMatchObject({ qr: 'code:ABCD-1234' })
+    expect((await post('/sessions', { id: 'cs-kantor', label: 'CS', phone_code: true })).status).toBe(400)
     const health = await (await fetch(bridge + '/health')).json()
     expect(health).toMatchObject({ ok: true, sessions: { s1: 'connected' }, limits: { s1: { last_hour: 1, per_hour: 20, today: 1 } } })
   })

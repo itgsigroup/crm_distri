@@ -22,6 +22,8 @@ type Message struct {
 	FromMe     bool      `json:"from_me"`
 	Text       string    `json:"text"`
 	Time       time.Time `json:"time"`
+	ChatName   string    `json:"chat_name,omitempty"` // contact name on the linked phone (address book / push / business)
+	History    bool      `json:"history,omitempty"`   // synced history after linking, not a live message
 }
 
 // Status is the connection state of one paired number.
@@ -98,6 +100,15 @@ func NumberOfJID(jid string) string {
 
 // IsGroupJID reports whether a JID is a group chat.
 func IsGroupJID(jid string) bool { return strings.HasSuffix(jid, "@g.us") }
+
+// CodePairer is implemented by transports that can link with an 8-character code typed on the phone
+// (WhatsApp → Perangkat tertaut → Tautkan dengan nomor telepon) instead of scanning a QR code.
+type CodePairer interface {
+	PairCode(ctx context.Context, account string) (string, error)
+}
+
+// PairCodePrefix marks a pairing code stored where the QR code normally is (wa_numbers.qr).
+const PairCodePrefix = "code:"
 
 // Unpairer is implemented by transports that can log a linked device out (Pengaturan → WhatsApp → Lepas).
 type Unpairer interface {

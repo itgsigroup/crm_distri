@@ -334,6 +334,7 @@ export interface WANumber {
   last_seen_at: string | null
   paired_at: string | null
   qr_png?: string
+  pair_code?: string
   label: string
   sales_id: string | null
   limits?: { last_hour: number; per_hour: number; today: number; per_day: number; warmup: boolean }

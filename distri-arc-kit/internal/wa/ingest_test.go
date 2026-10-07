@@ -110,8 +110,23 @@ func TestUnknownNumberOpensNewThread(t *testing.T) {
 	if err != nil || !r.Stored || r.DealerID != nil {
 		t.Fatalf("new: %+v %v", r, err)
 	}
-	if count(t, st, "select count(*) from chat_threads where id = $1 and kind = 'new' and title = '+62 857-••••-1234'", r.ThreadID) != 1 {
-		t.Fatal("new-number thread missing or not masked")
+	if count(t, st, "select count(*) from chat_threads where id = $1 and kind = 'new' and title = 'Toko Baru' and subtitle = '+62 857-••••-1234' and unread = 1", r.ThreadID) != 1 {
+		t.Fatal("new-number thread missing, unnamed or number not masked")
+	}
+	// the phone's saved contact name wins once it is known
+	if _, err := in.Process(context.Background(), wa.Message{ID: "N2", Account: andi, ChatJID: wa.UserJID("6285700001234"), FromNumber: "6285700001234", ChatName: "Pak Budi Toko Baru", Text: "jadi?", Time: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	if count(t, st, "select count(*) from chat_threads where id = $1 and title = 'Pak Budi Toko Baru'", r.ThreadID) != 1 {
+		t.Fatal("contact name not applied")
+	}
+	// synced history after linking: no name → masked title, not unread, no identification
+	h, err := in.Process(context.Background(), wa.Message{ID: "H1", Account: andi, ChatJID: wa.UserJID("6285700009999"), FromNumber: "6285700009999", Text: "lama", Time: time.Now().Add(-48 * time.Hour), History: true})
+	if err != nil || !h.Stored || h.NewNumber != "" {
+		t.Fatalf("history: %+v %v", h, err)
+	}
+	if count(t, st, "select count(*) from chat_threads where id = $1 and title = '+62 857-••••-9999' and unread = 0", h.ThreadID) != 1 {
+		t.Fatal("history thread should be masked and read")
 	}
 }
 

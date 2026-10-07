@@ -2,13 +2,14 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
-import type { MessageView, ThreadDetail, ThreadView, WANumber } from '../../api/types'
+import type { MessageView, ThreadDetail, ThreadView } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
-import { SheetHead, useFeedback } from '../../components/feedback'
+import { useFeedback } from '../../components/feedback'
 import { ScoreRing } from '../../components/ui'
 import { fmtRp, hhmm, shortDate, wib } from '../../lib/format'
-import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
+import { useChatContext, useMe, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
+import { ConnectPanel, ConnectSheet, labelOf, PairSheet } from './Connect'
 
 const TABS: [string, string][] = [['all', 'Semua'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['new', 'Nomor baru']]
 const SECTION: Record<string, string> = { dealer: 'Dealer', group: 'Grup internal', new: 'Nomor baru' }
@@ -45,41 +46,12 @@ function timeLabel(d: string | null, now: Date) {
 }
 
 const DOT: Record<string, string> = { connected: 'good', pairing: 'warn', disconnected: 'bad', logged_out: 'bad', unpaired: 'neutral' }
-const labelOf = (n: WANumber) => (n.label || n.sales || n.masked).replace(/^Nomor\s+/, '')
-
-/** QR pairing of one number (Chat → nomor belum terhubung); closes itself once the phone is linked. */
-function PairSheet({ wa }: { wa: string }) {
-  const { closeSheet, toast } = useFeedback()
-  const { data } = useWAStatus()
-  const n = data?.items.find((x) => x.wa_number === wa)
-  useEffect(() => {
-    if (n?.state === 'connected') {
-      toast(`${labelOf(n)} terhubung · pesan masuk mulai tampil di Chat`)
-      closeSheet()
-    }
-  }, [n?.state]) // eslint-disable-line react-hooks/exhaustive-deps
-  return (
-    <>
-      <SheetHead icon="qr" title={`Pasangkan ${n ? labelOf(n) : ''}`} sub={n ? `${n.masked} · tautkan sebagai perangkat (Baileys) · aturan anti-blokir berlaku` : ''} onClose={closeSheet} />
-      <div className="sec qr">
-        {n?.qr_png ? <img src={n.qr_png} alt="QR WhatsApp" style={{ width: 216, height: 216, borderRadius: 14, background: '#fff', padding: 12, boxShadow: 'var(--shadow)' }} /> : <div style={{ width: 216, height: 216, display: 'grid', placeItems: 'center', color: 'var(--text-3)' }}>Menyiapkan QR…</div>}
-        <ol><li>Buka WhatsApp di HP nomor {n?.masked}</li><li>Setelan → Perangkat tertaut → Tautkan perangkat</li><li>Arahkan kamera ke kode ini</li></ol>
-        <span className="exp">kode diperbarui otomatis · HP tetap menerima notifikasi seperti biasa</span>
-      </div>
-    </>
-  )
-}
-
 /** Numbers bar: filter conversations by WhatsApp number; a number that is not linked can be paired here. */
 function NumberBar({ account, setAccount }: { account: string; setAccount: (a: string) => void }) {
   const { data } = useWAStatus()
-  const { openSheet, toast } = useFeedback()
-  const qc = useQueryClient()
-  const pair = useMutation({
-    mutationFn: (n: string) => api.post('/wa/pair', { wa_number: n }),
-    onSuccess: (_r, n) => { qc.invalidateQueries({ queryKey: ['wa'] }); openSheet(<PairSheet wa={n} />) },
-    onError: (e: Error) => toast(e.message),
-  })
+  const { data: me } = useMe()
+  const { openSheet } = useFeedback()
+  const admin = me?.role === 'ceo' || me?.role === 'admin'
   const items = data?.items ?? []
   if (items.length < 1) return null
   return (
@@ -87,16 +59,17 @@ function NumberBar({ account, setAccount }: { account: string; setAccount: (a: s
       <button className={`wa-chip ${account === '' ? 'is-active' : ''}`} onClick={() => setAccount('')}>Semua nomor</button>
       {items.map((n) => (
         <button key={n.wa_number} className={`wa-chip ${account === n.wa_number ? 'is-active' : ''}`} title={`${labelOf(n)} · ${n.masked} · ${n.state === 'connected' ? 'terhubung' : 'belum terhubung — klik untuk pasangkan'}`}
-          onClick={() => (n.state === 'connected' || data?.transport === 'fake' ? setAccount(account === n.wa_number ? '' : n.wa_number) : pair.mutate(n.wa_number))}>
+          onClick={() => (n.state === 'connected' || data?.transport === 'fake' ? setAccount(account === n.wa_number ? '' : n.wa_number) : openSheet(<PairSheet wa={n.wa_number} />))}>
           <span className={`dot ${DOT[n.state] ?? 'neutral'}`} />{labelOf(n)}
         </button>
       ))}
+      {admin && <button className="wa-chip add" onClick={() => openSheet(<ConnectSheet />)} title="Tambah / tautkan nomor WhatsApp">+ Nomor</button>}
     </div>
   )
 }
 
 function ThreadList({ tab, setTab, account, setAccount, active, onPick }: { tab: string; setTab: (t: string) => void; account: string; setAccount: (a: string) => void; active?: string; onPick: (id: string) => void }) {
-  const { data: list = [] } = useThreads(tab, account)
+  const { data: list = [], isSuccess } = useThreads(tab, account)
   const now = useNow()
   return (
     <div className="pane list-pane">
@@ -105,6 +78,7 @@ function ThreadList({ tab, setTab, account, setAccount, active, onPick }: { tab:
         {TABS.map(([k, l]) => <button key={k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>{l}</button>)}
       </div>
       <div className="chat-list">
+        {isSuccess && list.length === 0 && <div className="chat-none">Belum ada percakapan di sini</div>}
         {list.map((c, i) => {
           const hdr = tab === 'all' && (i === 0 || list[i - 1].kind !== c.kind) ? <div className="chat-sec">{SECTION[c.kind]}</div> : null
           return (
@@ -315,7 +289,16 @@ export function ChatPage() {
   const [tab, setTab] = useState('all')
   const [account, setAccount] = useState('')
   const { data: list } = useThreads('all', account)
+  const { data: wa } = useWAStatus()
   const active = threadId ?? list?.[0]?.id
+  // No conversation yet (no number linked, or history still syncing): show how to connect WhatsApp.
+  if (!threadId && account === '' && list && wa && list.length === 0) {
+    return (
+      <div className="chat chat-empty">
+        <div className="pane connect-pane"><ConnectPanel /></div>
+      </div>
+    )
+  }
   return (
     <div className={`chat ${threadId ? 'show-thread' : ''}`}>
       <ThreadList tab={tab} setTab={setTab} account={account} setAccount={setAccount} active={active} onPick={(id) => nav('/chat/' + id)} />

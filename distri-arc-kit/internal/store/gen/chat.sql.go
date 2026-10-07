@@ -1098,6 +1098,22 @@ func (q *Queries) MarkThreadRead(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const nameNewThread = `-- name: NameNewThread :exec
+update chat_threads set title = $2 where id = $1 and kind = 'new' and title is distinct from $2
+`
+
+type NameNewThreadParams struct {
+	ID    uuid.UUID `json:"id"`
+	Title *string   `json:"title"`
+}
+
+// A conversation with an unknown number shows the contact's name once the phone knows it (until then the masked
+// number). Dealer and group threads keep their own titles.
+func (q *Queries) NameNewThread(ctx context.Context, arg NameNewThreadParams) error {
+	_, err := q.db.Exec(ctx, nameNewThread, arg.ID, arg.Title)
+	return err
+}
+
 const openCommitments = `-- name: OpenCommitments :many
 select c.id, c.dealer_id, c.side, c.title, c.detail, c.status, c.due_at, c.late_label, c.invoice_id, c.proposal_id, c.signal_ids, c.source_key, c.created_at, i.number as invoice_number from commitments c left join invoices i on i.id = c.invoice_id
 where c.dealer_id = $1 and c.status <> 'done' order by c.due_at nulls last

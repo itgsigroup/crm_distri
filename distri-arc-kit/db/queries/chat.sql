@@ -269,3 +269,8 @@ update chat_messages set status = sqlc.arg(status)::text where id = sqlc.arg(id)
 
 -- name: SetWANumbersTransport :exec
 update wa_numbers set transport = $1, updated_at = now() where transport <> $1;
+
+-- name: NameNewThread :exec
+-- A conversation with an unknown number shows the contact's name once the phone knows it (until then the masked
+-- number). Dealer and group threads keep their own titles.
+update chat_threads set title = $2 where id = $1 and kind = 'new' and title is distinct from $2;

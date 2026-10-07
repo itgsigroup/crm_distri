@@ -437,7 +437,10 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 		if l, ok := limits[n.WaNumber]; ok {
 			v["limits"] = l
 		}
-		if n.Qr != nil && n.State == "pairing" {
+		if n.Qr != nil && n.State == "pairing" && strings.HasPrefix(*n.Qr, wa.PairCodePrefix) {
+			v["pair_code"] = strings.TrimPrefix(*n.Qr, wa.PairCodePrefix)
+			v["qr_expires_at"] = n.QrExpiresAt
+		} else if n.Qr != nil && n.State == "pairing" {
 			if png, err := qrcode.Encode(*n.Qr, qrcode.Medium, 256); err == nil {
 				v["qr_png"] = "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
 				v["qr_expires_at"] = n.QrExpiresAt
@@ -451,8 +454,9 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 func (s *Server) waPair(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		WANumber string `json:"wa_number"`
+		Method   string `json:"method"` // "" (QR) | "code"
 	}
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || wa.Digits(in.WANumber) == "" {
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || wa.Digits(in.WANumber) == "" || (in.Method != "" && in.Method != "code") {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Nomor tidak valid")
 		return
 	}
@@ -470,11 +474,15 @@ func (s *Server) waPair(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusServiceUnavailable, "no_queue", "Antrean tidak tersedia")
 		return
 	}
-	if _, err := s.jobs.Insert(r.Context(), jobs.WAPairArgs{WANumber: n}, nil); err != nil {
+	if in.Method == "code" && s.cfg.WATransport != "baileys" {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Tautan dengan kode hanya untuk transport Baileys — pakai QR")
+		return
+	}
+	if _, err := s.jobs.Insert(r.Context(), jobs.WAPairArgs{WANumber: n, Method: in.Method}, nil); err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	s.audit(r, "wa.pair", "wa_number", nil, map[string]any{"wa_number": n})
+	s.audit(r, "wa.pair", "wa_number", nil, map[string]any{"wa_number": n, "method": in.Method})
 	httpx.JSON(w, http.StatusAccepted, map[string]any{"wa_number": n, "state": "pairing"})
 }
 

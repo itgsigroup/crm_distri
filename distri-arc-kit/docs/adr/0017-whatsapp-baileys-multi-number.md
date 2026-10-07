@@ -23,14 +23,19 @@ dengan mengakali deteksi. Bridge Baileys dari ARC v1 (`apps/wa-bridge`, sudah te
 3. **Penjaga anti-blokir** (bridge, setelah persetujuan manusia): hanya membalas kontak yang pernah menghubungi nomor
    itu; opt-out "STOP/berhenti"; teks identik ke > 3 chat/jam ditolak; jam tenang 21–07 WIB (plus jendela kirim 08–18
    Distri ARC); 20/jam & 120/hari per nomor; 6/jam & jeda ≥ 20 dtk per chat; pemanasan nomor baru 15/hari naik 7 hari;
-   jeda acak 2–6 dtk berurutan per nomor; presensi "mengetik…" sebanding panjang teks; tidak auto-read, tidak unduh
-   media. Penolakan jeda (dengan `Retry-After`) menunda job outbox; penolakan final (kontak dingin, opt-out, broadcast)
+   jeda acak 2–6 dtk berurutan per nomor; presensi "mengetik…" sebanding panjang teks; chat dibaca (centang biru)
+   hanya tepat sebelum membalas, lalu jeda 1–3 dtk seperti orang membaca — tidak auto-read saat pesan masuk; tidak unduh
+   media; riwayat setelah menautkan tidak memicu pencarian profil (identifikasi hanya untuk pesan live). Penolakan jeda (dengan `Retry-After`) menunda job outbox; penolakan final (kontak dingin, opt-out, broadcast)
    menggagalkan baris dengan alasan dan toast — tidak dicoba ulang.
 4. **Banyak nomor**: percakapan milik nomor (`chat_threads.account`, unik per nomor + chat), bukan hanya sales — satu
    sales boleh beberapa nomor, nomor tim (CS kantor) tanpa sales. Pengaturan → WhatsApp: tambah / pasangkan (QR) / lepas
    nomor; penghitung anti-blokir per nomor. Chat: bar nomor (filter, pasangkan langsung dengan QR), "via nomor" per
    percakapan. Sales hanya melihat dan memasangkan nomornya sendiri.
-5. Status antre yang lebih tua dari status terkirim dibuang (tidak ada "logout" basi setelah pairing ulang); saat worker
+5. **Menautkan**: QR atau **kode 8 karakter** yang diketik di HP (WhatsApp → Perangkat tertaut → Tautkan dengan nomor
+   telepon saja) — untuk sales yang hanya memegang HP. Halaman Chat tanpa percakapan menampilkan "Hubungkan WhatsApp"
+   (tambah nomor + tautkan); chip "+ Nomor" di bar nomor. Judul percakapan nomor baru memakai nama kontak di HP
+   (nama tersimpan / bisnis / push name), nomor disamarkan di bawahnya; riwayat sinkron tidak dihitung belum dibaca.
+6. Status antre yang lebih tua dari status terkirim dibuang (tidak ada "logout" basi setelah pairing ulang); saat worker
    menyala, nomor tanpa sesi di bridge ditandai `unpaired` (tidak ada "terhubung" palsu).
 
 ## Yang sengaja tidak dilakukan
