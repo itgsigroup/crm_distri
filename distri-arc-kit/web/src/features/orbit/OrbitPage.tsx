@@ -6,7 +6,7 @@ import { fmtRp } from '../../lib/format'
 import { KUAD, RING_DESC } from '../../lib/i18n/id'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { useOrbit, useOrbitMovers, useOrbitSummary, useSales } from '../../app/queries'
-import { CX, CY, H, RINGS, RING_R, W, layoutOrbit } from './geometry'
+import { CX, CY, H, READABLE_FROM, READABLE_NAMED, RINGS, RING_R, W, layoutOrbit, layoutReadable, ringOf } from './geometry'
 
 export function SalesFilters({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const { data: sales = [] } = useSales()
@@ -62,13 +62,20 @@ export function topByOmzet(list: BoardItem[], n = ORBIT_TOP) {
   return list.length <= n ? list : [...list].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, n)
 }
 
-export function OrbitBoard({ list, onOpen, dense = false }: { list: BoardItem[]; onOpen: (id: string) => void; dense?: boolean }) {
+export function OrbitBoard({ list, onOpen, dense = false, focus = null }: { list: BoardItem[]; onOpen: (id: string) => void; dense?: boolean; focus?: string | null }) {
   const wrap = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
+  const readable = !dense && list.length >= READABLE_FROM
   const nodes = useMemo(() => {
+    if (readable) return []
     const named = !dense && list.length > ORBIT_NAMED ? new Set(topByOmzet(list, ORBIT_NAMED).map((d) => d.id)) : undefined
     return layoutOrbit(list, 1.2, dense, named)
-  }, [list, dense])
+  }, [list, dense, readable])
+  const rnodes = useMemo(() => {
+    if (!readable) return []
+    const pool = focus ? list.filter((d) => ringOf(d) === focus) : list
+    return layoutReadable(list, new Set(topByOmzet(pool, READABLE_NAMED).map((d) => d.id)), focus)
+  }, [list, readable, focus])
   const LA = 0.62 * Math.PI * 2
   const move = (e: MouseEvent, d: BoardItem) => {
     const r = wrap.current!.getBoundingClientRect()
@@ -98,6 +105,15 @@ export function OrbitBoard({ list, onOpen, dense = false }: { list: BoardItem[];
         <text className="ring-t" x={CX - RING_R.Churn - 6} y={CY + 4} textAnchor="end">¾ putaran</text>
         <circle cx={CX} cy={CY} r={28} fill="var(--text)" />
         <text x={CX} y={CY + 5} textAnchor="middle" className="gsi-t">GSI</text>
+        {rnodes.map(({ d, x, y, size, tone, ring, label, lx, ly, side, dim }) => (
+          <g key={d.id} className={`dn ${dim ? 'dim' : ''}`} tabIndex={dim ? -1 : 0} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onKeyDown={(e) => e.key === 'Enter' && onOpen(d.id)}>
+            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={ring === 'Churn' ? 'ghost' : ''} />
+            {label && <>
+              {Math.abs(ly - 4 - y) > 3 && <polyline points={`${x.toFixed(1)},${y.toFixed(1)} ${(lx - side * 3).toFixed(1)},${(ly - 4).toFixed(1)}`} className="dn-lead" />}
+              <text x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor={side > 0 ? 'start' : 'end'} className="dn-t">{label}</text>
+            </>}
+          </g>
+        ))}
         {nodes.map(({ d, x, y, size, tone, ring, name, sm, side }) => (
           <g key={d.id} className="dn" tabIndex={0} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onKeyDown={(e) => e.key === 'Enter' && onOpen(d.id)}>
             <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={ring === 'Churn' ? 'ghost' : ''} />
@@ -164,6 +180,7 @@ export function OrbitPage() {
   const orch = useOrchStatus()
   const { data: list = [] } = useOrbit(sales)
   const [all, setAll] = useState(false)
+  const [focus, setFocus] = useState<string | null>(null)
   const many = list.length > ORBIT_TOP
   const shown = useMemo(() => (all ? list : topByOmzet(list)), [list, all])
   const { data: osum } = useOrbitSummary(sales)
@@ -177,7 +194,7 @@ export function OrbitPage() {
           <div className="orbit-hud">
             <SalesFilters value={sales} onChange={setSales} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span className="meta">{many && !all ? `${ORBIT_TOP} teratas (omzet) dari ${list.length} dealer · ${ORBIT_NAMED} terbesar bernama` : `${list.length} dealer`} · share of wallet rata-rata {avgSow}%</span>
+              <span className="meta">{many && !all ? `${ORBIT_TOP} teratas (omzet) dari ${list.length} dealer · ${shown.length >= READABLE_FROM ? READABLE_NAMED : ORBIT_NAMED} terbesar bernama` : `${list.length} dealer`} · share of wallet rata-rata {avgSow}%</span>
               {many && (
                 <div className="seg" role="radiogroup" aria-label="Tampilan orbit">
                   <button role="radio" aria-checked={!all} className={!all ? 'is-active' : ''} onClick={() => setAll(false)}>Prioritas</button>
@@ -188,16 +205,16 @@ export function OrbitPage() {
               <button className="btn ghost" style={{ height: 30, fontSize: 12 }} onClick={() => nav('/panduan')}><Icon name="doc" />Cara baca</button>
             </div>
           </div>
-          <OrbitBoard list={shown} dense={all && many} onOpen={(id) => nav('/dealer/' + id)} />
+          <OrbitBoard list={shown} dense={all && many} focus={focus} onOpen={(id) => nav('/dealer/' + id)} />
           <Legend tail="Ukuran = share of wallet · Sudut = posisi dalam siklus order (atas = jadwal order) · Status = Key account / Aktif / At risk / Churn" />
         </div>
       </div>
       <div className="stack">
         <div className="card">
-          <div className="card-h"><h2>Isi orbit</h2><span className="meta">Dealer per status</span></div>
+          <div className="card-h"><h2>Isi orbit</h2><span className="meta">{focus ? <button className="ev-more" onClick={() => setFocus(null)}>tampilkan semua</button> : 'klik status untuk menyorot'}</span></div>
           <ul className="pulse" id="orbit-rings">
             {summary.map((r) => (
-              <li key={r.status}>
+              <li key={r.status} className={focus === r.status ? 'is-sel' : ''} style={{ cursor: 'pointer', opacity: focus && focus !== r.status ? 0.5 : 1 }} onClick={() => setFocus(focus === r.status ? null : r.status)}>
                 <span className="lbl"><b>{r.status}</b> · {r.count} dealer</span>
                 <em className="num">{fmtRp(r.omzet_bln)}/bln</em>
                 <span className="dl n">{RING_DESC[r.status]}</span>

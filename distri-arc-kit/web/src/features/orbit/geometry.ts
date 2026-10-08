@@ -112,3 +112,88 @@ function layoutNamed(nodes: OrbitNode[], box: (a: OrbitNode) => number[]): Orbit
   }
   return nodes
 }
+
+/** A dealer on the readable orbit (real data, ADR 0023 era): the dot stays on its ring; the label may move. */
+export interface ReadableNode extends OrbitNode {
+  lx: number
+  ly: number
+  label: string
+  dim: boolean
+}
+
+/** Above this many dealers the orbit switches to the readable layout (the mockup's 18 keep the mockup layout). */
+export const READABLE_FROM = 40
+export const READABLE_NAMED = 12
+
+const clip = (s: string, n = 18) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s)
+
+/** Readable layout for hundreds of dealers. Glossary meaning is kept — ring = status, angle = position in the order
+ * cycle, size = share of wallet, colour = sisa limit — but: (1) overlapping dots are spread only along their own
+ * ring (never pushed into another ring), (2) an estimated share of wallet (the same 50% for everyone) gives a small
+ * uniform dot instead of 150 equal large ones, (3) only `named` dealers get a short label, placed outside the dot
+ * and stacked without overlap, with a leader line, (4) `focus` dims every other ring. */
+export function layoutReadable(list: BoardItem[], named: Set<string>, focus: string | null = null, drift = 1.2): ReadableNode[] {
+  const ns = list.map((d) => {
+    const p = place(d, drift)
+    const ring = ringOf(d)
+    const est = d.metrics.sow_source !== 'confirmed'
+    const size = est ? (ring === 'Key account' ? 6.5 : 5) : 4 + Math.sqrt(d.metrics.sow) * 0.8
+    return { d, ring, rad: p.rad, ang: p.ang, size }
+  })
+  // spread along the ring: per ring, pack the angles so neighbours keep their radii apart, each packed run centred
+  // on where its dealers belong (1-D label placement). Angles run −π…π so the jadwal line (top) is not a seam.
+  const byRing = new Map<string, typeof ns>()
+  for (const n of ns) {
+    if (n.ang > Math.PI) n.ang -= Math.PI * 2
+    byRing.set(n.ring, [...(byRing.get(n.ring) ?? []), n])
+  }
+  for (const group of byRing.values()) {
+    group.sort((a, b) => a.ang - b.ang)
+    const want = group.map((n) => n.ang)
+    const gap = (i: number) => (group[i - 1].size + group[i].size + 1.5) / group[i].rad
+    for (let pass = 0; pass < 12; pass++) {
+      for (let i = 1; i < group.length; i++) group[i].ang = Math.max(group[i].ang, group[i - 1].ang + gap(i))
+      // centre every packed run on the mean of where its members want to be
+      let i = 0
+      while (i < group.length) {
+        let j = i
+        while (j + 1 < group.length && group[j + 1].ang - group[j].ang <= gap(j + 1) + 1e-9) j++
+        let shift = 0
+        for (let k = i; k <= j; k++) shift += want[k] - group[k].ang
+        shift /= j - i + 1
+        for (let k = i; k <= j; k++) group[k].ang += shift
+        i = j + 1
+      }
+    }
+    for (let i = 1; i < group.length; i++) group[i].ang = Math.max(group[i].ang, group[i - 1].ang + gap(i))
+  }
+  const out: ReadableNode[] = ns.map(({ d, ring, rad, ang, size }) => {
+    const x = CX + rad * Math.sin(ang)
+    const y = CY - rad * Math.cos(ang)
+    const side: 1 | -1 = x >= CX ? 1 : -1
+    const label = named.has(d.id) ? clip(shortName(d.name)) : ''
+    const dim = !!focus && ring !== focus
+    return { d, x, y, ox: x, oy: y, size, tone: toneOf(d.metrics.credit.state), ring, name: label, sm: false, side, tw: label.length * 6.4 + 6, lx: x + side * (size + 5), ly: y + 4, label, dim }
+  })
+  // labels: outside the dot, stacked per side so none overlap; the dot never moves
+  for (const side of [1, -1] as const) {
+    const ls = out.filter((n) => n.label && !n.dim && n.side === side).sort((a, b) => a.ly - b.ly)
+    for (let it = 0; it < 40; it++) {
+      let moved = false
+      for (let i = 1; i < ls.length; i++) {
+        const a = ls[i - 1]
+        const b = ls[i]
+        const overlapX = side > 0 ? Math.min(a.lx + a.tw, b.lx + b.tw) - Math.max(a.lx, b.lx) : Math.min(a.lx, b.lx) - Math.max(a.lx - a.tw, b.lx - b.tw)
+        if (overlapX > 0 && b.ly - a.ly < 15) {
+          const p = (15 - (b.ly - a.ly)) / 2
+          a.ly -= p
+          b.ly += p
+          moved = true
+        }
+      }
+      if (!moved) break
+    }
+    ls.forEach((n) => { n.ly = Math.max(24, Math.min(H - 12, n.ly)) })
+  }
+  return out.sort((a, b) => Number(b.dim) - Number(a.dim) || Number(!!a.label) - Number(!!b.label))
+}

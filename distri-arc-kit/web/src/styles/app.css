@@ -409,3 +409,8 @@
 .st-filter{margin-top:8px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:12.5px;padding:0 8px;align-self:flex-start}
 .st-count{margin-top:4px;font-size:11.5px;color:var(--text-3)}
 .net-empty{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;color:var(--text-3);pointer-events:none}
+/* Orbit · readable layout for real data */
+.orbit .dn.dim{opacity:.12}
+.orbit .dn.dim .dn-t{display:none}
+.orbit .dn-lead{fill:none;stroke:var(--text-3);stroke-width:.8;opacity:.7;pointer-events:none}
+.orbit .dn:hover circle,.orbit .dn:focus circle{stroke:var(--text);stroke-width:2}
