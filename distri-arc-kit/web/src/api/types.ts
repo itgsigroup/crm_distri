@@ -418,8 +418,16 @@ export interface AutonomyPolicy { matrix: Record<string, AutonomyRow>; guard: { 
 // ---------- MCP (stage 07) ----------
 export interface MCPTool { name: string; scope: string; description: string }
 export interface MCPInfo { endpoint: string; enabled: boolean; tools: MCPTool[]; llm: { mode: 'api' | 'mcp' | 'both'; provider: string; model: string; api_key: boolean; fallback: string } }
-export interface MCPClient { id: string; name: string; scopes: string[]; token_prefix: string; active: boolean; last_seen_at: string | null; created_at: string; calls_today: number; kind: 'bearer' | 'oauth'; user?: string; refresh_expires_at?: string | null }
+export interface MCPClient { id: string; name: string; scopes: string[]; token_prefix: string; active: boolean; last_seen_at: string | null; created_at: string; calls_today: number; kind: 'bearer' | 'oauth' | 'schedule'; user?: string; refresh_expires_at?: string | null }
 export interface MCPCall { id: string; client_id: string | null; client_name: string | null; tool: string; args: Record<string, unknown> | null; result_summary: string | null; status: string; duration_ms: number | null; created_at: string }
+export interface AnalystInfo { engine: 'claude' | 'template'; key_source: '' | 'ui' | 'env'; key_hint: string; model: string; models: { id: string; label: string }[]; daily_budget_idr: number; spent_today_idr: number; runs_today: number; can_configure: boolean; can_schedule: boolean; min_gap_minutes: number }
+export interface ScheduleRunBrief { id: string; status: RunStatus; started_at: string; finished_at: string | null; cost_idr: number }
+export type RunStatus = 'running' | 'ok' | 'template' | 'error'
+export interface Schedule { id: string; name: string; prompt: string; cron: string; description: string; enabled: boolean; scopes: string[]; max_steps: number; next_runs: string[]; last_run_at: string | null; last_run: ScheduleRunBrief | null; created_at: string }
+export interface ScheduleRun { id: string; schedule_id: string; trigger: 'schedule' | 'manual'; triggered_by: string | null; status: RunStatus; engine: string | null; model: string | null; tokens_in: number; tokens_out: number; cost_idr: number; error: string | null; started_at: string; finished_at: string | null; step_count: number; preview: string }
+export interface RunStep { tool: string; args?: Record<string, unknown>; status: string; ms: number; summary?: string }
+export interface ScheduleRunFull extends Omit<ScheduleRun, 'step_count' | 'preview'> { report: string | null; steps: RunStep[]; schedule_name: string }
+export interface CronPreview { ok: boolean; error?: string; expr?: string; description?: string; next?: string[] }
 export interface MCPPolicy { allow_reanalyze: boolean; allow_plan_update_proposal: boolean; allow_send: false; mask_pii_in_read: boolean; max_cycles_per_hour: number }
 
 // ---------- Peta relasi (stage 08) ----------

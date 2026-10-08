@@ -125,3 +125,17 @@ type DataApplyArgs struct {
 }
 
 func (DataApplyArgs) Kind() string { return "data.apply" }
+
+// AnalystTickArgs starts the scheduled analyses whose time has come (every minute).
+type AnalystTickArgs struct{}
+
+func (AnalystTickArgs) Kind() string { return "analyst.tick" }
+
+// AnalystRunArgs runs one scheduled analysis (Slot nil: "Jalankan sekarang").
+type AnalystRunArgs struct {
+	ScheduleID string     `json:"schedule_id"`
+	Slot       *time.Time `json:"slot,omitempty"`
+	By         string     `json:"by,omitempty"`
+}
+
+func (AnalystRunArgs) Kind() string { return "analyst.run" }

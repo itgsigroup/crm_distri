@@ -13,6 +13,7 @@ import (
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
+	"distri-arc/internal/analyst"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/domain"
@@ -284,8 +285,9 @@ type Deps struct {
 	Identify     *identify.Service
 	Ops          ops.Env
 	AlertFrom    string // ALERT_WA_FROM
-	SessionKey   []byte // opens sealed secrets (BigQuery key)
+	SessionKey   []byte // opens sealed secrets (BigQuery key, Claude API key)
 	AlertGroup   string // ALERT_WA_GROUP
+	AnalystKey   string // ANTHROPIC_API_KEY for scheduled analysis when no key was saved in the app
 }
 
 // New builds the river client with all workers and periodic jobs registered.
@@ -301,6 +303,8 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	river.AddWorker(workers, &DataSyncWorker{st: st, clock: c, log: log, secret: deps.SessionKey})
 	river.AddWorker(workers, &DataApplyWorker{st: st, clock: c, log: log})
 	river.AddWorker(workers, &AlertsWorker{st: st, clock: c, log: log, env: deps.Ops, from: deps.AlertFrom, group: deps.AlertGroup})
+	river.AddWorker(workers, &AnalystTickWorker{st: st, clock: c})
+	river.AddWorker(workers, &AnalystRunWorker{runner: &analyst.Runner{St: st, Clock: c, Log: log, Orch: deps.Orchestrator, SessionKey: deps.SessionKey, EnvKey: deps.AnalystKey}})
 	var periodic []*river.PeriodicJob
 	if deps.Odoo != nil {
 		river.AddWorker(workers, &OdooSyncWorker{syncer: odoo.NewSyncer(st, deps.Odoo, c, log), svc: svc})
@@ -348,6 +352,9 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 			river.NewPeriodicJob(river.PeriodicInterval(15*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.DataSyncArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 15 * time.Minute}}
 			}, nil),
+			river.NewPeriodicJob(river.PeriodicInterval(time.Minute), func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.AnalystTickArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: time.Minute}}
+			}, &river.PeriodicJobOpts{RunOnStart: true}),
 			river.NewPeriodicJob(river.PeriodicInterval(5*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.AlertsCheckArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 5 * time.Minute}}
 			}, &river.PeriodicJobOpts{RunOnStart: true}),

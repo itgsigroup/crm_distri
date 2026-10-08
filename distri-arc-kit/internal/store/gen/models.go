@@ -476,6 +476,41 @@ type McpClient struct {
 	RefreshExpiresAt *time.Time `json:"refresh_expires_at"`
 }
 
+type McpSchedule struct {
+	ID        uuid.UUID  `json:"id"`
+	Name      string     `json:"name"`
+	Prompt    string     `json:"prompt"`
+	Cron      string     `json:"cron"`
+	Enabled   bool       `json:"enabled"`
+	Scopes    []string   `json:"scopes"`
+	MaxSteps  int32      `json:"max_steps"`
+	ClientID  *uuid.UUID `json:"client_id"`
+	CreatedBy *uuid.UUID `json:"created_by"`
+	NextRunAt *time.Time `json:"next_run_at"`
+	LastRunAt *time.Time `json:"last_run_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+type McpScheduleRun struct {
+	ID          uuid.UUID       `json:"id"`
+	ScheduleID  uuid.UUID       `json:"schedule_id"`
+	Slot        *time.Time      `json:"slot"`
+	Trigger     string          `json:"trigger"`
+	TriggeredBy *string         `json:"triggered_by"`
+	Status      string          `json:"status"`
+	Engine      *string         `json:"engine"`
+	Model       *string         `json:"model"`
+	Report      *string         `json:"report"`
+	Steps       json.RawMessage `json:"steps"`
+	TokensIn    int32           `json:"tokens_in"`
+	TokensOut   int32           `json:"tokens_out"`
+	CostIdr     int64           `json:"cost_idr"`
+	Error       *string         `json:"error"`
+	StartedAt   time.Time       `json:"started_at"`
+	FinishedAt  *time.Time      `json:"finished_at"`
+}
+
 type OauthClient struct {
 	ClientID     string     `json:"client_id"`
 	ClientName   string     `json:"client_name"`

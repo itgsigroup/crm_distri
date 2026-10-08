@@ -4,6 +4,7 @@ package api
 import (
 	"context"
 	"distri-arc/internal/access"
+	"distri-arc/internal/analyst"
 	"distri-arc/internal/oauth"
 	"log/slog"
 	"net/http"
@@ -49,6 +50,9 @@ type Server struct {
 	idf   *identify.Service
 	ask   *ask.Service
 	http  *ops.HTTPMetrics
+	// scheduled analysis seams (tests): the Claude client of inline runs and the API-key check
+	analystModel func(key string) analyst.Model
+	verifyKey    func(ctx context.Context, key string) error
 }
 
 // WithAsk enables POST /ask (the command bar).
@@ -107,6 +111,7 @@ func (s *Server) Handler() http.Handler {
 			s.proposalRoutes(r)
 			s.cycleRoutes(r)
 			s.mcpRoutes(r)
+			s.analystRoutes(r)
 			s.relasiRoutes(r)
 			s.identifyRoutes(r)
 			s.pilotRoutes(r)

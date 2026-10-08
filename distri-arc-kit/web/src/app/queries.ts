@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api, type Items } from '../api/client'
-import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, MCPCall, MCPClient, MCPInfo, MCPPolicy, Plan, Proposal, Relasi, RelasiInsight } from '../api/types'
+import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, AnalystInfo, CronPreview, MCPCall, MCPClient, MCPInfo, MCPPolicy, Schedule, ScheduleRun, ScheduleRunFull, Plan, Proposal, Relasi, RelasiInsight } from '../api/types'
 import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAGroup, WANumber } from '../api/types'
 import type {
   AgendaRow, AgingItem, ARRow, BoardItem, CreditOverview, CriticalItem, ExposureRow, ForecastRow, ProductSales, Brief, DealerDetail, Health, HealthFull, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
@@ -115,6 +115,11 @@ export const useAutonomy = () => useQuery({ queryKey: ['policies', 'autonomy'], 
 export const useMCPInfo = () => useQuery({ queryKey: ['mcp', 'info'], queryFn: () => api.get<MCPInfo>('/mcp/info') })
 export const useMCPClients = () => useQuery({ queryKey: ['mcp', 'clients'], queryFn: () => api.get<Items<MCPClient>>('/mcp/clients').then((r) => r.items) })
 export const useMCPCalls = () => useQuery({ queryKey: ['mcp', 'calls'], queryFn: () => api.get<Items<MCPCall>>('/mcp/calls?limit=20').then((r) => r.items) })
+export const useAnalyst = () => useQuery({ queryKey: ['mcp', 'analyst'], queryFn: () => api.get<AnalystInfo>('/mcp/analyst') })
+export const useSchedules = () => useQuery({ queryKey: ['mcp', 'schedules'], queryFn: () => api.get<Items<Schedule>>('/mcp/schedules').then((r) => r.items) })
+export const useScheduleRuns = (id: string) => useQuery({ queryKey: ['mcp', 'runs', id], queryFn: () => api.get<Items<ScheduleRun>>(`/mcp/schedules/${id}/runs?limit=30`).then((r) => r.items) })
+export const useScheduleRun = (id: string) => useQuery({ queryKey: ['mcp', 'run', id], queryFn: () => api.get<ScheduleRunFull>(`/mcp/runs/${id}`), enabled: !!id })
+export const useCronPreview = (expr: string) => useQuery({ queryKey: ['mcp', 'cron', expr], queryFn: () => api.get<CronPreview>('/mcp/cron?expr=' + encodeURIComponent(expr)), enabled: !!expr.trim(), staleTime: 60_000 })
 export const useMCPPolicy = () => useQuery({ queryKey: ['policies', 'mcp'], queryFn: () => api.get<MCPPolicy>('/policies/mcp') })
 
 // ---------- Peta relasi ----------

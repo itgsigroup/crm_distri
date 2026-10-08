@@ -28,5 +28,11 @@ Baca: `data_ringkasan` (mulai dari sini), `dealer_list` (filter cabang/jenis/sta
 `analisis_segmen`, `analisis_kas`, `analisis_stok`. Orchestrator: `orchestrator_*`. `actions_decide` selalu human_only.
 Daftar dihalaman: `limit` (default 50, maks 500) dan `offset`; jawaban memuat `total` dan `next_offset`.
 
+## Analisis terjadwal (cron)
+Di halaman **MCP Claude → Analisis terjadwal**: buat jadwal (preset atau cron `menit jam tanggal bulan hari`, WIB,
+jarak minimal 15 menit), tulis prompt, pilih izin tool dan batas langkah. Worker menjalankannya; laporan tersimpan di
+**Laporan**. CEO mengisi kunci Claude API (console.anthropic.com → API keys) di **Atur mesin**, memilih model, dan
+menetapkan anggaran harian. Tanpa kunci, laporan berisi angka dari tool MCP (mode template).
+
 ## Uji cepat
 `go run ./tools/mcpcheck -url https://crm-distri.gsiindo.id/mcp -token <TOKEN>`.

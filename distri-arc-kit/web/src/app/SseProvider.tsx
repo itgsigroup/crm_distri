@@ -9,6 +9,7 @@ const INVALIDATES: Record<string, string[][]> = {
   chat_message: [['chat']],
   wa_status: [['wa']],
   mcp_call: [['mcp']],
+  mcp_schedule: [['mcp']],
   policy_changed: [['policies'], ['agents'], ['mcp']],
   outbox_failed: [['proposals'], ['dealer'], ['plan']],
 }
