@@ -11,6 +11,8 @@ import { useOrch, useOrchStatus } from '../../app/orch'
 import { useSegmen, useSegmenMovers, useSegmenSummary } from '../../app/queries'
 import { Legend, MoverList, SalesFilters } from '../orbit/OrbitPage'
 import { toneOf } from '../orbit/geometry'
+import { SegmenFilterBar } from './SegmenFilterBar'
+import { applySegmenFilters, EMPTY_SEGMEN_FILTER, summarizeSegmen, type SegmenFilter } from './filters'
 import { B, H, L, R, T, W, clampY, px, py, xOf } from './scale'
 
 const zoneColor = (k: Segment) => (KUAD[k].k === 'text-3' ? 'text-2' : KUAD[k].k)
@@ -112,15 +114,10 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   const wrap = viewport.containerRef
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
   const [all, setAll] = useState(false)
-  const [query, setQuery] = useState('')
   const xq = px(thresholds.freq_per_month)
   const yq = py(thresholds.size_idr)
   const scoped = useMemo(() => sel ? list.filter((d) => d.metrics.segment === sel) : list, [list, sel])
-  const matches = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase('id-ID')
-    return q ? scoped.filter((d) => d.name.toLocaleLowerCase('id-ID').includes(q) || d.city.toLocaleLowerCase('id-ID').includes(q)) : scoped
-  }, [scoped, query])
-  const shown = useMemo(() => all ? matches : topByOmzet(matches), [all, matches])
+  const shown = useMemo(() => all ? scoped : topByOmzet(scoped), [all, scoped])
   const nodes = useMemo(() => layout(shown, all, xq, yq, viewport.markerScale, viewport.positionBlend), [shown, all, xq, yq, viewport.markerScale, viewport.positionBlend])
   const Z: [Segment, number, number, number, number][] = [['A', xq, T, W - R - xq, yq - T], ['C', L, T, xq - L, yq - T], ['B', xq, yq, W - R - xq, H - B - yq], ['D', L, yq, xq - L, H - B - yq]]
   const ZL: [Segment, number, number, 'start' | 'end'][] = [['A', W - R - 10, T + 22, 'end'], ['C', L + 10, T + 22, 'start'], ['B', W - R - 10, H - B - 28, 'end'], ['D', L + 10, H - B - 28, 'start']]
@@ -147,12 +144,7 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   return (
     <div>
       <div className="kuad-controls">
-        <select className="st-filter" value={sel ?? ''} onChange={(e) => onSel((e.target.value || null) as Segment | null)} aria-label="Filter segmen">
-          <option value="">Semua segmen</option>
-          {(['A', 'B', 'C', 'D', 'Baru'] as Segment[]).map((k) => <option key={k} value={k}>{KUAD[k].nick}</option>)}
-        </select>
-        <input className="st-filter kuad-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari pelanggan atau kota" aria-label="Cari pelanggan atau kota" />
-        <span className="meta">{all ? `${matches.length.toLocaleString('id-ID')} pelanggan` : `${shown.length.toLocaleString('id-ID')} prioritas dari ${matches.length.toLocaleString('id-ID')}`}</span>
+        <span className="meta">{all ? `${scoped.length.toLocaleString('id-ID')} pelanggan` : `${shown.length.toLocaleString('id-ID')} prioritas dari ${scoped.length.toLocaleString('id-ID')}`}</span>
         <div className="seg" role="radiogroup" aria-label="Jumlah titik yang ditampilkan">
           <button role="radio" aria-checked={!all} className={!all ? 'is-active' : ''} onClick={() => setAll(false)}>Prioritas</button>
           <button role="radio" aria-checked={all} className={all ? 'is-active' : ''} onClick={() => setAll(true)}>Semua titik</button>
@@ -308,6 +300,8 @@ function readView(): 'kotak' | 'titik' {
 export function SegmenPage() {
   const [sales, setSales] = useState('all')
   const [sel, setSel] = useState<Segment | null>(null)
+  const [filters, setFilters] = useState<SegmenFilter>(EMPTY_SEGMEN_FILTER)
+  const setFilter = (patch: Partial<SegmenFilter>) => setFilters((current) => ({ ...current, ...patch }))
   const [view, setViewState] = useState(readView)
   const setView = (v: 'kotak' | 'titik') => {
     setViewState(v)
@@ -324,10 +318,14 @@ export function SegmenPage() {
   const { data: sum } = useSegmenSummary(sales)
   const { data: movers = [] } = useSegmenMovers(sales)
   const list = useMemo(() => data?.items ?? [], [data])
+  const filtered = useMemo(() => applySegmenFilters(list, filters), [list, filters])
+  const filteredSummary = useMemo(() => summarizeSegmen(filtered), [filtered])
   const toggle = (k: Segment) => setSel(sel === k ? null : k)
   const chooseSegment = (k: Segment | null) => setSel(k)
   const total = sum?.total_omzet_bln ?? 0
-  const selList = useMemo(() => (sel ? list.filter((d) => d.metrics.segment === sel).sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln) : []), [list, sel])
+  const selList = useMemo(() => (sel ? filtered.filter((d) => d.metrics.segment === sel).sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln) : []), [filtered, sel])
+  const visibleIds = useMemo(() => new Set((sel ? selList : filtered).map((d) => d.id)), [sel, selList, filtered])
+  const visibleMovers = useMemo(() => movers.filter((m) => visibleIds.has(m.dealer_id)), [movers, visibleIds])
   const [selShown, selMore] = useMore(selList, 15)
   const detail = useRef<HTMLDivElement>(null)
   // one column (phone/tablet): the dealer list sits below the boxes, so bring it into view
@@ -339,7 +337,7 @@ export function SegmenPage() {
       <div>
         <div className="card orbit-card">
           <div className="orbit-hud">
-            <SalesFilters value={sales} onChange={setSales} />
+            <SalesFilters value={sales} onChange={(next) => { setSales(next); setSel(null); setFilter({ cabang: '' }) }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span className="meta">{list.length.toLocaleString('id-ID')} dealer · {fmtRp(total)}/bln</span>
               <button className="btn ghost" style={{ height: 30, fontSize: 12 }} disabled={orch.running} onClick={() => reanalyze('screen:segmen')}><Icon name="refresh" />Analisis ulang</button>
@@ -353,10 +351,13 @@ export function SegmenPage() {
               <button role="tab" aria-selected={view === 'titik'} className={view === 'titik' ? 'is-active' : ''} onClick={() => setView('titik')}>Peta titik</button>
             </div>
           </div>
-          {data && view === 'kotak' && <SegmenBoxes list={list} summary={sum?.items ?? []} sel={sel} onSel={toggle} thresholds={data.thresholds} />}
+          {data && <SegmenFilterBar list={list} filtered={filtered} value={filters} sel={sel} onChange={setFilter} onSelect={chooseSegment} onClear={() => { setFilters(EMPTY_SEGMEN_FILTER); setSel(null) }} />}
+          {data && view === 'kotak' && (filtered.length
+            ? <SegmenBoxes list={filtered} summary={filteredSummary.items} sel={sel} onSel={toggle} thresholds={data.thresholds} />
+            : <p className="sg-empty">Tidak ada dealer yang cocok dengan filter ini.</p>)}
           {data && view === 'titik' && (
             <>
-              <SegmenChart list={list} sel={sel} onSel={chooseSegment} onOpen={(id) => nav('/dealer/' + id)} thresholds={data.thresholds} />
+              <SegmenChart list={filtered} sel={sel} onSel={chooseSegment} onOpen={(id) => nav('/dealer/' + id)} thresholds={data.thresholds} />
               <Legend tail="Perkecil titik untuk melihat posisi asal · arahkan kursor untuk angka asli" />
             </>
           )}
@@ -397,7 +398,7 @@ export function SegmenPage() {
         </div>
         <div className="card">
           <div className="card-h"><h2>Pindah kotak</h2><span className="ai" style={{ marginLeft: 6 }}>3 bulan terakhir</span></div>
-          <MoverList items={movers} render={segmenMover} />
+          <MoverList items={visibleMovers} render={segmenMover} />
         </div>
       </div>
     </div>
