@@ -183,6 +183,6 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Worker: `analyst.tick` tiap menit + `analyst.run` (sekali per slot, tanpa retry). Migrasi `0018_mcp_schedules.sql` (jadwal awal *Ringkasan pagi* Senin–Sabtu 07.00).
 
 ## Halaman login baru · 2026-10-08
-- Login menjadi landing satu halaman: hero ("Jaga setiap dealer tetap di orbit"), kartu Masuk, 9 fitur sistem (Orchestrator & 6 agen AI, Orbit & Segmen, Pusat kendali, Chat WhatsApp multi-nomor, Push stok, Kredit·kas, MCP Claude & analisis terjadwal, data Accurate, peran & akses), cara kerja 3 langkah, keamanan; responsif (desktop/HP).
+- Login satu layar tanpa scroll di atas **galaksi orbit animasi** (canvas: bintang berkelip, nebula, 7 orbit elips dengan planet berekor, inti berdenyut; diam bila "kurangi gerakan"): judul, 9 fitur sistem ringkas, dan kartu Masuk. Keterangan fitur menyusut di layar pendek; di HP hanya judul + kartu.
 - Tombol mata **lihat kata sandi** lebih jelas di dalam kolom (menyala saat kata sandi terlihat).
 
