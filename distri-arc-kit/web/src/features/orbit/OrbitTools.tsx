@@ -1,14 +1,14 @@
 // Orbit reading aids: summary tiles, the filter bar and the dealer list under the board. All three use the
 // definitions in filters.ts so a tile, a filter and the list always count the same dealers.
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { BoardItem, Segment } from '../../api/types'
 import { ActBtn } from '../../components/actions'
 import { Icon } from '../../components/Icon'
-import { useMore } from '../../components/More'
 import { Pill, type Tone } from '../../components/ui'
 import { fmtRp } from '../../lib/format'
 import { KUAD, SEGMENT_ORDER } from '../../lib/i18n/id'
-import { EMPTY, activeCount, type OrbitDigest, type OrbitFilter, type Sort } from './filters'
+import { EMPTY, activeCount, type OrbitDigest, type OrbitFilter } from './filters'
 import { RINGS } from './geometry'
 
 type SetF = (patch: Partial<OrbitFilter>) => void
@@ -91,26 +91,63 @@ export function scheduleText(d: BoardItem): [string, Tone] {
   return [`${m.due_in} hari lagi`, m.due_in <= 7 ? 'good' : 'neutral']
 }
 
-export function OrbitDealerList({ list, sort, onSort, filtered }: { list: BoardItem[]; sort: Sort; onSort: (s: Sort) => void; filtered: boolean }) {
+type DealerColumn = 'dealer' | 'status' | 'jadwal' | 'omzet' | 'limit'
+
+export function OrbitDealerList({ list, filtered }: { list: BoardItem[]; filtered: boolean }) {
   const nav = useNavigate()
-  const [shown, more] = useMore(list, 15)
+  const [query, setQuery] = useState('')
+  const [column, setColumn] = useState<DealerColumn>('omzet')
+  const [direction, setDirection] = useState<'asc' | 'desc'>('desc')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const matches = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase('id-ID')
+    return q ? list.filter((d) => `${d.name} ${d.short_name} ${d.city} ${d.owner.name} ${KUAD[d.metrics.segment].nick}`.toLocaleLowerCase('id-ID').includes(q)) : list
+  }, [list, query])
+  const sorted = useMemo(() => [...matches].sort((a, b) => {
+    let cmp = 0
+    if (column === 'dealer') cmp = a.name.localeCompare(b.name, 'id')
+    else if (column === 'status') cmp = (a.metrics.status === 'Baru' ? 'Aktif · baru' : a.metrics.status).localeCompare(b.metrics.status === 'Baru' ? 'Aktif · baru' : b.metrics.status, 'id')
+    else if (column === 'jadwal') cmp = (a.metrics.due_in ?? Infinity) - (b.metrics.due_in ?? Infinity)
+    else if (column === 'omzet') cmp = a.metrics.omzet_bln - b.metrics.omzet_bln
+    else cmp = (a.metrics.credit.room ?? 0) - (b.metrics.credit.room ?? 0)
+    return (cmp || a.name.localeCompare(b.name, 'id')) * (direction === 'asc' ? 1 : -1)
+  }), [matches, column, direction])
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const currentPage = Math.min(page, pageCount)
+  const shown = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  useEffect(() => setPage(1), [query, pageSize, list])
+  const sortBy = (key: DealerColumn) => {
+    if (column === key) setDirection(direction === 'asc' ? 'desc' : 'asc')
+    else {
+      setColumn(key)
+      setDirection(key === 'dealer' || key === 'status' ? 'asc' : 'desc')
+    }
+    setPage(1)
+  }
+  const header = (key: DealerColumn, title: string, right = false) => (
+    <th className={right ? 'r' : undefined} aria-sort={column === key ? direction === 'asc' ? 'ascending' : 'descending' : 'none'}>
+      <button type="button" className="odl-sort" onClick={() => sortBy(key)}>
+        {title}<span aria-hidden="true">{column === key ? direction === 'asc' ? '↑' : '↓' : '↕'}</span>
+      </button>
+    </th>
+  )
   return (
     <div className="card">
       <div className="card-h">
         <h2>Daftar dealer</h2>
         <span className="meta" style={{ marginLeft: 6, marginRight: 'auto' }}>{list.length.toLocaleString('id-ID')} dealer{filtered ? ' sesuai filter' : ''}</span>
-        <select className="of-s" value={sort} onChange={(e) => onSort(e.target.value as Sort)} aria-label="Urutkan">
-          <option value="omzet">Urutkan: omzet terbesar</option>
-          <option value="jadwal">Urutkan: paling mendesak</option>
-          <option value="diam">Urutkan: paling lama tidak order</option>
-        </select>
       </div>
-      {list.length === 0 ? (
-        <p className="sg-hint">Tidak ada dealer yang cocok dengan filter ini.</p>
+      <div className="odl-tools">
+        <div className="search of-q odl-q"><Icon name="search" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari di daftar dealer…" aria-label="Cari di daftar dealer" /></div>
+        <span className="meta">{matches.length.toLocaleString('id-ID')} hasil</span>
+      </div>
+      {matches.length === 0 ? (
+        <p className="sg-hint">Tidak ada dealer yang cocok dengan pencarian ini.</p>
       ) : (
         <div className="odl-wrap">
           <table className="odl">
-            <thead><tr><th>Dealer</th><th>Status</th><th>Jadwal order</th><th className="r">Omzet</th><th>Sisa limit</th><th /></tr></thead>
+            <thead><tr>{header('dealer', 'Dealer')}{header('status', 'Status')}{header('jadwal', 'Jadwal order')}{header('omzet', 'Omzet', true)}{header('limit', 'Sisa limit')}<th aria-label="Aksi" /></tr></thead>
             <tbody>
               {shown.map((d) => {
                 const m = d.metrics
@@ -134,7 +171,21 @@ export function OrbitDealerList({ list, sort, onSort, filtered }: { list: BoardI
           </table>
         </div>
       )}
-      {more}
+      {matches.length > 0 && (
+        <div className="odl-footer">
+          <span>Menampilkan {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, matches.length)} dari {matches.length.toLocaleString('id-ID')} dealer</span>
+          <label>Baris
+            <select className="of-s" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} aria-label="Jumlah baris per halaman">
+              {[10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+          <div className="odl-pages">
+            <button type="button" className="btn quiet" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Sebelumnya</button>
+            <span>Halaman {currentPage} dari {pageCount}</span>
+            <button type="button" className="btn quiet" disabled={currentPage >= pageCount} onClick={() => setPage(currentPage + 1)}>Berikutnya</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

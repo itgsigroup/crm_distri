@@ -487,9 +487,16 @@
 .of-n{font-size:13px;color:var(--text-2);margin-left:auto}
 .of-n b{color:var(--text)}
 .of-x{height:32px;font-size:12.5px}
-.odl{width:100%;border-collapse:collapse;font-size:13.5px}
+.odl-tools{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.odl-q{max-width:360px;height:34px;box-shadow:none;background:var(--surface-2)}
+.odl-tools>.meta{margin-left:auto}
+.odl-wrap{overflow-x:auto}
+.odl{width:100%;min-width:760px;border-collapse:collapse;font-size:13.5px}
 .odl th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);padding:0 8px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
 .odl th.r,.odl td.odl-rp{text-align:right}
+.odl-sort{display:inline-flex;align-items:center;gap:5px;padding:0;background:none;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
+.odl-sort span{font-size:13px;color:var(--accent);line-height:1}
+.odl th.r .odl-sort{justify-content:flex-end}
 .odl td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
 .odl tr:last-child td{border-bottom:0}
 .odl th:first-child,.odl td:first-child{padding-left:0}.odl th:last-child,.odl td:last-child{padding-right:0}
@@ -500,16 +507,15 @@
 .odl-rp{font-family:var(--font-display);font-weight:700;white-space:nowrap}
 .odl-rp small{font-weight:500;color:var(--text-3);font-family:var(--font-body)}
 .odl-act{text-align:right;white-space:nowrap}
+.odl-footer{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px;margin-top:4px;font-size:12px;color:var(--text-2)}
+.odl-footer label{display:flex;align-items:center;gap:6px}
+.odl-footer .of-s{height:30px}
+.odl-pages{display:flex;align-items:center;gap:8px;margin-left:auto}
+.odl-pages .btn{height:30px;font-size:12px}
+.odl-pages .btn:disabled{opacity:.45;cursor:default}
 @media (max-width:1280px){.os-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){
-  .odl thead{display:none}
-  .odl,.odl tbody{display:block}
-  .odl tr{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:10px 0;border-bottom:1px solid var(--line)}
-  .odl tr:last-child{border-bottom:0}
-  .odl td{display:block;padding:0;border:0}
-  .odl td.odl-name{flex-basis:100%}
-  .odl td.odl-act{flex-basis:100%;text-align:left}
   .of-n{margin-left:0;flex-basis:100%}
 }
-@media (max-width:480px){.os-n{font-size:22px}.of-s{flex:1 1 140px}}
+@media (max-width:480px){.os-n{font-size:22px}.of-s{flex:1 1 140px}.odl-pages{margin-left:0;width:100%;justify-content:space-between}}
 .net>.stack{min-width:0}

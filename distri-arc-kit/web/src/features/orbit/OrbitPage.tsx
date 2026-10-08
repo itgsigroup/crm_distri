@@ -6,7 +6,7 @@ import { fmtRp } from '../../lib/format'
 import { KUAD, RING_DESC } from '../../lib/i18n/id'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { useOrbit, useOrbitMovers, useOrbitSummary, useSales } from '../../app/queries'
-import { FILTER_KEYS, activeCount, applyFilter, digest, sortDealers, type OrbitFilter, type Sort } from './filters'
+import { FILTER_KEYS, activeCount, applyFilter, digest, type OrbitFilter } from './filters'
 import { OrbitDealerList, OrbitFilterBar, OrbitSummary } from './OrbitTools'
 import { CX, CY, H, READABLE_FROM, RINGS, RING_R, W, layoutOrbit, layoutReadable } from './geometry'
 
@@ -177,21 +177,16 @@ export function orbitMover(m: Mover) {
   return { k: 'accent', i: 'box', t: `${m.name}: Key account, tapi product mix ${m.mix}/6`, s: 'Share of wallet bisa naik dengan meperluas product mix, bukan menurunkan harga.' }
 }
 
-const SORTS: Sort[] = ['omzet', 'jadwal', 'diam']
-
 /** Filters live in the URL (?status=At+risk&jadwal=lewat…) so a filtered orbit can be shared or bookmarked. */
-function useOrbitFilter(): [OrbitFilter, (p: Partial<OrbitFilter>) => void, Sort, (s: Sort) => void] {
+function useOrbitFilter(): [OrbitFilter, (p: Partial<OrbitFilter>) => void] {
   const [params, setParams] = useSearchParams()
   const f = Object.fromEntries(FILTER_KEYS.map((k) => [k, params.get(k) ?? ''])) as unknown as OrbitFilter
-  const sortParam = params.get('urut') as Sort | null
-  const sort: Sort = sortParam && SORTS.includes(sortParam) ? sortParam : 'omzet'
-  const write = (next: OrbitFilter, s: Sort) => {
+  const write = (next: OrbitFilter) => {
     const out = new URLSearchParams()
     FILTER_KEYS.forEach((k) => next[k] && out.set(k, next[k]))
-    if (s !== 'omzet') out.set('urut', s)
     setParams(out, { replace: true })
   }
-  return [f, (p) => write({ ...f, ...p }, sort), sort, (s) => write(f, s)]
+  return [f, (p) => write({ ...f, ...p })]
 }
 
 export function OrbitPage() {
@@ -201,12 +196,11 @@ export function OrbitPage() {
   const orch = useOrchStatus()
   const { data: list = [] } = useOrbit(sales)
   const [all, setAll] = useState(false)
-  const [f, setF, sort, setSort] = useOrbitFilter()
+  const [f, setF] = useOrbitFilter()
   const filtered = useMemo(() => applyFilter(list, f), [list, f])
   const nFilters = activeCount(f)
   const many = filtered.length > ORBIT_TOP
   const shown = useMemo(() => (all ? filtered : topByOmzet(filtered)), [filtered, all])
-  const sorted = useMemo(() => sortDealers(filtered, sort), [filtered, sort])
   const g = useMemo(() => digest(list), [list])
   const branches = useMemo(() => [...new Set(list.map((d) => d.branch).filter(Boolean))].sort(), [list])
   const { data: osum } = useOrbitSummary(sales)
@@ -241,7 +235,7 @@ export function OrbitPage() {
           </div>
           <Legend tail="Arahkan kursor ke titik untuk melihat data · klik titik untuk membuka dealer" />
         </div>
-        <OrbitDealerList list={sorted} sort={sort} onSort={setSort} filtered={nFilters > 0} />
+        <OrbitDealerList list={filtered} filtered={nFilters > 0} />
       </div>
       <div className="stack">
         <div className="card">
