@@ -68,7 +68,14 @@ type Relasi struct {
 	Pairs        []RelasiPair `json:"pairs"`
 	Connections  int          `json:"connections"`
 	Interactions int64        `json:"interactions"`
+	// DealersActive dealers had an interaction in 6 months; the map draws the DealersShown most active (≤ RelasiMaxDealers)
+	DealersActive int `json:"dealers_active"`
+	DealersShown  int `json:"dealers_shown"`
 }
+
+// RelasiMaxDealers bounds the 3D map: a force layout of thousands of nodes never settles in a browser, and a sales
+// team reads the strongest relations first.
+const RelasiMaxDealers = 250
 
 // RelasiSince is the first day of the oldest month needed for the 6-month series ending in today's month.
 func RelasiSince(today time.Time) time.Time {
@@ -86,8 +93,9 @@ func toneOf(score int) string {
 	return "bad"
 }
 
-// BuildRelasi builds the graph: every sales number and every dealer, edges with the period's sum. sales filters
-// edges (and pairs) to one sales key; nodes stay so the layout does not jump when filtering.
+// BuildRelasi builds the graph: the sales numbers and dealers with an interaction in the last 6 months (the most
+// active RelasiMaxDealers), edges with the period's sum. The node set is the same for every period and sales filter,
+// so the layout does not jump; sales filters edges (and pairs) to one sales key.
 func BuildRelasi(b *Board, sales []RelasiSales, rows []MonthCount, periodDays int, salesKey string) Relasi {
 	k, ok := RelasiPeriods[periodDays]
 	if !ok {
@@ -125,6 +133,35 @@ func BuildRelasi(b *Board, sales []RelasiSales, rows []MonthCount, periodDays in
 			}
 		}
 	}
+	// the dealers drawn: most interactions over the 6 months, the same set for every period
+	six := map[uuid.UUID]int64{}
+	for _, kk := range order {
+		for _, v := range series[kk] {
+			six[kk.d] += v
+		}
+	}
+	var active []uuid.UUID
+	for d, n := range six {
+		if _, ok := dealerByID[d]; ok && n > 0 {
+			active = append(active, d)
+		}
+	}
+	sort.Slice(active, func(i, j int) bool {
+		if six[active[i]] != six[active[j]] {
+			return six[active[i]] > six[active[j]]
+		}
+		return dealerByID[active[i]].Name < dealerByID[active[j]].Name
+	})
+	r.DealersActive = len(active)
+	if len(active) > RelasiMaxDealers {
+		active = active[:RelasiMaxDealers]
+	}
+	r.DealersShown = len(active)
+	shown := map[uuid.UUID]bool{}
+	for _, d := range active {
+		shown[d] = true
+	}
+	salesShown := map[string]bool{}
 	totals := map[string]int64{}
 	for _, kk := range order {
 		s, okS := salesByID[kk.s]
@@ -138,7 +175,10 @@ func BuildRelasi(b *Board, sales []RelasiSales, rows []MonthCount, periodDays in
 			w += v
 		}
 		e := RelasiEdge{Sales: "s-" + s.Key, Dealer: d.ID, W: w, Monthly: m}
-		r.Edges = append(r.Edges, e)
+		if shown[kk.d] {
+			r.Edges = append(r.Edges, e)
+			salesShown[e.Sales] = true
+		}
 		if salesKey == "" || salesKey == s.Key {
 			totals[e.Sales] += w
 			totals[e.Dealer] += w
@@ -150,9 +190,13 @@ func BuildRelasi(b *Board, sales []RelasiSales, rows []MonthCount, periodDays in
 		}
 	}
 	for _, s := range sales {
+		if !salesShown["s-"+s.Key] && s.Key != salesKey {
+			continue
+		}
 		r.Nodes = append(r.Nodes, RelasiNode{ID: "s-" + s.Key, Type: "sales", Name: s.Name, Sub: s.Branch, Tone: "accent", Total: totals["s-"+s.Key], Number: s.WANumber})
 	}
-	for _, it := range b.Items {
+	for _, d := range active {
+		it := dealerByID[d]
 		score := it.Metrics.Score
 		r.Nodes = append(r.Nodes, RelasiNode{ID: it.ID, Type: "dealer", Name: it.ShortName, Sub: fmt.Sprintf("%s · tier %s", it.City, it.Tier), Tone: toneOf(score), Score: &score, Total: totals[it.ID]})
 	}

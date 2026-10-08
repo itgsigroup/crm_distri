@@ -87,9 +87,11 @@ export function RelasiPage() {
           <div ref={labels} />
           <div className="net-hud">
             <span className="pill accent"><Icon name="chat" />WhatsApp + order · <span>{PERIOD_LABEL[period]} terakhir</span></span>
-            <span className="pill neutral">{scoped ? `${scoped.connections} koneksi · ${scoped.interactions} interaksi` : ''}</span>
+            <span className="pill neutral">{scoped ? `${scoped.connections.toLocaleString('id-ID')} koneksi · ${scoped.interactions.toLocaleString('id-ID')} interaksi` : ''}</span>
+            {g && g.dealers_active > g.dealers_shown && <span className="pill neutral">{g.dealers_shown} dealer teraktif dari {g.dealers_active.toLocaleString('id-ID')}</span>}
           </div>
           <div className="net-legend"><span><i style={{ background: 'var(--accent)' }} />Nomor sales</span><span><i style={{ background: 'var(--good)' }} />Skor dealer kuat</span><span><i style={{ background: 'var(--warn)' }} />50–69</span><span><i style={{ background: 'var(--bad)' }} />&lt; 50</span><span>Ukuran = interaksi/bulan · Jarak = kedekatan</span></div>
+          {g && g.nodes.length === 0 && <div className="net-empty">Belum ada interaksi WhatsApp atau order dalam 6 bulan terakhir.</div>}
           <div className="net-hint">Seret untuk memutar · scroll untuk zoom · klik dealer dua kali untuk membuka</div>
           <div className="tip" ref={tip} />
         </div>
@@ -98,7 +100,12 @@ export function RelasiPage() {
         <div className="card">
           <div className="card-h"><h2>Lihat dari</h2><span className="meta">Filter nomor sales</span></div>
           <div className="net-filters">
-            {[['all', 'Semua sales'] as const, ...salesList.map((s) => [s.key, s.name] as const)].map(([id, n]) => (
+            {salesList.length > 8 ? ( // a real team: a picker, not a wall of buttons
+              <select className="sales-pick" value={sales} onChange={(e) => setSales(e.target.value)} aria-label="Sales">
+                <option value="all">Semua sales ({salesList.length})</option>
+                {[...salesList].sort((a, b) => a.name.localeCompare(b.name)).map((s) => <option key={s.key} value={s.key}>{s.name}{s.branch ? ` · ${s.branch}` : ''}</option>)}
+              </select>
+            ) : [['all', 'Semua sales'] as const, ...salesList.map((s) => [s.key, s.name] as const)].map(([id, n]) => (
               <button key={id} className={sales === id ? 'is-active' : ''} onClick={() => setSales(id)}>{n}</button>
             ))}
           </div>

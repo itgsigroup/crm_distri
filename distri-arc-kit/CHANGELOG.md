@@ -198,3 +198,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 
 ## Klasifikasi ulang Orbit & Segmen · 2026-10-08
 - ADR 0023: faktur di hari yang sama = 1 order; siklus order minimal 7 hari; seringnya & omzet/bln dari pembelian aktual 6 bulan (bukan proyeksi); status **Prospek** untuk pelanggan yang belum pernah order (tidak digambar di Orbit/Segmen, dihitung terpisah, filter status di halaman Dealer); order sekali > 90 hari atau diam > 1 tahun = Churn; Key account bisa diberi syarat omzet minimum.
+
+## Peta relasi 3D untuk data asli · 2026-10-08
+- Peta menggambar sales dan dealer yang punya interaksi (WhatsApp + order) dalam 6 bulan, maksimal 250 dealer teraktif (sebelumnya semua 2.841 pelanggan sehingga layout tidak pernah selesai dan peta kosong); node sama untuk semua periode; HUD "250 dealer teraktif dari N".
+- Order dihitung per hari order (bukan per faktur); filter sales menjadi dropdown untuk tim besar.

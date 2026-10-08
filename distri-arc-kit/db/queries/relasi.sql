@@ -15,7 +15,9 @@ with live as (
   where t.kind = 'dealer' and t.dealer_id is not null and t.sales_id is not null and m.sent_at > sqlc.arg(as_of)::timestamptz
   group by 1, 2, 3
   union all
-  select d.owner_id, o.dealer_id, date_trunc('month', o.ordered_at at time zone 'Asia/Jakarta')::date, count(*)::int
+  -- an order day counts once (Accurate writes a faktur per delivery, often several a day — ADR 0023)
+  select d.owner_id, o.dealer_id, date_trunc('month', o.ordered_at at time zone 'Asia/Jakarta')::date,
+    count(distinct (o.ordered_at at time zone 'Asia/Jakarta')::date)::int
   from orders o join dealers d on d.id = o.dealer_id
   where d.owner_id is not null and o.ordered_at > sqlc.arg(as_of)::timestamptz
   group by 1, 2, 3

@@ -433,7 +433,7 @@ export interface MCPPolicy { allow_reanalyze: boolean; allow_plan_update_proposa
 // ---------- Peta relasi (stage 08) ----------
 export interface RelasiNode { id: string; type: 'sales' | 'dealer'; name: string; sub: string; tone: string; score?: number; total: number; number?: string }
 export interface RelasiEdge { sales: string; dealer: string; w: number; monthly: number[] }
-export interface Relasi { period_days: number; months: number; month_labels: string[]; nodes: RelasiNode[]; edges: RelasiEdge[]; pairs: { sales: string; dealer: string; w: number }[]; connections: number; interactions: number }
+export interface Relasi { dealers_active: number; dealers_shown: number; period_days: number; months: number; month_labels: string[]; nodes: RelasiNode[]; edges: RelasiEdge[]; pairs: { sales: string; dealer: string; w: number }[]; connections: number; interactions: number }
 export interface RelasiInsight { tone: string; icon: string; title: string; text: string; dealer: string }
 
 export interface PilotConf { week: string; accepted: number; rejected: number; pct: number }
