@@ -1,4 +1,4 @@
-// Package outbox is the only way anything leaves Distri ARC: rows are written for approved proposals and the
+// Package outbox is the only way anything leaves GSI Orbit: rows are written for approved proposals and the
 // worker delivers them through the WhatsApp transport (or Odoo, stage 12) under the anti-ban rules.
 package outbox
 

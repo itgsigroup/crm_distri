@@ -139,7 +139,7 @@ export function Shell() {
         <aside className="rail">
           <div className="brand">
             <div className="brand-mark" />
-            <div><div className="brand-name">Distri ARC</div><div className="brand-sub">Orbit · AI-native</div></div>
+            <div><div className="brand-name">GSI Orbit</div><div className="brand-sub">CRM Distribusi · AI</div></div>
           </div>
           <nav className="nav" aria-label="Navigasi utama">
             <div className="nav-sec">Kendali</div>

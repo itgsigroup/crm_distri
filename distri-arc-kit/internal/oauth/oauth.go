@@ -95,7 +95,7 @@ func (s *Server) protectedResource(w http.ResponseWriter, r *http.Request) {
 	base := s.Base(r)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"resource": base + "/mcp", "authorization_servers": []string{base}, "scopes_supported": mcp.ValidScopes,
-		"bearer_methods_supported": []string{"header"}, "resource_name": "Distri ARC Orbit",
+		"bearer_methods_supported": []string{"header"}, "resource_name": "GSI Orbit",
 	})
 }
 

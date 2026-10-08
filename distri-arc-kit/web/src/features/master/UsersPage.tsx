@@ -42,7 +42,7 @@ function UserSheet({ user }: { user?: UserRow }) {
   const ok = f.name.trim() && f.role_key && (user || (f.email.includes('@') && f.password.length >= 10))
   return (
     <>
-      <SheetHead icon="people" title={user ? user.name : 'Tambah pengguna'} sub={user ? user.email : 'Akun login Distri ARC'} onClose={closeSheet} />
+      <SheetHead icon="people" title={user ? user.name : 'Tambah pengguna'} sub={user ? user.email : 'Akun login GSI Orbit'} onClose={closeSheet} />
       <div className="sec frm">
         {!user && <label style={{ gridColumn: '1 / -1' }}>Email<input style={field} type="email" autoComplete="off" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="nama@gsicctv.com" /></label>}
         <label style={{ gridColumn: '1 / -1' }}>Nama<input style={field} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Nama lengkap" /></label>

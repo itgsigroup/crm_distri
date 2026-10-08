@@ -348,7 +348,7 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 			return fmt.Errorf("chat: %w", err)
 		}
 
-		// interaction history before Distri ARC (Peta relasi)
+		// interaction history before GSI Orbit (Peta relasi)
 		for _, x := range inter {
 			sid, did := salesID[x.Sales], dealerID[x.Dealer]
 			if sid == uuid.Nil || did == uuid.Nil {

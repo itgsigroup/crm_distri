@@ -64,7 +64,7 @@ func (s *Server) registerResources() {
 			st, _ := s.St.Q.ListStockItems(ctx)
 			brief := b.TemplateBrief(views.StockItems(st), views.BriefCounts{})
 			var sb strings.Builder
-			sb.WriteString("Susun ringkasan pagi untuk CEO GSI dari data Distri ARC berikut. Bahasa Indonesia, 4 poin, sebut dealer dan angka, akhiri dengan 3 keputusan yang menunggu.\n\n")
+			sb.WriteString("Susun ringkasan pagi untuk CEO GSI dari data GSI Orbit berikut. Bahasa Indonesia, 4 poin, sebut dealer dan angka, akhiri dengan 3 keputusan yang menunggu.\n\n")
 			pts, _ := json.MarshalIndent(brief.Points, "", "  ")
 			sb.WriteString("Poin (order tepat jadwal, lewat jadwal, over limit/overdue, push stok):\n```json\n" + string(pts) + "\n```\n")
 			if c, err := s.St.Q.LatestFullCycle(ctx); err == nil {

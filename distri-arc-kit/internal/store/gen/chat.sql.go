@@ -490,7 +490,7 @@ type InsertAIDraftOrderParams struct {
 	SourceID  *string         `json:"source_id"`
 }
 
-// A sale order draft created in Odoo by Distri ARC (outbox odoo_so_draft); the Odoo sync updates it later.
+// A sale order draft created in Odoo by GSI Orbit (outbox odoo_so_draft); the Odoo sync updates it later.
 func (q *Queries) InsertAIDraftOrder(ctx context.Context, arg InsertAIDraftOrderParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, insertAIDraftOrder,
 		arg.DealerID,
@@ -898,7 +898,7 @@ type LastSentProposalInThreadRow struct {
 	Payload    json.RawMessage `json:"payload"`
 }
 
-// The newest message Distri ARC sent from a proposal in a thread before a moment (reply tracking, 72 hours).
+// The newest message GSI Orbit sent from a proposal in a thread before a moment (reply tracking, 72 hours).
 func (q *Queries) LastSentProposalInThread(ctx context.Context, arg LastSentProposalInThreadParams) (LastSentProposalInThreadRow, error) {
 	row := q.db.QueryRow(ctx, lastSentProposalInThread, arg.ThreadID, arg.Before)
 	var i LastSentProposalInThreadRow

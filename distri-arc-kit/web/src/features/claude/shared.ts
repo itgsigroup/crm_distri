@@ -8,7 +8,7 @@ export const SCOPE: Record<string, [string, string]> = {
 }
 
 export const PROMPTS = [
-  'Pakai Distri ARC: panggil data_ringkasan, lalu jelaskan kondisi bisnis distribusi saat ini — cabang dan sales mana yang perlu perhatian — dan beri 5 tindakan prioritas minggu ini.',
+  'Pakai GSI Orbit: panggil data_ringkasan, lalu jelaskan kondisi bisnis distribusi saat ini — cabang dan sales mana yang perlu perhatian — dan beri 5 tindakan prioritas minggu ini.',
   'Dengan penjualan_bulanan 12 bulan per cabang, cabang mana yang tumbuh dan mana yang turun? Cari penyebabnya dari jadwal_lewat dan piutang_ringkas.',
   'Dari stok_aging (min_days 90) dan produk_terlaris 90 hari, susun rencana push stok per cabang: barang, dealer kandidat, dan urutan follow-up.',
   'Analisis piutang_ringkas: dealer mana yang berisiko macet, berapa prediksi kas 30 hari, dan dealer mana yang limitnya perlu ditinjau.',

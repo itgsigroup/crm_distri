@@ -186,3 +186,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Login satu layar tanpa scroll di atas **galaksi orbit animasi** (canvas: bintang berkelip, nebula, 7 orbit elips dengan planet berekor, inti berdenyut; diam bila "kurangi gerakan"): judul, 9 fitur sistem ringkas, dan kartu Masuk. Keterangan fitur menyusut di layar pendek; di HP hanya judul + kartu.
 - Tombol mata **lihat kata sandi** lebih jelas di dalam kolom (menyala saat kata sandi terlihat).
 
+
+## Nama & logo: GSI Orbit · 2026-10-08
+- Nama sistem menjadi **GSI Orbit** ("CRM Distribusi · AI") di aplikasi, login, tab browser, MCP Claude, perangkat WhatsApp tertaut, 2FA, catatan Odoo, dan prompt AI.
+- Logo baru (inti dengan titik yang mengorbit, biru → ungu) di sidebar, login, dan favicon.

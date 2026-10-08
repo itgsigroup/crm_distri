@@ -5,7 +5,7 @@ import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
 import { Galaxy } from './Galaxy'
 
-// The login is one screen (no scrolling): what Distri ARC does on the left, the sign-in card on the right.
+// The login is one screen (no scrolling): what GSI Orbit does on the left, the sign-in card on the right.
 
 const FEATURES: [string, string, string][] = [
   ['spark', 'Orchestrator & 6 agen AI', 'Order, follow-up, kredit, tagih, stok, prospek'],
@@ -54,7 +54,7 @@ export function LoginPage() {
       <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: sprite }} />
       <Galaxy />
       <header className="lp-nav">
-        <div className="lp-brand"><div className="brand-mark" /><div><b>Distri ARC</b><span>Orbit · AI-native</span></div></div>
+        <div className="lp-brand"><div className="brand-mark" /><div><b>GSI Orbit</b><span>CRM Distribusi · AI</span></div></div>
         <span className="lp-org">PT Gosyen Solusi Indonesia</span>
       </header>
 
@@ -76,7 +76,7 @@ export function LoginPage() {
         <section className="lp-side">
           <form className="card lp-card" onSubmit={submit}>
             <h2>Masuk</h2>
-            <p className="lp-card-sub">Gunakan akun Distri ARC dari admin Anda.</p>
+            <p className="lp-card-sub">Gunakan akun GSI Orbit dari admin Anda.</p>
             <label>Email<input type="email" name="email" autoComplete="username" placeholder="nama@gsicctv.com" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>
             <label>Kata sandi<PasswordInput name="password" autoComplete="current-password" placeholder="Kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
             {needCode && <label>Kode 2FA<input className="lp-code" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} required /></label>}

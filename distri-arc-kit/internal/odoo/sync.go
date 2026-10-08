@@ -23,7 +23,7 @@ import (
 
 const sys = "odoo"
 
-// Syncer maps Odoo records into Distri ARC (read-only; 02-architecture › Ingest).
+// Syncer maps Odoo records into GSI Orbit (read-only; 02-architecture › Ingest).
 type Syncer struct {
 	st    *store.Store
 	src   Source

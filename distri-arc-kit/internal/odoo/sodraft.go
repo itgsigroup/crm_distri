@@ -13,7 +13,7 @@ type DraftLine struct {
 }
 
 // CreateSODraft creates a quotation (state draft) for a dealer with a provenance note
-// ("Dibuat Distri ARC · proposal <id> · disetujui <user>"). It is the only write Distri ARC makes to Odoo and
+// ("Dibuat GSI Orbit · proposal <id> · disetujui <user>"). It is the only write GSI Orbit makes to Odoo and
 // fails with ErrWriteDisabled unless the source was built with writes enabled (ODOO_WRITE=true).
 func CreateSODraft(ctx context.Context, src Source, partnerID int, lines []DraftLine, proposalID, approvedBy string) (int, error) {
 	if len(lines) == 0 {
@@ -26,6 +26,6 @@ func CreateSODraft(ctx context.Context, src Source, partnerID int, lines []Draft
 	return src.Create(ctx, "sale.order", map[string]any{
 		"partner_id": partnerID,
 		"order_line": ol,
-		"note":       fmt.Sprintf("Dibuat Distri ARC · proposal %s · disetujui %s", proposalID, approvedBy),
+		"note":       fmt.Sprintf("Dibuat GSI Orbit · proposal %s · disetujui %s", proposalID, approvedBy),
 	})
 }

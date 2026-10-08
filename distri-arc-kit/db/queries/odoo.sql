@@ -39,7 +39,7 @@ select id from orders where source_system = $1 and source_id = $2;
 select id from invoices where source_system = $1 and source_id = $2;
 
 -- name: UpsertContactFromOdoo :one
--- Odoo owns name, role and number; interaction counters are computed by Distri ARC and kept.
+-- Odoo owns name, role and number; interaction counters are computed by GSI Orbit and kept.
 insert into contacts (dealer_id, name, role, wa_number, source_system, source_id)
 values ($1, $2, $3, $4, $5, $6)
 on conflict (source_system, source_id) do update set name = excluded.name, role = excluded.role, wa_number = excluded.wa_number, dealer_id = excluded.dealer_id

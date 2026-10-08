@@ -1,5 +1,5 @@
 // Package odoo reads Odoo (source of truth for dealers, SO, invoices, payments, stock) over JSON-RPC and maps the
-// records into Distri ARC's tables idempotently. The only write is a draft sale order (stage 05+), disabled
+// records into GSI Orbit's tables idempotently. The only write is a draft sale order (stage 05+), disabled
 // unless ODOO_WRITE=true.
 package odoo
 
@@ -116,7 +116,7 @@ func (r Record) Date(k string) *time.Time {
 // FormatTime renders t as an Odoo datetime literal for domains.
 func FormatTime(t time.Time) string { return t.UTC().Format("2006-01-02 15:04:05") }
 
-// SourceID is the source_id stored in Distri ARC tables ("sale.order:4101").
+// SourceID is the source_id stored in GSI Orbit tables ("sale.order:4101").
 func SourceID(model string, id int) string { return fmt.Sprintf("%s:%d", model, id) }
 
 // Digits keeps the digits of a phone number, 0… → 62….

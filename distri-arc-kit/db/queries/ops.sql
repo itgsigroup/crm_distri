@@ -27,7 +27,7 @@ delete from identifications i where i.created_at < sqlc.arg(cutoff)::timestamptz
   and not exists (select 1 from contacts c where c.wa_number = i.wa_number);
 
 -- name: PDPDealerExport :one
--- Everything Distri ARC holds about one dealer and its people (UU PDP access right).
+-- Everything GSI Orbit holds about one dealer and its people (UU PDP access right).
 select jsonb_build_object(
   'dealer', (select to_jsonb(d) - 'metrics_current' from dealers d where d.id = sqlc.arg(dealer_id)::uuid),
   'contacts', (select coalesce(jsonb_agg(to_jsonb(c) order by c.name), '[]') from contacts c where c.dealer_id = sqlc.arg(dealer_id)::uuid),

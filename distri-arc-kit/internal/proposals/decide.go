@@ -100,7 +100,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 		return Outcome{}, err
 	}
 	shadow := pol.Pilot.Shadow()
-	if shadow { // pilot shadow mode: the decision calibrates the agents, nothing leaves Distri ARC
+	if shadow { // pilot shadow mode: the decision calibrates the agents, nothing leaves GSI Orbit
 		ins, odooWrite = nil, false
 	}
 	now := c.Now()
@@ -197,7 +197,7 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 			case row.Kind == domain.KindNewDealer:
 				var pl map[string]any
 				_ = json.Unmarshal(row.Payload, &pl)
-				payload, _ := json.Marshal(map[string]any{"create_partner": pl, "approved_by": who.Name, "note": "Dealer baru dari Distri ARC · proposal " + id.String()})
+				payload, _ := json.Marshal(map[string]any{"create_partner": pl, "approved_by": who.Name, "note": "Dealer baru dari GSI Orbit · proposal " + id.String()})
 				ob, err := q.InsertOutbox(ctx, gen.InsertOutboxParams{ProposalID: &id, Channel: "odoo_note", Payload: payload})
 				if err != nil {
 					return err
@@ -596,7 +596,7 @@ func decisionNote(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.Cli
 	if verb == "" {
 		verb = "Disetujui"
 	}
-	note := fmt.Sprintf("Distri ARC · %s oleh %s · %s (%s)", verb, who.Name, p.Title, p.Agent)
+	note := fmt.Sprintf("GSI Orbit · %s oleh %s · %s (%s)", verb, who.Name, p.Title, p.Agent)
 	if reason != "" && status == "rejected" {
 		note += " · alasan: " + reason
 	}

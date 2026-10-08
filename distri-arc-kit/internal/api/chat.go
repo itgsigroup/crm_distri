@@ -276,7 +276,7 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if pol, err := policy.Load(r.Context(), s.st.Q); err == nil && pol.Pilot.Shadow() {
-		httpx.Fail(w, http.StatusConflict, "pilot_shadow", "Mode bayangan pilot: balas dari WhatsApp di ponsel — Distri ARC belum mengirim")
+		httpx.Fail(w, http.StatusConflict, "pilot_shadow", "Mode bayangan pilot: balas dari WhatsApp di ponsel — GSI Orbit belum mengirim")
 		return
 	}
 	now := s.clock.Now()

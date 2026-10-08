@@ -1,4 +1,4 @@
-// Package analyst runs scheduled analysis (ADR 0022): on a cron schedule Claude analyses Distri ARC through the
+// Package analyst runs scheduled analysis (ADR 0022): on a cron schedule Claude analyses GSI Orbit through the
 // same MCP tools a connected Claude uses, and writes a Markdown report. The tools are served in-process (in-memory
 // MCP transport) under the schedule's own mcp_clients row, so every call is scope-checked, rate-limited and logged
 // like any other MCP call. Without an Anthropic API key (or over the daily budget) the run still produces a

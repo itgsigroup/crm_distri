@@ -92,7 +92,7 @@ func (n Notifier) send(ctx context.Context, lines []string) error {
 	if err != nil {
 		return err
 	}
-	text := "Distri ARC · status sistem\n"
+	text := "GSI Orbit · status sistem\n"
 	for _, l := range lines {
 		text += "\n" + l
 	}

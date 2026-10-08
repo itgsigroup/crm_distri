@@ -35,7 +35,7 @@ func partnerID(sourceID *string) int {
 	return n
 }
 
-// deliverOdoo carries out odoo_so_draft and odoo_note rows. The only writes Distri ARC makes to Odoo are a draft
+// deliverOdoo carries out odoo_so_draft and odoo_note rows. The only writes GSI Orbit makes to Odoo are a draft
 // sale order and internal notes, each with its source (CLAUDE.md §2).
 func (s *Sender) deliverOdoo(ctx context.Context, ob gen.Outbox) error {
 	if s.odoo == nil {

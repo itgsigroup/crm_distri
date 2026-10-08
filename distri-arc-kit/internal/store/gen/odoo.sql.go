@@ -260,7 +260,7 @@ type UpsertContactFromOdooParams struct {
 	SourceID     *string    `json:"source_id"`
 }
 
-// Odoo owns name, role and number; interaction counters are computed by Distri ARC and kept.
+// Odoo owns name, role and number; interaction counters are computed by GSI Orbit and kept.
 func (q *Queries) UpsertContactFromOdoo(ctx context.Context, arg UpsertContactFromOdooParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, upsertContactFromOdoo,
 		arg.DealerID,

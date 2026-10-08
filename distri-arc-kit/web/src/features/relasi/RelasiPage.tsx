@@ -115,7 +115,7 @@ export function RelasiPage() {
           </ul>
         </div>
         <div className="card">
-          <div className="card-h"><h2>Pola relasi</h2><span className="ai" style={{ marginLeft: 6 }}>dibaca Distri ARC</span></div>
+          <div className="card-h"><h2>Pola relasi</h2><span className="ai" style={{ marginLeft: 6 }}>dibaca GSI Orbit</span></div>
           <ul className="ins">
             {ins.length === 0 && <li><span /><div><span>Tidak ada pola khusus.</span></div></li>}
             {ins.map((x) => (

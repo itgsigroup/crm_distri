@@ -225,7 +225,7 @@ insert into identifications (wa_number, sources, best_name, best_org, score) val
 on conflict (wa_number) do update set sources = excluded.sources, best_name = excluded.best_name, best_org = excluded.best_org, score = excluded.score;
 
 -- name: InsertAIDraftOrder :one
--- A sale order draft created in Odoo by Distri ARC (outbox odoo_so_draft); the Odoo sync updates it later.
+-- A sale order draft created in Odoo by GSI Orbit (outbox odoo_so_draft); the Odoo sync updates it later.
 insert into orders (dealer_id, number, state, ordered_at, total, margin_pct, lines, created_by, source_system, source_id, source_write_date)
 values ($1, $2, 'order', $3, $4, $5, $6, 'ai_order_draft', 'odoo', $7, $3)
 on conflict (source_system, source_id) do nothing
@@ -261,7 +261,7 @@ where c.dealer_id = $1 and c.status <> 'done' order by c.due_at nulls last;
 update outbox set status = $2, attempts = attempts + 1, error = $3 where id = $1;
 
 -- name: LastSentProposalInThread :one
--- The newest message Distri ARC sent from a proposal in a thread before a moment (reply tracking, 72 hours).
+-- The newest message GSI Orbit sent from a proposal in a thread before a moment (reply tracking, 72 hours).
 select m.proposal_id, m.sent_at, p.kind, p.title, p.payload from chat_messages m join proposals p on p.id = m.proposal_id
 where m.thread_id = $1 and m.direction = 'out' and m.proposal_id is not null and m.sent_at <= sqlc.arg(before)::timestamptz
   and m.sent_at >= sqlc.arg(before)::timestamptz - interval '72 hours'

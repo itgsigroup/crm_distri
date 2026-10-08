@@ -410,7 +410,7 @@ select jsonb_build_object(
 )::jsonb as data
 `
 
-// Everything Distri ARC holds about one dealer and its people (UU PDP access right).
+// Everything GSI Orbit holds about one dealer and its people (UU PDP access right).
 func (q *Queries) PDPDealerExport(ctx context.Context, dealerID uuid.UUID) (json.RawMessage, error) {
 	row := q.db.QueryRow(ctx, pDPDealerExport, dealerID)
 	var data json.RawMessage

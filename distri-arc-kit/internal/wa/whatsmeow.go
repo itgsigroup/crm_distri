@@ -34,7 +34,7 @@ type Whatsmeow struct {
 
 // WhatsmeowStore opens the device store on db (search_path must point at the whatsmeow schema).
 func WhatsmeowStore(db *sql.DB) *sqlstore.Container {
-	store.SetOSInfo("Distri ARC", [3]uint32{1, 0, 0})
+	store.SetOSInfo("GSI Orbit", [3]uint32{1, 0, 0})
 	return sqlstore.NewWithDB(db, "postgres", waLog.Noop)
 }
 

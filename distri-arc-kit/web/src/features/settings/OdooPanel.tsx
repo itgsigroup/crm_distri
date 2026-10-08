@@ -73,7 +73,7 @@ export function OdooPanel() {
           </table>
         </div>
       </div>
-      <div className="ft"><button className="btn ghost" onClick={closeSheet}>Tutup</button><span className="spacer" /><span className="pol"><Icon name="lock" />Distri ARC tidak pernah mengubah data Odoo</span></div>
+      <div className="ft"><button className="btn ghost" onClick={closeSheet}>Tutup</button><span className="spacer" /><span className="pol"><Icon name="lock" />GSI Orbit tidak pernah mengubah data Odoo</span></div>
     </>
   )
 }

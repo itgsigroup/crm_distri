@@ -342,7 +342,7 @@ func (s *Server) totpSetup(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "totp", err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]string{"secret": secret, "uri": auth.TOTPURI("Distri ARC", deref(u.Email), secret)})
+	httpx.JSON(w, http.StatusOK, map[string]string{"secret": secret, "uri": auth.TOTPURI("GSI Orbit", deref(u.Email), secret)})
 }
 
 func (s *Server) totpCode(w http.ResponseWriter, r *http.Request) (User, gen.GetUserTOTPRow, string, bool) {

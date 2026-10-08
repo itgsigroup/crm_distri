@@ -126,7 +126,7 @@ type Unpairer interface {
 type actionKey struct{}
 
 // WithAction carries the outbox row id of an approved proposal to the transport, which the Baileys bridge
-// confirms with Distri ARC before it sends (no row, no send).
+// confirms with GSI Orbit before it sends (no row, no send).
 func WithAction(ctx context.Context, outboxID string) context.Context {
 	return context.WithValue(ctx, actionKey{}, outboxID)
 }

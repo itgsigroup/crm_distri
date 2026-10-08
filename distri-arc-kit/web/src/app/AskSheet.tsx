@@ -25,7 +25,7 @@ export function AskSheet({ q }: { q: string }) {
   }, [a?.dealer, closeSheet, nav])
   return (
     <>
-      <SheetHead icon="spark" title={q} sub={`Distri ARC · ${a ? hhmm(a.at) : 'menjawab…'}`} onClose={closeSheet} />
+      <SheetHead icon="spark" title={q} sub={`GSI Orbit · ${a ? hhmm(a.at) : 'menjawab…'}`} onClose={closeSheet} />
       <div className="sec">
         <p style={{ fontSize: 14.5 }}>{error ? (error as Error).message : a ? <PlanText text={a.text} /> : 'Membaca data dealer, SO, stok, dan pembayaran…'}</p>
       </div>

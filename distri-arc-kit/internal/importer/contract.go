@@ -1,4 +1,4 @@
-// Package importer brings real data into Distri ARC from BigQuery or CSV: rows in a fixed column contract per entity
+// Package importer brings real data into GSI Orbit from BigQuery or CSV: rows in a fixed column contract per entity
 // are staged as delivered (import_rows), then transformed with the master-data mappings (data_mappings: branch,
 // warehouse, category, sales, customer type) into sales profiles, dealers, contacts, orders, invoices, payments,
 // stock, products and the signals the agents cite as provenance. A mapping change re-runs the transform from

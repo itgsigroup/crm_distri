@@ -907,7 +907,7 @@ func (s *Server) summary(b *views.Board, stock []domain.StockItem, branch string
 		"kpi": b.KPI(branch, stock), "kredit": ov, "prediksi_kas_30_hari": cash,
 		"stok": map[string]any{"nilai": stockValue, "menua_lebih_90_hari": map[string]any{"sku": agingCount, "nilai": agingValue},
 			"kritis_sku": len(b.StockCritical(stock))},
-		"catatan": "Angka dihitung Distri ARC dari data Accurate (BigQuery). Untuk detail: dealer_list (filter/urut/halaman), dealer_get, jadwal_due, jadwal_lewat, stok_aging, piutang_ringkas, penjualan_bulanan, produk_terlaris.",
+		"catatan": "Angka dihitung GSI Orbit dari data Accurate (BigQuery). Untuk detail: dealer_list (filter/urut/halaman), dealer_get, jadwal_due, jadwal_lewat, stok_aging, piutang_ringkas, penjualan_bulanan, produk_terlaris.",
 	}
 }
 

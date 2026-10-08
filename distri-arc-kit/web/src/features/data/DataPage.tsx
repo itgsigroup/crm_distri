@@ -13,7 +13,7 @@ import { BigQueryCard } from './BigQueryCard'
 
 const ENTITY: Record<DataEntity, string> = { sales: 'Tim sales', customers: 'Pelanggan', invoices: 'Faktur', invoice_lines: 'Item faktur', stock: 'Stok per gudang' }
 const KIND: [MappingKind, string, string][] = [
-  ['branch', 'Cabang', 'Nama cabang di data sumber → cabang Distri ARC'],
+  ['branch', 'Cabang', 'Nama cabang di data sumber → cabang GSI Orbit'],
   ['warehouse', 'Gudang', 'Gudang → cabang (stok dijumlah per cabang)'],
   ['category', 'Kategori', 'Kategori barang → 6 kategori product mix'],
   ['sales', 'Sales', 'Nama sales di data sumber → anggota tim'],
@@ -53,7 +53,7 @@ function SourceCard({ st }: { st: DataStatus }) {
   const test = useMutation({ mutationFn: () => api.post<{ results: typeof tests }>('/data/test'), onSuccess: (r) => setTests(r.results) })
   return (
     <div className="card">
-      <div className="card-h"><h2>Sumber data asli</h2><span className="meta">{st.dealers} pelanggan · {st.invoices} faktur di Distri ARC</span></div>
+      <div className="card-h"><h2>Sumber data asli</h2><span className="meta">{st.dealers} pelanggan · {st.invoices} faktur di GSI Orbit</span></div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <div className="seg">{(['none', 'bigquery', 'csv'] as const).map((m) => <button key={m} disabled={!ceo} className={src.mode === m ? 'is-active' : ''} onClick={() => setSrc({ ...src, mode: m })}>{{ none: 'Belum', bigquery: 'BigQuery', csv: 'Impor CSV' }[m]}</button>)}</div>
         <span style={{ fontSize: 12.5, color: 'var(--text-2)' }}>{src.mode === 'bigquery' ? `Ditarik otomatis tiap ${bq.sync_minutes} menit · baca saja` : src.mode === 'csv' ? 'Unggah file CSV per jenis data di bawah' : 'Pilih sumber data'}</span>

@@ -87,7 +87,7 @@ export function MCPClientsPanel() {
   const config = token && info ? JSON.stringify({ mcpServers: { 'distri-arc': { url: info.endpoint, headers: { Authorization: `Bearer ${token}` } } } }, null, 2) : ''
   return (
     <>
-      <SheetHead icon="plug" title="Klien MCP" sub={info ? info.endpoint : 'Distri ARC sebagai server MCP'} onClose={closeSheet} />
+      <SheetHead icon="plug" title="Klien MCP" sub={info ? info.endpoint : 'GSI Orbit sebagai server MCP'} onClose={closeSheet} />
       <div className="sec">
         <h4>Klien terdaftar</h4>
         <ul className="rules">
@@ -148,11 +148,11 @@ export function AIConnectionsCard() {
           <div className="cs"><span className={`dot ${apiOK ? 'good' : 'warn'}`} />{apiOK ? 'Terhubung · API key tersimpan di server' : 'Mode template · API key belum diisi'}</div>
         </button>
         <button className="cc" onClick={() => nav('/claude')}>
-          <div className="ch"><span className="lg" style={{ background: '#5E5CE6' }}>MCP</span><div><b>MCP · Distri ARC sebagai server</b><small>Claude (claude.ai, Desktop, Code) membaca dan menganalisis semua data lewat tool MCP — atur di menu MCP Claude</small></div></div>
+          <div className="ch"><span className="lg" style={{ background: '#5E5CE6' }}>MCP</span><div><b>MCP · GSI Orbit sebagai server</b><small>Claude (claude.ai, Desktop, Code) membaca dan menganalisis semua data lewat tool MCP — atur di menu MCP Claude</small></div></div>
           <div className="cs"><span className={`dot ${active.length ? 'good' : 'warn'}`} />{active.length ? `Aktif · ${active.length} koneksi: ${active.map((c) => c.name).join(' · ')}` : 'Aktif · belum ada koneksi — buka MCP Claude'}</div>
         </button>
-        <button className="cc" onClick={() => toast('Distri ARC sebagai klien MCP (Odoo MCP) disiapkan di Stage 13')}>
-          <div className="ch"><span className="lg" style={{ background: '#1E88E5' }}>MCP</span><div><b>MCP · Distri ARC sebagai klien</b><small>Memakai MCP server lain: Odoo MCP, WhatsApp bridge, Getcontact (manual)</small></div></div>
+        <button className="cc" onClick={() => toast('GSI Orbit sebagai klien MCP (Odoo MCP) disiapkan di Stage 13')}>
+          <div className="ch"><span className="lg" style={{ background: '#1E88E5' }}>MCP</span><div><b>MCP · GSI Orbit sebagai klien</b><small>Memakai MCP server lain: Odoo MCP, WhatsApp bridge, Getcontact (manual)</small></div></div>
           <div className="cs"><span className="dot warn" />Odoo MCP belum dipasang · sementara lewat API Odoo</div>
         </button>
       </div>

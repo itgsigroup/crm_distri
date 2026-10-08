@@ -1,4 +1,4 @@
-// Package domain holds the pure types of Distri ARC Orbit (no database or HTTP). Names follow
+// Package domain holds the pure types of GSI Orbit (no database or HTTP). Names follow
 // docs/design/01-glossary.md; JSON is snake_case, money in rupiah (int64), percentages 0–100.
 package domain
 

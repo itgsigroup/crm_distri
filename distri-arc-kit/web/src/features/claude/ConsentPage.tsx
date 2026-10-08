@@ -29,7 +29,7 @@ export function ConsentPage() {
       <div className="card">
         <div className="consent-h">
           <span className="cl-logo"><Icon name="spark" /></span>
-          <div><h2>{data ? <><b>{data.client_name}</b> ingin terhubung ke Distri ARC</> : 'Izinkan Claude'}</h2>
+          <div><h2>{data ? <><b>{data.client_name}</b> ingin terhubung ke GSI Orbit</> : 'Izinkan Claude'}</h2>
             <p>{data ? <>Kembali ke <b>{data.redirect_host}</b> setelah Anda memutuskan · masuk sebagai {data.user.name} ({data.user.role})</> : ''}</p></div>
         </div>
         {!id || error ? (

@@ -184,7 +184,7 @@ func TestWriteDisabled(t *testing.T) {
 		t.Fatalf("draft: %d %v", id, err)
 	}
 	rows, _ := f.SearchRead(context.Background(), "sale.order", []any{[]any{"id", "=", id}}, nil)
-	if len(rows) != 1 || rows[0].Str("note") != "Dibuat Distri ARC · proposal p1 · disetujui Sam Setiadi" {
+	if len(rows) != 1 || rows[0].Str("note") != "Dibuat GSI Orbit · proposal p1 · disetujui Sam Setiadi" {
 		t.Fatalf("draft note %v", rows)
 	}
 }

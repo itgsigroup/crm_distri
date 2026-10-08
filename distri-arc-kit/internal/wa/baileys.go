@@ -348,7 +348,7 @@ func (b *Baileys) PairCode(ctx context.Context, account string) (string, error) 
 
 // Link starts linking a new device under a fresh session id; its number arrives with the "connected" status.
 func (b *Baileys) Link(ctx context.Context, session, phone string, code bool) (string, error) {
-	snap, err := b.open(ctx, session, "Distri ARC", phone, code)
+	snap, err := b.open(ctx, session, "GSI Orbit", phone, code)
 	if err != nil {
 		return "", err
 	}

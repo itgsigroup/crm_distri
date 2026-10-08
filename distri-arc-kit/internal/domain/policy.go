@@ -73,7 +73,7 @@ type KPITargets struct {
 	StockTurnDays int `json:"stock_turn_days"`
 }
 
-// OdooWritePolicy: what Distri ARC writes to Odoo besides SO drafts (only when ODOO_WRITE=true).
+// OdooWritePolicy: what GSI Orbit writes to Odoo besides SO drafts (only when ODOO_WRITE=true).
 type OdooWritePolicy struct {
 	Notes bool `json:"notes"` // an internal note on the partner for every decided proposal
 }
@@ -134,7 +134,7 @@ type PilotPolicy struct {
 	Unlocked            []string `json:"unlocked"` // agents whose automatic steps are open again
 }
 
-// Shadow reports whether nothing may leave Distri ARC (no sends, no Odoo writes, no automatic steps).
+// Shadow reports whether nothing may leave GSI Orbit (no sends, no Odoo writes, no automatic steps).
 func (p PilotPolicy) Shadow() bool { return p.Mode == "shadow" }
 
 // AutoAllowed reports whether an agent may take automatic steps under the pilot.

@@ -1,4 +1,4 @@
-// Package mcp serves Distri ARC over the Model Context Protocol (06-mcp.md, ADR 0004): read, analyze and
+// Package mcp serves GSI Orbit over the Model Context Protocol (06-mcp.md, ADR 0004): read, analyze and
 // orchestrate tools for Claude Desktop, ChatGPT and other agents. Every call is authenticated (bearer token
 // → mcp_clients), scope-checked, rate-limited and recorded (mcp_calls + audit_log). There is no tool that
 // decides or sends: actions.decide answers human_only and mcp.permissions.allow_send is locked in code.
@@ -43,7 +43,7 @@ var (
 // CallsPerMinute is the per-client rate limit.
 const CallsPerMinute = 60
 
-// Server is the Distri ARC MCP server.
+// Server is the GSI Orbit MCP server.
 type Server struct {
 	St       *store.Store
 	Clock    clock.Clock
@@ -79,8 +79,8 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, orch *orchestrator.Or
 		log = slog.Default()
 	}
 	s := &Server{St: st, Clock: c, Log: log, Orch: orch, views: views.NewBuilder(st, c), verifier: NewVerifier(st), calls: map[uuid.UUID][]time.Time{}}
-	s.srv = sdk.NewServer(&sdk.Implementation{Name: "distri-arc", Title: "Distri ARC Orbit", Version: Version},
-		&sdk.ServerOptions{Instructions: "Distri ARC Orbit — CRM distribusi B2B GSI. Baca dealer, siklus order, sisa limit, stok; jalankan Orchestrator. " +
+	s.srv = sdk.NewServer(&sdk.Implementation{Name: "distri-arc", Title: "GSI Orbit", Version: Version},
+		&sdk.ServerOptions{Instructions: "GSI Orbit — CRM distribusi B2B GSI. Baca dealer, siklus order, sisa limit, stok; jalankan Orchestrator. " +
 			"Keputusan (setujui/tolak) dan pengiriman ke dealer hanya di aplikasi oleh manusia."})
 	s.registerTools()
 	s.registerResources()
@@ -167,7 +167,7 @@ func tool[In any](s *Server, name, scope, desc string, h handler[In]) {
 		case c == nil:
 			err = fmt.Errorf("%w: token diperlukan", ErrForbidden)
 		case scope == "decide":
-			err = fmt.Errorf("%w: keputusan hanya oleh manusia di aplikasi Distri ARC", ErrHumanOnly)
+			err = fmt.Errorf("%w: keputusan hanya oleh manusia di aplikasi GSI Orbit", ErrHumanOnly)
 		case !c.Has(scope):
 			err = fmt.Errorf("%w: tool %s butuh scope %q", ErrForbidden, name, scope)
 		case !s.allow(c.ID):

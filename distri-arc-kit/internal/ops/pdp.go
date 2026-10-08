@@ -15,7 +15,7 @@ import (
 	"distri-arc/internal/wa"
 )
 
-// ExportDealer returns everything Distri ARC holds about a dealer and its people (arc ctl pdp export).
+// ExportDealer returns everything GSI Orbit holds about a dealer and its people (arc ctl pdp export).
 func ExportDealer(ctx context.Context, st *store.Store, slugOrID string) (json.RawMessage, error) {
 	d, err := st.Q.GetDealer(ctx, &slugOrID)
 	if err != nil {

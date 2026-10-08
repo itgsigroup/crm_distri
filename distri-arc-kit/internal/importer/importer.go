@@ -176,7 +176,7 @@ func rp(v int64) string {
 	return fmt.Sprintf("Rp %s jt", strings.Replace(strconv.FormatFloat(math.Round(float64(v)/1e5)/10, 'f', -1, 64), ".", ",", 1))
 }
 
-// Apply transforms staged rows into Distri ARC's tables. Full re-applies everything (after a mapping change);
+// Apply transforms staged rows into GSI Orbit's tables. Full re-applies everything (after a mapping change);
 // otherwise only invoices staged since the last apply are rebuilt (sales, customers and stock always).
 func (im Importer) Apply(ctx context.Context, full bool, by string) (ApplyReport, error) {
 	t0 := time.Now()

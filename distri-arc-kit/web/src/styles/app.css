@@ -379,3 +379,6 @@
 @media (max-width:960px){.lp-main{grid-template-columns:1fr;align-content:center;gap:20px}.lp-info{text-align:center}.lp-info h1{font-size:clamp(28px,7vw,40px)}.lp-lead{margin:0 auto}.lp-feats{display:none}.lp-org,.lp-trust{display:none}.lp-foot{justify-content:center}}
 @media (max-width:640px){.lp-nav{padding:14px 16px}.lp-main{padding:0 16px}.lp-lead{font-size:13.5px}.lp-card{padding:20px}}
 @media (max-width:960px) and (max-height:740px){.lp-lead{display:none}}
+/* Logo GSI Orbit (public/favicon.svg): core with an orbiting dot */
+.brand-mark{background:url(/favicon.svg) center/contain no-repeat;box-shadow:0 4px 12px -4px rgba(10,132,255,.55)}
+.brand-mark::after{content:none}

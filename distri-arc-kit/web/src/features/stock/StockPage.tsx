@@ -79,7 +79,7 @@ export function StockPage() {
                     <div className="stg"><span>umur stok</span><em className="num" style={{ color: `var(--${k})` }}>{x.age_days} hr</em></div>
                   </div>
                   <div className="note">Dealer yang cocok: {dealers}{note}</div>
-                  <div>{p ? <ActBtn small next={toNext(p)} /> : <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => toast('Promo belum otomatis: atur harga promo di Accurate — data Distri ARC dibaca dari BigQuery (baca saja)')}>Buat promo</button>}</div>
+                  <div>{p ? <ActBtn small next={toNext(p)} /> : <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => toast('Promo belum otomatis: atur harga promo di Accurate — data GSI Orbit dibaca dari BigQuery (baca saja)')}>Buat promo</button>}</div>
                 </li>
               )
             })}

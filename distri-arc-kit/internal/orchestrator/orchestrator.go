@@ -675,7 +675,7 @@ func (o *Orchestrator) execute(ctx context.Context, r *stageRun) (map[string]any
 			}
 			r.outbox++
 		case p.Autonomy == "auto" && !MessagesDealer(p.Kind):
-			// nothing leaves the system before stage 12 (SO draft prepared in Distri ARC, credit hold recorded)
+			// nothing leaves the system before stage 12 (SO draft prepared in GSI Orbit, credit hold recorded)
 			if err := o.St.Q.SetProposalStatus(ctx, gen.SetProposalStatusParams{ID: p.ID, Status: "executed"}); err != nil {
 				return nil, err
 			}

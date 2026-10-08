@@ -29,7 +29,7 @@ function Connect({ endpoint }: { endpoint: string }) {
   const { toast } = useFeedback()
   return (
     <div className="card">
-      <div className="card-h"><h2>Hubungkan Claude</h2><span className="meta">Login Distri ARC + izin, tanpa menyalin token</span></div>
+      <div className="card-h"><h2>Hubungkan Claude</h2><span className="meta">Login GSI Orbit + izin, tanpa menyalin token</span></div>
       <div className="seg" style={{ marginBottom: 12 }}>
         <button className={tab === 'web' ? 'is-active' : ''} onClick={() => setTab('web')}>claude.ai &amp; Claude Desktop</button>
         <button className={tab === 'code' ? 'is-active' : ''} onClick={() => setTab('code')}>Claude Code</button>
@@ -38,15 +38,15 @@ function Connect({ endpoint }: { endpoint: string }) {
       {tab === 'web' && (
         <ol className="cl-steps">
           <li>Di <b>claude.ai</b> (atau aplikasi Claude Desktop) buka <b>Settings → Connectors</b>, lalu <b>Add custom connector</b>. Untuk akun Team/Enterprise, owner menambahkannya di <b>Admin settings → Connectors</b>.</li>
-          <li>Isi <b>Name</b>: <code>Distri ARC</code> dan <b>Remote MCP server URL</b>:<Code onCopy={() => copy(endpoint, toast)}>{endpoint}</Code></li>
-          <li>Klik <b>Add</b>, lalu <b>Connect</b>. Halaman Distri ARC terbuka: login, periksa izinnya, lalu <b>Izinkan</b>.</li>
-          <li>Di percakapan baru, aktifkan <b>Distri ARC</b> di menu alat (ikon <b>+</b> / <b>Search and tools</b>) lalu pakai salah satu contoh prompt di bawah.</li>
+          <li>Isi <b>Name</b>: <code>GSI Orbit</code> dan <b>Remote MCP server URL</b>:<Code onCopy={() => copy(endpoint, toast)}>{endpoint}</Code></li>
+          <li>Klik <b>Add</b>, lalu <b>Connect</b>. Halaman GSI Orbit terbuka: login, periksa izinnya, lalu <b>Izinkan</b>.</li>
+          <li>Di percakapan baru, aktifkan <b>GSI Orbit</b> di menu alat (ikon <b>+</b> / <b>Search and tools</b>) lalu pakai salah satu contoh prompt di bawah.</li>
         </ol>
       )}
       {tab === 'code' && (
         <ol className="cl-steps">
           <li>Tambahkan server (sekali):<Code onCopy={() => copy(`claude mcp add --transport http distri-arc ${endpoint}`, toast)}>{`claude mcp add --transport http distri-arc ${endpoint}`}</Code></li>
-          <li>Di Claude Code jalankan <code>/mcp</code>, pilih <b>distri-arc</b> → <b>Authenticate</b>. Browser membuka Distri ARC: login lalu <b>Izinkan</b>.</li>
+          <li>Di Claude Code jalankan <code>/mcp</code>, pilih <b>distri-arc</b> → <b>Authenticate</b>. Browser membuka GSI Orbit: login lalu <b>Izinkan</b>.</li>
           <li>Tanya langsung, mis. “pakai distri-arc, ringkas kondisi orbit semua cabang”.</li>
         </ol>
       )}
@@ -204,7 +204,7 @@ function Calls() {
   )
 }
 
-/** Sidebar → MCP Claude: connect Claude to analyse all of Distri ARC's data (read-only; decisions stay here). */
+/** Sidebar → MCP Claude: connect Claude to analyse all of GSI Orbit's data (read-only; decisions stay here). */
 export function ClaudePage() {
   const { data: info } = useMCPInfo()
   const { data: clients = [] } = useMCPClients()
@@ -216,7 +216,7 @@ export function ClaudePage() {
       <div className="card cl-hero">
         <span className="cl-logo"><Icon name="spark" /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2>Claude menganalisis semua data Distri ARC</h2>
+          <h2>Claude menganalisis semua data GSI Orbit</h2>
           <p>Lewat MCP, Claude membaca dealer, penjualan, piutang, stok, dan chat (nomor disamarkan) langsung dari server GSI — lalu menjawab, membandingkan, dan menyusun rencana. Claude <b>tidak pernah</b> memutuskan atau mengirim ke dealer.</p>
           <div className="cl-status">
             <Pill tone={info?.enabled ? 'good' : 'bad'} icon={info?.enabled ? 'check' : 'alert'}>{info?.enabled ? 'Server MCP aktif' : 'Server MCP mati'}</Pill>

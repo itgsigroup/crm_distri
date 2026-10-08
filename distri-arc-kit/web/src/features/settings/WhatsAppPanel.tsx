@@ -68,7 +68,7 @@ export function WhatsAppPanel() {
                 <div className="st">
                   <Pill tone={STATE[n.state][1]}>{STATE[n.state][0]}</Pill>
                   {n.state !== 'connected' && n.state !== 'pairing' && <button className="btn ghost" style={{ height: 26, fontSize: 11.5 }} onClick={() => pair.mutate(n.wa_number)}><Icon name="qr" />Pasangkan</button>}
-                  {(n.state !== 'unpaired' || !n.sales_id) && <button className="btn quiet" style={{ height: 26, fontSize: 11.5 }} onClick={() => { if (window.confirm(`Lepas ${name} dari Distri ARC? Perangkat tertaut di HP ikut dikeluarkan.`)) unpair.mutate(n.wa_number) }}>Lepas</button>}
+                  {(n.state !== 'unpaired' || !n.sales_id) && <button className="btn quiet" style={{ height: 26, fontSize: 11.5 }} onClick={() => { if (window.confirm(`Lepas ${name} dari GSI Orbit? Perangkat tertaut di HP ikut dikeluarkan.`)) unpair.mutate(n.wa_number) }}>Lepas</button>}
                 </div>
               </li>
             )

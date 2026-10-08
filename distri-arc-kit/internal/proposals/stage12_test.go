@@ -28,7 +28,7 @@ func fakeOdoo(t *testing.T) *odoo.Fake {
 }
 
 // docs/stages/12 acceptance: the automatic SO draft for Toko Sinar becomes a draft sale order in Odoo with its
-// source note; Distri ARC records the order, a signal and a Kami commitment, and the Timeline shows the chain.
+// source note; GSI Orbit records the order, a signal and a Kami commitment, and the Timeline shows the chain.
 func TestSODraftToOdoo(t *testing.T) {
 	st, r := setup(t)
 	ctx := context.Background()

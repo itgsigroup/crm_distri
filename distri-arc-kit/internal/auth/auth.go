@@ -157,5 +157,5 @@ func (l *Limiter) Reset(key string) {
 	delete(l.fails, key)
 }
 
-// Roles of Distri ARC users.
+// Roles of GSI Orbit users.
 var Roles = []string{"ceo", "admin", "finance", "sales", "warehouse"}

@@ -1,4 +1,4 @@
-// Command arc is the single Distri ARC Orbit binary: `arc api`, `arc worker`, `arc ctl <cmd>`.
+// Command arc is the single GSI Orbit binary: `arc api`, `arc worker`, `arc ctl <cmd>`.
 package main
 
 import (
@@ -36,7 +36,7 @@ import (
 	"distri-arc/internal/worker"
 )
 
-const usage = `arc — Distri ARC Orbit
+const usage = `arc — GSI Orbit
 
   arc api                    REST + SSE API (and MCP from stage 07)
   arc worker                 background jobs (river): heartbeat, metrics, orchestrator, ingest, outbox
@@ -48,7 +48,7 @@ const usage = `arc — Distri ARC Orbit
   arc ctl metrics --dealer <slug>  print a dealer's metrics and the 5 score components
   arc ctl wa inject --from <no> --text "…" [--to <sales no>] [--in 2h]  feed a fake inbound WhatsApp message
   arc ctl wa numbers         list paired sales numbers
-  arc ctl odoo sync [--full] pull Odoo (ODOO_MODE=fake|rpc) into Distri ARC, read-only
+  arc ctl odoo sync [--full] pull Odoo (ODOO_MODE=fake|rpc) into GSI Orbit, read-only
   arc ctl odoo test          check the Odoo connection
   arc ctl reanalyze --scope all|screen:orbit|dealer:<slug>|agent:<name> [--if-empty]  run an Orchestrator cycle
   arc ctl agents run [--agent "AI Order"] [--dealer <slug>]  alias of reanalyze with that scope
