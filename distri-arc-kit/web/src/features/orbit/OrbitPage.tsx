@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState, type FocusEvent, type MouseEvent } from 'react'
+import { useMemo, useState, type FocusEvent, type MouseEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import type { BoardItem, Mover } from '../../api/types'
 import { Icon } from '../../components/Icon'
+import { useMapViewport } from '../../components/MapViewport'
 import { fmtRp } from '../../lib/format'
 import { KUAD, RING_DESC } from '../../lib/i18n/id'
 import { useOrch, useOrchStatus } from '../../app/orch'
@@ -64,20 +65,22 @@ export function topByOmzet(list: BoardItem[], n = ORBIT_TOP) {
 }
 
 export function OrbitBoard({ list, onOpen, dense = false, focus: focusRing = null }: { list: BoardItem[]; onOpen: (id: string) => void; dense?: boolean; focus?: string | null }) {
-  const wrap = useRef<HTMLDivElement>(null)
+  const viewport = useMapViewport(W, H)
+  const wrap = viewport.containerRef
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
   const readable = !dense && list.length >= READABLE_FROM
   const nodes = useMemo(() => {
-    if (readable) return []
+    if (readable || dense) return []
     const featured = !dense && list.length > ORBIT_FEATURED ? new Set(topByOmzet(list, ORBIT_FEATURED).map((d) => d.id)) : undefined
     return layoutOrbit(list, 1.2, dense, featured, false)
   }, [list, dense, readable])
   const rnodes = useMemo(() => {
-    if (!readable) return []
+    if (!readable && !dense) return []
     return layoutReadable(list, new Set(), focusRing)
-  }, [list, readable, focusRing])
+  }, [list, readable, dense, focusRing])
   const LA = 0.62 * Math.PI * 2
   const move = (e: MouseEvent, d: BoardItem) => {
+    if (viewport.dragging) { setHover(null); return }
     const r = wrap.current!.getBoundingClientRect()
     let px = e.clientX - r.left + 14
     const py = e.clientY - r.top + 14
@@ -93,8 +96,8 @@ export function OrbitBoard({ list, onOpen, dense = false, focus: focusRing = nul
   }
   const m = hover?.d.metrics
   return (
-    <div className="orbit-wrap" ref={wrap} onMouseLeave={() => setHover(null)}>
-      <svg className="orbit" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Orbit dealer">
+    <div className={`orbit-wrap map-viewport${viewport.dragging ? ' is-panning' : ''}`} ref={wrap} onMouseLeave={() => setHover(null)}>
+      <svg className="orbit" viewBox={viewport.viewBox} role="img" aria-label="Orbit dealer" {...viewport.svgProps}>
         <path d={`M${CX} ${CY} L${CX - 330} ${CY} A330 330 0 0 1 ${CX} ${CY - 330} Z`} fill="var(--good)" opacity=".05" />
         {RINGS.map((n) => {
           const r = RING_R[n]
@@ -112,12 +115,15 @@ export function OrbitBoard({ list, onOpen, dense = false, focus: focusRing = nul
         <text className="ring-t" x={CX - RING_R.Churn - 6} y={CY + 4} textAnchor="end">¾ putaran</text>
         <circle cx={CX} cy={CY} r={28} fill="var(--text)" />
         <text x={CX} y={CY + 5} textAnchor="middle" className="gsi-t">GSI</text>
-        {rnodes.map(({ d, x, y, size, tone, ring, dim }) => (
+        {rnodes.map(({ d, x, y, size, tone, ring, dim }) => {
+          const dotSize = dense ? Math.max(2.5, size * 0.35) : size
+          return (
           <g key={d.id} className={`dn ${dim ? 'dim' : ''}`} role="button" tabIndex={dim ? -1 : 0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
-            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(size, 12).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
-            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
+            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(dotSize, 9).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
+            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={dotSize.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
           </g>
-        ))}
+          )
+        })}
         {nodes.map(({ d, x, y, size, tone, ring }) => (
           <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
             <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(size, 12).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
@@ -125,6 +131,7 @@ export function OrbitBoard({ list, onOpen, dense = false, focus: focusRing = nul
           </g>
         ))}
       </svg>
+      {viewport.controls}
       <Tip
         d={hover?.d ?? null}
         pos={hover ?? { x: 0, y: 0 }}
