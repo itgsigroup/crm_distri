@@ -8,6 +8,7 @@ import { PipeChips } from '../../app/Dock'
 import { useAgenda, useBrief, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, usePlan, useQueue, useSegmenMovers, useStockPush } from '../../app/queries'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { PlanList, planMeta } from './Plan'
+import { useMore } from '../../components/More'
 import { BriefPoints, DriftList, DueList, PushList, TightList, dueLabel } from './lists'
 import { Queue } from './Queue'
 import type { AgendaRow, KPI } from '../../api/types'
@@ -187,31 +188,41 @@ function Wheels({ kpi }: { kpi: KPI }) {
   )
 }
 
-/** Agenda sales (mockup renderAgenda). */
+/** Agenda sales (mockup renderAgenda): busiest sales first, 3 dealers each; sales with nothing urgent fold into one line. */
 function Agenda({ rows }: { rows: AgendaRow[] }) {
   const nav = useNavigate()
+  const [openRow, setOpenRow] = useState('')
+  const busy = rows.filter((r) => (r.items ?? []).length > 0).sort((a, b) => b.count - a.count)
+  const idle = rows.filter((r) => (r.items ?? []).length === 0)
+  const [shown, more] = useMore(busy, 6)
   return (
     <div className="agenda">
-      {rows.map((r) => (
-        <div className="ag-row" key={r.sales.key}>
-          <div className="ag-who">
-            <span className="avatar">{r.sales.initials}</span>
-            <div><b>{r.sales.name}</b><span>{r.sales.branch} · {r.dealers} dealer</span></div>
-            <span className="ag-n">{r.count}</span>
+      {shown.map((r) => {
+        const items = r.items ?? []
+        const all = openRow === r.sales.key
+        return (
+          <div className="ag-row" key={r.sales.key}>
+            <div className="ag-who">
+              <span className="avatar">{r.sales.initials}</span>
+              <div><b>{r.sales.name}</b><span>{r.sales.branch} · {r.dealers} dealer</span></div>
+              <span className="ag-n" title="dealer perlu perhatian">{r.count}</span>
+            </div>
+            <ul>
+              {(all ? items : items.slice(0, 3)).map((it) => (
+                <li key={it.kind + it.dealer_id}>
+                  <span className="dot" style={{ background: it.kind === 'due' ? 'var(--good)' : it.kind === 'drift' ? 'var(--warn)' : 'var(--bad)' }} />
+                  <button className="ev" onClick={() => nav('/dealer/' + it.dealer_id)}>{it.short_name}</button>
+                  <span className="ag-what">{it.kind === 'due' ? `jadwal ${dueLabel(it.due_in ?? 0)}` : it.kind === 'drift' ? `lewat ${it.late_days} hr` : 'tagih dulu'}</span>
+                </li>
+              ))}
+              {items.length > 3 && <li><button className="ev-more" onClick={() => setOpenRow(all ? '' : r.sales.key)}>{all ? 'ringkas' : `+${items.length - 3} dealer lainnya`}</button></li>}
+            </ul>
           </div>
-          <ul>
-            {(r.items ?? []).length === 0 && <li><span className="dot" style={{ background: 'var(--text-3)' }} />Tidak ada yang mendesak</li>}
-            {(r.items ?? []).map((it) => (
-              <li key={it.kind + it.dealer_id}>
-                <span className="dot" style={{ background: it.kind === 'due' ? 'var(--good)' : it.kind === 'drift' ? 'var(--warn)' : 'var(--bad)' }} />
-                <button className="ev" onClick={() => nav('/dealer/' + it.dealer_id)}>{it.short_name}</button>
-                {it.kind === 'due' ? ` · jadwal ${dueLabel(it.due_in ?? 0)}` : it.kind === 'drift' ? ` · lewat jadwal ${it.late_days} hr` : ' · tagih dulu'}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+        )
+      })}
+      {more}
+      {idle.length > 0 && <p className="ag-idle">{idle.length} sales tanpa agenda mendesak: {idle.slice(0, 6).map((r) => r.sales.name.split(' ')[0]).join(', ')}{idle.length > 6 ? `, +${idle.length - 6}` : ''}</p>}
+      {rows.length === 0 && <p className="ag-idle">Belum ada agenda hari ini.</p>}
     </div>
   )
 }
-

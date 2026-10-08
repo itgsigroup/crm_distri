@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { AgingItem, BoardItem, Brief, NextAction } from '../../api/types'
 import { useStockProposals } from '../../app/queries'
@@ -134,14 +135,20 @@ const BRIEF_ICON: Record<string, [string, string]> = { on_schedule: ['good', 'ch
 
 /** Ringkasan Orchestrator (mockup renderBrief): four points written by the cycle, dealer names link to the dealer. */
 export function BriefPoints({ brief }: { brief: Brief }) {
+  const [open, setOpen] = useState<string[]>([])
   return (
     <ol>
       {brief.points.map((p) => {
         const [k, icon] = BRIEF_ICON[p.kind] ?? ['accent', 'spark']
+        const long = p.text.length > 600 // a point listing dozens of dealers: 4 lines, then "Selengkapnya"
+        const isOpen = open.includes(p.kind)
         return (
           <li key={p.kind} title={p.signal_ids.length ? `${p.signal_ids.length} sumber` : undefined}>
             <span className={`k ${k}`}><Icon name={icon} /></span>
-            <div><b>{p.title}</b>: <PlanText text={p.text} /></div>
+            <div>
+              <div className={long && !isOpen ? 'bp-clamp' : undefined}><b>{p.title}</b>: <PlanText text={p.text} /></div>
+              {long && <button className="ev-more bp-toggle" onClick={() => setOpen(isOpen ? open.filter((x) => x !== p.kind) : [...open, p.kind])}>{isOpen ? 'Ringkas' : 'Selengkapnya'}</button>}
+            </div>
           </li>
         )
       })}

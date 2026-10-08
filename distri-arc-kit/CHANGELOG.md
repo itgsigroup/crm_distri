@@ -190,3 +190,8 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 ## Nama & logo: GSI Orbit · 2026-10-08
 - Nama sistem menjadi **GSI Orbit** ("CRM Distribusi · AI") di aplikasi, login, tab browser, MCP Claude, perangkat WhatsApp tertaut, 2FA, catatan Odoo, dan prompt AI.
 - Logo baru (inti dengan titik yang mengorbit, biru → ungu) di sidebar, login, dan favicon.
+
+## Pusat kendali lebih mudah dibaca · 2026-10-08
+- Daftar dealer panjang di Rencana hari ini dan Ringkasan Orchestrator diringkas (5 nama + "+N dealer lainnya", bisa dibuka); poin ringkasan yang panjang dibatasi 4 baris + "Selengkapnya".
+- Agenda sales: sales tersibuk dulu, 6 sales lalu "Tampilkan lagi", 3 dealer per sales, sales tanpa agenda mendesak dirangkum satu baris; baris dealer rata kiri dengan keterangan di kanan.
+- Judul kartu sempit (Jadwal order, Lewat jadwal, Push stok, Limit tipis) tidak lagi terpecah; keterangan rekomendasi maksimal 2 baris. Tinggi halaman dengan data asli turun dari ±8.800 px ke ±3.700 px. Tanpa perubahan fungsi.
