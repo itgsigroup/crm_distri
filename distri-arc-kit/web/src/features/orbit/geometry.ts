@@ -45,9 +45,8 @@ export function place(d: BoardItem, drift = 1.2): { rad: number; ang: number; si
   return { rad, ang, size: 7 + Math.sqrt(sow) * 1.3 }
 }
 
-/** Lay out all nodes: polar placement, then 80 rounds of node+label overlap avoidance pulled back gently. The
- * avoidance is quadratic: it only runs for a readable number of labelled nodes (dense = plain dots, no labels). */
-export function layoutOrbit(list: BoardItem[], drift = 1.2, dense = false, named?: Set<string>): OrbitNode[] {
+/** Lay out all nodes: polar placement, then 80 rounds of node overlap avoidance pulled back gently. */
+export function layoutOrbit(list: BoardItem[], drift = 1.2, dense = false, named?: Set<string>, showLabels = true): OrbitNode[] {
   const nodes: OrbitNode[] = list.map((d) => {
     const { rad, ang, size } = place(d, drift)
     const x = CX + rad * Math.sin(ang)
@@ -60,7 +59,8 @@ export function layoutOrbit(list: BoardItem[], drift = 1.2, dense = false, named
   })
   const box = (a: OrbitNode) => {
     const h = Math.max(a.size, 8)
-    return a.side > 0 ? [a.x - a.size, a.x + a.size + a.tw, a.y - h, a.y + h] : [a.x - a.size - a.tw, a.x + a.size, a.y - h, a.y + h]
+    const tw = showLabels ? a.tw : 0
+    return a.side > 0 ? [a.x - a.size, a.x + a.size + tw, a.y - h, a.y + h] : [a.x - a.size - tw, a.x + a.size, a.y - h, a.y + h]
   }
   if (dense) {
     nodes.forEach((n) => { n.size = Math.max(2.5, n.size * 0.35) })
@@ -123,7 +123,6 @@ export interface ReadableNode extends OrbitNode {
 
 /** Above this many dealers the orbit switches to the readable layout (the mockup's 18 keep the mockup layout). */
 export const READABLE_FROM = 40
-export const READABLE_NAMED = 12
 
 const clip = (s: string, n = 18) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s)
 

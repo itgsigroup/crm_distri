@@ -413,7 +413,8 @@
 .orbit .dn.dim{opacity:.12}
 .orbit .dn.dim .dn-t{display:none}
 .orbit .dn-lead{fill:none;stroke:var(--text-3);stroke-width:.8;opacity:.7;pointer-events:none}
-.orbit .dn:hover circle,.orbit .dn:focus circle{stroke:var(--text);stroke-width:2}
+.orbit .dn .dn-hit{stroke:none}
+.orbit .dn:hover .dn-dot,.orbit .dn:focus .dn-dot{stroke:var(--text);stroke-width:2}
 
 /* Segmen — four plain-language boxes (default view); the dot chart stays behind "Peta titik" */
 .sg-bar-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 10px}

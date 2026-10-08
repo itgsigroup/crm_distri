@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type MouseEvent } from 'react'
+import { useMemo, useRef, useState, type FocusEvent, type MouseEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import type { BoardItem, Mover } from '../../api/types'
 import { Icon } from '../../components/Icon'
@@ -8,7 +8,7 @@ import { useOrch, useOrchStatus } from '../../app/orch'
 import { useOrbit, useOrbitMovers, useOrbitSummary, useSales } from '../../app/queries'
 import { FILTER_KEYS, activeCount, applyFilter, digest, sortDealers, type OrbitFilter, type Sort } from './filters'
 import { OrbitDealerList, OrbitFilterBar, OrbitSummary } from './OrbitTools'
-import { CX, CY, H, READABLE_FROM, READABLE_NAMED, RINGS, RING_R, W, layoutOrbit, layoutReadable, ringOf } from './geometry'
+import { CX, CY, H, READABLE_FROM, RINGS, RING_R, W, layoutOrbit, layoutReadable, ringOf } from './geometry'
 
 export function SalesFilters({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const { data: sales = [] } = useSales()
@@ -54,30 +54,28 @@ export function Tip({ d, pos, extra }: { d: BoardItem | null; pos: { x: number; 
   )
 }
 
-/** Prioritas: the orbit draws the ORBIT_TOP largest dealers and names the ORBIT_NAMED largest of them — a person
- * reads a few dozen names, not thousands; the other dots give the shape. */
+/** Prioritas: show the largest dealers clearly and keep the rest as small context dots. */
 export const ORBIT_TOP = 150
-export const ORBIT_NAMED = 30
+export const ORBIT_FEATURED = 30
 
-/** The dealers worth a name on the orbit: the largest monthly revenue first. */
+/** Rank dealers by monthly revenue for the priority view. */
 export function topByOmzet(list: BoardItem[], n = ORBIT_TOP) {
   return list.length <= n ? list : [...list].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, n)
 }
 
-export function OrbitBoard({ list, onOpen, dense = false, focus = null }: { list: BoardItem[]; onOpen: (id: string) => void; dense?: boolean; focus?: string | null }) {
+export function OrbitBoard({ list, onOpen, dense = false, focus: focusRing = null }: { list: BoardItem[]; onOpen: (id: string) => void; dense?: boolean; focus?: string | null }) {
   const wrap = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
   const readable = !dense && list.length >= READABLE_FROM
   const nodes = useMemo(() => {
     if (readable) return []
-    const named = !dense && list.length > ORBIT_NAMED ? new Set(topByOmzet(list, ORBIT_NAMED).map((d) => d.id)) : undefined
-    return layoutOrbit(list, 1.2, dense, named)
+    const featured = !dense && list.length > ORBIT_FEATURED ? new Set(topByOmzet(list, ORBIT_FEATURED).map((d) => d.id)) : undefined
+    return layoutOrbit(list, 1.2, dense, featured, false)
   }, [list, dense, readable])
   const rnodes = useMemo(() => {
     if (!readable) return []
-    const pool = focus ? list.filter((d) => ringOf(d) === focus) : list
-    return layoutReadable(list, new Set(topByOmzet(pool, READABLE_NAMED).map((d) => d.id)), focus)
-  }, [list, readable, focus])
+    return layoutReadable(list, new Set(), focusRing)
+  }, [list, readable, focusRing])
   const LA = 0.62 * Math.PI * 2
   const move = (e: MouseEvent, d: BoardItem) => {
     const r = wrap.current!.getBoundingClientRect()
@@ -85,6 +83,13 @@ export function OrbitBoard({ list, onOpen, dense = false, focus = null }: { list
     const py = e.clientY - r.top + 14
     if (px + 250 > r.width) px -= 270
     setHover({ d, x: px, y: py })
+  }
+  const showFocus = (e: FocusEvent<SVGGElement>, d: BoardItem) => {
+    const r = wrap.current!.getBoundingClientRect()
+    const dot = e.currentTarget.getBoundingClientRect()
+    let x = dot.left - r.left + dot.width / 2 + 14
+    if (x + 250 > r.width) x = Math.max(8, x - 270)
+    setHover({ d, x, y: Math.max(8, dot.top - r.top + dot.height / 2 + 14) })
   }
   const m = hover?.d.metrics
   return (
@@ -107,19 +112,16 @@ export function OrbitBoard({ list, onOpen, dense = false, focus = null }: { list
         <text className="ring-t" x={CX - RING_R.Churn - 6} y={CY + 4} textAnchor="end">¾ putaran</text>
         <circle cx={CX} cy={CY} r={28} fill="var(--text)" />
         <text x={CX} y={CY + 5} textAnchor="middle" className="gsi-t">GSI</text>
-        {rnodes.map(({ d, x, y, size, tone, ring, label, lx, ly, side, dim }) => (
-          <g key={d.id} className={`dn ${dim ? 'dim' : ''}`} tabIndex={dim ? -1 : 0} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onKeyDown={(e) => e.key === 'Enter' && onOpen(d.id)}>
-            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={ring === 'Churn' ? 'ghost' : ''} />
-            {label && <>
-              {Math.abs(ly - 4 - y) > 3 && <polyline points={`${x.toFixed(1)},${y.toFixed(1)} ${(lx - side * 3).toFixed(1)},${(ly - 4).toFixed(1)}`} className="dn-lead" />}
-              <text x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor={side > 0 ? 'start' : 'end'} className="dn-t">{label}</text>
-            </>}
+        {rnodes.map(({ d, x, y, size, tone, ring, dim }) => (
+          <g key={d.id} className={`dn ${dim ? 'dim' : ''}`} role="button" tabIndex={dim ? -1 : 0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
+            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(size, 12).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
+            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
           </g>
         ))}
-        {nodes.map(({ d, x, y, size, tone, ring, name, sm, side }) => (
-          <g key={d.id} className="dn" tabIndex={0} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onKeyDown={(e) => e.key === 'Enter' && onOpen(d.id)}>
-            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={ring === 'Churn' ? 'ghost' : ''} />
-            {!dense && name && <text x={(x + side * (size + 5)).toFixed(1)} y={(y + 4).toFixed(1)} textAnchor={side > 0 ? 'start' : 'end'} className={`dn-t ${sm ? 'sm' : ''}`}>{name}</text>}
+        {nodes.map(({ d, x, y, size, tone, ring }) => (
+          <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
+            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(size, 12).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
+            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
           </g>
         ))}
       </svg>
@@ -225,7 +227,7 @@ export function OrbitPage() {
           <OrbitSummary g={g} f={f} set={setF} />
           <OrbitFilterBar f={f} set={setF} branches={branches} shown={filtered.length} total={list.length} />
           <div className="orbit-hud" style={{ marginTop: 4 }}>
-            <span className="meta">{many && !all ? `${ORBIT_TOP} teratas (omzet) dari ${filtered.length} dealer · ${shown.length >= READABLE_FROM ? READABLE_NAMED : ORBIT_NAMED} terbesar bernama` : `${filtered.length} dealer di orbit`} · share of wallet rata-rata {avgSow}%</span>
+            <span className="meta">{many && !all ? `${ORBIT_TOP} dealer dengan omzet terbesar dari ${filtered.length} dealer` : `${filtered.length} dealer di orbit`} · porsi belanja di GSI rata-rata {avgSow}%</span>
             {many && (
               <div className="seg" role="radiogroup" aria-label="Tampilan orbit">
                 <button role="radio" aria-checked={!all} className={!all ? 'is-active' : ''} onClick={() => setAll(false)}>Prioritas</button>
@@ -237,7 +239,7 @@ export function OrbitPage() {
             <OrbitBoard list={shown} dense={all && many} onOpen={(id) => nav('/dealer/' + id)} />
             {list.length > 0 && filtered.length === 0 && <div className="net-empty">Tidak ada dealer yang cocok dengan filter ini.</div>}
           </div>
-          <Legend tail="Makin dekat ke tengah = makin sehat · makin dekat ke garis JADWAL ORDER = makin waktunya order · titik besar = share of wallet besar" />
+          <Legend tail="Arahkan kursor ke titik untuk melihat data · klik titik untuk membuka dealer" />
         </div>
         <OrbitDealerList list={sorted} sort={sort} onSort={setSort} filtered={nFilters > 0} />
       </div>
