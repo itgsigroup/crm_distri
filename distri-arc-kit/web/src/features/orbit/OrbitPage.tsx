@@ -1,11 +1,13 @@
 import { useMemo, useRef, useState, type MouseEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import type { BoardItem, Mover } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { fmtRp } from '../../lib/format'
 import { KUAD, RING_DESC } from '../../lib/i18n/id'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { useOrbit, useOrbitMovers, useOrbitSummary, useSales } from '../../app/queries'
+import { FILTER_KEYS, activeCount, applyFilter, digest, sortDealers, type OrbitFilter, type Sort } from './filters'
+import { OrbitDealerList, OrbitFilterBar, OrbitSummary } from './OrbitTools'
 import { CX, CY, H, READABLE_FROM, READABLE_NAMED, RINGS, RING_R, W, layoutOrbit, layoutReadable, ringOf } from './geometry'
 
 export function SalesFilters({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -173,6 +175,23 @@ export function orbitMover(m: Mover) {
   return { k: 'accent', i: 'box', t: `${m.name}: Key account, tapi product mix ${m.mix}/6`, s: 'Share of wallet bisa naik dengan meperluas product mix, bukan menurunkan harga.' }
 }
 
+const SORTS: Sort[] = ['omzet', 'jadwal', 'diam']
+
+/** Filters live in the URL (?status=At+risk&jadwal=lewat…) so a filtered orbit can be shared or bookmarked. */
+function useOrbitFilter(): [OrbitFilter, (p: Partial<OrbitFilter>) => void, Sort, (s: Sort) => void] {
+  const [params, setParams] = useSearchParams()
+  const f = Object.fromEntries(FILTER_KEYS.map((k) => [k, params.get(k) ?? ''])) as unknown as OrbitFilter
+  const sortParam = params.get('urut') as Sort | null
+  const sort: Sort = sortParam && SORTS.includes(sortParam) ? sortParam : 'omzet'
+  const write = (next: OrbitFilter, s: Sort) => {
+    const out = new URLSearchParams()
+    FILTER_KEYS.forEach((k) => next[k] && out.set(k, next[k]))
+    if (s !== 'omzet') out.set('urut', s)
+    setParams(out, { replace: true })
+  }
+  return [f, (p) => write({ ...f, ...p }, sort), sort, (s) => write(f, s)]
+}
+
 export function OrbitPage() {
   const [sales, setSales] = useState('all')
   const nav = useNavigate()
@@ -180,41 +199,54 @@ export function OrbitPage() {
   const orch = useOrchStatus()
   const { data: list = [] } = useOrbit(sales)
   const [all, setAll] = useState(false)
-  const [focus, setFocus] = useState<string | null>(null)
-  const many = list.length > ORBIT_TOP
-  const shown = useMemo(() => (all ? list : topByOmzet(list)), [list, all])
+  const [f, setF, sort, setSort] = useOrbitFilter()
+  const filtered = useMemo(() => applyFilter(list, f), [list, f])
+  const nFilters = activeCount(f)
+  const many = filtered.length > ORBIT_TOP
+  const shown = useMemo(() => (all ? filtered : topByOmzet(filtered)), [filtered, all])
+  const sorted = useMemo(() => sortDealers(filtered, sort), [filtered, sort])
+  const g = useMemo(() => digest(list), [list])
+  const branches = useMemo(() => [...new Set(list.map((d) => d.branch).filter(Boolean))].sort(), [list])
   const { data: osum } = useOrbitSummary(sales)
   const summary = osum?.items ?? []
   const { data: movers = [] } = useOrbitMovers(sales)
-  const avgSow = list.length ? Math.round(list.reduce((a, d) => a + d.metrics.sow, 0) / list.length) : 0
+  const avgSow = filtered.length ? Math.round(filtered.reduce((a, d) => a + d.metrics.sow, 0) / filtered.length) : 0
   return (
     <div className="net">
-      <div>
+      <div className="stack">
         <div className="card orbit-card">
           <div className="orbit-hud">
             <SalesFilters value={sales} onChange={setSales} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <span className="meta">{many && !all ? `${ORBIT_TOP} teratas (omzet) dari ${list.length} dealer · ${shown.length >= READABLE_FROM ? READABLE_NAMED : ORBIT_NAMED} terbesar bernama` : `${list.length} dealer`} · share of wallet rata-rata {avgSow}%</span>
-              {many && (
-                <div className="seg" role="radiogroup" aria-label="Tampilan orbit">
-                  <button role="radio" aria-checked={!all} className={!all ? 'is-active' : ''} onClick={() => setAll(false)}>Prioritas</button>
-                  <button role="radio" aria-checked={all} className={all ? 'is-active' : ''} onClick={() => setAll(true)}>Semua titik</button>
-                </div>
-              )}
               <button className="btn ghost" style={{ height: 30, fontSize: 12 }} disabled={orch.running} onClick={() => reanalyze('screen:orbit')}><Icon name="refresh" />Analisis ulang</button>
               <button className="btn ghost" style={{ height: 30, fontSize: 12 }} onClick={() => nav('/panduan')}><Icon name="doc" />Cara baca</button>
             </div>
           </div>
-          <OrbitBoard list={shown} dense={all && many} focus={focus} onOpen={(id) => nav('/dealer/' + id)} />
-          <Legend tail="Ukuran = share of wallet · Sudut = posisi dalam siklus order (atas = jadwal order) · Status = Key account / Aktif / At risk / Churn" />
+          <OrbitSummary g={g} f={f} set={setF} />
+          <OrbitFilterBar f={f} set={setF} branches={branches} shown={filtered.length} total={list.length} />
+          <div className="orbit-hud" style={{ marginTop: 4 }}>
+            <span className="meta">{many && !all ? `${ORBIT_TOP} teratas (omzet) dari ${filtered.length} dealer · ${shown.length >= READABLE_FROM ? READABLE_NAMED : ORBIT_NAMED} terbesar bernama` : `${filtered.length} dealer di orbit`} · share of wallet rata-rata {avgSow}%</span>
+            {many && (
+              <div className="seg" role="radiogroup" aria-label="Tampilan orbit">
+                <button role="radio" aria-checked={!all} className={!all ? 'is-active' : ''} onClick={() => setAll(false)}>Prioritas</button>
+                <button role="radio" aria-checked={all} className={all ? 'is-active' : ''} onClick={() => setAll(true)}>Semua titik</button>
+              </div>
+            )}
+          </div>
+          <div style={{ position: 'relative' }}>
+            <OrbitBoard list={shown} dense={all && many} onOpen={(id) => nav('/dealer/' + id)} />
+            {list.length > 0 && filtered.length === 0 && <div className="net-empty">Tidak ada dealer yang cocok dengan filter ini.</div>}
+          </div>
+          <Legend tail="Makin dekat ke tengah = makin sehat · makin dekat ke garis JADWAL ORDER = makin waktunya order · titik besar = share of wallet besar" />
         </div>
+        <OrbitDealerList list={sorted} sort={sort} onSort={setSort} filtered={nFilters > 0} />
       </div>
       <div className="stack">
         <div className="card">
-          <div className="card-h"><h2>Isi orbit</h2><span className="meta">{focus ? <button className="ev-more" onClick={() => setFocus(null)}>tampilkan semua</button> : 'klik status untuk menyorot'}</span></div>
+          <div className="card-h"><h2>Isi orbit</h2><span className="meta">{f.status ? <button className="ev-more" onClick={() => setF({ status: '' })}>tampilkan semua</button> : 'klik status untuk menyaring'}</span></div>
           <ul className="pulse" id="orbit-rings">
             {summary.map((r) => (
-              <li key={r.status} className={focus === r.status ? 'is-sel' : ''} style={{ cursor: 'pointer', opacity: focus && focus !== r.status ? 0.5 : 1 }} onClick={() => setFocus(focus === r.status ? null : r.status)}>
+              <li key={r.status} className={f.status === r.status ? 'is-sel' : ''} style={{ cursor: 'pointer', opacity: f.status && f.status !== r.status ? 0.5 : 1 }} onClick={() => setF({ status: f.status === r.status ? '' : r.status })}>
                 <span className="lbl"><b>{r.status}</b> · {r.count} dealer</span>
                 <em className="num">{fmtRp(r.omzet_bln)}/bln</em>
                 <span className="dl n">{RING_DESC[r.status]}</span>

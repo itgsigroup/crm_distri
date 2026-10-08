@@ -41,6 +41,22 @@ test('Pusat kendali shows the numbers from the API', async ({ page }) => {
   await expect(page.locator('.acc-head .ring text')).toHaveText('44')
 })
 
+test('Orbit: summary tiles and filters narrow the board and the list, kept in the URL', async ({ page }) => {
+  await page.goto('/orbit', { waitUntil: 'networkidle' })
+  const late = page.locator('.os-tile').filter({ hasText: 'Lewat jadwal' })
+  const n = Number(await late.locator('.os-n').innerText())
+  await late.click()
+  await expect(page).toHaveURL(/jadwal=lewat/)
+  await expect(page.locator('svg.orbit .dn')).toHaveCount(n)
+  await expect(page.locator('table.odl tbody tr')).toHaveCount(n)
+  await page.getByRole('button', { name: /Hapus filter/ }).click()
+  await page.getByLabel('Cari dealer').fill('Mitra Jaya')
+  await expect(page.locator('table.odl tbody tr')).toHaveCount(1)
+  await page.reload({ waitUntil: 'networkidle' })
+  await expect(page.getByLabel('Cari dealer')).toHaveValue('Mitra Jaya')
+  await expect(page.locator('svg.orbit .dn')).toHaveCount(1)
+})
+
 test('a proposal opens in the ActionSheet with its provenance (read-only)', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(String(e)))
