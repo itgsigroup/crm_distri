@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent, useMemo } from 'react'
+import { useEffect, useRef, useState, type FocusEvent, type MouseEvent, useMemo } from 'react'
 import { useNavigate } from 'react-router'
 import type { BoardItem, Mover, Segment, SegmentSummary } from '../../api/types'
 import { Icon } from '../../components/Icon'
@@ -20,72 +20,38 @@ interface Node {
   x: number
   y: number
   size: number
-  name: string
-  k: Segment
   baru: boolean
-  pv: { x: number; y: number } | null
-  tw: number
-  la: 'start' | 'end' | 'middle'
-  lx: number
-  ly: number
-  label: boolean // named on the chart (largest revenue first); the rest are plain points
 }
 
-/** How many dealers get a name on the segment chart: every point stays (it is data), names only for the top ones. */
-const SEGMEN_LABELS = 20
+const SEGMEN_PRIORITY = 150
 
-function layout(list: BoardItem[]): Node[] {
-  const named = new Set([...list].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, SEGMEN_LABELS).map((d) => d.id))
-  const dense = list.length > 300
-  const nodes: Node[] = list.map((d) => {
+function topByOmzet(list: BoardItem[], count = SEGMEN_PRIORITY) {
+  return list.length <= count ? list : [...list].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, count)
+}
+
+function layout(list: BoardItem[], dense = false): Node[] {
+  const compact = dense && list.length > SEGMEN_PRIORITY
+  return list.map((d) => {
     const m = d.metrics
-    const x = xOf(m.freq)
-    const y = clampY(m.avg_order)
-    const name = shortName(d.name)
-    const pv = d.prev ? { x: xOf(d.prev.freq), y: clampY(d.prev.avg_order) } : null
-    const label = named.has(d.id)
-    const size = (7 + Math.sqrt(m.sow) * 1.3) * (dense && !label ? 0.4 : 1)
-    return { d, x, y, size, name, k: m.segment, baru: m.freq == null, pv: label ? pv : null, tw: name.length * (m.avg_order < 10e6 ? 5.6 : 6.4) + 6, la: 'start', lx: 0, ly: 0, label }
-  })
-  // point positions are data and never move; only labels look for free space
-  const obst: number[][] = [[W - R - 130, W - R - 8, T + 6, T + 44], [L + 8, L + 130, T + 6, T + 44], [W - R - 130, W - R - 8, H - B - 46, H - B - 6], [L + 8, L + 130, H - B - 46, H - B - 6]]
-  nodes.forEach((a) => obst.push([a.x - a.size, a.x + a.size, a.y - a.size, a.y + a.size]))
-  const ovl = (A: number[], C: number[]) => Math.max(0, Math.min(A[1], C[1]) - Math.max(A[0], C[0])) * Math.max(0, Math.min(A[3], C[3]) - Math.max(A[2], C[2]))
-  ;nodes.filter((a) => a.label).sort((a, b) => b.size - a.size).forEach((a) => {
-    const tw = a.tw
-    const h = 14
-    const c: ['start' | 'end' | 'middle', number, number, number[]][] = [
-      ['start', a.x + a.size + 5, a.y + 4, [a.x + a.size + 5, a.x + a.size + 5 + tw, a.y - 7, a.y + 7]],
-      ['end', a.x - a.size - 5, a.y + 4, [a.x - a.size - 5 - tw, a.x - a.size - 5, a.y - 7, a.y + 7]],
-      ['middle', a.x, a.y - a.size - 5, [a.x - tw / 2, a.x + tw / 2, a.y - a.size - 5 - h, a.y - a.size - 3]],
-      ['middle', a.x, a.y + a.size + 13, [a.x - tw / 2, a.x + tw / 2, a.y + a.size + 3, a.y + a.size + 3 + h]],
-    ]
-    let best: (typeof c)[number] | null = null
-    let bs = Infinity
-    c.forEach((cand) => {
-      const bx = cand[3]
-      if (bx[0] < L || bx[1] > W - R || bx[2] < T || bx[3] > H - B) return
-      const sc = obst.reduce((t, o) => t + ovl(bx, o), 0)
-      if (sc < bs) {
-        bs = sc
-        best = cand
-      }
-    })
-    const pick = best ?? c[0]
-    a.la = pick[0]
-    a.lx = pick[1]
-    a.ly = pick[2]
-    obst.push(pick[3])
-  })
-  return nodes
+    const size = 7 + Math.sqrt(m.sow) * 1.3
+    return { d, x: xOf(m.freq), y: clampY(m.avg_order), size: compact ? Math.max(3, size * 0.35) : size, baru: m.freq == null }
+  }).sort((a, b) => a.d.metrics.omzet_bln - b.d.metrics.omzet_bln)
 }
 
-function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem[]; sel: Segment | null; onSel: (k: Segment) => void; onOpen: (id: string) => void; thresholds: { freq_per_month: number; size_idr: number } }) {
+function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem[]; sel: Segment | null; onSel: (k: Segment | null) => void; onOpen: (id: string) => void; thresholds: { freq_per_month: number; size_idr: number } }) {
   const wrap = useRef<HTMLDivElement>(null)
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
+  const [all, setAll] = useState(false)
+  const [query, setQuery] = useState('')
   const xq = px(thresholds.freq_per_month)
   const yq = py(thresholds.size_idr)
-  const nodes = useMemo(() => layout(list), [list])
+  const scoped = useMemo(() => sel ? list.filter((d) => d.metrics.segment === sel) : list, [list, sel])
+  const matches = useMemo(() => {
+    const q = query.trim().toLocaleLowerCase('id-ID')
+    return q ? scoped.filter((d) => d.name.toLocaleLowerCase('id-ID').includes(q) || d.city.toLocaleLowerCase('id-ID').includes(q)) : scoped
+  }, [scoped, query])
+  const shown = useMemo(() => all ? matches : topByOmzet(matches), [all, matches])
+  const nodes = useMemo(() => layout(shown, all), [shown, all])
   const Z: [Segment, number, number, number, number][] = [['A', xq, T, W - R - xq, yq - T], ['C', L, T, xq - L, yq - T], ['B', xq, yq, W - R - xq, H - B - yq], ['D', L, yq, xq - L, H - B - yq]]
   const ZL: [Segment, number, number, 'start' | 'end'][] = [['A', W - R - 10, T + 22, 'end'], ['C', L + 10, T + 22, 'start'], ['B', W - R - 10, H - B - 28, 'end'], ['D', L + 10, H - B - 28, 'start']]
   const move = (e: MouseEvent, d: BoardItem) => {
@@ -96,11 +62,33 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
     if (y + 210 > r.height) y -= 210
     setHover({ d, x, y })
   }
+  const showFocus = (e: FocusEvent<SVGGElement>, d: BoardItem) => {
+    const r = wrap.current!.getBoundingClientRect()
+    const dot = e.currentTarget.getBoundingClientRect()
+    let x = dot.left - r.left + dot.width / 2 + 14
+    let y = dot.top - r.top + dot.height / 2 + 14
+    if (x + 250 > r.width) x = Math.max(8, x - 270)
+    if (y + 210 > r.height) y = Math.max(8, y - 210)
+    setHover({ d, x, y })
+  }
   const hd = hover?.d
   const fq = (s: number) => String(s).replace('.', ',')
   return (
-    <div className="orbit-wrap kuad-wrap" ref={wrap} onMouseLeave={() => setHover(null)}>
-      <svg className="orbit kuad" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Segmen dealer: sumbu X seringnya order, sumbu Y besarnya order">
+    <div>
+      <div className="kuad-controls">
+        <select className="st-filter" value={sel ?? ''} onChange={(e) => onSel((e.target.value || null) as Segment | null)} aria-label="Filter segmen">
+          <option value="">Semua segmen</option>
+          {(['A', 'B', 'C', 'D', 'Baru'] as Segment[]).map((k) => <option key={k} value={k}>{KUAD[k].nick}</option>)}
+        </select>
+        <input className="st-filter kuad-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari pelanggan atau kota" aria-label="Cari pelanggan atau kota" />
+        <span className="meta">{all ? `${matches.length.toLocaleString('id-ID')} pelanggan` : `${shown.length.toLocaleString('id-ID')} prioritas dari ${matches.length.toLocaleString('id-ID')}`}</span>
+        <div className="seg" role="radiogroup" aria-label="Jumlah titik yang ditampilkan">
+          <button role="radio" aria-checked={!all} className={!all ? 'is-active' : ''} onClick={() => setAll(false)}>Prioritas</button>
+          <button role="radio" aria-checked={all} className={all ? 'is-active' : ''} onClick={() => setAll(true)}>Semua titik</button>
+        </div>
+      </div>
+      <div className="orbit-wrap kuad-wrap" ref={wrap} onMouseLeave={() => setHover(null)}>
+      <svg className="orbit kuad" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Peta segmen pelanggan">
         {Z.map(([k, x, y, w, h]) => (
           <rect key={k} x={x.toFixed(1)} y={y.toFixed(1)} width={w.toFixed(1)} height={h.toFixed(1)} fill={`var(--${KUAD[k].k})`} opacity={sel && sel !== k ? 0.015 : k === 'D' ? 0.04 : 0.06} className="kz" onClick={() => onSel(k)} />
         ))}
@@ -135,18 +123,12 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
             <text x={x} y={y + 15} textAnchor={a} className="kzs">{KUAD[k].nick}</text>
           </g>
         ))}
-        {nodes.filter((a) => a.pv).map((a) => (
-          <g key={'p' + a.d.id}>
-            <line x1={a.pv!.x.toFixed(1)} y1={a.pv!.y.toFixed(1)} x2={a.x.toFixed(1)} y2={a.y.toFixed(1)} className="ktrail" />
-            <circle cx={a.pv!.x.toFixed(1)} cy={a.pv!.y.toFixed(1)} r={(a.size * 0.6).toFixed(1)} className="kprev" />
-          </g>
-        ))}
-        {nodes.map(({ d, x, y, size, name, k, baru, la, lx, ly, label }) => {
+        {nodes.map(({ d, x, y, size, baru }) => {
           const tone = toneOf(d.metrics.credit.state)
           return (
-            <g key={d.id} className={`dn ${sel && sel !== k ? 'ghost' : ''}`} tabIndex={0} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)}>
-              <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: '3 3' } : {})} />
-              {label && <text x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor={la} className={`dn-t ${d.metrics.avg_order < 10e6 ? 'sm' : ''}`}>{name}</text>}
+            <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
+              <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(size, 9).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
+              <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} className="dn-dot" {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: '3 3' } : {})} />
             </g>
           )
         })}
@@ -159,12 +141,14 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
           <div className="r"><span>Seringnya</span><span>{hd.metrics.freq != null ? `${fx1(hd.metrics.freq)}×/bln${hd.metrics.rhythm_days ? ` · siklus order ${hd.metrics.rhythm_days} hr` : ''}` : 'baru · 1 order'}</span></div>
           <div className="r"><span>Besarnya</span><span>{fmtRp(hd.metrics.avg_order)} / order</span></div>
           <div className="r"><span>Omzet</span><span>{fmtRp(hd.metrics.omzet_bln)} / bln</span></div>
-          <div className="r"><span>Share of wallet · sisa limit</span><span>{hd.metrics.sow}% · {hd.metrics.credit.state}</span></div>
+          <div className="r"><span>Porsi belanja di GSI · sisa limit</span><span>{hd.metrics.sow}% · {hd.metrics.credit.state}</span></div>
           <div className="r" style={{ marginTop: 4, opacity: 0.7 }}><span>{KUAD[hd.metrics.segment].play} · klik untuk buka</span></div>
         </div>
       ) : (
         <div className="tip" />
       )}
+      {nodes.length === 0 && <div className="net-empty">Tidak ada pelanggan yang cocok dengan filter ini.</div>}
+      </div>
     </div>
   )
 }
@@ -179,7 +163,7 @@ export function segmenMover(m: Mover) {
     return { k: m.up ? 'good' : 'warn', i: m.up ? 'trend' : 'refresh', t: `${m.name} ${m.up ? 'naik' : 'turun'} ke ${to.n} (${to.nick.toLowerCase()})`, s: `Dari ${KUAD[m.from!].n}. ${why.join(' · ')}. Saran: ${tail.charAt(0).toLowerCase() + tail.slice(1)}.` }
   }
   if (m.kind === 'slowing') return { k: 'warn', i: 'refresh', t: `${m.name} mulai jarang order`, s: `Masih ${KUAD[m.to!].n}, tapi siklus order ${m.prev_rhythm_days} → ${m.rhythm_days} hari. Saran: hubungi sebelum turun segmen.` }
-  return { k: 'good', i: 'trend', t: `${m.name} makin kuat`, s: `${fmtRp(m.prev_avg_order ?? 0)} → ${fmtRp(m.avg_order ?? 0)} per order · share of wallet ${m.sow}%. Saran: pertimbangkan naik limit.` }
+  return { k: 'good', i: 'trend', t: `${m.name} makin kuat`, s: `${fmtRp(m.prev_avg_order ?? 0)} → ${fmtRp(m.avg_order ?? 0)} per order · porsi belanja di GSI ${m.sow}%. Saran: pertimbangkan naik limit.` }
 }
 
 const BOX_ORDER: Segment[] = ['A', 'B', 'C', 'D'] // rows: sering / jarang · columns: besar / kecil
@@ -269,6 +253,7 @@ export function SegmenPage() {
   const { data: movers = [] } = useSegmenMovers(sales)
   const list = useMemo(() => data?.items ?? [], [data])
   const toggle = (k: Segment) => setSel(sel === k ? null : k)
+  const chooseSegment = (k: Segment | null) => setSel(k)
   const total = sum?.total_omzet_bln ?? 0
   const selList = useMemo(() => (sel ? list.filter((d) => d.metrics.segment === sel).sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln) : []), [list, sel])
   const [selShown, selMore] = useMore(selList, 15)
@@ -299,8 +284,8 @@ export function SegmenPage() {
           {data && view === 'kotak' && <SegmenBoxes list={list} summary={sum?.items ?? []} sel={sel} onSel={toggle} thresholds={data.thresholds} />}
           {data && view === 'titik' && (
             <>
-              <SegmenChart list={list} sel={sel} onSel={toggle} onOpen={(id) => nav('/dealer/' + id)} thresholds={data.thresholds} />
-              <Legend tail="Satu titik = satu dealer · makin kanan = makin sering order · makin atas = order makin besar · titik besar = share of wallet besar · lingkaran putus = posisi 3 bulan lalu" />
+              <SegmenChart list={list} sel={sel} onSel={chooseSegment} onOpen={(id) => nav('/dealer/' + id)} thresholds={data.thresholds} />
+              <Legend tail="Titik besar = porsi belanja di GSI lebih besar · arahkan kursor untuk melihat data" />
             </>
           )}
           {!!sum?.prospects && (

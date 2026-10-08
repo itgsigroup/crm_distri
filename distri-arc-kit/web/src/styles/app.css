@@ -457,6 +457,10 @@
 .kuad .kzn{font-size:14px}
 .kuad .kt{font-size:12px}
 .kuad .kax{font-size:11.5px}
+.kuad-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+.kuad-controls .st-filter{margin:0;min-width:160px;align-self:auto}
+.kuad-controls .kuad-search{width:220px;max-width:100%}
+.kuad-controls .meta{margin-right:auto}
 @media (max-width:640px){.sg-grid{grid-template-columns:1fr}.sg-nums em{font-size:22px}}
 
 /* Orbit — summary tiles, filter bar, dealer list (filters.ts holds the definitions) */
