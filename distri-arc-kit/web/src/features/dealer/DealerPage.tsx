@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import type { BoardItem, Commitment, DealerDetail } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
@@ -29,7 +29,10 @@ function DealerList({ active }: { active?: string }) {
     return () => window.clearTimeout(t)
   }, [q])
   const [type, setType] = useState('')
-  const { data: list = [] } = useDealers(term, type)
+  const [params, setParams] = useSearchParams()
+  const status = params.get('status') ?? ''
+  const { data: all = [] } = useDealers(term, type)
+  const list = useMemo(() => (status ? all.filter((d) => d.metrics.status === status) : all), [all, status])
   const [shown, more] = useMore(list, 40)
   const nav = useNavigate()
   const { openSheet } = useFeedback()
@@ -39,6 +42,11 @@ function DealerList({ active }: { active?: string }) {
       <div className="seg" style={{ margin: '10px 0 2px', alignSelf: 'flex-start' }} role="radiogroup" aria-label="Jenis pelanggan">
         {[['', 'Semua'], ['reseller', 'Dealer'], ['si', 'Freelance / SI']].map(([k, l]) => <button key={k} role="radio" aria-checked={type === k} className={type === k ? 'is-active' : ''} onClick={() => setType(k)}>{l}</button>)}
       </div>
+      <select className="st-filter" value={status} onChange={(e) => setParams(e.target.value ? { status: e.target.value } : {})} aria-label="Status dealer">
+        <option value="">Semua status</option>
+        {['Key account', 'Aktif', 'Baru', 'At risk', 'Churn', 'Prospek'].map((s) => <option key={s} value={s}>{s === 'Prospek' ? 'Prospek (belum pernah order)' : s}</option>)}
+      </select>
+      {status && <span className="st-count">{list.length.toLocaleString('id-ID')} dealer {status}</span>}
       <button className="btn quiet" style={{ height: 28, fontSize: 12, margin: '8px 0 4px', alignSelf: 'flex-start' }} onClick={() => openSheet(<SOWSheet />)}><Icon name="check" />Konfirmasi share of wallet</button>
       <div className="list">
         {shown.map((d) => {
@@ -50,7 +58,7 @@ function DealerList({ active }: { active?: string }) {
                 <b>{d.name}</b>
                 <span>{m.status === 'Baru' ? 'Aktif' : m.status} · {d.customer_type === 'si' ? 'SI' : 'Dealer'} · {KUAD[m.segment].n} · {d.city}{d.tier ? ` · tier ${d.tier}` : ''}</span>
                 <div className="row2">
-                  <span>{m.rhythm_days ? (m.due_in! >= 0 ? `jadwal order ${m.due_in} hr` : `lewat ${-m.due_in!} hr`) : 'baru'} · {d.owner.name}</span>
+                  <span>{m.rhythm_days ? (m.due_in! >= 0 ? `jadwal order ${m.due_in} hr` : `lewat ${-m.due_in!} hr`) : m.status === 'Prospek' ? 'belum pernah order' : m.status === 'Churn' ? `order terakhir ${m.last_order_days} hr lalu` : 'baru'} · {d.owner.name}</span>
                   <em className="num">{fmtRp(m.avg_order)}/order</em>
                 </div>
               </div>
@@ -93,7 +101,7 @@ function LedgerRow({ c }: { c: Commitment }) {
 }
 
 function statusTone(s: string) {
-  return s === 'Key account' ? 'good' : s === 'Aktif' || s === 'Baru' ? 'accent' : s === 'At risk' ? 'warn' : 'bad'
+  return s === 'Key account' ? 'good' : s === 'Aktif' || s === 'Baru' ? 'accent' : s === 'At risk' ? 'warn' : s === 'Prospek' ? 'neutral' : 'bad'
 }
 
 function activityLabel(a: string) {

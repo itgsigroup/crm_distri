@@ -36,16 +36,17 @@ export const KUAD: Record<Segment, SegmentInfo> = {
   B: { n: 'Segmen B', s: 'sering × kecil', k: 'good', play: 'Upsell: naikkan nilai order', desc: 'Order rutin tapi kecil, biaya layani per order tinggi. Bundle, minimum order bebas ongkir, konsolidasi kiriman mingguan, tawarkan kategori produk yang belum pernah dibeli. Target: naik ke Segmen A.', agent: 'AI Stok', risk: 'Margin tergerus ongkir dan admin selama nilai per order tidak naik.' },
   C: { n: 'Segmen C', s: 'jarang × besar', k: 'indigo', play: 'Project-based: ikuti proyeknya', desc: 'Order datang bersama proyek. Tanya pipeline proyek tiap kuartal, siapkan limit kredit (limit sementara / DP) dan lead time stok sebelum proyek berikutnya. Jangan di-follow-up berdasarkan siklus order.', agent: 'AI Order + AI Kredit', risk: 'Over limit saat proyek belum cair — piutang besar dalam sekali jalan.' },
   D: { n: 'Segmen D', s: 'jarang × kecil', k: 'text-3', play: 'Low-touch: layani otomatis', desc: 'Cash / transfer, harga tier C, katalog WA self-service, follow-up otomatis sebulan sekali, tanpa kunjungan. Naik ke Segmen B bila mulai rutin.', agent: 'AI Prospek (otomatis)', risk: 'Perhatian sales lebih mahal dari marginnya.' },
-  Baru: { n: 'Baru', s: 'belum ada siklus order', k: 'text-3', play: 'Amati dua putaran', desc: 'Satu order belum membentuk siklus. Ditempatkan sementara dari nilai order pertama; segmen ditetapkan setelah order kedua.', agent: 'AI Prospek', risk: '' },
+  Prospek: { n: 'Prospek', s: 'belum pernah order', k: 'text-3', play: 'Aktifkan order pertama', desc: 'Pelanggan terdaftar di Accurate tapi belum pernah order dalam 18 bulan data. Tidak digambar di Orbit dan Segmen; digarap AI Prospek dan sales cabangnya.', agent: 'AI Prospek', risk: '' },
+  Baru: { n: 'Baru', s: 'order pertama ≤ 90 hari', k: 'text-3', play: 'Amati dua putaran', desc: 'Order pertama dalam 90 hari terakhir, belum membentuk siklus. Ditempatkan sementara dari nilai order pertama; segmen ditetapkan setelah order kedua.', agent: 'AI Prospek', risk: '' },
 }
 
 export const SEGMENT_ORDER: Segment[] = ['A', 'B', 'C', 'D', 'Baru']
 
 export const RING_DESC: Record<string, string> = {
-  'Key account': 'share of wallet ≥ 50%, siklus order terjaga',
+  'Key account': 'omzet besar, siklus order terjaga, bayar tepat waktu',
   Aktif: 'di dalam siklus order',
   'At risk': '> 1,2× siklus order',
-  Churn: '> 2× siklus order',
+  Churn: '> 2× siklus order, sekali order lalu hilang, atau diam > 1 tahun',
 }
 
 /** Akar terduga of a drifting dealer (AI Follow-up). */

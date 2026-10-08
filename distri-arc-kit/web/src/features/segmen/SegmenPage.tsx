@@ -127,7 +127,7 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
         <text transform={`translate(16 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" className="kax">BESARNYA ORDER · Rp per order</text>
         <line x1={xq.toFixed(1)} y1={T} x2={xq.toFixed(1)} y2={H - B} className="kq" />
         <line x1={L} y1={yq.toFixed(1)} x2={W - R} y2={yq.toFixed(1)} className="kq" />
-        <text x={(xq + 5).toFixed(1)} y={H - B - 8} className="kt sm" fill="var(--text-2)">sering: ≥ {fq(thresholds.freq_per_month)}×/bln · siklus order ≤ {Math.round(30 / thresholds.freq_per_month)} hr</text>
+        <text x={(xq + 5).toFixed(1)} y={H - B - 8} className="kt sm" fill="var(--text-2)">sering: ≥ {fq(thresholds.freq_per_month)}×/bln</text>
         <text x={W - R - 5} y={(yq - 7).toFixed(1)} textAnchor="end" className="kt sm" fill="var(--text-2)">besar: ≥ {fmtRp(thresholds.size_idr)} / order</text>
         {ZL.map(([k, x, y, a]) => (
           <g key={k} className={`kzl ${sel && sel !== k ? 'dim' : ''}`} onClick={() => onSel(k)}>
@@ -156,7 +156,7 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
           <b>{hd.name}</b>
           <div className="r"><span>{hd.city} · tier {hd.tier} · {hd.owner.name}</span></div>
           <div className="r"><span>Segmen</span><span>{KUAD[hd.metrics.segment].n}{hd.prev && hd.prev.segment !== hd.metrics.segment ? ' ← ' + KUAD[hd.prev.segment].n : ''}</span></div>
-          <div className="r"><span>Seringnya</span><span>{hd.metrics.rhythm_days ? `${fx1(30 / hd.metrics.rhythm_days)}×/bln · siklus order ${hd.metrics.rhythm_days} hr` : 'baru · 1 order'}</span></div>
+          <div className="r"><span>Seringnya</span><span>{hd.metrics.freq != null ? `${fx1(hd.metrics.freq)}×/bln${hd.metrics.rhythm_days ? ` · siklus order ${hd.metrics.rhythm_days} hr` : ''}` : 'baru · 1 order'}</span></div>
           <div className="r"><span>Besarnya</span><span>{fmtRp(hd.metrics.avg_order)} / order</span></div>
           <div className="r"><span>Omzet</span><span>{fmtRp(hd.metrics.omzet_bln)} / bln</span></div>
           <div className="r"><span>Share of wallet · sisa limit</span><span>{hd.metrics.sow}% · {hd.metrics.credit.state}</span></div>
@@ -209,7 +209,7 @@ export function SegmenPage() {
             </div>
           </div>
           {data && <SegmenChart list={list} sel={sel} onSel={toggle} onOpen={(id) => nav('/dealer/' + id)} thresholds={data.thresholds} />}
-          <Legend tail={`Ukuran = share of wallet · X = order per bulan (30 ÷ siklus order) · Y = Rp per order · titik putus = posisi 3 bulan lalu`} />
+          <Legend tail={`Ukuran = share of wallet · X = order per bulan (aktual 6 bulan) · Y = Rp per order · titik putus = posisi 3 bulan lalu`} />
         </div>
       </div>
       <div className="stack">
@@ -224,6 +224,9 @@ export function SegmenPage() {
               </li>
             ))}
           </ul>
+        {!!sum?.prospects && (
+          <p className="prospek-line"><b>{sum?.prospects.toLocaleString('id-ID')} prospek</b> belum pernah order — tidak digambar di sini. <button className="ev" onClick={() => nav('/dealer?status=Prospek')}>Lihat daftar</button></p>
+        )}
         </div>
         <div className="card">
           <div className="card-h"><h2>Yang dilakukan</h2><span className="meta">{sel ? KUAD[sel].s : 'klik segmen untuk detail'}</span></div>
@@ -241,7 +244,7 @@ export function SegmenPage() {
                   {selShown.map((d) => (
                     <li key={d.id}>
                       <button className="ev" onClick={() => nav('/dealer/' + d.id)}>{d.name}</button>
-                      <span>{d.metrics.rhythm_days ? fx1(30 / d.metrics.rhythm_days) + '×/bln' : 'baru'} · {fmtRp(d.metrics.avg_order)}/order</span>
+                      <span>{d.metrics.freq != null ? fx1(d.metrics.freq) + '×/bln' : 'baru'} · {fmtRp(d.metrics.avg_order)}/order</span>
                       {d.next && <ActBtn small next={d.next} />}
                     </li>
                   ))}

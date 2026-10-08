@@ -236,41 +236,52 @@ func (s *Server) dealerPart(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// customers is the board of one sales (or all) without prospects, plus how many prospects were left out.
+func customers(b *views.Board, r *http.Request) ([]views.BoardItem, int) {
+	return views.Customers(b.Filter(r.URL.Query().Get("sales")))
+}
+
 func (s *Server) orbit(w http.ResponseWriter, r *http.Request) {
 	if b, ok := s.board(w, r); ok {
-		httpx.JSON(w, http.StatusOK, items(b.Filter(r.URL.Query().Get("sales"))))
+		list, _ := customers(b, r)
+		httpx.JSON(w, http.StatusOK, items(list))
 	}
 }
 
 func (s *Server) orbitSummary(w http.ResponseWriter, r *http.Request) {
 	if b, ok := s.board(w, r); ok {
-		httpx.JSON(w, http.StatusOK, map[string]any{"items": views.OrbitSummary(b.Filter(r.URL.Query().Get("sales")))})
+		list, prospects := customers(b, r)
+		httpx.JSON(w, http.StatusOK, map[string]any{"items": views.OrbitSummary(list), "prospects": prospects})
 	}
 }
 
 func (s *Server) orbitMovers(w http.ResponseWriter, r *http.Request) {
 	if b, ok := s.board(w, r); ok {
-		httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(views.OrbitMovers(b.Filter(r.URL.Query().Get("sales"))))})
+		list, _ := customers(b, r)
+		httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(views.OrbitMovers(list))})
 	}
 }
 
 func (s *Server) segmen(w http.ResponseWriter, r *http.Request) {
 	if b, ok := s.board(w, r); ok {
-		httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(b.Filter(r.URL.Query().Get("sales"))),
+		list, _ := customers(b, r)
+		httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(list),
 			"thresholds": map[string]any{"freq_per_month": b.Policies.Segment.FreqPerMonth, "size_idr": b.Policies.Segment.SizeIDR}})
 	}
 }
 
 func (s *Server) segmenSummary(w http.ResponseWriter, r *http.Request) {
 	if b, ok := s.board(w, r); ok {
-		sum, total := views.SegmenSummary(b.Filter(r.URL.Query().Get("sales")))
-		httpx.JSON(w, http.StatusOK, map[string]any{"items": sum, "total_omzet_bln": total})
+		list, prospects := customers(b, r)
+		sum, total := views.SegmenSummary(list)
+		httpx.JSON(w, http.StatusOK, map[string]any{"items": sum, "total_omzet_bln": total, "prospects": prospects})
 	}
 }
 
 func (s *Server) segmenMovers(w http.ResponseWriter, r *http.Request) {
 	if b, ok := s.board(w, r); ok {
-		httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(views.SegmenMovers(b.Filter(r.URL.Query().Get("sales"))))})
+		list, _ := customers(b, r)
+		httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(views.SegmenMovers(list))})
 	}
 }
 

@@ -20,11 +20,16 @@ type PolicySet struct {
 }
 
 type OrbitPolicy struct {
-	Drift      float64 `json:"drift"`
-	Churn      float64 `json:"churn"`
+	Drift float64 `json:"drift"`
+	Churn float64 `json:"churn"`
+	// MinRhythmDays floors siklus order: a dealer ordering several times a week is not "lewat jadwal" after 4 days
+	MinRhythmDays int `json:"min_rhythm_days,omitempty"`
+	// NewDays: a dealer with one order day is Baru for this many days, then Churn (ordered once, never came back)
+	NewDays    int `json:"new_days,omitempty"`
 	KeyAccount struct {
-		SOWMin    int `json:"sow_min"`
-		OnTimeMin int `json:"on_time_min"`
+		SOWMin    int   `json:"sow_min"`
+		OnTimeMin int   `json:"on_time_min"`
+		OmzetMin  int64 `json:"omzet_min,omitempty"` // Rp/bln actually bought; 0 = no minimum
 	} `json:"key_account"`
 }
 
@@ -156,7 +161,7 @@ func (p PilotPolicy) AutoAllowed(agent string) bool {
 // DefaultPolicies returns the glossary defaults (used by unit tests and as a fallback for missing keys).
 func DefaultPolicies() PolicySet {
 	var p PolicySet
-	p.Orbit.Drift, p.Orbit.Churn = 1.2, 2.0
+	p.Orbit.Drift, p.Orbit.Churn, p.Orbit.MinRhythmDays, p.Orbit.NewDays = 1.2, 2.0, 7, 90
 	p.Orbit.KeyAccount.SOWMin, p.Orbit.KeyAccount.OnTimeMin = 50, 85
 	p.Segment = SegmentPolicy{FreqPerMonth: 1.5, SizeIDR: 20_000_000, NewDealerWaitOrders: 2}
 	p.Credit.RoomMin, p.Credit.PayMaxDays = 0.40, 35

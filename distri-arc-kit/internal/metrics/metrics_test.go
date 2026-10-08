@@ -277,3 +277,59 @@ func TestMonthlyAndComposition(t *testing.T) {
 		t.Fatalf("composition %+v", comp)
 	}
 }
+
+// ADR 0023: classification for real (Accurate) data.
+func TestReclassifyRealData(t *testing.T) {
+	p := domain.DefaultPolicies()
+	at := func(days int, total int64) domain.Order {
+		tm := ago(days)
+		return domain.Order{State: "bayar", ConfirmedAt: &tm, Total: total}
+	}
+	t.Run("never ordered is Prospek, not Baru", func(t *testing.T) {
+		m := Compute(domain.DealerHistory{}, p, today)
+		if m.Status != domain.StatusProspek || m.Segment != domain.SegmentProspek || m.OmzetBln != 0 {
+			t.Fatalf("%s %s %d", m.Status, m.Segment, m.OmzetBln)
+		}
+	})
+	t.Run("several invoices on one day are one order", func(t *testing.T) {
+		var os []domain.Order
+		for _, d := range []int{60, 60, 60, 30, 30, 2, 2} {
+			os = append(os, at(d, 5e6))
+		}
+		m := Compute(domain.DealerHistory{Orders: os}, p, today)
+		if m.Rhythm == nil || *m.Rhythm != 29 || m.Status != domain.StatusKeyAccount && m.Status != domain.StatusAktif {
+			t.Fatalf("rhythm %v status %s", m.Rhythm, m.Status)
+		}
+		if m.Orders6m != 3 || m.AvgOrder != int64(math.Round(35e6/3.0)) {
+			t.Fatalf("order days %d avg %d", m.Orders6m, m.AvgOrder)
+		}
+		if m.OmzetBln != int64(math.Round(35e6/(60.0/30.4))) {
+			t.Fatalf("omzet/bln is what was bought per month since the first order: %d", m.OmzetBln)
+		}
+	})
+	t.Run("rhythm floor keeps weekly buyers from flapping", func(t *testing.T) {
+		m := Compute(domain.DealerHistory{Orders: []domain.Order{at(12, 1e6), at(10, 1e6), at(8, 1e6), at(6, 1e6)}}, p, today)
+		if *m.Rhythm != 7 || m.Status == domain.StatusAtRisk || m.Status == domain.StatusChurn {
+			t.Fatalf("rhythm %d status %s", *m.Rhythm, m.Status)
+		}
+	})
+	t.Run("one order long ago is Churn, recent one is Baru", func(t *testing.T) {
+		if m := Compute(domain.DealerHistory{Orders: []domain.Order{at(200, 9e6)}}, p, today); m.Status != domain.StatusChurn || m.Segment == domain.SegmentBaru || m.OmzetBln != 0 {
+			t.Fatalf("old single order: %s %s %d", m.Status, m.Segment, m.OmzetBln)
+		}
+		if m := Compute(domain.DealerHistory{Orders: []domain.Order{at(20, 9e6)}}, p, today); m.Status != domain.StatusBaru || m.Segment != domain.SegmentBaru {
+			t.Fatalf("recent single order: %s %s", m.Status, m.Segment)
+		}
+	})
+	t.Run("Key account needs omzet when the policy sets it", func(t *testing.T) {
+		h := domain.DealerHistory{Orders: orders(14, 6, 10e6)}
+		if m := Compute(h, p, today); m.Status != domain.StatusKeyAccount {
+			t.Fatalf("without minimum: %s", m.Status)
+		}
+		p2 := p
+		p2.Orbit.KeyAccount.OmzetMin = 50e6
+		if m := Compute(h, p2, today); m.Status != domain.StatusAktif {
+			t.Fatalf("omzet %d below minimum: %s", m.OmzetBln, m.Status)
+		}
+	})
+}

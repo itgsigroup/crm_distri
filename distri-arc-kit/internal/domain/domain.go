@@ -28,6 +28,7 @@ const (
 	StatusAtRisk     = "At risk"
 	StatusChurn      = "Churn"
 	StatusBaru       = "Baru"
+	StatusProspek    = "Prospek" // never ordered (ADR 0023): not drawn on the orbit, counted separately
 )
 
 // Activity (aktivitas relatif terhadap siklus order).
@@ -40,11 +41,12 @@ const (
 
 // Segments.
 const (
-	SegmentA    = "A"
-	SegmentB    = "B"
-	SegmentC    = "C"
-	SegmentD    = "D"
-	SegmentBaru = "Baru"
+	SegmentA       = "A"
+	SegmentB       = "B"
+	SegmentC       = "C"
+	SegmentD       = "D"
+	SegmentBaru    = "Baru"
+	SegmentProspek = "Prospek"
 )
 
 // Credit states (sisa limit).

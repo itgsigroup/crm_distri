@@ -166,7 +166,8 @@ export function OrbitPage() {
   const [all, setAll] = useState(false)
   const many = list.length > ORBIT_TOP
   const shown = useMemo(() => (all ? list : topByOmzet(list)), [list, all])
-  const { data: summary = [] } = useOrbitSummary(sales)
+  const { data: osum } = useOrbitSummary(sales)
+  const summary = osum?.items ?? []
   const { data: movers = [] } = useOrbitMovers(sales)
   const avgSow = list.length ? Math.round(list.reduce((a, d) => a + d.metrics.sow, 0) / list.length) : 0
   return (
@@ -203,6 +204,9 @@ export function OrbitPage() {
               </li>
             ))}
           </ul>
+        {!!osum?.prospects && (
+          <p className="prospek-line"><b>{osum?.prospects.toLocaleString('id-ID')} prospek</b> belum pernah order — tidak digambar di sini. <button className="ev" onClick={() => nav('/dealer?status=Prospek')}>Lihat daftar</button></p>
+        )}
         </div>
         <div className="card">
           <div className="card-h"><h2>Yang bergerak</h2><span className="ai" style={{ marginLeft: 6 }}>dibaca AI Follow-up</span></div>

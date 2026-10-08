@@ -31,13 +31,13 @@ export const useDealer = (id: string | undefined) =>
   useQuery({ queryKey: ['dealer', id], enabled: !!id, queryFn: () => api.get<DealerDetail>(`/dealers/${id}`) })
 export const useOrbit = (sales?: string) => useQuery({ queryKey: ['orbit', sales ?? 'all'], queryFn: () => api.get<Items<BoardItem>>('/orbit' + q(sales)).then((r) => r.items) })
 export const useOrbitSummary = (sales?: string) =>
-  useQuery({ queryKey: ['orbit', 'summary', sales ?? 'all'], queryFn: () => api.get<Items<StatusSummary>>('/orbit/summary' + q(sales)).then((r) => r.items) })
+  useQuery({ queryKey: ['orbit', 'summary', sales ?? 'all'], queryFn: () => api.get<{ items: StatusSummary[]; prospects: number }>('/orbit/summary' + q(sales)) })
 export const useOrbitMovers = (sales?: string) =>
   useQuery({ queryKey: ['orbit', 'movers', sales ?? 'all'], queryFn: () => api.get<Items<Mover>>('/orbit/movers' + q(sales)).then((r) => r.items) })
 export const useSegmen = (sales?: string) =>
   useQuery({ queryKey: ['segmen', sales ?? 'all'], queryFn: () => api.get<{ items: BoardItem[]; thresholds: { freq_per_month: number; size_idr: number } }>('/segmen' + q(sales)) })
 export const useSegmenSummary = (sales?: string) =>
-  useQuery({ queryKey: ['segmen', 'summary', sales ?? 'all'], queryFn: () => api.get<{ items: SegmentSummary[]; total_omzet_bln: number }>('/segmen/summary' + q(sales)) })
+  useQuery({ queryKey: ['segmen', 'summary', sales ?? 'all'], queryFn: () => api.get<{ items: SegmentSummary[]; total_omzet_bln: number; prospects: number }>('/segmen/summary' + q(sales)) })
 export const useSegmenMovers = (sales?: string) =>
   useQuery({ queryKey: ['segmen', 'movers', sales ?? 'all'], queryFn: () => api.get<Items<Mover>>('/segmen/movers' + q(sales)).then((r) => r.items) })
 export const useDue = (days = 7) => useQuery({ queryKey: ['dealers', 'due', days], queryFn: () => api.get<Items<BoardItem>>(`/dealers/due?days=${days}`).then((r) => r.items) })

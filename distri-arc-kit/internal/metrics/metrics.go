@@ -25,14 +25,17 @@ func DaysBetween(a, b time.Time) int {
 	return int(math.Round(Day(b).Sub(Day(a)).Hours() / 24))
 }
 
-// confirmedDates returns confirmation dates of non-cancelled orders, oldest first.
+// confirmedDates returns the order days of non-cancelled orders, oldest first: several invoices on one calendar day
+// (WIB) are one order (ADR 0023 — Accurate writes a faktur per delivery, often several a day).
 func confirmedDates(orders []domain.Order) []time.Time {
 	var out []time.Time
+	seen := map[time.Time]bool{}
 	for _, o := range orders {
 		if o.State == "cancel" {
 			continue
 		}
-		if t := orderTime(o); t != nil {
+		if t := orderTime(o); t != nil && !seen[Day(*t)] {
+			seen[Day(*t)] = true
 			out = append(out, *t)
 		}
 	}
@@ -345,21 +348,31 @@ func Score(in ScoreInput) (int, domain.ScoreParts) {
 func Compute(h domain.DealerHistory, p domain.PolicySet, today time.Time) domain.DealerMetrics {
 	m := domain.DealerMetrics{AsOf: today}
 	dates := confirmedDates(h.Orders)
-	if len(dates) > 0 {
-		last := DaysBetween(dates[len(dates)-1], today)
-		m.Last = &last
+	if len(dates) == 0 { // never ordered: a prospect, not a "new" dealer
+		m.Status, m.Activity, m.Segment = domain.StatusProspek, domain.ActivityBaru, domain.SegmentProspek
+		m.SOW, m.SOWSource = SOW(h.SOWEstimates, h.CompetitorSOW)
+		m.Credit = CreditOf(CreditInput{Limit: h.CreditLimit, Invoices: h.Invoices}, today, p)
+		m.PICActive = PICActive(h.Contacts, today)
+		m.Score, m.ScoreParts = Score(ScoreInput{SOW: m.SOW, Limit: h.CreditLimit, Room: m.Credit.Room, OnTime: m.Credit.OnTime, PICCount: m.PICActive})
+		return m
 	}
+	last := DaysBetween(dates[len(dates)-1], today)
+	m.Last = &last
 	m.Rhythm = Rhythm(dates, today)
-	if m.Last != nil {
-		m.Cyc = Cyc(m.Rhythm, *m.Last)
-		if m.Rhythm != nil {
-			due := *m.Rhythm - *m.Last
-			m.DueIn = &due
-		}
+	if m.Rhythm != nil && p.Orbit.MinRhythmDays > 0 && *m.Rhythm < p.Orbit.MinRhythmDays {
+		r := p.Orbit.MinRhythmDays
+		m.Rhythm = &r
+	}
+	m.Cyc = Cyc(m.Rhythm, last)
+	if m.Rhythm != nil {
+		due := *m.Rhythm - last
+		m.DueIn = &due
 	}
 
+	// besarnya = value per order day; seringnya and omzet/bln = what the dealer actually bought per month (6 months,
+	// or since its first order when newer) — not a projection from the rhythm
+	days := map[time.Time]int64{}
 	var sum int64
-	var n int
 	var cycleSum, cycleN int
 	for _, o := range h.Orders {
 		t := orderTime(o)
@@ -367,32 +380,67 @@ func Compute(h domain.DealerHistory, p domain.PolicySet, today time.Time) domain
 			continue
 		}
 		sum += o.Total
-		n++
+		days[Day(*t)] += o.Total
 		if o.PaidAt != nil {
 			cycleSum += DaysBetween(*t, *o.PaidAt)
 			cycleN++
 		}
 	}
+	n := len(days)
 	m.Orders6m = n
 	if n > 0 {
 		m.AvgOrder = int64(math.Round(float64(sum) / float64(n)))
-	} else if len(h.Orders) > 0 {
-		m.AvgOrder = latestOrder(h.Orders).Total
+	} else {
+		m.AvgOrder = lastDayTotal(h.Orders)
 	}
 	if cycleN > 0 {
 		m.CycleDays = int(math.Round(float64(cycleSum) / float64(cycleN)))
 	}
-	m.Freq = Freq(m.Rhythm)
-	m.OmzetBln = Omzet(m.AvgOrder, m.Freq)
-	m.Segment = Segment(m.Freq, m.AvgOrder, p)
+	months := math.Min(6, math.Max(1, float64(DaysBetween(dates[0], today))/30.4))
+	freq := math.Round(float64(n)/months*100) / 100
+	m.Freq = &freq
+	m.OmzetBln = int64(math.Round(float64(sum) / months))
+
 	m.SOW, m.SOWSource = SOW(h.SOWEstimates, h.CompetitorSOW)
 	m.Mix, m.MixCats = Mix(h.Orders, today)
 	m.Credit = CreditOf(CreditInput{Limit: h.CreditLimit, Invoices: h.Invoices}, today, p)
 	m.PICActive = PICActive(h.Contacts, today)
 	m.Status = Status(m.Rhythm, m.Cyc, m.SOW, m.Credit.OnTime, p)
 	m.Activity = Activity(m.Rhythm, m.Cyc)
+	newDays := p.Orbit.NewDays
+	if newDays == 0 {
+		newDays = 90
+	}
+	switch {
+	case last > window12m || (m.Rhythm == nil && last > newDays): // silent a year, or ordered once and never came back
+		m.Status, m.Activity = domain.StatusChurn, domain.ActivityBerhenti
+	case m.Status == domain.StatusKeyAccount && m.OmzetBln < p.Orbit.KeyAccount.OmzetMin:
+		m.Status = domain.StatusAktif
+	}
+	switch m.Status {
+	case domain.StatusBaru:
+		m.Freq, m.OmzetBln, m.Segment = nil, m.AvgOrder, domain.SegmentBaru // glossary: first order's value
+	default:
+		m.Segment = Segment(m.Freq, m.AvgOrder, p)
+	}
 	m.Score, m.ScoreParts = Score(ScoreInput{Rhythm: m.Rhythm, Cyc: m.Cyc, SOW: m.SOW, Mix: m.Mix, Limit: h.CreditLimit, Room: m.Credit.Room, OnTime: m.Credit.OnTime, PICCount: m.PICActive})
 	return m
+}
+
+// lastDayTotal is the value of the latest order day (besarnya of a dealer without orders in 6 months).
+func lastDayTotal(orders []domain.Order) int64 {
+	lo := latestOrder(orders)
+	t := orderTime(lo)
+	if t == nil {
+		return lo.Total
+	}
+	var sum int64
+	for _, o := range orders {
+		if ot := orderTime(o); o.State != "cancel" && ot != nil && Day(*ot).Equal(Day(*t)) {
+			sum += o.Total
+		}
+	}
+	return sum
 }
 
 func latestOrder(orders []domain.Order) domain.Order {

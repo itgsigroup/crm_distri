@@ -107,6 +107,18 @@ func (b *Board) Filter(sales string) []BoardItem {
 	return out
 }
 
+// Customers drops prospects (never ordered, ADR 0023): the orbit and the segments show dealers that buy; the
+// number of prospects is returned for a separate line.
+func Customers(items []BoardItem) ([]BoardItem, int) {
+	out := items[:0:0]
+	for _, it := range items {
+		if it.Metrics.Status != domain.StatusProspek {
+			out = append(out, it)
+		}
+	}
+	return out, len(items) - len(out)
+}
+
 // Builder assembles boards.
 type Builder struct {
 	st    *store.Store

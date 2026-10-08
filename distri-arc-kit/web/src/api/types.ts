@@ -1,8 +1,8 @@
 // Types mirror the JSON of the Go API (internal/views, internal/domain). Money in rupiah, percentages 0–100.
 
 export type CreditState = 'aman' | 'tipis' | 'over limit' | 'overdue' | 'cash'
-export type Status = 'Key account' | 'Aktif' | 'At risk' | 'Churn' | 'Baru'
-export type Segment = 'A' | 'B' | 'C' | 'D' | 'Baru'
+export type Status = 'Key account' | 'Aktif' | 'At risk' | 'Churn' | 'Baru' | 'Prospek'
+export type Segment = 'A' | 'B' | 'C' | 'D' | 'Baru' | 'Prospek'
 
 export interface Credit {
   limit: number

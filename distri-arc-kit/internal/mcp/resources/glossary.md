@@ -5,7 +5,8 @@ Semua rumus diimplementasikan di `internal/metrics` (Go murni) dan diuji dengan 
 ## Satuan waktu
 | Istilah | Definisi | Rumus |
 |---|---|---|
-| **Siklus order** (hari) | Jarak rata-rata antar order dealer | `median(selisih hari antar order dikonfirmasi, 6 bulan terakhir)`; butuh ≥ 2 order. Dealer 1 order → `rhythm = null` (status "baru") |
+| **Hari order** | Satu tanggal order (WIB); beberapa faktur di hari yang sama = 1 order (ADR 0023) | — |
+| **Siklus order** (hari) | Jarak rata-rata antar hari order dealer | `median(selisih hari antar hari order, 6 bulan terakhir)` (bila < 2 di 6 bulan: 3 hari order terakhir dalam 12 bulan); butuh ≥ 2 hari order; minimal `policy.min_rhythm_days (7)`. 1 hari order → `rhythm = null` |
 | **cyc** | Posisi dalam siklus | `hari_sejak_order_terakhir / siklus_order` |
 | **Jadwal order** | Hari dealer seharusnya order lagi | `order_terakhir + siklus_order`; `due_in = jadwal - hari_ini` |
 | **Lewat jadwal** | Dealer melewati 1,2× siklus tanpa order | `cyc > policy.drift (1.2)` |
@@ -13,11 +14,14 @@ Semua rumus diimplementasikan di `internal/metrics` (Go murni) dan diuji dengan 
 ## Status dealer (lingkar orbit)
 Urutan evaluasi penting:
 ```
-if rhythm == null            → "Baru"      (tampil di lingkar Aktif, titik hollow)
-if cyc > 2.0                 → "Churn"
-if cyc > policy.drift (1.2)  → "At risk"
-if sow >= 50 && on_time >= 85  → "Key account"   (masih di dalam 1,2× siklus)
-else                         → "Aktif"
+if belum pernah order                         → "Prospek"   (tidak digambar di Orbit/Segmen; dihitung terpisah)
+if order terakhir > 365 hari                  → "Churn"
+if rhythm == null && order terakhir > policy.new_days (90) → "Churn"   (sekali order, tidak kembali)
+if rhythm == null                             → "Baru"      (tampil di lingkar Aktif, titik hollow)
+if cyc > 2.0                                  → "Churn"
+if cyc > policy.drift (1.2)                   → "At risk"
+if sow >= 50 && on_time >= 85 && omzet_bln >= policy.key_account.omzet_min → "Key account"
+else                                          → "Aktif"
 ```
 Label UI: **Key account · Aktif · At risk · Churn**.
 
@@ -27,10 +31,10 @@ Label UI: **Key account · Aktif · At risk · Churn**.
 ## Seringnya dan besarnya order (Segmen)
 | Istilah | Rumus |
 |---|---|
-| **Seringnya** (order/bulan) | `30 / siklus_order` |
-| **Besarnya** (Rp per order) | `rata-rata nilai SO dikonfirmasi, 6 bulan` |
-| **Omzet/bln** | `besarnya × seringnya` (dealer baru: nilai order pertama) |
-| **Segmen** | A = sering ≥ `policy.freq (1.5)` & besar ≥ `policy.size (Rp 20.000.000)`; B = sering & kecil; C = jarang & besar; D = jarang & kecil; Baru = rhythm null |
+| **Seringnya** (order/bulan) | `hari order 6 bulan / bulan aktif` (bulan aktif = min(6, sejak order pertama), minimal 1) |
+| **Besarnya** (Rp per order) | `rata-rata nilai per hari order, 6 bulan` (tanpa order 6 bulan: hari order terakhir) |
+| **Omzet/bln** | `penjualan 6 bulan / bulan aktif` — yang benar-benar dibeli, bukan proyeksi (dealer baru: nilai order pertama) |
+| **Segmen** | A = sering ≥ `policy.freq` & besar ≥ `policy.size`; B = sering & kecil; C = jarang & besar; D = jarang & kecil; Baru = status Baru; Prospek = belum pernah order |
 
 Cara melayani (teks UI, jangan diubah): A *Prioritas: jaga & layani terbaik*; B *Upsell: naikkan nilai order*; C *Project-based: ikuti proyeknya*; D *Low-touch: layani otomatis*.
 
