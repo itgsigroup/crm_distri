@@ -28,7 +28,7 @@ type OrbitPolicy struct {
 	NewDays int `json:"new_days,omitempty"`
 	// ChurnMinDays: Churn also needs this many days without an order (a twice-a-week buyer silent 15 days is At risk)
 	ChurnMinDays int `json:"churn_min_days,omitempty"`
-	KeyAccount struct {
+	KeyAccount   struct {
 		SOWMin    int   `json:"sow_min"`
 		OnTimeMin int   `json:"on_time_min"`
 		OmzetMin  int64 `json:"omzet_min,omitempty"` // Rp/bln actually bought; 0 = no minimum
