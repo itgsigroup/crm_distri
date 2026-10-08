@@ -11,10 +11,10 @@ import { MemoText } from './Memo'
 import { SOWSheet } from './SOWSheet'
 import { useFeedback } from '../../components/feedback'
 import { useDealer, useDealers } from '../../app/queries'
-import { useMore } from '../../components/More'
 import { creditTone } from '../control/lists'
 
 const VIA_ICON: Record<string, string> = { mail: 'mail', chat: 'chat', people: 'people', doc: 'doc', form: 'form', box: 'box', phone: 'phone' }
+const DEALERS_PER_PAGE = 10
 
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -29,20 +29,25 @@ function DealerList({ active }: { active?: string }) {
     return () => window.clearTimeout(t)
   }, [q])
   const [type, setType] = useState('')
+  const [page, setPage] = useState(1)
   const [params, setParams] = useSearchParams()
   const status = params.get('status') ?? ''
-  const { data: all = [] } = useDealers(term, type)
+  const { data: all = [], isPending, isError } = useDealers(term, type)
   const list = useMemo(() => (status ? all.filter((d) => d.metrics.status === status) : all), [all, status])
-  const [shown, more] = useMore(list, 40)
+  const pageCount = Math.max(1, Math.ceil(list.length / DEALERS_PER_PAGE))
+  const currentPage = Math.min(page, pageCount)
+  const pageNumbers = [...new Set([1, currentPage - 1, currentPage, currentPage + 1, pageCount])].filter((n) => n >= 1 && n <= pageCount).sort((a, b) => a - b)
+  const shown = list.slice((currentPage - 1) * DEALERS_PER_PAGE, currentPage * DEALERS_PER_PAGE)
   const nav = useNavigate()
   const { openSheet } = useFeedback()
   return (
     <div className="card acc-list">
-      <div className="search"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} type="text" placeholder="Cari dealer, kota, produk…" /></div>
+      <div className="acc-list-title"><h2>Semua dealer</h2><span>{list.length.toLocaleString('id-ID')} dealer</span></div>
+      <div className="search"><Icon name="search" /><input value={q} onChange={(e) => { setQ(e.target.value); setPage(1) }} type="text" placeholder="Cari dealer, kota, produk…" aria-label="Cari dealer" /></div>
       <div className="seg" style={{ margin: '10px 0 2px', alignSelf: 'flex-start' }} role="radiogroup" aria-label="Jenis pelanggan">
-        {[['', 'Semua'], ['reseller', 'Dealer'], ['si', 'Freelance / SI']].map(([k, l]) => <button key={k} role="radio" aria-checked={type === k} className={type === k ? 'is-active' : ''} onClick={() => setType(k)}>{l}</button>)}
+        {[['', 'Semua'], ['reseller', 'Dealer'], ['si', 'Freelance / SI']].map(([k, l]) => <button key={k} role="radio" aria-checked={type === k} className={type === k ? 'is-active' : ''} onClick={() => { setType(k); setPage(1) }}>{l}</button>)}
       </div>
-      <select className="st-filter" value={status} onChange={(e) => setParams(e.target.value ? { status: e.target.value } : {})} aria-label="Status dealer">
+      <select className="st-filter" value={status} onChange={(e) => { setParams(e.target.value ? { status: e.target.value } : {}); setPage(1) }} aria-label="Status dealer">
         <option value="">Semua status</option>
         {['Key account', 'Aktif', 'Baru', 'At risk', 'Churn', 'Prospek'].map((s) => <option key={s} value={s}>{s === 'Prospek' ? 'Prospek (belum pernah order)' : s}</option>)}
       </select>
@@ -65,8 +70,18 @@ function DealerList({ active }: { active?: string }) {
             </button>
           )
         })}
-        {more}
+        {!isPending && !isError && list.length === 0 && <p className="acc-list-empty">Tidak ada dealer yang sesuai.</p>}
+        {isPending && <p className="acc-list-empty">Memuat dealer…</p>}
+        {isError && <p className="acc-list-empty">Daftar dealer gagal dimuat.</p>}
       </div>
+      {!isPending && !isError && list.length > 0 && <div className="acc-list-pagination">
+        <span>{(currentPage - 1) * DEALERS_PER_PAGE + 1}–{Math.min(currentPage * DEALERS_PER_PAGE, list.length)} dari {list.length.toLocaleString('id-ID')}</span>
+        <div aria-label="Paginasi dealer">
+          <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Halaman sebelumnya"><Icon name="chev" /></button>
+          {pageNumbers.map((n, index) => <span className="acc-page-slot" key={n}>{index > 0 && n - pageNumbers[index - 1] > 1 && <span aria-hidden="true">…</span>}<button type="button" className={currentPage === n ? 'is-active' : ''} aria-label={`Halaman ${n}`} aria-current={currentPage === n ? 'page' : undefined} onClick={() => setPage(n)}>{n}</button></span>)}
+          <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} aria-label="Halaman berikutnya"><Icon name="chev" /></button>
+        </div>
+      </div>}
     </div>
   )
 }

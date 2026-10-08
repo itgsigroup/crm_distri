@@ -535,3 +535,19 @@
 }
 @media (max-width:480px){.os-n{font-size:22px}.of-s{flex:1 1 140px}.odl-pages{margin-left:0;width:100%;justify-content:space-between}}
 .net>.stack{min-width:0}
+@media(max-width:900px){.tabbar{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.acc-list-title{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:2px 4px 12px}
+.acc-list-title h2{font-size:14px;font-weight:750}
+.acc-list-title span{font-size:11px;color:var(--text-3)}
+.acc-list-empty{padding:18px 8px;text-align:center;font-size:12px;color:var(--text-3)}
+.acc-list-pagination{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding:10px 4px 2px;margin-top:8px;font-size:11px;color:var(--text-2)}
+.acc-list-pagination>div{display:flex;align-items:center;gap:6px}
+.acc-page-slot{display:inline-flex;align-items:center;gap:5px}
+.acc-page-slot>span{color:var(--text-3)}
+.acc-list-pagination button{width:25px;height:25px;display:grid;place-items:center;border-radius:7px;background:var(--surface-2);color:var(--text-2)}
+.acc-list-pagination button:not(:disabled):hover{background:var(--accent-soft);color:var(--accent)}
+.acc-list-pagination button.is-active{background:var(--accent-soft);color:var(--accent);font-weight:750}
+.acc-list-pagination button:disabled{opacity:.4;cursor:default}
+.acc-list-pagination button .i{width:13px;height:13px}
+.acc-list-pagination button:first-child .i{transform:rotate(90deg)}
+.acc-list-pagination button:last-child .i{transform:rotate(-90deg)}

@@ -21,6 +21,7 @@ import { UsersPage } from '../features/master/UsersPage'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { PilotPage } from '../features/pilot/PilotPage'
 import { DataPage } from '../features/data/DataPage'
+import { DashboardPage } from '../features/dashboard/DashboardPage'
 
 // Routes of docs/design/08-frontend.md.
 export const router = createBrowserRouter([
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
     element: <FeedbackProvider><OrchProvider><Shell /></OrchProvider></FeedbackProvider>,
     children: [
       { index: true, element: <ControlCenter /> },
+      { path: 'dashboard', element: <DashboardPage /> },
       { path: 'orchestrator', element: <OrchestratorPage /> },
       { path: 'chat/:threadId?', element: <ChatPage /> },
       { path: 'orbit', element: <OrbitPage /> },

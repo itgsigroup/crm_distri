@@ -15,6 +15,7 @@ import { useSse } from './SseProvider'
 
 export const ROUTES: Record<ScreenKey, string> = {
   today: '/',
+  dashboard: '/dashboard',
   orch: '/orchestrator',
   chat: '/chat',
   orbit: '/orbit',
@@ -33,6 +34,7 @@ export const ROUTES: Record<ScreenKey, string> = {
 
 export function screenOf(path: string): ScreenKey {
   if (path === '/' || path === '') return 'today'
+  if (path.startsWith('/dashboard')) return 'dashboard'
   if (path.startsWith('/orchestrator')) return 'orch'
   if (path.startsWith('/chat')) return 'chat'
   if (path.startsWith('/orbit/segmen')) return 'kuad'
@@ -53,7 +55,7 @@ export function screenOf(path: string): ScreenKey {
 function NavBtn({ to, cur, icon, children, badge }: { to: ScreenKey; cur: ScreenKey; icon: string; children: ReactNode; badge?: ReactNode }) {
   const nav = useNavigate()
   const { data: me } = useMe()
-  if (me && !me.screens.includes(to)) return null
+  if (me && !me.screens.includes(to === 'dashboard' ? 'today' : to)) return null
   const hl = cur === 'net' || cur === 'kuad' ? 'orbit' : cur
   return (
     <button className={`nav-btn ${hl === to ? 'is-active' : ''}`} title={typeof children === 'string' ? children : undefined} onClick={() => nav(ROUTES[to])}>
@@ -90,7 +92,7 @@ export function Shell() {
   }, [cur])
   useEffect(() => {
     // the consent page explains itself to people whose role cannot connect Claude
-    if (me && !me.screens.includes(cur) && loc.pathname !== '/claude/izin') nav('/', { replace: true })
+    if (me && !me.screens.includes(cur === 'dashboard' ? 'today' : cur) && loc.pathname !== '/claude/izin') nav('/', { replace: true })
   }, [me, cur, nav, loc.pathname])
   const [menu, setMenu] = useState(false)
   const { collapsed, setCollapsed } = useAppearance()
@@ -143,6 +145,7 @@ export function Shell() {
           </div>
           <nav className="nav" aria-label="Navigasi utama">
             <div className="nav-sec">Kendali</div>
+            <NavBtn to="dashboard" cur={cur} icon="chart">Dashboard</NavBtn>
             <NavBtn to="today" cur={cur} icon="sun" badge={<Badge n={orch.pending} />}>Pusat kendali</NavBtn>
             <NavBtn to="orch" cur={cur} icon="spark" badge={<span className="live" title="siklus berjalan tiap jam" />}>Orchestrator</NavBtn>
             <NavBtn to="chat" cur={cur} icon="chat" badge={<Badge n={unread} color="var(--good)" />}>Chat</NavBtn>
@@ -221,7 +224,7 @@ export function Shell() {
         </main>
 
         <nav className="tabbar" aria-label="Navigasi">
-          {([['today', 'sun', 'Kendali'], ['orch', 'spark', 'Orchestrator'], ['orbit', 'target', 'Orbit'], ['dealer', 'building', 'Dealer'], ['chat', 'chat', 'Chat']] as const).filter(([k]) => !me || me.screens.includes(k)).map(([k, ic, label]) => (
+          {([['dashboard', 'chart', 'Dashboard'], ['today', 'sun', 'Kendali'], ['orch', 'spark', 'Orchestrator'], ['orbit', 'target', 'Orbit'], ['dealer', 'building', 'Dealer'], ['chat', 'chat', 'Chat']] as const).filter(([k]) => !me || me.screens.includes(k === 'dashboard' ? 'today' : k)).map(([k, ic, label]) => (
             <button key={k} className={(isOrbit ? 'orbit' : cur) === k ? 'is-active' : ''} onClick={() => nav(ROUTES[k])}>
               <Icon name={ic} />
               {label}
