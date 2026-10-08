@@ -182,3 +182,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Mesin: Claude (Messages API) memanggil tool MCP yang sama lewat sesi in-process; tiap panggilan tercatat di log MCP atas nama "Terjadwal · <nama>". Kunci Claude API diisi CEO (diperiksa, disimpan terenkripsi), pilihan model Opus 5.5/Sonnet 5.5/Haiku 4.5, anggaran harian. Tanpa kunci / lewat anggaran → laporan template berisi angka dari tool MCP.
 - Worker: `analyst.tick` tiap menit + `analyst.run` (sekali per slot, tanpa retry). Migrasi `0018_mcp_schedules.sql` (jadwal awal *Ringkasan pagi* Senin–Sabtu 07.00).
 
+## Halaman login baru · 2026-10-08
+- Login menjadi landing satu halaman: hero ("Jaga setiap dealer tetap di orbit"), kartu Masuk, 9 fitur sistem (Orchestrator & 6 agen AI, Orbit & Segmen, Pusat kendali, Chat WhatsApp multi-nomor, Push stok, Kredit·kas, MCP Claude & analisis terjadwal, data Accurate, peran & akses), cara kerja 3 langkah, keamanan; responsif (desktop/HP).
+- Tombol mata **lihat kata sandi** lebih jelas di dalam kolom (menyala saat kata sandi terlihat).
+

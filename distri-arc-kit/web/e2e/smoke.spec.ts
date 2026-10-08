@@ -107,7 +107,7 @@ async function login(page: import('@playwright/test').Page, email: string) {
   await page.goto('/login')
   await page.locator('input[name=email]').fill(email)
   await page.locator('input[name=password]').fill(demo!)
-  await page.getByRole('button', { name: 'Masuk' }).click()
+  await page.locator('form button[type=submit]').click() // the landing also has "Masuk" links that scroll to the form
   await page.waitForURL('**/')
   await page.waitForLoadState('networkidle')
 }
