@@ -115,21 +115,30 @@ export function OrbitBoard({ list, onOpen, dense = false, focus: focusRing = nul
         <text className="ring-t" x={CX - RING_R.Churn - 6} y={CY + 4} textAnchor="end">¾ putaran</text>
         <circle cx={CX} cy={CY} r={28} fill="var(--text)" />
         <text x={CX} y={CY + 5} textAnchor="middle" className="gsi-t">GSI</text>
-        {rnodes.map(({ d, x, y, size, tone, ring, dim }) => {
-          const dotSize = dense ? Math.max(2.5, size * 0.35) : size
+        {rnodes.map(({ d, x, y, ox, oy, size, tone, ring, dim }) => {
+          const dotX = ox + (x - ox) * viewport.positionBlend
+          const dotY = oy + (y - oy) * viewport.positionBlend
+          const dotSize = Math.max(1.2, (dense ? Math.max(2.5, size * 0.35) : size) * viewport.markerScale)
+          const hitSize = Math.max(3.5, dotSize, 9 * viewport.markerScale)
           return (
-          <g key={d.id} className={`dn ${dim ? 'dim' : ''}`} role="button" tabIndex={dim ? -1 : 0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
-            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(dotSize, 9).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
-            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={dotSize.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
-          </g>
+            <g key={d.id} className={`dn ${dim ? 'dim' : ''}`} role="button" tabIndex={dim ? -1 : 0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
+              <circle cx={dotX.toFixed(1)} cy={dotY.toFixed(1)} r={hitSize.toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
+              <circle cx={dotX.toFixed(1)} cy={dotY.toFixed(1)} r={dotSize.toFixed(1)} style={{ strokeWidth: Math.max(0.3, 2 * viewport.markerScale) }} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
+            </g>
           )
         })}
-        {nodes.map(({ d, x, y, size, tone, ring }) => (
-          <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
-            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(size, 12).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
-            <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
-          </g>
-        ))}
+        {nodes.map(({ d, x, y, ox, oy, size, tone, ring }) => {
+          const dotX = ox + (x - ox) * viewport.positionBlend
+          const dotY = oy + (y - oy) * viewport.positionBlend
+          const dotSize = Math.max(1.2, size * viewport.markerScale)
+          const hitSize = Math.max(3.5, dotSize, 12 * viewport.markerScale)
+          return (
+            <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
+              <circle cx={dotX.toFixed(1)} cy={dotY.toFixed(1)} r={hitSize.toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
+              <circle cx={dotX.toFixed(1)} cy={dotY.toFixed(1)} r={dotSize.toFixed(1)} style={{ strokeWidth: Math.max(0.3, 2 * viewport.markerScale) }} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
+            </g>
+          )
+        })}
       </svg>
       {viewport.controls}
       <Tip
@@ -240,7 +249,7 @@ export function OrbitPage() {
             <OrbitBoard list={shown} dense={all && many} onOpen={(id) => nav('/dealer/' + id)} />
             {list.length > 0 && filtered.length === 0 && <div className="net-empty">Tidak ada dealer yang cocok dengan filter ini.</div>}
           </div>
-          <Legend tail="Arahkan kursor ke titik untuk melihat data · klik titik untuk membuka dealer" />
+          <Legend tail="Perkecil titik untuk melihat posisi asal · arahkan kursor untuk data dealer" />
         </div>
         <OrbitDealerList list={filtered} filtered={nFilters > 0} />
       </div>

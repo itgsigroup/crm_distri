@@ -137,7 +137,7 @@ export function layoutReadable(list: BoardItem[], named: Set<string>, focus: str
     const ring = ringOf(d)
     const est = d.metrics.sow_source !== 'confirmed'
     const size = est ? (ring === 'Key account' ? 6.5 : 5) : 4 + Math.sqrt(d.metrics.sow) * 0.8
-    return { d, ring, rad: p.rad, ang: p.ang, size }
+    return { d, ring, rad: p.rad, ang: p.ang, ox: CX + p.rad * Math.sin(p.ang), oy: CY - p.rad * Math.cos(p.ang), size }
   })
   // spread along the ring: per ring, pack the angles so neighbours keep their radii apart, each packed run centred
   // on where its dealers belong (1-D label placement). Angles run −π…π so the jadwal line (top) is not a seam.
@@ -166,13 +166,13 @@ export function layoutReadable(list: BoardItem[], named: Set<string>, focus: str
     }
     for (let i = 1; i < group.length; i++) group[i].ang = Math.max(group[i].ang, group[i - 1].ang + gap(i))
   }
-  const out: ReadableNode[] = ns.map(({ d, ring, rad, ang, size }) => {
+  const out: ReadableNode[] = ns.map(({ d, ring, rad, ang, ox, oy, size }) => {
     const x = CX + rad * Math.sin(ang)
     const y = CY - rad * Math.cos(ang)
     const side: 1 | -1 = x >= CX ? 1 : -1
     const label = named.has(d.id) ? clip(shortName(d.name)) : ''
     const dim = !!focus && ring !== focus
-    return { d, x, y, ox: x, oy: y, size, tone: toneOf(d.metrics.credit.state), ring, name: label, sm: false, side, tw: label.length * 6.4 + 6, lx: x + side * (size + 5), ly: y + 4, label, dim }
+    return { d, x, y, ox, oy, size, tone: toneOf(d.metrics.credit.state), ring, name: label, sm: false, side, tw: label.length * 6.4 + 6, lx: x + side * (size + 5), ly: y + 4, label, dim }
   })
   // labels: outside the dot, stacked per side so none overlap; the dot never moves
   for (const side of [1, -1] as const) {

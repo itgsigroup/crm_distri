@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react'
 
 const MIN_SCALE = 0.2
-const MAX_SCALE = 8
+const MAX_SCALE = 2
 
 const clampPan = (value: number, extent: number) => Math.max(-extent * 3, Math.min(extent * 3, value))
 
@@ -13,18 +13,7 @@ export function useMapViewport(width: number, height: number) {
   const drag = useRef<{ id: number; x: number; y: number; viewX: number; viewY: number; pixelsPerUnit: number; moved: boolean; captured: boolean } | null>(null)
   const suppressClick = useRef(false)
 
-  const zoom = (factor: number) => setView((v) => {
-    const scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, v.scale * factor))
-    const nextWidth = width / scale
-    const nextHeight = height / scale
-    const centerX = v.x + width / v.scale / 2
-    const centerY = v.y + height / v.scale / 2
-    return {
-      scale,
-      x: centerX - nextWidth / 2,
-      y: centerY - nextHeight / 2,
-    }
-  })
+  const zoom = (factor: number) => setView((v) => ({ ...v, scale: Math.max(MIN_SCALE, Math.min(MAX_SCALE, v.scale * factor)) }))
 
   const reset = () => setView({ x: 0, y: 0, scale: 1 })
   const onPointerDown = (e: PointerEvent<SVGSVGElement>) => {
@@ -36,7 +25,7 @@ export function useMapViewport(width: number, height: number) {
       y: e.clientY,
       viewX: view.x,
       viewY: view.y,
-      pixelsPerUnit: Math.min(rect.width / (width / view.scale), rect.height / (height / view.scale)),
+      pixelsPerUnit: Math.min(rect.width / width, rect.height / height),
       moved: false,
       captured: false,
     }
@@ -90,12 +79,13 @@ export function useMapViewport(width: number, height: number) {
     else void el.requestFullscreen().catch(() => {})
   }
 
-  const viewBox = `${view.x} ${view.y} ${width / view.scale} ${height / view.scale}`
+  const viewBox = `${view.x} ${view.y} ${width} ${height}`
+  const positionBlend = Math.max(0, Math.min(1, (view.scale - MIN_SCALE) / (1 - MIN_SCALE)))
   const controls = (
     <div className="map-controls" role="toolbar" aria-label="Kontrol peta" onPointerDown={(e) => e.stopPropagation()}>
-      <button type="button" aria-label="Perkecil peta" title="Perkecil" disabled={view.scale <= MIN_SCALE} onClick={() => zoom(1 / 1.25)}>−</button>
-      <span aria-live="polite">{Math.round(view.scale * 100)}%</span>
-      <button type="button" aria-label="Perbesar peta" title="Perbesar" disabled={view.scale >= MAX_SCALE} onClick={() => zoom(1.25)}>+</button>
+      <button type="button" aria-label="Perkecil titik" title="Perkecil titik" disabled={view.scale <= MIN_SCALE} onClick={() => zoom(1 / 1.25)}>−</button>
+      <span aria-live="polite" title="Ukuran titik">Titik {Math.round(view.scale * 100)}%</span>
+      <button type="button" aria-label="Perbesar titik" title="Perbesar titik" disabled={view.scale >= MAX_SCALE} onClick={() => zoom(1.25)}>+</button>
       <button type="button" aria-label="Atur ulang peta" title="Atur ulang" onClick={reset}>↺</button>
       <button type="button" className="map-fullscreen" aria-label={fullscreen ? 'Keluar dari layar penuh' : 'Layar penuh'} title={fullscreen ? 'Keluar dari layar penuh' : 'Layar penuh'} onClick={toggleFullscreen}>
         <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
@@ -111,6 +101,8 @@ export function useMapViewport(width: number, height: number) {
   return {
     containerRef,
     viewBox,
+    markerScale: view.scale,
+    positionBlend,
     dragging,
     controls,
     svgProps: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp, onClickCapture },

@@ -32,15 +32,17 @@ function topByOmzet(list: BoardItem[], count = SEGMEN_PRIORITY) {
   return list.length <= count ? list : [...list].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, count)
 }
 
-function layout(list: BoardItem[], dense: boolean, xq: number, yq: number): Node[] {
+function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, markerScale: number, positionBlend: number): Node[] {
   const compact = dense && list.length > SEGMEN_PRIORITY
   const nodes = list.map((d) => {
     const m = d.metrics
     const size = 7 + Math.sqrt(m.sow) * 1.3
     const x = xOf(m.freq)
     const y = clampY(m.avg_order)
-    return { d, x, y, ox: x, oy: y, size: compact ? Math.max(3, size * 0.35) : size, baru: m.freq == null }
+    const baseSize = compact ? Math.max(3, size * 0.35) : size
+    return { d, x, y, ox: x, oy: y, size: Math.max(1.2, baseSize * markerScale), baru: m.freq == null }
   })
+  if (positionBlend === 0) return nodes.sort((a, b) => a.d.metrics.omzet_bln - b.d.metrics.omzet_bln)
   const cell = compact ? 12 : 32
   const reach = Math.ceil((Math.max(0, ...nodes.map((n) => n.size)) * 2 + 2) / cell)
   const steps = compact ? 36 : 28
@@ -98,6 +100,10 @@ function layout(list: BoardItem[], dense: boolean, xq: number, yq: number): Node
       n.y = Math.max(top + pad, Math.min(bottom - pad, n.y + dy))
     })
   }
+  if (positionBlend < 1) nodes.forEach((n) => {
+    n.x = n.ox + (n.x - n.ox) * positionBlend
+    n.y = n.oy + (n.y - n.oy) * positionBlend
+  })
   return nodes.sort((a, b) => a.d.metrics.omzet_bln - b.d.metrics.omzet_bln)
 }
 
@@ -115,7 +121,7 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
     return q ? scoped.filter((d) => d.name.toLocaleLowerCase('id-ID').includes(q) || d.city.toLocaleLowerCase('id-ID').includes(q)) : scoped
   }, [scoped, query])
   const shown = useMemo(() => all ? matches : topByOmzet(matches), [all, matches])
-  const nodes = useMemo(() => layout(shown, all, xq, yq), [shown, all, xq, yq])
+  const nodes = useMemo(() => layout(shown, all, xq, yq, viewport.markerScale, viewport.positionBlend), [shown, all, xq, yq, viewport.markerScale, viewport.positionBlend])
   const Z: [Segment, number, number, number, number][] = [['A', xq, T, W - R - xq, yq - T], ['C', L, T, xq - L, yq - T], ['B', xq, yq, W - R - xq, H - B - yq], ['D', L, yq, xq - L, H - B - yq]]
   const ZL: [Segment, number, number, 'start' | 'end'][] = [['A', W - R - 10, T + 22, 'end'], ['C', L + 10, T + 22, 'start'], ['B', W - R - 10, H - B - 28, 'end'], ['D', L + 10, H - B - 28, 'start']]
   const move = (e: MouseEvent, d: BoardItem) => {
@@ -192,8 +198,8 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
           const tone = toneOf(d.metrics.credit.state)
           return (
             <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
-              <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(size, 9).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
-              <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} className="dn-dot" {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: '3 3' } : {})} />
+              <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(3.5, size, 9 * viewport.markerScale).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
+              <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} style={{ strokeWidth: Math.max(0.3, 2 * viewport.markerScale) }} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} className="dn-dot" {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: '3 3' } : {})} />
             </g>
           )
         })}
@@ -351,7 +357,7 @@ export function SegmenPage() {
           {data && view === 'titik' && (
             <>
               <SegmenChart list={list} sel={sel} onSel={chooseSegment} onOpen={(id) => nav('/dealer/' + id)} thresholds={data.thresholds} />
-              <Legend tail="Titik bertumpuk direnggangkan sedikit · arahkan kursor untuk angka asli" />
+              <Legend tail="Perkecil titik untuk melihat posisi asal · arahkan kursor untuk angka asli" />
             </>
           )}
           {!!sum?.prospects && (
