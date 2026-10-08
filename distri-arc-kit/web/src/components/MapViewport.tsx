@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from 'react'
 
-const MIN_SCALE = 1
+const MIN_SCALE = 0.2
 const MAX_SCALE = 8
+
+const clampPan = (value: number, extent: number) => Math.max(-extent * 3, Math.min(extent * 3, value))
 
 export function useMapViewport(width: number, height: number) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 })
   const [dragging, setDragging] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
-  const drag = useRef<{ id: number; x: number; y: number; viewX: number; viewY: number; viewWidth: number; viewHeight: number; rectWidth: number; rectHeight: number; moved: boolean; captured: boolean } | null>(null)
+  const drag = useRef<{ id: number; x: number; y: number; viewX: number; viewY: number; pixelsPerUnit: number; moved: boolean; captured: boolean } | null>(null)
   const suppressClick = useRef(false)
 
   const zoom = (factor: number) => setView((v) => {
@@ -19,8 +21,8 @@ export function useMapViewport(width: number, height: number) {
     const centerY = v.y + height / v.scale / 2
     return {
       scale,
-      x: Math.max(0, Math.min(width - nextWidth, centerX - nextWidth / 2)),
-      y: Math.max(0, Math.min(height - nextHeight, centerY - nextHeight / 2)),
+      x: centerX - nextWidth / 2,
+      y: centerY - nextHeight / 2,
     }
   })
 
@@ -34,10 +36,7 @@ export function useMapViewport(width: number, height: number) {
       y: e.clientY,
       viewX: view.x,
       viewY: view.y,
-      viewWidth: width / view.scale,
-      viewHeight: height / view.scale,
-      rectWidth: rect.width,
-      rectHeight: rect.height,
+      pixelsPerUnit: Math.min(rect.width / (width / view.scale), rect.height / (height / view.scale)),
       moved: false,
       captured: false,
     }
@@ -55,8 +54,8 @@ export function useMapViewport(width: number, height: number) {
     }
     setDragging(true)
     setView({
-      x: Math.max(0, Math.min(width - start.viewWidth, start.viewX - dx * start.viewWidth / start.rectWidth)),
-      y: Math.max(0, Math.min(height - start.viewHeight, start.viewY - dy * start.viewHeight / start.rectHeight)),
+      x: clampPan(start.viewX - dx / start.pixelsPerUnit, width),
+      y: clampPan(start.viewY - dy / start.pixelsPerUnit, height),
       scale: view.scale,
     })
   }
