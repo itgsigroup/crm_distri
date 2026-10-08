@@ -10,7 +10,7 @@ export const TITLES: Record<ScreenKey, [string, string]> = {
   chat: ['Chat', 'WhatsApp banyak nomor (Baileys) + grup gudang · order masuk dari sini'],
   orbit: ['Orbit', 'Semua dealer menurut siklus ordernya · atas = jadwal order · keluar = lewat jadwal'],
   net: ['Orbit', 'Peta relasi: kedekatan nomor sales ↔ dealer dalam 3D'],
-  kuad: ['Orbit', 'Segmen: jenis dealer — X seringnya order, Y besarnya order'],
+  kuad: ['Orbit', 'Segmen: dealer dikelompokkan menurut seberapa sering dan seberapa besar ordernya'],
   dealer: ['Dealer', 'Frekuensi order, order-to-cash, share of wallet, product mix, sisa limit, PIC aktif — satu halaman per dealer'],
   stock: ['Push stok', 'Perputaran stok: stok yang menua menjadi alasan follow-up dealer yang jadwal order'],
   ar: ['Sisa limit', 'DSO (order → bayar): ruang kredit tiap dealer, pola bayar, prediksi kas masuk'],
@@ -29,15 +29,16 @@ export const STAGE_LABEL: Record<string, string> = { ingest: 'Ingest', analyze: 
 
 export const KAT = ['Kamera & NVR', 'HDD & storage', 'Kabel & PoE', 'Modul LED', 'Fire alarm', 'Aksesoris']
 
-export interface SegmentInfo { n: string; s: string; k: string; play: string; desc: string; agent: string; risk: string }
+/** n = glossary name; nick + todo = plain words for the Segmen boxes (readable without knowing the glossary). */
+export interface SegmentInfo { n: string; nick: string; todo: string; s: string; k: string; play: string; desc: string; agent: string; risk: string }
 
 export const KUAD: Record<Segment, SegmentInfo> = {
-  A: { n: 'Segmen A', s: 'sering × besar', k: 'accent', play: 'Prioritas: jaga & layani terbaik', desc: 'Tulang punggung omzet. Prioritas stok dan kecepatan respons, limit kredit tumbuh mengikuti siklus order, minimal 2 PIC aktif, review harga tier setahun sekali — bukan tiap nego.', agent: 'AI Follow-up + AI Kredit', risk: 'Konsentrasi: sedikit dealer menopang sebagian besar omzet. Satu yang lewat jadwal langsung terasa di kas.' },
-  B: { n: 'Segmen B', s: 'sering × kecil', k: 'good', play: 'Upsell: naikkan nilai order', desc: 'Order rutin tapi kecil, biaya layani per order tinggi. Bundle, minimum order bebas ongkir, konsolidasi kiriman mingguan, tawarkan kategori produk yang belum pernah dibeli. Target: naik ke Segmen A.', agent: 'AI Stok', risk: 'Margin tergerus ongkir dan admin selama nilai per order tidak naik.' },
-  C: { n: 'Segmen C', s: 'jarang × besar', k: 'indigo', play: 'Project-based: ikuti proyeknya', desc: 'Order datang bersama proyek. Tanya pipeline proyek tiap kuartal, siapkan limit kredit (limit sementara / DP) dan lead time stok sebelum proyek berikutnya. Jangan di-follow-up berdasarkan siklus order.', agent: 'AI Order + AI Kredit', risk: 'Over limit saat proyek belum cair — piutang besar dalam sekali jalan.' },
-  D: { n: 'Segmen D', s: 'jarang × kecil', k: 'text-3', play: 'Low-touch: layani otomatis', desc: 'Cash / transfer, harga tier C, katalog WA self-service, follow-up otomatis sebulan sekali, tanpa kunjungan. Naik ke Segmen B bila mulai rutin.', agent: 'AI Prospek (otomatis)', risk: 'Perhatian sales lebih mahal dari marginnya.' },
-  Prospek: { n: 'Prospek', s: 'belum pernah order', k: 'text-3', play: 'Aktifkan order pertama', desc: 'Pelanggan terdaftar di Accurate tapi belum pernah order dalam 18 bulan data. Tidak digambar di Orbit dan Segmen; digarap AI Prospek dan sales cabangnya.', agent: 'AI Prospek', risk: '' },
-  Baru: { n: 'Baru', s: 'order pertama ≤ 90 hari', k: 'text-3', play: 'Amati dua putaran', desc: 'Order pertama dalam 90 hari terakhir, belum membentuk siklus. Ditempatkan sementara dari nilai order pertama; segmen ditetapkan setelah order kedua.', agent: 'AI Prospek', risk: '' },
+  A: { n: 'Segmen A', nick: 'Pelanggan andalan', todo: 'Jaga baik-baik: stok & respons nomor satu', s: 'sering × besar', k: 'accent', play: 'Prioritas: jaga & layani terbaik', desc: 'Tulang punggung omzet. Prioritas stok dan kecepatan respons, limit kredit tumbuh mengikuti siklus order, minimal 2 PIC aktif, review harga tier setahun sekali — bukan tiap nego.', agent: 'AI Follow-up + AI Kredit', risk: 'Konsentrasi: sedikit dealer menopang sebagian besar omzet. Satu yang lewat jadwal langsung terasa di kas.' },
+  B: { n: 'Segmen B', nick: 'Rutin tapi kecil', todo: 'Ajak belanja lebih banyak per order', s: 'sering × kecil', k: 'good', play: 'Upsell: naikkan nilai order', desc: 'Order rutin tapi kecil, biaya layani per order tinggi. Bundle, minimum order bebas ongkir, konsolidasi kiriman mingguan, tawarkan kategori produk yang belum pernah dibeli. Target: naik ke Segmen A.', agent: 'AI Stok', risk: 'Margin tergerus ongkir dan admin selama nilai per order tidak naik.' },
+  C: { n: 'Segmen C', nick: 'Pelanggan proyek', todo: 'Tanya proyek berikutnya, siapkan limit', s: 'jarang × besar', k: 'indigo', play: 'Project-based: ikuti proyeknya', desc: 'Order datang bersama proyek. Tanya pipeline proyek tiap kuartal, siapkan limit kredit (limit sementara / DP) dan lead time stok sebelum proyek berikutnya. Jangan di-follow-up berdasarkan siklus order.', agent: 'AI Order + AI Kredit', risk: 'Over limit saat proyek belum cair — piutang besar dalam sekali jalan.' },
+  D: { n: 'Segmen D', nick: 'Kecil & jarang', todo: 'Cukup dilayani otomatis lewat WA', s: 'jarang × kecil', k: 'text-3', play: 'Low-touch: layani otomatis', desc: 'Cash / transfer, harga tier C, katalog WA self-service, follow-up otomatis sebulan sekali, tanpa kunjungan. Naik ke Segmen B bila mulai rutin.', agent: 'AI Prospek (otomatis)', risk: 'Perhatian sales lebih mahal dari marginnya.' },
+  Prospek: { n: 'Prospek', nick: 'Belum pernah order', todo: 'Ajak order pertama', s: 'belum pernah order', k: 'text-3', play: 'Aktifkan order pertama', desc: 'Pelanggan terdaftar di Accurate tapi belum pernah order dalam 18 bulan data. Tidak digambar di Orbit dan Segmen; digarap AI Prospek dan sales cabangnya.', agent: 'AI Prospek', risk: '' },
+  Baru: { n: 'Baru', nick: 'Dealer baru', todo: 'Tunggu order kedua', s: 'order pertama ≤ 90 hari', k: 'text-3', play: 'Amati dua putaran', desc: 'Order pertama dalam 90 hari terakhir, belum membentuk siklus. Ditempatkan sementara dari nilai order pertama; segmen ditetapkan setelah order kedua.', agent: 'AI Prospek', risk: '' },
 }
 
 export const SEGMENT_ORDER: Segment[] = ['A', 'B', 'C', 'D', 'Baru']

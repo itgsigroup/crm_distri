@@ -414,3 +414,46 @@
 .orbit .dn.dim .dn-t{display:none}
 .orbit .dn-lead{fill:none;stroke:var(--text-3);stroke-width:.8;opacity:.7;pointer-events:none}
 .orbit .dn:hover circle,.orbit .dn:focus circle{stroke:var(--text);stroke-width:2}
+
+/* Segmen — four plain-language boxes (default view); the dot chart stays behind "Peta titik" */
+.sg-bar-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 10px}
+.sg-bar-h h2{font-size:17px;font-weight:700;margin-right:auto}
+.sg-how{font-size:14px;line-height:1.55;color:var(--text-2);margin:0 0 14px}
+.sg-how b{color:var(--text)}
+.sg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sg-box{--c:var(--accent);--soft:var(--accent-soft);display:flex;flex-direction:column;gap:10px;text-align:left;padding:18px;border-radius:16px;background:var(--soft);border:2px solid transparent;cursor:pointer;transition:border-color .15s,opacity .15s,transform .15s;color:var(--text);font:inherit}
+.sg-box:hover{border-color:var(--c)}
+.sg-box:focus-visible{outline:2px solid var(--c);outline-offset:2px}
+.sg-box.is-sel{border-color:var(--c);box-shadow:var(--shadow-lift)}
+.sg-box.is-dim{opacity:.5}
+.sg-B{--c:var(--good);--soft:var(--good-soft)}
+.sg-C{--c:var(--indigo);--soft:var(--indigo-soft)}
+.sg-D{--c:var(--text-2);--soft:var(--surface-3)}
+.sg-head{display:flex;align-items:center;gap:12px}
+.sg-letter{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--c);color:var(--on-accent);font-family:var(--font-display);font-weight:800;font-size:20px}
+.sg-name{display:flex;flex-direction:column;min-width:0}
+.sg-name b{font-family:var(--font-display);font-size:18px;font-weight:800;line-height:1.2}
+.sg-name small{font-size:12.5px;color:var(--text-2)}
+.sg-tags{display:flex;gap:6px;flex-wrap:wrap}
+.sg-tags span{font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--surface);color:var(--text-2)}
+.sg-tags span.up{color:var(--c)}
+.sg-D .sg-tags span.up{color:var(--text)}
+.sg-nums{display:flex;gap:6px 18px;flex-wrap:wrap;align-items:baseline;font-size:14px;color:var(--text-2)}
+.sg-nums em{font-style:normal;font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--text);margin-right:2px}
+.sg-bar{display:block;height:8px;border-radius:4px;background:var(--surface);overflow:hidden}
+.sg-bar i{display:block;height:100%;border-radius:4px;background:var(--c)}
+.sg-pct{font-size:13px;color:var(--text-2);margin-top:-4px}
+.sg-pct b{color:var(--text)}
+.sg-do{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:10px;background:var(--surface);font-size:14.5px;font-weight:700;line-height:1.4}
+.sg-do small{font-size:11.5px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em}
+.sg-top{font-size:13px;color:var(--text-2);line-height:1.45}
+.sg-new{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;width:100%;margin-top:12px;padding:12px 16px;border-radius:12px;background:var(--surface-2);border:2px dashed var(--line-strong);text-align:left;font-size:13.5px;color:var(--text-2);cursor:pointer}
+.sg-new b{color:var(--text);font-size:14.5px}
+.sg-new em{font-style:normal;font-weight:700;color:var(--text);margin-left:auto}
+.sg-new.is-sel,.sg-new:hover{border-color:var(--text-3)}
+.sg-hint{font-size:14px;line-height:1.55;color:var(--text-2);margin:0}
+.kuad .kzs{font-size:12px;font-weight:600;fill:var(--text-2);font-family:var(--font-body)}
+.kuad .kzn{font-size:14px}
+.kuad .kt{font-size:12px}
+.kuad .kax{font-size:11.5px}
+@media (max-width:640px){.sg-grid{grid-template-columns:1fr}.sg-nums em{font-size:22px}}

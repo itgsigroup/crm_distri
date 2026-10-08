@@ -205,3 +205,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 
 ## Orbit mudah dibaca untuk data asli · 2026-10-08
 - Titik digeser hanya **sepanjang lingkarnya sendiri** (tidak lagi menumpuk jadi kolom yang memotong lingkar); ukuran seragam kecil selama share of wallet masih estimasi; 12 nama terpenting dengan garis penunjuk; klik status di "Isi orbit" untuk menyorot satu lingkar. Arti glossary tetap (lingkar = status, sudut = siklus, ukuran = SOW, warna = sisa limit); data contoh 18 dealer memakai tata letak mockup.
+
+## Segmen mudah dibaca · 2026-10-08
+- Tampilan bawaan **Kotak**: 4 kotak besar (A–D) dengan nama sehari-hari (Pelanggan andalan, Rutin tapi kecil, Pelanggan proyek, Kecil & jarang), label "Sering/Jarang order" & "Order besar/kecil", jumlah dealer, omzet/bulan, bar % omzet, satu kalimat "Yang dilakukan", dan 3 contoh dealer. Dealer baru di baris terpisah. Klik kotak → daftar dealer di panel kanan (di HP otomatis bergulir ke daftar).
+- Grafik titik tetap ada di tab **Peta titik**: huruf lebih besar, nama zona + nama sehari-hari, 20 nama dealer (dari 50), judul sumbu dengan kata biasa. Teks "Pindah kotak" ditulis sebagai kalimat (naik/turun ke Segmen X, Saran: …). Nama glossary (Segmen A–D) tidak berubah.
