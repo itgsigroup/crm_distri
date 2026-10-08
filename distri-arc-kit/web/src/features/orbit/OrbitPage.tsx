@@ -8,7 +8,7 @@ import { useOrch, useOrchStatus } from '../../app/orch'
 import { useOrbit, useOrbitMovers, useOrbitSummary, useSales } from '../../app/queries'
 import { FILTER_KEYS, activeCount, applyFilter, digest, sortDealers, type OrbitFilter, type Sort } from './filters'
 import { OrbitDealerList, OrbitFilterBar, OrbitSummary } from './OrbitTools'
-import { CX, CY, H, READABLE_FROM, RINGS, RING_R, W, layoutOrbit, layoutReadable, ringOf } from './geometry'
+import { CX, CY, H, READABLE_FROM, RINGS, RING_R, W, layoutOrbit, layoutReadable } from './geometry'
 
 export function SalesFilters({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const { data: sales = [] } = useSales()
