@@ -52,7 +52,7 @@ function DealerList({ active }: { active?: string }) {
         {shown.map((d) => {
           const m = d.metrics
           return (
-            <button key={d.id} className={`acc-item ${d.id === active ? 'is-active' : ''}`} onClick={() => nav('/dealer/' + d.id)}>
+            <button key={d.id} className={`acc-item ${d.id === active ? 'is-active' : ''}`} onClick={() => nav('/dealer/' + d.id + (status ? '?status=' + encodeURIComponent(status) : ''))}>
               <span className={`dot ${hb(m.score)}`} />
               <div>
                 <b>{d.name}</b>
@@ -318,12 +318,17 @@ function DealerBody({ d }: { d: DealerDetail }) {
 export function DealerPage() {
   const { id } = useParams()
   const nav = useNavigate()
-  const { data: list } = useDealers('')
+  const [params] = useSearchParams()
+  const status = params.get('status') ?? ''
+  const { data: all } = useDealers('')
+  const list = status ? all?.filter((d) => d.metrics.status === status) : all
   const fallback: BoardItem | undefined = list?.find((d) => d.id === 'mitra') ?? list?.[0]
   const current = id ?? fallback?.id
+  const search = params.toString()
   useEffect(() => {
-    if (!id && fallback) nav('/dealer/' + fallback.id, { replace: true })
-  }, [id, fallback, nav])
+    // keep the list filter (?status=Prospek) when opening the first dealer
+    if (!id && fallback) nav('/dealer/' + fallback.id + (search ? '?' + search : ''), { replace: true })
+  }, [id, fallback, nav, search])
   const { data: d } = useDealer(current)
   return (
     <div className="rel">
