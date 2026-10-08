@@ -98,7 +98,14 @@ export function useMapViewport(width: number, height: number) {
       <span aria-live="polite">{Math.round(view.scale * 100)}%</span>
       <button type="button" aria-label="Perbesar peta" title="Perbesar" disabled={view.scale >= MAX_SCALE} onClick={() => zoom(1.25)}>+</button>
       <button type="button" aria-label="Atur ulang peta" title="Atur ulang" onClick={reset}>↺</button>
-      <button type="button" className="map-fullscreen" aria-label={fullscreen ? 'Keluar dari layar penuh' : 'Layar penuh'} title={fullscreen ? 'Keluar dari layar penuh' : 'Layar penuh'} onClick={toggleFullscreen}>{fullscreen ? '×' : '⛶'}</button>
+      <button type="button" className="map-fullscreen" aria-label={fullscreen ? 'Keluar dari layar penuh' : 'Layar penuh'} title={fullscreen ? 'Keluar dari layar penuh' : 'Layar penuh'} onClick={toggleFullscreen}>
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          {fullscreen
+            ? <path d="M2 6h4V2M10 2v4h4M14 10h-4v4M6 14v-4H2" />
+            : <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />}
+        </svg>
+        <span>{fullscreen ? 'Keluar layar penuh' : 'Layar penuh'}</span>
+      </button>
     </div>
   )
 

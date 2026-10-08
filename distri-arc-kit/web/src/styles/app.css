@@ -423,6 +423,8 @@
 .map-controls button:hover:not(:disabled){background:var(--accent-soft);color:var(--accent)}
 .map-controls button:disabled{opacity:.4;cursor:default}
 .map-controls span{min-width:38px;text-align:center;font-variant-numeric:tabular-nums}
+.map-controls .map-fullscreen{display:flex;align-items:center;gap:6px;padding:0 9px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:650;white-space:nowrap}
+.map-controls .map-fullscreen svg{width:15px;height:15px;stroke:currentColor;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .map-viewport:fullscreen{display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;max-width:none;margin:0;padding:54px 20px 20px;box-sizing:border-box;background:var(--surface)}
 .map-viewport:fullscreen .orbit{width:100%;height:auto;max-width:none;max-height:100%}
 .map-viewport:fullscreen .map-controls{position:fixed;top:12px;right:16px}
