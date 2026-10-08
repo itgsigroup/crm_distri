@@ -348,6 +348,17 @@ func Score(in ScoreInput) (int, domain.ScoreParts) {
 func Compute(h domain.DealerHistory, p domain.PolicySet, today time.Time) domain.DealerMetrics {
 	m := domain.DealerMetrics{AsOf: today}
 	dates := confirmedDates(h.Orders)
+	if len(dates) == 0 && h.OrderedBefore != nil { // silent for longer than the loaded history
+		last := DaysBetween(*h.OrderedBefore, today)
+		m.Last = &last
+		m.Status, m.Activity, m.Segment = domain.StatusChurn, domain.ActivityBerhenti, domain.SegmentD
+		m.SOW, m.SOWSource = SOW(h.SOWEstimates, h.CompetitorSOW)
+		m.Credit = CreditOf(CreditInput{Limit: h.CreditLimit, Invoices: h.Invoices}, today, p)
+		m.PICActive = PICActive(h.Contacts, today)
+		gone := 30 // rhythm unknown: score the cycle part as long gone
+		m.Score, m.ScoreParts = Score(ScoreInput{Rhythm: &gone, Cyc: 3, SOW: m.SOW, Limit: h.CreditLimit, Room: m.Credit.Room, OnTime: m.Credit.OnTime, PICCount: m.PICActive})
+		return m
+	}
 	if len(dates) == 0 { // never ordered: a prospect, not a "new" dealer
 		m.Status, m.Activity, m.Segment = domain.StatusProspek, domain.ActivityBaru, domain.SegmentProspek
 		m.SOW, m.SOWSource = SOW(h.SOWEstimates, h.CompetitorSOW)

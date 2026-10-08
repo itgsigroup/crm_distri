@@ -102,3 +102,9 @@ select x.at, x.kind, x.via, x.who, x.text, x.conclusion, x.ref from (
   from proposals p left join sales_users su on su.id = p.decided_by
   where p.dealer_id = sqlc.arg(dealer_id) and p.decided_at is not null and p.kind <> 'reply'
 ) x order by x.at desc limit sqlc.arg(lim);
+
+-- name: LastOrderBefore :many
+-- The latest order of each dealer older than the loaded history (a dealer silent for over a year is Churn, not a prospect).
+select dealer_id, max(coalesce(confirmed_at, ordered_at))::timestamptz as last_at from orders
+where state <> 'cancel' and dealer_id is not null and coalesce(confirmed_at, ordered_at) < $1
+group by dealer_id;

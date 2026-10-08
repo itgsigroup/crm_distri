@@ -64,9 +64,22 @@ func (s *Service) Load(ctx context.Context) (*Dataset, error) {
 	if err != nil {
 		return nil, err
 	}
+	older, err := s.st.Q.LastOrderBefore(ctx, &since)
+	if err != nil {
+		return nil, err
+	}
 	h := map[uuid.UUID]domain.DealerHistory{}
 	for _, d := range dealers {
 		h[d.ID] = domain.DealerHistory{CreditLimit: d.CreditLimit, TermsDays: int(d.PaymentTermsDays)}
+	}
+	for _, o := range older {
+		if o.DealerID == nil {
+			continue
+		}
+		x := h[*o.DealerID]
+		t := o.LastAt
+		x.OrderedBefore = &t
+		h[*o.DealerID] = x
 	}
 	for _, o := range orders {
 		if o.DealerID == nil {

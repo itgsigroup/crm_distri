@@ -291,6 +291,13 @@ func TestReclassifyRealData(t *testing.T) {
 			t.Fatalf("%s %s %d", m.Status, m.Segment, m.OmzetBln)
 		}
 	})
+	t.Run("silent longer than the loaded history is Churn", func(t *testing.T) {
+		old := ago(500)
+		m := Compute(domain.DealerHistory{OrderedBefore: &old}, p, today)
+		if m.Status != domain.StatusChurn || m.Last == nil || *m.Last != 500 || m.ScoreParts.Rhythm != 0 {
+			t.Fatalf("%s %v %d", m.Status, m.Last, m.ScoreParts.Rhythm)
+		}
+	})
 	t.Run("several invoices on one day are one order", func(t *testing.T) {
 		var os []domain.Order
 		for _, d := range []int{60, 60, 60, 30, 30, 2, 2} {

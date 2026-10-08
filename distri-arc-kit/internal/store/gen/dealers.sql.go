@@ -160,6 +160,38 @@ func (q *Queries) GetDealer(ctx context.Context, slug *string) (GetDealerRow, er
 	return i, err
 }
 
+const lastOrderBefore = `-- name: LastOrderBefore :many
+select dealer_id, max(coalesce(confirmed_at, ordered_at))::timestamptz as last_at from orders
+where state <> 'cancel' and dealer_id is not null and coalesce(confirmed_at, ordered_at) < $1
+group by dealer_id
+`
+
+type LastOrderBeforeRow struct {
+	DealerID *uuid.UUID `json:"dealer_id"`
+	LastAt   time.Time  `json:"last_at"`
+}
+
+// The latest order of each dealer older than the loaded history (a dealer silent for over a year is Churn, not a prospect).
+func (q *Queries) LastOrderBefore(ctx context.Context, confirmedAt *time.Time) ([]LastOrderBeforeRow, error) {
+	rows, err := q.db.Query(ctx, lastOrderBefore, confirmedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LastOrderBeforeRow{}
+	for rows.Next() {
+		var i LastOrderBeforeRow
+		if err := rows.Scan(&i.DealerID, &i.LastAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listContacts = `-- name: ListContacts :many
 select id, dealer_id, name, role, wa_number, is_primary, last_interaction_at, interactions_90d, source_system, source_id, interactions_base, base_as_of from contacts order by dealer_id, interactions_90d desc, name
 `

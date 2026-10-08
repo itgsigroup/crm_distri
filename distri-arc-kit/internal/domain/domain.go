@@ -138,6 +138,8 @@ type DealerHistory struct {
 	Contacts      []Contact
 	SOWEstimates  []SOWEstimate
 	CompetitorSOW *int // AI Order extraction from WA (confidence ≥ 0.7), when available
+	// OrderedBefore is the latest order older than the loaded history (ADR 0023): such a dealer is Churn, not Prospek
+	OrderedBefore *time.Time
 }
 
 // Credit is the sisa-limit block of the metrics.
