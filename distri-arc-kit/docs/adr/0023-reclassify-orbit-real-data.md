@@ -16,9 +16,12 @@ Dengan data asli (2.841 pelanggan, 18 bulan faktur Accurate) klasifikasi glossar
 - **Seringnya & omzet/bln aktual**: hari order / penjualan 6 bulan dibagi bulan aktif (≤ 6, sejak order pertama).
 - **Status baru "Prospek"** untuk pelanggan yang belum pernah order: tidak digambar di Orbit/Segmen, dihitung terpisah
   (+ filter di halaman Dealer). Order sekali > `orbit.new_days` (90) lalu, atau diam > 365 hari → Churn.
+- **Churn** juga butuh `orbit.churn_min_days` hari tanpa order (produksi 60): pembeli 2×/minggu yang diam 3 minggu
+  masih At risk, belum Churn.
 - **Key account** juga butuh `orbit.key_account.omzet_min` (Rp/bln; 0 = tanpa syarat, produksi diset Rp25 jt).
 - Ambang Segmen produksi dikalibrasi ke distribusi aktual lewat kebijakan (bukan kode): sering ≥ 1×/bln (±P70),
-  besar ≥ Rp10 jt per order (±P75).
+  besar ≥ Rp10 jt per order (±P75). Tepat waktu Key account 60% (median pembayaran dealer besar 60%, tidak ada yang
+  ≥ 85%).
 
 ## Akibat
 - Seed 18 dealer mockup tetap sama (regresi hijau); default kode tidak berubah kecuali `min_rhythm_days`/`new_days`.

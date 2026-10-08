@@ -328,6 +328,17 @@ func TestReclassifyRealData(t *testing.T) {
 			t.Fatalf("recent single order: %s %s", m.Status, m.Segment)
 		}
 	})
+	t.Run("a frequent buyer silent a few weeks is At risk until churn_min_days", func(t *testing.T) {
+		h := domain.DealerHistory{Orders: orders(7, 20, 5e6)}
+		if m := Compute(h, p, today); m.Status != domain.StatusChurn {
+			t.Fatalf("glossary default: %s", m.Status)
+		}
+		p2 := p
+		p2.Orbit.ChurnMinDays = 60
+		if m := Compute(h, p2, today); m.Status != domain.StatusAtRisk {
+			t.Fatalf("with churn_min_days 60: %s", m.Status)
+		}
+	})
 	t.Run("Key account needs omzet when the policy sets it", func(t *testing.T) {
 		h := domain.DealerHistory{Orders: orders(14, 6, 10e6)}
 		if m := Compute(h, p, today); m.Status != domain.StatusKeyAccount {

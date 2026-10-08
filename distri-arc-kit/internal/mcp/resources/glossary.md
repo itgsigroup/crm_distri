@@ -18,7 +18,7 @@ if belum pernah order                         → "Prospek"   (tidak digambar di
 if order terakhir > 365 hari                  → "Churn"
 if rhythm == null && order terakhir > policy.new_days (90) → "Churn"   (sekali order, tidak kembali)
 if rhythm == null                             → "Baru"      (tampil di lingkar Aktif, titik hollow)
-if cyc > 2.0                                  → "Churn"
+if cyc > 2.0 && order terakhir >= policy.churn_min_days → "Churn"   (produksi 60 hari; sebelum itu "At risk")
 if cyc > policy.drift (1.2)                   → "At risk"
 if sow >= 50 && on_time >= 85 && omzet_bln >= policy.key_account.omzet_min → "Key account"
 else                                          → "Aktif"

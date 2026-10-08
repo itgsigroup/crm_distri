@@ -425,6 +425,8 @@ func Compute(h domain.DealerHistory, p domain.PolicySet, today time.Time) domain
 	switch {
 	case last > window12m || (m.Rhythm == nil && last > newDays): // silent a year, or ordered once and never came back
 		m.Status, m.Activity = domain.StatusChurn, domain.ActivityBerhenti
+	case m.Status == domain.StatusChurn && last < p.Orbit.ChurnMinDays:
+		m.Status = domain.StatusAtRisk
 	case m.Status == domain.StatusKeyAccount && m.OmzetBln < p.Orbit.KeyAccount.OmzetMin:
 		m.Status = domain.StatusAktif
 	}

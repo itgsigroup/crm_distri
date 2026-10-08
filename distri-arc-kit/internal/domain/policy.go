@@ -25,7 +25,9 @@ type OrbitPolicy struct {
 	// MinRhythmDays floors siklus order: a dealer ordering several times a week is not "lewat jadwal" after 4 days
 	MinRhythmDays int `json:"min_rhythm_days,omitempty"`
 	// NewDays: a dealer with one order day is Baru for this many days, then Churn (ordered once, never came back)
-	NewDays    int `json:"new_days,omitempty"`
+	NewDays int `json:"new_days,omitempty"`
+	// ChurnMinDays: Churn also needs this many days without an order (a twice-a-week buyer silent 15 days is At risk)
+	ChurnMinDays int `json:"churn_min_days,omitempty"`
 	KeyAccount struct {
 		SOWMin    int   `json:"sow_min"`
 		OnTimeMin int   `json:"on_time_min"`
