@@ -51,6 +51,7 @@ export class NetView {
   private yaw = 0.6
   private pitch = 0.32
   private dist = 40
+  private maxDist = 70
   private auto: boolean
   private reduced: boolean
   private raf = 0
@@ -85,7 +86,7 @@ export class NetView {
     if (this.renderer) {
       this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
       this.scene = new THREE.Scene()
-      this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 400)
+      this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 4000)
       this.scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.1))
       const dl = new THREE.DirectionalLight(0xffffff, 0.55)
       dl.position.set(4, 8, 6)
@@ -375,7 +376,7 @@ export class NetView {
     }
     const wheel = (e: WheelEvent) => {
       e.preventDefault()
-      this.dist = Math.max(18, Math.min(70, this.dist + e.deltaY * 0.03))
+      this.dist = Math.max(10, Math.min(this.maxDist, this.dist + e.deltaY * 0.03 * (this.maxDist / 70)))
     }
     cv.addEventListener('pointerdown', down)
     cv.addEventListener('pointermove', move)
@@ -394,7 +395,21 @@ export class NetView {
     })
   }
 
+  /** Camera distance that shows the whole network (real teams draw hundreds of dealers, the mockup 22). */
+  private fit() {
+    const ns = this.l.nodes
+    if (!ns.length) return
+    const cx = ns.reduce((a, n) => a + n.x, 0) / ns.length
+    const cy = ns.reduce((a, n) => a + n.y, 0) / ns.length
+    const cz = ns.reduce((a, n) => a + n.z, 0) / ns.length
+    const d = ns.map((n) => Math.hypot(n.x - cx, n.y - cy, n.z - cz)).sort((a, b) => a - b)
+    const r = d[Math.floor(d.length * 0.92)] ?? 10 // ignore a few far outliers
+    this.dist = Math.max(40, r * 2.7)
+    this.maxDist = Math.max(70, this.dist * 2)
+  }
+
   start() {
+    this.fit()
     this.theme()
     this.resize()
     if (!this.raf) this.frame()
