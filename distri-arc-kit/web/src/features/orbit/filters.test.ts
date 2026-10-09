@@ -17,8 +17,10 @@ const list = [
   dealer('Baru', { status: 'Baru', rhythm_days: null, due_in: null, last_order_days: 9, credit: { state: 'cash', exposure: 0 } as M['credit'], segment: 'Baru' }),
 ]
 
-test('jadwal order minggu ini: 0 ≤ due_in ≤ 7 with a cycle, never Churn or Baru', () => {
+test('jadwal order 2 minggu: 0 ≤ due_in ≤ 14 with a cycle, never Churn or Baru', () => {
   expect(applyFilter(list, { ...EMPTY, jadwal: 'minggu' }).map((d) => d.id)).toEqual(['Sinar'])
+  const edge = [dealer('Hari14', { due_in: 14 }), dealer('Hari15', { due_in: 15 }), dealer('Hari8', { due_in: 8 })]
+  expect(applyFilter(edge, { ...EMPTY, jadwal: 'minggu' }).map((d) => d.id)).toEqual(['Hari14', 'Hari8'])
 })
 
 test('lewat jadwal is the At risk ring; tagih dulu is over limit or overdue', () => {

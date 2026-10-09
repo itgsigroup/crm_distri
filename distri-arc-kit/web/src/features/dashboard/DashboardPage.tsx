@@ -6,7 +6,7 @@ import { useBrief, useCreditOverview, useKpi, useMe, useOrbit, useOrbitSummary, 
 import { fmtNum, fmtRp, hhmm, shortDate } from '../../lib/format'
 import { KUAD } from '../../lib/i18n/id'
 import type { BoardItem, Segment } from '../../api/types'
-import { dueThisWeek } from '../orbit/filters'
+import { dueSoon } from '../orbit/filters'
 import './dashboard.css'
 
 const segments: Segment[] = ['A', 'B', 'C', 'D', 'Baru']
@@ -72,7 +72,7 @@ export function DashboardPage() {
   const active = dealers.filter((d) => d.metrics.segment !== 'Prospek')
   const omzet = active.reduce((sum, d) => sum + d.metrics.omzet_bln, 0)
   const atRisk = active.filter((d) => d.metrics.status === 'At risk' || d.metrics.status === 'Churn').length
-  const due = active.filter(dueThisWeek).length
+  const due = active.filter(dueSoon).length
   const segmentRows = segments.map((segment) => {
     const items = active.filter((d) => d.metrics.segment === segment)
     return { segment, count: items.length, revenue: items.reduce((sum, d) => sum + d.metrics.omzet_bln, 0) }
@@ -108,7 +108,7 @@ export function DashboardPage() {
       <Metric label="Omzet dealer · per bulan" value={boardPending || boardError ? '—' : fmtRp(omzet)} detail="Total estimasi omzet bulanan dealer" to={can('kuad') ? '/orbit/segmen' : undefined} />
       <Metric label="Order tepat jadwal" value={kpiPending || kpiError ? '—' : `${kpi?.on_schedule_pct ?? 0}%`} detail={kpi ? `Target ${kpi.targets.on_schedule_pct}%` : 'Dari KPI order'} tone={kpi && kpi.on_schedule_pct < kpi.targets.on_schedule_pct ? 'warn' : undefined} to={can('today') ? '/' : undefined} />
       <Metric label="Dealer At risk / Churn" value={boardPending || boardError ? '—' : fmtNum(atRisk)} detail="Perlu tindak lanjut" tone="bad" to={can('orbit') ? '/orbit' : undefined} />
-      <Metric label="Jadwal order · 7 hari" value={boardPending || boardError ? '—' : fmtNum(due)} detail="Dealer mendekati jadwal order" to={can('orbit') ? '/orbit?jadwal=minggu' : undefined} />
+      <Metric label="Jadwal order · 14 hari" value={boardPending || boardError ? '—' : fmtNum(due)} detail="Dealer mendekati jadwal order" to={can('orbit') ? '/orbit?jadwal=minggu' : undefined} />
       <Metric label="Stok menua untuk didorong" value={pushPending || pushError ? '—' : fmtNum(push?.length ?? 0)} detail={pushPending ? 'Memuat data stok…' : `${fmtRp((push ?? []).reduce((sum, item) => sum + item.value, 0))} nilai stok`} tone="warn" to={can('stock') ? '/stok' : undefined} />
       <Metric label="DSO · order ke bayar" value={kpiPending || kpiError ? '—' : `${kpi?.dso_days ?? 0} hari`} detail={kpi ? `Target ≤ ${kpi.targets.dso_days} hari` : 'Rata-rata waktu pembayaran'} tone={kpi && kpi.dso_days > kpi.targets.dso_days ? 'warn' : undefined} to={can('ar') ? '/kredit' : undefined} />
       <Metric label="Perputaran stok" value={kpiPending || kpiError ? '—' : `${kpi?.stock_turn_days ?? 0} hari`} detail={kpi ? `Target ≤ ${kpi.targets.stock_turn_days} hari` : 'Rata-rata waktu stok berputar'} tone={kpi && kpi.stock_turn_days > kpi.targets.stock_turn_days ? 'warn' : undefined} to={can('stock') ? '/stok' : undefined} />

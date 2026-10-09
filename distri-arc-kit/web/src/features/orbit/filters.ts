@@ -19,10 +19,13 @@ export interface OrbitFilter {
 export const EMPTY: OrbitFilter = { q: '', status: '', jadwal: '', limit: '', segmen: '', cabang: '' }
 export const FILTER_KEYS = Object.keys(EMPTY) as (keyof OrbitFilter)[]
 
-/** Due within a week: has a cycle, not lost, 0 ≤ due_in ≤ 7. */
-export const dueThisWeek = (d: BoardItem) => {
+/** Window of "Jadwal order" on Orbit and the dashboard: the next 2 weeks. */
+export const DUE_DAYS = 14
+
+/** Due within the window: has a cycle, not lost, 0 ≤ due_in ≤ DUE_DAYS. */
+export const dueSoon = (d: BoardItem) => {
   const m = d.metrics
-  return !!m.rhythm_days && m.due_in != null && m.due_in >= 0 && m.due_in <= 7 && m.status !== 'Churn'
+  return !!m.rhythm_days && m.due_in != null && m.due_in >= 0 && m.due_in <= DUE_DAYS && m.status !== 'Churn'
 }
 export const isLate = (d: BoardItem) => d.metrics.status === 'At risk'
 export const mustCollect = (d: BoardItem) => d.metrics.credit.state === 'over limit' || d.metrics.credit.state === 'overdue'
@@ -37,7 +40,7 @@ export function applyFilter(list: BoardItem[], f: OrbitFilter): BoardItem[] {
   return list.filter((d) => {
     if (q && !`${d.name} ${d.short_name} ${d.city} ${d.owner.name}`.toLowerCase().includes(q)) return false
     if (f.status && ringOf(d) !== f.status) return false
-    if (f.jadwal === 'minggu' && !dueThisWeek(d)) return false
+    if (f.jadwal === 'minggu' && !dueSoon(d)) return false
     if (f.jadwal === 'lewat' && !isLate(d)) return false
     if (f.limit && limitOf(d) !== f.limit) return false
     if (f.segmen && d.metrics.segment !== f.segmen) return false
@@ -69,7 +72,7 @@ export interface OrbitDigest {
 
 export function digest(list: BoardItem[]): OrbitDigest {
   const sum = (xs: BoardItem[]) => xs.reduce((a, d) => a + d.metrics.omzet_bln, 0)
-  const due = list.filter(dueThisWeek)
+  const due = list.filter(dueSoon)
   const late = list.filter(isLate)
   const collect = list.filter(mustCollect)
   const churn = list.filter((d) => d.metrics.status === 'Churn')

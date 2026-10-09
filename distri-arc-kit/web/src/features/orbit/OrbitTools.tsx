@@ -8,7 +8,7 @@ import { Icon } from '../../components/Icon'
 import { Pill, type Tone } from '../../components/ui'
 import { fmtRp } from '../../lib/format'
 import { KUAD, SEGMENT_ORDER } from '../../lib/i18n/id'
-import { EMPTY, activeCount, type OrbitDigest, type OrbitFilter } from './filters'
+import { DUE_DAYS, EMPTY, activeCount, type OrbitDigest, type OrbitFilter } from './filters'
 import { RINGS } from './geometry'
 
 type SetF = (patch: Partial<OrbitFilter>) => void
@@ -16,7 +16,7 @@ type SetF = (patch: Partial<OrbitFilter>) => void
 /** Four tiles that answer "what needs me today"; a click filters the board to exactly those dealers. */
 export function OrbitSummary({ g, f, set }: { g: OrbitDigest; f: OrbitFilter; set: SetF }) {
   const tiles: { key: string; on: boolean; patch: Partial<OrbitFilter>; tone: string; icon: string; n: number; t: string; s: string }[] = [
-    { key: 'due', on: f.jadwal === 'minggu', patch: { jadwal: f.jadwal === 'minggu' ? '' : 'minggu' }, tone: 'good', icon: 'cal', n: g.due.n, t: 'Jadwal order minggu ini', s: `hubungi H-1 dengan rekomendasi order · ${fmtRp(g.due.omzet)}/bln` },
+    { key: 'due', on: f.jadwal === 'minggu', patch: { jadwal: f.jadwal === 'minggu' ? '' : 'minggu' }, tone: 'good', icon: 'cal', n: g.due.n, t: 'Jadwal order 2 minggu ke depan', s: `hubungi H-1 dengan rekomendasi order · ${fmtRp(g.due.omzet)}/bln` },
     { key: 'late', on: f.jadwal === 'lewat', patch: { jadwal: f.jadwal === 'lewat' ? '' : 'lewat' }, tone: 'warn', icon: 'refresh', n: g.late.n, t: 'Lewat jadwal', s: `follow-up sebelum ordernya hilang · ${fmtRp(g.late.omzet)}/bln` },
     { key: 'collect', on: f.limit === 'tagih', patch: { limit: f.limit === 'tagih' ? '' : 'tagih' }, tone: 'bad', icon: 'cash', n: g.collect.n, t: 'Tagih dulu', s: `over limit / overdue · piutang ${fmtRp(g.collect.exposure)}` },
     { key: 'churn', on: f.status === 'Churn', patch: { status: f.status === 'Churn' ? '' : 'Churn' }, tone: 'neutral', icon: 'user-x', n: g.churn.n, t: 'Churn', s: 'sudah lama tidak order · cukup dipantau' },
@@ -51,7 +51,7 @@ export function OrbitFilterBar({ f, set, branches, shown, total }: { f: OrbitFil
       </select>
       <select className={`of-s${f.jadwal ? ' on' : ''}`} value={f.jadwal} onChange={(e) => set({ jadwal: e.target.value as OrbitFilter['jadwal'] })} aria-label="Jadwal order">
         <option value="">Semua jadwal</option>
-        <option value="minggu">Jadwal order ≤ 7 hari</option>
+        <option value="minggu">Jadwal order ≤ 14 hari (2 minggu)</option>
         <option value="lewat">Lewat jadwal</option>
       </select>
       <select className={`of-s${f.limit ? ' on' : ''}`} value={f.limit} onChange={(e) => set({ limit: e.target.value as OrbitFilter['limit'] })} aria-label="Sisa limit">
@@ -88,7 +88,7 @@ export function scheduleText(d: BoardItem): [string, Tone] {
   if (m.due_in < 0) return [`lewat ${-m.due_in} hari`, m.status === 'At risk' ? 'warn' : 'neutral']
   if (m.due_in === 0) return ['hari ini', 'good']
   if (m.due_in === 1) return ['besok', 'good']
-  return [`${m.due_in} hari lagi`, m.due_in <= 7 ? 'good' : 'neutral']
+  return [`${m.due_in} hari lagi`, m.due_in <= DUE_DAYS ? 'good' : 'neutral']
 }
 
 type DealerColumn = 'dealer' | 'status' | 'jadwal' | 'omzet' | 'limit'

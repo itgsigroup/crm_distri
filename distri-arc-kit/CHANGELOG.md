@@ -238,3 +238,4 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 
 ## Dashboard · 2026-10-09
 - Card **Sorotan Orchestrator** dihapus dari Dashboard (permintaan Sam). Keputusan dan ringkasan Orchestrator tetap ada di Pusat kendali; header Dashboard masih menampilkan waktu ringkasan AI terakhir.
+- **Jadwal order 7 → 14 hari** (permintaan Sam) di Orbit: kotak ringkasan "Jadwal order 2 minggu ke depan", filter "Jadwal order ≤ 14 hari (2 minggu)", warna hijau di kolom jadwal daftar dealer; metrik Dashboard ikut ("Jadwal order · 14 hari", satu definisi `DUE_DAYS` di `orbit/filters.ts`, diuji batas 14/15 hari). Pusat kendali dan agen AI di server tetap 7 hari.
