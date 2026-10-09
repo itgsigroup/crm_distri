@@ -279,6 +279,8 @@ export function useMapViewport(width: number, height: number) {
     /** 0 = every dot on its true position, 1 = dots spread apart so none overlap */
     positionBlend: spreadOf(dot),
     dragging,
+    /** the visible part of the map, in map units */
+    rect: vb,
     controls,
     // --mu keeps labels at their normal size on screen while zooming (see .map-viewport svg text)
     svgProps: { ref: svgRef, preserveAspectRatio: 'xMidYMid meet', style: { '--mu': 1 / view.zoom } as CSSProperties, onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp, onClickCapture, onDoubleClick },

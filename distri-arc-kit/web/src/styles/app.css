@@ -421,6 +421,9 @@
 .map-viewport .dn circle{transition:none}
 .map-viewport svg line,.map-viewport svg .ring-l,.map-viewport svg .kz{vector-effect:non-scaling-stroke}
 .map-viewport svg text{transform-box:fill-box;transform-origin:center;scale:var(--mu,1)}
+.kuad .kaxis{stroke:var(--text-3);stroke-width:1.2}
+.kuad-plot{overflow:hidden;cursor:grab}
+.map-viewport.is-panning .kuad-plot{cursor:grabbing}
 .map-controls{position:absolute;z-index:6;top:8px;right:8px;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:4px;max-width:calc(100% - 16px);padding:4px;border:1px solid var(--line);border-radius:11px;background:var(--surface);box-shadow:var(--shadow);color:var(--text);font-size:11.5px}
 .map-ctl-group{display:flex;align-items:center;gap:2px;padding-right:4px;margin-right:2px;border-right:1px solid var(--line)}
 .map-controls button{display:grid;place-items:center;min-width:30px;height:30px;padding:0 7px;border-radius:7px;background:var(--surface-2);color:var(--text);font:inherit;font-size:17px;font-weight:700;cursor:pointer}

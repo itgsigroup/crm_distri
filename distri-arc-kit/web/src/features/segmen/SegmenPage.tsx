@@ -13,7 +13,7 @@ import { Legend, MoverList, SalesFilters } from '../orbit/OrbitPage'
 import { toneOf } from '../orbit/geometry'
 import { SegmenFilterBar } from './SegmenFilterBar'
 import { applySegmenFilters, EMPTY_SEGMEN_FILTER, summarizeSegmen, type SegmenFilter } from './filters'
-import { B, H, L, R, T, W, clampY, px, py, xOf } from './scale'
+import { B, H, L, R, T, W, clampY, fmtTick, freqAt, px, py, valueAt, xOf, xTicks, yTicks } from './scale'
 
 const zoneColor = (k: Segment) => (KUAD[k].k === 'text-3' ? 'text-2' : KUAD[k].k)
 const textColor = (k: Segment) => (KUAD[k].k === 'text-3' ? 'text' : KUAD[k].k)
@@ -40,7 +40,7 @@ function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, marke
   const compact = dense && list.length > SEGMEN_PRIORITY
   const nodes = list.map((d) => {
     const m = d.metrics
-    const size = 7 + Math.sqrt(m.sow) * 1.3
+    const size = 5 + Math.sqrt(m.sow) * 0.9 // size = share of wallet, smaller than the mockup so hundreds of dealers fit
     const x = xOf(m.freq)
     const y = clampY(m.avg_order)
     const baseSize = compact ? Math.max(3, size * 0.35) : size
@@ -114,7 +114,10 @@ function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, marke
 }
 
 function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem[]; sel: Segment | null; onSel: (k: Segment | null) => void; onOpen: (id: string) => void; thresholds: { freq_per_month: number; size_idr: number } }) {
-  const { containerRef: wrap, svgProps, ...viewport } = useMapViewport(W, H)
+  // only the plot area zooms and pans; the axes with their arrows stay in place and their ticks follow the zoom
+  const PW = W - L - R
+  const PH = H - T - B
+  const { containerRef: wrap, svgProps, ...viewport } = useMapViewport(PW, PH)
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
   const [all, setAll] = useState(false)
   const xq = px(thresholds.freq_per_month)
@@ -147,6 +150,14 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   }
   const hd = hover?.d
   const fq = (s: number) => String(s).replace('.', ',')
+  // visible part of the plot in chart coordinates → axis ticks for exactly that range
+  const vis = viewport.rect
+  const cx0 = vis.x + L
+  const cy0 = vis.y + T
+  const sx = (x: number) => L + (x - cx0) * (PW / vis.w)
+  const sy = (y: number) => T + (y - cy0) * (PH / vis.h)
+  const xs = xTicks(Math.max(0, freqAt(cx0)), freqAt(cx0 + vis.w))
+  const ys = yTicks(valueAt(cy0 + vis.h), valueAt(cy0))
   return (
     <div>
       <div className="kuad-controls">
@@ -157,51 +168,54 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
         </div>
       </div>
       <div className={`orbit-wrap kuad-wrap ${viewport.className}`} ref={wrap} onMouseLeave={() => setHover(null)}>
-      <svg className="orbit kuad" viewBox={viewport.viewBox} role="group" aria-label="Peta segmen pelanggan" {...svgProps}>
-        {Z.map(([k, x, y, w, h]) => (
-          <rect key={k} x={x.toFixed(1)} y={y.toFixed(1)} width={w.toFixed(1)} height={h.toFixed(1)} fill={`var(--${KUAD[k].k})`} opacity={sel && sel !== k ? 0.015 : k === 'D' ? 0.04 : 0.06} className="kz" onClick={() => onSel(k)} />
+      <svg className="orbit kuad" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Peta segmen pelanggan">
+        <defs>
+          <marker id="kuad-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0L10 5L0 10z" fill="var(--text-3)" />
+          </marker>
+        </defs>
+        {ys.map((v) => (
+          <text key={v} x={L - 8} y={(sy(py(v)) + 4).toFixed(1)} textAnchor="end" className="kt">{fmtTick(v)}</text>
         ))}
-        {[5e6, 10e6, 20e6, 50e6, 100e6, 200e6].map((v) => {
-          const y = py(v)
-          return (
-            <g key={v}>
-              <line x1={L} y1={y.toFixed(1)} x2={W - R} y2={y.toFixed(1)} className="kg" />
-              <text x={L - 8} y={(y + 4).toFixed(1)} textAnchor="end" className="kt">{fmtRp(v).replace('Rp ', '')}</text>
-            </g>
-          )
-        })}
-        {[0.5, 1, 1.5, 2, 2.5, 3].map((x) => {
-          const X = px(x)
-          return (
-            <g key={x}>
-              <line x1={X.toFixed(1)} y1={T} x2={X.toFixed(1)} y2={H - B} className="kg" />
-              <text x={X.toFixed(1)} y={H - B + 16} textAnchor="middle" className="kt">{fq(x)}×</text>
-              <text x={X.toFixed(1)} y={H - B + 29} textAnchor="middle" className="kt sm">{Math.round(30 / x)} hr</text>
-            </g>
-          )
-        })}
-        <text x={(L + W - R) / 2} y={H - 10} textAnchor="middle" className="kax">← jarang order · BERAPA KALI ORDER SEBULAN · sering order →</text>
-        <text transform={`translate(16 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" className="kax">BESAR SEKALI ORDER (Rp) · makin atas makin besar →</text>
-        <line x1={xq.toFixed(1)} y1={T} x2={xq.toFixed(1)} y2={H - B} className="kq" />
-        <line x1={L} y1={yq.toFixed(1)} x2={W - R} y2={yq.toFixed(1)} className="kq" />
-        <text x={(xq + 5).toFixed(1)} y={H - B - 8} className="kt sm" fill="var(--text-2)">sering: ≥ {fq(thresholds.freq_per_month)}×/bln</text>
-        <text x={W - R - 5} y={(yq - 7).toFixed(1)} textAnchor="end" className="kt sm" fill="var(--text-2)">besar: ≥ {fmtRp(thresholds.size_idr)} / order</text>
-        {ZL.map(([k, x, y, a]) => (
-          <g key={k} className={`kzl ${sel && sel !== k ? 'dim' : ''}`} onClick={() => onSel(k)}>
-            <text x={x} y={y} textAnchor={a} className="kzn" fill={`var(--${zoneColor(k)})`}>{KUAD[k].n.toUpperCase()}</text>
-            <text x={x} y={y + 15} textAnchor={a} className="kzs">{KUAD[k].nick}</text>
+        {xs.map((f) => (
+          <g key={f}>
+            <text x={sx(px(f)).toFixed(1)} y={H - B + 16} textAnchor="middle" className="kt">{fq(f)}×</text>
+            <text x={sx(px(f)).toFixed(1)} y={H - B + 29} textAnchor="middle" className="kt sm">{Math.round(30 / f)} hr</text>
           </g>
         ))}
-        {nodes.map(({ d, x, y, size, baru }) => {
-          const tone = toneOf(d.metrics.credit.state)
-          const r = Math.max(1.6 * viewport.unit, size * resize)
-          return (
-            <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
-              <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={Math.max(r, 7 * viewport.unit).toFixed(2)} className="dn-hit" fill="transparent" pointerEvents="all" />
-              <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={r.toFixed(2)} style={{ strokeWidth: strokeW }} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} className="dn-dot" {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: `${(3 * viewport.unit).toFixed(2)} ${(3 * viewport.unit).toFixed(2)}` } : {})} />
-            </g>
-          )
-        })}
+        <line x1={L} y1={H - B} x2={W - R + 12} y2={H - B} className="kaxis" markerEnd="url(#kuad-arrow)" />
+        <line x1={L} y1={H - B} x2={L} y2={T - 12} className="kaxis" markerEnd="url(#kuad-arrow)" />
+        <text x={(L + W - R) / 2} y={H - 10} textAnchor="middle" className="kax">← jarang order · BERAPA KALI ORDER SEBULAN · sering order →</text>
+        <text transform={`translate(16 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" className="kax">BESAR SEKALI ORDER (Rp) · makin atas makin besar →</text>
+        <svg x={L} y={T} width={PW} height={PH} viewBox={viewport.viewBox} className="kuad-plot" {...svgProps}>
+          <g transform={`translate(${-L} ${-T})`}>
+            {Z.map(([k, x, y, w, h]) => (
+              <rect key={k} x={x.toFixed(1)} y={y.toFixed(1)} width={w.toFixed(1)} height={h.toFixed(1)} fill={`var(--${KUAD[k].k})`} opacity={sel && sel !== k ? 0.015 : k === 'D' ? 0.04 : 0.06} className="kz" onClick={() => onSel(k)} />
+            ))}
+            {ys.map((v) => <line key={v} x1={L} y1={py(v).toFixed(2)} x2={W - R} y2={py(v).toFixed(2)} className="kg" />)}
+            {xs.map((f) => <line key={f} x1={px(f).toFixed(2)} y1={T} x2={px(f).toFixed(2)} y2={H - B} className="kg" />)}
+            <line x1={xq.toFixed(1)} y1={T} x2={xq.toFixed(1)} y2={H - B} className="kq" />
+            <line x1={L} y1={yq.toFixed(1)} x2={W - R} y2={yq.toFixed(1)} className="kq" />
+            <text x={(xq + 5).toFixed(1)} y={H - B - 8} className="kt sm" fill="var(--text-2)">sering: ≥ {fq(thresholds.freq_per_month)}×/bln</text>
+            <text x={W - R - 5} y={(yq - 7).toFixed(1)} textAnchor="end" className="kt sm" fill="var(--text-2)">besar: ≥ {fmtRp(thresholds.size_idr)} / order</text>
+            {ZL.map(([k, x, y, a]) => (
+              <g key={k} className={`kzl ${sel && sel !== k ? 'dim' : ''}`} onClick={() => onSel(k)}>
+                <text x={x} y={y} textAnchor={a} className="kzn" fill={`var(--${zoneColor(k)})`}>{KUAD[k].n.toUpperCase()}</text>
+                <text x={x} y={y + 15} textAnchor={a} className="kzs">{KUAD[k].nick}</text>
+              </g>
+            ))}
+            {nodes.map(({ d, x, y, size, baru }) => {
+              const tone = toneOf(d.metrics.credit.state)
+              const r = Math.max(1.6 * viewport.unit, size * resize)
+              return (
+                <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
+                  <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={Math.max(r, 7 * viewport.unit).toFixed(2)} className="dn-hit" fill="transparent" pointerEvents="all" />
+                  <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={r.toFixed(2)} style={{ strokeWidth: strokeW }} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} className="dn-dot" {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: `${(3 * viewport.unit).toFixed(2)} ${(3 * viewport.unit).toFixed(2)}` } : {})} />
+                </g>
+              )
+            })}
+          </g>
+        </svg>
       </svg>
       {viewport.controls}
       {hd ? (
