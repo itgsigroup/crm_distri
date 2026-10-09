@@ -242,3 +242,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 
 ## Push stok: tabel data · 2026-10-09
 - Card **Push stok** menjadi tabel data selebar halaman: kolom Produk (SKU · kategori), Cabang, Qty, Nilai, Umur stok, Dealer yang cocok, aksi. **Cari** (produk, SKU, kategori, cabang, nama dealer yang cocok), **urutkan** naik/turun di setiap kolom (klik judul kolom; bawaan umur stok terlama), **paginasi** 10/25/50 baris. Chip cabang tetap ada. Stok kritis dan Penjualan per produk pindah ke bawah tabel. Logika cari/urut di `stock/table.ts` (diuji).
+
+## Kredit · kas: Exposure vs limit sebagai tabel · 2026-10-09
+- Card **Exposure vs limit** menjadi tabel data selebar halaman: Dealer (sales · cabang), Exposure, Limit, Sisa limit (merah bila minus), Pemakaian limit (bar + %). **Cari** (dealer, sales, cabang), **urutkan** naik/turun di setiap kolom (bawaan pemakaian tertinggi), **paginasi** 10/25/50; jumlah dealer over limit di kanan atas.
+- Komponen bersama `components/DataTable.tsx` (`useDataTable`, `SortTh`, `TableSearch`, `TablePager`) dipakai tabel Push stok dan Exposure; perbandingan kolom diuji (`stock/table.ts`, `credit/exposure.ts`).

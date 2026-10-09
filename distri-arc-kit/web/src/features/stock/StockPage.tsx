@@ -6,7 +6,8 @@ import { useFeedback } from '../../components/feedback'
 import { fmtRp, shortName } from '../../lib/format'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { useKpi, useSalesByProduct, useStockAging, useStockCritical, useStockProposals } from '../../app/queries'
-import { firstDir, searchAging, sortAging, type Dir, type StockColumn } from './table'
+import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
+import { AGING_COMPARE, agingText, agingTie, firstDir, type StockColumn } from './table'
 
 /** A stored proposal as the action button of a row. */
 export function toNext(p: Proposal | undefined): NextAction | null {
@@ -97,37 +98,8 @@ function PushStockTable({ list, total, branches, branch, setBranch, pushOf, runn
   list: AgingItem[]; total: number; branches: string[]; branch: string; setBranch: (b: string) => void
   pushOf: (name: string) => Proposal | undefined; running: boolean; onReanalyze: () => void; onPromo: () => void
 }) {
-  const [query, setQuery] = useState('')
-  const [column, setColumn] = useState<StockColumn>('umur')
-  const [dir, setDir] = useState<Dir>('desc')
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
-  const matches = useMemo(() => searchAging(list, query), [list, query])
-  const sorted = useMemo(() => sortAging(matches, column, dir), [matches, column, dir])
-  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize))
-  const current = Math.min(page, pageCount)
-  const shown = sorted.slice((current - 1) * pageSize, current * pageSize)
-  // back to page 1 when the search, page size or list changes (adjusting state during render, not in an effect)
-  const [seen, setSeen] = useState({ query, pageSize, list })
-  if (seen.query !== query || seen.pageSize !== pageSize || seen.list !== list) {
-    setSeen({ query, pageSize, list })
-    setPage(1)
-  }
-  const sortBy = (c: StockColumn) => {
-    if (column === c) setDir(dir === 'asc' ? 'desc' : 'asc')
-    else {
-      setColumn(c)
-      setDir(firstDir(c))
-    }
-    setPage(1)
-  }
-  const header = (c: StockColumn, title: string, right = false) => (
-    <th className={right ? 'r' : undefined} aria-sort={column === c ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-      <button type="button" className="odl-sort" onClick={() => sortBy(c)} title={column === c ? (dir === 'asc' ? 'Urut naik — klik untuk urut turun' : 'Urut turun — klik untuk urut naik') : 'Urutkan'}>
-        {title}<span aria-hidden="true">{column === c ? (dir === 'asc' ? '↑' : '↓') : '↕'}</span>
-      </button>
-    </th>
-  )
+  const t = useDataTable<AgingItem, StockColumn>({ rows: list, text: agingText, compare: AGING_COMPARE, tie: agingTie, initial: { column: 'umur', dir: 'desc' }, firstDir })
+  const matches = t.matches
   const totalValue = matches.reduce((a, x) => a + x.value, 0)
   return (
     <div className="card push-card">
@@ -140,18 +112,15 @@ function PushStockTable({ list, total, branches, branch, setBranch, pushOf, runn
           {['', ...branches].map((b) => <button key={b || 'all'} className={`chip ${branch === b ? 'is-active' : ''}`} onClick={() => setBranch(b)}>{b || 'Semua cabang'}</button>)}
         </div>
       )}
-      <div className="odl-tools">
-        <div className="search of-q odl-q"><Icon name="search" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari produk, SKU, cabang, dealer…" aria-label="Cari stok menua" /></div>
-        <span className="meta">{matches.length.toLocaleString('id-ID')} stok menua · {fmtRp(totalValue)}{matches.length !== total ? ` · dari ${total.toLocaleString('id-ID')}` : ''}</span>
-      </div>
+      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari produk, SKU, cabang, dealer…" label="Cari stok menua" meta={`${matches.length.toLocaleString('id-ID')} stok menua · ${fmtRp(totalValue)}${matches.length !== total ? ` · dari ${total.toLocaleString('id-ID')}` : ''}`} />
       {matches.length === 0 ? (
         <p className="sg-hint">{list.length ? 'Tidak ada stok yang cocok dengan pencarian ini.' : 'Tidak ada stok menua.'}</p>
       ) : (
         <div className="odl-wrap">
           <table className="odl stock-table">
-            <thead><tr>{header('produk', 'Produk')}{header('cabang', 'Cabang')}{header('qty', 'Qty', true)}{header('nilai', 'Nilai', true)}{header('umur', 'Umur stok', true)}{header('dealer', 'Dealer yang cocok')}<th aria-label="Aksi" /></tr></thead>
+            <thead><tr><SortTh t={t} c="produk">Produk</SortTh><SortTh t={t} c="cabang">Cabang</SortTh><SortTh t={t} c="qty" right>Qty</SortTh><SortTh t={t} c="nilai" right>Nilai</SortTh><SortTh t={t} c="umur" right>Umur stok</SortTh><SortTh t={t} c="dealer">Dealer yang cocok</SortTh><th aria-label="Aksi" /></tr></thead>
             <tbody>
-              {shown.map((x) => {
+              {t.shown.map((x) => {
                 const k = x.age_days > 120 ? 'bad' : 'warn'
                 const p = pushOf(x.name)
                 const ds = (x.candidates ?? []).map((c) => shortName(c.name))
@@ -173,21 +142,7 @@ function PushStockTable({ list, total, branches, branch, setBranch, pushOf, runn
           </table>
         </div>
       )}
-      {matches.length > 0 && (
-        <div className="odl-footer">
-          <span>Menampilkan {(current - 1) * pageSize + 1}–{Math.min(current * pageSize, matches.length)} dari {matches.length.toLocaleString('id-ID')} stok</span>
-          <label>Baris
-            <select className="of-s" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} aria-label="Jumlah baris per halaman">
-              {[10, 25, 50].map((v) => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </label>
-          <div className="odl-pages">
-            <button type="button" className="btn quiet" disabled={current <= 1} onClick={() => setPage(current - 1)}>Sebelumnya</button>
-            <span>Halaman {current} dari {pageCount}</span>
-            <button type="button" className="btn quiet" disabled={current >= pageCount} onClick={() => setPage(current + 1)}>Berikutnya</button>
-          </div>
-        </div>
-      )}
+      <TablePager t={t} noun="stok" />
     </div>
   )
 }

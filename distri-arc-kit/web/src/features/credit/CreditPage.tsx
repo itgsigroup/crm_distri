@@ -1,9 +1,12 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
 import { fmtRp } from '../../lib/format'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { useCreditDealers, useCreditExposure, useCreditForecast, useCreditOverview, useOrbit } from '../../app/queries'
+import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
+import { EXPOSURE_COMPARE, exposureFirstDir, exposureLines, exposureText, exposureTie, type ExposureColumn, type ExposureLine } from './exposure'
 
 const CREDIT_KINDS = new Set(['collect', 'installment', 'credit_release', 'credit_limit'])
 
@@ -18,6 +21,7 @@ export function CreditPage() {
   const { data: fc = [] } = useCreditForecast()
   const { data: board = [] } = useOrbit()
   const next = new Map(board.map((d) => [d.id, d.next]))
+  const lines = useMemo(() => exposureLines(ex, board), [ex, board])
 
   // the four largest receivables, ordered by what is expected to come in (mockup)
   const byOpen = [...fc].sort((a, b) => b.open - a.open)
@@ -63,19 +67,6 @@ export function CreditPage() {
         </div>
         <div className="stack">
           <div className="card">
-            <div className="card-h"><h2>Exposure vs limit</h2></div>
-            <div className="aging">
-              {ex.map((d) => (
-                <div className="row" key={d.dealer_id}>
-                  <span className="lbl">{d.short_name}</span>
-                  <div className="bar"><i style={{ width: `${Math.min(100, d.pct)}%`, background: d.pct > 100 ? 'var(--bad)' : d.pct > 80 ? 'var(--warn)' : 'var(--good)' }} /></div>
-                  <span className="v num">{d.pct}%<small>{fmtRp(d.exposure)} / {fmtRp(d.limit)}</small></span>
-                </div>
-              ))}
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 12, lineHeight: 1.5 }}>Limit naik bila ≥ 12 bulan tepat waktu + siklus order naik; turun bila 2 invoice berturut lewat &gt; 14 hari.</p>
-          </div>
-          <div className="card">
             <div className="card-h"><h2>Prediksi kas masuk 30 hari</h2></div>
             <ul className="cin">
               {top.map((f) => (
@@ -96,6 +87,52 @@ export function CreditPage() {
           </div>
         </div>
       </div>
+      <ExposureTable rows={lines} onOpen={(id) => nav('/dealer/' + id)} />
     </>
+  )
+}
+
+const tone = (pct: number) => (pct > 100 ? 'bad' : pct > 80 ? 'warn' : 'good')
+
+/** "Exposure vs limit" as a data table: search, sort every column both ways, pages of 10/25/50. */
+function ExposureTable({ rows, onOpen }: { rows: ExposureLine[]; onOpen: (id: string) => void }) {
+  const t = useDataTable<ExposureLine, ExposureColumn>({ rows, text: exposureText, compare: EXPOSURE_COMPARE, tie: exposureTie, initial: { column: 'pct', dir: 'desc' }, firstDir: exposureFirstDir })
+  const over = t.matches.filter((x) => x.pct > 100).length
+  return (
+    <div className="card exposure-card">
+      <div className="card-h"><h2>Exposure vs limit</h2><span className="meta">Piutang terbuka dibanding limit kredit tiap dealer</span></div>
+      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari dealer, sales, cabang…" label="Cari exposure dealer" meta={<>{t.matches.length.toLocaleString('id-ID')} dealer{over ? <> · <b style={{ color: 'var(--bad)' }}>{over} over limit</b></> : null}</>} />
+      {t.matches.length === 0 ? (
+        <p className="sg-hint">{rows.length ? 'Tidak ada dealer yang cocok dengan pencarian ini.' : 'Belum ada dealer dengan limit kredit.'}</p>
+      ) : (
+        <div className="odl-wrap">
+          <table className="odl exposure-table">
+            <thead><tr>
+              <SortTh t={t} c="dealer">Dealer</SortTh>
+              <SortTh t={t} c="exposure" right>Exposure</SortTh>
+              <SortTh t={t} c="limit" right>Limit</SortTh>
+              <SortTh t={t} c="room" right>Sisa limit</SortTh>
+              <SortTh t={t} c="pct">Pemakaian limit</SortTh>
+            </tr></thead>
+            <tbody>
+              {t.shown.map((x) => (
+                <tr key={x.dealer_id}>
+                  <td className="odl-name"><button className="ev" onClick={() => onOpen(x.dealer_id)}>{x.short_name}</button><small>{[x.owner, x.branch].filter(Boolean).join(' · ') || x.name}</small></td>
+                  <td className="odl-rp">{fmtRp(x.exposure)}</td>
+                  <td className="odl-rp">{fmtRp(x.limit)}</td>
+                  <td className="odl-rp" style={{ color: x.room < 0 ? 'var(--bad)' : undefined }}>{x.room < 0 ? '−' + fmtRp(-x.room) : fmtRp(x.room)}</td>
+                  <td className="ex-use">
+                    <div className="ex-bar"><i style={{ width: `${Math.max(0, Math.min(100, x.pct))}%`, background: `var(--${tone(x.pct)})` }} /></div>
+                    <em className="num" style={{ color: `var(--${tone(x.pct)})` }}>{x.pct}%</em>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <TablePager t={t} noun="dealer" />
+      <p style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 12, lineHeight: 1.5 }}>Limit naik bila ≥ 12 bulan tepat waktu + siklus order naik; turun bila 2 invoice berturut lewat &gt; 14 hari.</p>
+    </div>
   )
 }
