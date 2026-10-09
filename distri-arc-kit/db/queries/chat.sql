@@ -28,9 +28,14 @@ returning *;
 update wa_groups set kind = $2, read_enabled = $3 where id = $1 returning *;
 
 -- name: ListWANumbers :many
-select n.*, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email
+-- Every number with who holds it (user, role, branch) and its chats (count, unread, last activity).
+select n.*, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email,
+  r.name as user_role, us.branch as user_branch, c.thread_count, c.unread_count, c.last_message_at
 from wa_numbers n left join sales_users s on s.id = n.sales_id left join users u on u.id = n.user_id
-order by s.name nulls last, n.label, n.created_at;
+  left join roles r on r.key = coalesce(u.role_key, u.role) left join sales_users us on us.id = u.sales_user_id
+  left join lateral (select count(*)::int as thread_count, coalesce(sum(t.unread), 0)::int as unread_count, max(t.last_message_at) as last_message_at
+    from chat_threads t where t.account = n.wa_number) c on true
+order by coalesce(u.name, s.name) nulls last, n.label, n.created_at;
 
 -- name: GetWANumberByUser :one
 select * from wa_numbers where user_id = $1;

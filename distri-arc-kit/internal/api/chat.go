@@ -437,8 +437,16 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 		}
 		v := map[string]any{"wa_number": n.WaNumber, "masked": wa.MaskNumber(n.WaNumber), "sales": deref(n.SalesName), "branch": deref(n.SalesBranch), "transport": n.Transport,
 			"state": n.State, "last_seen_at": n.LastSeenAt, "paired_at": n.PairedAt, "backfill_days": n.BackfillDays, "label": deref(n.Label), "sales_id": n.SalesID,
-			"user_id": n.UserID, "user_name": deref(n.UserName), "user_email": deref(n.UserEmail), "mine": mine}
-		if l, ok := limits[n.WaNumber]; ok {
+			"user_id": n.UserID, "user_name": deref(n.UserName), "user_email": deref(n.UserEmail), "mine": mine,
+			"user_role": deref(n.UserRole), "user_branch": deref(n.UserBranch), "session_id": n.SessionID,
+			"thread_count": n.ThreadCount, "unread_count": n.UnreadCount, "last_message_at": n.LastMessageAt}
+		if isAdmin(u) || mine {
+			v["phone"] = "+" + n.WaNumber // the full number only for managers and the holder; others see it masked
+		}
+		// the bridge counts per session: numbers linked from Chat run under a "link-…" session, not their number
+		if l, ok := limits[n.SessionID]; ok && n.SessionID != "" {
+			v["limits"] = l
+		} else if l, ok := limits[n.WaNumber]; ok {
 			v["limits"] = l
 		}
 		if n.Qr != nil && n.State == "pairing" && strings.HasPrefix(*n.Qr, wa.LinkingPrefix) {

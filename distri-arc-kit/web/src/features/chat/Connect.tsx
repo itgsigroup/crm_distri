@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { api } from '../../api/client'
@@ -6,10 +6,26 @@ import type { WANumber } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
+import { hhmm, shortDate } from '../../lib/format'
 import { useMe, useWAStatus } from '../../app/queries'
 import { useUsers } from '../master/api'
 
-export const labelOf = (n: WANumber) => (n.label || n.sales || n.masked).replace(/^Nomor\s+/, '')
+/** How a number is called: the user who holds it, else its label or sales, else the masked number. */
+export const labelOf = (n: WANumber) => (n.user_name || n.label || n.sales || n.masked).replace(/^Nomor\s+/, '')
+
+/** "+62 812-3450-4471": the full number (managers and holder only) grouped like on a phone; else the masked one. */
+export const phoneOf = (n: WANumber) => {
+  const d = (n.phone ?? '').replace(/\D/g, '')
+  if (!d.startsWith('62') || d.length < 10) return n.phone || n.masked
+  const r = d.slice(2)
+  return `+62 ${r.slice(0, 3)}-${r.slice(3, 7)}-${r.slice(7)}`
+}
+
+/** Short name under the avatar in the number rail: the holder's first name, else the last digits. */
+const railName = (n: WANumber) => (n.user_name || n.label || n.sales ? labelOf(n).split(/\s+/)[0] : '…' + n.wa_number.slice(-4))
+
+/** "Sales Telemarketing · Semarang" — who holds the number, for subtitles and tooltips. */
+export const holderOf = (n: WANumber) => [n.user_role, n.user_branch || n.branch].filter(Boolean).join(' · ')
 const STATE: Record<string, [string, 'good' | 'warn' | 'bad' | 'neutral']> = {
   connected: ['Terhubung', 'good'], pairing: ['Menunggu ditautkan', 'warn'], disconnected: ['Terputus', 'bad'], logged_out: ['Keluar dari perangkat', 'bad'], unpaired: ['Belum ditautkan', 'neutral'],
 }
@@ -222,9 +238,10 @@ export function ConnectPanel() {
           {items.map((n) => (
             <li key={n.wa_number}>
               <span className="av">{(n.user_name || n.masked).replace(/^\+/, '').slice(0, 2).toUpperCase()}</span>
-              <div><b>{n.user_name || 'Belum ada pengguna'}</b><span className="no">{n.masked}{n.user_email ? ` · ${n.user_email}` : ''}{n.limits ? ` · hari ini ${n.limits.today}/${n.limits.per_day}${n.limits.warmup ? ' · pemanasan' : ''}` : ''}</span></div>
+              <div><b>{n.user_name || 'Belum ada pengguna'}</b><span className="no">{phoneOf(n)}{holderOf(n) ? ` · ${holderOf(n)}` : ''}{n.limits ? ` · hari ini ${n.limits.today}/${n.limits.per_day}${n.limits.warmup ? ' · pemanasan' : ''}` : ''}</span></div>
               <div className="st">
                 <Pill tone={STATE[n.state]?.[1] ?? 'neutral'}>{STATE[n.state]?.[0] ?? n.state}</Pill>
+                <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<NumberSheet wa={n.wa_number} />)}><Icon name="doc" />Detail</button>
                 {manager && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<AssignSheet n={n} />)}><Icon name="people" />{n.user_id ? 'Ganti pemegang' : 'Pilih pengguna'}</button>}
                 {n.state !== 'connected' && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<PairSheet wa={n.wa_number} />)}><Icon name="qr" />Tautkan ulang</button>}
               </div>
@@ -244,7 +261,7 @@ export function ConnectPanel() {
 
 const HUES = [210, 152, 28, 280, 340, 190, 45, 120]
 const hueOf = (s: string) => HUES[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % HUES.length]
-const initialsOf = (n: WANumber) => labelOf(n).replace(/^(Pak|Bu|Mbak|Mas)\s+/, '').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '#'
+const initialsOf = (n: WANumber) => !(n.user_name || n.label || n.sales) ? '?' : labelOf(n).replace(/^(Pak|Bu|Mbak|Mas)\s+/, '').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '#'
 const STATE_DOT: Record<string, string> = { connected: 'good', pairing: 'warn', disconnected: 'bad', logged_out: 'bad', unpaired: 'neutral' }
 
 /** The WhatsApp numbers of the team, like accounts in WhatsApp Business: pick one to see only its chats (or all),
@@ -270,11 +287,11 @@ export function NumberRail({ account, setAccount, unread }: { account: string; s
       {items.length > 0 && <span className="wr-sep" />}
       {items.map((n) => (
         <button key={n.wa_number} className={`wr-i ${account === n.wa_number ? 'is-active' : ''} ${n.state !== 'connected' ? 'off' : ''}`} onClick={() => pick(n)}
-          title={`${labelOf(n)} · ${n.masked} · ${STATE[n.state]?.[0] ?? n.state}${n.state !== 'connected' ? ' — klik untuk menautkan' : ''}`}>
+          title={`${labelOf(n)}${holderOf(n) ? ` · ${holderOf(n)}` : ''} · ${phoneOf(n)} · ${STATE[n.state]?.[0] ?? n.state}${n.state !== 'connected' ? ' — klik untuk menautkan' : ''}`}>
           <span className="wr-av" style={{ background: `hsl(${hueOf(n.wa_number)} 62% 46%)` }}>{initialsOf(n)}</span>
           <span className={`dot ${STATE_DOT[n.state] ?? 'neutral'}`} />
           {(unread[n.wa_number] ?? 0) > 0 && <span className="wr-un">{unread[n.wa_number] > 99 ? '99+' : unread[n.wa_number]}</span>}
-          <span className="wr-l">{labelOf(n)}</span>
+          <span className="wr-l">{railName(n)}</span>
         </button>
       ))}
       {canAdd && (
@@ -283,5 +300,44 @@ export function NumberRail({ account, setAccount, unread }: { account: string; s
         </button>
       )}
     </nav>
+  )
+}
+
+/** Everything about one number: who holds it, its device, its chats and today's sending limits. */
+export function NumberSheet({ wa, onShowChats }: { wa: string; onShowChats?: () => void }) {
+  const { closeSheet, openSheet } = useFeedback()
+  const { data } = useWAStatus()
+  const { data: me } = useMe()
+  const n = data?.items.find((x) => x.wa_number === wa)
+  if (!n) return <SheetHead icon="phone" title="Nomor tidak ditemukan" onClose={closeSheet} />
+  const manager = !!me?.screens.includes('users')
+  const when = (d: string | null | undefined) => (d ? `${shortDate(d)} · ${hhmm(d)} WIB` : '—')
+  const rows: [string, ReactNode][] = [
+    ['Pemegang', n.user_name ? <span key="p">{n.user_name}{n.user_role ? <small> · {n.user_role}</small> : null}</span> : <span key="p" className="muted">Belum ada pengguna</span>],
+    ['Cabang', n.user_branch || n.branch || '—'],
+    ['Email', n.user_email || '—'],
+    ['Nomor WhatsApp', phoneOf(n)],
+    ['Status', <Pill key="s" tone={STATE[n.state]?.[1] ?? 'neutral'}>{STATE[n.state]?.[0] ?? n.state}</Pill>],
+    ['Tertaut sejak', when(n.paired_at)],
+    ['Terakhir aktif', when(n.last_seen_at)],
+    ['Chat terakhir', when(n.last_message_at)],
+    ['Percakapan', `${(n.thread_count ?? 0).toLocaleString('id-ID')} chat${n.unread_count ? ` · ${n.unread_count.toLocaleString('id-ID')} belum dibaca` : ''}`],
+    ['Kirim hari ini', n.limits ? `${n.limits.today} dari ${n.limits.per_day} · ${n.limits.last_hour}/${n.limits.per_hour} per jam${n.limits.warmup ? ' · masa pemanasan' : ''}` : '—'],
+    ['Perangkat', n.transport === 'baileys' ? 'Perangkat tertaut (seperti WhatsApp Web)' : n.transport === 'cloudapi' ? 'WhatsApp Cloud API' : n.transport],
+  ]
+  return (
+    <>
+      <SheetHead icon="phone" title={labelOf(n)} sub={[holderOf(n), phoneOf(n)].filter(Boolean).join(' · ')} onClose={closeSheet} />
+      <div className="sec">
+        <dl className="num-detail">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+      </div>
+      <div className="ft">
+        {onShowChats && <button className="btn primary" onClick={() => { onShowChats(); closeSheet() }}><Icon name="chat" />Lihat chat nomor ini</button>}
+        {manager && <button className="btn ghost" onClick={() => openSheet(<AssignSheet n={n} />)}><Icon name="people" />{n.user_id ? 'Ganti pemegang' : 'Pilih pengguna'}</button>}
+        {n.state !== 'connected' && <button className="btn ghost" onClick={() => openSheet(<PairSheet wa={n.wa_number} />)}><Icon name="qr" />Tautkan ulang</button>}
+        <span className="spacer" />
+        <button className="btn quiet" onClick={closeSheet}>Tutup</button>
+      </div>
+    </>
   )
 }

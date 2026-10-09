@@ -9,7 +9,7 @@ import { useFeedback } from '../../components/feedback'
 import { ScoreRing } from '../../components/ui'
 import { fmtRp, hhmm, shortDate, wib } from '../../lib/format'
 import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
-import { ConnectPanel, labelOf, NumberRail } from './Connect'
+import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf } from './Connect'
 
 const TABS: [string, string][] = [['all', 'Semua'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['new', 'Nomor baru']]
 const SECTION: Record<string, string> = { dealer: 'Dealer', group: 'Grup internal', new: 'Nomor baru' }
@@ -50,9 +50,10 @@ function ThreadList({ tab, setTab, account, active, onPick }: { tab: string; set
   const { data: wa } = useWAStatus()
   const now = useNow()
   const n = wa?.items.find((x) => x.wa_number === account)
+  const { openSheet } = useFeedback()
   return (
     <div className="pane list-pane">
-      <div className="list-acc">{n ? <><b>{labelOf(n)}</b><span>{n.masked}</span></> : <><b>Semua nomor</b><span>{wa?.items.length ?? 0} nomor WhatsApp · {wa?.items.filter((x) => x.state === 'connected').length ?? 0} terhubung</span></>}</div>
+      <div className="list-acc">{n ? <><b>{labelOf(n)}<button type="button" className="acc-info" onClick={() => openSheet(<NumberSheet wa={n.wa_number} />)} title="Detail nomor" aria-label="Detail nomor"><Icon name="doc" /></button></b><span>{[holderOf(n), phoneOf(n)].filter(Boolean).join(' · ')}</span></> : <><b>Semua nomor</b><span>{wa?.items.length ?? 0} nomor WhatsApp · {wa?.items.filter((x) => x.state === 'connected').length ?? 0} terhubung</span></>}</div>
       <div className="chat-tabs">
         {TABS.map(([k, l]) => <button key={k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>{l}</button>)}
       </div>

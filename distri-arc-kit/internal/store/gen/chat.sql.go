@@ -1144,33 +1144,43 @@ func (q *Queries) ListWAGroups(ctx context.Context) ([]WaGroup, error) {
 }
 
 const listWANumbers = `-- name: ListWANumbers :many
-select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, n.user_id, n.session_id, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email
+select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, n.user_id, n.session_id, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email,
+  r.name as user_role, us.branch as user_branch, c.thread_count, c.unread_count, c.last_message_at
 from wa_numbers n left join sales_users s on s.id = n.sales_id left join users u on u.id = n.user_id
-order by s.name nulls last, n.label, n.created_at
+  left join roles r on r.key = coalesce(u.role_key, u.role) left join sales_users us on us.id = u.sales_user_id
+  left join lateral (select count(*)::int as thread_count, coalesce(sum(t.unread), 0)::int as unread_count, max(t.last_message_at) as last_message_at
+    from chat_threads t where t.account = n.wa_number) c on true
+order by coalesce(u.name, s.name) nulls last, n.label, n.created_at
 `
 
 type ListWANumbersRow struct {
-	WaNumber     string     `json:"wa_number"`
-	SalesID      *uuid.UUID `json:"sales_id"`
-	Label        *string    `json:"label"`
-	Transport    string     `json:"transport"`
-	Jid          *string    `json:"jid"`
-	State        string     `json:"state"`
-	Qr           *string    `json:"qr"`
-	QrExpiresAt  *time.Time `json:"qr_expires_at"`
-	LastSeenAt   *time.Time `json:"last_seen_at"`
-	PairedAt     *time.Time `json:"paired_at"`
-	BackfillDays int32      `json:"backfill_days"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UserID       *uuid.UUID `json:"user_id"`
-	SessionID    string     `json:"session_id"`
-	SalesName    *string    `json:"sales_name"`
-	SalesBranch  *string    `json:"sales_branch"`
-	UserName     *string    `json:"user_name"`
-	UserEmail    *string    `json:"user_email"`
+	WaNumber      string      `json:"wa_number"`
+	SalesID       *uuid.UUID  `json:"sales_id"`
+	Label         *string     `json:"label"`
+	Transport     string      `json:"transport"`
+	Jid           *string     `json:"jid"`
+	State         string      `json:"state"`
+	Qr            *string     `json:"qr"`
+	QrExpiresAt   *time.Time  `json:"qr_expires_at"`
+	LastSeenAt    *time.Time  `json:"last_seen_at"`
+	PairedAt      *time.Time  `json:"paired_at"`
+	BackfillDays  int32       `json:"backfill_days"`
+	UpdatedAt     time.Time   `json:"updated_at"`
+	CreatedAt     time.Time   `json:"created_at"`
+	UserID        *uuid.UUID  `json:"user_id"`
+	SessionID     string      `json:"session_id"`
+	SalesName     *string     `json:"sales_name"`
+	SalesBranch   *string     `json:"sales_branch"`
+	UserName      *string     `json:"user_name"`
+	UserEmail     *string     `json:"user_email"`
+	UserRole      *string     `json:"user_role"`
+	UserBranch    *string     `json:"user_branch"`
+	ThreadCount   int32       `json:"thread_count"`
+	UnreadCount   int32       `json:"unread_count"`
+	LastMessageAt interface{} `json:"last_message_at"`
 }
 
+// Every number with who holds it (user, role, branch) and its chats (count, unread, last activity).
 func (q *Queries) ListWANumbers(ctx context.Context) ([]ListWANumbersRow, error) {
 	rows, err := q.db.Query(ctx, listWANumbers)
 	if err != nil {
@@ -1200,6 +1210,11 @@ func (q *Queries) ListWANumbers(ctx context.Context) ([]ListWANumbersRow, error)
 			&i.SalesBranch,
 			&i.UserName,
 			&i.UserEmail,
+			&i.UserRole,
+			&i.UserBranch,
+			&i.ThreadCount,
+			&i.UnreadCount,
+			&i.LastMessageAt,
 		); err != nil {
 			return nil, err
 		}

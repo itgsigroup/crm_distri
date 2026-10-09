@@ -340,6 +340,15 @@ export interface WANumber {
   user_id?: string | null
   user_name?: string
   user_email?: string
+  /** holder's role and branch */
+  user_role?: string
+  user_branch?: string
+  /** full number (+62…) for managers and the holder only */
+  phone?: string
+  session_id?: string
+  thread_count?: number
+  unread_count?: number
+  last_message_at?: string | null
   mine?: boolean
   label: string
   sales_id: string | null
