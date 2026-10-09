@@ -139,8 +139,6 @@ export function DashboardPage() {
       </div>
     </div>
 
-    {brief?.points?.length ? <div className="card db-panel"><div className="card-h"><h2>Sorotan Orchestrator</h2><span className="meta">Ringkasan terbaru · {hhmm(brief.generated_at)} WIB</span></div><div className="db-highlights">{brief.points.slice(0, 3).map((point, index) => <div className="db-highlight" key={`${point.kind}-${index}`}><span className={`db-status-dot ${point.tone}`} /><div><b>{point.title}</b><p>{point.text}</p></div></div>)}</div><Link className="db-panel-link" to="/">Lihat pusat kendali <Icon name="chev" /></Link></div> : null}
-
     <div className="card db-panel"><div className="card-h"><h2>Jelajahi fitur</h2><span className="meta">Sesuai akses akun Anda</span></div><div className="db-links">{linkItems.filter(([screen]) => can(screen)).map(([screen, to, icon, title, description]) => <Link key={screen} to={to} className="db-link"><span><Icon name={icon} /></span><div><b>{title}</b><small>{description}</small></div><Icon name="chev" className="i db-link-arrow" /></Link>)}</div></div>
   </div>
 }
