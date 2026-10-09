@@ -55,6 +55,19 @@ func TestWANumbersAndChatScope(t *testing.T) {
 	if code, _ := put(t, srv.URL+"/api/wa/numbers/6281277770000/user", "sam@gsi.co.id", map[string]any{"user_id": andiID}); code != http.StatusConflict {
 		t.Fatalf("second number for one user: %d", code)
 	}
+	// a field sales without a login holds the number straight from the sales master
+	var tantri string
+	if err := st.Pool.QueryRow(ctx, "insert into sales_users (name, branch, role) values ('Tantri', 'Jakarta', 'sales') returning id").Scan(&tantri); err != nil {
+		t.Fatal(err)
+	}
+	if code, out := put(t, srv.URL+"/api/wa/numbers/6281277770000/user", "sam@gsi.co.id", map[string]any{"sales_id": tantri}); code != 200 || out["label"] != "Tantri" {
+		t.Fatalf("assign to sales: %d %v", code, out)
+	}
+	var main string
+	_ = st.Pool.QueryRow(ctx, "select coalesce(wa_number, '') from sales_users where id = $1", tantri).Scan(&main)
+	if main != "6281277770000" {
+		t.Fatalf("sales main number: %q", main)
+	}
 	_, users := get(t, srv, "/api/users", "sam@gsi.co.id")
 	for _, x := range users["items"].([]any) {
 		if m := x.(map[string]any); m["email"] == "cs@gsi.co.id" && (m["wa_number"] != "6281299990000" || m["wa_state"] != "connected") {

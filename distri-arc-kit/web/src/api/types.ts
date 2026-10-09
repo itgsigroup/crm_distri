@@ -158,7 +158,7 @@ export interface DealerDetail extends BoardItem {
   flags: string[]
 }
 
-export interface Sales { key: string; name: string; branch: string; initials: string; wa_number: string; dealers: number }
+export interface Sales { id: string; key: string; name: string; branch: string; initials: string; wa_number: string; dealers: number }
 
 export interface StatusSummary { status: Status; count: number; omzet_bln: number }
 export interface SegmentSummary { segment: Segment; count: number; omzet_bln: number; pct: number }

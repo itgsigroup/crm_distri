@@ -101,7 +101,7 @@ func (s *Server) sales(w http.ResponseWriter, r *http.Request) {
 		if u.Role != "sales" {
 			continue
 		}
-		out = append(out, map[string]any{"key": strings.ToLower(u.Name), "name": u.Name, "branch": u.Branch, "initials": views.Initials(u.Name),
+		out = append(out, map[string]any{"id": u.ID, "key": strings.ToLower(u.Name), "name": u.Name, "branch": u.Branch, "initials": views.Initials(u.Name),
 			"wa_number": u.WaNumber, "dealers": len(b.Filter(u.Name))})
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": out})

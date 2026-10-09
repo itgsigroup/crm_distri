@@ -130,6 +130,8 @@ func (s *Server) assignWANumber(w http.ResponseWriter, r *http.Request) {
 	}
 	var in struct {
 		UserID *uuid.UUID `json:"user_id"`
+		// SalesID gives the number to a sales of the sales master who has no login (field sales on a phone only)
+		SalesID *uuid.UUID `json:"sales_id"`
 		// Move: the user already holds another number — release that one and give them this one (one user, one number)
 		Move bool `json:"move"`
 	}
@@ -141,6 +143,19 @@ func (s *Server) assignWANumber(w http.ResponseWriter, r *http.Request) {
 	if !manager && (in.UserID == nil || *in.UserID != me.ID || num.UserID != nil) {
 		httpx.Fail(w, http.StatusForbidden, "forbidden", "Memberi nomor ke pengguna lain lewat halaman Pengguna (pemegang menu Pengguna)")
 		return
+	}
+	if in.SalesID != nil && in.UserID == nil {
+		if !manager {
+			httpx.Fail(w, http.StatusForbidden, "forbidden", "Memberi nomor ke sales lewat pemegang menu Pengguna")
+			return
+		}
+		var login uuid.UUID // a sales with a login holds the number as that user (one user, one number)
+		if err := s.st.Pool.QueryRow(ctx, "select id from users where sales_user_id = $1 and active order by email limit 1", *in.SalesID).Scan(&login); err == nil {
+			in.UserID = &login
+		} else {
+			s.assignWANumberToSales(w, r, n, *in.SalesID)
+			return
+		}
 	}
 	if in.UserID == nil { // release
 		err := s.st.Tx(ctx, func(q *gen.Queries, _ pgx.Tx) error {
@@ -224,6 +239,46 @@ func (s *Server) assignWANumber(w http.ResponseWriter, r *http.Request) {
 		msg += " · " + wa.MaskNumber(release) + " kini tanpa pemegang"
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"wa_number": n, "user_id": usr.ID, "label": label, "released": release, "message": msg})
+}
+
+// assignWANumberToSales gives a linked number to a sales of the sales master who has no login user. A sales may hold
+// several numbers; the first becomes their main number (replies of their dealers' new conversations go out from it).
+func (s *Server) assignWANumberToSales(w http.ResponseWriter, r *http.Request, n string, salesID uuid.UUID) {
+	ctx := r.Context()
+	var name string
+	var main *string
+	var active bool
+	if err := s.st.Pool.QueryRow(ctx, "select name, wa_number, active from sales_users where id = $1", salesID).Scan(&name, &main, &active); err != nil || !active {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Sales tidak ditemukan atau nonaktif")
+		return
+	}
+	err := s.st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
+		if err := q.ClearUserWANumber(ctx, &n); err != nil { // the number's previous holder
+			return err
+		}
+		if err := q.SetWANumberUser(ctx, gen.SetWANumberUserParams{WaNumber: n, SalesID: &salesID, Label: &name}); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, "update sales_users set wa_number = null where wa_number = $1 and id <> $2", n, salesID); err != nil {
+			return err
+		}
+		if main == nil || *main == "" {
+			if _, err := tx.Exec(ctx, "update sales_users set wa_number = $1 where id = $2", n, salesID); err != nil {
+				return err
+			}
+		}
+		dept := "WhatsApp tim"
+		if err := q.UpsertInternalNumber(ctx, gen.UpsertInternalNumberParams{WaNumber: n, Label: &name, Department: &dept, IsSales: true}); err != nil {
+			return err
+		}
+		return q.AssignThreadsSales(ctx, gen.AssignThreadsSalesParams{Account: &n, SalesID: &salesID})
+	})
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	s.audit(r, "wa.number_assigned", "wa_number", nil, map[string]any{"wa_number": n, "sales_id": salesID})
+	httpx.JSON(w, http.StatusOK, map[string]any{"wa_number": n, "sales_id": salesID, "label": name, "message": wa.MaskNumber(n) + " dipegang " + name + " (sales)"})
 }
 
 // deleteWANumber unlinks the device (worker) and removes a team number; a sales' main number stays, unpaired.

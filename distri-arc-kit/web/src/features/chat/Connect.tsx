@@ -7,7 +7,7 @@ import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { hhmm, shortDate } from '../../lib/format'
-import { useMe, useWAStatus } from '../../app/queries'
+import { useMe, useSales, useWAStatus } from '../../app/queries'
 import { useUsers } from '../master/api'
 
 /** How a number is called: the user who holds it, else its label or sales, else the masked number. */
@@ -25,7 +25,7 @@ export const phoneOf = (n: WANumber) => {
 const railName = (n: WANumber) => (n.user_name || n.label || n.sales ? labelOf(n).split(/\s+/)[0] : '…' + n.wa_number.slice(-4))
 
 /** "Sales Telemarketing · Semarang" — who holds the number, for subtitles and tooltips. */
-export const holderOf = (n: WANumber) => [n.user_role, n.user_branch || n.branch].filter(Boolean).join(' · ')
+export const holderOf = (n: WANumber) => [n.user_role || (n.sales_id ? 'Sales' : ''), n.user_branch || n.branch].filter(Boolean).join(' · ')
 const STATE: Record<string, [string, 'good' | 'warn' | 'bad' | 'neutral']> = {
   connected: ['Terhubung', 'good'], pairing: ['Menunggu ditautkan', 'warn'], disconnected: ['Terputus', 'bad'], logged_out: ['Keluar dari perangkat', 'bad'], unpaired: ['Belum ditautkan', 'neutral'],
 }
@@ -97,26 +97,32 @@ function PairLoading({ title, small = false }: { title: string; small?: boolean 
 interface LinkState { session_id: string; method: 'qr' | 'code'; state: 'pairing' | 'connected' | 'failed'; qr_png?: string; pair_code?: string; linking?: boolean; wa_number?: string; masked?: string; user_id?: string | null; error?: string | null }
 
 /** Picks the user who holds a linked number (one user, one number), or releases it. */
-function AssignForm({ wa, masked, current, onDone }: { wa: string; masked: string; current?: string | null; onDone: () => void }) {
+function AssignForm({ wa, masked, current, currentSales, onDone }: { wa: string; masked: string; current?: string | null; currentSales?: string | null; onDone: () => void }) {
   const { data: me } = useMe()
   const manager = !!me?.screens.includes('users')
   const { data: users = [] } = useUsers(manager)
+  const { data: sales = [] } = useSales()
   const { data: status } = useWAStatus()
   const { toast, alert } = useFeedback()
   const qc = useQueryClient()
-  const [userId, setUserId] = useState(current ?? '')
+  // value: a user id, or "s:<id>" for a sales of the sales master without a login (field sales on a phone only)
+  const initial = current ?? (currentSales ? 's:' + currentSales : '')
+  const [userId, setUserId] = useState(initial)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   // everyone who may hold WhatsApp; those holding another number are listed too and can be moved to this one
   const eligible = users.filter((u) => u.active && (u.wa_allowed || u.role === 'ceo'))
+  const withLogin = new Set(users.map((u) => u.sales_name?.toLocaleLowerCase('id-ID')).filter(Boolean))
+  const fieldSales = sales.filter((x) => !withLogin.has(x.name.toLocaleLowerCase('id-ID')))
   const chosen = eligible.find((u) => u.id === userId)
   const holdsOther = !!chosen?.wa_linked && chosen.wa_linked !== wa
   const assign = (id: string | null, move = false) => {
     setBusy(true)
     setErr('')
-    api.put<{ message?: string }>(`/wa/numbers/${wa}/user`, { user_id: id, move }).then((r) => {
+    const body = id?.startsWith('s:') ? { sales_id: id.slice(2) } : { user_id: id, move }
+    api.put<{ message?: string }>(`/wa/numbers/${wa}/user`, body).then((r) => {
       toast(r.message ?? 'Disimpan')
-      for (const k of ['wa', 'users', 'chat']) qc.invalidateQueries({ queryKey: [k] })
+      for (const k of ['wa', 'users', 'chat', 'sales']) qc.invalidateQueries({ queryKey: [k] })
       onDone()
     }, (e: Error) => {
       // never just a passing toast: the number would silently stay without a name
@@ -133,8 +139,17 @@ function AssignForm({ wa, masked, current, onDone }: { wa: string; masked: strin
     <div className="assign">
       <label>Pemegang nomor {masked}
         <select value={userId} onChange={(e) => setUserId(e.target.value)} aria-label="Pengguna pemegang nomor">
-          <option value="">{eligible.length ? 'Pilih nama pengguna…' : 'Belum ada pengguna yang boleh memegang WhatsApp'}</option>
-          {eligible.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.role_name}{u.branch && u.branch !== 'Semua cabang' ? ` · ${u.branch}` : ''}{u.wa_linked && u.wa_linked !== wa ? ` — memegang …${u.wa_linked.slice(-4)}` : ''}</option>)}
+          <option value="">{eligible.length || fieldSales.length ? 'Pilih nama pengguna atau sales…' : 'Belum ada pengguna yang boleh memegang WhatsApp'}</option>
+          {eligible.length > 0 && (
+            <optgroup label="Pengguna (punya akun)">
+              {eligible.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.role_name}{u.branch && u.branch !== 'Semua cabang' ? ` · ${u.branch}` : ''}{u.wa_linked && u.wa_linked !== wa ? ` — memegang …${u.wa_linked.slice(-4)}` : ''}</option>)}
+            </optgroup>
+          )}
+          {fieldSales.length > 0 && (
+            <optgroup label="Sales (tanpa akun)">
+              {fieldSales.map((x) => <option key={x.id} value={'s:' + x.id}>{x.name} · Sales{x.branch ? ` · ${x.branch}` : ''}{x.wa_number && x.wa_number !== wa ? ` — nomor utama …${x.wa_number.slice(-4)}` : ''}</option>)}
+            </optgroup>
+          )}
         </select>
       </label>
       {holdsOther && <p className="assign-warn"><Icon name="alert" /><span><b>{chosen!.name}</b> sudah memegang nomor …{chosen!.wa_linked!.slice(-4)}. Satu pengguna satu nomor: bila dipindahkan, nomor …{chosen!.wa_linked!.slice(-4)} tetap tersambung tetapi tanpa pemegang.</span></p>}
@@ -142,10 +157,10 @@ function AssignForm({ wa, masked, current, onDone }: { wa: string; masked: strin
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {holdsOther
           ? <button className="btn primary" disabled={busy} onClick={() => assign(userId, true)}><Icon name="refresh" />Pindahkan ke nomor ini</button>
-          : <button className="btn primary" disabled={busy || !userId || userId === current} onClick={() => assign(userId)}><Icon name="check" />{busy ? 'Menyimpan…' : 'Simpan pemegang'}</button>}
-        {current && <button className="btn ghost" disabled={busy} onClick={() => assign(null)}>Lepas dari pengguna</button>}
+          : <button className="btn primary" disabled={busy || !userId || userId === initial} onClick={() => assign(userId)}><Icon name="check" />{busy ? 'Menyimpan…' : 'Simpan pemegang'}</button>}
+        {(current || currentSales) && <button className="btn ghost" disabled={busy} onClick={() => assign(null)}>Lepas dari pengguna</button>}
       </div>
-      <small>Pengguna belum ada? Tambahkan di <Link to="/pengguna">Master data → Pengguna</Link>; peran yang boleh memegang WhatsApp diatur di Peran &amp; akses.</small>
+      <small>Sales lapangan tanpa akun bisa langsung dipilih dari daftar Sales. Pengguna belum ada? Tambahkan di <Link to="/pengguna">Master data → Pengguna</Link>; peran yang boleh memegang WhatsApp diatur di Peran &amp; akses.</small>
     </div>
   )
 }
@@ -218,8 +233,8 @@ export function AssignSheet({ n }: { n: WANumber }) {
   const { closeSheet } = useFeedback()
   return (
     <>
-      <SheetHead icon="people" title={`Pemegang ${n.masked}`} sub={n.user_name ? `Sekarang: ${n.user_name}` : 'Belum ada pengguna'} onClose={closeSheet} />
-      <div className="sec"><AssignForm wa={n.wa_number} masked={n.masked} current={n.user_id} onDone={closeSheet} /></div>
+      <SheetHead icon="people" title={`Pemegang ${n.masked}`} sub={n.user_name || n.sales ? `Sekarang: ${n.user_name || n.sales}` : 'Belum ada pengguna'} onClose={closeSheet} />
+      <div className="sec"><AssignForm wa={n.wa_number} masked={n.masked} current={n.user_id} currentSales={n.user_id ? null : n.sales_id} onDone={closeSheet} /></div>
     </>
   )
 }
@@ -250,12 +265,12 @@ export function ConnectPanel() {
         <ul className="nums">
           {items.map((n) => (
             <li key={n.wa_number}>
-              <span className="av">{(n.user_name || n.masked).replace(/^\+/, '').slice(0, 2).toUpperCase()}</span>
-              <div><b>{n.user_name || 'Belum ada pengguna'}</b><span className="no">{phoneOf(n)}{holderOf(n) ? ` · ${holderOf(n)}` : ''}{n.limits ? ` · hari ini ${n.limits.today}/${n.limits.per_day}${n.limits.warmup ? ' · pemanasan' : ''}` : ''}</span></div>
+              <span className="av">{(n.user_name || n.sales || n.masked).replace(/^\+/, '').slice(0, 2).toUpperCase()}</span>
+              <div><b>{n.user_name || n.sales || 'Belum ada pengguna'}</b><span className="no">{phoneOf(n)}{holderOf(n) ? ` · ${holderOf(n)}` : ''}{n.limits ? ` · hari ini ${n.limits.today}/${n.limits.per_day}${n.limits.warmup ? ' · pemanasan' : ''}` : ''}</span></div>
               <div className="st">
                 <Pill tone={STATE[n.state]?.[1] ?? 'neutral'}>{STATE[n.state]?.[0] ?? n.state}</Pill>
                 <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<NumberSheet wa={n.wa_number} />)}><Icon name="doc" />Detail</button>
-                {manager && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<AssignSheet n={n} />)}><Icon name="people" />{n.user_id ? 'Ganti pemegang' : 'Pilih pengguna'}</button>}
+                {manager && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<AssignSheet n={n} />)}><Icon name="people" />{n.user_id || n.sales_id ? 'Ganti pemegang' : 'Pilih pengguna'}</button>}
                 {n.state !== 'connected' && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<PairSheet wa={n.wa_number} />)}><Icon name="qr" />Tautkan ulang</button>}
               </div>
             </li>
@@ -326,7 +341,7 @@ export function NumberSheet({ wa, onShowChats }: { wa: string; onShowChats?: () 
   const manager = !!me?.screens.includes('users')
   const when = (d: string | null | undefined) => (d ? `${shortDate(d)} · ${hhmm(d)} WIB` : '—')
   const rows: [string, ReactNode][] = [
-    ['Pemegang', n.user_name ? <span key="p">{n.user_name}{n.user_role ? <small> · {n.user_role}</small> : null}</span> : <span key="p" className="muted">Belum ada pengguna</span>],
+    ['Pemegang', n.user_name || n.sales ? <span key="p">{n.user_name || n.sales}<small> · {n.user_role || 'Sales'}{n.user_name ? '' : ' (tanpa akun)'}</small></span> : <span key="p" className="muted">Belum ada pengguna</span>],
     ['Cabang', n.user_branch || n.branch || '—'],
     ['Email', n.user_email || '—'],
     ['Nomor WhatsApp', phoneOf(n)],
@@ -346,7 +361,7 @@ export function NumberSheet({ wa, onShowChats }: { wa: string; onShowChats?: () 
       </div>
       <div className="ft">
         {onShowChats && <button className="btn primary" onClick={() => { onShowChats(); closeSheet() }}><Icon name="chat" />Lihat chat nomor ini</button>}
-        {manager && <button className="btn ghost" onClick={() => openSheet(<AssignSheet n={n} />)}><Icon name="people" />{n.user_id ? 'Ganti pemegang' : 'Pilih pengguna'}</button>}
+        {manager && <button className="btn ghost" onClick={() => openSheet(<AssignSheet n={n} />)}><Icon name="people" />{n.user_id || n.sales_id ? 'Ganti pemegang' : 'Pilih pengguna'}</button>}
         {n.state !== 'connected' && <button className="btn ghost" onClick={() => openSheet(<PairSheet wa={n.wa_number} />)}><Icon name="qr" />Tautkan ulang</button>}
         <span className="spacer" />
         <button className="btn quiet" onClick={closeSheet}>Tutup</button>
