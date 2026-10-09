@@ -131,7 +131,7 @@ where id = sqlc.arg(id)::uuid;
 select s.id, s.name, s.branch, s.role, s.wa_number, s.email, s.external_name, s.active,
   (select count(*) from dealers d where d.owner_id = s.id)::bigint as dealers,
   (select u.email from users u where u.sales_user_id = s.id limit 1) as login_email
-from sales_users s order by case s.role when 'sales' then 0 else 1 end, s.branch, s.name;
+from sales_users s where s.merged_into is null order by case s.role when 'sales' then 0 else 1 end, s.branch, s.name;
 
 -- name: CreateSalesProfile :one
 insert into sales_users (name, branch, wa_number, role, email, external_name) values ($1, $2, $3, $4, $5, $6) returning id;
@@ -153,4 +153,17 @@ select key, data from import_rows where entity = $1 and updated_at >= $2 order b
 select coalesce(max(started_at), '1970-01-01'::timestamptz)::timestamptz from import_runs where entity = 'apply' and status = 'done';
 
 -- name: SalesProfilesForMatch :many
-select id, name, coalesce(external_name, '') as external_name from sales_users;
+-- A spelling merged into another sales (Mapping sales) matches that sales.
+select coalesce(merged_into, id)::uuid as id, name, coalesce(external_name, '') as external_name from sales_users;
+
+-- name: ListSalesMap :many
+-- Mapping sales: every sales profile with what hangs on it.
+select s.id, s.name, s.branch, s.source_system, s.source_id, s.active, s.merged_into, s.wa_number,
+  (select count(*) from dealers d where d.owner_id = s.id)::bigint as dealers,
+  (select u.email from users u where u.sales_user_id = s.id limit 1) as login_email,
+  (select count(*) from sales_users c where c.merged_into = s.id)::bigint as merged_count
+from sales_users s where s.role = 'sales'
+order by lower(s.name), s.source_system nulls first;
+
+-- name: GetSalesUser :one
+select * from sales_users where id = $1;

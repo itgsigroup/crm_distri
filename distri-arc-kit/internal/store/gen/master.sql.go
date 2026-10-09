@@ -212,6 +212,31 @@ func (q *Queries) FinishImportRun(ctx context.Context, arg FinishImportRunParams
 	return err
 }
 
+const getSalesUser = `-- name: GetSalesUser :one
+select id, name, branch, wa_number, odoo_user_id, role, active, source_system, source_id, created_at, email, external_name, merged_into from sales_users where id = $1
+`
+
+func (q *Queries) GetSalesUser(ctx context.Context, id uuid.UUID) (SalesUser, error) {
+	row := q.db.QueryRow(ctx, getSalesUser, id)
+	var i SalesUser
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Branch,
+		&i.WaNumber,
+		&i.OdooUserID,
+		&i.Role,
+		&i.Active,
+		&i.SourceSystem,
+		&i.SourceID,
+		&i.CreatedAt,
+		&i.Email,
+		&i.ExternalName,
+		&i.MergedInto,
+	)
+	return i, err
+}
+
 const getSecret = `-- name: GetSecret :one
 select value from secrets where key = $1
 `
@@ -524,11 +549,67 @@ func (q *Queries) ListMappings(ctx context.Context, kind string) ([]DataMapping,
 	return items, nil
 }
 
+const listSalesMap = `-- name: ListSalesMap :many
+select s.id, s.name, s.branch, s.source_system, s.source_id, s.active, s.merged_into, s.wa_number,
+  (select count(*) from dealers d where d.owner_id = s.id)::bigint as dealers,
+  (select u.email from users u where u.sales_user_id = s.id limit 1) as login_email,
+  (select count(*) from sales_users c where c.merged_into = s.id)::bigint as merged_count
+from sales_users s where s.role = 'sales'
+order by lower(s.name), s.source_system nulls first
+`
+
+type ListSalesMapRow struct {
+	ID           uuid.UUID  `json:"id"`
+	Name         string     `json:"name"`
+	Branch       string     `json:"branch"`
+	SourceSystem *string    `json:"source_system"`
+	SourceID     *string    `json:"source_id"`
+	Active       bool       `json:"active"`
+	MergedInto   *uuid.UUID `json:"merged_into"`
+	WaNumber     *string    `json:"wa_number"`
+	Dealers      int64      `json:"dealers"`
+	LoginEmail   *string    `json:"login_email"`
+	MergedCount  int64      `json:"merged_count"`
+}
+
+// Mapping sales: every sales profile with what hangs on it.
+func (q *Queries) ListSalesMap(ctx context.Context) ([]ListSalesMapRow, error) {
+	rows, err := q.db.Query(ctx, listSalesMap)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListSalesMapRow{}
+	for rows.Next() {
+		var i ListSalesMapRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Branch,
+			&i.SourceSystem,
+			&i.SourceID,
+			&i.Active,
+			&i.MergedInto,
+			&i.WaNumber,
+			&i.Dealers,
+			&i.LoginEmail,
+			&i.MergedCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTeam = `-- name: ListTeam :many
 select s.id, s.name, s.branch, s.role, s.wa_number, s.email, s.external_name, s.active,
   (select count(*) from dealers d where d.owner_id = s.id)::bigint as dealers,
   (select u.email from users u where u.sales_user_id = s.id limit 1) as login_email
-from sales_users s order by case s.role when 'sales' then 0 else 1 end, s.branch, s.name
+from sales_users s where s.merged_into is null order by case s.role when 'sales' then 0 else 1 end, s.branch, s.name
 `
 
 type ListTeamRow struct {
@@ -686,7 +767,7 @@ func (q *Queries) MasterCustomers(ctx context.Context, arg MasterCustomersParams
 }
 
 const salesProfilesForMatch = `-- name: SalesProfilesForMatch :many
-select id, name, coalesce(external_name, '') as external_name from sales_users
+select coalesce(merged_into, id)::uuid as id, name, coalesce(external_name, '') as external_name from sales_users
 `
 
 type SalesProfilesForMatchRow struct {
@@ -695,6 +776,7 @@ type SalesProfilesForMatchRow struct {
 	ExternalName string    `json:"external_name"`
 }
 
+// A spelling merged into another sales (Mapping sales) matches that sales.
 func (q *Queries) SalesProfilesForMatch(ctx context.Context) ([]SalesProfilesForMatchRow, error) {
 	rows, err := q.db.Query(ctx, salesProfilesForMatch)
 	if err != nil {

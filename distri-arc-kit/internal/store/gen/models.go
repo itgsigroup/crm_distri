@@ -741,18 +741,19 @@ type Role struct {
 }
 
 type SalesUser struct {
-	ID           uuid.UUID `json:"id"`
-	Name         string    `json:"name"`
-	Branch       string    `json:"branch"`
-	WaNumber     *string   `json:"wa_number"`
-	OdooUserID   *int32    `json:"odoo_user_id"`
-	Role         string    `json:"role"`
-	Active       bool      `json:"active"`
-	SourceSystem *string   `json:"source_system"`
-	SourceID     *string   `json:"source_id"`
-	CreatedAt    time.Time `json:"created_at"`
-	Email        *string   `json:"email"`
-	ExternalName *string   `json:"external_name"`
+	ID           uuid.UUID  `json:"id"`
+	Name         string     `json:"name"`
+	Branch       string     `json:"branch"`
+	WaNumber     *string    `json:"wa_number"`
+	OdooUserID   *int32     `json:"odoo_user_id"`
+	Role         string     `json:"role"`
+	Active       bool       `json:"active"`
+	SourceSystem *string    `json:"source_system"`
+	SourceID     *string    `json:"source_id"`
+	CreatedAt    time.Time  `json:"created_at"`
+	Email        *string    `json:"email"`
+	ExternalName *string    `json:"external_name"`
+	MergedInto   *uuid.UUID `json:"merged_into"`
 }
 
 type Secret struct {

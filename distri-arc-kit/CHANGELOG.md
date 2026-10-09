@@ -284,3 +284,10 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Pengguna berperan **sales** selalu melihat datanya sendiri (chip "Data <nama>"), walau alamat diubah ke sales lain — kini juga untuk rencana, keputusan, dan konflik yang sebelumnya tampil untuk semua.
 - Orchestrator di halaman sales: kartu **Keputusan sales ini**; Riwayat analisis tetap per siklus seluruh tim (siklus tidak dipecah per sales).
 - API: `?sales=<key|nama>` di `/brief/today`, `/dealers/due|drift|credit-tight`, `/kpi`, `/agenda`, `/stock/push`, `/segmen/movers`, `/plan/today`, `/proposals`, `/conflicts`, `/agents`. Test `TestSalesPageNeverMixesSales`.
+
+## Master data → Mapping sales · 2026-10-09
+- Halaman baru **Mapping sales** (`/mapping-sales`, menu Master data; untuk pemegang menu Pengguna atau Pengaturan) untuk merapikan nama sales dari BigQuery (Accurate) yang dieja beberapa kali — mis. "Granike Monica · Semua cabang" dan "Granike Monica M. · Semarang" digabung ke sales GSI Orbit **"Granike Monika"**.
+- Centang beberapa nama lalu pilih sales tujuan, atau **buat sales GSI Orbit baru** dan langsung gabungkan; tiap baris juga punya "Gabung ke…" cepat. Tab **Saran gabung** menandai nama yang mirip (ejaan c/k disamakan) dan tombol "pilih" mengisi kelompoknya beserta tujuan terbaik (profil GSI Orbit → yang punya login → dealer terbanyak). Tabel dengan pencarian, urut, dan paginasi.
+- Menggabung memindahkan dealer, chat, nomor WhatsApp, sinyal, interaksi Peta relasi, login, dan nomor utama ke sales tujuan; ejaan sumber nonaktif dan hilang dari semua pilihan sales (Pusat kendali, Orchestrator, Orbit, master Tim sales). Mapping impor ikut diarahkan sehingga **impor berikutnya tetap tergabung**. **Pisahkan** membatalkan gabungan (dealernya kembali setelah data diproses ulang).
+- Migrasi `0019_sales_merge` (`sales_users.merged_into`), ADR 0024, test `TestSalesMergeMovesDealersAndHidesSpellings`.
+- Rail: menu utama bisa di-scroll di layar pendek dan menu halaman aktif selalu terlihat.

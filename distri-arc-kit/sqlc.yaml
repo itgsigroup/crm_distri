@@ -20,6 +20,7 @@ sql:
       - db/migrations/0016_roles_custom_branches_wa_links.sql
       - db/migrations/0017_mcp_oauth.sql
       - db/migrations/0018_mcp_schedules.sql
+      - db/migrations/0019_sales_merge.sql
     queries: db/queries
     gen:
       go:

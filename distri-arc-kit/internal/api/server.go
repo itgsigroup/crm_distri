@@ -104,6 +104,7 @@ func (s *Server) Handler() http.Handler {
 			s.userRoutes(r)
 			s.roleRoutes(r)
 			s.branchRoutes(r)
+			s.salesMapRoutes(r)
 			r.Get("/me", s.me)
 			s.readRoutes(r)
 			s.chatRoutes(r)

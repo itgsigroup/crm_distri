@@ -289,7 +289,7 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 		return err
 	}
 	salesBranch := map[string]string{}
-	err = im.St.Tx(ctx, func(q *gen.Queries, _ pgx.Tx) error {
+	err = im.St.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
 		for _, r := range sales {
 			code := r.Get("code")
 			branch := branchOf(r.Get("branch"), "Semua cabang")
@@ -297,6 +297,19 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 				Email: strp(r.Get("email")), ExternalName: &code, SourceID: &code})
 			if err != nil {
 				return fmt.Errorf("sales %s: %w", code, err)
+			}
+			// a spelling merged into another sales (Mapping sales) stays merged: inactive, its rows go to the target
+			merged := ""
+			for _, raw := range []string{code, r.Get("name")} {
+				if t := m.target["sales"][raw]; t != "" && t != id.String() {
+					merged = t
+					break
+				}
+			}
+			if merged != "" {
+				if _, err := tx.Exec(ctx, "update sales_users set merged_into = $2::uuid, active = false where id = $1 and merged_into is distinct from $2::uuid", id, merged); err != nil {
+					return fmt.Errorf("sales %s: %w", code, err)
+				}
 			}
 			for _, raw := range []string{code, r.Get("name")} {
 				if _, ok := m.target["sales"][raw]; !ok && raw != "" {

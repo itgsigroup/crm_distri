@@ -35,7 +35,7 @@ func (q *Queries) DealerIDBySource(ctx context.Context, arg DealerIDBySourcePara
 }
 
 const getSalesByOdooUser = `-- name: GetSalesByOdooUser :one
-select id, name, branch, wa_number, odoo_user_id, role, active, source_system, source_id, created_at, email, external_name from sales_users where odoo_user_id = $1
+select id, name, branch, wa_number, odoo_user_id, role, active, source_system, source_id, created_at, email, external_name, merged_into from sales_users where odoo_user_id = $1
 `
 
 func (q *Queries) GetSalesByOdooUser(ctx context.Context, odooUserID *int32) (SalesUser, error) {
@@ -54,6 +54,7 @@ func (q *Queries) GetSalesByOdooUser(ctx context.Context, odooUserID *int32) (Sa
 		&i.CreatedAt,
 		&i.Email,
 		&i.ExternalName,
+		&i.MergedInto,
 	)
 	return i, err
 }

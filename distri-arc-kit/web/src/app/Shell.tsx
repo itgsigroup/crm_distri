@@ -27,6 +27,7 @@ export const ROUTES: Record<ScreenKey, string> = {
   users: '/pengguna',
   roles: '/peran',
   branches: '/cabang',
+  salesmap: '/mapping-sales',
   mcp: '/claude',
   conn: '/pengaturan',
   konsep: '/panduan',
@@ -46,16 +47,23 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/pengguna')) return 'users'
   if (path.startsWith('/peran')) return 'roles'
   if (path.startsWith('/cabang')) return 'branches'
+  if (path.startsWith('/mapping-sales')) return 'salesmap'
   if (path.startsWith('/claude')) return 'mcp'
   if (path.startsWith('/pengaturan')) return 'conn'
   if (path.startsWith('/panduan')) return 'konsep'
   return 'today'
 }
 
+/** A screen the user may open: Mapping sales goes with the Pengguna or Pengaturan menu (no role setting of its own). */
+export function canSee(screens: string[], key: ScreenKey): boolean {
+  if (key === 'salesmap') return screens.includes('users') || screens.includes('conn')
+  return screens.includes(key === 'dashboard' ? 'today' : key)
+}
+
 function NavBtn({ to, cur, icon, children, badge }: { to: ScreenKey; cur: ScreenKey; icon: string; children: ReactNode; badge?: ReactNode }) {
   const nav = useNavigate()
   const { data: me } = useMe()
-  if (me && !me.screens.includes(to === 'dashboard' ? 'today' : to)) return null
+  if (me && !canSee(me.screens, to)) return null
   const hl = cur === 'net' || cur === 'kuad' ? 'orbit' : cur
   return (
     <button className={`nav-btn ${hl === to ? 'is-active' : ''}`} title={typeof children === 'string' ? children : undefined} onClick={() => nav(ROUTES[to])}>
@@ -92,7 +100,7 @@ export function Shell() {
   }, [cur])
   useEffect(() => {
     // the consent page explains itself to people whose role cannot connect Claude
-    if (me && !me.screens.includes(cur === 'dashboard' ? 'today' : cur) && loc.pathname !== '/claude/izin') nav('/', { replace: true })
+    if (me && !canSee(me.screens, cur) && loc.pathname !== '/claude/izin') nav('/', { replace: true })
   }, [me, cur, nav, loc.pathname])
   const [menu, setMenu] = useState(false)
   const { collapsed, setCollapsed } = useAppearance()
@@ -133,6 +141,8 @@ export function Shell() {
     run(v)
   }
   const isOrbit = cur === 'orbit' || cur === 'net' || cur === 'kuad'
+  // the menu scrolls on short screens: keep the open page's item in view
+  useEffect(() => { document.querySelector('.rail .nav-btn.is-active')?.scrollIntoView?.({ block: 'nearest' }) }, [cur, me])
 
   return (
     <>
@@ -155,10 +165,11 @@ export function Shell() {
             <div className="nav-sec">Operasi</div>
             <NavBtn to="stock" cur={cur} icon="box">Push stok</NavBtn>
             <NavBtn to="ar" cur={cur} icon="cash" badge={<Badge n={creditBad} color="var(--bad)" />}>Kredit · kas</NavBtn>
-            {me && ['users', 'roles', 'branches'].some((k) => me.screens.includes(k)) && <div className="nav-sec">Master data</div>}
+            {me && ['users', 'roles', 'branches', 'conn'].some((k) => me.screens.includes(k)) && <div className="nav-sec">Master data</div>}
             <NavBtn to="users" cur={cur} icon="people">Pengguna</NavBtn>
             <NavBtn to="roles" cur={cur} icon="shield">Peran &amp; akses</NavBtn>
             <NavBtn to="branches" cur={cur} icon="building">Cabang</NavBtn>
+            <NavBtn to="salesmap" cur={cur} icon="net">Mapping sales</NavBtn>
           </nav>
           <div className="rail-sec">
             <nav className="nav" aria-label="Pengaturan">

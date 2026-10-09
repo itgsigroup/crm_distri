@@ -6,6 +6,7 @@ import { OrchProvider } from './orch'
 import { OrchestratorPage } from '../features/orchestrator/OrchestratorPage'
 import { RelasiPage } from '../features/relasi/RelasiPage'
 import { ControlCenter } from '../features/control/ControlCenter'
+import { SalesMapPage } from '../features/salesmap/SalesMapPage'
 import { OrbitPage } from '../features/orbit/OrbitPage'
 import { SegmenPage } from '../features/segmen/SegmenPage'
 import { DealerPage } from '../features/dealer/DealerPage'
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
       { path: 'pengguna', element: <UsersPage /> },
       { path: 'peran', element: <RolesPage /> },
       { path: 'cabang', element: <BranchesPage /> },
+      { path: 'mapping-sales', element: <SalesMapPage /> },
       { path: 'claude', element: <ClaudePage /> },
       { path: 'claude/izin', element: <ConsentPage /> },
       { path: 'pengaturan', element: <SettingsPage /> },
