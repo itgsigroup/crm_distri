@@ -4,7 +4,8 @@
 export interface ControlTarget {
   rotate(dx: number, dy: number): void
   pan(dx: number, dy: number): void
-  zoomBy(factor: number): void
+  /** with a pointer position, zoom towards that point */
+  zoomBy(factor: number, clientX?: number, clientY?: number): void
   click(e: PointerEvent): void
   dblclick(e: MouseEvent): void
   hover(e: PointerEvent): void
@@ -86,17 +87,17 @@ export function bindControls(cv: HTMLElement, t: ControlTarget, reduced: boolean
   const wheel = (e: WheelEvent) => {
     e.preventDefault()
     const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY
-    t.zoomBy(Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015))) // ctrl+wheel = touchpad pinch (Chrome, Edge, Firefox)
+    t.zoomBy(Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX, e.clientY) // ctrl+wheel = touchpad pinch (Chrome, Edge, Firefox)
   }
   // Safari (macOS) reports a touchpad pinch as gesture* events with a cumulative scale
   let gScale = 1
   const gStart = (e: Event) => { e.preventDefault(); gScale = 1 }
   const gChange = (e: Event) => {
     e.preventDefault()
-    const sc = (e as Event & { scale: number }).scale
-    if (!sc) return
-    t.zoomBy(sc / gScale)
-    gScale = sc
+    const g = e as Event & { scale: number; clientX: number; clientY: number }
+    if (!g.scale) return
+    t.zoomBy(g.scale / gScale, g.clientX, g.clientY)
+    gScale = g.scale
   }
   const menu = (e: MouseEvent) => e.preventDefault() // right-drag pans
   const on: [string, EventListener, AddEventListenerOptions?][] = [

@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { Relasi, RelasiEdge } from '../../api/types'
 import { Icon } from '../../components/Icon'
-import { useOrbit, useRelasi, useRelasiInsights, useSales } from '../../app/queries'
+import { useDealers, useOrbit, useRelasi, useRelasiInsights, useSales } from '../../app/queries'
 import { FullscreenButton, useFullscreen } from '../../components/MapViewport'
 import { EMPTY, activeCount, applyFilter, type OrbitFilter } from '../orbit/filters'
 import { OrbitFilterBar } from '../orbit/OrbitTools'
-import { GalaxyView } from './GalaxyView'
+import { GalaxyView, type GalaxyLead } from './GalaxyView'
 import { NetView } from './NetView'
 import type { Positions } from './layout'
 
@@ -34,12 +34,20 @@ function settleOff(g: Relasi): Promise<Positions | undefined> {
 
 /** Which nodes are lit: the sales filter plus the dealer filters. A sales number stays lit while it talks to at least
  * one dealer that passes the filters. */
-function litFilter(edges: RelasiEdge[], sales: string, matched: Set<string> | null) {
+function litFilter(edges: RelasiEdge[], sales: string, matched: Set<string> | null, leadOwner: Map<string, string>) {
   const key = 's-' + sales
+  const lead = (id: string) => (sales === 'all' || leadOwner.get(id) === key) && !matched // prospects never match dealer filters
   const bySales = (id: string) => sales === 'all' || id === key || edges.some((e) => e.sales === key && e.dealer === id && e.w > 0)
   const dealerOk = (id: string) => !matched || matched.has(id)
   const salesOk = (id: string) => !matched || edges.some((e) => e.sales === id && e.w > 0 && matched.has(e.dealer))
-  return (id: string) => bySales(id) && (id.startsWith('s-') ? salesOk(id) : dealerOk(id))
+  return (id: string) => (leadOwner.has(id) ? lead(id) : bySales(id) && (id.startsWith('s-') ? salesOk(id) : dealerOk(id)))
+}
+
+const MAX_LEADS = 400
+const hashOf = (s: string) => {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
+  return h >>> 0
 }
 
 type Mode = 'jaringan' | 'galaksi'
@@ -89,7 +97,20 @@ export function RelasiPage() {
   }
 
   // which nodes are lit: sales filter + dealer filters (applied to whichever view is showing)
-  const lit = useMemo(() => litFilter(g?.edges ?? [], sales, matched), [g, sales, matched])
+  // prospects (never ordered) fly through the galaxy as comets (a sales owns them) or meteors (nobody does)
+  const { data: allDealers } = useDealers()
+  const leads = useMemo<GalaxyLead[]>(() => {
+    const ps = (allDealers ?? []).filter((d) => d.metrics.status === 'Prospek')
+    const pick = ps.length > MAX_LEADS ? [...ps].sort((a, b) => hashOf(a.id) - hashOf(b.id)).slice(0, MAX_LEADS) : ps
+    return pick.map((d) => ({ id: d.id, name: d.name, sub: [d.city, d.branch].filter(Boolean).join(' · '), owner: d.owner?.key ? 's-' + d.owner.key : '', ownerName: d.owner?.name ?? '' }))
+  }, [allDealers])
+  const leadOwner = useMemo(() => new Map(leads.map((l) => [l.id, l.owner])), [leads])
+  const leadsRef = useRef(leads)
+  useEffect(() => {
+    leadsRef.current = leads
+    if (view.current instanceof GalaxyView) view.current.setLeads(leads)
+  }, [leads])
+  const lit = useMemo(() => litFilter(g?.edges ?? [], sales, matched, leadOwner), [g, sales, matched, leadOwner])
   const litRef = useRef(lit)
   useEffect(() => { litRef.current = lit }, [lit])
 
@@ -108,7 +129,7 @@ export function RelasiPage() {
       view.current = v
       v.start()
     }
-    if (mode === 'galaksi') mount(new GalaxyView(opts, g.nodes, g.edges, g.months))
+    if (mode === 'galaksi') mount(new GalaxyView({ ...opts, leads: leadsRef.current }, g.nodes, g.edges, g.months))
     else void settleOff(g).then((pos) => {
       if (cancelled || view.current) return
       mount(new NetView(opts, g.nodes, g.edges, g.months, pos))
@@ -155,7 +176,7 @@ export function RelasiPage() {
             <span className="pill neutral">{scoped ? `${scoped.connections.toLocaleString('id-ID')} koneksi · ${scoped.interactions.toLocaleString('id-ID')} interaksi` : ''}</span>
             {g && g.dealers_active > g.dealers_shown && <span className="pill neutral">{g.dealers_shown} dealer teraktif dari {g.dealers_active.toLocaleString('id-ID')}</span>}
           </div>
-          <div className="net-legend"><span><i style={{ background: 'var(--accent)' }} />{mode === 'galaksi' ? 'Planet · nomor sales' : 'Nomor sales'}</span><span><i style={{ background: 'var(--good)' }} />Skor dealer kuat</span><span><i style={{ background: 'var(--warn)' }} />50–69</span><span><i style={{ background: 'var(--bad)' }} />&lt; 50</span><span>{mode === 'galaksi' ? 'Planet = nomor sales · Satelit = dealer, mengorbit sales terdekatnya · Orbit makin dekat = makin sering berinteraksi · Ukuran = interaksi/bulan · Garis putus = juga dekat dengan sales lain' : 'Ukuran = interaksi/bulan · Jarak = kedekatan'}</span></div>
+          <div className="net-legend"><span><i style={{ background: 'var(--accent)' }} />{mode === 'galaksi' ? 'Planet · nomor sales' : 'Nomor sales'}</span><span><i style={{ background: 'var(--good)' }} />Skor dealer kuat</span><span><i style={{ background: 'var(--warn)' }} />50–69</span><span><i style={{ background: 'var(--bad)' }} />&lt; 50</span>{mode === 'galaksi' && <><span><i style={{ background: '#bfe9ff' }} />Komet · prospek milik sales</span><span><i style={{ background: '#8f7b68' }} />Meteor · prospek tanpa sales</span></>}<span>{mode === 'galaksi' ? 'Planet = nomor sales · Satelit = dealer, orbit makin dekat = makin sering berinteraksi · Komet & meteor = prospek yang belum pernah order · Garis putus = juga dekat dengan sales lain' : 'Ukuran = interaksi/bulan · Jarak = kedekatan'}</span></div>
           {g && g.nodes.length === 0 && <div className="net-empty">Belum ada interaksi WhatsApp atau order dalam 6 bulan terakhir.</div>}
           <div className="map-controls" role="toolbar" aria-label="Kontrol peta">
             <div className="map-ctl-group" aria-label="Zoom">
