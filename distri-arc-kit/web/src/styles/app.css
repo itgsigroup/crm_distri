@@ -422,6 +422,7 @@
 .map-viewport svg line,.map-viewport svg .ring-l,.map-viewport svg .kz{vector-effect:non-scaling-stroke}
 .map-viewport svg text{transform-box:fill-box;transform-origin:center;scale:var(--mu,1)}
 .kuad .kaxis{stroke:var(--text-3);stroke-width:1.2}
+.kuad .ksplit{fill:var(--text-3);opacity:.05;pointer-events:none}
 .kuad-plot{overflow:hidden;cursor:grab}
 .map-viewport.is-panning .kuad-plot{cursor:grabbing}
 .map-controls{position:absolute;z-index:6;top:8px;right:8px;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:4px;max-width:calc(100% - 16px);padding:4px;border:1px solid var(--line);border-radius:11px;background:var(--surface);box-shadow:var(--shadow);color:var(--text);font-size:11.5px}

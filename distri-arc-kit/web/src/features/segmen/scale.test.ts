@@ -33,3 +33,17 @@ test('axis ticks follow the zoom: inverse scales, finer steps for a smaller rang
   expect(fmtTick(1.5e6)).toBe('1,5 jt')
   expect(fmtTick(150e6)).toBe('150 jt')
 })
+
+test('data beyond 3,5×/bln or 200 jt widens the range instead of piling dealers on the edge', async () => {
+  const { domainOf, BASE, XSPLIT, freqAt, valueAt, xTicks } = await import('./scale')
+  expect(domainOf([{ freq: 2, avg_order: 30e6 }])).toEqual(BASE) // mockup range unchanged
+  const d = domainOf([{ freq: 12, avg_order: 400e6 }, { freq: 5.5, avg_order: 2e6 }, { freq: 1, avg_order: 30e6 }])
+  expect(d.xtop).toBeGreaterThan(12)
+  expect(px(3.5, d)).toBeCloseTo(L + (W - L - R) * XSPLIT, 9) // 0–3,5× keeps the first 80%
+  expect(xOf(5.5, d)).toBeLessThan(xOf(12, d)) // no longer the same edge
+  expect(xOf(12, d)).toBeLessThan(W - R)
+  expect(freqAt(px(7, d), d)).toBeCloseTo(7, 6)
+  expect(clampY(400e6, d)).toBeGreaterThan(T)
+  expect(valueAt(py(2e6, d), d)).toBeCloseTo(2e6, -1)
+  expect(xTicks(3, 13)).toEqual(expect.arrayContaining([3, 3.5, 4, 5, 10, 12]))
+})

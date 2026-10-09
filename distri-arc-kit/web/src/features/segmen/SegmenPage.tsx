@@ -13,7 +13,7 @@ import { Legend, MoverList, SalesFilters } from '../orbit/OrbitPage'
 import { toneOf } from '../orbit/geometry'
 import { SegmenFilterBar } from './SegmenFilterBar'
 import { applySegmenFilters, EMPTY_SEGMEN_FILTER, summarizeSegmen, type SegmenFilter } from './filters'
-import { B, H, L, R, T, W, clampY, fmtTick, freqAt, px, py, valueAt, xOf, xTicks, yTicks } from './scale'
+import { B, H, L, R, T, W, XMAX, clampY, domainOf, fmtTick, freqAt, px, py, valueAt, xOf, xTicks, yTicks, type Domain } from './scale'
 
 const zoneColor = (k: Segment) => (KUAD[k].k === 'text-3' ? 'text-2' : KUAD[k].k)
 const textColor = (k: Segment) => (KUAD[k].k === 'text-3' ? 'text' : KUAD[k].k)
@@ -36,13 +36,13 @@ function topByOmzet(list: BoardItem[], count = SEGMEN_PRIORITY) {
 
 /** Dots spread apart inside their own box so none overlap. `markerScale` is the dot size in chart units (smaller when
  * zoomed in or when dots are shrunk), so the spreading is only as large as the dots on screen need. */
-function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, markerScale: number, positionBlend: number): Node[] {
+function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, markerScale: number, positionBlend: number, dom: Domain): Node[] {
   const compact = dense && list.length > SEGMEN_PRIORITY
   const nodes = list.map((d) => {
     const m = d.metrics
     const size = 5 + Math.sqrt(m.sow) * 0.9 // size = share of wallet, smaller than the mockup so hundreds of dealers fit
-    const x = xOf(m.freq)
-    const y = clampY(m.avg_order)
+    const x = xOf(m.freq, dom)
+    const y = clampY(m.avg_order, dom)
     const baseSize = compact ? Math.max(3, size * 0.35) : size
     return { d, x, y, ox: x, oy: y, size: baseSize * markerScale, baru: m.freq == null }
   })
@@ -120,12 +120,14 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   const { containerRef: wrap, svgProps, ...viewport } = useMapViewport(PW, PH)
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
   const [all, setAll] = useState(false)
-  const xq = px(thresholds.freq_per_month)
-  const yq = py(thresholds.size_idr)
+  // the value range follows the data, so dealers beyond 3,5×/bln or 200 jt get their own place instead of an edge pile
+  const dom = useMemo(() => domainOf(list.map((d) => d.metrics)), [list])
+  const xq = px(thresholds.freq_per_month, dom)
+  const yq = py(thresholds.size_idr, dom)
   const scoped = useMemo(() => sel ? list.filter((d) => d.metrics.segment === sel) : list, [list, sel])
   const shown = useMemo(() => all ? scoped : topByOmzet(scoped), [all, scoped])
   const scale = useDeferredValue(layoutStep(viewport.markerScale))
-  const nodes = useMemo(() => layout(shown, all, xq, yq, scale, viewport.positionBlend), [shown, all, xq, yq, scale, viewport.positionBlend])
+  const nodes = useMemo(() => layout(shown, all, xq, yq, scale, viewport.positionBlend, dom), [shown, all, xq, yq, scale, viewport.positionBlend, dom])
   const resize = viewport.markerScale / scale // the layout may lag a fast zoom by a frame; dots are drawn at the current size
   const strokeW = Math.max(0.3 * viewport.unit, Math.min(2 * viewport.markerScale, 1.5 * viewport.unit))
   const Z: [Segment, number, number, number, number][] = [['A', xq, T, W - R - xq, yq - T], ['C', L, T, xq - L, yq - T], ['B', xq, yq, W - R - xq, H - B - yq], ['D', L, yq, xq - L, H - B - yq]]
@@ -156,8 +158,12 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   const cy0 = vis.y + T
   const sx = (x: number) => L + (x - cx0) * (PW / vis.w)
   const sy = (y: number) => T + (y - cy0) * (PH / vis.h)
-  const xs = xTicks(Math.max(0, freqAt(cx0)), freqAt(cx0 + vis.w))
-  const ys = yTicks(valueAt(cy0 + vis.h), valueAt(cy0))
+  const xs = xTicks(Math.max(0, freqAt(cx0, dom)), freqAt(cx0 + vis.w, dom))
+  const ys = yTicks(valueAt(cy0 + vis.h, dom), valueAt(cy0, dom))
+  // labels on the compressed part may crowd: keep only those at least 34 units apart
+  const xl: number[] = []
+  for (const f of xs) if (!xl.length || sx(px(f, dom)) - sx(px(xl[xl.length - 1], dom)) >= 34) xl.push(f)
+  const split = dom.xtop > XMAX ? px(XMAX, dom) : null
   return (
     <div>
       <div className="kuad-controls">
@@ -175,12 +181,12 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
           </marker>
         </defs>
         {ys.map((v) => (
-          <text key={v} x={L - 8} y={(sy(py(v)) + 4).toFixed(1)} textAnchor="end" className="kt">{fmtTick(v)}</text>
+          <text key={v} x={L - 8} y={(sy(py(v, dom)) + 4).toFixed(1)} textAnchor="end" className="kt">{fmtTick(v)}</text>
         ))}
-        {xs.map((f) => (
+        {xl.map((f) => (
           <g key={f}>
-            <text x={sx(px(f)).toFixed(1)} y={H - B + 16} textAnchor="middle" className="kt">{fq(f)}×</text>
-            <text x={sx(px(f)).toFixed(1)} y={H - B + 29} textAnchor="middle" className="kt sm">{Math.round(30 / f)} hr</text>
+            <text x={sx(px(f, dom)).toFixed(1)} y={H - B + 16} textAnchor="middle" className="kt">{fq(f)}×</text>
+            <text x={sx(px(f, dom)).toFixed(1)} y={H - B + 29} textAnchor="middle" className="kt sm">{Math.round(30 / f)} hr</text>
           </g>
         ))}
         <line x1={L} y1={H - B} x2={W - R + 12} y2={H - B} className="kaxis" markerEnd="url(#kuad-arrow)" />
@@ -192,8 +198,14 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
             {Z.map(([k, x, y, w, h]) => (
               <rect key={k} x={x.toFixed(1)} y={y.toFixed(1)} width={w.toFixed(1)} height={h.toFixed(1)} fill={`var(--${KUAD[k].k})`} opacity={sel && sel !== k ? 0.015 : k === 'D' ? 0.04 : 0.06} className="kz" onClick={() => onSel(k)} />
             ))}
-            {ys.map((v) => <line key={v} x1={L} y1={py(v).toFixed(2)} x2={W - R} y2={py(v).toFixed(2)} className="kg" />)}
-            {xs.map((f) => <line key={f} x1={px(f).toFixed(2)} y1={T} x2={px(f).toFixed(2)} y2={H - B} className="kg" />)}
+            {ys.map((v) => <line key={v} x1={L} y1={py(v, dom).toFixed(2)} x2={W - R} y2={py(v, dom).toFixed(2)} className="kg" />)}
+            {xs.map((f) => <line key={f} x1={px(f, dom).toFixed(2)} y1={T} x2={px(f, dom).toFixed(2)} y2={H - B} className="kg" />)}
+            {split != null && (
+              <g>
+                <rect x={split} y={T} width={W - R - split} height={H - B - T} className="ksplit" />
+                <text x={split + 4} y={T + 64} className="kt sm" fill="var(--text-3)">&gt; 3,5×/bln · skala dipadatkan</text>
+              </g>
+            )}
             <line x1={xq.toFixed(1)} y1={T} x2={xq.toFixed(1)} y2={H - B} className="kq" />
             <line x1={L} y1={yq.toFixed(1)} x2={W - R} y2={yq.toFixed(1)} className="kq" />
             <text x={(xq + 5).toFixed(1)} y={H - B - 8} className="kt sm" fill="var(--text-2)">sering: ≥ {fq(thresholds.freq_per_month)}×/bln</text>
