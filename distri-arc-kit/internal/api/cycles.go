@@ -169,7 +169,17 @@ func (s *Server) conflicts(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(rows), "cycle_number": c.Number})
+	set, scoped, ok := s.scopedDealers(w, r)
+	if !ok {
+		return
+	}
+	out := rows[:0]
+	for _, x := range rows {
+		if inScope(set, scoped, x.DealerID) {
+			out = append(out, x)
+		}
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(out), "cycle_number": c.Number})
 }
 
 // agentMeta is the agent card text (mockup AGENTS): role and icon.
@@ -210,10 +220,24 @@ func (s *Server) agents(w http.ResponseWriter, r *http.Request) {
 	for _, a := range state {
 		byName[a.Agent] = a
 	}
-	counts, _ := s.st.Q.TodayAgentCounts(r.Context(), clock.Today(s.clock.Now()))
+	set, scoped, ok := s.scopedDealers(w, r)
+	if !ok {
+		return
+	}
 	today := map[string]int64{}
-	for _, c := range counts {
-		today[c.Agent] += c.N
+	if scoped { // one sales' page: today's proposals on their dealers only
+		since := clock.Today(s.clock.Now())
+		rows, _ := s.st.Q.ListProposals(r.Context(), gen.ListProposalsParams{Lim: 1000})
+		for _, p := range rows {
+			if !p.CreatedAt.Before(since) && p.Kind != "reply" && inScope(set, true, p.DealerID) {
+				today[p.Agent]++
+			}
+		}
+	} else {
+		counts, _ := s.st.Q.TodayAgentCounts(r.Context(), clock.Today(s.clock.Now()))
+		for _, c := range counts {
+			today[c.Agent] += c.N
+		}
 	}
 	out := make([]AgentView, 0, len(agentOrder))
 	for _, n := range agentOrder {
@@ -254,6 +278,10 @@ func (s *Server) planToday(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	set, scoped, ok := s.scopedDealers(w, r)
+	if !ok {
+		return
+	}
 	items := make([]PlanStepView, 0, len(rows))
 	auto := 0
 	for _, it := range rows {
@@ -262,10 +290,18 @@ func (s *Server) planToday(w http.ResponseWriter, r *http.Request) {
 		if len(ids) == 0 && it.ProposalID != nil {
 			ids = []uuid.UUID{*it.ProposalID}
 		}
+		mine := false // one sales' page keeps the steps that touch their dealers, with only their proposals
 		for _, id := range ids {
 			if p, err := s.st.Q.GetProposal(r.Context(), id); err == nil {
+				if !inScope(set, scoped, p.DealerID) {
+					continue
+				}
+				mine = true
 				v.Proposals = append(v.Proposals, PlanProposal{ID: p.ID, Kind: p.Kind, Status: p.Status, Button: deref(p.Button), Icon: deref(p.Icon), Autonomy: p.Autonomy})
 			}
+		}
+		if scoped && !mine {
+			continue
 		}
 		if deref(it.Autonomy) == "auto" {
 			auto++

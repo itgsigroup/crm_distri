@@ -806,3 +806,19 @@ body.map-maximized{overflow:hidden}
   .ibc-acts{width:100%;justify-content:flex-end}
   .ibc-body{padding:12px}
 }
+
+/* One sales' page (Pusat kendali, Orchestrator) */
+.sales-bar{display:flex;justify-content:flex-end;margin:-4px 0 12px}
+.sales-pick{position:relative;display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 34px 0 6px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-size:13px;font-weight:600;color:var(--text);cursor:pointer}
+.sales-pick.on{box-shadow:0 0 0 2px var(--accent),var(--shadow)}
+.sales-pick.locked{padding:0 14px 0 10px;cursor:default;color:var(--text-2)}
+.sales-pick.locked .i{width:15px;height:15px}
+.sales-pick select{appearance:none;-webkit-appearance:none;border:0;background:transparent;font:inherit;color:inherit;cursor:pointer;outline:none;max-width:260px;padding:0}
+.sales-pick .sp-chev{position:absolute;right:12px;width:13px;height:13px;color:var(--text-3);pointer-events:none;transform:rotate(90deg)}
+.sp-av{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700}
+.sp-av .i{width:14px;height:14px}
+.sales-banner{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:10px 12px;border-radius:14px;background:var(--accent-soft);font-size:13px;line-height:1.45;color:var(--text-2)}
+.sales-banner b{color:var(--text)}
+.sales-banner .sp-av{background:var(--accent);color:var(--on-accent)}
+.sales-banner .btn{margin-left:auto;flex:none}
+@media (max-width:700px){.sales-bar{justify-content:stretch}.sales-pick{width:100%}.sales-pick select{flex:1;max-width:none}.sales-banner{flex-wrap:wrap}.sales-banner .btn{margin-left:0}}

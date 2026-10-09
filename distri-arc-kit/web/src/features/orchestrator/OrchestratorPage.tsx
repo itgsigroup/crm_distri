@@ -8,7 +8,9 @@ import { hhmm, shortDate } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { useAgents, useConflicts, useCycleLatest, useCycles, useMCPCalls, useMCPInfo } from '../../app/queries'
+import { useAgents, useConflicts, useCycleLatest, useCycles, useMCPCalls, useMCPInfo, useQueue } from '../../app/queries'
+import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
+import { Queue } from '../control/Queue'
 import { MCPClientsPanel, MCPRules, ModeSeg } from '../settings/AIConnections'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { CONFLICT_COMPARE, RUN_COMPARE, conflictFirstDir, conflictText, conflictTie, finishedRuns, runFirstDir, runText, runTie, type ConflictColumn, type RunColumn } from './tables'
@@ -127,8 +129,11 @@ export function OrchestratorPage() {
   const st = useOrchStatus()
   const { data: latest } = useCycleLatest()
   const { data: cycles = [] } = useCycles()
-  const { data: conflicts = [] } = useConflicts()
-  const { data: agents = [] } = useAgents()
+  const page = useSalesPage()
+  const sales = page.sales
+  const { data: conflicts = [] } = useConflicts(sales)
+  const { data: agents = [] } = useAgents(sales)
+  const { data: queue = [] } = useQueue(sales)
   const { data: info } = useMCPInfo()
   const { data: calls = [] } = useMCPCalls()
   const shown = st.running && latest?.cycle ? latest.cycle : (latest?.last_full ?? latest?.last_done)
@@ -136,6 +141,8 @@ export function OrchestratorPage() {
 
   return (
     <>
+      <div className="sales-bar"><SalesPicker page={page} /></div>
+      <SalesBanner page={page} />
       <div className="card orch-head">
         <div className="oh-l">
           <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca sinyal, membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda.</p></div></div>
@@ -157,24 +164,30 @@ export function OrchestratorPage() {
             <div className="card-h"><h2>Pipeline analisis</h2><span className="meta">{meta}</span></div>
             <Pipeline stages={shown?.stages ?? []} />
           </div>
+          {sales && (
+            <div className="card">
+              <div className="card-h"><h2>Keputusan sales ini</h2><span className="meta">{queue.length ? `${queue.length} item hari ini` : 'Tidak ada keputusan hari ini'}</span></div>
+              <Queue items={queue} />
+            </div>
+          )}
           <div className="card">
             <div className="card-h"><h2>Resolusi konflik</h2><span className="ai" style={{ marginLeft: 6 }}>inti pekerjaan Orchestrator</span><span className="meta">dua agen, satu dealer, satu urutan</span></div>
             <Conflicts rows={conflicts} onOpen={(slug) => nav('/dealer/' + slug)} />
           </div>
           <div className="card">
-            <div className="card-h"><h2>Riwayat analisis</h2><span className="meta">tiap jam · 06.00–20.00 · 100 siklus terakhir</span></div>
+            <div className="card-h"><h2>Riwayat analisis</h2><span className="meta">{sales ? 'siklus berjalan untuk seluruh tim · tanpa rincian dealer' : 'tiap jam · 06.00–20.00 · 100 siklus terakhir'}</span></div>
             <Runs cycles={cycles} />
           </div>
         </div>
         <div className="stack">
           <div className="card">
-            <div className="card-h"><h2>Agen</h2><span className="meta">peran · otonomi · hasil siklus terakhir</span></div>
+            <div className="card-h"><h2>Agen</h2><span className="meta">{sales ? 'peran · otonomi · usulan hari ini untuk dealer sales ini' : 'peran · otonomi · hasil siklus terakhir'}</span></div>
             <div className="agent-grid">
               {agents.map((a) => (
                 <div className="agent-card" key={a.name}>
                   <div className="ac-h"><span className="ni"><Icon name={a.icon} /></span><div><b>{a.name}</b><span>{a.role}</span></div></div>
                   <div className="ac-kv"><span><small>Otonom</small>{a.auto}</span><span><small>Butuh approve</small>{a.approve}</span><span><small>Tidak boleh</small>{a.never}</span></div>
-                  <div className="ac-out"><span className="ai" />{a.output || 'Belum berjalan'}</div>
+                  <div className="ac-out"><span className="ai" />{sales ? `${a.today} usulan hari ini untuk dealer sales ini` : a.output || 'Belum berjalan'}</div>
                   <div className="ac-f">
                     <div className="cal-row"><span>kalibrasi</span><div className="bar"><i style={{ width: `${a.confidence ?? 0}%`, ...(a.confidence !== null && a.confidence < 60 ? { background: 'var(--warn)' } : {}) }} /></div><span className="v num">{a.confidence === null ? '—' : `${a.confidence}%`}</span></div>
                     <button className="btn quiet" style={{ height: 26, fontSize: 12 }} disabled={st.running} onClick={() => reanalyze('agent:' + a.name)}>Jalankan ulang</button>

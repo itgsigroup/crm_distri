@@ -58,9 +58,16 @@ func (s *Server) listProposals(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	set, scoped, ok := s.scopedDealers(w, r)
+	if !ok {
+		return
+	}
 	today := clockToday(s)
 	out := []gen.GetProposalRow{}
 	for _, row := range rows {
+		if !inScope(set, scoped, row.DealerID) {
+			continue
+		}
 		if q.Get("queue") == "1" && !row.Queue {
 			continue
 		}

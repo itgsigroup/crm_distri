@@ -40,6 +40,39 @@ func (q *Queries) CountSignalsSince(ctx context.Context, occurredAt time.Time) (
 	return i, err
 }
 
+const countSignalsSinceForDealers = `-- name: CountSignalsSinceForDealers :one
+select count(*) filter (where kind in ('wa','wa_group'))::bigint as wa,
+       count(*) filter (where kind = 'so')::bigint as so,
+       count(*) filter (where kind = 'payment')::bigint as payments,
+       count(*)::bigint as total
+from signals where occurred_at >= $1 and dealer_id = any($2::uuid[])
+`
+
+type CountSignalsSinceForDealersParams struct {
+	Since   time.Time   `json:"since"`
+	Dealers []uuid.UUID `json:"dealers"`
+}
+
+type CountSignalsSinceForDealersRow struct {
+	Wa       int64 `json:"wa"`
+	So       int64 `json:"so"`
+	Payments int64 `json:"payments"`
+	Total    int64 `json:"total"`
+}
+
+// The same counts for one sales' page (their dealers only).
+func (q *Queries) CountSignalsSinceForDealers(ctx context.Context, arg CountSignalsSinceForDealersParams) (CountSignalsSinceForDealersRow, error) {
+	row := q.db.QueryRow(ctx, countSignalsSinceForDealers, arg.Since, arg.Dealers)
+	var i CountSignalsSinceForDealersRow
+	err := row.Scan(
+		&i.Wa,
+		&i.So,
+		&i.Payments,
+		&i.Total,
+	)
+	return i, err
+}
+
 const dealerTimelineFull = `-- name: DealerTimelineFull :many
 select x.at, x.kind, x.via, x.who, x.text, x.conclusion, x.ref from (
   select s.occurred_at as at, s.kind, coalesce(s.payload->>'via', '')::text as via, coalesce(s.payload->>'who', s.payload->>'from_name', '')::text as who,

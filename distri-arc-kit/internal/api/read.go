@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/httpx"
+	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
 )
 
@@ -50,9 +52,9 @@ func (s *Server) board(w http.ResponseWriter, r *http.Request) (*views.Board, bo
 	if !ok {
 		return nil, false
 	}
-	if u, _ := CurrentUser(r.Context()); deref(u.Role) == "sales" && u.SalesName != nil {
+	if name, ok := salesScope(r); ok {
 		own := *b
-		own.Items = b.Filter(*u.SalesName)
+		own.Items = b.Filter(name)
 		b = &own
 	}
 	// ?type=reseller|si: dealer (reseller) or freelance / system integrator
@@ -67,6 +69,42 @@ func (s *Server) board(w http.ResponseWriter, r *http.Request) (*views.Board, bo
 		b = &typed
 	}
 	return b, true
+}
+
+// salesScope is whose dealers a request sees: a sales user always their own; anyone else everything, or one sales'
+// page with ?sales=<key or name> (Pusat kendali, Orchestrator) — never mixed with another sales' dealers.
+func salesScope(r *http.Request) (string, bool) {
+	if u, _ := CurrentUser(r.Context()); deref(u.Role) == "sales" {
+		if u.SalesName == nil {
+			return "\x00", true // a sales user without a sales profile sees no dealer
+		}
+		return *u.SalesName, true
+	}
+	if v := strings.TrimSpace(r.URL.Query().Get("sales")); v != "" && !strings.EqualFold(v, "all") {
+		return v, true
+	}
+	return "", false
+}
+
+// scopedDealers is the set of dealer ids of the request's sales scope (ok=false: no scope, everything).
+func (s *Server) scopedDealers(w http.ResponseWriter, r *http.Request) (map[uuid.UUID]bool, bool, bool) {
+	if _, scoped := salesScope(r); !scoped {
+		return nil, false, true
+	}
+	b, ok := s.board(w, r)
+	if !ok {
+		return nil, true, false
+	}
+	set := make(map[uuid.UUID]bool, len(b.Items))
+	for _, it := range b.Items {
+		set[it.UUID] = true
+	}
+	return set, true, true
+}
+
+// inScope: no scope, or the row's dealer belongs to it (rows without a dealer belong to no sales' page).
+func inScope(set map[uuid.UUID]bool, scoped bool, dealer *uuid.UUID) bool {
+	return !scoped || (dealer != nil && set[*dealer])
 }
 
 func (s *Server) fullBoard(w http.ResponseWriter, r *http.Request) (*views.Board, bool) {
@@ -316,7 +354,17 @@ func (s *Server) agenda(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(b.Agenda(sales))})
+	rows := b.Agenda(sales)
+	if name, scoped := salesScope(r); scoped { // one sales' page: only their own agenda
+		own := rows[:0]
+		for _, a := range rows {
+			if strings.EqualFold(a.Sales.Key, name) || strings.EqualFold(a.Sales.Name, name) {
+				own = append(own, a)
+			}
+		}
+		rows = own
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(rows)})
 }
 
 func (s *Server) stockAging(w http.ResponseWriter, r *http.Request) {
@@ -407,7 +455,8 @@ func nonNil[T any](v []T) []T {
 }
 
 func (s *Server) briefToday(w http.ResponseWriter, r *http.Request) {
-	if row, err := s.st.Q.GetBrief(r.Context(), clockToday(s)); err == nil {
+	_, scoped := salesScope(r) // the stored brief covers every sales: one sales' page gets a brief from their dealers
+	if row, err := s.st.Q.GetBrief(r.Context(), clockToday(s)); err == nil && !scoped {
 		// written by the last full cycle (text + signal_ids per point); lists normalised for briefs stored by older builds
 		var stored views.Brief
 		if json.Unmarshal(row.Brief, &stored) == nil {
@@ -436,6 +485,15 @@ func (s *Server) briefToday(w http.ResponseWriter, r *http.Request) {
 	}
 	since := clockToday(s).AddDate(0, 0, -1)
 	c, err := s.st.Q.CountSignalsSince(r.Context(), since)
+	if scoped {
+		ids := make([]uuid.UUID, 0, len(b.Items))
+		for _, it := range b.Items {
+			ids = append(ids, it.UUID)
+		}
+		var sc gen.CountSignalsSinceForDealersRow
+		sc, err = s.st.Q.CountSignalsSinceForDealers(r.Context(), gen.CountSignalsSinceForDealersParams{Since: since, Dealers: ids})
+		c = gen.CountSignalsSinceRow(sc)
+	}
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return

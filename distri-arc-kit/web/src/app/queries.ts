@@ -38,15 +38,17 @@ export const useSegmen = (sales?: string) =>
   useQuery({ queryKey: ['segmen', sales ?? 'all'], queryFn: () => api.get<{ items: BoardItem[]; thresholds: { freq_per_month: number; size_idr: number } }>('/segmen' + q(sales)) })
 export const useSegmenSummary = (sales?: string) =>
   useQuery({ queryKey: ['segmen', 'summary', sales ?? 'all'], queryFn: () => api.get<{ items: SegmentSummary[]; total_omzet_bln: number; prospects: number }>('/segmen/summary' + q(sales)) })
+/** "?sales=andi" (or "&sales=andi"): one sales' page; nothing for everyone. */
+const sp = (sales?: string, sep = '?') => (sales ? `${sep}sales=${encodeURIComponent(sales)}` : '')
 export const useSegmenMovers = (sales?: string) =>
   useQuery({ queryKey: ['segmen', 'movers', sales ?? 'all'], queryFn: () => api.get<Items<Mover>>('/segmen/movers' + q(sales)).then((r) => r.items) })
-export const useDue = (days = 7) => useQuery({ queryKey: ['dealers', 'due', days], queryFn: () => api.get<Items<BoardItem>>(`/dealers/due?days=${days}`).then((r) => r.items) })
-export const useDrift = () => useQuery({ queryKey: ['dealers', 'drift'], queryFn: () => api.get<Items<BoardItem>>('/dealers/drift').then((r) => r.items) })
-export const useCreditTight = () => useQuery({ queryKey: ['dealers', 'credit-tight'], queryFn: () => api.get<Items<BoardItem>>('/dealers/credit-tight').then((r) => r.items) })
-export const useKpi = () => useQuery({ queryKey: ['kpi'], queryFn: () => api.get<KPI>('/kpi') })
-export const useAgenda = () => useQuery({ queryKey: ['agenda'], queryFn: () => api.get<Items<AgendaRow>>('/agenda').then((r) => r.items) })
-export const useBrief = () => useQuery({ queryKey: ['brief', 'today'], queryFn: () => api.get<Brief>('/brief/today') })
-export const useStockPush = () => useQuery({ queryKey: ['stock', 'push'], queryFn: () => api.get<Items<AgingItem>>('/stock/push').then((r) => r.items) })
+export const useDue = (days = 7, sales?: string) => useQuery({ queryKey: ['dealers', 'due', days, sales ?? 'all'], queryFn: () => api.get<Items<BoardItem>>(`/dealers/due?days=${days}${sp(sales, '&')}`).then((r) => r.items) })
+export const useDrift = (sales?: string) => useQuery({ queryKey: ['dealers', 'drift', sales ?? 'all'], queryFn: () => api.get<Items<BoardItem>>('/dealers/drift' + sp(sales)).then((r) => r.items) })
+export const useCreditTight = (sales?: string) => useQuery({ queryKey: ['dealers', 'credit-tight', sales ?? 'all'], queryFn: () => api.get<Items<BoardItem>>('/dealers/credit-tight' + sp(sales)).then((r) => r.items) })
+export const useKpi = (sales?: string) => useQuery({ queryKey: ['kpi', sales ?? 'all'], queryFn: () => api.get<KPI>('/kpi' + sp(sales)) })
+export const useAgenda = (sales?: string) => useQuery({ queryKey: ['agenda', sales ?? 'all'], queryFn: () => api.get<Items<AgendaRow>>('/agenda' + sp(sales)).then((r) => r.items) })
+export const useBrief = (sales?: string) => useQuery({ queryKey: ['brief', 'today', sales ?? 'all'], queryFn: () => api.get<Brief>('/brief/today' + sp(sales)) })
+export const useStockPush = (sales?: string) => useQuery({ queryKey: ['stock', 'push', sales ?? 'all'], queryFn: () => api.get<Items<AgingItem>>('/stock/push' + sp(sales)).then((r) => r.items) })
 export const useSegmenMoversAll = () => useSegmenMovers()
 
 /** The application's "now": the API clock (ARC_NOW in dev) once known, else the time the page mounted. */
@@ -91,8 +93,8 @@ export const useOdooCategories = () =>
 
 // ---------- Proposals (stage 05) ----------
 export const useProposal = (id?: string) => useQuery({ queryKey: ['proposals', 'one', id], enabled: !!id, queryFn: () => api.get<Proposal>(`/proposals/${id}`) })
-export const useQueue = () =>
-  useQuery({ queryKey: ['proposals', 'queue'], queryFn: () => api.get<Items<Proposal>>('/proposals?queue=1&today=1').then((r) => r.items) })
+export const useQueue = (sales?: string) =>
+  useQuery({ queryKey: ['proposals', 'queue', sales ?? 'all'], queryFn: () => api.get<Items<Proposal>>('/proposals?queue=1&today=1' + sp(sales, '&')).then((r) => r.items) })
 
 export interface CalibrationAgent { agent: string; confidence: number | null; accepted: number; rejected: number }
 export interface CalibrationEvent { id: string; agent: string | null; kind: string | null; decision: string | null; reason: string | null; suppress_until: string | null; created_at: string; title: string | null }
@@ -106,9 +108,9 @@ export const useStockProposals = () =>
 // ---------- Orchestrator ----------
 export const useCycleLatest = () => useQuery({ queryKey: ['cycle', 'latest'], queryFn: () => api.get<CycleLatest>('/cycles/latest'), refetchInterval: 60_000 })
 export const useCycles = () => useQuery({ queryKey: ['cycles'], queryFn: () => api.get<Items<Cycle>>('/cycles?limit=100').then((r) => r.items) })
-export const useConflicts = () => useQuery({ queryKey: ['cycles', 'conflicts'], queryFn: () => api.get<Items<Conflict>>('/conflicts').then((r) => r.items) })
-export const useAgents = () => useQuery({ queryKey: ['agents'], queryFn: () => api.get<Items<AgentInfo>>('/agents').then((r) => r.items) })
-export const usePlan = () => useQuery({ queryKey: ['plan', 'today'], queryFn: () => api.get<Plan>('/plan/today') })
+export const useConflicts = (sales?: string) => useQuery({ queryKey: ['cycles', 'conflicts', sales ?? 'all'], queryFn: () => api.get<Items<Conflict>>('/conflicts' + sp(sales)).then((r) => r.items) })
+export const useAgents = (sales?: string) => useQuery({ queryKey: ['agents', sales ?? 'all'], queryFn: () => api.get<Items<AgentInfo>>('/agents' + sp(sales)).then((r) => r.items) })
+export const usePlan = (sales?: string) => useQuery({ queryKey: ['plan', 'today', sales ?? 'all'], queryFn: () => api.get<Plan>('/plan/today' + sp(sales)) })
 export const useAutonomy = () => useQuery({ queryKey: ['policies', 'autonomy'], queryFn: () => api.get<AutonomyPolicy>('/policies/autonomy') })
 
 // ---------- MCP ----------

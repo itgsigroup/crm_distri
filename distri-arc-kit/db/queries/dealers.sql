@@ -86,6 +86,14 @@ select count(*) filter (where kind in ('wa','wa_group'))::bigint as wa,
        count(*)::bigint as total
 from signals where occurred_at >= $1;
 
+-- name: CountSignalsSinceForDealers :one
+-- The same counts for one sales' page (their dealers only).
+select count(*) filter (where kind in ('wa','wa_group'))::bigint as wa,
+       count(*) filter (where kind = 'so')::bigint as so,
+       count(*) filter (where kind = 'payment')::bigint as payments,
+       count(*)::bigint as total
+from signals where occurred_at >= sqlc.arg(since) and dealer_id = any(sqlc.arg(dealers)::uuid[]);
+
 -- name: DealerTimelineFull :many
 -- Timeline dealer: interactions with an agent conclusion, sends (manual trail signals), replies linked to a
 -- proposal, and decisions on proposals — newest first.

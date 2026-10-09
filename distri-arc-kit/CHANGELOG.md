@@ -277,3 +277,10 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - **Percakapan**: gelembung gaya WhatsApp (latar krem, keluar hijau, jam di dalam gelembung), tautan cepat Google · Maps · Truecaller · wa.me, tombol **Analisa lanjut** (Orchestrator untuk dealer ini) dan **Accurate**, "Muat pesan sebelumnya" untuk riwayat lama, **Rekomendasi balasan (AI) — klik untuk pakai**.
 - Odoo tidak dipakai di Chat; **Kirim ke Accurate** menyiapkan data pelanggan untuk disalin ke Accurate (API Accurate belum tersambung — `docs/OPEN-QUESTIONS.md`). Tetap: tidak ada pesan terkirim tanpa diketik/disetujui manusia.
 - API: `/chat/threads` membawa `last_direction`, `waiting_since`; detail percakapan membawa `phone`, `dealer_code`, `dealer_city`, `waiting_since` (sqlc diregenerasi, tanpa migrasi).
+
+## Pusat kendali & Orchestrator: halaman per sales · 2026-10-09
+- Pilihan **sales** di kanan atas Pusat kendali dan Orchestrator. Memilih sales membuka **halaman sales itu** dengan alamat sendiri (`/?sales=andi`, `/orchestrator?sales=andi`) — bisa disimpan/dibagikan; tombol "Buka Orchestrator" membawa sales yang sama. Spanduk "Halaman sales: …" + tombol kembali ke Semua sales.
+- Data di halaman sales hanya milik dealer sales itu, dihitung di server (tidak hanya disaring di layar): ringkasan, jadwal order, lewat jadwal, limit tipis, KPI, agenda (hanya sales itu), push stok, rencana hari ini (langkah & usulan yang menyentuh dealernya), keputusan, resolusi konflik, dan jumlah usulan agen hari ini; jumlah WA/SO/pembayaran di ringkasan juga hanya dari dealernya.
+- Pengguna berperan **sales** selalu melihat datanya sendiri (chip "Data <nama>"), walau alamat diubah ke sales lain — kini juga untuk rencana, keputusan, dan konflik yang sebelumnya tampil untuk semua.
+- Orchestrator di halaman sales: kartu **Keputusan sales ini**; Riwayat analisis tetap per siklus seluruh tim (siklus tidak dipecah per sales).
+- API: `?sales=<key|nama>` di `/brief/today`, `/dealers/due|drift|credit-tight`, `/kpi`, `/agenda`, `/stock/push`, `/segmen/movers`, `/plan/today`, `/proposals`, `/conflicts`, `/agents`. Test `TestSalesPageNeverMixesSales`.

@@ -11,6 +11,7 @@ import { PlanList, planMeta } from './Plan'
 import { useMore } from '../../components/More'
 import { BriefPoints, DriftList, DueList, PushList, TightList, dueLabel } from './lists'
 import { Queue } from './Queue'
+import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import type { AgendaRow, KPI } from '../../api/types'
 
 function scrollTo(id: string) {
@@ -21,19 +22,23 @@ export function ControlCenter() {
   const nav = useNavigate()
   const { data: me } = useMe()
   const now = useNow()
-  const { data: brief } = useBrief()
-  const { data: due = [] } = useDue(7)
-  const { data: drift = [] } = useDrift()
-  const { data: tight = [] } = useCreditTight()
-  const { data: kpi } = useKpi()
-  const { data: agenda = [] } = useAgenda()
-  const { data: push = [] } = useStockPush()
-  const { data: segMovers = [] } = useSegmenMovers()
+  const page = useSalesPage()
+  const sales = page.sales
+  const { data: brief } = useBrief(sales)
+  const { data: due = [] } = useDue(7, sales)
+  const { data: drift = [] } = useDrift(sales)
+  const { data: tight = [] } = useCreditTight(sales)
+  const { data: kpi } = useKpi(sales)
+  const { data: agenda = [] } = useAgenda(sales)
+  const { data: push = [] } = useStockPush(sales)
+  const { data: segMovers = [] } = useSegmenMovers(sales)
   const orch = useOrchStatus()
   const { reanalyze } = useOrch()
-  const { data: plan } = usePlan()
+  const { data: plan } = usePlan(sales)
   const full = orch.lastFull
-  const { data: queue = [] } = useQueue()
+  const { data: queue = [] } = useQueue(sales)
+  // one sales' page counts only their decisions; everyone's page keeps the Orchestrator's count
+  const pending = sales ? queue.filter((q) => q.status === 'proposed').length : orch.pending
   const [agentsOpen, setAgentsOpen] = useState(false)
 
   const c = brief?.counts
@@ -45,13 +50,15 @@ export function ControlCenter() {
 
   return (
     <>
+      <div className="sales-bar"><SalesPicker page={page} /></div>
+      <SalesBanner page={page} />
       <div className="cc-hero">
         <div className="cc-left">
           <div className="greet">
             <h2>{greeting(now)}, {first}.</h2>
             <p>
               {full ? (
-                <>Orchestrator sudah memproses {c?.wa ?? 0} WhatsApp, {c?.so ?? 0} SO, {c?.payments ?? 0} pembayaran, dan stok {c?.branches ?? 0} cabang. {full.auto_count ?? 0} langkah otonom, {orch.pending} menunggu keputusan Anda.</>
+                <>Orchestrator sudah memproses {c?.wa ?? 0} WhatsApp, {c?.so ?? 0} SO, {c?.payments ?? 0} pembayaran, dan stok {c?.branches ?? 0} cabang. {full.auto_count ?? 0} langkah otonom, {pending} menunggu keputusan{sales ? '' : ' Anda'}.</>
               ) : (
                 <>
                   {c ? <>Data masuk sejak kemarin: {c.wa} WhatsApp, {c.so} SO, {c.payments} pembayaran, dan stok {c.branches} cabang. </> : null}
@@ -61,7 +68,7 @@ export function ControlCenter() {
             </p>
           </div>
           <div className="status-strip">
-            <button onClick={() => scrollTo('queue-card')}><span className="n" style={{ background: 'var(--accent)' }}>{orch.pending}</span>Keputusan</button>
+            <button onClick={() => scrollTo('queue-card')}><span className="n" style={{ background: 'var(--accent)' }}>{pending}</span>Keputusan</button>
             <button onClick={() => scrollTo('due-card')}><span className="n" style={{ background: 'var(--good)' }}>{due.length}</span>Jadwal order<span className="m">· 7 hari</span></button>
             <button onClick={() => scrollTo('drift-card')}><span className="n" style={{ background: 'var(--warn)' }}>{drift.length}</span>Lewat jadwal</button>
             <button onClick={() => nav('/kredit')}><span className="n" style={{ background: 'var(--bad)' }}>{bad.length}</span>Over limit / overdue</button>
@@ -77,10 +84,10 @@ export function ControlCenter() {
           <div className="oc-pipe"><PipeChips /></div>
           <LastUpdate />
           <div className="oc-foot">
-            <div className="oc-nums"><span><b>{full ? full.signals_count ?? 0 : signals}</b> sinyal</span><span><b>{full?.auto_count ?? 0}</b> otonom</span><span><b>{orch.pending}</b> keputusan</span><span><b>{full?.conflict_count ?? 0}</b> konflik diselesaikan</span></div>
+            <div className="oc-nums"><span><b>{full ? full.signals_count ?? 0 : signals}</b> sinyal</span><span><b>{full?.auto_count ?? 0}</b> otonom</span><span><b>{pending}</b> keputusan</span><span><b>{full?.conflict_count ?? 0}</b> konflik diselesaikan</span></div>
             <div className="oc-btns">
               <button className="btn primary" disabled={orch.running} onClick={() => reanalyze('all')}><Icon name="refresh" />Analisis ulang</button>
-              <button className="btn ghost" onClick={() => nav('/orchestrator')}>Buka Orchestrator</button>
+              <button className="btn ghost" onClick={() => nav(page.link('/orchestrator'))}>Buka Orchestrator</button>
             </div>
           </div>
         </div>
@@ -95,7 +102,7 @@ export function ControlCenter() {
           </div>
 
           <div className="card" id="queue-card">
-            <div className="card-h"><h2>Keputusan</h2><span className="meta">{orch.pending ? `${orch.pending} item · di luar batas otonomi agen` : 'Semua keputusan hari ini selesai'}</span></div>
+            <div className="card-h"><h2>Keputusan</h2><span className="meta">{pending ? `${pending} item · di luar batas otonomi agen` : 'Semua keputusan hari ini selesai'}</span></div>
             <Queue items={queue} />
           </div>
 
