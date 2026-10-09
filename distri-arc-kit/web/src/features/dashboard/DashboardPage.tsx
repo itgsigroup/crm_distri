@@ -7,6 +7,7 @@ import { fmtNum, fmtRp, hhmm, shortDate } from '../../lib/format'
 import { KUAD } from '../../lib/i18n/id'
 import type { BoardItem, Segment } from '../../api/types'
 import { dueSoon } from '../orbit/filters'
+import { DashboardTown } from './DashboardTown'
 import './dashboard.css'
 
 const segments: Segment[] = ['A', 'B', 'C', 'D', 'Baru']
@@ -100,6 +101,8 @@ export function DashboardPage() {
       <div><span className="db-eyebrow">GSI ORBIT · RINGKASAN BISNIS</span><h2>Kondisi bisnis dalam satu layar</h2><p>Angka terbaru dari dealer, order, kredit, dan stok. Buka setiap bagian untuk melihat detailnya.</p></div>
       <div className="db-hero-meta"><span>Dealer dalam cakupan Anda</span><b>{board?.[0]?.metrics.as_of ? `Data dealer ${shortDate(board[0].metrics.as_of)}` : 'Data terbaru'}</b>{brief?.generated_at && <small>Ringkasan AI diperbarui {hhmm(brief.generated_at)} WIB</small>}</div>
     </div>
+
+    <DashboardTown board={dealers} kpi={kpi} can={can} />
 
     {(boardError || kpiError || pushError) && <div className="db-error" role="alert">Sebagian data gagal dimuat. Muat ulang halaman untuk mencoba lagi.</div>}
 

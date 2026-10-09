@@ -51,3 +51,26 @@ a.db-metric:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
 @media(max-width:1150px){.db-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.db-links{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.db-hero{align-items:flex-start;flex-direction:column;padding:20px}.db-hero-meta{text-align:left}.db-main,.db-signals{grid-template-columns:1fr}}
 @media(max-width:520px){.db-metrics,.db-links{grid-template-columns:1fr}.db-metric{min-height:96px}.db-panel .card-h .meta{margin-left:0;text-align:left}}
+
+/* Kota Distribusi (game scene) */
+.town-card{padding:16px 18px 12px;overflow:hidden}
+.town-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin-bottom:10px}
+.town-head h2{font:700 20px/1.2 var(--font-display);letter-spacing:-.02em;margin:4px 0 0}
+.town-hud{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hud-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:99px;font:700 12.5px var(--font-display);background:var(--surface-2);border:1px solid var(--line);white-space:nowrap}
+.hud-chip i{font-style:normal;font-size:11px}
+.hud-chip small{font-weight:500;color:var(--text-3)}
+.hud-chip.gold i{color:#e0a800}.hud-chip.blue i{color:#3b6ef5}.hud-chip.red i{color:#e5534b}.hud-chip.purple i{color:#7c5cf0}
+.hud-level{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:99px;background:#1f2937;color:#fff;font:800 12.5px var(--font-display);white-space:nowrap}
+.hud-level b{display:block;width:70px;height:7px;border-radius:99px;background:rgba(255,255,255,.2);overflow:hidden}
+.hud-level b em{display:block;height:100%;background:linear-gradient(90deg,#2fb36a,#ffcf33);border-radius:99px}
+.hud-level small{font:500 11px var(--font-body);color:rgba(255,255,255,.75)}
+.town-hide{height:30px;font-size:12px}
+.town-stage{position:relative;border-radius:12px;overflow:hidden;background:#8fd18a}
+.town-stage canvas{display:block;width:100%}
+.town-tip{pointer-events:none;min-width:200px}
+.town-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:11.5px;color:var(--text-3)}
+.town-legend span{display:inline-flex;align-items:center;gap:6px}
+.town-legend i{width:10px;height:10px;border-radius:3px}
+.town-off{display:flex;justify-content:flex-end}
+@media (max-width:760px){.town-hud{width:100%}.hud-level small{display:none}}

@@ -250,3 +250,8 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 ## Orchestrator: Resolusi konflik & Riwayat analisis sebagai tabel · 2026-10-09
 - **Resolusi konflik**: tabel Agen (A ↔ B), Dealer, Konflik, Resolusi Orchestrator — cari, urutkan naik/turun tiap kolom, paginasi 10/25/50 (tetap konflik siklus penuh terakhir).
 - **Riwayat analisis**: tabel Waktu (tanggal · jam), No., Jalur, Sinyal, Otonom, Keputusan, Konflik, Catatan — cari, urutkan naik/turun tiap kolom (bawaan terbaru), paginasi; kini memuat 100 siklus terakhir (sebelumnya 7 dari 20). Logika di `orchestrator/tables.ts` (diuji), memakai `DataTable` bersama.
+
+## Dashboard: Kota Distribusi (mode game) · 2026-10-09
+- Adegan animasi di atas Dashboard, digerakkan data asli: **Gudang GSI** (peti = stok menua, "!" = ada stok kritis), **Kantor sales** (jumlah chat belum dibaca), dan **toko dealer** di dua jalan (★ Key account, "!" At risk, papan silang = Churn, warna atap = sisa limit, label "order N hr lagi"). **Truk** mengantar paket ke dealer dengan jadwal order ≤ 14 hari, **kurir motor** menagih dealer over limit/overdue dan pulang membawa koin, **sales berjalan** ke dealer At risk untuk follow-up. Siang/malam mengikuti jam WIB (lampu jalan & jendela menyala malam hari).
+- HUD ala game: omzet/bln, jumlah antaran, tagihan, follow-up, dan **Level** (dari % order tepat jadwal vs target). Klik toko → dealer, gudang → Push stok, kantor → Chat. Bisa disembunyikan (diingat per browser); metrik dashboard lama tetap di bawah. Gerak dimatikan bila pengguna memilih "reduce motion".
+- `dashboard/town.ts` (pemilihan toko & tugas, diuji), `TownView.ts` (canvas, tanpa library baru), `DashboardTown.tsx`.
