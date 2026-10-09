@@ -133,8 +133,8 @@ func (e bridgeEvent) message() Message {
 		t = time.Now()
 	}
 	acc := Digits(e.Account)
-	if acc == "" {
-		acc = Digits(e.Session) // sessions named after their number
+	if acc == "" && Digits(e.Session) == e.Session {
+		acc = e.Session // sessions named after their number; never the digits inside a "link-…" id
 	}
 	m := Message{ID: e.WAMID, Account: acc, ChatJID: e.ChatID, FromNumber: Digits(e.From), FromName: e.SenderName,
 		IsGroup: e.IsGroup, FromMe: e.FromMe, Text: text, Time: t, ChatName: strings.TrimSpace(e.ChatName), History: e.IsHistory}

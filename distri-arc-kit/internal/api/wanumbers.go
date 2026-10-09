@@ -100,7 +100,9 @@ func (s *Server) getWALink(w http.ResponseWriter, r *http.Request) {
 	}
 	out := map[string]any{"session_id": l.SessionID, "method": l.Method, "state": l.State, "error": l.Error}
 	if l.State == "pairing" && l.Qr != nil {
-		if code, ok := strings.CutPrefix(*l.Qr, wa.PairCodePrefix); ok {
+		if strings.HasPrefix(*l.Qr, wa.LinkingPrefix) {
+			out["linking"] = true // scanned: logging in, the first sync starts
+		} else if code, ok := strings.CutPrefix(*l.Qr, wa.PairCodePrefix); ok {
 			out["pair_code"] = code
 		} else if png, err := qrcode.Encode(*l.Qr, qrcode.Medium, 256); err == nil {
 			out["qr_png"] = "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)

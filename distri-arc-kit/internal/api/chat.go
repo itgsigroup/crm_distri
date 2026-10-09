@@ -441,7 +441,9 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 		if l, ok := limits[n.WaNumber]; ok {
 			v["limits"] = l
 		}
-		if n.Qr != nil && n.State == "pairing" && strings.HasPrefix(*n.Qr, wa.PairCodePrefix) {
+		if n.Qr != nil && n.State == "pairing" && strings.HasPrefix(*n.Qr, wa.LinkingPrefix) {
+			v["linking"] = true // scanned: logging in, the first sync starts
+		} else if n.Qr != nil && n.State == "pairing" && strings.HasPrefix(*n.Qr, wa.PairCodePrefix) {
 			v["pair_code"] = strings.TrimPrefix(*n.Qr, wa.PairCodePrefix)
 			v["qr_expires_at"] = n.QrExpiresAt
 		} else if n.Qr != nil && n.State == "pairing" {

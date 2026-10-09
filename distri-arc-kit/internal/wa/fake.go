@@ -54,8 +54,10 @@ func (f *Fake) Link(_ context.Context, session, phone string, code bool) (string
 	if code {
 		qr = PairCodePrefix + "FAKE-0000"
 	}
-	go func() { // the "phone" scans a moment later
+	go func() { // the "phone" scans a moment later, logs in, then reports its number
 		time.Sleep(1500 * time.Millisecond)
+		f.events <- Event{Status: &Status{Session: session, State: "pairing", QR: LinkingPrefix}}
+		time.Sleep(2500 * time.Millisecond)
 		f.events <- Event{Status: &Status{Session: session, Account: n, State: "connected", JID: UserJID(n)}}
 	}()
 	return qr, nil

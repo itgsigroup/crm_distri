@@ -41,6 +41,7 @@ export function PairSheet({ wa, method: initial = 'qr' }: { wa: string; method?:
   }, [n?.state]) // eslint-disable-line react-hooks/exhaustive-deps
   const code = method === 'code' ? n?.pair_code : undefined
   const qr = method === 'qr' ? n?.qr_png : undefined
+  const linking = !!n?.linking
   return (
     <>
       <SheetHead icon="qr" title={`Tautkan ${n ? labelOf(n) : ''}`} sub={n ? `${n.masked} · perangkat tertaut seperti WhatsApp Web · penjaga anti-blokir aktif` : ''} onClose={closeSheet} />
@@ -52,9 +53,10 @@ export function PairSheet({ wa, method: initial = 'qr' }: { wa: string; method?:
       </div>
       <div className="sec qr">
         {err ? <div className="pair-wait" style={{ color: 'var(--bad)' }}>{err}</div>
-          : method === 'qr' ? (qr ? <img src={qr} alt="QR WhatsApp" className="pair-qr" /> : <div className="pair-wait">Menyiapkan QR…</div>)
-            : (code ? <div className="pair-code" aria-label="Kode tautan">{code}</div> : <div className="pair-wait">Meminta kode ke WhatsApp…</div>)}
-        {method === 'qr' ? (
+          : linking ? <PairLoading title={method === 'qr' ? 'QR berhasil dipindai' : 'Kode diterima'} />
+            : method === 'qr' ? (qr ? <img src={qr} alt="QR WhatsApp" className="pair-qr" /> : <PairLoading title="Menyiapkan QR…" small />)
+              : (code ? <div className="pair-code" aria-label="Kode tautan">{code}</div> : <PairLoading title="Meminta kode ke WhatsApp…" small />)}
+        {linking ? null : method === 'qr' ? (
           <ol><li>Buka WhatsApp di HP nomor {n?.masked}</li><li>Setelan → <b>Perangkat tertaut</b> → <b>Tautkan perangkat</b></li><li>Arahkan kamera ke kode ini</li></ol>
         ) : (
           <ol><li>Buka WhatsApp di HP nomor {n?.masked}</li><li>Setelan → <b>Perangkat tertaut</b> → <b>Tautkan perangkat</b></li><li>Pilih <b>Tautkan dengan nomor telepon saja</b> (di bawah kamera)</li><li>Ketik kode di atas</li></ol>
@@ -65,7 +67,18 @@ export function PairSheet({ wa, method: initial = 'qr' }: { wa: string; method?:
   )
 }
 
-interface LinkState { session_id: string; method: 'qr' | 'code'; state: 'pairing' | 'connected' | 'failed'; qr_png?: string; pair_code?: string; wa_number?: string; masked?: string; user_id?: string | null; error?: string | null }
+/** Spinner while the QR is prepared, and after it is scanned while the phone logs in and the first sync starts. */
+function PairLoading({ title, small = false }: { title: string; small?: boolean }) {
+  return (
+    <div className={`pair-loading${small ? ' small' : ''}`} role="status" aria-live="polite">
+      <span className="pair-spin" aria-hidden="true" />
+      <b>{title}</b>
+      {!small && <span>Menautkan perangkat dan mengambil data chat… biarkan WhatsApp di HP tetap terbuka.</span>}
+    </div>
+  )
+}
+
+interface LinkState { session_id: string; method: 'qr' | 'code'; state: 'pairing' | 'connected' | 'failed'; qr_png?: string; pair_code?: string; linking?: boolean; wa_number?: string; masked?: string; user_id?: string | null; error?: string | null }
 
 /** Picks the user who holds a linked number (one user, one number), or releases it. */
 function AssignForm({ wa, masked, current, onDone }: { wa: string; masked: string; current?: string | null; onDone: () => void }) {
@@ -148,15 +161,16 @@ export function LinkSheet() {
       {session && link?.state !== 'connected' && (
         <div className="sec qr">
           {link?.state === 'failed' ? <div className="pair-wait" style={{ color: 'var(--bad)' }}>{link.error ?? 'Gagal menautkan'}</div>
-            : link?.qr_png ? <img src={link.qr_png} alt="QR WhatsApp" className="pair-qr" />
-              : link?.pair_code ? <div className="pair-code" aria-label="Kode tautan">{link.pair_code}</div>
-                : <div className="pair-wait">{method === 'qr' ? 'Menyiapkan QR…' : 'Meminta kode ke WhatsApp…'}</div>}
-          {link?.state === 'failed' ? <button className="btn primary" onClick={() => setSession('')}>Mulai lagi</button> : method === 'qr' ? (
+            : link?.linking ? <PairLoading title={method === 'qr' ? 'QR berhasil dipindai' : 'Kode diterima'} />
+              : link?.qr_png ? <img src={link.qr_png} alt="QR WhatsApp" className="pair-qr" />
+                : link?.pair_code ? <div className="pair-code" aria-label="Kode tautan">{link.pair_code}</div>
+                  : <PairLoading title={method === 'qr' ? 'Menyiapkan QR…' : 'Meminta kode ke WhatsApp…'} small />}
+          {link?.state === 'failed' ? <button className="btn primary" onClick={() => setSession('')}>Mulai lagi</button> : link?.linking ? null : method === 'qr' ? (
             <ol><li>Buka WhatsApp di HP pemilik nomor</li><li>Setelan → <b>Perangkat tertaut</b> → <b>Tautkan perangkat</b></li><li>Arahkan kamera ke kode ini</li></ol>
           ) : (
             <ol><li>Buka WhatsApp di HP nomor {phone}</li><li>Setelan → <b>Perangkat tertaut</b> → <b>Tautkan perangkat</b></li><li>Pilih <b>Tautkan dengan nomor telepon saja</b></li><li>Ketik kode di atas</li></ol>
           )}
-          <span className="exp">menunggu HP… · HP tetap menerima notifikasi seperti biasa</span>
+          <span className="exp">{link?.linking ? 'hampir selesai…' : 'menunggu HP…'} · HP tetap menerima notifikasi seperti biasa</span>
         </div>
       )}
       {link?.state === 'connected' && link.wa_number && (

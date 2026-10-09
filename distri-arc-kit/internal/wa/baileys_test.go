@@ -151,3 +151,19 @@ func TestBaileysEventsAndStatus(t *testing.T) {
 		t.Fatalf("link message %+v", m)
 	}
 }
+
+// A message from a session still named "link-…" never takes the digits inside that id as the account.
+func TestBridgeEventAccountNeverFromLinkID(t *testing.T) {
+	m := bridgeEvent{WAMID: "x", Session: "link-3fa9c1d2e4b5", Text: "halo", Timestamp: "2026-10-05T01:00:00Z"}.message()
+	if m.Account != "" {
+		t.Fatalf("account from link id = %q, want empty", m.Account)
+	}
+	m = bridgeEvent{WAMID: "y", Session: "6281234567890", Text: "halo", Timestamp: "2026-10-05T01:00:00Z"}.message()
+	if m.Account != "6281234567890" {
+		t.Fatalf("account from numbered session = %q", m.Account)
+	}
+	m = bridgeEvent{WAMID: "z", Session: "link-ab12", Account: "6289900000001", Text: "halo", Timestamp: "2026-10-05T01:00:00Z"}.message()
+	if m.Account != "6289900000001" {
+		t.Fatalf("account = %q, want the phone's own number", m.Account)
+	}
+}

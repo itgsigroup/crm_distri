@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, Fragment, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from './Icon'
 
 // Toast and Sheet are single, app-wide elements in the mockup (#toast, #sheet); this provider owns both.
@@ -31,6 +31,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [show, setShow] = useState(false)
   const [sheet, setSheet] = useState<ReactNode>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  // every open mounts a fresh sheet: a sheet closed earlier must not hand its state (e.g. a finished link) to the next
+  const [sheetKey, setSheetKey] = useState(0)
   const timer = useRef<number | undefined>(undefined)
   const [dialog, setDialog] = useState<AlertSpec | null>(null)
   const okRef = useRef<HTMLButtonElement>(null)
@@ -45,6 +47,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   }, [])
   const openSheet = useCallback((c: ReactNode) => {
     setSheet(c)
+    setSheetKey((k) => k + 1)
     setSheetOpen(true)
   }, [])
   const closeSheet = useCallback(() => setSheetOpen(false), [])
@@ -65,7 +68,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       {children}
       <div className={`sheet-bg ${sheetOpen ? 'show' : ''}`} onClick={closeSheet} />
       <div className={`sheet ${sheetOpen ? 'show' : ''}`} role="dialog" aria-modal="true" aria-labelledby="sheet-title">
-        {sheet}
+        <Fragment key={sheetKey}>{sheet}</Fragment>
       </div>
       {dialog && (
         <div className="swal-bg" onClick={() => setDialog(null)}>

@@ -153,6 +153,11 @@ export class Session implements SendTarget {
       this.qr = u.qr
       this.setStatus('pairing')
     }
+    if (u.isNewLogin) {
+      // QR scanned / code typed: the phone is logging in; the UI shows a loader until "open" (Distri ARC: LinkingPrefix)
+      this.qr = 'linking:'
+      this.setStatus('pairing')
+    }
     if (u.connection === 'open') {
       this.codeMode = false
       this.openedAt = Date.now()

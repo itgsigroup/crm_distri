@@ -335,6 +335,8 @@ export interface WANumber {
   paired_at: string | null
   qr_png?: string
   pair_code?: string
+  /** QR scanned / code typed: the phone is logging in */
+  linking?: boolean
   user_id?: string | null
   user_name?: string
   user_email?: string

@@ -118,6 +118,10 @@ type CodePairer interface {
 // PairCodePrefix marks a pairing code stored where the QR code normally is (wa_numbers.qr).
 const PairCodePrefix = "code:"
 
+// LinkingPrefix marks a device whose QR was just scanned (or code typed): the phone is logging in and the first
+// sync is starting; the number follows with the "connected" status.
+const LinkingPrefix = "linking:"
+
 // Unpairer is implemented by transports that can log a linked device out (Pengaturan → WhatsApp → Lepas).
 type Unpairer interface {
 	Unpair(ctx context.Context, account string) error
