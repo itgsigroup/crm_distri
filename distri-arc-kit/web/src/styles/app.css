@@ -447,6 +447,11 @@ body.map-maximized{overflow:hidden}
 .net-stage.is-max{position:fixed;inset:0;z-index:1000;height:100dvh}
 .relasi-filter{margin-bottom:12px;padding:12px 14px}
 .relasi-filter .of{border:0;padding:0}
+.net-hud .seg{pointer-events:auto}
+.net-stage.is-galaxy{background:#05060d}
+.net-stage.is-galaxy .net-legend,.net-stage.is-galaxy .net-hint{color:rgba(214,222,245,.78);text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.net-stage.is-galaxy .net-hud .pill.neutral{background:rgba(255,255,255,.1);color:#e3e8fb}
+.net-stage.is-galaxy .tip{background:#eef1ff;color:#0b0f1f}
 @media (max-width:560px){.map-controls .map-fullscreen span,.map-controls .map-ctl-l{display:none}.map-controls button{min-width:28px;height:28px;padding:0 5px}}
 
 /* Segmen — four plain-language boxes (default view); the dot chart stays behind "Peta titik" */

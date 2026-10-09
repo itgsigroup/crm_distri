@@ -1,6 +1,8 @@
 import * as THREE from 'three'
 import type { RelasiEdge, RelasiNode } from '../../api/types'
+import { bindControls } from './controls'
 import { createLayout, reweight, step, type Layout, type Positions } from './layout'
+import { esc, tipHtml } from './tip'
 
 // Peta relasi engine — the mockup's createNet in TypeScript: three.js spheres + cylinders (or a canvas 2D
 // projection when WebGL is unavailable), DOM labels, tooltip, drag to rotate, Shift/right-drag or two fingers to pan,
@@ -324,17 +326,7 @@ export class NetView {
     if (px + 240 > r.width) px -= 260
     tip.style.left = px + 'px'
     tip.style.top = py + 'px'
-    const per = this.o.periodLabel
-    const name = (id: string) => this.byId.get(id)?.d.name ?? id
-    if (v.d.type === 'sales') {
-      const es = this.edges.filter((e) => e.sales === v.d.id && e.w > 0).sort((a, b) => b.w - a.w)
-      tip.innerHTML = `<b>${esc(v.d.name)} · ${esc(v.d.sub)}</b><div class="r"><span>Nomor</span><span>${esc(v.d.number ?? '')}</span></div><div class="r"><span>Kontak aktif</span><span>${es.length}</span></div><div class="r"><span>Pesan ${per}</span><span>${v.d.total}</span></div>${es[0] ? `<div class="r"><span>Terkuat</span><span>${esc(name(es[0].dealer))}</span></div>` : ''}`
-    } else {
-      const es = this.edges.filter((e) => e.dealer === v.d.id && e.w > 0).sort((a, b) => b.w - a.w)
-      const series = this.edges.filter((e) => e.dealer === v.d.id).reduce((acc, e) => acc.map((x, i) => x + (e.monthly[i] ?? 0)), [0, 0, 0, 0, 0, 0])
-      const ml = this.o.monthLabels
-      tip.innerHTML = `<b>${esc(v.d.name)}</b><div class="r"><span>${esc(v.d.sub)}</span></div>${v.d.score != null ? `<div class="r"><span>Skor dealer</span><span>${v.d.score}</span></div>` : ''}<div class="r"><span>Pesan ${per}</span><span>${v.d.total}</span></div>${es.map((e) => `<div class="r"><span>↔ ${esc(name(e.sales))}</span><span>${e.w}</span></div>`).join('')}<div class="r" style="margin-top:4px;opacity:.75"><span>${ml[0]}→${ml[ml.length - 1]}</span><span>${series.join(' · ')}</span></div><div class="r" style="margin-top:4px;opacity:.7"><span>Klik dua kali untuk buka dealer</span></div>`
-    }
+    tip.innerHTML = tipHtml(v.d, this.edges, (id) => this.byId.get(id)?.d.name ?? id, this.o.periodLabel, this.o.monthLabels)
     tip.classList.add('show')
   }
 
@@ -368,131 +360,32 @@ export class NetView {
   }
 
   private bind() {
-    const cv = this.o.canvas
-    const pts = new Map<number, { x: number; y: number }>()
-    let drag: { x: number; y: number; moved: boolean; pan: boolean } | null = null
-    let pinch: { dist: number; mx: number; my: number } | null = null
-    let resume: ReturnType<typeof setTimeout> | undefined
-    const pause = () => {
-      this.auto = false
-      clearTimeout(resume)
-    }
-    const later = () => {
-      clearTimeout(resume)
-      resume = setTimeout(() => {
-        if (!drag && !pinch && !this.reduced) this.auto = true
-      }, 4000)
-    }
-    const startPinch = () => {
-      const [a, b] = [...pts.values()]
-      pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }
-    }
-    const down = (e: PointerEvent) => {
-      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      pause()
-      cv.setPointerCapture?.(e.pointerId)
-      if (pts.size === 2) {
-        drag = null
-        startPinch()
-        this.o.tip.classList.remove('show')
-        return
-      }
-      if (pts.size === 1) drag = { x: e.clientX, y: e.clientY, moved: false, pan: e.shiftKey || e.button === 1 || e.button === 2 }
-    }
-    const move = (e: PointerEvent) => {
-      if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
-      if (pinch && pts.size >= 2) {
-        const [a, b] = [...pts.values()]
-        const d = Math.hypot(a.x - b.x, a.y - b.y) || 1
-        const mx = (a.x + b.x) / 2
-        const my = (a.y + b.y) / 2
-        this.zoomBy(d / pinch.dist)
-        this.pan(mx - pinch.mx, my - pinch.my)
-        pinch = { dist: d, mx, my }
-        return
-      }
-      if (drag) {
-        const dx = e.clientX - drag.x
-        const dy = e.clientY - drag.y
-        if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true
-        if (drag.pan) this.pan(dx, dy)
-        else {
-          this.yaw += dx * 0.008
-          this.pitch = Math.max(-1.2, Math.min(1.2, this.pitch + dy * 0.006))
-        }
-        drag.x = e.clientX
-        drag.y = e.clientY
-      } else if (!pts.size) this.hoverAt(e)
-    }
-    const up = (e: PointerEvent) => {
-      if (!pts.delete(e.pointerId)) return
-      if (pinch) {
-        if (pts.size < 2) pinch = null
-        if (pts.size === 1) { // the finger that stays rotates on; lifting it is not a click
-          const [p] = [...pts.values()]
-          drag = { x: p.x, y: p.y, moved: true, pan: false }
-        }
-        later()
-        return
-      }
-      if (drag && !drag.moved && !drag.pan) {
+    this.off.push(bindControls(this.o.canvas, {
+      rotate: (dx, dy) => {
+        this.yaw += dx * 0.008
+        this.pitch = Math.max(-1.2, Math.min(1.2, this.pitch + dy * 0.006))
+      },
+      pan: (dx, dy) => this.pan(dx, dy),
+      zoomBy: (f) => this.zoomBy(f),
+      click: (e) => {
         const v = this.pickAt(e)
         if (v && v.d.type === 'dealer' && this.focus === v.d.id) this.o.onOpen(v.d.id)
         else {
           this.focus = v ? v.d.id : null
           this.o.onFocus?.(this.focus)
         }
-      }
-      if (!pts.size) drag = null
-      later()
-    }
-    const dbl = (e: MouseEvent) => {
-      const v = this.pickAt(e)
-      if (v && v.d.type === 'dealer') this.o.onOpen(v.d.id)
-    }
-    const leave = () => {
-      this.o.tip.classList.remove('show')
-      this.hover = null
-    }
-    const wheel = (e: WheelEvent) => {
-      e.preventDefault()
-      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY
-      this.zoomBy(Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015))) // ctrl+wheel = touchpad pinch (Chrome, Edge, Firefox)
-    }
-    // Safari (macOS) reports a touchpad pinch as gesture* events with a cumulative scale
-    let gScale = 1
-    const gStart = (e: Event) => { e.preventDefault(); gScale = 1 }
-    const gChange = (e: Event) => {
-      e.preventDefault()
-      const sc = (e as Event & { scale: number }).scale
-      if (!sc) return
-      this.zoomBy(sc / gScale)
-      gScale = sc
-    }
-    const menu = (e: MouseEvent) => e.preventDefault() // right-drag pans
-    cv.addEventListener('pointerdown', down)
-    cv.addEventListener('pointermove', move)
-    cv.addEventListener('pointerup', up)
-    cv.addEventListener('pointercancel', up)
-    cv.addEventListener('dblclick', dbl)
-    cv.addEventListener('pointerleave', leave)
-    cv.addEventListener('wheel', wheel, { passive: false })
-    cv.addEventListener('gesturestart', gStart, { passive: false })
-    cv.addEventListener('gesturechange', gChange, { passive: false })
-    cv.addEventListener('contextmenu', menu)
-    this.off.push(() => {
-      cv.removeEventListener('pointerdown', down)
-      cv.removeEventListener('pointermove', move)
-      cv.removeEventListener('pointerup', up)
-      cv.removeEventListener('pointercancel', up)
-      cv.removeEventListener('dblclick', dbl)
-      cv.removeEventListener('pointerleave', leave)
-      cv.removeEventListener('wheel', wheel)
-      cv.removeEventListener('gesturestart', gStart)
-      cv.removeEventListener('gesturechange', gChange)
-      cv.removeEventListener('contextmenu', menu)
-      clearTimeout(resume)
-    })
+      },
+      dblclick: (e) => {
+        const v = this.pickAt(e)
+        if (v && v.d.type === 'dealer') this.o.onOpen(v.d.id)
+      },
+      hover: (e) => this.hoverAt(e),
+      leave: () => {
+        this.o.tip.classList.remove('show')
+        this.hover = null
+      },
+      setAuto: (on) => { this.auto = on },
+    }, this.reduced))
   }
 
   /** Camera distance that shows the whole network (real teams draw hundreds of dealers, the mockup 22). */
@@ -527,6 +420,3 @@ export class NetView {
   }
 }
 
-function esc(s: string) {
-  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
-}

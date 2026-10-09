@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
-import type { Relasi } from '../../api/types'
+import type { Relasi, RelasiEdge } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { useOrbit, useRelasi, useRelasiInsights, useSales } from '../../app/queries'
 import { FullscreenButton, useFullscreen } from '../../components/MapViewport'
 import { EMPTY, activeCount, applyFilter, type OrbitFilter } from '../orbit/filters'
 import { OrbitFilterBar } from '../orbit/OrbitTools'
+import { GalaxyView } from './GalaxyView'
 import { NetView } from './NetView'
 import type { Positions } from './layout'
 
@@ -31,7 +32,28 @@ function settleOff(g: Relasi): Promise<Positions | undefined> {
   })
 }
 
-// Peta relasi (mockup screen-net).
+/** Which nodes are lit: the sales filter plus the dealer filters. A sales number stays lit while it talks to at least
+ * one dealer that passes the filters. */
+function litFilter(edges: RelasiEdge[], sales: string, matched: Set<string> | null) {
+  const key = 's-' + sales
+  const bySales = (id: string) => sales === 'all' || id === key || edges.some((e) => e.sales === key && e.dealer === id && e.w > 0)
+  const dealerOk = (id: string) => !matched || matched.has(id)
+  const salesOk = (id: string) => !matched || edges.some((e) => e.sales === id && e.w > 0 && matched.has(e.dealer))
+  return (id: string) => bySales(id) && (id.startsWith('s-') ? salesOk(id) : dealerOk(id))
+}
+
+type Mode = 'jaringan' | 'galaksi'
+const MODE_KEY = 'relasi.view'
+function readMode(): Mode {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'galaksi' ? 'galaksi' : 'jaringan'
+  } catch {
+    return 'jaringan'
+  }
+}
+
+// Peta relasi (mockup screen-net). Two views of the same data: the force-directed network, and the galaxy where
+// sales numbers are planets and dealers their satellites.
 export function RelasiPage() {
   const nav = useNavigate()
   const [period, setPeriod] = useState(30)
@@ -54,24 +76,47 @@ export function RelasiPage() {
   const canvas = useRef<HTMLCanvasElement>(null)
   const labels = useRef<HTMLDivElement>(null)
   const tip = useRef<HTMLDivElement>(null)
-  const view = useRef<NetView | null>(null)
+  const view = useRef<NetView | GalaxyView | null>(null)
   const [, setFocus] = useState<string | null>(null)
+  const [mode, setModeState] = useState<Mode>(readMode)
+  const setMode = (m: Mode) => {
+    setModeState(m)
+    try {
+      localStorage.setItem(MODE_KEY, m)
+    } catch {
+      /* private window: the choice just isn't remembered */
+    }
+  }
 
-  // build once with the first data; later periods reweight the same view
+  // which nodes are lit: sales filter + dealer filters (applied to whichever view is showing)
+  const lit = useMemo(() => litFilter(g?.edges ?? [], sales, matched), [g, sales, matched])
+  const litRef = useRef(lit)
+  useEffect(() => { litRef.current = lit }, [lit])
+
+  // build with the first data and whenever the view changes; later periods reweight the same view
   useEffect(() => {
-    if (!g || view.current || !stage.current || !canvas.current || !labels.current || !tip.current) return
+    if (!g || !stage.current || !canvas.current || !labels.current || !tip.current) return
+    const cur = view.current
+    if (cur && (mode === 'galaksi') === cur instanceof GalaxyView) return
+    cur?.destroy()
+    view.current = null
     let cancelled = false
     const els = { stage: stage.current, canvas: canvas.current, labels: labels.current, tip: tip.current }
-    void settleOff(g).then((pos) => {
-      if (cancelled || view.current) return
-      const v = new NetView({ ...els, monthLabels: g.month_labels, periodLabel: PERIOD_LABEL[g.period_days], onOpen: (id) => nav('/dealer/' + id), onFocus: setFocus, onZoom: setZoom }, g.nodes, g.edges, g.months, pos)
+    const opts = { ...els, monthLabels: g.month_labels, periodLabel: PERIOD_LABEL[g.period_days], onOpen: (id: string) => nav('/dealer/' + id), onFocus: setFocus, onZoom: setZoom }
+    const mount = (v: NetView | GalaxyView) => {
+      v.filter = litRef.current
       view.current = v
       v.start()
+    }
+    if (mode === 'galaksi') mount(new GalaxyView(opts, g.nodes, g.edges, g.months))
+    else void settleOff(g).then((pos) => {
+      if (cancelled || view.current) return
+      mount(new NetView(opts, g.nodes, g.edges, g.months, pos))
     })
     return () => {
       cancelled = true
     }
-  }, [g, nav, stage])
+  }, [g, nav, stage, mode])
 
   useEffect(() => () => {
     view.current?.destroy()
@@ -85,14 +130,9 @@ export function RelasiPage() {
   useEffect(() => {
     const v = view.current
     if (!v || !g) return
-    const key = 's-' + sales
-    const bySales = (id: string) => sales === 'all' || id === key || g.edges.some((e) => e.sales === key && e.dealer === id && e.w > 0)
-    const dealerOk = (id: string) => !matched || matched.has(id)
-    // a sales number stays lit while it talks to at least one dealer that passes the filters
-    const salesOk = (id: string) => !matched || g.edges.some((e) => e.sales === id && e.w > 0 && matched.has(e.dealer))
-    v.filter = (id) => bySales(id) && (id.startsWith('s-') ? salesOk(id) : dealerOk(id))
+    v.filter = lit
     v.focus = null
-  }, [sales, g, matched])
+  }, [lit, g])
 
   const pairs = scoped?.pairs ?? []
   const max = pairs[0]?.w || 1
@@ -102,15 +142,20 @@ export function RelasiPage() {
         <div className="card relasi-filter">
           <OrbitFilterBar f={f} set={setF} branches={branches} shown={shownDealers} total={mapDealers.length} />
         </div>
-        <div className={`net-stage${fsClass}`} ref={stage}>
-          <canvas ref={canvas} />
+        <div className={`net-stage${fsClass}${mode === 'galaksi' ? ' is-galaxy' : ''}`} ref={stage}>
+          {/* a fresh canvas per view: one that held a WebGL context cannot give a 2D one */}
+          <canvas key={mode} ref={canvas} />
           <div ref={labels} />
           <div className="net-hud">
+            <div className="seg" role="radiogroup" aria-label="Tampilan peta">
+              <button role="radio" aria-checked={mode === 'jaringan'} className={mode === 'jaringan' ? 'is-active' : ''} onClick={() => setMode('jaringan')}>Jaringan</button>
+              <button role="radio" aria-checked={mode === 'galaksi'} className={mode === 'galaksi' ? 'is-active' : ''} onClick={() => setMode('galaksi')}>Galaksi</button>
+            </div>
             <span className="pill accent"><Icon name="chat" />WhatsApp + order · <span>{PERIOD_LABEL[period]} terakhir</span></span>
             <span className="pill neutral">{scoped ? `${scoped.connections.toLocaleString('id-ID')} koneksi · ${scoped.interactions.toLocaleString('id-ID')} interaksi` : ''}</span>
             {g && g.dealers_active > g.dealers_shown && <span className="pill neutral">{g.dealers_shown} dealer teraktif dari {g.dealers_active.toLocaleString('id-ID')}</span>}
           </div>
-          <div className="net-legend"><span><i style={{ background: 'var(--accent)' }} />Nomor sales</span><span><i style={{ background: 'var(--good)' }} />Skor dealer kuat</span><span><i style={{ background: 'var(--warn)' }} />50–69</span><span><i style={{ background: 'var(--bad)' }} />&lt; 50</span><span>Ukuran = interaksi/bulan · Jarak = kedekatan</span></div>
+          <div className="net-legend"><span><i style={{ background: 'var(--accent)' }} />{mode === 'galaksi' ? 'Planet · nomor sales' : 'Nomor sales'}</span><span><i style={{ background: 'var(--good)' }} />Skor dealer kuat</span><span><i style={{ background: 'var(--warn)' }} />50–69</span><span><i style={{ background: 'var(--bad)' }} />&lt; 50</span><span>{mode === 'galaksi' ? 'Planet = nomor sales · Satelit = dealer, mengorbit sales terdekatnya · Orbit makin dekat = makin sering berinteraksi · Ukuran = interaksi/bulan · Garis putus = juga dekat dengan sales lain' : 'Ukuran = interaksi/bulan · Jarak = kedekatan'}</span></div>
           {g && g.nodes.length === 0 && <div className="net-empty">Belum ada interaksi WhatsApp atau order dalam 6 bulan terakhir.</div>}
           <div className="map-controls" role="toolbar" aria-label="Kontrol peta">
             <div className="map-ctl-group" aria-label="Zoom">
@@ -122,7 +167,7 @@ export function RelasiPage() {
             <FullscreenButton big={big} onClick={toggleFullscreen} />
           </div>
           {matched && shownDealers === 0 && <div className="net-empty">Tidak ada dealer di peta yang cocok dengan filter ini.</div>}
-          <div className="net-hint">Seret untuk memutar · Shift+seret / klik kanan untuk menggeser · scroll / cubit untuk zoom · klik dealer dua kali untuk membuka</div>
+          <div className="net-hint">{mode === 'galaksi' ? 'Seret = putar · Shift / klik kanan = geser · scroll / cubit = zoom · klik planet = lihat satelitnya' : 'Seret untuk memutar · Shift+seret / klik kanan untuk menggeser · scroll / cubit untuk zoom · klik dealer dua kali untuk membuka'}</div>
           <div className="tip" ref={tip} />
         </div>
       </div>
