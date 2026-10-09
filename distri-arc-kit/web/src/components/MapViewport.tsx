@@ -85,8 +85,27 @@ export function useMapViewport(width: number, height: number) {
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY
       zoomBy(Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0012)), e.clientX, e.clientY)
     }
+    // Safari (macOS) reports a touchpad pinch as gesture* events with a cumulative scale instead of ctrl+wheel
+    let base = 1
+    type SafariGesture = Event & { scale: number; clientX: number; clientY: number }
+    const onGestureStart = (e: Event) => { e.preventDefault(); base = 1 }
+    const onGestureChange = (e: Event) => {
+      e.preventDefault()
+      const g = e as SafariGesture
+      if (!g.scale) return
+      zoomBy(g.scale / base, g.clientX, g.clientY)
+      base = g.scale
+    }
     svg.addEventListener('wheel', onWheel, { passive: false })
-    return () => svg.removeEventListener('wheel', onWheel)
+    svg.addEventListener('gesturestart', onGestureStart, { passive: false })
+    svg.addEventListener('gesturechange', onGestureChange, { passive: false })
+    svg.addEventListener('gestureend', onGestureStart, { passive: false })
+    return () => {
+      svg.removeEventListener('wheel', onWheel)
+      svg.removeEventListener('gesturestart', onGestureStart)
+      svg.removeEventListener('gesturechange', onGestureChange)
+      svg.removeEventListener('gestureend', onGestureStart)
+    }
   }, [zoomBy])
 
   const startPan = (id: number, x: number, y: number) => {
