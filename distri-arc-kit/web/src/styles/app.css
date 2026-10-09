@@ -645,3 +645,9 @@ body.map-maximized{overflow:hidden}
 .acc-info{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--surface-2);color:var(--text-2);cursor:pointer}
 .acc-info .i{width:13px;height:13px}
 .acc-info:hover{background:var(--accent-soft);color:var(--accent)}
+
+.assign-warn,.assign-err{display:flex;gap:8px;align-items:flex-start;margin:4px 0 2px;padding:9px 11px;border-radius:10px;font-size:12.5px;line-height:1.45}
+.assign-warn{background:var(--warn-soft);color:var(--text)}
+.assign-err{background:var(--bad-soft);color:var(--bad)}
+.assign-warn .i,.assign-err .i{flex:none;width:15px;height:15px;margin-top:1px}
+.assign-warn .i{color:var(--warn)}

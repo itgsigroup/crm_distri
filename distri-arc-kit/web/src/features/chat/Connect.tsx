@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
-import { api } from '../../api/client'
+import { ApiError, api } from '../../api/client'
 import type { WANumber } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
@@ -102,18 +102,27 @@ function AssignForm({ wa, masked, current, onDone }: { wa: string; masked: strin
   const manager = !!me?.screens.includes('users')
   const { data: users = [] } = useUsers(manager)
   const { data: status } = useWAStatus()
-  const { toast } = useFeedback()
+  const { toast, alert } = useFeedback()
   const qc = useQueryClient()
   const [userId, setUserId] = useState(current ?? '')
   const [busy, setBusy] = useState(false)
-  const free = users.filter((u) => u.active && (u.wa_allowed || u.role === 'ceo') && (!u.wa_linked || u.wa_linked === wa))
-  const assign = (id: string | null) => {
+  const [err, setErr] = useState('')
+  // everyone who may hold WhatsApp; those holding another number are listed too and can be moved to this one
+  const eligible = users.filter((u) => u.active && (u.wa_allowed || u.role === 'ceo'))
+  const chosen = eligible.find((u) => u.id === userId)
+  const holdsOther = !!chosen?.wa_linked && chosen.wa_linked !== wa
+  const assign = (id: string | null, move = false) => {
     setBusy(true)
-    api.put<{ message?: string }>(`/wa/numbers/${wa}/user`, { user_id: id }).then((r) => {
+    setErr('')
+    api.put<{ message?: string }>(`/wa/numbers/${wa}/user`, { user_id: id, move }).then((r) => {
       toast(r.message ?? 'Disimpan')
       for (const k of ['wa', 'users', 'chat']) qc.invalidateQueries({ queryKey: [k] })
       onDone()
-    }, (e: Error) => toast(e.message)).finally(() => setBusy(false))
+    }, (e: Error) => {
+      // never just a passing toast: the number would silently stay without a name
+      setErr(e.message)
+      alert({ icon: 'error', title: 'Pemegang belum tersimpan', text: e.message + (e instanceof ApiError && e.code === 'has_number' ? ' Pilih "Pindahkan ke nomor ini" bila memang nomor ini yang dipakai.' : '') })
+    }).finally(() => setBusy(false))
   }
   if (!manager) {
     const mine = status?.items.find((n) => n.wa_number === wa)?.mine
@@ -124,12 +133,16 @@ function AssignForm({ wa, masked, current, onDone }: { wa: string; masked: strin
     <div className="assign">
       <label>Pemegang nomor {masked}
         <select value={userId} onChange={(e) => setUserId(e.target.value)} aria-label="Pengguna pemegang nomor">
-          <option value="">{free.length ? 'Pilih nama pengguna…' : 'Semua pengguna sudah memegang nomor'}</option>
-          {free.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.role_name}{u.branch && u.branch !== 'Semua cabang' ? ` · ${u.branch}` : ''}</option>)}
+          <option value="">{eligible.length ? 'Pilih nama pengguna…' : 'Belum ada pengguna yang boleh memegang WhatsApp'}</option>
+          {eligible.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.role_name}{u.branch && u.branch !== 'Semua cabang' ? ` · ${u.branch}` : ''}{u.wa_linked && u.wa_linked !== wa ? ` — memegang …${u.wa_linked.slice(-4)}` : ''}</option>)}
         </select>
       </label>
+      {holdsOther && <p className="assign-warn"><Icon name="alert" /><span><b>{chosen!.name}</b> sudah memegang nomor …{chosen!.wa_linked!.slice(-4)}. Satu pengguna satu nomor: bila dipindahkan, nomor …{chosen!.wa_linked!.slice(-4)} tetap tersambung tetapi tanpa pemegang.</span></p>}
+      {err && <p className="assign-err" role="alert"><Icon name="alert" /><span>{err}</span></p>}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button className="btn primary" disabled={busy || !userId || userId === current} onClick={() => assign(userId)}><Icon name="check" />Simpan pemegang</button>
+        {holdsOther
+          ? <button className="btn primary" disabled={busy} onClick={() => assign(userId, true)}><Icon name="refresh" />Pindahkan ke nomor ini</button>
+          : <button className="btn primary" disabled={busy || !userId || userId === current} onClick={() => assign(userId)}><Icon name="check" />{busy ? 'Menyimpan…' : 'Simpan pemegang'}</button>}
         {current && <button className="btn ghost" disabled={busy} onClick={() => assign(null)}>Lepas dari pengguna</button>}
       </div>
       <small>Pengguna belum ada? Tambahkan di <Link to="/pengguna">Master data → Pengguna</Link>; peran yang boleh memegang WhatsApp diatur di Peran &amp; akses.</small>

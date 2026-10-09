@@ -130,6 +130,8 @@ func (s *Server) assignWANumber(w http.ResponseWriter, r *http.Request) {
 	}
 	var in struct {
 		UserID *uuid.UUID `json:"user_id"`
+		// Move: the user already holds another number — release that one and give them this one (one user, one number)
+		Move bool `json:"move"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&in); err != nil {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pilih pengguna")
@@ -167,9 +169,13 @@ func (s *Server) assignWANumber(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Peran "+deref(usr.Name)+" tidak memegang nomor WhatsApp — ubah di Peran & akses")
 		return
 	}
+	var release string // the number the user holds now, released when moving them to this one
 	if held, err := s.st.Q.GetWANumberByUser(ctx, &usr.ID); err == nil && held.WaNumber != n {
-		httpx.Fail(w, http.StatusConflict, "has_number", deref(usr.Name)+" sudah memegang "+wa.MaskNumber(held.WaNumber)+" — satu pengguna satu nomor; lepas dulu nomor itu")
-		return
+		if !in.Move {
+			httpx.Fail(w, http.StatusConflict, "has_number", deref(usr.Name)+" sudah memegang "+wa.MaskNumber(held.WaNumber)+" — satu pengguna satu nomor; pindahkan ke nomor ini atau pilih pengguna lain")
+			return
+		}
+		release = held.WaNumber
 	}
 	var sales *uuid.UUID
 	if deref(usr.Role) == "sales" {
@@ -177,6 +183,14 @@ func (s *Server) assignWANumber(w http.ResponseWriter, r *http.Request) {
 	}
 	label := deref(usr.Name)
 	err = s.st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
+		if release != "" { // moving: the user's previous number keeps working, without a holder
+			if err := q.SetWANumberUser(ctx, gen.SetWANumberUserParams{WaNumber: release}); err != nil {
+				return err
+			}
+			if err := q.AssignThreadsSales(ctx, gen.AssignThreadsSalesParams{Account: &release}); err != nil {
+				return err
+			}
+		}
 		if err := q.ClearUserWANumber(ctx, &n); err != nil { // the number's previous holder
 			return err
 		}
@@ -204,8 +218,12 @@ func (s *Server) assignWANumber(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	s.audit(r, "wa.number_assigned", "wa_number", nil, map[string]any{"wa_number": n, "user_id": usr.ID})
-	httpx.JSON(w, http.StatusOK, map[string]any{"wa_number": n, "user_id": usr.ID, "label": label, "message": wa.MaskNumber(n) + " dipegang " + label})
+	s.audit(r, "wa.number_assigned", "wa_number", nil, map[string]any{"wa_number": n, "user_id": usr.ID, "released": release})
+	msg := wa.MaskNumber(n) + " dipegang " + label
+	if release != "" {
+		msg += " · " + wa.MaskNumber(release) + " kini tanpa pemegang"
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"wa_number": n, "user_id": usr.ID, "label": label, "released": release, "message": msg})
 }
 
 // deleteWANumber unlinks the device (worker) and removes a team number; a sales' main number stays, unpaired.
