@@ -30,7 +30,7 @@ const Ctx = createContext<OrchCtx>({ s: initialCycle, reanalyze: () => {} })
 export function OrchProvider({ children }: { children: ReactNode }) {
   const [s, dispatch] = useReducer(cycleReducer, initialCycle)
   const { subscribe } = useSse()
-  const { toast } = useFeedback()
+  const { toast, alert } = useFeedback()
   const qc = useQueryClient()
 
   useEffect(
@@ -76,11 +76,22 @@ export function OrchProvider({ children }: { children: ReactNode }) {
     if (s.running || !s.result) return
     const r = s.result
     if (s.mine) {
-      toast(r.status === 'failed' ? `Analisis ulang ${r.label} gagal · ${r.note}` : `Analisis ulang ${r.label} selesai lewat ${r.via.toUpperCase()} · ${r.updated} saran diperbarui`)
+      const at = `${hhmm(new Date())} WIB`
+      const cycle = r.number ? `#${r.number.toLocaleString('id-ID')}` : '—'
+      if (r.status === 'failed') {
+        alert({ icon: 'error', title: 'Analisis gagal', text: `Analisis ulang ${r.label} tidak selesai. Data dan saran sebelumnya tetap dipakai; coba lagi beberapa saat lagi.`, details: [['Siklus', cycle], ['Waktu', at], ['Penyebab', r.note || 'tidak diketahui']] })
+      } else {
+        alert({
+          icon: r.status === 'partial' ? 'warning' : 'success',
+          title: r.status === 'partial' ? 'Analisis selesai sebagian' : 'Analisis berhasil',
+          text: r.status === 'partial' ? `Analisis ulang ${r.label} selesai, tetapi sebagian agen tidak berjalan.` : `Analisis ulang ${r.label} selesai lewat ${r.via.toUpperCase()}.`,
+          details: [['Siklus', cycle], ['Saran diperbarui', String(r.updated)], ['Selesai', at], ...(r.note ? [['Catatan', r.note] as [string, string]] : [])],
+        })
+      }
     }
     dispatch({ type: 'ack' })
     for (const k of ['cycle', 'cycles', 'plan', 'proposals', 'agents', 'brief', 'dealers', 'dealer', 'orbit', 'segmen']) qc.invalidateQueries({ queryKey: [k] })
-  }, [s.running, s.result, s.mine, toast, qc])
+  }, [s.running, s.result, s.mine, alert, qc])
 
   const reanalyze = useCallback(
     (scope: string, via: Via = 'auto') => {
@@ -92,9 +103,13 @@ export function OrchProvider({ children }: { children: ReactNode }) {
       api
         .post<Cycle>('/cycles', { scope, via: v })
         .then((c) => dispatch({ type: 'start', cycleId: c.id, label: c.label, via: v }))
-        .catch((e: unknown) => toast(e instanceof ApiError && e.status === 409 ? 'Orchestrator sedang berjalan' : e instanceof Error ? e.message : 'Gagal memulai analisis'))
+        .catch((e: unknown) =>
+          e instanceof ApiError && e.status === 409
+            ? alert({ icon: 'warning', title: 'Analisis sedang berjalan', text: 'Orchestrator masih menganalisis. Tunggu sampai selesai, lalu coba lagi.' })
+            : alert({ icon: 'error', title: 'Analisis gagal dimulai', text: e instanceof Error ? e.message : 'Gagal memulai analisis', details: [['Waktu', `${hhmm(new Date())} WIB`]] }),
+        )
     },
-    [s.running, toast],
+    [s.running, toast, alert],
   )
 
   return <Ctx.Provider value={{ s, reanalyze }}>{children}</Ctx.Provider>

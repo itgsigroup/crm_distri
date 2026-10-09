@@ -598,3 +598,29 @@ body.map-maximized{overflow:hidden}
 .acc-list-pagination button .i{width:13px;height:13px}
 .acc-list-pagination button:first-child .i{transform:rotate(90deg)}
 .acc-list-pagination button:last-child .i{transform:rotate(-90deg)}
+
+/* Analisis ulang: last update line and the SweetAlert-style dialog */
+.oc-last{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 10px;font-size:12.5px;color:var(--text-2)}
+.oc-last .i{width:14px;height:14px;color:var(--good)}
+.oc-last b{color:var(--text);font-weight:700}
+.oc-last.bad .i{color:var(--bad)}
+.oc-last.running .i{color:var(--accent);animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.swal-bg{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:16px;background:rgba(15,20,35,.45);animation:swal-fade .15s ease-out}
+.swal{width:min(420px,100%);padding:28px 26px 22px;border-radius:18px;background:var(--surface);box-shadow:0 24px 60px rgba(0,0,0,.28);text-align:center;animation:swal-pop .28s cubic-bezier(.2,1.4,.4,1)}
+.swal h3{font:700 21px/1.25 var(--font-display);margin:14px 0 6px;color:var(--text)}
+.swal p{font-size:13.5px;line-height:1.5;color:var(--text-2);margin:0 0 12px}
+.swal-icon{width:76px;height:76px;margin:0 auto}
+.swal-icon svg{width:100%;height:100%;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.swal-success .swal-icon{stroke:var(--good)}.swal-error .swal-icon{stroke:var(--bad)}.swal-warning .swal-icon{stroke:var(--warn)}
+.swal-ring{stroke-dasharray:151;stroke-dashoffset:151;animation:swal-draw .5s ease-out forwards;opacity:.9}
+.swal-mark{stroke-dasharray:60;stroke-dashoffset:60;animation:swal-draw .35s .4s ease-out forwards}
+.swal-details{display:grid;gap:6px;margin:4px 0 16px;padding:12px 14px;border-radius:12px;background:var(--surface-2);text-align:left;font-size:12.5px}
+.swal-details div{display:flex;justify-content:space-between;gap:12px}
+.swal-details dt{color:var(--text-3)}
+.swal-details dd{margin:0;font-weight:650;color:var(--text);text-align:right;overflow-wrap:anywhere}
+.swal-ok{min-width:120px;height:38px;font-size:14px}
+@keyframes swal-draw{to{stroke-dashoffset:0}}
+@keyframes swal-pop{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+@keyframes swal-fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.swal,.swal-bg{animation:none}.swal-ring,.swal-mark{animation:none;stroke-dashoffset:0}}

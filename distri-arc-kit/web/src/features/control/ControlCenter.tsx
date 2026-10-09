@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Icon } from '../../components/Icon'
 import { CardH, Pill, Prov } from '../../components/ui'
-import { fmtRp, greeting } from '../../lib/format'
+import { fmtRp, greeting, hhmm, shortDate } from '../../lib/format'
 import { AGENT_NAMES } from '../../lib/i18n/id'
 import { PipeChips } from '../../app/Dock'
 import { useAgenda, useBrief, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, usePlan, useQueue, useSegmenMovers, useStockPush } from '../../app/queries'
@@ -75,6 +75,7 @@ export function ControlCenter() {
             <span className="meta">{orch.run ? `siklus #${orch.run.toLocaleString('id-ID')} · ${orch.last} · ${orch.dur}` : 'belum ada siklus · tiap jam 06.00–20.00'}</span>
           </div>
           <div className="oc-pipe"><PipeChips /></div>
+          <LastUpdate />
           <div className="oc-foot">
             <div className="oc-nums"><span><b>{full ? full.signals_count ?? 0 : signals}</b> sinyal</span><span><b>{full?.auto_count ?? 0}</b> otonom</span><span><b>{orch.pending}</b> keputusan</span><span><b>{full?.conflict_count ?? 0}</b> konflik diselesaikan</span></div>
             <div className="oc-btns">
@@ -223,6 +224,32 @@ function Agenda({ rows }: { rows: AgendaRow[] }) {
       {more}
       {idle.length > 0 && <p className="ag-idle">{idle.length} sales tanpa agenda mendesak: {idle.slice(0, 6).map((r) => r.sales.name.split(' ')[0]).join(', ')}{idle.length > 6 ? `, +${idle.length - 6}` : ''}</p>}
       {rows.length === 0 && <p className="ag-idle">Belum ada agenda hari ini.</p>}
+    </div>
+  )
+}
+
+/** "Update terakhir analisis": when the last cycle finished, its number, and how long ago (refreshed every minute). */
+function LastUpdate() {
+  const orch = useOrchStatus()
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(t)
+  }, [])
+  const c = orch.lastDone
+  if (orch.running) return <div className="oc-last running"><Icon name="refresh" />Analisis sedang berjalan · {orch.stage}…</div>
+  if (!c) return <div className="oc-last"><Icon name="cal" />Update terakhir analisis: <b>belum ada</b> · berikutnya {orch.next}</div>
+  const at = c.finished_at ?? c.started_at
+  const mins = Math.round((now - Date.parse(at)) / 60_000)
+  const ago = mins < 1 ? 'baru saja' : mins < 60 ? `${mins} menit lalu` : mins < 24 * 60 ? `${Math.floor(mins / 60)} jam lalu` : ''
+  const failed = c.status === 'failed'
+  return (
+    <div className={`oc-last${failed ? ' bad' : ''}`}>
+      <Icon name={failed ? 'alert' : 'check'} />
+      Update terakhir analisis: <b>{shortDate(at)} · {hhmm(at)} WIB</b>
+      {ago && <span> ({ago})</span>}
+      <span> · siklus #{(c.number ?? 0).toLocaleString('id-ID')} · {failed ? 'gagal' : c.status === 'partial' ? 'sebagian' : 'berhasil'}</span>
+      <span> · berikutnya {orch.next}</span>
     </div>
   )
 }
