@@ -105,7 +105,7 @@ export const useStockProposals = () =>
 
 // ---------- Orchestrator ----------
 export const useCycleLatest = () => useQuery({ queryKey: ['cycle', 'latest'], queryFn: () => api.get<CycleLatest>('/cycles/latest'), refetchInterval: 60_000 })
-export const useCycles = () => useQuery({ queryKey: ['cycles'], queryFn: () => api.get<Items<Cycle>>('/cycles?limit=20').then((r) => r.items) })
+export const useCycles = () => useQuery({ queryKey: ['cycles'], queryFn: () => api.get<Items<Cycle>>('/cycles?limit=100').then((r) => r.items) })
 export const useConflicts = () => useQuery({ queryKey: ['cycles', 'conflicts'], queryFn: () => api.get<Items<Conflict>>('/conflicts').then((r) => r.items) })
 export const useAgents = () => useQuery({ queryKey: ['agents'], queryFn: () => api.get<Items<AgentInfo>>('/agents').then((r) => r.items) })
 export const usePlan = () => useQuery({ queryKey: ['plan', 'today'], queryFn: () => api.get<Plan>('/plan/today') })

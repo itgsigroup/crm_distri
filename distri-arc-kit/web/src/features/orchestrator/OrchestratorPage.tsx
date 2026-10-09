@@ -1,14 +1,17 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router'
-import type { Cycle, CycleStage } from '../../api/types'
+import type { Conflict, Cycle, CycleStage } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
-import { hhmm } from '../../lib/format'
+import { hhmm, shortDate } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { useAgents, useConflicts, useCycleLatest, useCycles, useMCPCalls, useMCPInfo } from '../../app/queries'
 import { MCPClientsPanel, MCPRules, ModeSeg } from '../settings/AIConnections'
+import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
+import { CONFLICT_COMPARE, RUN_COMPARE, conflictFirstDir, conflictText, conflictTie, finishedRuns, runFirstDir, runText, runTie, type ConflictColumn, type RunColumn } from './tables'
 
 // Default stage descriptions before the first cycle (mockup STAGES).
 const STAGE_HINT = ['WA · SO · bayar · stok cabang', '6 agen paralel', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
@@ -35,27 +38,79 @@ function Pipeline({ stages }: { stages: CycleStage[] }) {
   )
 }
 
+/** Riwayat analisis as a data table: search, sort every column both ways, pages of 10/25/50. */
 function Runs({ cycles }: { cycles: Cycle[] }) {
-  const rows = cycles.filter((c) => c.status !== 'queued' && c.status !== 'running').slice(0, 7)
+  const rows = useMemo(() => finishedRuns(cycles), [cycles])
+  const t = useDataTable<Cycle, RunColumn>({ rows, text: runText, compare: RUN_COMPARE, tie: runTie, initial: { column: 'jam', dir: 'desc' }, firstDir: runFirstDir })
   return (
-    <table className="runs">
-      <thead><tr><th>Jam</th><th>No.</th><th>Jalur</th><th>Sinyal</th><th>Otonom</th><th>Keputusan</th><th>Konflik</th><th>Catatan</th></tr></thead>
-      <tbody>
-        {rows.length === 0 && <tr><td colSpan={8} style={{ color: 'var(--text-3)' }}>Belum ada siklus — siklus pertama berjalan di jam berikutnya (06.00–20.00) atau lewat Analisis ulang.</td></tr>}
-        {rows.map((r) => (
-          <tr key={r.id}>
-            <td className="num">{hhmm(r.started_at)}</td>
-            <td className="num">#{(r.number ?? 0).toLocaleString('id-ID')}</td>
-            <td><span className={`pill ${r.via === 'mcp' ? 'indigo' : 'neutral'}`}>{(r.via ?? 'api').toUpperCase()}</span></td>
-            <td className="num">{r.signals_count ?? 0}</td>
-            <td className="num">{r.auto_count ?? 0}</td>
-            <td className="num">{r.decision_count ?? 0}</td>
-            <td className="num">{r.conflict_count ?? 0}</td>
-            <td>{r.status === 'failed' ? <span style={{ color: 'var(--bad)' }}>{r.note}</span> : r.note}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <>
+      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari nomor, jalur, catatan…" label="Cari riwayat analisis" meta={`${t.matches.length.toLocaleString('id-ID')} siklus`} />
+      {rows.length === 0 ? (
+        <p className="sg-hint">Belum ada siklus — siklus pertama berjalan di jam berikutnya (06.00–20.00) atau lewat Analisis ulang.</p>
+      ) : t.matches.length === 0 ? (
+        <p className="sg-hint">Tidak ada siklus yang cocok dengan pencarian ini.</p>
+      ) : (
+        <div className="odl-wrap">
+          <table className="odl runs-table">
+            <thead><tr>
+              <SortTh t={t} c="jam">Waktu</SortTh><SortTh t={t} c="no" right>No.</SortTh><SortTh t={t} c="jalur">Jalur</SortTh>
+              <SortTh t={t} c="sinyal" right>Sinyal</SortTh><SortTh t={t} c="otonom" right>Otonom</SortTh><SortTh t={t} c="keputusan" right>Keputusan</SortTh>
+              <SortTh t={t} c="konflik" right>Konflik</SortTh><SortTh t={t} c="catatan">Catatan</SortTh>
+            </tr></thead>
+            <tbody>
+              {t.shown.map((r) => (
+                <tr key={r.id}>
+                  <td className="num nowrap">{shortDate(r.started_at)} · {hhmm(r.started_at)}</td>
+                  <td className="r num">#{(r.number ?? 0).toLocaleString('id-ID')}</td>
+                  <td><span className={`pill ${r.via === 'mcp' ? 'indigo' : 'neutral'}`}>{(r.via ?? 'api').toUpperCase()}</span></td>
+                  <td className="r num">{r.signals_count ?? 0}</td>
+                  <td className="r num">{r.auto_count ?? 0}</td>
+                  <td className="r num">{r.decision_count ?? 0}</td>
+                  <td className="r num">{r.conflict_count ?? 0}</td>
+                  <td className="runs-note">{r.status === 'failed' ? <span style={{ color: 'var(--bad)' }}>{r.note}</span> : r.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <TablePager t={t} noun="siklus" />
+    </>
+  )
+}
+
+/** Resolusi konflik as a data table: search, sort every column both ways, pages of 10/25/50. */
+function Conflicts({ rows, onOpen }: { rows: Conflict[]; onOpen: (slug: string) => void }) {
+  const t = useDataTable<Conflict, ConflictColumn>({ rows, text: conflictText, compare: CONFLICT_COMPARE, tie: conflictTie, initial: { column: 'agen', dir: 'asc' }, firstDir: conflictFirstDir })
+  return (
+    <>
+      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari agen, dealer, konflik, resolusi…" label="Cari konflik" meta={`${t.matches.length.toLocaleString('id-ID')} konflik`} />
+      {rows.length === 0 ? (
+        <p className="sg-hint">Belum ada konflik pada siklus terakhir.</p>
+      ) : t.matches.length === 0 ? (
+        <p className="sg-hint">Tidak ada konflik yang cocok dengan pencarian ini.</p>
+      ) : (
+        <div className="odl-wrap">
+          <table className="odl conflicts-table">
+            <thead><tr><SortTh t={t} c="agen">Agen</SortTh><SortTh t={t} c="dealer">Dealer</SortTh><SortTh t={t} c="konflik">Konflik</SortTh><SortTh t={t} c="resolusi">Resolusi Orchestrator</SortTh></tr></thead>
+            <tbody>
+              {t.shown.map((c) => {
+                const k = c.tone && c.tone !== 'neutral' ? c.tone : 'accent'
+                return (
+                  <tr key={c.id}>
+                    <td className="nowrap"><span className="cf-dot" style={{ background: `var(--${k})` }} /><b>{c.agent_a}</b> ↔ <b>{c.agent_b}</b></td>
+                    <td>{c.dealer_slug ? <button className="ev" onClick={() => onOpen(c.dealer_slug!)}>{c.dealer_name}</button> : <span style={{ color: 'var(--text-3)' }}>—</span>}</td>
+                    <td>{c.title}</td>
+                    <td className="cf-res"><span className="ai" />{c.resolution}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <TablePager t={t} noun="konflik" />
+    </>
   )
 }
 
@@ -104,26 +159,11 @@ export function OrchestratorPage() {
           </div>
           <div className="card">
             <div className="card-h"><h2>Resolusi konflik</h2><span className="ai" style={{ marginLeft: 6 }}>inti pekerjaan Orchestrator</span><span className="meta">dua agen, satu dealer, satu urutan</span></div>
-            <ul className="conflicts">
-              {conflicts.length === 0 && <li><span className="ii" style={{ background: 'var(--surface-2)', color: 'var(--text-3)' }}><Icon name="net" /></span><div><div className="cx">Belum ada konflik pada siklus terakhir.</div></div></li>}
-              {conflicts.map((c) => {
-                const k = c.tone && c.tone !== 'neutral' ? c.tone : 'accent'
-                return (
-                  <li key={c.id}>
-                    <span className="ii" style={{ background: `var(--${k}-soft)`, color: `var(--${k})` }}><Icon name="net" /></span>
-                    <div>
-                      <div className="ct"><b>{c.agent_a}</b> ↔ <b>{c.agent_b}</b>{c.dealer_slug && <> · <button className="ev" onClick={() => nav('/dealer/' + c.dealer_slug)}>{c.dealer_name}</button></>}</div>
-                      <div className="cx">{c.title}</div>
-                      <div className="cr"><span className="ai" />{c.resolution}</div>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+            <Conflicts rows={conflicts} onOpen={(slug) => nav('/dealer/' + slug)} />
           </div>
           <div className="card">
-            <div className="card-h"><h2>Riwayat analisis</h2><span className="meta">tiap jam · 06.00–20.00</span></div>
-            <div className="tbl-wrap"><Runs cycles={cycles} /></div>
+            <div className="card-h"><h2>Riwayat analisis</h2><span className="meta">tiap jam · 06.00–20.00 · 100 siklus terakhir</span></div>
+            <Runs cycles={cycles} />
           </div>
         </div>
         <div className="stack">

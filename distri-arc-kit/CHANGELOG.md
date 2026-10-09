@@ -246,3 +246,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 ## Kredit · kas: Exposure vs limit sebagai tabel · 2026-10-09
 - Card **Exposure vs limit** menjadi tabel data selebar halaman: Dealer (sales · cabang), Exposure, Limit, Sisa limit (merah bila minus), Pemakaian limit (bar + %). **Cari** (dealer, sales, cabang), **urutkan** naik/turun di setiap kolom (bawaan pemakaian tertinggi), **paginasi** 10/25/50; jumlah dealer over limit di kanan atas.
 - Komponen bersama `components/DataTable.tsx` (`useDataTable`, `SortTh`, `TableSearch`, `TablePager`) dipakai tabel Push stok dan Exposure; perbandingan kolom diuji (`stock/table.ts`, `credit/exposure.ts`).
+
+## Orchestrator: Resolusi konflik & Riwayat analisis sebagai tabel · 2026-10-09
+- **Resolusi konflik**: tabel Agen (A ↔ B), Dealer, Konflik, Resolusi Orchestrator — cari, urutkan naik/turun tiap kolom, paginasi 10/25/50 (tetap konflik siklus penuh terakhir).
+- **Riwayat analisis**: tabel Waktu (tanggal · jam), No., Jalur, Sinyal, Otonom, Keputusan, Konflik, Catatan — cari, urutkan naik/turun tiap kolom (bawaan terbaru), paginasi; kini memuat 100 siklus terakhir (sebelumnya 7 dari 20). Logika di `orchestrator/tables.ts` (diuji), memakai `DataTable` bersama.
