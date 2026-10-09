@@ -292,6 +292,9 @@ export interface ThreadView {
   group_kind?: string
   account: string
   account_label: string
+  last_direction?: 'in' | 'out' | ''
+  /** oldest customer message not answered yet */
+  waiting_since?: string | null
 }
 export interface Annotation { k: string; t: string; act?: string }
 export interface MessageView {
@@ -307,7 +310,9 @@ export interface MessageView {
   proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }
 }
 export interface ThreadDetail {
-  thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; dealer_id: string; sales: string; sales_wa: string; account_label: string; account_masked: string; suggestions: string[] | null; tag: Tag | null; unread: number }
+  thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; dealer_id: string; sales: string; sales_wa: string; account_label: string; account_masked: string; suggestions: string[] | null; tag: Tag | null; unread: number
+    /** the contact's number of a one-to-one chat */
+    phone?: string; dealer_code?: string; dealer_city?: string; waiting_since?: string | null }
   messages: MessageView[]
 }
 export interface Identification {

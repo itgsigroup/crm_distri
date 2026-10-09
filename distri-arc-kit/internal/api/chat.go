@@ -58,6 +58,25 @@ type ThreadView struct {
 	GroupKind     string          `json:"group_kind,omitempty"`
 	Account       string          `json:"account"`       // the WhatsApp number holding the conversation
 	AccountLabel  string          `json:"account_label"` // its label (CS Kantor, Nomor Andi …)
+	LastDirection string          `json:"last_direction"`
+	// WaitingSince: the oldest customer message not answered yet (null when the last word was ours)
+	WaitingSince *time.Time `json:"waiting_since"`
+}
+
+// timeOrNil reads a nullable timestamp sqlc could not type (min/max over a subquery).
+func timeOrNil(v any) *time.Time {
+	if t, ok := v.(time.Time); ok {
+		return &t
+	}
+	return nil
+}
+
+// phoneOfJID is the contact's number of a one-to-one chat ("62812…@s.whatsapp.net"); groups have none.
+func phoneOfJID(jid *string) string {
+	if jid == nil || !strings.HasSuffix(*jid, "@s.whatsapp.net") {
+		return ""
+	}
+	return wa.Digits(strings.TrimSuffix(*jid, "@s.whatsapp.net"))
 }
 
 func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +93,9 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 	out := []ThreadView{}
 	for _, t := range rows {
 		kind := deref(t.Kind)
-		if (tab == "dealer" && kind != "dealer") || (tab == "group_internal" && kind != "group") || (tab == "new" && kind != "new") {
+		external := kind == "group" && deref(t.GroupKind) == "external"
+		if (tab == "dealer" && kind != "dealer") || (tab == "group_internal" && (kind != "group" || external)) ||
+			(tab == "group_external" && !external) || (tab == "new" && kind != "new") {
 			continue
 		}
 		if account != "" && deref(t.Account) != account {
@@ -86,7 +107,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		}
 		v := ThreadView{ID: t.ID, Kind: kind, Title: deref(t.Title), Subtitle: deref(t.Subtitle), DealerID: deref(t.DealerSlug), DealerName: deref(t.DealerName),
 			Sales: deref(t.SalesName), LastMessageAt: t.LastMessageAt, Unread: t.Unread, LastBody: deref(t.LastBody), Tag: t.Tag, GroupKind: deref(t.GroupKind),
-			Account: deref(t.Account), AccountLabel: t.AccountLabel}
+			Account: deref(t.Account), AccountLabel: t.AccountLabel, LastDirection: deref(t.LastDirection), WaitingSince: timeOrNil(t.WaitingSince)}
 		if t.LastFrom != nil && kind == "group" {
 			v.LastFrom = *t.LastFrom
 		}
@@ -187,6 +208,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"thread": map[string]any{
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "dealer_id": deref(t.DealerSlug),
 		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
+		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
 	}, "messages": out})
 }
 

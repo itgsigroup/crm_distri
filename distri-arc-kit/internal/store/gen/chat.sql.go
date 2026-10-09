@@ -255,7 +255,9 @@ func (q *Queries) GetSalesByNumber(ctx context.Context, waNumber *string) (Sales
 
 const getThread = `-- name: GetThread :one
 select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
-  coalesce(n.label, s.name, t.account) as account_label
+  coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
+     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -285,6 +287,9 @@ type GetThreadRow struct {
 	SalesName      *string         `json:"sales_name"`
 	SalesWa        *string         `json:"sales_wa"`
 	AccountLabel   string          `json:"account_label"`
+	DealerCode     *string         `json:"dealer_code"`
+	DealerCity     *string         `json:"dealer_city"`
+	WaitingSince   interface{}     `json:"waiting_since"`
 }
 
 // sales_wa is the number replies go out from: the thread's own number, else its sales' main number.
@@ -313,6 +318,9 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 		&i.SalesName,
 		&i.SalesWa,
 		&i.AccountLabel,
+		&i.DealerCode,
+		&i.DealerCity,
+		&i.WaitingSince,
 	)
 	return i, err
 }
@@ -1032,7 +1040,11 @@ const listThreads = `-- name: ListThreads :many
 select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
   coalesce(n.label, s.name, t.account) as account_label,
   (select m.body from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_body,
-  (select m.from_name from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_from
+  (select m.from_name from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_from,
+  (select m.direction from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_direction,
+  -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
+     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -1065,6 +1077,8 @@ type ListThreadsRow struct {
 	AccountLabel   string          `json:"account_label"`
 	LastBody       *string         `json:"last_body"`
 	LastFrom       *string         `json:"last_from"`
+	LastDirection  *string         `json:"last_direction"`
+	WaitingSince   interface{}     `json:"waiting_since"`
 }
 
 func (q *Queries) ListThreads(ctx context.Context) ([]ListThreadsRow, error) {
@@ -1100,6 +1114,8 @@ func (q *Queries) ListThreads(ctx context.Context) ([]ListThreadsRow, error) {
 			&i.AccountLabel,
 			&i.LastBody,
 			&i.LastFrom,
+			&i.LastDirection,
+			&i.WaitingSince,
 		); err != nil {
 			return nil, err
 		}

@@ -145,7 +145,11 @@ where id = sqlc.arg(id)::uuid;
 select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
   coalesce(n.label, s.name, t.account) as account_label,
   (select m.body from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_body,
-  (select m.from_name from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_from
+  (select m.from_name from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_from,
+  (select m.direction from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_direction,
+  -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
+     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -156,7 +160,9 @@ order by case t.kind when 'dealer' then 0 when 'group' then 1 else 2 end, t.last
 -- name: GetThread :one
 -- sales_wa is the number replies go out from: the thread's own number, else its sales' main number.
 select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
-  coalesce(n.label, s.name, t.account) as account_label
+  coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
+     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id

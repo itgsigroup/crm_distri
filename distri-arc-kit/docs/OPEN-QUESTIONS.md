@@ -43,3 +43,6 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 ## Peran & akses (2026-10-07)
 - Pengguna yang sudah ada di server memakai peran bawaan base-nya. Bila perlu peran khusus (mis. "Sales Telemarketing", "CS Kantor"), CEO membuatnya di Pengaturan → Peran & akses lalu menetapkannya ke pengguna.
 - Nomor WhatsApp tiap pengguna diisi di Pengaturan → Pengguna sebelum ditautkan di Chat.
+
+## Chat → Kirim ke Accurate (2026-10-09)
+- Tombol **Kirim ke Accurate** di Chat saat ini menyiapkan data pelanggan untuk disalin ke Accurate Online (GSI Orbit tidak menulis ke Accurate). Untuk benar-benar membuat/memperbarui pelanggan dari Chat dibutuhkan API Accurate Online (OAuth app + database id) dan keputusan siapa yang boleh menyetujui — perlu kredensial & persetujuan Sam.
