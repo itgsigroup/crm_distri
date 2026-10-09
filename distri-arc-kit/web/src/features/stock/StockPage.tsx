@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import type { NextAction, Proposal } from '../../api/types'
+import { useMemo, useState } from 'react'
+import type { AgingItem, NextAction, Proposal } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
 import { useFeedback } from '../../components/feedback'
 import { fmtRp, shortName } from '../../lib/format'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { useKpi, useSalesByProduct, useStockAging, useStockCritical, useStockProposals } from '../../app/queries'
+import { firstDir, searchAging, sortAging, type Dir, type StockColumn } from './table'
 
 /** A stored proposal as the action button of a row. */
 export function toNext(p: Proposal | undefined): NextAction | null {
@@ -27,7 +28,6 @@ export function StockPage() {
   const { data: sales = [] } = useSalesByProduct()
   const { data: props = [] } = useStockProposals()
   const [branch, setBranch] = useState('')
-  const [showAll, setShowAll] = useState(false)
 
   const open = (p: Proposal) => p.status !== 'rejected' && p.status !== 'expired' && p.status !== 'suppressed'
   const pushes = props.filter((p) => p.kind === 'push_stock' && !p.payload?.parent && open(p))
@@ -36,8 +36,7 @@ export function StockPage() {
     props.find((p) => (p.kind === 'transfer' && p.payload?.sku === sku && p.payload?.to === branch) || (p.kind === 'po_request' && p.payload?.sku === sku && p.payload?.branch === branch))
 
   const branches = [...new Set(aging.map((x) => x.branch))].sort()
-  const inBranch = aging.filter((x) => !branch || x.branch === branch)
-  const shown = showAll ? inBranch : inBranch.slice(0, 12)
+  const inBranch = useMemo(() => aging.filter((x) => !branch || x.branch === branch), [aging, branch])
   const old = aging.filter((x) => x.age_days > 90)
   const oldValue = old.reduce((a, x) => a + x.value, 0)
   const activeValue = pushes.reduce((a, p) => a + Number(p.payload?.stock_value ?? 0), 0)
@@ -52,46 +51,9 @@ export function StockPage() {
         <div className="kpi-t"><small>Push stok aktif</small><b className="num">{pushes.length}</b><span className="dl n">{fmtRp(activeValue)} → {activeDealers} dealer</span></div>
         <div className="kpi-t"><small>Stok kritis</small><b className="num">{critical.length}<em>SKU</em></b><span className="dl warn">habis &lt; 10 hari pada siklus order sekarang</span></div>
       </div>
+      <PushStockTable list={inBranch} total={aging.length} branches={branches} branch={branch} setBranch={setBranch} pushOf={pushOf} running={orch.running} onReanalyze={() => reanalyze('screen:stock')} onPromo={() => toast('Promo belum otomatis: atur harga promo di Accurate — data GSI Orbit dibaca dari BigQuery (baca saja)')} />
       <div className="grid-2">
         <div className="card">
-          <div className="card-h">
-            <h2>Push stok</h2><span className="ai" style={{ marginLeft: 6 }}>AI Stok</span><span className="meta">Stok menua → dealer yang product mix-nya cocok &amp; jadwal order</span>
-            <button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 8 }} disabled={orch.running} onClick={() => reanalyze('screen:stock')}><Icon name="refresh" />Analisis ulang</button>
-          </div>
-          {branches.length > 1 && (
-            <div className="chips" style={{ marginBottom: 8 }}>
-              {['', ...branches].map((b) => <button key={b || 'all'} className={`chip ${branch === b ? 'is-active' : ''}`} onClick={() => setBranch(b)}>{b || 'Semua cabang'}</button>)}
-            </div>
-          )}
-          <ul className="l2c stockl">
-            {shown.map((x) => {
-              const k = x.age_days > 120 ? 'bad' : 'warn'
-              const p = pushOf(x.name)
-              const ds = (x.candidates ?? []).map((c) => shortName(c.name))
-              const total = x.candidate_count ?? ds.length
-              const dealers = total ? `${ds.slice(0, 2).join(', ')}${total > 2 ? `, +${total - 2}` : ''}` : 'belum ada yang cocok'
-              const note = total ? '' : x.age_days > 180 ? ' · Usul: diskon atau retur ke supplier' : ' · Usul: bundle untuk dealer tier C'
-              return (
-                <li key={x.id}>
-                  <div><b>{x.name}</b><span className="s">{x.qty} {unit(x.name)} · {x.branch} · {fmtRp(x.value)}</span></div>
-                  <div>
-                    <div className="seg5"><i className={`cur ${k}`} /><i /><i /><i /><i /></div>
-                    <div className="stg"><span>umur stok</span><em className="num" style={{ color: `var(--${k})` }}>{x.age_days} hr</em></div>
-                  </div>
-                  <div className="note">Dealer yang cocok: {dealers}{note}</div>
-                  <div>{p ? <ActBtn small next={toNext(p)} /> : <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => toast('Promo belum otomatis: atur harga promo di Accurate — data GSI Orbit dibaca dari BigQuery (baca saja)')}>Buat promo</button>}</div>
-                </li>
-              )
-            })}
-          </ul>
-          {inBranch.length > 12 && (
-            <button className="btn quiet" style={{ marginTop: 8, height: 30, fontSize: 12.5 }} onClick={() => setShowAll(!showAll)}>
-              {showAll ? 'Ringkas' : `Tampilkan semua ${inBranch.length} stok menua · ${fmtRp(inBranch.reduce((a, x) => a + x.value, 0))}`}
-            </button>
-          )}
-        </div>
-        <div className="stack">
-          <div className="card">
             <div className="card-h"><h2>Stok kritis</h2><span className="meta">Dari siklus order dealer di tiap cabang</span></div>
             <ul className="row-list">
               {critical.length === 0 && <li><div><div className="s">Tidak ada SKU yang habis sebelum siklus order berikutnya.</div></div></li>}
@@ -125,8 +87,107 @@ export function StockPage() {
               ))}
             </div>
           </div>
-        </div>
       </div>
     </>
+  )
+}
+
+/** Push stok as a data table: search, sort every column both ways, pages of 10/25/50. */
+function PushStockTable({ list, total, branches, branch, setBranch, pushOf, running, onReanalyze, onPromo }: {
+  list: AgingItem[]; total: number; branches: string[]; branch: string; setBranch: (b: string) => void
+  pushOf: (name: string) => Proposal | undefined; running: boolean; onReanalyze: () => void; onPromo: () => void
+}) {
+  const [query, setQuery] = useState('')
+  const [column, setColumn] = useState<StockColumn>('umur')
+  const [dir, setDir] = useState<Dir>('desc')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const matches = useMemo(() => searchAging(list, query), [list, query])
+  const sorted = useMemo(() => sortAging(matches, column, dir), [matches, column, dir])
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const current = Math.min(page, pageCount)
+  const shown = sorted.slice((current - 1) * pageSize, current * pageSize)
+  // back to page 1 when the search, page size or list changes (adjusting state during render, not in an effect)
+  const [seen, setSeen] = useState({ query, pageSize, list })
+  if (seen.query !== query || seen.pageSize !== pageSize || seen.list !== list) {
+    setSeen({ query, pageSize, list })
+    setPage(1)
+  }
+  const sortBy = (c: StockColumn) => {
+    if (column === c) setDir(dir === 'asc' ? 'desc' : 'asc')
+    else {
+      setColumn(c)
+      setDir(firstDir(c))
+    }
+    setPage(1)
+  }
+  const header = (c: StockColumn, title: string, right = false) => (
+    <th className={right ? 'r' : undefined} aria-sort={column === c ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+      <button type="button" className="odl-sort" onClick={() => sortBy(c)} title={column === c ? (dir === 'asc' ? 'Urut naik — klik untuk urut turun' : 'Urut turun — klik untuk urut naik') : 'Urutkan'}>
+        {title}<span aria-hidden="true">{column === c ? (dir === 'asc' ? '↑' : '↓') : '↕'}</span>
+      </button>
+    </th>
+  )
+  const totalValue = matches.reduce((a, x) => a + x.value, 0)
+  return (
+    <div className="card push-card">
+      <div className="card-h">
+        <h2>Push stok</h2><span className="ai" style={{ marginLeft: 6 }}>AI Stok</span><span className="meta">Stok menua → dealer yang product mix-nya cocok &amp; jadwal order</span>
+        <button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 8 }} disabled={running} onClick={onReanalyze}><Icon name="refresh" />Analisis ulang</button>
+      </div>
+      {branches.length > 1 && (
+        <div className="chips" style={{ marginBottom: 8 }}>
+          {['', ...branches].map((b) => <button key={b || 'all'} className={`chip ${branch === b ? 'is-active' : ''}`} onClick={() => setBranch(b)}>{b || 'Semua cabang'}</button>)}
+        </div>
+      )}
+      <div className="odl-tools">
+        <div className="search of-q odl-q"><Icon name="search" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cari produk, SKU, cabang, dealer…" aria-label="Cari stok menua" /></div>
+        <span className="meta">{matches.length.toLocaleString('id-ID')} stok menua · {fmtRp(totalValue)}{matches.length !== total ? ` · dari ${total.toLocaleString('id-ID')}` : ''}</span>
+      </div>
+      {matches.length === 0 ? (
+        <p className="sg-hint">{list.length ? 'Tidak ada stok yang cocok dengan pencarian ini.' : 'Tidak ada stok menua.'}</p>
+      ) : (
+        <div className="odl-wrap">
+          <table className="odl stock-table">
+            <thead><tr>{header('produk', 'Produk')}{header('cabang', 'Cabang')}{header('qty', 'Qty', true)}{header('nilai', 'Nilai', true)}{header('umur', 'Umur stok', true)}{header('dealer', 'Dealer yang cocok')}<th aria-label="Aksi" /></tr></thead>
+            <tbody>
+              {shown.map((x) => {
+                const k = x.age_days > 120 ? 'bad' : 'warn'
+                const p = pushOf(x.name)
+                const ds = (x.candidates ?? []).map((c) => shortName(c.name))
+                const n = x.candidate_count ?? ds.length
+                const note = n ? '' : x.age_days > 180 ? 'Usul: diskon atau retur ke supplier' : 'Usul: bundle untuk dealer tier C'
+                return (
+                  <tr key={x.id}>
+                    <td className="odl-name"><b>{x.name}</b><small>{x.sku}{x.category ? ` · ${x.category}` : ''}</small></td>
+                    <td>{x.branch}</td>
+                    <td className="r num">{x.qty.toLocaleString('id-ID')} <small>{unit(x.name)}</small></td>
+                    <td className="odl-rp">{fmtRp(x.value)}</td>
+                    <td className="r"><em className="num" style={{ color: `var(--${k})`, fontStyle: 'normal', fontWeight: 700 }}>{x.age_days} hr</em></td>
+                    <td className="stock-dealers">{n ? <><b>{n}</b> · {ds.slice(0, 2).join(', ')}{n > 2 ? `, +${n - 2}` : ''}</> : <span className="muted">belum ada · {note}</span>}</td>
+                    <td className="odl-act">{p ? <ActBtn small next={toNext(p)} /> : <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={onPromo}>Buat promo</button>}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {matches.length > 0 && (
+        <div className="odl-footer">
+          <span>Menampilkan {(current - 1) * pageSize + 1}–{Math.min(current * pageSize, matches.length)} dari {matches.length.toLocaleString('id-ID')} stok</span>
+          <label>Baris
+            <select className="of-s" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} aria-label="Jumlah baris per halaman">
+              {[10, 25, 50].map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </label>
+          <div className="odl-pages">
+            <button type="button" className="btn quiet" disabled={current <= 1} onClick={() => setPage(current - 1)}>Sebelumnya</button>
+            <span>Halaman {current} dari {pageCount}</span>
+            <button type="button" className="btn quiet" disabled={current >= pageCount} onClick={() => setPage(current + 1)}>Berikutnya</button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

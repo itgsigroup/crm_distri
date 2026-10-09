@@ -554,6 +554,13 @@ body.map-maximized{overflow:hidden}
 .odl-pages{display:flex;align-items:center;gap:8px;margin-left:auto}
 .odl-pages .btn{height:30px;font-size:12px}
 .odl-pages .btn:disabled{opacity:.45;cursor:default}
+.push-card{margin-bottom:16px}
+.odl td.r{text-align:right;white-space:nowrap}
+.odl-name b{display:block;font-weight:700}
+.stock-table small{font-size:12px;color:var(--text-3)}
+.stock-dealers{font-size:12.5px;color:var(--text-2);max-width:280px}
+.stock-dealers b{color:var(--text)}
+.stock-dealers .muted{color:var(--text-3)}
 @media (max-width:1280px){.os-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){
   .of-n{margin-left:0;flex-basis:100%}
