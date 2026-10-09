@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { CORE, cometAt, layoutGalaxy, layoutLeads } from './galaxy'
+import { CORE, layoutGalaxy, layoutLeads } from './galaxy'
 
 const nodes = [
   { id: 's-a', type: 'sales' as const, total: 300 },
@@ -54,16 +54,9 @@ test('planets are scattered in 3D, systems never overlap, the core stays clear, 
   expect(layoutGalaxy([...many, ...ds], es, 6)).toEqual(g)
 })
 
-test('prospects: owned → comet around its sales planet, unowned → meteor', () => {
+test('prospects nobody owns become meteors; owned ones do not', () => {
   const g = layoutGalaxy(nodes, edges, 6)
-  const { comets, meteors } = layoutLeads(g, [{ id: 'p1', owner: 's-a' }, { id: 'p2', owner: '' }, { id: 'p3', owner: 's-unknown' }])
-  expect(comets.map((c) => c.id)).toEqual(['p1'])
+  const { meteors } = layoutLeads(g, [{ id: 'p1', owner: 's-a' }, { id: 'p2', owner: '' }, { id: 'p3', owner: 's-unknown' }])
   expect(meteors.map((m) => m.id).sort()).toEqual(['p2', 'p3'])
-  const c = comets[0]
-  // a long ellipse: the closest pass is much nearer than the farthest point, and the orbit repeats
-  const rs = Array.from({ length: 200 }, (_, i) => cometAt(c, (i / 200) * ((Math.PI * 2) / c.speed)).rr)
-  expect(Math.max(...rs) / Math.min(...rs)).toBeGreaterThan(3)
-  const a0 = cometAt(c, 0)
-  const a1 = cometAt(c, (Math.PI * 2) / c.speed)
-  expect(Math.hypot(a0.x - a1.x, a0.y - a1.y, a0.z - a1.z)).toBeLessThan(1e-6)
+  for (const m of meteors) expect(Math.hypot(m.vx, m.vy, m.vz)).toBeGreaterThan(0)
 })

@@ -1,15 +1,16 @@
 import type { RelasiEdge, RelasiNode } from '../../api/types'
 import { bindControls } from './controls'
-import { cometAt, layoutGalaxy, layoutLeads, onPlane, rng, type Comet, type Galaxy, type Meteor, type Planet, type Satellite } from './galaxy'
+import { layoutGalaxy, layoutLeads, onPlane, rng, type Galaxy, type Meteor, type Planet, type Satellite } from './galaxy'
 import { esc, tipHtml } from './tip'
 
 // Galaxy view of Peta relasi: sales numbers are planets scattered through space, dealers satellites on their orbits,
-// prospects (leads that never ordered) comets around their sales or meteors drifting through (see galaxy.ts).
+// prospects (leads that never ordered) appear now and then as a comet streaking down the screen, and the ones no
+// sales owns drift through as a few meteors (see galaxy.ts). Starfield with a faint Milky Way behind everything.
 // Drawn on a canvas with a perspective camera: drag to rotate/tilt, Shift/right-drag or two fingers to pan, wheel /
 // touchpad / pinch to zoom towards the pointer (fly through the galaxy), click a planet to fly to its system,
 // click the focused dealer again or double-click it to open it. Same public surface as NetView.
 
-/** A prospect shown as a comet (owner = sales node id) or a meteor (owner = ''). */
+/** A prospect: shown as a passing comet (any prospect, one at a time) or a meteor (owner = '', at most MAX_METEORS). */
 export interface GalaxyLead { id: string; name: string; sub: string; owner: string; ownerName: string }
 
 export interface GalaxyOptions {
@@ -34,7 +35,12 @@ const TONE_RGB: Record<Tone, [number, number, number]> = {
 }
 const TAN = Math.tan((42 * Math.PI) / 180 / 2)
 
-type Kind = 'planet' | 'sat' | 'comet' | 'meteor'
+type Kind = 'planet' | 'sat' | 'meteor'
+const MAX_METEORS = 30
+
+interface Star { x: number; y: number; z: number; b: number; size: number; tint: string; tw: number }
+/** A comet streaking across the screen (screen space), carrying one prospect. */
+interface Streak { lead: GalaxyLead; x0: number; y0: number; vx: number; vy: number; start: number; dur: number; x: number; y: number }
 
 interface Body {
   id: string
@@ -44,14 +50,12 @@ interface Body {
   lead?: GalaxyLead
   planet?: Planet
   sat?: Satellite
-  comet?: Comet
   meteor?: Meteor
   x: number
   y: number
   z: number
   r: number
-  // comet: distance to its planet; projected values below
-  rr: number
+  // projected values
   sx: number
   sy: number
   sr: number
@@ -69,7 +73,11 @@ export class GalaxyView {
   private bodies: Body[] = []
   private bodyById = new Map<string, Body>()
   private ctx: CanvasRenderingContext2D | null
-  private stars: { x: number; y: number; z: number; b: number }[] = []
+  private stars: Star[] = []
+  private leadPool: GalaxyLead[] = []
+  private leadNext = 0
+  private streak: Streak | null = null
+  private nextStreak = 0
   private dust: { x: number; y: number; z: number }[] = []
   private yaw = 0.5
   private pitch = 0.5
@@ -102,13 +110,7 @@ export class GalaxyView {
     this.ctx = o.canvas.getContext('2d')
     this.g = layoutGalaxy(nodes, edges, months)
     this.build()
-    const rnd = rng('stars')
-    for (let i = 0; i < 900; i++) { // far stars on a sphere: they only turn with the camera
-      const u = rnd() * 2 - 1
-      const th = rnd() * Math.PI * 2
-      const q = Math.sqrt(1 - u * u)
-      this.stars.push({ x: q * Math.cos(th), y: u, z: q * Math.sin(th), b: 0.2 + rnd() * 0.8 })
-    }
+    this.stars = makeStars()
     this.off.push(bindControls(o.canvas, {
       rotate: (dx, dy) => {
         this.goal = null
@@ -118,6 +120,7 @@ export class GalaxyView {
       pan: (dx, dy) => { this.goal = null; this.pan(dx, dy) },
       zoomBy: (f, cx, cy) => { this.goal = null; this.zoomBy(f, cx, cy) },
       click: (e) => {
+        if (this.streakAt(e)) { this.o.onOpen(this.streak!.lead.id); return }
         const b = this.pickAt(e)
         if (b && b.kind !== 'planet' && this.focus === b.id) this.o.onOpen(b.id)
         else {
@@ -142,7 +145,7 @@ export class GalaxyView {
   private build() {
     this.byId = new Map(this.nodes.map((n) => [n.id, n]))
     this.planetById = new Map(this.g.planets.map((p) => [p.id, p]))
-    const blank = { x: 0, y: 0, z: 0, rr: 0, sx: 0, sy: 0, sr: 0, depth: 0, vis: false }
+    const blank = { x: 0, y: 0, z: 0, sx: 0, sy: 0, sr: 0, depth: 0, vis: false }
     this.bodies = []
     for (const p of this.g.planets) {
       const d = this.byId.get(p.id)
@@ -153,10 +156,13 @@ export class GalaxyView {
       if (d) this.bodies.push({ ...blank, id: s.id, kind: 'sat', name: d.name, d, sat: s, r: s.r })
     }
     const leads = (this.o.leads ?? []).filter((l) => !this.byId.has(l.id))
-    const { comets, meteors } = layoutLeads(this.g, leads)
+    const { meteors } = layoutLeads(this.g, leads)
     const leadById = new Map(leads.map((l) => [l.id, l]))
-    for (const c of comets) this.bodies.push({ ...blank, id: c.id, kind: 'comet', name: leadById.get(c.id)!.name, lead: leadById.get(c.id), comet: c, r: 0.2 })
-    for (const m of meteors) this.bodies.push({ ...blank, id: m.id, kind: 'meteor', name: leadById.get(m.id)!.name, lead: leadById.get(m.id), meteor: m, r: 0.35 + Math.abs(Math.sin(m.vx * 9)) * 0.3 })
+    // comets take turns: every prospect gets its moment, in a shuffled but stable order
+    const shuffle = rng('comets')
+    this.leadPool = leads.map((l) => [shuffle(), l] as const).sort((a, b) => a[0] - b[0]).map(([, l]) => l)
+    this.leadNext = 0
+    for (const m of meteors.slice(0, MAX_METEORS)) this.bodies.push({ ...blank, id: m.id, kind: 'meteor', name: leadById.get(m.id)!.name, lead: leadById.get(m.id), meteor: m, r: 0.35 + Math.abs(Math.sin(m.vx * 9)) * 0.3 })
     this.bodyById = new Map(this.bodies.map((b) => [b.id, b]))
     // space dust spread through the galaxy: close to the camera it rushes past and gives the feeling of flying
     const rnd = rng('dust')
@@ -249,7 +255,6 @@ export class GalaxyView {
 
   private rgbOf(b: Body): [number, number, number] {
     if (b.kind === 'planet') return TONE_RGB.accent
-    if (b.kind === 'comet') return [190, 235, 255]
     if (b.kind === 'meteor') return [160, 140, 120]
     return TONE_RGB[(b.d?.tone ?? 'neutral') as Tone] ?? TONE_RGB.neutral
   }
@@ -293,8 +298,8 @@ export class GalaxyView {
     ctx.fillRect(0, 0, w, h)
     const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw), cp = Math.cos(this.pitch), sp = Math.sin(this.pitch)
     const fov = h / (2 * TAN)
-    ctx.fillStyle = '#dfe6ff'
-    for (const s of this.stars) {
+    const now = performance.now() / 1000
+    for (const s of this.stars) { // far away: they only turn with the camera, and twinkle
       const rx = s.x * cy - s.z * sy
       const rz0 = s.x * sy + s.z * cy
       const ry = s.y * cp - rz0 * sp
@@ -302,10 +307,25 @@ export class GalaxyView {
       if (rz > -0.05) continue
       const px = w / 2 + (rx / -rz) * fov
       const py = h / 2 - (ry / -rz) * fov
-      if (px < 0 || py < 0 || px > w || py > h) continue
-      ctx.globalAlpha = s.b * 0.8
-      const z = s.b > 0.85 ? 1.7 : 1
-      ctx.fillRect(px, py, z, z)
+      if (px < -4 || py < -4 || px > w + 4 || py > h + 4) continue
+      const a = s.tw && !this.reduced ? s.b * (0.65 + 0.35 * Math.sin(now * s.tw + s.x * 40)) : s.b
+      ctx.globalAlpha = a
+      ctx.fillStyle = s.tint
+      if (s.size > 2) { // a bright star: glow and a small cross
+        const gl = ctx.createRadialGradient(px, py, 0, px, py, s.size * 2.4)
+        gl.addColorStop(0, s.tint)
+        gl.addColorStop(1, 'rgba(0,0,0,0)')
+        ctx.fillStyle = gl
+        ctx.fillRect(px - s.size * 2.4, py - s.size * 2.4, s.size * 4.8, s.size * 4.8)
+        ctx.fillStyle = s.tint
+        ctx.globalAlpha = a * 0.6
+        ctx.fillRect(px - s.size * 2, py - 0.5, s.size * 4, 1)
+        ctx.fillRect(px - 0.5, py - s.size * 2, 1, s.size * 4)
+        ctx.globalAlpha = a
+        ctx.beginPath()
+        ctx.arc(px, py, s.size * 0.5, 0, Math.PI * 2)
+        ctx.fill()
+      } else ctx.fillRect(px - s.size / 2, py - s.size / 2, s.size, s.size)
     }
     // space dust: perspective points, the nearer the bigger and brighter
     ctx.fillStyle = '#aab8ff'
@@ -348,13 +368,6 @@ export class GalaxyView {
         b.x = (c?.x ?? 0) + q.x
         b.y = (c?.y ?? 0) + q.y
         b.z = (c?.z ?? 0) + q.z
-      } else if (b.comet) {
-        const c = this.planetById.get(b.comet.planet)!
-        const q = cometAt(b.comet, t)
-        b.x = c.x + q.x
-        b.y = c.y + q.y
-        b.z = c.z + q.z
-        b.rr = q.rr
       } else if (b.meteor) {
         const m = b.meteor
         b.x = wrap(m.x + m.vx * t, E)
@@ -411,8 +424,8 @@ export class GalaxyView {
     }
     ctx.setLineDash([])
     const fb = this.focus ? this.bodyById.get(this.focus) : null
-    const home = fb?.sat?.planet || fb?.comet?.planet
-    if (fb && home) { // the focused satellite / comet and its own planet
+    const home = fb?.sat?.planet
+    if (fb && home) { // the focused satellite and its own planet
       const p = this.bodyById.get(home)
       if (p) {
         ctx.globalAlpha = 0.8
@@ -430,8 +443,7 @@ export class GalaxyView {
       const on = this.isOn(b.id)
       const [r, g, bl] = this.rgbOf(b)
       const rad = Math.max(b.kind === 'planet' ? 3 : 1.2, b.sr)
-      if (b.kind === 'comet') this.drawComet(ctx, b, rad, on)
-      else if (b.kind === 'meteor') this.drawMeteor(ctx, b, rad, on, t)
+      if (b.kind === 'meteor') this.drawMeteor(ctx, b, rad, on, t)
       if (b.kind === 'planet') { // glow
         const gl = ctx.createRadialGradient(b.sx, b.sy, rad * 0.6, b.sx, b.sy, rad * 2.6)
         gl.addColorStop(0, `rgba(${r},${g},${bl},0.45)`)
@@ -442,7 +454,7 @@ export class GalaxyView {
         ctx.arc(b.sx, b.sy, rad * 2.6, 0, Math.PI * 2)
         ctx.fill()
       }
-      if (b.kind === 'planet' || b.kind === 'sat' || b.kind === 'comet') {
+      if (b.kind === 'planet' || b.kind === 'sat') {
         const sg = ctx.createRadialGradient(b.sx - rad * 0.35, b.sy - rad * 0.35, rad * 0.1, b.sx, b.sy, rad)
         sg.addColorStop(0, `rgb(${Math.min(255, r + 90)},${Math.min(255, g + 90)},${Math.min(255, bl + 90)})`)
         sg.addColorStop(0.55, `rgb(${r},${g},${bl})`)
@@ -498,32 +510,74 @@ export class GalaxyView {
       ctx.shadowBlur = 0
     }
     ctx.globalAlpha = 1
+    this.drawStreak(ctx, w, h)
   }
 
-  /** Icy head with a tail pointing away from its planet, longer the closer it passes. */
-  private drawComet(ctx: CanvasRenderingContext2D, b: Body, rad: number, on: boolean) {
-    const c = this.bodyById.get(b.comet!.planet)
-    if (!c) return
-    let dx = b.sx - c.sx
-    let dy = b.sy - c.sy
-    const len = Math.hypot(dx, dy) || 1
-    dx /= len
-    dy /= len
-    const tail = Math.min(55, Math.max(rad * 3, (rad * 14) / Math.max(0.6, b.rr / (b.comet!.a * 0.5))))
-    const ex = b.sx + dx * tail
-    const ey = b.sy + dy * tail
-    const gr = ctx.createLinearGradient(b.sx, b.sy, ex, ey)
-    gr.addColorStop(0, 'rgba(190,235,255,0.45)')
-    gr.addColorStop(1, 'rgba(120,180,255,0)')
-    ctx.globalAlpha = on ? 0.85 : 0.1
+  /** Now and then one prospect streaks down the screen as a comet, with its name for a moment. */
+  private drawStreak(ctx: CanvasRenderingContext2D, w: number, h: number) {
+    const now = performance.now()
+    if (!this.streak && !this.reduced && this.leadPool.length && now >= this.nextStreak) {
+      const rnd = Math.random
+      const lead = this.leadPool[this.leadNext++ % this.leadPool.length]
+      const x0 = w * (0.1 + rnd() * 0.8)
+      const ang = (Math.PI / 2) + (rnd() - 0.5) * 1.1 // mostly downwards, a little to either side
+      const dur = 2600 + rnd() * 1600
+      const len = h + 260
+      this.streak = { lead, x0, y0: -60, vx: (Math.cos(ang) * len) / dur, vy: (Math.sin(ang) * len) / dur, start: now, dur, x: x0, y: -60 }
+    }
+    const k = this.streak
+    if (!k) return
+    const el = now - k.start
+    if (el > k.dur) {
+      this.streak = null
+      this.nextStreak = now + 3000 + Math.random() * 4000
+      return
+    }
+    k.x = k.x0 + k.vx * el
+    k.y = k.y0 + k.vy * el
+    const sp = Math.hypot(k.vx, k.vy) || 1
+    const ux = k.vx / sp
+    const uy = k.vy / sp
+    const tail = 150
+    const fade = Math.min(1, el / 300, (k.dur - el) / 400)
+    const hot = this.hover === 'streak:' + k.lead.id
+    const gr = ctx.createLinearGradient(k.x, k.y, k.x - ux * tail, k.y - uy * tail)
+    gr.addColorStop(0, 'rgba(210,240,255,0.9)')
+    gr.addColorStop(0.3, 'rgba(140,200,255,0.35)')
+    gr.addColorStop(1, 'rgba(100,150,255,0)')
+    ctx.globalAlpha = fade
     ctx.fillStyle = gr
     ctx.beginPath()
-    ctx.moveTo(b.sx - dy * rad * 1.1, b.sy + dx * rad * 1.1)
-    ctx.lineTo(ex - dy * rad * 2.2, ey + dx * rad * 2.2)
-    ctx.lineTo(ex + dy * rad * 2.2, ey - dx * rad * 2.2)
-    ctx.lineTo(b.sx + dy * rad * 1.1, b.sy - dx * rad * 1.1)
+    ctx.moveTo(k.x + uy * 3, k.y - ux * 3)
+    ctx.lineTo(k.x - ux * tail + uy * 9, k.y - uy * tail - ux * 9)
+    ctx.lineTo(k.x - ux * tail - uy * 9, k.y - uy * tail + ux * 9)
+    ctx.lineTo(k.x - uy * 3, k.y + ux * 3)
     ctx.closePath()
     ctx.fill()
+    const hg = ctx.createRadialGradient(k.x, k.y, 0, k.x, k.y, 10)
+    hg.addColorStop(0, 'rgba(255,255,255,1)')
+    hg.addColorStop(0.35, 'rgba(190,230,255,0.8)')
+    hg.addColorStop(1, 'rgba(120,180,255,0)')
+    ctx.fillStyle = hg
+    ctx.beginPath()
+    ctx.arc(k.x, k.y, hot ? 13 : 10, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.font = '600 11px var(--font-body, sans-serif)'
+    ctx.textAlign = 'left'
+    ctx.fillStyle = '#d8efff'
+    ctx.shadowColor = 'rgba(0,0,0,0.9)'
+    ctx.shadowBlur = 4
+    ctx.globalAlpha = fade * 0.9
+    ctx.fillText(`☄ ${k.lead.name} · prospek`, k.x + 12, k.y + 4)
+    ctx.shadowBlur = 0
+    ctx.globalAlpha = 1
+  }
+
+  private streakAt(e: PointerEvent | MouseEvent) {
+    const k = this.streak
+    if (!k) return false
+    const r = this.o.stage.getBoundingClientRect()
+    return Math.hypot(e.clientX - r.left - k.x, e.clientY - r.top - k.y) < 18
   }
 
   /** Rocky meteor with a short fiery streak behind it. */
@@ -581,8 +635,19 @@ export class GalaxyView {
   }
 
   private hoverAt(e: PointerEvent) {
-    const b = this.pickAt(e)
     const tip = this.o.tip
+    if (this.streakAt(e)) {
+      const l = this.streak!.lead
+      this.hover = 'streak:' + l.id
+      this.o.stage.style.cursor = 'pointer'
+      const r = this.o.stage.getBoundingClientRect()
+      tip.style.left = Math.min(r.width - 250, e.clientX - r.left + 14) + 'px'
+      tip.style.top = e.clientY - r.top + 14 + 'px'
+      tip.innerHTML = `<b>${esc(l.name)}</b><div class="r"><span>${esc(l.sub)}</span></div><div class="r"><span>Komet · prospek</span><span>belum pernah order</span></div><div class="r"><span>Sales</span><span>${l.ownerName ? esc(l.ownerName) : 'belum ada'}</span></div><div class="r" style="margin-top:4px;opacity:.7"><span>Klik untuk buka</span></div>`
+      tip.classList.add('show')
+      return
+    }
+    const b = this.pickAt(e)
     this.hover = b ? b.id : null
     this.o.stage.style.cursor = b ? 'pointer' : ''
     if (!b) {
@@ -597,7 +662,7 @@ export class GalaxyView {
     tip.style.top = py + 'px'
     if (b.lead) {
       const l = b.lead
-      tip.innerHTML = `<b>${esc(l.name)}</b><div class="r"><span>${esc(l.sub)}</span></div><div class="r"><span>${b.kind === 'comet' ? 'Komet' : 'Meteor'} · prospek</span><span>belum pernah order</span></div><div class="r"><span>Sales</span><span>${l.ownerName ? esc(l.ownerName) : 'belum ada'}</span></div><div class="r" style="margin-top:4px;opacity:.7"><span>Klik dua kali untuk buka</span></div>`
+      tip.innerHTML = `<b>${esc(l.name)}</b><div class="r"><span>${esc(l.sub)}</span></div><div class="r"><span>Meteor · prospek tanpa sales</span><span>belum pernah order</span></div><div class="r"><span>Sales</span><span>${l.ownerName ? esc(l.ownerName) : 'belum ada'}</span></div><div class="r" style="margin-top:4px;opacity:.7"><span>Klik dua kali untuk buka</span></div>`
     } else if (b.d) tip.innerHTML = tipHtml(b.d, this.edges, (id) => this.byId.get(id)?.name ?? id, this.o.periodLabel, this.o.monthLabels)
     tip.classList.add('show')
   }
@@ -617,4 +682,38 @@ export class GalaxyView {
       ctx.clearRect(0, 0, this.o.canvas.width, this.o.canvas.height)
     }
   }
+}
+
+/** The sky: stars of different size, colour and brightness (some twinkle), and a faint Milky Way band. */
+function makeStars(): Star[] {
+  const rnd = rng('stars')
+  const tints = ['#ffffff', '#dfe8ff', '#cfe0ff', '#fff4e0', '#ffe9c8', '#d8f0ff']
+  const out: Star[] = []
+  const add = (x: number, y: number, z: number, faint: boolean) => {
+    const r = rnd()
+    const size = faint ? 0.8 + rnd() * 0.5 : r < 0.8 ? 0.8 + rnd() * 0.5 : r < 0.985 ? 1.4 + rnd() * 0.6 : 2.4 + rnd() * 1.2
+    out.push({ x, y, z, size, b: faint ? 0.18 + rnd() * 0.3 : 0.5 + rnd() * 0.5, tint: tints[Math.floor(rnd() * tints.length)], tw: !faint && rnd() < 0.3 ? 1 + rnd() * 3 : 0 })
+  }
+  for (let i = 0; i < 14000; i++) {
+    const u = rnd() * 2 - 1
+    const th = rnd() * Math.PI * 2
+    const q = Math.sqrt(1 - u * u)
+    add(q * Math.cos(th), u, q * Math.sin(th), false)
+  }
+  // Milky Way: many faint stars close to one tilted great circle
+  const tilt = 0.9
+  for (let i = 0; i < 9000; i++) {
+    const a = rnd() * Math.PI * 2
+    const spread = (rnd() + rnd() + rnd() - 1.5) * 0.16
+    let x = Math.cos(a)
+    let y = spread
+    let z = Math.sin(a)
+    const y2 = y * Math.cos(tilt) - z * Math.sin(tilt)
+    z = y * Math.sin(tilt) + z * Math.cos(tilt)
+    y = y2
+    const n = Math.hypot(x, y, z)
+    x /= n
+    add(x, y / n, z / n, true)
+  }
+  return out
 }

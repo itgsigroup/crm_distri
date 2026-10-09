@@ -2,8 +2,8 @@
 // closest to (most interactions). Orbit distance = closeness (strongest relation on the innermost orbit), satellite
 // size = interactions per month, orbital speed falls with distance (Kepler-like). Planets are scattered through 3D
 // space around the galaxy core at seeded-random spots, each system on its own tilted plane, never overlapping.
-// Dealers without any interaction drift in an outer belt. Prospects (leads that never ordered) fly through as comets
-// (a sales owns them: a long elliptical orbit around that planet) or meteors (nobody owns them: straight drift).
+// Dealers without any interaction drift in an outer belt. Prospects (leads that never ordered) that no sales owns
+// drift through as meteors.
 // Pure and deterministic: the same data always gives the same galaxy.
 
 export interface GNodeIn { id: string; type: 'sales' | 'dealer'; total: number }
@@ -159,20 +159,6 @@ export function layoutGalaxy(nodes: GNodeIn[], edges: GEdgeIn[], months: number)
 /** A prospect: a lead that never ordered. owner = sales node id that owns it, or '' when nobody does. */
 export interface LeadIn { id: string; owner: string }
 
-export interface Comet {
-  id: string
-  planet: string
-  /** ellipse: semi-major axis, eccentricity; the planet sits in a focus */
-  a: number
-  e: number
-  phase: number
-  speed: number
-  tilt: number
-  node: number
-  /** direction of the ellipse's long axis within its plane */
-  peri: number
-}
-
 export interface Meteor {
   id: string
   x: number
@@ -183,35 +169,19 @@ export interface Meteor {
   vz: number
 }
 
-/** Comets for owned prospects (around their sales planet), meteors for the rest (drifting through the galaxy). */
-export function layoutLeads(g: Galaxy, leads: LeadIn[]): { comets: Comet[]; meteors: Meteor[] } {
-  const byId = new Map(g.planets.map((p) => [p.id, p]))
-  const comets: Comet[] = []
+/** Meteors for the prospects no sales owns: they drift in straight lines through the galaxy. (Every prospect, owned or
+ * not, can also pass by as a comet streaking down the screen — that is drawn by the view, not placed in space.) */
+export function layoutLeads(g: Galaxy, leads: LeadIn[]): { meteors: Meteor[] } {
   const meteors: Meteor[] = []
   for (const l of leads) {
+    if (l.owner && g.planets.some((p) => p.id === l.owner)) continue
     const r = rng('lead:' + l.id)
-    const p = l.owner ? byId.get(l.owner) : undefined
-    if (p) {
-      const a = p.sr * (1.3 + r() * 1.3) // long ellipses that swing far outside the system and dive back in
-      comets.push({ id: l.id, planet: p.id, a, e: 0.62 + r() * 0.25, phase: r() * Math.PI * 2, speed: 0.5 / Math.pow(a, 1.2), tilt: p.tilt + (r() - 0.5) * 1.2, node: p.node + (r() - 0.5) * 1.5, peri: r() * Math.PI * 2 })
-    } else {
-      const E = g.extent
-      const u = r() * 2 - 1
-      const th = r() * Math.PI * 2
-      const k = Math.sqrt(1 - u * u)
-      const sp = 0.6 + r() * 1.4
-      meteors.push({ id: l.id, x: (r() * 2 - 1) * E, y: (r() * 2 - 1) * E * 0.5, z: (r() * 2 - 1) * E, vx: k * Math.cos(th) * sp, vy: u * sp * 0.4, vz: k * Math.sin(th) * sp })
-    }
+    const E = g.extent
+    const u = r() * 2 - 1
+    const th = r() * Math.PI * 2
+    const k = Math.sqrt(1 - u * u)
+    const sp = 0.6 + r() * 1.4
+    meteors.push({ id: l.id, x: (r() * 2 - 1) * E, y: (r() * 2 - 1) * E * 0.5, z: (r() * 2 - 1) * E, vx: k * Math.cos(th) * sp, vy: u * sp * 0.4, vz: k * Math.sin(th) * sp })
   }
-  return { comets, meteors }
-}
-
-/** Comet position at time t (seconds): Kepler's equation, so it races past the planet and lingers far out. */
-export function cometAt(c: Comet, t: number) {
-  const M = c.phase + c.speed * t
-  let E = M
-  for (let i = 0; i < 6; i++) E -= (E - c.e * Math.sin(E) - M) / (1 - c.e * Math.cos(E))
-  const th = 2 * Math.atan2(Math.sqrt(1 + c.e) * Math.sin(E / 2), Math.sqrt(1 - c.e) * Math.cos(E / 2))
-  const rr = c.a * (1 - c.e * Math.cos(E))
-  return { ...onPlane(rr, th + c.peri, c.tilt, c.node), rr }
+  return { meteors }
 }
