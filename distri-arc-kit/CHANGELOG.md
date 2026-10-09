@@ -225,6 +225,6 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 
 ## Peta relasi 3D: filter, zoom, layar penuh · 2026-10-09
 - **Filter seperti Orbit/Segmen** di atas peta: cari dealer/kota/sales, status, jadwal order, sisa limit, segmen, cabang, "Hapus filter (n)" dan "n dari N dealer". Dealer yang tidak cocok memudar beserta garisnya; nomor sales tetap menyala selama terhubung ke dealer yang cocok. Bisa digabung dengan filter nomor sales.
-- **Zoom**: scroll mouse, touchpad (geser dua jari / cubit, termasuk Safari di Mac), cubit dua jari di HP, tombol − + dengan persen (10%-an dari tampilan seluruh jaringan sampai 1000%), ↺ atur ulang. **Geser**: Shift+seret, klik kanan+seret, atau dua jari. Seret biasa tetap memutar.
+- **Zoom**: scroll mouse, touchpad (geser dua jari / cubit, termasuk Safari di Mac), cubit dua jari di HP, tombol − + dengan persen (50%–1000%; 100% = seluruh jaringan terlihat), ↺ atur ulang. **Geser**: Shift+seret, klik kanan+seret, atau dua jari. Seret biasa tetap memutar.
 - **Layar penuh** untuk panggung 3D (cadangan CSS untuk iPhone, Esc untuk keluar); peta dirender ulang sesuai ukuran layar (dulu render berhenti karena `offsetParent` bernilai null pada elemen layar penuh).
 - `useFullscreen` + `FullscreenButton` di `MapViewport.tsx` dipakai bersama Orbit, Segmen, dan Peta relasi.
