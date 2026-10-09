@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { Relasi } from '../../api/types'
 import { Icon } from '../../components/Icon'
-import { useRelasi, useRelasiInsights, useSales } from '../../app/queries'
+import { useOrbit, useRelasi, useRelasiInsights, useSales } from '../../app/queries'
+import { FullscreenButton, useFullscreen } from '../../components/MapViewport'
+import { EMPTY, activeCount, applyFilter, type OrbitFilter } from '../orbit/filters'
+import { OrbitFilterBar } from '../orbit/OrbitTools'
 import { NetView } from './NetView'
 import type { Positions } from './layout'
 
@@ -37,7 +40,17 @@ export function RelasiPage() {
   const { data: scoped } = useRelasi(period, sales)
   const { data: ins = [] } = useRelasiInsights(period, sales)
   const { data: salesList = [] } = useSales()
-  const stage = useRef<HTMLDivElement>(null)
+  const { ref: stage, big, toggle: toggleFullscreen, className: fsClass } = useFullscreen<HTMLDivElement>()
+  const [zoom, setZoom] = useState(1)
+  // the same dealer filters as Orbit and Segmen; dealers that do not match fade out with their lines
+  const { data: board = [] } = useOrbit('all')
+  const [f, setFState] = useState<OrbitFilter>(EMPTY)
+  const setF = (p: Partial<OrbitFilter>) => setFState((cur) => ({ ...cur, ...p }))
+  const nFilters = activeCount(f)
+  const matched = useMemo(() => (nFilters ? new Set(applyFilter(board, f).map((d) => d.id)) : null), [board, f, nFilters])
+  const branches = useMemo(() => [...new Set(board.map((d) => d.branch).filter(Boolean))].sort(), [board])
+  const mapDealers = useMemo(() => (g?.nodes ?? []).filter((n) => n.type === 'dealer'), [g])
+  const shownDealers = matched ? mapDealers.filter((n) => matched.has(n.id)).length : mapDealers.length
   const canvas = useRef<HTMLCanvasElement>(null)
   const labels = useRef<HTMLDivElement>(null)
   const tip = useRef<HTMLDivElement>(null)
@@ -51,14 +64,14 @@ export function RelasiPage() {
     const els = { stage: stage.current, canvas: canvas.current, labels: labels.current, tip: tip.current }
     void settleOff(g).then((pos) => {
       if (cancelled || view.current) return
-      const v = new NetView({ ...els, monthLabels: g.month_labels, periodLabel: PERIOD_LABEL[g.period_days], onOpen: (id) => nav('/dealer/' + id), onFocus: setFocus }, g.nodes, g.edges, g.months, pos)
+      const v = new NetView({ ...els, monthLabels: g.month_labels, periodLabel: PERIOD_LABEL[g.period_days], onOpen: (id) => nav('/dealer/' + id), onFocus: setFocus, onZoom: setZoom }, g.nodes, g.edges, g.months, pos)
       view.current = v
       v.start()
     })
     return () => {
       cancelled = true
     }
-  }, [g, nav])
+  }, [g, nav, stage])
 
   useEffect(() => () => {
     view.current?.destroy()
@@ -73,16 +86,23 @@ export function RelasiPage() {
     const v = view.current
     if (!v || !g) return
     const key = 's-' + sales
-    v.filter = sales === 'all' ? () => true : (id) => id === key || g.edges.some((e) => e.sales === key && e.dealer === id && e.w > 0)
+    const bySales = (id: string) => sales === 'all' || id === key || g.edges.some((e) => e.sales === key && e.dealer === id && e.w > 0)
+    const dealerOk = (id: string) => !matched || matched.has(id)
+    // a sales number stays lit while it talks to at least one dealer that passes the filters
+    const salesOk = (id: string) => !matched || g.edges.some((e) => e.sales === id && e.w > 0 && matched.has(e.dealer))
+    v.filter = (id) => bySales(id) && (id.startsWith('s-') ? salesOk(id) : dealerOk(id))
     v.focus = null
-  }, [sales, g])
+  }, [sales, g, matched])
 
   const pairs = scoped?.pairs ?? []
   const max = pairs[0]?.w || 1
   return (
     <div className="net">
       <div>
-        <div className="net-stage" ref={stage}>
+        <div className="card relasi-filter">
+          <OrbitFilterBar f={f} set={setF} branches={branches} shown={shownDealers} total={mapDealers.length} />
+        </div>
+        <div className={`net-stage${fsClass}`} ref={stage}>
           <canvas ref={canvas} />
           <div ref={labels} />
           <div className="net-hud">
@@ -92,7 +112,17 @@ export function RelasiPage() {
           </div>
           <div className="net-legend"><span><i style={{ background: 'var(--accent)' }} />Nomor sales</span><span><i style={{ background: 'var(--good)' }} />Skor dealer kuat</span><span><i style={{ background: 'var(--warn)' }} />50–69</span><span><i style={{ background: 'var(--bad)' }} />&lt; 50</span><span>Ukuran = interaksi/bulan · Jarak = kedekatan</span></div>
           {g && g.nodes.length === 0 && <div className="net-empty">Belum ada interaksi WhatsApp atau order dalam 6 bulan terakhir.</div>}
-          <div className="net-hint">Seret untuk memutar · scroll untuk zoom · klik dealer dua kali untuk membuka</div>
+          <div className="map-controls" role="toolbar" aria-label="Kontrol peta">
+            <div className="map-ctl-group" aria-label="Zoom">
+              <button type="button" aria-label="Zoom out" title="Zoom out (scroll ke bawah)" onClick={() => view.current?.zoomBy(1 / 1.4)}>−</button>
+              <span aria-live="polite" title="Zoom">{Math.round(zoom * 100)}%</span>
+              <button type="button" aria-label="Zoom in" title="Zoom in (scroll ke atas · cubit)" onClick={() => view.current?.zoomBy(1.4)}>+</button>
+            </div>
+            <button type="button" aria-label="Atur ulang peta" title="Atur ulang: seluruh jaringan" onClick={() => view.current?.reset()}>↺</button>
+            <FullscreenButton big={big} onClick={toggleFullscreen} />
+          </div>
+          {matched && shownDealers === 0 && <div className="net-empty">Tidak ada dealer di peta yang cocok dengan filter ini.</div>}
+          <div className="net-hint">Seret untuk memutar · Shift+seret / klik kanan untuk menggeser · scroll / cubit untuk zoom · klik dealer dua kali untuk membuka</div>
           <div className="tip" ref={tip} />
         </div>
       </div>

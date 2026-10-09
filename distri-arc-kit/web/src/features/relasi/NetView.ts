@@ -3,8 +3,8 @@ import type { RelasiEdge, RelasiNode } from '../../api/types'
 import { createLayout, reweight, step, type Layout, type Positions } from './layout'
 
 // Peta relasi engine — the mockup's createNet in TypeScript: three.js spheres + cylinders (or a canvas 2D
-// projection when WebGL is unavailable), DOM labels, tooltip, drag to rotate, wheel to zoom, click to focus,
-// click the focused dealer again (or double-click) to open it.
+// projection when WebGL is unavailable), DOM labels, tooltip, drag to rotate, Shift/right-drag or two fingers to pan,
+// wheel / touchpad / pinch to zoom, click to focus, click the focused dealer again (or double-click) to open it.
 
 export interface NetOptions {
   stage: HTMLElement
@@ -15,6 +15,8 @@ export interface NetOptions {
   periodLabel: string
   onOpen: (dealerId: string) => void
   onFocus?: (id: string | null) => void
+  /** zoom relative to the whole-network view (1 = everything fits) */
+  onZoom?: (zoom: number) => void
 }
 
 type Key = 'accent' | 'good' | 'warn' | 'bad' | 'neutral'
@@ -51,7 +53,10 @@ export class NetView {
   private yaw = 0.6
   private pitch = 0.32
   private dist = 40
+  private fitDist = 40
+  private minDist = 5
   private maxDist = 70
+  private target = new THREE.Vector3()
   private auto: boolean
   private reduced: boolean
   private raf = 0
@@ -169,11 +174,12 @@ export class NetView {
 
   private project(i: number) {
     const n = this.l.nodes[i]
+    const nx = n.x - this.target.x, ny = n.y - this.target.y, nz = n.z - this.target.z
     const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw), cp = Math.cos(this.pitch), sp = Math.sin(this.pitch)
-    const x = n.x * cy - n.z * sy
-    let z = n.x * sy + n.z * cy
-    const y = n.y * cp - z * sp
-    z = n.y * sp + z * cp
+    const x = nx * cy - nz * sy
+    let z = nx * sy + nz * cy
+    const y = ny * cp - z * sp
+    z = ny * sp + z * cp
     const S = this.h / (2 * this.dist * 0.3839)
     const f = this.dist / (this.dist + z)
     return { sx: this.w / 2 + x * f * S, sy: this.h / 2 - y * f * S, f, S, z }
@@ -191,7 +197,8 @@ export class NetView {
   private frame = () => {
     this.raf = requestAnimationFrame(this.frame)
     const st = this.o.stage
-    if (!st.isConnected || st.offsetParent === null) return
+    // hidden (display:none) → skip; offsetParent is null for a full-screen (fixed) stage too, so it is not used here
+    if (!st.isConnected || st.getClientRects().length === 0) return
     const w = st.clientWidth
     const h = st.clientHeight
     if (!w || !h) return
@@ -205,8 +212,8 @@ export class NetView {
     const months = this.l.months
     if (this.renderer && this.camera && this.scene) {
       const cam = this.camera
-      cam.position.set(Math.cos(this.yaw) * Math.cos(this.pitch) * this.dist, Math.sin(this.pitch) * this.dist, Math.sin(this.yaw) * Math.cos(this.pitch) * this.dist)
-      cam.lookAt(0, 0, 0)
+      cam.position.set(Math.cos(this.yaw) * Math.cos(this.pitch) * this.dist, Math.sin(this.pitch) * this.dist, Math.sin(this.yaw) * Math.cos(this.pitch) * this.dist).add(this.target)
+      cam.lookAt(this.target)
       const up = new THREE.Vector3(0, 1, 0)
       const v3 = new THREE.Vector3()
       for (const v of this.nodes) {
@@ -331,28 +338,104 @@ export class NetView {
     tip.classList.add('show')
   }
 
+  /** Zoom in (factor > 1) or out around the point the camera looks at. */
+  zoomBy(factor: number) {
+    this.dist = Math.max(this.minDist, Math.min(this.maxDist, this.dist / factor))
+    this.o.onZoom?.(this.fitDist / this.dist)
+  }
+
+  get canZoomIn() { return this.dist > this.minDist + 1e-6 }
+  get canZoomOut() { return this.dist < this.maxDist - 1e-6 }
+
+  /** Move what the camera looks at by a screen distance in pixels (the network follows the pointer). */
+  pan(dx: number, dy: number) {
+    const h = this.h || this.o.stage.clientHeight || 1
+    const perPx = (2 * this.dist * 0.3839) / h // tan(42° / 2)
+    const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw), cp = Math.cos(this.pitch), sp = Math.sin(this.pitch)
+    // screen right / up in world space; the canvas 2D fallback projects with its own rotation
+    const right = this.renderer ? new THREE.Vector3(sy, 0, -cy) : new THREE.Vector3(cy, 0, -sy)
+    const up = this.renderer ? new THREE.Vector3(-cy * sp, cp, -sy * sp) : new THREE.Vector3(-sy * sp, cp, -cy * sp)
+    this.target.addScaledVector(right, -dx * perPx).addScaledVector(up, dy * perPx)
+  }
+
+  /** Back to the whole network: fitted distance, centred, default angle. */
+  reset() {
+    this.dist = this.fitDist
+    this.target.set(0, 0, 0)
+    this.yaw = 0.6
+    this.pitch = 0.32
+    this.o.onZoom?.(1)
+  }
+
   private bind() {
     const cv = this.o.canvas
-    let drag: { x: number; y: number; moved: boolean } | null = null
+    const pts = new Map<number, { x: number; y: number }>()
+    let drag: { x: number; y: number; moved: boolean; pan: boolean } | null = null
+    let pinch: { dist: number; mx: number; my: number } | null = null
     let resume: ReturnType<typeof setTimeout> | undefined
-    const down = (e: PointerEvent) => {
-      drag = { x: e.clientX, y: e.clientY, moved: false }
+    const pause = () => {
       this.auto = false
+      clearTimeout(resume)
+    }
+    const later = () => {
+      clearTimeout(resume)
+      resume = setTimeout(() => {
+        if (!drag && !pinch && !this.reduced) this.auto = true
+      }, 4000)
+    }
+    const startPinch = () => {
+      const [a, b] = [...pts.values()]
+      pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }
+    }
+    const down = (e: PointerEvent) => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      pause()
       cv.setPointerCapture?.(e.pointerId)
+      if (pts.size === 2) {
+        drag = null
+        startPinch()
+        this.o.tip.classList.remove('show')
+        return
+      }
+      if (pts.size === 1) drag = { x: e.clientX, y: e.clientY, moved: false, pan: e.shiftKey || e.button === 1 || e.button === 2 }
     }
     const move = (e: PointerEvent) => {
+      if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (pinch && pts.size >= 2) {
+        const [a, b] = [...pts.values()]
+        const d = Math.hypot(a.x - b.x, a.y - b.y) || 1
+        const mx = (a.x + b.x) / 2
+        const my = (a.y + b.y) / 2
+        this.zoomBy(d / pinch.dist)
+        this.pan(mx - pinch.mx, my - pinch.my)
+        pinch = { dist: d, mx, my }
+        return
+      }
       if (drag) {
         const dx = e.clientX - drag.x
         const dy = e.clientY - drag.y
         if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true
-        this.yaw += dx * 0.008
-        this.pitch = Math.max(-1.2, Math.min(1.2, this.pitch + dy * 0.006))
+        if (drag.pan) this.pan(dx, dy)
+        else {
+          this.yaw += dx * 0.008
+          this.pitch = Math.max(-1.2, Math.min(1.2, this.pitch + dy * 0.006))
+        }
         drag.x = e.clientX
         drag.y = e.clientY
-      } else this.hoverAt(e)
+      } else if (!pts.size) this.hoverAt(e)
     }
     const up = (e: PointerEvent) => {
-      if (drag && !drag.moved) {
+      if (!pts.delete(e.pointerId)) return
+      if (pinch) {
+        if (pts.size < 2) pinch = null
+        if (pts.size === 1) { // the finger that stays rotates on; lifting it is not a click
+          const [p] = [...pts.values()]
+          drag = { x: p.x, y: p.y, moved: true, pan: false }
+        }
+        later()
+        return
+      }
+      if (drag && !drag.moved && !drag.pan) {
         const v = this.pickAt(e)
         if (v && v.d.type === 'dealer' && this.focus === v.d.id) this.o.onOpen(v.d.id)
         else {
@@ -360,11 +443,8 @@ export class NetView {
           this.o.onFocus?.(this.focus)
         }
       }
-      drag = null
-      clearTimeout(resume)
-      resume = setTimeout(() => {
-        if (!drag && !this.reduced) this.auto = true
-      }, 4000)
+      if (!pts.size) drag = null
+      later()
     }
     const dbl = (e: MouseEvent) => {
       const v = this.pickAt(e)
@@ -376,21 +456,41 @@ export class NetView {
     }
     const wheel = (e: WheelEvent) => {
       e.preventDefault()
-      this.dist = Math.max(10, Math.min(this.maxDist, this.dist + e.deltaY * 0.03 * (this.maxDist / 70)))
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY
+      this.zoomBy(Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015))) // ctrl+wheel = touchpad pinch (Chrome, Edge, Firefox)
     }
+    // Safari (macOS) reports a touchpad pinch as gesture* events with a cumulative scale
+    let gScale = 1
+    const gStart = (e: Event) => { e.preventDefault(); gScale = 1 }
+    const gChange = (e: Event) => {
+      e.preventDefault()
+      const sc = (e as Event & { scale: number }).scale
+      if (!sc) return
+      this.zoomBy(sc / gScale)
+      gScale = sc
+    }
+    const menu = (e: MouseEvent) => e.preventDefault() // right-drag pans
     cv.addEventListener('pointerdown', down)
     cv.addEventListener('pointermove', move)
     cv.addEventListener('pointerup', up)
+    cv.addEventListener('pointercancel', up)
     cv.addEventListener('dblclick', dbl)
     cv.addEventListener('pointerleave', leave)
     cv.addEventListener('wheel', wheel, { passive: false })
+    cv.addEventListener('gesturestart', gStart, { passive: false })
+    cv.addEventListener('gesturechange', gChange, { passive: false })
+    cv.addEventListener('contextmenu', menu)
     this.off.push(() => {
       cv.removeEventListener('pointerdown', down)
       cv.removeEventListener('pointermove', move)
       cv.removeEventListener('pointerup', up)
+      cv.removeEventListener('pointercancel', up)
       cv.removeEventListener('dblclick', dbl)
       cv.removeEventListener('pointerleave', leave)
       cv.removeEventListener('wheel', wheel)
+      cv.removeEventListener('gesturestart', gStart)
+      cv.removeEventListener('gesturechange', gChange)
+      cv.removeEventListener('contextmenu', menu)
       clearTimeout(resume)
     })
   }
@@ -405,7 +505,10 @@ export class NetView {
     const d = ns.map((n) => Math.hypot(n.x - cx, n.y - cy, n.z - cz)).sort((a, b) => a - b)
     const r = d[Math.floor(d.length * 0.92)] ?? 10 // ignore a few far outliers
     this.dist = Math.max(40, r * 2.7)
+    this.fitDist = this.dist
+    this.minDist = Math.max(2, this.dist / 10)
     this.maxDist = Math.max(70, this.dist * 2)
+    this.o.onZoom?.(1)
   }
 
   start() {

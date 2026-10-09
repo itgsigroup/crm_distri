@@ -44,19 +44,68 @@ type Gesture =
   | { kind: 'pan'; id: number; x: number; y: number; cx: number; cy: number; s: number; moved: boolean }
   | { kind: 'pinch'; dist: number; zoom: number; px: number; py: number }
 
+/** Full screen for a map container: the Fullscreen API, or a fixed full-window overlay where it is missing
+ * (iPhone Safari has no element fullscreen). Esc leaves both. */
+export function useFullscreen<T extends HTMLElement>() {
+  const ref = useRef<T>(null)
+  const [fullscreen, setFullscreen] = useState(false)
+  const [maximized, setMaximized] = useState(false)
+
+  useEffect(() => {
+    const sync = () => setFullscreen(!!ref.current && document.fullscreenElement === ref.current)
+    document.addEventListener('fullscreenchange', sync)
+    return () => document.removeEventListener('fullscreenchange', sync)
+  }, [])
+
+  useEffect(() => {
+    if (!maximized) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMaximized(false) }
+    document.addEventListener('keydown', onKey)
+    document.body.classList.add('map-maximized')
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.classList.remove('map-maximized')
+    }
+  }, [maximized])
+
+  const toggle = () => {
+    const el = ref.current
+    if (!el) return
+    if (maximized) { setMaximized(false); return }
+    if (document.fullscreenElement === el) { void document.exitFullscreen().catch(() => {}); return }
+    if (typeof el.requestFullscreen !== 'function' || !document.fullscreenEnabled) { setMaximized(true); return }
+    el.requestFullscreen().catch(() => setMaximized(true))
+  }
+  const big = fullscreen || maximized
+  return { ref, big, toggle, className: `${maximized ? ' is-max' : ''}${big ? ' is-full' : ''}` }
+}
+
+/** The full-screen button shared by every map toolbar. */
+export function FullscreenButton({ big, onClick }: { big: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className="map-fullscreen" aria-label={big ? 'Keluar dari layar penuh' : 'Layar penuh'} title={big ? 'Keluar dari layar penuh (Esc)' : 'Layar penuh'} onClick={onClick}>
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        {big
+          ? <path d="M2 6h4V2M10 2v4h4M14 10h-4v4M6 14v-4H2" />
+          : <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />}
+      </svg>
+      <span>{big ? 'Keluar' : 'Layar penuh'}</span>
+    </button>
+  )
+}
+
 export function useMapViewport(width: number, height: number) {
   const home: MapView = { cx: width / 2, cy: height / 2, zoom: 1 }
-  const containerRef = useRef<HTMLDivElement>(null)
+  const fs = useFullscreen<HTMLDivElement>()
+  const containerRef = fs.ref
+  const big = fs.big
   const svgRef = useRef<SVGSVGElement>(null)
   const [view, setViewState] = useState<MapView>(home)
   const viewRef = useRef(view)
   const setView = useCallback((v: MapView) => { viewRef.current = v; setViewState(v) }, [])
   const [dot, setDot] = useState(1)
   const [dragging, setDragging] = useState(false)
-  const [fullscreen, setFullscreen] = useState(false) // native Fullscreen API
-  const [maximized, setMaximized] = useState(false) // CSS fallback (iPhone Safari has no element fullscreen)
   const [aspect, setAspect] = useState(width / height)
-  const big = fullscreen || maximized
   const vb = viewRect(view, width, height, big ? aspect : width / height)
   const vbRef = useRef(vb)
   useLayoutEffect(() => { vbRef.current = vb })
@@ -191,23 +240,6 @@ export function useMapViewport(width: number, height: number) {
     zoomBy(e.shiftKey ? 1 / 2 : 2, e.clientX, e.clientY)
   }
 
-  useEffect(() => {
-    const sync = () => setFullscreen(!!containerRef.current && document.fullscreenElement === containerRef.current)
-    document.addEventListener('fullscreenchange', sync)
-    return () => document.removeEventListener('fullscreenchange', sync)
-  }, [])
-
-  useEffect(() => {
-    if (!maximized) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMaximized(false) }
-    document.addEventListener('keydown', onKey)
-    document.body.classList.add('map-maximized')
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.classList.remove('map-maximized')
-    }
-  }, [maximized])
-
   // full screen: the map fills the whole screen, so the visible area follows the screen's shape
   useLayoutEffect(() => {
     const svg = svgRef.current
@@ -225,15 +257,6 @@ export function useMapViewport(width: number, height: number) {
       window.removeEventListener('resize', measure)
     }
   }, [big])
-
-  const toggleFullscreen = () => {
-    const el = containerRef.current
-    if (!el) return
-    if (maximized) { setMaximized(false); return }
-    if (document.fullscreenElement === el) { void document.exitFullscreen().catch(() => {}); return }
-    if (typeof el.requestFullscreen !== 'function' || !document.fullscreenEnabled) { setMaximized(true); return }
-    el.requestFullscreen().catch(() => setMaximized(true))
-  }
 
   const reset = () => { setView(home); setDot(1) }
   const zoomed = view.zoom > MIN_ZOOM + 1e-6 || view.cx !== home.cx || view.cy !== home.cy
@@ -255,21 +278,14 @@ export function useMapViewport(width: number, height: number) {
         </button>
       </div>
       <button type="button" aria-label="Atur ulang peta" title="Atur ulang: seluruh peta, titik normal" disabled={!zoomed && dot === 1} onClick={reset}>↺</button>
-      <button type="button" className="map-fullscreen" aria-label={big ? 'Keluar dari layar penuh' : 'Layar penuh'} title={big ? 'Keluar dari layar penuh (Esc)' : 'Layar penuh'} onClick={toggleFullscreen}>
-        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-          {big
-            ? <path d="M2 6h4V2M10 2v4h4M14 10h-4v4M6 14v-4H2" />
-            : <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />}
-        </svg>
-        <span>{big ? 'Keluar' : 'Layar penuh'}</span>
-      </button>
+      <FullscreenButton big={big} onClick={fs.toggle} />
     </div>
   )
 
   return {
     containerRef,
     /** class names for the map container */
-    className: `map-viewport${dragging ? ' is-panning' : ''}${maximized ? ' is-max' : ''}${big ? ' is-full' : ''}`,
+    className: `map-viewport${dragging ? ' is-panning' : ''}${fs.className}`,
     viewBox: `${vb.x.toFixed(2)} ${vb.y.toFixed(2)} ${vb.w.toFixed(2)} ${vb.h.toFixed(2)}`,
     zoom: view.zoom,
     /** one screen pixel at fit size, in map units at the current zoom (for strokes and hit areas) */
