@@ -45,10 +45,13 @@ export function place(d: BoardItem, drift = 1.2): { rad: number; ang: number; si
   return { rad, ang, size: 7 + Math.sqrt(sow) * 1.3 }
 }
 
-/** Lay out all nodes: polar placement, then 80 rounds of node overlap avoidance pulled back gently. */
-export function layoutOrbit(list: BoardItem[], drift = 1.2, dense = false, named?: Set<string>, showLabels = true): OrbitNode[] {
+/** Lay out all nodes: polar placement, then 80 rounds of node overlap avoidance pulled back gently.
+ * `scale` is the dot size in board units (1 = as designed; smaller when zoomed in or when dots are shrunk), so the
+ * spreading is only as large as the dots on screen need. */
+export function layoutOrbit(list: BoardItem[], drift = 1.2, dense = false, named?: Set<string>, showLabels = true, scale = 1): OrbitNode[] {
   const nodes: OrbitNode[] = list.map((d) => {
-    const { rad, ang, size } = place(d, drift)
+    const { rad, ang, size: base } = place(d, drift)
+    const size = base * scale
     const x = CX + rad * Math.sin(ang)
     const y = CY - rad * Math.cos(ang)
     const r = ringOf(d)
@@ -58,24 +61,24 @@ export function layoutOrbit(list: BoardItem[], drift = 1.2, dense = false, named
     return { d, x, y, ox: x, oy: y, size, tone: toneOf(d.metrics.credit.state), ring: r, name, sm, side, tw: name.length * (sm ? 5.8 : 6.6) + 6 }
   })
   const box = (a: OrbitNode) => {
-    const h = Math.max(a.size, 8)
+    const h = Math.max(a.size, 8 * scale)
     const tw = showLabels ? a.tw : 0
     return a.side > 0 ? [a.x - a.size, a.x + a.size + tw, a.y - h, a.y + h] : [a.x - a.size - tw, a.x + a.size, a.y - h, a.y + h]
   }
   if (dense) {
-    nodes.forEach((n) => { n.size = Math.max(2.5, n.size * 0.35) })
+    nodes.forEach((n) => { n.size = Math.max(2.5 * scale, n.size * 0.35) })
     return nodes.sort((a, b) => b.size - a.size)
   }
   if (named) { // context dots stay small and in place; only the named ones are spread apart
     const dots = nodes.filter((n) => !named.has(n.d.id))
-    dots.forEach((n) => { n.size = Math.max(3, n.size * 0.4); n.name = '' })
-    const lab = layoutNamed(nodes.filter((n) => named.has(n.d.id)), box)
+    dots.forEach((n) => { n.size = Math.max(3 * scale, n.size * 0.4); n.name = '' })
+    const lab = layoutNamed(nodes.filter((n) => named.has(n.d.id)), box, scale)
     return [...dots, ...lab.sort((a, b) => b.size - a.size)]
   }
-  return layoutNamed(nodes, box).sort((a, b) => b.size - a.size)
+  return layoutNamed(nodes, box, scale).sort((a, b) => b.size - a.size)
 }
 
-function layoutNamed(nodes: OrbitNode[], box: (a: OrbitNode) => number[]): OrbitNode[] {
+function layoutNamed(nodes: OrbitNode[], box: (a: OrbitNode) => number[], scale: number): OrbitNode[] {
   for (let it = 0; it < 80; it++) {
     for (let i = 0; i < nodes.length; i++)
       for (let j = i + 1; j < nodes.length; j++) {
@@ -87,13 +90,13 @@ function layoutNamed(nodes: OrbitNode[], box: (a: OrbitNode) => number[]): Orbit
         const oy = Math.min(A[3], B[3]) - Math.max(A[2], B[2])
         if (ox > 0 && oy > 0) {
           const dir = a.y <= b.y ? -1 : 1
-          const p = (oy / 2 + 2) * 0.35
+          const p = (oy / 2 + 2 * scale) * 0.35
           a.y += dir * p
           b.y -= dir * p
           const dx = a.x - b.x
           const dy = a.y - b.y
           const dist = Math.hypot(dx, dy) || 1
-          const min = a.size + b.size + 6
+          const min = a.size + b.size + 6 * scale
           if (dist < min) {
             const q = (min - dist) / 2
             a.x += (dx / dist) * q
@@ -130,13 +133,15 @@ const clip = (s: string, n = 18) => (s.length > n ? s.slice(0, n - 1).trimEnd() 
  * cycle, size = share of wallet, colour = sisa limit — but: (1) overlapping dots are spread only along their own
  * ring (never pushed into another ring), (2) an estimated share of wallet (the same 50% for everyone) gives a small
  * uniform dot instead of 150 equal large ones, (3) only `named` dealers get a short label, placed outside the dot
- * and stacked without overlap, with a leader line, (4) `focus` dims every other ring. */
-export function layoutReadable(list: BoardItem[], named: Set<string>, focus: string | null = null, drift = 1.2): ReadableNode[] {
+ * and stacked without overlap, with a leader line, (4) `focus` dims every other ring. `dense` draws small dots for
+ * the all-dealers view; `scale` is the dot size in board units (see layoutOrbit). */
+export function layoutReadable(list: BoardItem[], named: Set<string>, focus: string | null = null, drift = 1.2, scale = 1, dense = false): ReadableNode[] {
   const ns = list.map((d) => {
     const p = place(d, drift)
     const ring = ringOf(d)
     const est = d.metrics.sow_source !== 'confirmed'
-    const size = est ? (ring === 'Key account' ? 6.5 : 5) : 4 + Math.sqrt(d.metrics.sow) * 0.8
+    const base = est ? (ring === 'Key account' ? 6.5 : 5) : 4 + Math.sqrt(d.metrics.sow) * 0.8
+    const size = (dense ? Math.max(2.5, base * 0.35) : base) * scale
     return { d, ring, rad: p.rad, ang: p.ang, ox: CX + p.rad * Math.sin(p.ang), oy: CY - p.rad * Math.cos(p.ang), size }
   })
   // spread along the ring: per ring, pack the angles so neighbours keep their radii apart, each packed run centred
@@ -149,7 +154,7 @@ export function layoutReadable(list: BoardItem[], named: Set<string>, focus: str
   for (const group of byRing.values()) {
     group.sort((a, b) => a.ang - b.ang)
     const want = group.map((n) => n.ang)
-    const gap = (i: number) => (group[i - 1].size + group[i].size + 1.5) / group[i].rad
+    const gap = (i: number) => (group[i - 1].size + group[i].size + 1.5 * scale) / group[i].rad
     for (let pass = 0; pass < 12; pass++) {
       for (let i = 1; i < group.length; i++) group[i].ang = Math.max(group[i].ang, group[i - 1].ang + gap(i))
       // centre every packed run on the mean of where its members want to be

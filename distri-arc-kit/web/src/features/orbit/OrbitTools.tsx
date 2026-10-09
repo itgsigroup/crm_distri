@@ -1,6 +1,6 @@
 // Orbit reading aids: summary tiles, the filter bar and the dealer list under the board. All three use the
 // definitions in filters.ts so a tile, a filter and the list always count the same dealers.
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { BoardItem, Segment } from '../../api/types'
 import { ActBtn } from '../../components/actions'
@@ -116,7 +116,12 @@ export function OrbitDealerList({ list, filtered }: { list: BoardItem[]; filtere
   const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize))
   const currentPage = Math.min(page, pageCount)
   const shown = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-  useEffect(() => setPage(1), [query, pageSize, list])
+  // back to page 1 when the search, page size or list changes (adjusting state during render, not in an effect)
+  const [seen, setSeen] = useState({ query, pageSize, list })
+  if (seen.query !== query || seen.pageSize !== pageSize || seen.list !== list) {
+    setSeen({ query, pageSize, list })
+    setPage(1)
+  }
   const sortBy = (key: DealerColumn) => {
     if (column === key) setDirection(direction === 'asc' ? 'desc' : 'asc')
     else {

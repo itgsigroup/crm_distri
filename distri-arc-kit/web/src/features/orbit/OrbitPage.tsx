@@ -1,8 +1,8 @@
-import { useMemo, useState, type FocusEvent, type MouseEvent } from 'react'
+import { useDeferredValue, useMemo, useState, type FocusEvent, type MouseEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import type { BoardItem, Mover } from '../../api/types'
 import { Icon } from '../../components/Icon'
-import { useMapViewport } from '../../components/MapViewport'
+import { layoutStep, useMapViewport } from '../../components/MapViewport'
 import { fmtRp } from '../../lib/format'
 import { KUAD, RING_DESC } from '../../lib/i18n/id'
 import { useOrch, useOrchStatus } from '../../app/orch'
@@ -65,19 +65,23 @@ export function topByOmzet(list: BoardItem[], n = ORBIT_TOP) {
 }
 
 export function OrbitBoard({ list, onOpen, dense = false, focus: focusRing = null }: { list: BoardItem[]; onOpen: (id: string) => void; dense?: boolean; focus?: string | null }) {
-  const viewport = useMapViewport(W, H)
-  const wrap = viewport.containerRef
+  const { containerRef: wrap, svgProps, ...viewport } = useMapViewport(W, H)
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
   const readable = !dense && list.length >= READABLE_FROM
+  // dots are spread apart only as much as their size on screen needs: less when zoomed in or when dots are shrunk
+  const scale = useDeferredValue(layoutStep(viewport.markerScale))
   const nodes = useMemo(() => {
     if (readable || dense) return []
     const featured = !dense && list.length > ORBIT_FEATURED ? new Set(topByOmzet(list, ORBIT_FEATURED).map((d) => d.id)) : undefined
-    return layoutOrbit(list, 1.2, dense, featured, false)
-  }, [list, dense, readable])
+    return layoutOrbit(list, 1.2, dense, featured, false, scale)
+  }, [list, dense, readable, scale])
   const rnodes = useMemo(() => {
     if (!readable && !dense) return []
-    return layoutReadable(list, new Set(), focusRing)
-  }, [list, readable, dense, focusRing])
+    return layoutReadable(list, new Set(), focusRing, 1.2, scale, dense)
+  }, [list, readable, dense, focusRing, scale])
+  const dotOf = (size: number) => Math.max(1.6 * viewport.unit, size * (viewport.markerScale / scale))
+  const hitOf = (dot: number) => Math.max(dot, 7 * viewport.unit)
+  const strokeW = Math.max(0.3 * viewport.unit, Math.min(2 * viewport.markerScale, 1.5 * viewport.unit))
   const LA = 0.62 * Math.PI * 2
   const move = (e: MouseEvent, d: BoardItem) => {
     if (viewport.dragging) { setHover(null); return }
@@ -96,8 +100,8 @@ export function OrbitBoard({ list, onOpen, dense = false, focus: focusRing = nul
   }
   const m = hover?.d.metrics
   return (
-    <div className={`orbit-wrap map-viewport${viewport.dragging ? ' is-panning' : ''}`} ref={wrap} onMouseLeave={() => setHover(null)}>
-      <svg className="orbit" viewBox={viewport.viewBox} role="img" aria-label="Orbit dealer" {...viewport.svgProps}>
+    <div className={`orbit-wrap ${viewport.className}`} ref={wrap} onMouseLeave={() => setHover(null)}>
+      <svg className="orbit" viewBox={viewport.viewBox} role="img" aria-label="Orbit dealer" {...svgProps}>
         <path d={`M${CX} ${CY} L${CX - 330} ${CY} A330 330 0 0 1 ${CX} ${CY - 330} Z`} fill="var(--good)" opacity=".05" />
         {RINGS.map((n) => {
           const r = RING_R[n]
@@ -113,29 +117,29 @@ export function OrbitBoard({ list, onOpen, dense = false, focus: focusRing = nul
         <text className="ring-t" x={CX + RING_R.Churn + 6} y={CY + 4}>¼ putaran</text>
         <text className="ring-t" x={CX} y={CY + RING_R.Churn + 18} textAnchor="middle">½ putaran</text>
         <text className="ring-t" x={CX - RING_R.Churn - 6} y={CY + 4} textAnchor="end">¾ putaran</text>
-        <circle cx={CX} cy={CY} r={28} fill="var(--text)" />
+        <circle cx={CX} cy={CY} r={28 * viewport.unit} fill="var(--text)" />
         <text x={CX} y={CY + 5} textAnchor="middle" className="gsi-t">GSI</text>
         {rnodes.map(({ d, x, y, ox, oy, size, tone, ring, dim }) => {
           const dotX = ox + (x - ox) * viewport.positionBlend
           const dotY = oy + (y - oy) * viewport.positionBlend
-          const dotSize = Math.max(1.2, (dense ? Math.max(2.5, size * 0.35) : size) * viewport.markerScale)
-          const hitSize = Math.max(3.5, dotSize, 9 * viewport.markerScale)
+          const dotSize = dotOf(size)
+          const hitSize = hitOf(dotSize)
           return (
             <g key={d.id} className={`dn ${dim ? 'dim' : ''}`} role="button" tabIndex={dim ? -1 : 0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
-              <circle cx={dotX.toFixed(1)} cy={dotY.toFixed(1)} r={hitSize.toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
-              <circle cx={dotX.toFixed(1)} cy={dotY.toFixed(1)} r={dotSize.toFixed(1)} style={{ strokeWidth: Math.max(0.3, 2 * viewport.markerScale) }} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
+              <circle cx={dotX.toFixed(2)} cy={dotY.toFixed(2)} r={hitSize.toFixed(2)} className="dn-hit" fill="transparent" pointerEvents="all" />
+              <circle cx={dotX.toFixed(2)} cy={dotY.toFixed(2)} r={dotSize.toFixed(2)} style={{ strokeWidth: strokeW }} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
             </g>
           )
         })}
         {nodes.map(({ d, x, y, ox, oy, size, tone, ring }) => {
           const dotX = ox + (x - ox) * viewport.positionBlend
           const dotY = oy + (y - oy) * viewport.positionBlend
-          const dotSize = Math.max(1.2, size * viewport.markerScale)
-          const hitSize = Math.max(3.5, dotSize, 12 * viewport.markerScale)
+          const dotSize = dotOf(size)
+          const hitSize = hitOf(dotSize)
           return (
             <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
-              <circle cx={dotX.toFixed(1)} cy={dotY.toFixed(1)} r={hitSize.toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
-              <circle cx={dotX.toFixed(1)} cy={dotY.toFixed(1)} r={dotSize.toFixed(1)} style={{ strokeWidth: Math.max(0.3, 2 * viewport.markerScale) }} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
+              <circle cx={dotX.toFixed(2)} cy={dotY.toFixed(2)} r={hitSize.toFixed(2)} className="dn-hit" fill="transparent" pointerEvents="all" />
+              <circle cx={dotX.toFixed(2)} cy={dotY.toFixed(2)} r={dotSize.toFixed(2)} style={{ strokeWidth: strokeW }} fill={`var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot ${ring === 'Churn' ? 'ghost' : ''}`} />
             </g>
           )
         })}
@@ -249,7 +253,7 @@ export function OrbitPage() {
             <OrbitBoard list={shown} dense={all && many} onOpen={(id) => nav('/dealer/' + id)} />
             {list.length > 0 && filtered.length === 0 && <div className="net-empty">Tidak ada dealer yang cocok dengan filter ini.</div>}
           </div>
-          <Legend tail="Perkecil titik untuk melihat posisi asal · arahkan kursor untuk data dealer" />
+          <Legend tail="Scroll / cubit untuk zoom · seret untuk menggeser · kecilkan titik untuk posisi asli" />
         </div>
         <OrbitDealerList list={filtered} filtered={nFilters > 0} />
       </div>

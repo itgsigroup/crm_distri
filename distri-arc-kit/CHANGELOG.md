@@ -214,3 +214,9 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - **Ringkasan** di atas orbit: 4 kotak — Jadwal order minggu ini, Lewat jadwal, Tagih dulu (over limit / overdue, dengan total piutang), Churn — masing-masing dengan jumlah dealer dan omzet; klik kotak = filter.
 - **Filter**: cari (dealer/kota/sales), status, jadwal order (≤ 7 hari / lewat jadwal), sisa limit, segmen, cabang; "Hapus filter (n)"; filter tersimpan di URL (`/orbit?jadwal=lewat`) sehingga bisa dibagikan. Klik status di "Isi orbit" kini menyaring.
 - **Daftar dealer** di bawah orbit (mengikuti filter): status, jadwal order dalam kata ("lewat 9 hari", "besok"), omzet/bln, sisa limit, tombol tindakan; urutkan omzet terbesar / paling mendesak / paling lama tidak order. Definisi di `web/src/features/orbit/filters.ts` (diuji), sama dengan Pusat kendali.
+
+## Orbit & Segmen: zoom, geser, layar penuh · 2026-10-09
+- **Zoom sungguhan** di peta Orbit dan Peta titik Segmen: scroll mouse / cubit dua jari / tombol − + / klik ganda (Shift+klik ganda = zoom out), 100%–800%, berpusat di kursor. **Seret** untuk menggeser. **Layar penuh** memakai seluruh layar (bentuk layar diikuti); di iPhone yang tidak punya Fullscreen API dipakai mode layar penuh CSS (tutup dengan tombol atau Esc).
+- **Titik bertumpuk**: ukuran titik tetap sama di layar saat zoom, jadi zoom in memisahkan buletin yang bertumpuk; penyebaran anti-tumpuk dihitung ulang sesuai ukuran titik di layar (makin di-zoom, makin dekat ke posisi asli). Kontrol **Titik** (kecil/besar) terpisah dari zoom; titik terkecil = setiap titik tepat di posisi aslinya.
+- Teks peta (nama lingkar, sumbu, zona) dan lingkaran GSI tetap berukuran normal saat zoom; garis tidak menebal. Klik titik tetap membuka dealer; seret tidak dianggap klik.
+- `web/src/components/MapViewport.tsx` (+ `MapViewport.test.ts`: matematika zoom, letterbox, posisi asli pada titik terkecil, penyebaran mengecil saat zoom).

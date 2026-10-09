@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type FocusEvent, type MouseEvent, useMemo } from 'react'
+import { useDeferredValue, useEffect, useRef, useState, type FocusEvent, type MouseEvent, useMemo } from 'react'
 import { useNavigate } from 'react-router'
 import type { BoardItem, Mover, Segment, SegmentSummary } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
-import { useMapViewport } from '../../components/MapViewport'
+import { layoutStep, useMapViewport } from '../../components/MapViewport'
 import { fmtRp, fx1, shortName } from '../../lib/format'
 import { KUAD } from '../../lib/i18n/id'
 import { useMore } from '../../components/More'
@@ -34,6 +34,8 @@ function topByOmzet(list: BoardItem[], count = SEGMEN_PRIORITY) {
   return list.length <= count ? list : [...list].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, count)
 }
 
+/** Dots spread apart inside their own box so none overlap. `markerScale` is the dot size in chart units (smaller when
+ * zoomed in or when dots are shrunk), so the spreading is only as large as the dots on screen need. */
 function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, markerScale: number, positionBlend: number): Node[] {
   const compact = dense && list.length > SEGMEN_PRIORITY
   const nodes = list.map((d) => {
@@ -42,11 +44,13 @@ function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, marke
     const x = xOf(m.freq)
     const y = clampY(m.avg_order)
     const baseSize = compact ? Math.max(3, size * 0.35) : size
-    return { d, x, y, ox: x, oy: y, size: Math.max(1.2, baseSize * markerScale), baru: m.freq == null }
+    return { d, x, y, ox: x, oy: y, size: baseSize * markerScale, baru: m.freq == null }
   })
   if (positionBlend === 0) return nodes.sort((a, b) => a.d.metrics.omzet_bln - b.d.metrics.omzet_bln)
-  const cell = compact ? 12 : 32
-  const reach = Math.ceil((Math.max(0, ...nodes.map((n) => n.size)) * 2 + 2) / cell)
+  const gapMin = markerScale
+  const cell = Math.max(0.5, Math.max(0, ...nodes.map((n) => n.size)) * 2 + gapMin)
+  const reach = 1
+  const stepMax = 4 * Math.min(1, markerScale)
   const steps = compact ? 36 : 28
   for (let step = 0; step < steps; step++) {
     const buckets = new Map<string, number[]>()
@@ -70,7 +74,7 @@ function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, marke
           let dx = b.x - a.x
           let dy = b.y - a.y
           let dist = Math.hypot(dx, dy)
-          const min = a.size + b.size + 1
+          const min = a.size + b.size + gapMin
           if (dist >= min) continue
           if (dist < 0.01) {
             const angle = ((i * 73856093 ^ j * 19349663) >>> 0) / 4294967296 * Math.PI * 2
@@ -93,11 +97,11 @@ function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, marke
       const right = n.ox < xq ? xq : W - R
       const top = n.oy <= yq ? T : yq
       const bottom = n.oy <= yq ? yq : H - B
-      const pad = n.size + 1
+      const pad = n.size + gapMin
       const anchorX = (n.ox - n.x) * 0.04
       const anchorY = (n.oy - n.y) * 0.04
-      const dx = Math.max(-4, Math.min(4, fx[i] + anchorX))
-      const dy = Math.max(-4, Math.min(4, fy[i] + anchorY))
+      const dx = Math.max(-stepMax, Math.min(stepMax, fx[i] + anchorX))
+      const dy = Math.max(-stepMax, Math.min(stepMax, fy[i] + anchorY))
       n.x = Math.max(left + pad, Math.min(right - pad, n.x + dx))
       n.y = Math.max(top + pad, Math.min(bottom - pad, n.y + dy))
     })
@@ -110,15 +114,17 @@ function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, marke
 }
 
 function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem[]; sel: Segment | null; onSel: (k: Segment | null) => void; onOpen: (id: string) => void; thresholds: { freq_per_month: number; size_idr: number } }) {
-  const viewport = useMapViewport(W, H)
-  const wrap = viewport.containerRef
+  const { containerRef: wrap, svgProps, ...viewport } = useMapViewport(W, H)
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
   const [all, setAll] = useState(false)
   const xq = px(thresholds.freq_per_month)
   const yq = py(thresholds.size_idr)
   const scoped = useMemo(() => sel ? list.filter((d) => d.metrics.segment === sel) : list, [list, sel])
   const shown = useMemo(() => all ? scoped : topByOmzet(scoped), [all, scoped])
-  const nodes = useMemo(() => layout(shown, all, xq, yq, viewport.markerScale, viewport.positionBlend), [shown, all, xq, yq, viewport.markerScale, viewport.positionBlend])
+  const scale = useDeferredValue(layoutStep(viewport.markerScale))
+  const nodes = useMemo(() => layout(shown, all, xq, yq, scale, viewport.positionBlend), [shown, all, xq, yq, scale, viewport.positionBlend])
+  const resize = viewport.markerScale / scale // the layout may lag a fast zoom by a frame; dots are drawn at the current size
+  const strokeW = Math.max(0.3 * viewport.unit, Math.min(2 * viewport.markerScale, 1.5 * viewport.unit))
   const Z: [Segment, number, number, number, number][] = [['A', xq, T, W - R - xq, yq - T], ['C', L, T, xq - L, yq - T], ['B', xq, yq, W - R - xq, H - B - yq], ['D', L, yq, xq - L, H - B - yq]]
   const ZL: [Segment, number, number, 'start' | 'end'][] = [['A', W - R - 10, T + 22, 'end'], ['C', L + 10, T + 22, 'start'], ['B', W - R - 10, H - B - 28, 'end'], ['D', L + 10, H - B - 28, 'start']]
   const move = (e: MouseEvent, d: BoardItem) => {
@@ -150,8 +156,8 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
           <button role="radio" aria-checked={all} className={all ? 'is-active' : ''} onClick={() => setAll(true)}>Semua titik</button>
         </div>
       </div>
-      <div className={`orbit-wrap kuad-wrap map-viewport${viewport.dragging ? ' is-panning' : ''}`} ref={wrap} onMouseLeave={() => setHover(null)}>
-      <svg className="orbit kuad" viewBox={viewport.viewBox} role="group" aria-label="Peta segmen pelanggan" {...viewport.svgProps}>
+      <div className={`orbit-wrap kuad-wrap ${viewport.className}`} ref={wrap} onMouseLeave={() => setHover(null)}>
+      <svg className="orbit kuad" viewBox={viewport.viewBox} role="group" aria-label="Peta segmen pelanggan" {...svgProps}>
         {Z.map(([k, x, y, w, h]) => (
           <rect key={k} x={x.toFixed(1)} y={y.toFixed(1)} width={w.toFixed(1)} height={h.toFixed(1)} fill={`var(--${KUAD[k].k})`} opacity={sel && sel !== k ? 0.015 : k === 'D' ? 0.04 : 0.06} className="kz" onClick={() => onSel(k)} />
         ))}
@@ -188,10 +194,11 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
         ))}
         {nodes.map(({ d, x, y, size, baru }) => {
           const tone = toneOf(d.metrics.credit.state)
+          const r = Math.max(1.6 * viewport.unit, size * resize)
           return (
             <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
-              <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(3.5, size, 9 * viewport.markerScale).toFixed(1)} className="dn-hit" fill="transparent" pointerEvents="all" />
-              <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r={size.toFixed(1)} style={{ strokeWidth: Math.max(0.3, 2 * viewport.markerScale) }} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} className="dn-dot" {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: '3 3' } : {})} />
+              <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={Math.max(r, 7 * viewport.unit).toFixed(2)} className="dn-hit" fill="transparent" pointerEvents="all" />
+              <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={r.toFixed(2)} style={{ strokeWidth: strokeW }} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} className="dn-dot" {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: `${(3 * viewport.unit).toFixed(2)} ${(3 * viewport.unit).toFixed(2)}` } : {})} />
             </g>
           )
         })}
@@ -358,7 +365,7 @@ export function SegmenPage() {
           {data && view === 'titik' && (
             <>
               <SegmenChart list={filtered} sel={sel} onSel={chooseSegment} onOpen={(id) => nav('/dealer/' + id)} thresholds={data.thresholds} />
-              <Legend tail="Perkecil titik untuk melihat posisi asal · arahkan kursor untuk angka asli" />
+              <Legend tail="Scroll / cubit untuk zoom · seret untuk menggeser · kecilkan titik untuk posisi asli" />
             </>
           )}
           {!!sum?.prospects && (
