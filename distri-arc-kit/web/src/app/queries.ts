@@ -108,7 +108,7 @@ export const useStockProposals = () =>
 // ---------- Orchestrator ----------
 export const useCycleLatest = () => useQuery({ queryKey: ['cycle', 'latest'], queryFn: () => api.get<CycleLatest>('/cycles/latest'), refetchInterval: 60_000 })
 export const useCycles = () => useQuery({ queryKey: ['cycles'], queryFn: () => api.get<Items<Cycle>>('/cycles?limit=100').then((r) => r.items) })
-export const useConflicts = (sales?: string) => useQuery({ queryKey: ['cycles', 'conflicts', sales ?? 'all'], queryFn: () => api.get<Items<Conflict>>('/conflicts' + sp(sales)).then((r) => r.items) })
+export const useConflicts = (sales?: string, enabled = true) => useQuery({ queryKey: ['cycles', 'conflicts', sales ?? 'all'], enabled, queryFn: () => api.get<Items<Conflict>>('/conflicts' + sp(sales)).then((r) => r.items) })
 export const useAgents = (sales?: string) => useQuery({ queryKey: ['agents', sales ?? 'all'], queryFn: () => api.get<Items<AgentInfo>>('/agents' + sp(sales)).then((r) => r.items) })
 export const usePlan = (sales?: string) => useQuery({ queryKey: ['plan', 'today', sales ?? 'all'], queryFn: () => api.get<Plan>('/plan/today' + sp(sales)) })
 export const useAutonomy = () => useQuery({ queryKey: ['policies', 'autonomy'], queryFn: () => api.get<AutonomyPolicy>('/policies/autonomy') })

@@ -141,7 +141,7 @@ export function OrchestratorPage() {
 
   return (
     <>
-      <div className="sales-bar"><SalesPicker page={page} /></div>
+      <SalesPicker page={page} />
       <SalesBanner page={page} />
       <div className="card orch-head">
         <div className="oh-l">

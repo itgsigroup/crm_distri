@@ -74,7 +74,7 @@ func (s *Server) board(w http.ResponseWriter, r *http.Request) (*views.Board, bo
 // salesScope is whose dealers a request sees: a sales user always their own; anyone else everything, or one sales'
 // page with ?sales=<key or name> (Pusat kendali, Orchestrator) — never mixed with another sales' dealers.
 func salesScope(r *http.Request) (string, bool) {
-	if u, _ := CurrentUser(r.Context()); deref(u.Role) == "sales" {
+	if u, _ := CurrentUser(r.Context()); deref(u.Role) == "sales" || roleOf(u).Scope == "own" { // own data only
 		if u.SalesName == nil {
 			return "\x00", true // a sales user without a sales profile sees no dealer
 		}
@@ -134,13 +134,30 @@ func (s *Server) sales(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	holders, err := s.st.Q.ListMapUsers(r.Context()) // Mapping sales: the Pengguna whose main profile it is
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	holder := map[uuid.UUID]gen.ListMapUsersRow{}
+	for _, h := range holders {
+		if h.SalesUserID != nil {
+			if _, taken := holder[*h.SalesUserID]; !taken {
+				holder[*h.SalesUserID] = h
+			}
+		}
+	}
 	out := []map[string]any{}
 	for _, u := range rows {
 		if u.Role != "sales" {
 			continue
 		}
-		out = append(out, map[string]any{"id": u.ID, "key": strings.ToLower(u.Name), "name": u.Name, "branch": u.Branch, "initials": views.Initials(u.Name),
-			"wa_number": u.WaNumber, "dealers": len(b.Filter(u.Name))})
+		v := map[string]any{"id": u.ID, "key": strings.ToLower(u.Name), "name": u.Name, "branch": u.Branch, "initials": views.Initials(u.Name),
+			"wa_number": u.WaNumber, "dealers": len(b.Filter(u.Name))}
+		if h, ok := holder[u.ID]; ok {
+			v["user_id"], v["user_name"] = h.ID, h.Name
+		}
+		out = append(out, v)
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": out})
 }

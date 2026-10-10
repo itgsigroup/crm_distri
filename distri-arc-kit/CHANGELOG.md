@@ -297,3 +297,10 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Tampilan: daftar Pengguna di kiri (jumlah nama BigQuery tiap pengguna; sales yang belum punya ditandai "belum"); di kanan **Data BigQuery milik <pengguna>** (profil utama + nama-nama terhubung, tombol **Lepas**) dan **Tambah dari BigQuery** (daftar centang nama yang belum terhubung, yang mirip nama pengguna di atas dengan tanda "mirip") → **Hubungkan N nama ke <pengguna>**. Tabel **Semua nama BigQuery** dengan kolom Pengguna untuk menghubungkan langsung.
 - Menghubungkan membuat profil sales utama pengguna bila belum ada (nama pengguna, cabang dari nama BigQuery-nya), lalu dealer, chat, nomor WA, dan riwayat semua nama itu menjadi milik pengguna; saat pengguna sales login, ia melihat dealer dari semua namanya sekaligus. Profil utama pengguna lain tidak bisa diambil. Impor berikutnya tetap terhubung.
 - API: `/sales-map` membawa `user_id`/`main` per nama dan daftar `users`; `POST /sales-map/merge {sources, user_id}`. `POST /sales-map/profiles` dihapus (profil dibuat otomatis). Test `TestSalesMapLinksManyNamesToOneUser`, ADR 0024 diperbarui.
+
+## Filter sales di Pusat kendali & Orchestrator (admin) · 2026-10-10
+- Baris **Filter sales** di atas Pusat kendali dan Orchestrator: chip **Semua sales** + satu chip per **Pengguna sales** (hasil Mapping sales; nama pengguna + jumlah dealer). Nama BigQuery yang belum dihubungkan ke pengguna ada di daftar "Belum terhubung (N)…". Sebelum ada mapping, chip berisi 10 sales dengan dealer terbanyak.
+- Memilih chip membuka halaman sales itu (`?sales=`, ikut ke Orchestrator); spanduk menyebut nama pengguna, cabang, dan jumlah dealer.
+- Angka di halaman sales kini milik sales itu juga: langkah otonom (rencana hari ini), sinyal (WA/SO/pembayaran dealernya), dan konflik diselesaikan — sebelumnya angka siklus seluruh tim.
+- Keamanan: peran mana pun dengan cakupan data **"Milik sendiri"** (Peran & akses) kini dibatasi di server, tidak hanya peran sales.
+- `/sales` membawa `user_id`/`user_name` pemegangnya. Test `SalesPicker.test.ts`.

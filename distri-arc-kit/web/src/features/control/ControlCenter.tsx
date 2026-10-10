@@ -5,7 +5,7 @@ import { CardH, Pill, Prov } from '../../components/ui'
 import { fmtRp, greeting, hhmm, shortDate } from '../../lib/format'
 import { AGENT_NAMES } from '../../lib/i18n/id'
 import { PipeChips } from '../../app/Dock'
-import { useAgenda, useBrief, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, usePlan, useQueue, useSegmenMovers, useStockPush } from '../../app/queries'
+import { useAgenda, useBrief, useConflicts, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, usePlan, useQueue, useSegmenMovers, useStockPush } from '../../app/queries'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { PlanList, planMeta } from './Plan'
 import { useMore } from '../../components/More'
@@ -39,6 +39,12 @@ export function ControlCenter() {
   const { data: queue = [] } = useQueue(sales)
   // one sales' page counts only their decisions; everyone's page keeps the Orchestrator's count
   const pending = sales ? queue.filter((q) => q.status === 'proposed').length : orch.pending
+  // one sales' page: the cycle's own counts cover every sales, so count this sales' plan, signals and conflicts
+  const scoped = !!sales || page.locked // a sales user's data is scoped by the API too
+  const { data: conflicts = [] } = useConflicts(sales, scoped)
+  const autoN = scoped ? plan?.auto ?? 0 : full?.auto_count ?? 0
+  const signalN = scoped ? (brief?.counts ? brief.counts.wa + brief.counts.so + brief.counts.payments : 0) : full ? full.signals_count ?? 0 : 0
+  const conflictN = scoped ? conflicts.length : full?.conflict_count ?? 0
   const [agentsOpen, setAgentsOpen] = useState(false)
 
   const c = brief?.counts
@@ -50,7 +56,7 @@ export function ControlCenter() {
 
   return (
     <>
-      <div className="sales-bar"><SalesPicker page={page} /></div>
+      <SalesPicker page={page} />
       <SalesBanner page={page} />
       <div className="cc-hero">
         <div className="cc-left">
@@ -58,7 +64,7 @@ export function ControlCenter() {
             <h2>{greeting(now)}, {first}.</h2>
             <p>
               {full ? (
-                <>Orchestrator sudah memproses {c?.wa ?? 0} WhatsApp, {c?.so ?? 0} SO, {c?.payments ?? 0} pembayaran, dan stok {c?.branches ?? 0} cabang. {full.auto_count ?? 0} langkah otonom, {pending} menunggu keputusan{sales ? '' : ' Anda'}.</>
+                <>Orchestrator sudah memproses {c?.wa ?? 0} WhatsApp, {c?.so ?? 0} SO, {c?.payments ?? 0} pembayaran, dan stok {c?.branches ?? 0} cabang. {autoN} langkah otonom, {pending} menunggu keputusan{sales ? '' : ' Anda'}.</>
               ) : (
                 <>
                   {c ? <>Data masuk sejak kemarin: {c.wa} WhatsApp, {c.so} SO, {c.payments} pembayaran, dan stok {c.branches} cabang. </> : null}
@@ -84,7 +90,7 @@ export function ControlCenter() {
           <div className="oc-pipe"><PipeChips /></div>
           <LastUpdate />
           <div className="oc-foot">
-            <div className="oc-nums"><span><b>{full ? full.signals_count ?? 0 : signals}</b> sinyal</span><span><b>{full?.auto_count ?? 0}</b> otonom</span><span><b>{pending}</b> keputusan</span><span><b>{full?.conflict_count ?? 0}</b> konflik diselesaikan</span></div>
+            <div className="oc-nums"><span><b>{full || scoped ? signalN : signals}</b> sinyal</span><span><b>{autoN}</b> otonom</span><span><b>{pending}</b> keputusan</span><span><b>{conflictN}</b> konflik diselesaikan</span></div>
             <div className="oc-btns">
               <button className="btn primary" disabled={orch.running} onClick={() => reanalyze('all')}><Icon name="refresh" />Analisis ulang</button>
               <button className="btn ghost" onClick={() => nav(page.link('/orchestrator'))}>Buka Orchestrator</button>

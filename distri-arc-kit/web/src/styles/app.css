@@ -808,7 +808,6 @@ body.map-maximized{overflow:hidden}
 }
 
 /* One sales' page (Pusat kendali, Orchestrator) */
-.sales-bar{display:flex;justify-content:flex-end;margin:-4px 0 12px}
 .sales-pick{position:relative;display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 34px 0 6px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow);font-size:13px;font-weight:600;color:var(--text);cursor:pointer}
 .sales-pick.on{box-shadow:0 0 0 2px var(--accent),var(--shadow)}
 .sales-pick.locked{padding:0 14px 0 10px;cursor:default;color:var(--text-2)}
@@ -821,7 +820,7 @@ body.map-maximized{overflow:hidden}
 .sales-banner b{color:var(--text)}
 .sales-banner .sp-av{background:var(--accent);color:var(--on-accent)}
 .sales-banner .btn{margin-left:auto;flex:none}
-@media (max-width:700px){.sales-bar{justify-content:stretch}.sales-pick{width:100%}.sales-pick select{flex:1;max-width:none}.sales-banner{flex-wrap:wrap}.sales-banner .btn{margin-left:0}}
+@media (max-width:700px){.sales-pick{width:100%}.sales-pick select{flex:1;max-width:none}.sales-banner{flex-wrap:wrap}.sales-banner .btn{margin-left:0}}
 
 /* Master data → Mapping sales */
 .smap{display:flex;flex-direction:column;gap:16px}
@@ -887,3 +886,17 @@ body.map-maximized{overflow:hidden}
 .rail>.nav{min-height:0;overflow-y:auto;scrollbar-width:none;flex:0 1 auto}
 .rail>.nav::-webkit-scrollbar{display:none}
 .rail>.rail-sec{flex:none}
+/* Filter sales (Pusat kendali, Orchestrator): one chip per sales Pengguna */
+.sales-filter{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:10px 12px;border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
+.sf-l{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);flex:none}
+.sf-l .i{width:15px;height:15px}
+.sf-chips{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+.sf-chips button{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px 0 4px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);font-size:12.5px;font-weight:600;color:var(--text-2)}
+.sf-chips button:first-child{padding-left:12px}
+.sf-chips button:hover{border-color:var(--accent);color:var(--text)}
+.sf-chips button.is-active{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.sf-chips button .sp-av{width:24px;height:24px;font-size:10px}
+.sf-chips button.is-active .sp-av{background:rgba(255,255,255,.22);color:#fff}
+.sf-chips small{font-weight:500;opacity:.7;font-size:11px}
+.sales-filter .sales-pick{box-shadow:none;border:1px solid var(--line-strong);height:32px;padding-left:12px}
+.sales-filter.locked .sales-pick{border:0}
