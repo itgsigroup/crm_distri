@@ -517,6 +517,53 @@ func (q *Queries) ListImportRuns(ctx context.Context, limit int32) ([]ImportRun,
 	return items, nil
 }
 
+const listMapUsers = `-- name: ListMapUsers :many
+select u.id, coalesce(u.name, u.email, '') as name, u.email, coalesce(r.name, u.role, '') as role_name, coalesce(u.role, '') as role,
+  u.sales_user_id, coalesce(s.branch, '') as branch
+from users u left join roles r on r.key = coalesce(u.role_key, u.role) left join sales_users s on s.id = u.sales_user_id
+where u.active
+order by case coalesce(u.role, '') when 'sales' then 0 else 1 end, lower(coalesce(u.name, u.email, ''))
+`
+
+type ListMapUsersRow struct {
+	ID          uuid.UUID  `json:"id"`
+	Name        string     `json:"name"`
+	Email       *string    `json:"email"`
+	RoleName    string     `json:"role_name"`
+	Role        string     `json:"role"`
+	SalesUserID *uuid.UUID `json:"sales_user_id"`
+	Branch      string     `json:"branch"`
+}
+
+// Mapping sales: the Pengguna that BigQuery sales names are linked to (one user, many names).
+func (q *Queries) ListMapUsers(ctx context.Context) ([]ListMapUsersRow, error) {
+	rows, err := q.db.Query(ctx, listMapUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListMapUsersRow{}
+	for rows.Next() {
+		var i ListMapUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.RoleName,
+			&i.Role,
+			&i.SalesUserID,
+			&i.Branch,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMappings = `-- name: ListMappings :many
 select kind, source_value, target, seen, updated_by, updated_at from data_mappings where ($1::text = '' or kind = $1::text)
 order by kind, (target is null) desc, seen desc, source_value

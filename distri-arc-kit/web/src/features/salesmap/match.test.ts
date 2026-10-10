@@ -1,30 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import { bestTarget, fullKey, nameKey, suggestions, type SalesProfile } from './match'
+import { candidates, looksLike, nameKey, namesByUser, unlinked, type MapUser, type SalesProfile } from './match'
 
 const p = (id: string, name: string, extra: Partial<SalesProfile> = {}): SalesProfile => ({
   id, name, branch: 'Semarang', source_system: 'import', source_id: id, active: true, merged_into: null, wa_number: null,
-  dealers: 0, login_email: null, merged_count: 0, ...extra,
+  dealers: 0, login_email: null, merged_count: 0, user_id: null, main: false, ...extra,
 })
+const user: MapUser = { id: 'u1', name: 'Granike Monika', email: 'g@x', role_name: 'Sales', role: 'sales', sales_user_id: 'm', branch: 'Semarang' }
 
 describe('mapping sales', () => {
   it('spells names alike', () => {
     expect(nameKey('Granike Monica M.')).toBe('granike')
-    expect(fullKey('Granike Monica')).toBe(fullKey('Granike Monika'))
-    expect(nameKey('Lucy, Enny Wulandari')).toBe('luky')
-    expect(nameKey('  ')).toBe('')
+    expect(looksLike('Granike Monika', 'Granike Monica')).toBe(true)
+    expect(looksLike('Granike Monika', 'Elisa')).toBe(false)
+    expect(looksLike('Al', 'Al Fatah')).toBe(false)
   })
 
-  it('suggests spellings of the same person, never merged ones', () => {
-    const rows = [p('1', 'Granike Monica'), p('2', 'Granike Monica M.'), p('3', 'Granike Monika', { source_system: null }), p('4', 'Elisa'), p('5', 'Dewi'), p('6', 'Granike X', { merged_into: '3' })]
-    const s = suggestions(rows)
-    expect(s.get('1')?.map((x) => x.id)).toEqual(['2', '3'])
-    expect(s.has('4')).toBe(false)
-    expect(s.has('6')).toBe(false)
+  it('groups names per user, main profile first', () => {
+    const rows = [p('2', 'Granike Monica M.', { user_id: 'u1', merged_into: 'm' }), p('m', 'Granike Monika', { user_id: 'u1', main: true, source_system: null }), p('3', 'Elisa')]
+    expect(namesByUser(rows).get('u1')?.map((x) => x.id)).toEqual(['m', '2'])
+    expect(unlinked(rows).map((x) => x.id)).toEqual(['3'])
   })
 
-  it('prefers the GSI Orbit profile, then a login, then most dealers', () => {
-    expect(bestTarget([p('1', 'A', { dealers: 300 }), p('2', 'B', { source_system: null })])?.id).toBe('2')
-    expect(bestTarget([p('1', 'A', { dealers: 300 }), p('2', 'B', { login_email: 'b@x' })])?.id).toBe('2')
-    expect(bestTarget([p('1', 'A', { dealers: 3 }), p('2', 'B', { dealers: 300 })])?.id).toBe('2')
+  it('lists unlinked names that look like the user first', () => {
+    const rows = [p('1', 'Aini', { dealers: 158 }), p('2', 'Granike Monica', { dealers: 0 }), p('3', 'Granike Monica M.', { dealers: 171 }), p('4', 'Lucy', { merged_into: '1' })]
+    expect(candidates(rows, user).map((x) => x.id)).toEqual(['3', '2', '1'])
   })
 })

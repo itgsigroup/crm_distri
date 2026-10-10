@@ -4,186 +4,215 @@ import { api } from '../../api/client'
 import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
-import { bestTarget, suggestions, type SalesProfile } from './match'
+import { candidates, looksLike, namesByUser, type MapUser, type SalesProfile } from './match'
 
-type Column = 'name' | 'branch' | 'dealers' | 'status'
-type View = 'all' | 'open' | 'merged' | 'suggest'
+type Column = 'name' | 'branch' | 'dealers' | 'user'
+type View = 'all' | 'open' | 'linked'
 
-const useSalesMap = () => useQuery({ queryKey: ['sales-map'], queryFn: () => api.get<{ items: SalesProfile[] }>('/sales-map').then((r) => r.items) })
+interface SalesMap { items: SalesProfile[]; users: MapUser[] }
+const EMPTY: SalesMap = { items: [], users: [] }
+const useSalesMap = () => useQuery({ queryKey: ['sales-map'], queryFn: () => api.get<SalesMap>('/sales-map') })
 
-const NONE: SalesProfile[] = []
 const srcLabel = (p: SalesProfile) => (p.source_system === 'import' ? 'BigQuery' : p.source_system === 'odoo' ? 'Odoo' : 'GSI Orbit')
+const initials = (s: string) => s.split(/\s+/).filter(Boolean).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '?'
+const lower = (s: string) => s.toLocaleLowerCase('id-ID')
 
-/** Master data → Mapping sales: merge the spellings of one person in the source data into one GSI Orbit sales. */
+/** Master data → Mapping sales: one Pengguna (login account) ↔ many sales names from BigQuery. */
 export function SalesMapPage() {
-  const { data: rows = NONE, isLoading } = useSalesMap()
+  const { data = EMPTY, isLoading } = useSalesMap()
+  const rows = data.items
+  const users = data.users
   const qc = useQueryClient()
   const { toast, alert } = useFeedback()
-  const [view, setView] = useState<View>('all')
+  const [userId, setUserId] = useState('')
+  const [userQ, setUserQ] = useState('')
+  const [addQ, setAddQ] = useState('')
   const [picked, setPicked] = useState<Set<string>>(new Set())
-  const [target, setTarget] = useState('')
   const [busy, setBusy] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newBranch, setNewBranch] = useState('')
-  const byId = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows])
-  const sugg = useMemo(() => suggestions(rows), [rows])
-  const targets = useMemo(() => rows.filter((r) => !r.merged_into).sort((a, b) => a.name.localeCompare(b.name)), [rows])
-  const childrenOf = useMemo(() => {
-    const m = new Map<string, SalesProfile[]>()
-    for (const r of rows) if (r.merged_into) m.set(r.merged_into, [...(m.get(r.merged_into) ?? []), r])
-    return m
-  }, [rows])
-  const total = (p: SalesProfile) => p.dealers + (childrenOf.get(p.id) ?? []).reduce((a, c) => a + c.dealers, 0)
-  const shown = useMemo(() => rows.filter((r) => view === 'all' || (view === 'open' ? !r.merged_into : view === 'merged' ? !!r.merged_into : sugg.has(r.id))), [rows, view, sugg])
-  const statusOf = (p: SalesProfile) => (p.merged_into ? `→ ${byId.get(p.merged_into)?.name ?? ''}` : '')
-  const t = useDataTable<SalesProfile, Column>({
-    rows: shown,
-    text: useMemo(() => (p: SalesProfile) => `${p.name} ${p.source_id ?? ''} ${p.branch} ${p.login_email ?? ''}`, []),
-    compare: useMemo(() => ({
-      name: (a: SalesProfile, b: SalesProfile) => a.name.localeCompare(b.name, 'id'),
-      branch: (a: SalesProfile, b: SalesProfile) => a.branch.localeCompare(b.branch, 'id'),
-      dealers: (a: SalesProfile, b: SalesProfile) => a.dealers - b.dealers,
-      status: (a: SalesProfile, b: SalesProfile) => Number(!!a.merged_into) - Number(!!b.merged_into),
-    }), []),
-    tie: useMemo(() => (a: SalesProfile, b: SalesProfile) => a.name.localeCompare(b.name, 'id'), []),
-    initial: { column: 'name', dir: 'asc' },
-    firstDir: (c) => (c === 'dealers' ? 'desc' : 'asc'),
-  })
+  const [view, setView] = useState<View>('all')
+
+  const byUser = useMemo(() => namesByUser(rows), [rows])
+  const userById = useMemo(() => new Map(users.map((u) => [u.id, u])), [users])
+  const current = userById.get(userId) ?? users.find((u) => u.role === 'sales') ?? users[0]
+  const mine = current ? byUser.get(current.id) ?? [] : []
+  const dealersOf = (id: string) => (byUser.get(id) ?? []).reduce((a, r) => a + r.dealers, 0)
+  const pool = useMemo(() => candidates(rows, current), [rows, current])
+  const poolShown = pool.filter((r) => !addQ.trim() || lower(`${r.name} ${r.source_id ?? ''} ${r.branch}`).includes(lower(addQ.trim())))
+  const usersShown = users.filter((u) => !userQ.trim() || lower(`${u.name} ${u.email ?? ''} ${u.role_name} ${u.branch}`).includes(lower(userQ.trim())))
+  const linkedCount = rows.filter((r) => r.user_id && !r.main).length
+  const openCount = rows.filter((r) => !r.user_id && !r.merged_into).length
 
   const refresh = () => {
-    for (const k of ['sales-map', 'sales', 'dealers', 'data', 'agenda', 'kpi', 'wa']) qc.invalidateQueries({ queryKey: [k] })
+    for (const k of ['sales-map', 'sales', 'dealers', 'data', 'agenda', 'kpi', 'wa', 'users', 'me']) qc.invalidateQueries({ queryKey: [k] })
   }
-  const merge = (sources: string[], to: string | null) => {
+  const link = (sources: string[], user: MapUser) => {
+    if (!sources.length) return
     setBusy(true)
-    return api.post<{ message: string }>('/sales-map/merge', { sources, target_id: to }).then((r) => {
+    api.post<{ message: string }>('/sales-map/merge', { sources, user_id: user.id }).then((r) => {
       toast(r.message)
       setPicked(new Set())
-      setTarget('')
       refresh()
-    }, (e: Error) => alert({ icon: 'error', title: 'Mapping belum tersimpan', text: e.message })).finally(() => setBusy(false))
+    }, (e: Error) => alert({ icon: 'error', title: 'Belum terhubung', text: e.message })).finally(() => setBusy(false))
   }
-  const create = (name: string, branch: string) =>
-    api.post<{ id: string; message: string }>('/sales-map/profiles', { name, branch }).then((r) => {
+  const unlink = (p: SalesProfile) => {
+    setBusy(true)
+    api.post<{ message: string }>('/sales-map/merge', { sources: [p.id], target_id: null }).then((r) => {
       toast(r.message)
       refresh()
-      return r.id
-    })
+    }, (e: Error) => alert({ icon: 'error', title: 'Belum dilepas', text: e.message })).finally(() => setBusy(false))
+  }
   const toggle = (id: string) => setPicked((s) => {
     const n = new Set(s)
     if (n.has(id)) n.delete(id)
     else n.add(id)
     return n
   })
-  const pickedRows = [...picked].map((id) => byId.get(id)).filter((x): x is SalesProfile => !!x)
-  const pickGroup = (p: SalesProfile) => {
-    const g = [p, ...(sugg.get(p.id) ?? [])]
-    setPicked(new Set(g.map((x) => x.id)))
-    setTarget(bestTarget(g)?.id ?? '')
+  const pickUser = (id: string) => {
+    setUserId(id)
+    setPicked(new Set())
+    setAddQ('')
   }
-  const mergePicked = () => {
-    const to = byId.get(target)
-    if (!to) return
-    const sources = pickedRows.filter((x) => x.id !== to.id).map((x) => x.id)
-    if (sources.length) merge(sources, to.id)
-  }
-  const createAndMerge = () => {
-    const name = newName.trim()
-    if (!name) return
-    setBusy(true)
-    create(name, newBranch.trim()).then((id) => {
-      setNewName('')
-      setNewBranch('')
-      if (pickedRows.length) return merge(pickedRows.map((x) => x.id), id)
-    }, (e: Error) => alert({ icon: 'error', title: 'Sales belum ditambahkan', text: e.message })).finally(() => setBusy(false))
-  }
-  const counts = { all: rows.length, open: targets.length, merged: rows.length - targets.length, suggest: sugg.size }
+
+  // every BigQuery name with the user it belongs to
+  const tableRows = useMemo(() => rows.filter((r) => (view === 'all' ? !r.main || r.source_system === 'import' : view === 'open' ? !r.user_id && !r.merged_into : !!r.user_id && !r.main)), [rows, view])
+  const userName = (r: SalesProfile) => (r.user_id ? userById.get(r.user_id)?.name ?? '' : '')
+  const t = useDataTable<SalesProfile, Column>({
+    rows: tableRows,
+    text: useMemo(() => (p: SalesProfile) => `${p.name} ${p.source_id ?? ''} ${p.branch}`, []),
+    compare: useMemo(() => ({
+      name: (a: SalesProfile, b: SalesProfile) => a.name.localeCompare(b.name, 'id'),
+      branch: (a: SalesProfile, b: SalesProfile) => a.branch.localeCompare(b.branch, 'id'),
+      dealers: (a: SalesProfile, b: SalesProfile) => a.dealers - b.dealers,
+      user: (a: SalesProfile, b: SalesProfile) => Number(!!a.user_id) - Number(!!b.user_id),
+    }), []),
+    tie: useMemo(() => (a: SalesProfile, b: SalesProfile) => a.name.localeCompare(b.name, 'id'), []),
+    initial: { column: 'name', dir: 'asc' },
+    firstDir: (c) => (c === 'dealers' ? 'desc' : 'asc'),
+  })
 
   return (
     <div className="smap">
       <div className="card smap-head">
         <div>
           <h2>Mapping sales</h2>
-          <p>Data BigQuery (Accurate) sering mengeja satu orang beberapa kali — mis. <b>Granike Monica</b> dan <b>Granike Monica M.</b>. Gabungkan ejaan-ejaan itu ke satu sales GSI Orbit: dealer, chat, nomor WhatsApp, dan riwayatnya pindah ke sales tujuan, ejaan sumber hilang dari pilihan sales, dan impor berikutnya tetap tergabung. Bisa dipisah lagi kapan saja.</p>
+          <p>Hubungkan <b>Pengguna</b> GSI Orbit dengan nama sales di data BigQuery (Accurate). Satu pengguna bisa memegang <b>banyak nama</b> BigQuery — mis. Pengguna <b>Granike Monika</b> ↔ "Granike Monica" dan "Granike Monica M.". Dealer, chat, dan riwayat dari nama-nama itu menjadi milik pengguna tersebut, nama BigQuery-nya hilang dari pilihan sales, dan impor berikutnya tetap terhubung.</p>
         </div>
         <div className="smap-stats">
-          <span><b>{counts.all}</b>nama di data</span>
-          <span><b>{counts.open}</b>sales GSI Orbit</span>
-          <span><b>{counts.merged}</b>sudah digabung</span>
-          <span className={counts.suggest ? 'warn' : ''}><b>{counts.suggest}</b>saran gabung</span>
+          <span><b>{users.length}</b>pengguna</span>
+          <span><b>{rows.filter((r) => r.source_system === 'import').length}</b>nama BigQuery</span>
+          <span><b>{linkedCount}</b>terhubung</span>
+          <span className={openCount ? 'warn' : ''}><b>{openCount}</b>belum terhubung</span>
         </div>
       </div>
 
-      <div className="card smap-new">
-        <div className="card-h"><h2>{pickedRows.length ? `Gabungkan ${pickedRows.length} nama terpilih` : 'Gabungkan nama sales'}</h2><span className="meta">centang nama di tabel, lalu pilih sales tujuan</span></div>
-        {pickedRows.length > 0 && <div className="smap-picked">{pickedRows.map((x) => <span key={x.id} className="chip">{x.name}<small>{x.branch} · {x.dealers} dealer</small><button type="button" onClick={() => toggle(x.id)} aria-label={`Lepas ${x.name}`}><Icon name="x" /></button></span>)}</div>}
-        <div className="smap-row">
-          <label>Ke sales yang sudah ada
-            <select value={target} onChange={(e) => setTarget(e.target.value)} aria-label="Sales tujuan">
-              <option value="">Pilih sales tujuan…</option>
-              {targets.map((x) => <option key={x.id} value={x.id}>{x.name} · {x.branch} · {total(x)} dealer{x.source_system !== 'import' ? ' · GSI Orbit' : ''}</option>)}
-            </select>
-          </label>
-          <button type="button" className="btn primary" disabled={busy || !target || !pickedRows.some((x) => x.id !== target)} onClick={mergePicked}><Icon name="net" />Gabungkan</button>
+      <div className="card smap-split">
+        <div className="smap-users">
+          <div className="smap-h">Pengguna</div>
+          <div className="search smap-q"><Icon name="search" /><input value={userQ} onChange={(e) => setUserQ(e.target.value)} placeholder="Cari pengguna…" aria-label="Cari pengguna" /></div>
+          <ul>
+            {isLoading && <li className="muted">Memuat…</li>}
+            {usersShown.map((u) => {
+              const n = (byUser.get(u.id) ?? []).filter((r) => !r.main).length
+              return (
+                <li key={u.id}>
+                  <button type="button" className={current?.id === u.id ? 'is-active' : ''} onClick={() => pickUser(u.id)}>
+                    <span className="sp-av">{initials(u.name)}</span>
+                    <span className="smap-u"><b>{u.name}</b><small>{u.role_name}{u.branch ? ` · ${u.branch}` : ''}</small></span>
+                    <span className={`smap-n ${n ? '' : u.role === 'sales' ? 'warn' : 'muted'}`} title={`${n} nama BigQuery · ${dealersOf(u.id)} dealer`}>{n ? `${n} nama` : u.role === 'sales' ? 'belum' : '—'}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
         </div>
-        <div className="smap-or"><span>atau buat sales GSI Orbit baru</span></div>
-        <form className="smap-row" onSubmit={(e) => { e.preventDefault(); createAndMerge() }}>
-          <label>Nama di GSI Orbit<input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="mis. Granike Monika" aria-label="Nama sales baru" /></label>
-          <label>Cabang<input value={newBranch} onChange={(e) => setNewBranch(e.target.value)} placeholder="mis. Semarang" aria-label="Cabang sales baru" /></label>
-          <button type="submit" className="btn ghost" disabled={busy || !newName.trim()}><Icon name="check" />{pickedRows.length ? `Buat & gabungkan ${pickedRows.length}` : 'Buat sales'}</button>
-        </form>
+
+        <div className="smap-detail">
+          {current ? (
+            <>
+              <div className="smap-dh">
+                <span className="sp-av lg">{initials(current.name)}</span>
+                <div><b>{current.name}</b><small>{[current.role_name, current.branch, current.email].filter(Boolean).join(' · ')}</small></div>
+                <span className="smap-total"><b>{dealersOf(current.id).toLocaleString('id-ID')}</b>dealer</span>
+              </div>
+
+              <div className="smap-h">Data BigQuery milik {current.name.split(' ')[0]} <small>{mine.filter((r) => !r.main).length} nama</small></div>
+              {mine.length === 0 && <p className="smap-empty">Belum ada nama BigQuery. Centang dari daftar di bawah lalu klik Hubungkan.</p>}
+              <ul className="smap-linked">
+                {mine.map((r) => (
+                  <li key={r.id}>
+                    <Icon name={r.main ? 'user-x' : 'net'} />
+                    <span className="smap-u"><b>{r.name}</b><small>{srcLabel(r)}{r.source_id && r.source_system ? ` · ${r.source_id}` : ''} · {r.branch}</small></span>
+                    <span className="num">{r.dealers.toLocaleString('id-ID')} dealer</span>
+                    {r.main ? <span className="smap-main" title="Profil sales utama pengguna ini — nama BigQuery lain digabung ke sini">utama</span>
+                      : <button type="button" className="btn quiet" disabled={busy} onClick={() => unlink(r)}>Lepas</button>}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="smap-h">Tambah dari BigQuery <small>{pool.length} nama belum terhubung</small></div>
+              <div className="search smap-q"><Icon name="search" /><input value={addQ} onChange={(e) => setAddQ(e.target.value)} placeholder="Cari nama BigQuery…" aria-label="Cari nama BigQuery" /></div>
+              <ul className="smap-pool">
+                {poolShown.length === 0 && <li className="muted">Tidak ada nama BigQuery yang belum terhubung{addQ ? ' dan cocok' : ''}.</li>}
+                {poolShown.slice(0, 60).map((r) => (
+                  <li key={r.id}>
+                    <label className={picked.has(r.id) ? 'is-picked' : ''}>
+                      <input type="checkbox" checked={picked.has(r.id)} onChange={() => toggle(r.id)} />
+                      <span className="smap-u"><b>{r.name}</b><small>{srcLabel(r)}{r.source_id && r.source_system ? ` · ${r.source_id}` : ''} · {r.branch}{r.merged_count ? ` · +${r.merged_count} ejaan` : ''}</small></span>
+                      {looksLike(current.name, r.name) && <span className="smap-hint">mirip</span>}
+                      <span className="num">{r.dealers.toLocaleString('id-ID')} dealer</span>
+                    </label>
+                  </li>
+                ))}
+                {poolShown.length > 60 && <li className="muted">+{poolShown.length - 60} nama lagi — persempit dengan pencarian</li>}
+              </ul>
+              <div className="smap-act">
+                <button type="button" className="btn primary" disabled={busy || picked.size === 0} onClick={() => link([...picked], current)}>
+                  <Icon name="net" />{picked.size ? `Hubungkan ${picked.size} nama ke ${current.name}` : 'Centang nama BigQuery'}
+                </button>
+              </div>
+            </>
+          ) : <p className="smap-empty">Belum ada pengguna aktif. Tambahkan di Master data → Pengguna.</p>}
+        </div>
       </div>
 
       <div className="card">
+        <div className="card-h"><h2>Semua nama BigQuery</h2><span className="meta">pilih pengguna di kolom Pengguna untuk menghubungkan langsung</span></div>
         <div className="seg smap-views">
-          {([['all', 'Semua'], ['suggest', 'Saran gabung'], ['open', 'Sales GSI Orbit'], ['merged', 'Sudah digabung']] as const).map(([k, l]) => (
-            <button key={k} type="button" className={view === k ? 'is-active' : ''} onClick={() => setView(k)}>{l} <small>{counts[k]}</small></button>
+          {([['all', 'Semua'], ['open', 'Belum terhubung'], ['linked', 'Sudah terhubung']] as const).map(([k, l]) => (
+            <button key={k} type="button" className={view === k ? 'is-active' : ''} onClick={() => setView(k)}>{l}</button>
           ))}
         </div>
-        <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari nama, kode, cabang…" label="Cari sales" meta={`${t.matches.length} nama`} />
+        <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari nama, kode, cabang…" label="Cari nama BigQuery" meta={`${t.matches.length} nama`} />
         <div className="odl-wrap">
           <table className="odl smap-table">
             <thead>
               <tr>
-                <th style={{ width: 34 }} aria-label="Pilih" />
-                <SortTh t={t} c="name">Nama di data sumber</SortTh>
+                <SortTh t={t} c="name">Nama di BigQuery</SortTh>
                 <SortTh t={t} c="branch">Cabang</SortTh>
                 <SortTh t={t} c="dealers" right>Dealer</SortTh>
-                <SortTh t={t} c="status">Digabung ke</SortTh>
+                <SortTh t={t} c="user">Pengguna</SortTh>
                 <th className="r">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {isLoading && <tr><td colSpan={6} className="muted">Memuat…</td></tr>}
-              {!isLoading && t.shown.length === 0 && <tr><td colSpan={6} className="muted">{view === 'suggest' ? 'Tidak ada nama yang mirip — semua sudah rapi.' : 'Tidak ada nama.'}</td></tr>}
-              {t.shown.map((p) => {
-                const s = sugg.get(p.id)
-                const kids = childrenOf.get(p.id) ?? []
-                return (
-                  <tr key={p.id} className={picked.has(p.id) ? 'is-picked' : p.merged_into ? 'is-merged' : ''}>
-                    <td><input type="checkbox" checked={picked.has(p.id)} disabled={!!p.merged_into} onChange={() => toggle(p.id)} aria-label={`Pilih ${p.name}`} /></td>
-                    <td>
-                      <b>{p.name}</b>
-                      <div className="smap-sub">
-                        <span className={`smap-src ${p.source_system === 'import' ? '' : 'own'}`}>{srcLabel(p)}{p.source_id && p.source_system ? ` · ${p.source_id}` : ''}</span>
-                        {p.login_email && <span>login {p.login_email}</span>}
-                        {kids.length > 0 && <span>+ {kids.length} ejaan digabung ({kids.map((k) => k.name).join(', ')})</span>}
-                        {s && <button type="button" className="smap-hint" onClick={() => pickGroup(p)} title="Pilih nama-nama yang mirip untuk digabung">mirip {s.map((x) => x.name).join(', ')} · pilih</button>}
-                      </div>
-                    </td>
-                    <td>{p.branch}</td>
-                    <td className="r num">{p.dealers.toLocaleString('id-ID')}{kids.length ? <small className="muted"> / {total(p).toLocaleString('id-ID')}</small> : null}</td>
-                    <td>{p.merged_into ? <span className="smap-to"><Icon name="arrow" />{statusOf(p).slice(2)}</span> : <span className="muted">— sales utama</span>}</td>
-                    <td className="r">
-                      {p.merged_into
-                        ? <button type="button" className="btn quiet" disabled={busy} onClick={() => merge([p.id], null)}>Pisahkan</button>
-                        : <select className="smap-quick" value="" disabled={busy} onChange={(e) => e.target.value && merge([p.id], e.target.value)} aria-label={`Gabungkan ${p.name} ke`}>
-                            <option value="">Gabung ke…</option>
-                            {targets.filter((x) => x.id !== p.id).map((x) => <option key={x.id} value={x.id}>{x.name} · {x.branch}</option>)}
-                          </select>}
-                    </td>
-                  </tr>
-                )
-              })}
+              {!isLoading && t.shown.length === 0 && <tr><td colSpan={5} className="muted">Tidak ada nama.</td></tr>}
+              {t.shown.map((r) => (
+                <tr key={r.id} className={r.user_id ? 'is-merged' : ''}>
+                  <td><b>{r.name}</b><div className="smap-sub"><span className={`smap-src ${r.source_system === 'import' ? '' : 'own'}`}>{srcLabel(r)}{r.source_id && r.source_system ? ` · ${r.source_id}` : ''}</span></div></td>
+                  <td>{r.branch}</td>
+                  <td className="r num">{r.dealers.toLocaleString('id-ID')}</td>
+                  <td>
+                    {r.main ? <span className="smap-to"><Icon name="user-x" />{userName(r)} <small className="muted">· utama</small></span>
+                      : r.user_id ? <span className="smap-to"><Icon name="arrow" />{userName(r)}</span>
+                      : r.merged_into ? <span className="muted">digabung ke {rows.find((x) => x.id === r.merged_into)?.name ?? '—'}</span>
+                      : <select className="smap-quick" value="" disabled={busy} onChange={(e) => { const u = userById.get(e.target.value); if (u) link([r.id], u) }} aria-label={`Hubungkan ${r.name} ke pengguna`}>
+                          <option value="">Pilih pengguna…</option>
+                          {users.map((u) => <option key={u.id} value={u.id}>{u.name} · {u.role_name}{looksLike(u.name, r.name) ? ' · mirip' : ''}</option>)}
+                        </select>}
+                  </td>
+                  <td className="r">{r.user_id && !r.main ? <button type="button" className="btn quiet" disabled={busy} onClick={() => unlink(r)}>Lepas</button> : null}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

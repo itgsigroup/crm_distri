@@ -167,3 +167,11 @@ order by lower(s.name), s.source_system nulls first;
 
 -- name: GetSalesUser :one
 select * from sales_users where id = $1;
+
+-- name: ListMapUsers :many
+-- Mapping sales: the Pengguna that BigQuery sales names are linked to (one user, many names).
+select u.id, coalesce(u.name, u.email, '') as name, u.email, coalesce(r.name, u.role, '') as role_name, coalesce(u.role, '') as role,
+  u.sales_user_id, coalesce(s.branch, '') as branch
+from users u left join roles r on r.key = coalesce(u.role_key, u.role) left join sales_users s on s.id = u.sales_user_id
+where u.active
+order by case coalesce(u.role, '') when 'sales' then 0 else 1 end, lower(coalesce(u.name, u.email, ''));

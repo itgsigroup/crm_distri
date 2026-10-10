@@ -16,41 +16,15 @@ import (
 	"distri-arc/internal/store/gen"
 )
 
-// Mapping sales (ADR 0024): the source data spells one person several ways ("Granike Monica · Semua cabang",
-// "Granike Monica M. · Semarang"). Each spelling stays a profile (it is the import key) but can be merged into the
-// GSI Orbit sales it belongs to: its dealers, conversations, numbers and history move there, it disappears from
-// every sales list, and the next import keeps it merged.
+// Mapping sales (ADR 0024): one Pengguna (login account) ↔ many sales names from BigQuery. The source data spells
+// one person several ways ("Granike Monica · Semua cabang", "Granike Monica M. · Semarang"); each name stays a
+// profile (it is the import key) and is linked to a user by merging it into that user's main sales profile
+// (users.sales_user_id, made on first link): its dealers, conversations, numbers and history move to the user, it
+// disappears from every sales list, and the next import keeps it linked.
 
 func (s *Server) salesMapRoutes(r chi.Router) {
 	r.Get("/sales-map", s.salesMap)
 	r.Post("/sales-map/merge", s.salesMerge)
-	r.Post("/sales-map/profiles", s.salesMapCreate)
-}
-
-// salesMapCreate adds the GSI Orbit sales that source spellings are merged into (e.g. "Granike Monika").
-func (s *Server) salesMapCreate(w http.ResponseWriter, r *http.Request) {
-	if _, ok := s.salesMapper(w, r); !ok {
-		return
-	}
-	var in struct {
-		Name   string `json:"name"`
-		Branch string `json:"branch"`
-	}
-	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&in); err != nil || strings.TrimSpace(in.Name) == "" {
-		httpx.Fail(w, http.StatusBadRequest, "invalid", "Isi nama sales")
-		return
-	}
-	branch := strings.TrimSpace(in.Branch)
-	if branch == "" {
-		branch = "Semua cabang"
-	}
-	id, err := s.st.Q.CreateSalesProfile(r.Context(), gen.CreateSalesProfileParams{Name: strings.TrimSpace(in.Name), Branch: branch, Role: "sales"})
-	if err != nil {
-		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
-		return
-	}
-	s.auditUser(r, "sales.create", "sales_users", map[string]any{"id": id, "name": in.Name})
-	httpx.JSON(w, http.StatusCreated, map[string]any{"id": id, "message": "Sales " + strings.TrimSpace(in.Name) + " ditambahkan"})
 }
 
 func (s *Server) salesMapper(w http.ResponseWriter, r *http.Request) (User, bool) {
@@ -71,7 +45,37 @@ func (s *Server) salesMap(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(rows)})
+	users, err := s.st.Q.ListMapUsers(r.Context())
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	owner := map[uuid.UUID]uuid.UUID{} // main sales profile → its user
+	for _, u := range users {
+		if u.SalesUserID != nil {
+			if _, taken := owner[*u.SalesUserID]; !taken {
+				owner[*u.SalesUserID] = u.ID
+			}
+		}
+	}
+	type item struct {
+		gen.ListSalesMapRow
+		UserID *uuid.UUID `json:"user_id"` // the Pengguna this name belongs to
+		Main   bool       `json:"main"`    // it is that user's main profile (not removable)
+	}
+	items := make([]item, 0, len(rows))
+	for _, x := range rows {
+		root := x.ID
+		if x.MergedInto != nil {
+			root = *x.MergedInto
+		}
+		it := item{ListSalesMapRow: x}
+		if u, ok := owner[root]; ok {
+			it.UserID, it.Main = &u, root == x.ID
+		}
+		items = append(items, it)
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": items, "users": nonNil(users)})
 }
 
 // salesMerge merges sources into a target (target_id null: un-merge them — each becomes its own sales again).
@@ -84,10 +88,25 @@ func (s *Server) salesMerge(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Sources  []uuid.UUID `json:"sources"`
 		TargetID *uuid.UUID  `json:"target_id"`
+		// UserID links the names to a Pengguna: they merge into the user's main sales profile (made when missing)
+		UserID *uuid.UUID `json:"user_id"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&in); err != nil || len(in.Sources) == 0 {
-		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pilih nama sales dari data sumber")
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pilih nama sales dari data BigQuery")
 		return
+	}
+	userName := ""
+	if in.UserID != nil {
+		id, name, msg, err := s.userMainProfile(ctx, *in.UserID, in.Sources)
+		if msg != "" {
+			httpx.Fail(w, http.StatusBadRequest, "invalid", msg)
+			return
+		}
+		if err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+		in.TargetID, userName = &id, name
 	}
 	var target gen.SalesUser
 	if in.TargetID != nil {
@@ -125,6 +144,10 @@ func (s *Server) salesMerge(w http.ResponseWriter, r *http.Request) {
 			if src == target.ID {
 				continue
 			}
+			var holder string // a name that is another user's main profile is not taken from them
+			if err := tx.QueryRow(ctx, "select coalesce(name, email, '') from users where sales_user_id = $1 limit 1", src).Scan(&holder); err == nil {
+				return errInvalid(row.Name + " adalah profil utama pengguna " + holder + " — lepas dulu dari pengguna itu")
+			}
 			// whatever was merged into this source follows it to the target
 			if _, err := tx.Exec(ctx, "update sales_users set merged_into = $2 where merged_into = $1", src, target.ID); err != nil {
 				return err
@@ -151,24 +174,80 @@ func (s *Server) salesMerge(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusNotFound, "not_found", string(nf))
 		return
 	}
+	var bad errInvalid
+	if errors.As(err, &bad) {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", string(bad))
+		return
+	}
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	s.auditUser(r, "sales.merge", "sales_users", map[string]any{"sources": in.Sources, "target": in.TargetID})
+	s.auditUser(r, "sales.merge", "sales_users", map[string]any{"sources": in.Sources, "target": in.TargetID, "user": in.UserID})
 	if restored > 0 { // dealers of an un-merged spelling go back to it through the import mapping
 		if !s.applyData(w, r, true, deref(u.Email)) {
 			return
 		}
-		httpx.JSON(w, http.StatusOK, map[string]any{"merged": 0, "restored": restored, "message": plural(restored, "nama sales dipisah lagi") + " · dealernya kembali setelah data diproses ulang"})
+		httpx.JSON(w, http.StatusOK, map[string]any{"merged": 0, "restored": restored, "message": plural(restored, "nama BigQuery dilepas") + " · dealernya kembali setelah data diproses ulang"})
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"merged": merged, "restored": 0, "message": plural(merged, "nama sales digabung ke "+target.Name)})
+	msg := plural(merged, "nama sales digabung ke "+target.Name)
+	if userName != "" {
+		msg = plural(merged, "nama BigQuery dihubungkan ke "+userName)
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"merged": merged, "restored": 0, "target_id": target.ID, "message": msg})
+}
+
+// userMainProfile is the sales profile a user's BigQuery names merge into: users.sales_user_id, or a new profile
+// named after the user (branch of a linked name) when the user has none yet. msg is a refusal for people.
+func (s *Server) userMainProfile(ctx context.Context, userID uuid.UUID, sources []uuid.UUID) (uuid.UUID, string, string, error) {
+	usr, err := s.st.Q.GetUserByID(ctx, userID)
+	if err != nil || !usr.Active {
+		return uuid.Nil, "", "Pengguna tidak ditemukan atau nonaktif", nil
+	}
+	name := deref(usr.Name)
+	if name == "" {
+		name = deref(usr.Email)
+	}
+	if usr.SalesUserID != nil {
+		p, err := s.st.Q.GetSalesUser(ctx, *usr.SalesUserID)
+		if err != nil {
+			return uuid.Nil, "", "", err
+		}
+		if p.MergedInto != nil { // its profile was merged elsewhere: follow to the main one
+			return *p.MergedInto, name, "", nil
+		}
+		if p.Role != "sales" {
+			return uuid.Nil, "", "Profil " + p.Name + " milik " + name + " bukan sales", nil
+		}
+		return p.ID, name, "", nil
+	}
+	branch := "Semua cabang" // a real branch of one of the names beats "Semua cabang"
+	for _, id := range sources {
+		if src, err := s.st.Q.GetSalesUser(ctx, id); err == nil && src.Branch != "" && !strings.EqualFold(src.Branch, "Semua cabang") {
+			branch = src.Branch
+			break
+		}
+	}
+	var id uuid.UUID
+	err = s.st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
+		id, err = q.CreateSalesProfile(ctx, gen.CreateSalesProfileParams{Name: name, Branch: branch, Role: "sales", Email: usr.Email})
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec(ctx, "update users set sales_user_id = $2 where id = $1", userID, id)
+		return err
+	})
+	return id, name, "", err
 }
 
 type errNotFound string
 
 func (e errNotFound) Error() string { return string(e) }
+
+type errInvalid string
+
+func (e errInvalid) Error() string { return string(e) }
 
 func plural(n int, what string) string { return fmt.Sprintf("%d %s", n, what) }
 
