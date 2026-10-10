@@ -22,7 +22,7 @@ function Tile({ label, t }: { label: string; t: UsageTotals }) {
     <div className="au-tile">
       <small>{label}</small>
       <b>{rpAI(t.cost_idr)}</b>
-      <span>{t.calls.toLocaleString('id-ID')} panggilan model · {tok(t.tokens_in)} masuk / {tok(t.tokens_out)} keluar</span>
+      <span>{t.calls.toLocaleString('id-ID')} panggilan model AI · {tok(t.tokens_in)} masuk / {tok(t.tokens_out)} keluar{t.template_steps ? ` · ${t.template_steps.toLocaleString('id-ID')} langkah template (tanpa AI)` : ''}</span>
     </div>
   )
 }
@@ -52,6 +52,16 @@ export function AIUsage() {
   return (
     <div className="card au">
       <div className="card-h"><h2>Pemakaian AI</h2><span className="ai" style={{ marginLeft: 6 }}>model · biaya · jadwal · riwayat</span><span className="meta">diperbarui tiap menit · biaya perkiraan (kurs Rp{Math.round(data.idr_per_usd).toLocaleString('id-ID')}/USD)</span></div>
+
+      {(o.engine === 'template' || a.engine === 'template') && (
+        <div className="au-note">
+          <Icon name="alert" />
+          <div>
+            <b>{o.engine === 'template' && a.engine === 'template' ? 'AI belum aktif — sistem berjalan dalam mode template' : o.engine === 'template' ? 'Siklus Orchestrator berjalan dalam mode template' : 'Analisis terjadwal berjalan dalam mode template'}</b>
+            <span>Tanpa API key Claude, tidak ada model AI yang dipanggil (di riwayat tertulis "Template (tanpa AI)", dulu "fake"). Ini <b>bukan data karangan</b>: semua angka, status dealer, jadwal order, limit, dan usulan dihitung oleh aturan agen dari data asli (BigQuery/Accurate, WhatsApp). Yang belum ada hanya kalimat alasan &amp; draft pesan yang ditulis ulang oleh Claude — sementara memakai kalimat template dari aturan yang sama. Untuk mengaktifkan Claude: isi <code>LLM_PROVIDER=anthropic</code> dan <code>ANTHROPIC_API_KEY</code> di server{a.engine === 'template' ? ', atau simpan kunci Claude di kartu Analisis terjadwal' : ''}.</span>
+          </div>
+        </div>
+      )}
 
       <div className="au-engines">
         <div className="au-engine">
@@ -87,7 +97,7 @@ export function AIUsage() {
             <thead><tr><th>Model (30 hari)</th><th className="r">Panggilan</th><th className="r">Token masuk</th><th className="r">Token keluar</th><th className="r">Biaya</th><th>Terakhir</th></tr></thead>
             <tbody>
               {data.cost.by_model.map((m) => (
-                <tr key={m.provider + m.model}><td><b>{modelLabel(m.model)}</b> <small className="muted">{m.provider}</small></td><td className="r num">{m.calls.toLocaleString('id-ID')}</td><td className="r num">{tok(m.tokens_in)}</td><td className="r num">{tok(m.tokens_out)}</td><td className="r num"><b>{rpAI(m.cost_idr)}</b></td><td>{when(m.last_at)}</td></tr>
+                <tr key={m.provider + m.model}><td><b>{modelLabel(m.model)}</b> {m.provider !== 'fake' && m.provider !== 'template' ? <small className="muted">{m.provider}</small> : <small className="muted">tanpa biaya</small>}</td><td className="r num">{m.calls.toLocaleString('id-ID')}</td><td className="r num">{tok(m.tokens_in)}</td><td className="r num">{tok(m.tokens_out)}</td><td className="r num"><b>{rpAI(m.cost_idr)}</b></td><td>{when(m.last_at)}</td></tr>
               ))}
             </tbody>
           </table>
@@ -122,7 +132,7 @@ export function AIUsage() {
               {t.shown.map((r) => (
                 <tr key={r.kind + r.id}>
                   <td className="num">{when(r.started_at)}</td>
-                  <td><b>{r.title}</b><small className="au-sub">{TRIGGER[r.trigger] ?? r.trigger}{r.by ? ` · ${r.by}` : ''}{r.kind === 'cycle' ? ` · ${r.calls} panggilan model` : ` · ${r.calls} langkah MCP`}</small></td>
+                  <td><b>{r.title}</b><small className="au-sub">{TRIGGER[r.trigger] ?? r.trigger}{r.by ? ` · ${r.by}` : ''}{r.kind === 'schedule' ? ` · ${r.calls} langkah MCP` : r.calls ? ` · ${r.calls} panggilan model AI${r.template_steps ? ` + ${r.template_steps} template` : ''}` : ` · ${r.template_steps ?? 0} langkah template, tanpa AI`}</small></td>
                   <td>{modelLabel(r.model)}</td>
                   <td className="r num">{r.tokens_in + r.tokens_out ? `${tok(r.tokens_in)} / ${tok(r.tokens_out)}` : '—'}</td>
                   <td className="r num"><b>{rpAI(r.cost_idr)}</b></td>

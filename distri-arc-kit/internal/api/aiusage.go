@@ -36,6 +36,8 @@ type AIRun struct {
 	TokensIn   int64     `json:"tokens_in"`
 	TokensOut  int64     `json:"tokens_out"`
 	CostIDR    int64     `json:"cost_idr"`
+	// TemplateSteps: steps answered without a model (LLM_PROVIDER=fake / failed call) — template text, no cost
+	TemplateSteps int64 `json:"template_steps"`
 }
 
 func (s *Server) aiUsage(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +116,8 @@ func (s *Server) aiUsage(w http.ResponseWriter, r *http.Request) {
 			model = "template"
 		}
 		history = append(history, AIRun{Kind: "cycle", ID: c.ID, Title: title, Trigger: c.Trigger, By: c.RequestedBy, Via: c.Via, Status: c.Status,
-			StartedAt: c.StartedAt, DurationMs: d, Model: model, Calls: c.Calls, TokensIn: c.TokensIn, TokensOut: c.TokensOut, CostIDR: c.CostIdr})
+			StartedAt: c.StartedAt, DurationMs: d, Model: model, Calls: c.Calls, TokensIn: c.TokensIn, TokensOut: c.TokensOut, CostIDR: c.CostIdr,
+			TemplateSteps: c.TemplateSteps})
 	}
 	for _, x := range runs {
 		var d *int64

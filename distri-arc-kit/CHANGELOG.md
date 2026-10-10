@@ -312,3 +312,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - **Biaya**: hari ini, 7 hari, 30 hari (panggilan model, token masuk/keluar, rupiah perkiraan) dan tabel **per model** 30 hari.
 - **Riwayat analisis**: gabungan siklus Orchestrator dan analisis terjadwal — waktu, pemicu (terjadwal / manual / MCP + siapa), model, token, biaya, durasi, status; filter jenis, pencarian, urut asc/desc, paginasi. Diperbarui tiap menit.
 - API `GET /mcp/usage` (menu MCP Claude/Pengaturan; sales tidak melihat biaya). Test `TestAIUsageShowsModelCostAndHistory`, `usage.test.ts`.
+
+## Pemakaian AI: "fake" ditampilkan apa adanya sebagai Template (tanpa AI) · 2026-10-10
+- Server tanpa API key Claude berjalan dengan `LLM_PROVIDER=fake`: tidak ada model AI yang dipanggil; agen memakai kalimat template dari aturannya sendiri, sedangkan semua angka dan usulan dihitung dari data asli. Riwayat sebelumnya menampilkan model "fake" dan "361 panggilan model" — menyesatkan.
+- Kini: model tertulis **Template (tanpa AI)**, langkah tanpa model dihitung terpisah ("26 langkah template, tanpa AI") dan tidak lagi disebut panggilan model; total biaya/panggilan hanya menghitung panggilan AI sungguhan. Kotak peringatan **"AI belum aktif — mode template"** menjelaskan artinya dan cara mengaktifkan Claude (`LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY`).

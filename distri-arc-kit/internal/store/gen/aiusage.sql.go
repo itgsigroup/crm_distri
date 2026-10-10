@@ -16,29 +16,32 @@ const cycleAIUsage = `-- name: CycleAIUsage :many
 select c.id, c.number, c.trigger, c.scope, coalesce(c.via, '') as via, coalesce(c.requested_by, '') as requested_by, c.status,
   c.started_at, c.duration_ms,
   coalesce(l.calls, 0)::bigint as calls, coalesce(l.tokens_in, 0)::bigint as tokens_in, coalesce(l.tokens_out, 0)::bigint as tokens_out,
-  coalesce(l.cost_idr, 0)::bigint as cost_idr, coalesce(l.models, '')::text as models
+  coalesce(l.cost_idr, 0)::bigint as cost_idr, coalesce(l.models, '')::text as models, coalesce(l.template_steps, 0)::bigint as template_steps
 from cycles c
-left join (select cycle_id, count(*) as calls, sum(tokens_in) as tokens_in, sum(tokens_out) as tokens_out, sum(cost_idr) as cost_idr,
-             string_agg(distinct model, ', ') as models
+left join (select cycle_id, count(*) filter (where coalesce(provider, '') not in ('fake', 'template')) as calls,
+             count(*) filter (where coalesce(provider, '') in ('fake', 'template')) as template_steps,
+             sum(tokens_in) as tokens_in, sum(tokens_out) as tokens_out, sum(cost_idr) as cost_idr,
+             string_agg(distinct model, ', ') filter (where coalesce(provider, '') not in ('fake', 'template')) as models
            from llm_calls where cycle_id is not null group by cycle_id) l on l.cycle_id = c.id
 order by c.started_at desc limit $1
 `
 
 type CycleAIUsageRow struct {
-	ID          uuid.UUID `json:"id"`
-	Number      *int64    `json:"number"`
-	Trigger     string    `json:"trigger"`
-	Scope       string    `json:"scope"`
-	Via         string    `json:"via"`
-	RequestedBy string    `json:"requested_by"`
-	Status      string    `json:"status"`
-	StartedAt   time.Time `json:"started_at"`
-	DurationMs  *int32    `json:"duration_ms"`
-	Calls       int64     `json:"calls"`
-	TokensIn    int64     `json:"tokens_in"`
-	TokensOut   int64     `json:"tokens_out"`
-	CostIdr     int64     `json:"cost_idr"`
-	Models      string    `json:"models"`
+	ID            uuid.UUID `json:"id"`
+	Number        *int64    `json:"number"`
+	Trigger       string    `json:"trigger"`
+	Scope         string    `json:"scope"`
+	Via           string    `json:"via"`
+	RequestedBy   string    `json:"requested_by"`
+	Status        string    `json:"status"`
+	StartedAt     time.Time `json:"started_at"`
+	DurationMs    *int32    `json:"duration_ms"`
+	Calls         int64     `json:"calls"`
+	TokensIn      int64     `json:"tokens_in"`
+	TokensOut     int64     `json:"tokens_out"`
+	CostIdr       int64     `json:"cost_idr"`
+	Models        string    `json:"models"`
+	TemplateSteps int64     `json:"template_steps"`
 }
 
 // Orchestrator cycles with the model calls they made.
@@ -66,6 +69,7 @@ func (q *Queries) CycleAIUsage(ctx context.Context, lim int32) ([]CycleAIUsageRo
 			&i.TokensOut,
 			&i.CostIdr,
 			&i.Models,
+			&i.TemplateSteps,
 		); err != nil {
 			return nil, err
 		}
@@ -158,24 +162,30 @@ func (q *Queries) LLMUsageDaily(ctx context.Context, since time.Time) ([]LLMUsag
 
 const lLMUsageSince = `-- name: LLMUsageSince :one
 
-select count(*)::bigint as calls, coalesce(sum(tokens_in), 0)::bigint as tokens_in, coalesce(sum(tokens_out), 0)::bigint as tokens_out,
+select count(*) filter (where coalesce(provider, '') not in ('fake', 'template'))::bigint as calls,
+  count(*) filter (where coalesce(provider, '') in ('fake', 'template'))::bigint as template_steps,
+  coalesce(sum(tokens_in), 0)::bigint as tokens_in, coalesce(sum(tokens_out), 0)::bigint as tokens_out,
   coalesce(sum(cost_idr), 0)::bigint as cost_idr
 from llm_calls where created_at >= $1::timestamptz
 `
 
 type LLMUsageSinceRow struct {
-	Calls     int64 `json:"calls"`
-	TokensIn  int64 `json:"tokens_in"`
-	TokensOut int64 `json:"tokens_out"`
-	CostIdr   int64 `json:"cost_idr"`
+	Calls         int64 `json:"calls"`
+	TemplateSteps int64 `json:"template_steps"`
+	TokensIn      int64 `json:"tokens_in"`
+	TokensOut     int64 `json:"tokens_out"`
+	CostIdr       int64 `json:"cost_idr"`
 }
 
 // AI usage on the MCP Claude page: model, cost, schedule and history of every AI analysis.
+// Rows of provider fake/template are steps without a model (LLM_PROVIDER=fake or a failed call): the agent's own
+// template text, no tokens, no cost. They are counted apart so nobody reads them as AI.
 func (q *Queries) LLMUsageSince(ctx context.Context, since time.Time) (LLMUsageSinceRow, error) {
 	row := q.db.QueryRow(ctx, lLMUsageSince, since)
 	var i LLMUsageSinceRow
 	err := row.Scan(
 		&i.Calls,
+		&i.TemplateSteps,
 		&i.TokensIn,
 		&i.TokensOut,
 		&i.CostIdr,

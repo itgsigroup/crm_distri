@@ -1,6 +1,6 @@
 // MCP Claude → Pemakaian AI (pure, tested): formatting and the history table of AI analyses.
 
-export interface UsageTotals { calls: number; tokens_in: number; tokens_out: number; cost_idr: number }
+export interface UsageTotals { calls: number; tokens_in: number; tokens_out: number; cost_idr: number; template_steps?: number }
 export interface UsageModel extends UsageTotals { provider: string; model: string; last_at: string }
 export interface AIRun {
   kind: 'cycle' | 'schedule'
@@ -17,6 +17,8 @@ export interface AIRun {
   tokens_in: number
   tokens_out: number
   cost_idr: number
+  /** steps answered without a model (template text from the agent's rules, no cost) */
+  template_steps?: number
 }
 export interface AIUsage {
   orchestrator: { engine: 'claude' | 'template'; mode: string; provider: string; model: string; fallback: string; from_hour: number; to_hour: number; next_run_at: string }
@@ -57,8 +59,9 @@ export const hourly = (from: number, to: number) => `Tiap jam ${String(from).pad
 /** A model name for people: "claude-sonnet-5-5" → "Claude Sonnet 5.5"; "template" stays explained. */
 export function modelLabel(m: string): string {
   if (!m) return '—'
-  if (m === 'template') return 'Template (tanpa model)'
+  if (m === 'template' || m === 'fake') return 'Template (tanpa AI)'
   return m.split(', ').map((x) => {
+    if (x === 'fake' || x === 'template') return 'Template (tanpa AI)'
     const c = /^claude-([a-z]+)-(\d+)-(\d+)$/.exec(x)
     return c ? `Claude ${c[1][0].toUpperCase()}${c[1].slice(1)} ${c[2]}.${c[3]}` : x
   }).join(', ')
