@@ -3,7 +3,7 @@
 export interface UsageTotals { calls: number; tokens_in: number; tokens_out: number; cost_idr: number; template_steps?: number }
 export interface UsageModel extends UsageTotals { provider: string; model: string; last_at: string }
 export interface AIRun {
-  kind: 'cycle' | 'schedule'
+  kind: 'cycle' | 'schedule' | 'mcp'
   id: string
   title: string
   trigger: 'schedule' | 'manual' | 'mcp'
@@ -22,6 +22,8 @@ export interface AIRun {
 }
 export interface AIUsage {
   orchestrator: { engine: 'claude' | 'template'; mode: string; provider: string; model: string; fallback: string; from_hour: number; to_hour: number; next_run_at: string }
+  /** Claude's own connections through MCP (claude.ai, Desktop, Code) — paid by the Claude subscription */
+  mcp: { connections: { name: string; kind: string; user: string; last_seen_at: string | null; calls_today: number }[]; calls_today: number; sessions_30d: number; last_at: string | null }
   analyst: { engine: 'claude' | 'template'; model: string; daily_budget_idr: number; spent_today_idr: number; runs_today: number }
   cost: { today: UsageTotals; d7: UsageTotals; d30: UsageTotals; by_model: UsageModel[]; daily: { day: string; calls: number; cost_idr: number }[] }
   prices: Record<string, { in_usd_per_mtok: number; out_usd_per_mtok: number }>
@@ -60,6 +62,7 @@ export const hourly = (from: number, to: number) => `Tiap jam ${String(from).pad
 export function modelLabel(m: string): string {
   if (!m) return '—'
   if (m === 'template' || m === 'fake') return 'Template (tanpa AI)'
+  if (m === 'claude.ai') return 'Claude (akun claude.ai)'
   return m.split(', ').map((x) => {
     if (x === 'fake' || x === 'template') return 'Template (tanpa AI)'
     const c = /^claude-([a-z]+)-(\d+)-(\d+)$/.exec(x)
@@ -78,3 +81,22 @@ export const RUN_COMPARE: Record<RunColumn, (a: AIRun, b: AIRun) => number> = {
   duration_ms: (a, b) => (a.duration_ms ?? -1) - (b.duration_ms ?? -1),
 }
 export const runFirstDir = (c: RunColumn): 'asc' | 'desc' => (c === 'title' || c === 'model' ? 'asc' : 'desc')
+
+// ---------- Riwayat MCP (every tool call Claude made) ----------
+export interface MCPCallRow { id: string; client_name: string | null; client_kind?: string | null; user_name?: string | null; tool: string; args: Record<string, unknown> | null; result_summary: string | null; status: string; duration_ms: number | null; created_at: string }
+export type CallColumn = 'created_at' | 'client' | 'tool' | 'status' | 'duration_ms'
+export const KIND: Record<string, string> = { oauth: 'Claude (login)', bearer: 'Token manual', schedule: 'Analisis terjadwal' }
+/** "dealer_id=mitra, limit=10" — the arguments of a call, short. */
+export function argsText(a: Record<string, unknown> | null): string {
+  if (!a) return ''
+  return Object.entries(a).map(([k, v]) => `${k}=${typeof v === 'string' ? v : JSON.stringify(v)}`).join(', ')
+}
+export const callText = (c: MCPCallRow) => `${c.client_name ?? ''} ${c.user_name ?? ''} ${c.tool} ${argsText(c.args)} ${c.result_summary ?? ''} ${c.status}`
+export const CALL_COMPARE: Record<CallColumn, (a: MCPCallRow, b: MCPCallRow) => number> = {
+  created_at: (a, b) => a.created_at.localeCompare(b.created_at),
+  client: (a, b) => (a.client_name ?? '').localeCompare(b.client_name ?? '', 'id'),
+  tool: (a, b) => a.tool.localeCompare(b.tool),
+  status: (a, b) => a.status.localeCompare(b.status),
+  duration_ms: (a, b) => (a.duration_ms ?? -1) - (b.duration_ms ?? -1),
+}
+export const callFirstDir = (c: CallColumn): 'asc' | 'desc' => (c === 'created_at' || c === 'duration_ms' ? 'desc' : 'asc')

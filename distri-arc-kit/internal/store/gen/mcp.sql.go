@@ -409,7 +409,9 @@ func (q *Queries) ListCycleInputs(ctx context.Context, cycleID uuid.UUID) ([]Cyc
 }
 
 const listMCPCalls = `-- name: ListMCPCalls :many
-select m.id, m.client_id, m.tool, m.args, m.result_summary, m.cycle_id, m.duration_ms, m.created_at, m.status, c.name as client_name from mcp_calls m left join mcp_clients c on c.id = m.client_id order by m.created_at desc limit $1
+select m.id, m.client_id, m.tool, m.args, m.result_summary, m.cycle_id, m.duration_ms, m.created_at, m.status, c.name as client_name, c.kind as client_kind, u.name as user_name
+from mcp_calls m left join mcp_clients c on c.id = m.client_id left join users u on u.id = c.user_id
+order by m.created_at desc limit $1
 `
 
 type ListMCPCallsRow struct {
@@ -423,8 +425,11 @@ type ListMCPCallsRow struct {
 	CreatedAt     time.Time       `json:"created_at"`
 	Status        string          `json:"status"`
 	ClientName    *string         `json:"client_name"`
+	ClientKind    *string         `json:"client_kind"`
+	UserName      *string         `json:"user_name"`
 }
 
+// Riwayat MCP: each tool call with its connection (Claude login, manual token, scheduled analysis) and person.
 func (q *Queries) ListMCPCalls(ctx context.Context, limit int32) ([]ListMCPCallsRow, error) {
 	rows, err := q.db.Query(ctx, listMCPCalls, limit)
 	if err != nil {
@@ -445,6 +450,8 @@ func (q *Queries) ListMCPCalls(ctx context.Context, limit int32) ([]ListMCPCalls
 			&i.CreatedAt,
 			&i.Status,
 			&i.ClientName,
+			&i.ClientKind,
+			&i.UserName,
 		); err != nil {
 			return nil, err
 		}
@@ -511,6 +518,55 @@ func (q *Queries) ListMCPClients(ctx context.Context, since time.Time) ([]ListMC
 			&i.CallsToday,
 			&i.UserName,
 			&i.UserEmail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const mCPCallsSince = `-- name: MCPCallsSince :many
+select m.client_id, coalesce(c.name, '') as client_name, coalesce(c.kind, '') as client_kind, coalesce(u.name, u.email, '') as user_name,
+  coalesce(m.tool, '') as tool, m.status, m.duration_ms, m.created_at
+from mcp_calls m join mcp_clients c on c.id = m.client_id left join users u on u.id = c.user_id
+where m.created_at >= $1::timestamptz and c.kind <> 'schedule'
+order by m.client_id, m.created_at
+`
+
+type MCPCallsSinceRow struct {
+	ClientID   *uuid.UUID `json:"client_id"`
+	ClientName string     `json:"client_name"`
+	ClientKind string     `json:"client_kind"`
+	UserName   string     `json:"user_name"`
+	Tool       string     `json:"tool"`
+	Status     string     `json:"status"`
+	DurationMs *int32     `json:"duration_ms"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
+// Claude's own MCP calls (not the scheduled analysis) of a window, per connection in time order: grouped into sessions.
+func (q *Queries) MCPCallsSince(ctx context.Context, since time.Time) ([]MCPCallsSinceRow, error) {
+	rows, err := q.db.Query(ctx, mCPCallsSince, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MCPCallsSinceRow{}
+	for rows.Next() {
+		var i MCPCallsSinceRow
+		if err := rows.Scan(
+			&i.ClientID,
+			&i.ClientName,
+			&i.ClientKind,
+			&i.UserName,
+			&i.Tool,
+			&i.Status,
+			&i.DurationMs,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

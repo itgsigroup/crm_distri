@@ -19,7 +19,18 @@ update mcp_clients set active = false where id = $1;
 insert into mcp_calls (client_id, tool, args, result_summary, cycle_id, duration_ms, status, created_at) values ($1, $2, $3, $4, $5, $6, $7, $8);
 
 -- name: ListMCPCalls :many
-select m.*, c.name as client_name from mcp_calls m left join mcp_clients c on c.id = m.client_id order by m.created_at desc limit $1;
+-- Riwayat MCP: each tool call with its connection (Claude login, manual token, scheduled analysis) and person.
+select m.*, c.name as client_name, c.kind as client_kind, u.name as user_name
+from mcp_calls m left join mcp_clients c on c.id = m.client_id left join users u on u.id = c.user_id
+order by m.created_at desc limit $1;
+
+-- name: MCPCallsSince :many
+-- Claude's own MCP calls (not the scheduled analysis) of a window, per connection in time order: grouped into sessions.
+select m.client_id, coalesce(c.name, '') as client_name, coalesce(c.kind, '') as client_kind, coalesce(u.name, u.email, '') as user_name,
+  coalesce(m.tool, '') as tool, m.status, m.duration_ms, m.created_at
+from mcp_calls m join mcp_clients c on c.id = m.client_id left join users u on u.id = c.user_id
+where m.created_at >= sqlc.arg(since)::timestamptz and c.kind <> 'schedule'
+order by m.client_id, m.created_at;
 
 -- name: MCPCyclesSince :one
 -- Cycles an MCP client started in the window (orchestrator.* rate limit = mcp.permissions.max_cycles_per_hour).

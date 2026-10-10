@@ -14,6 +14,7 @@ import (
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/policy"
+	"distri-arc/internal/store/gen"
 )
 
 // AI usage (MCP Claude page): which model each AI analysis uses, what it cost, how often it runs and when it ran.
@@ -132,7 +133,36 @@ func (s *Server) aiUsage(w http.ResponseWriter, r *http.Request) {
 		history = append(history, AIRun{Kind: "schedule", ID: x.ID, Title: "Analisis terjadwal · " + x.Name, Trigger: x.Trigger, By: x.TriggeredBy, Via: "mcp",
 			Status: x.Status, StartedAt: x.StartedAt, DurationMs: d, Model: model, Calls: int64(x.Steps), TokensIn: int64(x.TokensIn), TokensOut: int64(x.TokensOut), CostIDR: x.CostIdr})
 	}
+	// Claude's own sessions through MCP (claude.ai / Desktop / Code): paid by the Claude subscription, no API cost here
+	calls, err := s.st.Q.MCPCallsSince(ctx, today.AddDate(0, 0, -29))
+	if err != nil {
+		fail(err)
+		return
+	}
+	sessions := mcpSessions(calls)
+	history = append(history, sessions...)
 	sort.Slice(history, func(i, j int) bool { return history[i].StartedAt.After(history[j].StartedAt) })
+	mcpToday, mcpLast := int64(0), (*time.Time)(nil)
+	for _, c := range calls {
+		if !c.CreatedAt.Before(today) {
+			mcpToday++
+		}
+		if mcpLast == nil || c.CreatedAt.After(*mcpLast) {
+			t := c.CreatedAt
+			mcpLast = &t
+		}
+	}
+	clients, err := s.st.Q.ListMCPClients(ctx, today)
+	if err != nil {
+		fail(err)
+		return
+	}
+	var conns []map[string]any
+	for _, c := range clients {
+		if c.Active && deref(c.Kind) != "schedule" {
+			conns = append(conns, map[string]any{"name": deref(c.Name), "kind": deref(c.Kind), "user": deref(c.UserName), "last_seen_at": c.LastSeenAt, "calls_today": c.CallsToday})
+		}
+	}
 
 	prices := map[string]any{}
 	for m, p := range llm.Prices {
@@ -141,6 +171,7 @@ func (s *Server) aiUsage(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"orchestrator": map[string]any{"engine": orchEngine, "mode": pol.LLM.Mode, "provider": pol.LLM.Provider, "model": pol.LLM.Model, "fallback": pol.LLM.Fallback,
 			"from_hour": from, "to_hour": to, "next_run_at": nextHourly(now, from, to)},
+		"mcp":     map[string]any{"connections": nonNil(conns), "calls_today": mcpToday, "sessions_30d": len(sessions), "last_at": mcpLast},
 		"analyst": map[string]any{"engine": anEngine, "model": cfg.Model, "daily_budget_idr": cfg.DailyBudgetIDR, "spent_today_idr": spent.Cost, "runs_today": spent.Runs},
 		"cost":    map[string]any{"today": period["today"], "d7": period["d7"], "d30": period["d30"], "by_model": nonNil(byModel), "daily": nonNil(daily)},
 		"prices":  prices, "idr_per_usd": llm.IDRPerUSD,
@@ -175,4 +206,69 @@ func cycleScopeLabel(scope string) string {
 		return v
 	}
 	return scope
+}
+
+// mcpSession is the gap that closes a Claude session: calls of one connection closer than this belong together.
+const mcpSession = 30 * time.Minute
+
+// mcpSessions groups Claude's MCP tool calls (ordered by connection, then time) into sessions for the history.
+func mcpSessions(calls []gen.MCPCallsSinceRow) []AIRun {
+	var out []AIRun
+	var cur *AIRun
+	var last time.Time
+	var tools map[string]bool
+	var client *uuid.UUID
+	flush := func() {
+		if cur == nil {
+			return
+		}
+		names := make([]string, 0, len(tools))
+		for t := range tools {
+			names = append(names, t)
+		}
+		sort.Strings(names)
+		if len(names) > 4 {
+			names = append(names[:4], "…")
+		}
+		cur.Title += " · " + strings.Join(names, ", ")
+		out = append(out, *cur)
+		cur = nil
+	}
+	for _, c := range calls {
+		same := cur != nil && client != nil && c.ClientID != nil && *client == *c.ClientID && c.CreatedAt.Sub(last) <= mcpSession
+		if !same {
+			flush()
+			id := uuid.Nil
+			if c.ClientID != nil {
+				id = *c.ClientID
+			}
+			name := c.ClientName
+			if name == "" {
+				name = "Claude"
+			}
+			// the session id: connection id xor'd with its start time keeps rows distinct and stable
+			start := c.CreatedAt.UnixNano()
+			for i := 0; i < 8; i++ {
+				id[15-i] ^= byte(start >> (8 * i))
+			}
+			cur = &AIRun{Kind: "mcp", ID: id, Title: "Claude lewat MCP · " + name, Trigger: "mcp", By: c.UserName, Via: c.ClientKind, Status: "ok",
+				StartedAt: c.CreatedAt, Model: "claude.ai"}
+			tools = map[string]bool{}
+			client = c.ClientID
+		}
+		cur.Calls++
+		tools[c.Tool] = true
+		if c.Status != "ok" && c.Status != "" {
+			cur.Status = "partial"
+		}
+		end := c.CreatedAt
+		if c.DurationMs != nil {
+			end = end.Add(time.Duration(*c.DurationMs) * time.Millisecond)
+		}
+		d := end.Sub(cur.StartedAt).Milliseconds()
+		cur.DurationMs = &d
+		last = c.CreatedAt
+	}
+	flush()
+	return out
 }

@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
-import type { MCPClient, MCPPolicy } from '../../api/types'
+import type { MCPCall, MCPClient, MCPPolicy } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
@@ -10,6 +10,8 @@ import { useMCPCalls, useMCPClients, useMCPInfo, useMCPPolicy, useMe } from '../
 import { useMore } from '../../components/More'
 import { Schedules } from './Schedules'
 import { AIUsage } from './AIUsage'
+import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
+import { CALL_COMPARE, KIND, argsText, callFirstDir, callText, type CallColumn } from './usage'
 import { PROMPTS, SCOPE } from './shared'
 
 function copy(text: string, toast: (m: string) => void) {
@@ -184,23 +186,54 @@ function Tools() {
   )
 }
 
+const NO_CALLS: MCPCall[] = []
+const tone = (s: string) => (s === 'ok' ? 'good' : s === 'human_only' || s === 'rate_limited' ? 'warn' : 'bad')
+const STATUS_ID: Record<string, string> = { ok: 'Berhasil', human_only: 'Hanya manusia', rate_limited: 'Dibatasi', forbidden: 'Tanpa izin', error: 'Gagal' }
+
+/** Riwayat MCP: every tool call Claude made (login, manual token, scheduled analysis); loads itself every 10 s. */
 function Calls() {
-  const { data: calls = [] } = useMCPCalls()
-  const tone = (s: string) => (s === 'ok' ? 'good' : s === 'human_only' || s === 'rate_limited' ? 'warn' : 'bad')
+  const { data: calls = NO_CALLS, dataUpdatedAt } = useMCPCalls(500)
+  const [kind, setKind] = useState<'all' | 'oauth' | 'bearer' | 'schedule'>('all')
+  const rows = useMemo(() => (kind === 'all' ? calls : calls.filter((c) => (c.client_kind ?? '') === kind)), [calls, kind])
+  const t = useDataTable<MCPCall, CallColumn>({ rows, text: callText, compare: CALL_COMPARE, tie: CALL_COMPARE.created_at, initial: { column: 'created_at', dir: 'desc' }, firstDir: callFirstDir })
+  const count = (k: string) => calls.filter((c) => (c.client_kind ?? '') === k).length
   return (
     <div className="card">
-      <div className="card-h"><h2>Log panggilan</h2><span className="meta">20 terakhir · tercatat di audit</span></div>
-      {calls.length === 0 ? <p className="cl-empty">Belum ada panggilan.</p> : (
-        <div className="tbl-wrap">
-          <table className="tbl">
-            <thead><tr><th>Waktu</th><th>Koneksi</th><th>Tool</th><th>Hasil</th><th>Status</th></tr></thead>
-            <tbody>{calls.map((c) => (
-              <tr key={c.id}><td className="mono">{shortDate(c.created_at)} {hhmm(c.created_at)}</td><td>{c.client_name ?? '—'}</td><td><code>{c.tool}</code></td>
-                <td style={{ maxWidth: 280 }}>{c.result_summary}{c.duration_ms != null && <span className="mono"> · {c.duration_ms} ms</span>}</td><td><Pill tone={tone(c.status)}>{c.status}</Pill></td></tr>
-            ))}</tbody>
-          </table>
-        </div>
-      )}
+      <div className="card-h"><h2>Riwayat MCP</h2><span className="au-live on" title="Dimuat ulang otomatis tiap 10 detik">Live</span><span className="meta">{calls.length} panggilan terakhir · tercatat di audit{dataUpdatedAt ? ` · diperbarui ${hhmm(new Date(dataUpdatedAt).toISOString())}` : ''}</span></div>
+      <div className="seg" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
+        {([['all', 'Semua', calls.length], ['oauth', 'Claude (login)', count('oauth')], ['bearer', 'Token manual', count('bearer')], ['schedule', 'Analisis terjadwal', count('schedule')]] as const).map(([k, l, n]) => (
+          <button key={k} type="button" className={kind === k ? 'is-active' : ''} onClick={() => setKind(k)}>{l} <small style={{ opacity: 0.7 }}>{n}</small></button>
+        ))}
+      </div>
+      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari tool, koneksi, pengguna, argumen…" label="Cari riwayat MCP" meta={`${t.matches.length} panggilan`} />
+      <div className="odl-wrap">
+        <table className="odl">
+          <thead>
+            <tr>
+              <SortTh t={t} c="created_at">Waktu</SortTh>
+              <SortTh t={t} c="client">Koneksi</SortTh>
+              <SortTh t={t} c="tool">Tool</SortTh>
+              <th>Hasil</th>
+              <SortTh t={t} c="duration_ms" right>Durasi</SortTh>
+              <SortTh t={t} c="status">Status</SortTh>
+            </tr>
+          </thead>
+          <tbody>
+            {t.shown.length === 0 && <tr><td colSpan={6} className="muted">{calls.length ? 'Tidak ada panggilan yang cocok.' : 'Belum ada panggilan. Setelah Claude memakai GSI Orbit, setiap tool yang dipanggil muncul di sini otomatis.'}</td></tr>}
+            {t.shown.map((c) => (
+              <tr key={c.id}>
+                <td className="num" style={{ whiteSpace: 'nowrap' }}>{shortDate(c.created_at)} · {hhmm(c.created_at)}</td>
+                <td><b>{c.client_name ?? '—'}</b><small className="au-sub">{KIND[c.client_kind ?? ''] ?? c.client_kind ?? ''}{c.user_name && !(c.client_name ?? '').includes(c.user_name) ? ` · ${c.user_name}` : ''}</small></td>
+                <td><code>{c.tool}</code>{c.args && Object.keys(c.args).length > 0 && <small className="au-sub" title={argsText(c.args)}>{argsText(c.args).slice(0, 60)}{argsText(c.args).length > 60 ? '…' : ''}</small>}</td>
+                <td style={{ maxWidth: 320 }}><small>{c.result_summary}</small></td>
+                <td className="r num">{c.duration_ms != null ? `${c.duration_ms} ms` : '—'}</td>
+                <td><Pill tone={tone(c.status)}>{STATUS_ID[c.status] ?? c.status}</Pill></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <TablePager t={t} noun="panggilan" />
     </div>
   )
 }
@@ -229,6 +262,7 @@ export function ClaudePage() {
         </div>
       </div>
       <AIUsage />
+      <Calls />
       <Schedules />
       <div className="ai-grid">
         <div className="stack">
@@ -237,7 +271,6 @@ export function ClaudePage() {
             <div className="card-h"><h2>Contoh prompt analisis</h2><span className="meta">Salin ke Claude</span></div>
             <ul className="cl-prompts">{PROMPTS.map((p) => <li key={p}><span>{p}</span><button className="btn quiet" onClick={() => copy(p, toast)}><Icon name="doc" />Salin</button></li>)}</ul>
           </div>
-          <Calls />
         </div>
         <div className="stack">
           <Connections />

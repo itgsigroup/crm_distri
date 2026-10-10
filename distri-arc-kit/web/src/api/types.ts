@@ -435,7 +435,7 @@ export interface AutonomyPolicy { matrix: Record<string, AutonomyRow>; guard: { 
 export interface MCPTool { name: string; scope: string; description: string }
 export interface MCPInfo { endpoint: string; enabled: boolean; tools: MCPTool[]; llm: { mode: 'api' | 'mcp' | 'both'; provider: string; model: string; api_key: boolean; fallback: string } }
 export interface MCPClient { id: string; name: string; scopes: string[]; token_prefix: string; active: boolean; last_seen_at: string | null; created_at: string; calls_today: number; kind: 'bearer' | 'oauth' | 'schedule'; user?: string; refresh_expires_at?: string | null }
-export interface MCPCall { id: string; client_id: string | null; client_name: string | null; tool: string; args: Record<string, unknown> | null; result_summary: string | null; status: string; duration_ms: number | null; created_at: string }
+export interface MCPCall { id: string; client_id: string | null; client_name: string | null; client_kind?: string | null; user_name?: string | null; tool: string; args: Record<string, unknown> | null; result_summary: string | null; status: string; duration_ms: number | null; created_at: string }
 export interface AnalystInfo { engine: 'claude' | 'template'; key_source: '' | 'ui' | 'env'; key_hint: string; model: string; models: { id: string; label: string }[]; daily_budget_idr: number; spent_today_idr: number; runs_today: number; can_configure: boolean; can_schedule: boolean; min_gap_minutes: number }
 export interface ScheduleRunBrief { id: string; status: RunStatus; started_at: string; finished_at: string | null; cost_idr: number }
 export type RunStatus = 'running' | 'ok' | 'template' | 'error'

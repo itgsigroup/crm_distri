@@ -144,9 +144,10 @@ func (s *Server) revokeMCPClient(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) mcpCalls(w http.ResponseWriter, r *http.Request) {
 	n, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	if n <= 0 || n > 100 {
+	if n <= 0 {
 		n = 20
 	}
+	n = min(n, 500) // Riwayat MCP pages through the latest 500 in the browser
 	rows, err := s.st.Q.ListMCPCalls(r.Context(), int32(n))
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())

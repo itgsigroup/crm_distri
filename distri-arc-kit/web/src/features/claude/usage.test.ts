@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RUN_COMPARE, dur, hourly, modelLabel, rpAI, tok, type AIRun } from './usage'
+import { RUN_COMPARE, argsText, dur, hourly, modelLabel, rpAI, tok, type AIRun } from './usage'
 
 const run = (x: Partial<AIRun>): AIRun => ({ kind: 'cycle', id: '1', title: 'Siklus #1', trigger: 'schedule', by: '', via: 'api', status: 'done', started_at: '2026-10-10T01:00:00Z', duration_ms: 1000, model: 'claude-sonnet-5-5', calls: 2, tokens_in: 100, tokens_out: 20, cost_idr: 50, ...x })
 
@@ -21,10 +21,18 @@ describe('pemakaian AI', () => {
     expect(modelLabel('claude-opus-5-5, gpt-4.1')).toBe('Claude Opus 5.5, gpt-4.1')
     expect(modelLabel('template')).toBe('Template (tanpa AI)')
     expect(modelLabel('fake')).toBe('Template (tanpa AI)')
+    expect(modelLabel('claude.ai')).toBe('Claude (akun claude.ai)')
   })
 
   it('sorts the history by cost and tokens', () => {
     expect(RUN_COMPARE.cost_idr(run({ cost_idr: 10 }), run({ cost_idr: 90 }))).toBeLessThan(0)
     expect(RUN_COMPARE.tokens(run({ tokens_in: 900 }), run({ tokens_in: 100 }))).toBeGreaterThan(0)
+  })
+})
+
+describe('riwayat MCP', () => {
+  it('shows call arguments short', () => {
+    expect(argsText({ dealer_id: 'mitra', limit: 10 })).toBe('dealer_id=mitra, limit=10')
+    expect(argsText(null)).toBe('')
   })
 })

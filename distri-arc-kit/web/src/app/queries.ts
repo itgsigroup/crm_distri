@@ -114,9 +114,10 @@ export const usePlan = (sales?: string) => useQuery({ queryKey: ['plan', 'today'
 export const useAutonomy = () => useQuery({ queryKey: ['policies', 'autonomy'], queryFn: () => api.get<AutonomyPolicy>('/policies/autonomy') })
 
 // ---------- MCP ----------
-export const useMCPInfo = () => useQuery({ queryKey: ['mcp', 'info'], queryFn: () => api.get<MCPInfo>('/mcp/info') })
-export const useMCPClients = () => useQuery({ queryKey: ['mcp', 'clients'], queryFn: () => api.get<Items<MCPClient>>('/mcp/clients').then((r) => r.items) })
-export const useMCPCalls = () => useQuery({ queryKey: ['mcp', 'calls'], queryFn: () => api.get<Items<MCPCall>>('/mcp/calls?limit=20').then((r) => r.items) })
+export const useMCPInfo = () => useQuery({ queryKey: ['mcp', 'info'], queryFn: () => api.get<MCPInfo>('/mcp/info'), refetchInterval: 30_000 })
+// MCP Claude loads itself: a new Claude connection or tool call shows without reloading the page
+export const useMCPClients = () => useQuery({ queryKey: ['mcp', 'clients'], queryFn: () => api.get<Items<MCPClient>>('/mcp/clients').then((r) => r.items), refetchInterval: 15_000 })
+export const useMCPCalls = (limit = 20) => useQuery({ queryKey: ['mcp', 'calls', limit], queryFn: () => api.get<Items<MCPCall>>(`/mcp/calls?limit=${limit}`).then((r) => r.items), refetchInterval: 10_000 })
 export const useAnalyst = () => useQuery({ queryKey: ['mcp', 'analyst'], queryFn: () => api.get<AnalystInfo>('/mcp/analyst') })
 export const useSchedules = () => useQuery({ queryKey: ['mcp', 'schedules'], queryFn: () => api.get<Items<Schedule>>('/mcp/schedules').then((r) => r.items) })
 export const useScheduleRuns = (id: string) => useQuery({ queryKey: ['mcp', 'runs', id], queryFn: () => api.get<Items<ScheduleRun>>(`/mcp/schedules/${id}/runs?limit=30`).then((r) => r.items) })
