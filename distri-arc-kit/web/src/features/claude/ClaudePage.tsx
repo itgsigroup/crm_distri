@@ -9,6 +9,7 @@ import { hhmm, shortDate } from '../../lib/format'
 import { useMCPCalls, useMCPClients, useMCPInfo, useMCPPolicy, useMe } from '../../app/queries'
 import { useMore } from '../../components/More'
 import { Schedules } from './Schedules'
+import { AIUsage } from './AIUsage'
 import { PROMPTS, SCOPE } from './shared'
 
 function copy(text: string, toast: (m: string) => void) {
@@ -227,6 +228,7 @@ export function ClaudePage() {
           <div className="ep" style={{ marginTop: 10 }}><span>{endpoint}</span><button className="btn ghost" onClick={() => copy(endpoint, toast)}>Salin URL</button></div>
         </div>
       </div>
+      <AIUsage />
       <Schedules />
       <div className="ai-grid">
         <div className="stack">

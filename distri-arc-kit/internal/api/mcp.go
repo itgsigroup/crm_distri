@@ -24,6 +24,7 @@ func (s *Server) mcpRoutes(r chi.Router) {
 	r.Post("/mcp/clients", s.createMCPClient)
 	r.Delete("/mcp/clients/{id}", s.revokeMCPClient)
 	r.Get("/mcp/calls", s.mcpCalls)
+	r.Get("/mcp/usage", s.aiUsage)
 	r.Get("/oauth/requests/{id}", s.oauthRequest)
 	r.Post("/oauth/requests/{id}/approve", s.oauthDecide(true))
 	r.Post("/oauth/requests/{id}/deny", s.oauthDecide(false))

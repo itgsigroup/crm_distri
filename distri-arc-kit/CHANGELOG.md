@@ -304,3 +304,11 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Angka di halaman sales kini milik sales itu juga: langkah otonom (rencana hari ini), sinyal (WA/SO/pembayaran dealernya), dan konflik diselesaikan — sebelumnya angka siklus seluruh tim.
 - Keamanan: peran mana pun dengan cakupan data **"Milik sendiri"** (Peran & akses) kini dibatasi di server, tidak hanya peran sales.
 - `/sales` membawa `user_id`/`user_name` pemegangnya. Test `SalesPicker.test.ts`.
+
+## MCP Claude → Pemakaian AI · 2026-10-10
+- Kartu baru **Pemakaian AI** di halaman MCP Claude, untuk kedua jenis analisis AI:
+  - **Siklus Orchestrator** — model yang dipakai (mis. Claude Sonnet 5.5, cadangan OpenAI) atau *Template* bila API key belum diisi, jalur analisis (API AI / MCP), **setiap** "Tiap jam 06.00–20.00 WIB" + jadwal berikutnya, harga model per 1 jt token.
+  - **Analisis terjadwal (MCP)** — model, jadwal aktif (mis. "Ringkasan pagi · Senin–Sabtu pukul 07.00" + berikutnya), jumlah analisis & biaya hari ini terhadap anggaran harian (bar).
+- **Biaya**: hari ini, 7 hari, 30 hari (panggilan model, token masuk/keluar, rupiah perkiraan) dan tabel **per model** 30 hari.
+- **Riwayat analisis**: gabungan siklus Orchestrator dan analisis terjadwal — waktu, pemicu (terjadwal / manual / MCP + siapa), model, token, biaya, durasi, status; filter jenis, pencarian, urut asc/desc, paginasi. Diperbarui tiap menit.
+- API `GET /mcp/usage` (menu MCP Claude/Pengaturan; sales tidak melihat biaya). Test `TestAIUsageShowsModelCostAndHistory`, `usage.test.ts`.

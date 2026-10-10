@@ -900,3 +900,35 @@ body.map-maximized{overflow:hidden}
 .sf-chips small{font-weight:500;opacity:.7;font-size:11px}
 .sales-filter .sales-pick{box-shadow:none;border:1px solid var(--line-strong);height:32px;padding-left:12px}
 .sales-filter.locked .sales-pick{border:0}
+
+/* MCP Claude → Pemakaian AI */
+.au{display:flex;flex-direction:column;gap:14px}
+.au-engines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.au-engine{padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);display:flex;flex-direction:column;gap:10px;min-width:0}
+.au-eh{display:flex;gap:10px;align-items:center}
+.au-eh b{display:block;font-size:14px}
+.au-eh small{font-size:12px;color:var(--text-3)}
+.au-ic{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#D97706;color:#fff}
+.au-ic.mcp{background:#5E5CE6}
+.au-ic .i{width:17px;height:17px}
+.au-engine dl{margin:0;display:flex;flex-direction:column;gap:7px}
+.au-engine dl div{display:grid;grid-template-columns:86px minmax(0,1fr);gap:10px;font-size:12.5px}
+.au-engine dt{color:var(--text-3)}
+.au-engine dd{margin:0;font-weight:600;color:var(--text);display:flex;flex-direction:column;gap:2px}
+.au-engine dd small{font-weight:500;color:var(--text-3)}
+.au-sch{font-weight:600}
+.au-budget{height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden}
+.au-budget i{display:block;height:100%;background:var(--good);border-radius:3px}
+.au-budget i.warn{background:var(--warn)}.au-budget i.bad{background:var(--bad)}
+.au-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.au-tile{padding:12px 14px;border-radius:14px;background:var(--surface-2);display:flex;flex-direction:column;gap:3px}
+.au-tile small{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.au-tile b{font-family:var(--font-display);font-size:22px}
+.au-tile span{font-size:11.5px;color:var(--text-3)}
+.au-models{min-width:620px}
+.au-hist{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.au-hh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.au-hh h3{margin:0;font-size:14px;font-family:var(--font-display)}
+.au-hh .seg small{opacity:.7;font-weight:500}
+.au-sub{display:block;font-size:11.5px;color:var(--text-3)}
+@media (max-width:900px){.au-engines,.au-tiles{grid-template-columns:1fr}}
