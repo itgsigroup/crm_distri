@@ -8,4 +8,4 @@ User=arc
 Group=arc
 EnvironmentFile=/etc/distri-arc/env
 Environment=BACKUP_DIR=/var/backups/distri-arc
-ExecStart=/opt/distri-arc/infra/backup.sh
+ExecStart=/var/www/crm_distri/infra/backup.sh

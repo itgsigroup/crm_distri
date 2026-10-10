@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Deploy from GitHub on a server with nginx + systemd (docs/DEPLOY.md §C). Run as root:
-#   /opt/distri-arc/repo/distri-arc-kit/infra/deploy.sh [branch]      (DEPLOY_NO_FETCH=1: build the checked-out commit)
+#   /var/www/crm_distri/repo/distri-arc-kit/infra/deploy.sh [branch]      (DEPLOY_NO_FETCH=1: build the checked-out commit)
 # Pulls the branch (deploy key of the arc user), builds bin/arc and web/dist as arc, installs them into
-# /opt/distri-arc/{bin,web,infra}, migrates, restarts api + worker, and checks /api/health. A failed build or
+# /var/www/crm_distri/{bin,web,infra}, migrates, restarts api + worker, and checks /api/health. A failed build or
 # migration leaves the running version untouched.
 set -euo pipefail
 
 BRANCH="${1:-${DEPLOY_BRANCH:-distri-arc-orbit}}"
 REPO_URL="${REPO_URL:-git@github.com:itgsigroup/crm_distri.git}"
-ROOT=/opt/distri-arc
+ROOT=/var/www/crm_distri
 SRC="$ROOT/repo"
 KIT="$SRC/distri-arc-kit"
 ENV_FILE=/etc/distri-arc/env

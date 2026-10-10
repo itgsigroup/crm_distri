@@ -1,4 +1,4 @@
-# Bare-metal alternative to docker-compose.prod.yml (docs/DEPLOY.md §B/§C): /opt/distri-arc/bin/arc + /etc/distri-arc/env.
+# Bare-metal alternative to docker-compose.prod.yml (docs/DEPLOY.md §B/§C): /var/www/crm_distri/bin/arc + /etc/distri-arc/env.
 # Migrations run in infra/deploy.sh before the binary is switched.
 [Unit]
 Description=Distri ARC Orbit API
@@ -9,7 +9,7 @@ Wants=network-online.target
 User=arc
 Group=arc
 EnvironmentFile=/etc/distri-arc/env
-ExecStart=/opt/distri-arc/bin/arc api
+ExecStart=/var/www/crm_distri/bin/arc api
 Restart=always
 RestartSec=3
 NoNewPrivileges=true
