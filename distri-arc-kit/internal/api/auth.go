@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net"
@@ -273,6 +274,12 @@ func (s *Server) updateUser(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	if p.Name != nil && *p.Name != deref(cur.Name) { // a new name shows everywhere the person appears
+		if err := s.renamePerson(r.Context(), id, cur.SalesUserID, *p.Name); err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+	}
 	if ro != nil {
 		if err := s.st.Q.SetUserProfile(r.Context(), gen.SetUserProfileParams{ID: id, RoleKey: &ro.Key, Role: &ro.Base}); err != nil {
 			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
@@ -296,7 +303,7 @@ func (s *Server) updateUser(w http.ResponseWriter, r *http.Request) {
 	if ro != nil {
 		roleKey = ro.Key
 	}
-	s.auditUser(r, "user.update", "user:"+id.String(), map[string]any{"role": roleKey, "branch": branch, "active": b.Active, "password_reset": b.Password != ""})
+	s.auditUser(r, "user.update", "user:"+id.String(), map[string]any{"role": roleKey, "branch": branch, "active": b.Active, "password_reset": b.Password != "", "name": p.Name})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -396,4 +403,20 @@ func (s *Server) totpDisable(w http.ResponseWriter, r *http.Request) {
 	}
 	s.auditUser(r, "auth.totp_disabled", "user", map[string]any{"user_id": u.ID})
 	httpx.JSON(w, http.StatusOK, map[string]any{"totp_enabled": false, "message": "2FA dimatikan"})
+}
+
+// renamePerson carries a user's new name to their own sales profile (dealer owner, decisions, agenda) and to their
+// Claude connections ("Claude · <name>"). A profile imported from BigQuery keeps the source's spelling (the import
+// would write it back anyway; Mapping sales links it to the user).
+func (s *Server) renamePerson(ctx context.Context, userID uuid.UUID, profile *uuid.UUID, name string) error {
+	return s.st.Tx(ctx, func(_ *gen.Queries, tx pgx.Tx) error {
+		if profile != nil {
+			if _, err := tx.Exec(ctx, "update sales_users set name = $2 where id = $1 and source_system is distinct from 'import'", *profile, name); err != nil {
+				return err
+			}
+		}
+		_, err := tx.Exec(ctx, `update mcp_clients set name = case when position(' · ' in name) > 0 then split_part(name, ' · ', 1) || ' · ' || $2 else name end
+			where user_id = $1 and kind = 'oauth'`, userID, name)
+		return err
+	})
 }

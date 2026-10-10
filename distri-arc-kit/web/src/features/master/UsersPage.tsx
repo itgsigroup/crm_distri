@@ -29,7 +29,8 @@ function UserSheet({ user }: { user?: UserRow }) {
     },
     onSuccess: () => {
       toast(user ? 'Pengguna diperbarui' : 'Pengguna ditambahkan')
-      for (const k of ['users', 'roles', 'branches', 'wa']) qc.invalidateQueries({ queryKey: [k] })
+      // a new name shows at once in the rail (me), Claude connections (mcp) and the sales lists
+      for (const k of ['users', 'roles', 'branches', 'wa', 'me', 'mcp', 'sales', 'sales-map']) qc.invalidateQueries({ queryKey: [k] })
       closeSheet()
     },
     onError: (e: Error) => toast(e.message),
