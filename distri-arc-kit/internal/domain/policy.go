@@ -119,6 +119,9 @@ type LLMRouting struct {
 	Fallback   string `json:"fallback"`
 	BatchHours []int  `json:"batch_hours"`
 	Timezone   string `json:"timezone"`
+	// RequireAI: every analysis comes from a model (Claude API, or Claude through MCP); an agent nobody's model
+	// answered fails — no template proposals, briefs or reports. Default on; the sample data (seed) turns it off.
+	RequireAI bool `json:"require_ai"`
 }
 
 type Retention struct {
@@ -178,7 +181,7 @@ func DefaultPolicies() PolicySet {
 	p.OdooWrite = OdooWritePolicy{Notes: true}
 	p.Guard = AutonomyGuard{MinConfidence: 0.8, DealerMessages: "confirm"}
 	p.MCP = MCPPermissions{AllowReanalyze: true, AllowPlanUpdateProposal: true, MaskPIIInRead: true, MaxCyclesPerHour: 6}
-	p.LLM = LLMRouting{Mode: "both", Provider: "anthropic", Model: "claude-sonnet-5-5", Fallback: "openai:gpt-4.1", BatchHours: []int{6, 20}, Timezone: "Asia/Jakarta"}
+	p.LLM = LLMRouting{Mode: "both", Provider: "anthropic", Model: "claude-sonnet-5-5", Fallback: "openai:gpt-4.1", BatchHours: []int{6, 20}, Timezone: "Asia/Jakarta", RequireAI: true}
 	p.Retention = Retention{ChatDays: 90, SignalsMonths: 24, LLMCallsDays: 180}
 	p.Pilot = PilotPolicy{Mode: "off", Branch: "Semarang", ShadowDays: 14, UnlockConfidence: 80, UnlockWeeks: 2, MinDecisionsPerWeek: 5, Unlocked: []string{}}
 	return p

@@ -325,3 +325,10 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 
 ## Ganti nama pengguna menjalar ke semua tempat · 2026-10-10
 - Mengganti **Nama** di Master data → Pengguna kini juga mengganti nama profil sales pengguna itu (pemilik dealer, keputusan, agenda) dan nama koneksi Claude-nya ("Claude · Sam Setiadi" → "Claude · Admin"). Profil yang berasal dari BigQuery tetap memakai ejaan sumber. Rail, Mapping sales, dan MCP Claude langsung memperbarui nama tanpa reload. Test `TestRenameUserCarriesToProfileAndClaude`.
+
+## Wajib AI — template dihapus dari analisis · 2026-10-10
+- Kebijakan baru **wajib AI** (`llm.routing.require_ai`, aktif di produksi): semua analisis harus dari AI; yang tidak dikerjakan AI dicatat **Gagal** — tidak ada lagi usulan, ringkasan, atau laporan template.
+- **Tanpa API key**, siklus Orchestrator otomatis memakai **jalur MCP**: data tiap agen diterbitkan ke Claude dan siklus menunggu `MCP_WAIT` (baru, bawaan 10 menit). Agen yang dikirimi analisis oleh Claude (`orchestrator_submit`) menghasilkan usulan bersumber MCP; yang tidak = **Gagal**; tak satu pun = siklus **Gagal** dengan petunjuk "minta Claude: jalankan analisis GSI Orbit". Diuji lokal: tanpa jawaban → siklus #6 Gagal, 6 agen gagal, 0 usulan baru; dengan jawaban Claude untuk AI Kredit → 2 usulan dari MCP, 5 agen Gagal, siklus Sebagian.
+- **Dengan API key**, usulan yang teksnya tidak ditulis model dibuang dan agennya Gagal.
+- **Ringkasan Orchestrator** hanya ditulis AI; Pusat kendali menampilkan "Belum ada ringkasan dari AI" (bukan kalimat template). **Analisis terjadwal** tanpa kunci Claude = Gagal.
+- MCP Claude → Pemakaian AI: kotak "Wajib AI", model "Claude lewat MCP" / "Tanpa AI — gagal", riwayat siklus "x/6 agen dianalisis AI" dan jumlah usulan dari Claude (MCP); siklus lama ditandai "tanpa AI (template, sebelum wajib AI)". ADR 0025.

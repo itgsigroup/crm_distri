@@ -188,6 +188,13 @@ func polish(ctx context.Context, r *llm.Router, in *Input, p *domain.Proposal, p
 		}
 		return nil
 	})
+	if p.Payload == nil {
+		p.Payload = map[string]any{}
+	}
+	p.Payload[TextBy] = res.Provider // policy require_ai keeps only proposals a model wrote
+	if llm.FromModel(res) {
+		p.Payload[TextBy] = "ai"
+	}
 	var a answer
 	if json.Unmarshal(res.JSON, &a) != nil {
 		return
@@ -202,6 +209,15 @@ func polish(ctx context.Context, r *llm.Router, in *Input, p *domain.Proposal, p
 	case res.Provider != "fake":
 		p.Confidence = math.Round(a.Confidence*100) / 100
 	}
+}
+
+// TextBy is the payload key telling who wrote a proposal's text: "ai" (a model), else the provider that answered
+// without a model (fake, template). Proposals from MCP clients carry source=mcp instead.
+const TextBy = "text_by"
+
+// ByAI: the proposal's text came from a model — Claude API (text_by=ai) or Claude through MCP (source=mcp).
+func ByAI(p domain.Proposal) bool {
+	return p.Payload != nil && (p.Payload[TextBy] == "ai" || p.Payload["source"] == "mcp")
 }
 
 type invalidErr struct{}

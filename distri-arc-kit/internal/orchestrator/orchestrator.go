@@ -316,7 +316,9 @@ func (o *Orchestrator) agentList(sc domain.Scope) []agents.Agent {
 
 func (o *Orchestrator) analyze(ctx context.Context, r *stageRun) (map[string]any, error) {
 	list := o.agentList(r.scope)
-	if r.in.Policies.LLM.Mode == "mcp" {
+	strict := r.in.Policies.LLM.RequireAI
+	// without a model on the server, a cycle that must be analysed by AI goes to Claude through MCP
+	if r.in.Policies.LLM.Mode == "mcp" || (strict && !o.Router.HasModel()) {
 		return o.analyzeViaMCP(ctx, r, list)
 	}
 	r.byAgent = map[string][]domain.Proposal{}
@@ -331,12 +333,20 @@ func (o *Orchestrator) analyze(ctx context.Context, r *stageRun) (map[string]any
 			defer cancel()
 			ps, err := a.Analyze(actx, r.in, o.Router)
 			var valid []domain.Proposal
+			notAI := 0
 			for _, p := range ps {
 				if verr := p.Validate(a.Kinds()); verr != nil {
 					o.log().Warn("proposal rejected by domain", "agent", a.Name(), "title", p.Title, "err", verr)
 					continue
 				}
+				if strict && !agents.ByAI(p) { // require_ai: a proposal the model did not write is dropped, never shown as template
+					notAI++
+					continue
+				}
 				valid = append(valid, p)
+			}
+			if err == nil && strict && notAI > 0 && len(valid) == 0 {
+				err = fmt.Errorf("AI tidak menjawab untuk %d usulan — tanpa template (wajib AI)", notAI)
 			}
 			status, msg := "done", (*string)(nil)
 			if err != nil {
@@ -372,6 +382,9 @@ func (o *Orchestrator) analyze(ctx context.Context, r *stageRun) (map[string]any
 	text := fmt.Sprintf("%d agen paralel", len(list)) //nolint:misspell // Indonesian UI text
 	if len(list) == 1 {
 		text = list[0].Name()
+	}
+	if strict && len(list) > 0 && len(r.errs) == len(list) {
+		return nil, fmt.Errorf("tidak ada analisis AI: semua %d agen gagal (wajib AI, tanpa template)", len(list))
 	}
 	return map[string]any{"agents": len(list), "proposals": n, "failed": len(r.errs), "partial": len(r.errs) > 0, "text": text}, nil
 }
@@ -416,7 +429,7 @@ func (o *Orchestrator) synthesize(ctx context.Context, r *stageRun) (map[string]
 		one := *r.in
 		one.Dealers = []*agents.Dealer{d}
 		ps, err := agents.Collect{}.Analyze(ctx, &one, o.Router)
-		if err != nil || len(ps) == 0 {
+		if err != nil || len(ps) == 0 || (r.in.Policies.LLM.RequireAI && !agents.ByAI(ps[0])) {
 			return nil
 		}
 		return &ps[0]

@@ -184,7 +184,7 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 		}
 	}
 
-	err := s.Tx(ctx, func(q *gen.Queries, _ pgx.Tx) error {
+	err := s.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
 		ss := sourceSystem
 		salesID := map[string]uuid.UUID{}
 		for _, u := range sales {
@@ -375,7 +375,10 @@ func Run(ctx context.Context, s *store.Store, fsys fs.FS) (Result, error) {
 				return err
 			}
 		}
-		return nil
+		// the sample data runs without a model (LLM_PROVIDER=fake): its agents may write template text
+		_, err := tx.Exec(ctx, `update policies set value = jsonb_set(value, '{require_ai}', 'false')
+			where key = 'llm.routing' and not (value ? 'require_ai')`)
+		return err
 	})
 	if err == nil {
 		err = s.Q.EnsureBranches(ctx) // the branch master starts with the branches in use

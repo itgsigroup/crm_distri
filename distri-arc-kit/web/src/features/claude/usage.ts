@@ -19,12 +19,19 @@ export interface AIRun {
   cost_idr: number
   /** steps answered without a model (template text from the agent's rules, no cost) */
   template_steps?: number
+  agents?: number
+  failed_agents?: number
+  /** proposals Claude sent through MCP for this cycle */
+  mcp_proposals?: number
 }
 export interface AIUsage {
-  orchestrator: { engine: 'claude' | 'template'; mode: string; provider: string; model: string; fallback: string; from_hour: number; to_hour: number; next_run_at: string }
+  /** policy llm.routing.require_ai: every analysis from a model; no answer = failed (no template) */
+  require_ai?: boolean
+  mcp_wait_sec?: number
+  orchestrator: { engine: 'claude' | 'template' | 'mcp'; mode: string; provider: string; model: string; fallback: string; from_hour: number; to_hour: number; next_run_at: string }
   /** Claude's own connections through MCP (claude.ai, Desktop, Code) — paid by the Claude subscription */
   mcp: { connections: { name: string; kind: string; user: string; last_seen_at: string | null; calls_today: number }[]; calls_today: number; sessions_30d: number; last_at: string | null }
-  analyst: { engine: 'claude' | 'template'; model: string; daily_budget_idr: number; spent_today_idr: number; runs_today: number }
+  analyst: { engine: 'claude' | 'template' | 'none'; model: string; daily_budget_idr: number; spent_today_idr: number; runs_today: number }
   cost: { today: UsageTotals; d7: UsageTotals; d30: UsageTotals; by_model: UsageModel[]; daily: { day: string; calls: number; cost_idr: number }[] }
   prices: Record<string, { in_usd_per_mtok: number; out_usd_per_mtok: number }>
   idr_per_usd: number
@@ -63,8 +70,10 @@ export function modelLabel(m: string): string {
   if (!m) return '—'
   if (m === 'template' || m === 'fake') return 'Template (tanpa AI)'
   if (m === 'claude.ai') return 'Claude (akun claude.ai)'
+  if (m === 'none') return 'Tanpa AI — gagal'
   return m.split(', ').map((x) => {
     if (x === 'fake' || x === 'template') return 'Template (tanpa AI)'
+    if (x === 'claude.ai') return 'Claude (akun claude.ai)'
     const c = /^claude-([a-z]+)-(\d+)-(\d+)$/.exec(x)
     return c ? `Claude ${c[1][0].toUpperCase()}${c[1].slice(1)} ${c[2]}.${c[3]}` : x
   }).join(', ')
@@ -100,3 +109,10 @@ export const CALL_COMPARE: Record<CallColumn, (a: MCPCallRow, b: MCPCallRow) => 
   duration_ms: (a, b) => (a.duration_ms ?? -1) - (b.duration_ms ?? -1),
 }
 export const callFirstDir = (c: CallColumn): 'asc' | 'desc' => (c === 'created_at' || c === 'duration_ms' ? 'desc' : 'asc')
+
+/** "10 menit", "25 detik" — how long a cycle waits for Claude's analysis through MCP. */
+export const waitText = (sec = 600) => (sec >= 60 ? `${Math.round(sec / 60)} menit` : `${sec} detik`)
+
+/** Agents of a cycle a model analysed: none for a template cycle (before require_ai), else those not failed. */
+export const aiAgents = (r: Pick<AIRun, 'model' | 'agents' | 'failed_agents'>) =>
+  !r.agents || r.model === 'template' || r.model === 'none' ? 0 : r.agents - (r.failed_agents ?? 0)

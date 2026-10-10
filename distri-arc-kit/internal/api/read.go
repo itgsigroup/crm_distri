@@ -13,6 +13,7 @@ import (
 	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/httpx"
+	"distri-arc/internal/policy"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
 )
@@ -473,7 +474,12 @@ func nonNil[T any](v []T) []T {
 
 func (s *Server) briefToday(w http.ResponseWriter, r *http.Request) {
 	_, scoped := salesScope(r) // the stored brief covers every sales: one sales' page gets a brief from their dealers
-	if row, err := s.st.Q.GetBrief(r.Context(), clockToday(s)); err == nil && !scoped {
+	requireAI := false
+	if pol, err := policy.Load(r.Context(), s.st.Q); err == nil {
+		requireAI = pol.LLM.RequireAI
+	}
+	// require_ai: a brief stored before (template sentences) is not shown — only one an AI wrote
+	if row, err := s.st.Q.GetBrief(r.Context(), clockToday(s)); err == nil && !scoped && (!requireAI || row.Source == "llm") {
 		// written by the last full cycle (text + signal_ids per point); lists normalised for briefs stored by older builds
 		var stored views.Brief
 		if json.Unmarshal(row.Brief, &stored) == nil {
@@ -520,6 +526,9 @@ func (s *Server) briefToday(w http.ResponseWriter, r *http.Request) {
 		branches[x.Branch] = true
 	}
 	brief := b.TemplateBrief(st, views.BriefCounts{WA: c.Wa, SO: c.So, Payments: c.Payments, Branches: len(branches)})
+	if requireAI { // no AI summary yet: the counts only, no template sentences
+		brief.Points, brief.Source = []views.BriefPoint{}, "none"
+	}
 	if cyc, err := s.st.Q.LatestFullCycle(r.Context()); err == nil {
 		brief.Cycle, brief.GeneratedAt = cyc.Number, cyc.StartedAt // Ringkasan Orchestrator · <time of the last cycle>
 	}

@@ -345,10 +345,12 @@ func (o *Orchestrator) Submit(ctx context.Context, cycleID uuid.UUID, agent stri
 	return res, nil
 }
 
-// analyzeViaMCP is Analisis when policy llm.routing.mode = mcp: the Input of each agent is published for MCP
-// clients; the stage waits for their submissions (MCPWait, default 10 minutes) and falls back to the Go
-// templates for agents nobody answered (stage partial).
+// analyzeViaMCP is Analisis when policy llm.routing.mode = mcp, or when AI is required and the server has no
+// model: the Input of each agent is published for MCP clients; the stage waits for their submissions (MCPWait,
+// default 10 minutes). Agents nobody answered fail when require_ai is on (no answer at all: the cycle fails),
+// otherwise they fall back to the Go templates (stage partial).
 func (o *Orchestrator) analyzeViaMCP(ctx context.Context, r *stageRun, list []agents.Agent) (map[string]any, error) {
+	strict := r.in.Policies.LLM.RequireAI
 	fallback := map[string][]domain.Proposal{}
 	cid := r.cyc.ID
 	var waiting []string
@@ -397,16 +399,23 @@ func (o *Orchestrator) analyzeViaMCP(ctx context.Context, r *stageRun, list []ag
 	for _, a := range list {
 		name := a.Name()
 		status := "done"
+		var errText *string
 		if raw, ok := submitted[name]; ok {
 			var ps []domain.Proposal
 			_ = json.Unmarshal(raw, &ps) // validated and unmasked by Submit
 			r.byAgent[name] = ps
 			fromMCP++
+		} else if strict {
+			// require_ai: nobody's model answered this agent — it fails; no template proposals
+			status = "failed"
+			e := fmt.Sprintf("Claude (MCP) tidak mengirim analisis dalam %s — tanpa template (wajib AI)", waitLabel(wait))
+			errText = &e
+			r.errs[name] = e
 		} else {
 			r.byAgent[name] = fallback[name]
 			status = "template"
 		}
-		_ = o.St.Q.InsertAgentRun(ctx, gen.InsertAgentRunParams{CycleID: &cid, Agent: name, Status: &status, ProposalsCount: i32(len(r.byAgent[name]))})
+		_ = o.St.Q.InsertAgentRun(ctx, gen.InsertAgentRunParams{CycleID: &cid, Agent: name, Status: &status, ProposalsCount: i32(len(r.byAgent[name])), Error: errText})
 	}
 	n := 0
 	for _, a := range list {
@@ -420,6 +429,17 @@ func (o *Orchestrator) analyzeViaMCP(ctx context.Context, r *stageRun, list []ag
 		}
 	}
 	partial := fromMCP < len(waiting)
+	if strict && len(waiting) > 0 && fromMCP == 0 {
+		return nil, fmt.Errorf("tidak ada analisis AI: Claude (MCP) tidak mengirim analisis untuk %d agen dalam %s — buka Claude dan minta \"jalankan analisis GSI Orbit\" (wajib AI, tanpa template)", len(waiting), waitLabel(wait))
+	}
 	return map[string]any{"agents": len(list), "proposals": n, "via": "mcp", "mcp_agents": fromMCP, "partial": partial,
 		"text": fmt.Sprintf("%d/%d agen lewat MCP", fromMCP, len(waiting))}, nil
+}
+
+// waitLabel: "10 menit", "45 detik".
+func waitLabel(d time.Duration) string {
+	if d >= time.Minute {
+		return fmt.Sprintf("%d menit", int(d.Minutes()))
+	}
+	return fmt.Sprintf("%d detik", int(d.Seconds()))
 }

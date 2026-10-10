@@ -27,6 +27,7 @@ import (
 	"distri-arc/internal/llm"
 	"distri-arc/internal/mcp"
 	"distri-arc/internal/orchestrator"
+	"distri-arc/internal/policy"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 )
@@ -224,6 +225,18 @@ func (r *Runner) execute(ctx context.Context, sch gen.McpSchedule) outcome {
 	cfg := LoadConfig(ctx, r.St.Q)
 	key, _ := LoadKey(ctx, r.St.Q, r.SessionKey, r.EnvKey)
 	spent, _ := r.St.Q.AnalystCostSince(ctx, clock.Today(r.Clock.Now()))
+	strict := true
+	if pol, err := policy.Load(ctx, r.St.Q); err == nil {
+		strict = pol.LLM.RequireAI
+	}
+	if strict { // require_ai: no AI, no report — the run fails instead of writing a template
+		switch {
+		case key == "":
+			return outcome{engine: "none", err: errors.New("wajib AI: kunci Claude API belum diisi (MCP Claude → Analisis terjadwal → Atur mesin) — analisis gagal, tanpa laporan template")}
+		case cfg.DailyBudgetIDR > 0 && spent.Cost >= cfg.DailyBudgetIDR:
+			return outcome{engine: "none", err: fmt.Errorf("wajib AI: anggaran harian %s sudah terpakai (%s) — analisis gagal, tanpa laporan template", rp(cfg.DailyBudgetIDR), rp(spent.Cost))}
+		}
+	}
 	switch {
 	case key == "":
 		return r.template(ctx, cs, "Mode template — kunci Claude API belum diisi (MCP Claude → Analisis terjadwal). Angka dari tool MCP; analisis dan rekomendasi Claude aktif setelah kunci diisi.")
@@ -236,7 +249,7 @@ func (r *Runner) execute(ctx context.Context, sch gen.McpSchedule) outcome {
 	}
 	tools := toolset(srv.Tools(), sch.Scopes)
 	o := r.claude(ctx, cs, newModel(key), cfg.Model, sch, tools)
-	if o.err != nil && o.report == "" {
+	if o.err != nil && o.report == "" && !strict {
 		// keep the numbers coming even when the model fails; the run stays marked as an error
 		t := r.template(ctx, cs, "Claude gagal ("+o.err.Error()+") — laporan template dari tool MCP.")
 		o.report, o.steps = t.report, append(o.steps, t.steps...)

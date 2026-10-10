@@ -47,6 +47,7 @@ type Config struct {
 	AnthropicKey string
 	OpenAIKey    string
 	LLMIDRPerUSD float64 // cost estimate exchange rate (0 = built-in default)
+	MCPWait      time.Duration // how long an Orchestrator cycle waits for Claude's analysis through MCP (MCP_WAIT, default 10m)
 
 	SessionSecret string // HMAC key of session tokens (required outside dev)
 	TruecallerKey string // Truecaller API (fake lookups when empty)
@@ -93,6 +94,7 @@ func Load() Config {
 		AnthropicKey:    get("ANTHROPIC_API_KEY", ""),
 		OpenAIKey:       get("OPENAI_API_KEY", ""),
 		LLMIDRPerUSD:    parseFloat(get("LLM_IDR_PER_USD", "")),
+		MCPWait:         parseDuration(get("MCP_WAIT", "10m")),
 		PublicURL:       get("PUBLIC_URL", ""),
 		TruecallerKey:   get("TRUECALLER_API_KEY", ""),
 		SessionSecret:   get("SESSION_SECRET", ""),
@@ -169,4 +171,13 @@ func (c Config) SessionKey() []byte {
 		return []byte("distri-arc-dev-session-secret")
 	}
 	return nil
+}
+
+// parseDuration reads "10m", "90s"; an empty or bad value is 0 (the caller's default).
+func parseDuration(v string) time.Duration {
+	d, err := time.ParseDuration(strings.TrimSpace(v))
+	if err != nil || d < 0 {
+		return 0
+	}
+	return d
 }

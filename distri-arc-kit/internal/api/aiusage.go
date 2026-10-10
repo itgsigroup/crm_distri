@@ -39,6 +39,10 @@ type AIRun struct {
 	CostIDR    int64     `json:"cost_idr"`
 	// TemplateSteps: steps answered without a model (LLM_PROVIDER=fake / failed call) — template text, no cost
 	TemplateSteps int64 `json:"template_steps"`
+	// Agents / FailedAgents of a cycle: with require_ai an agent no model answered fails
+	Agents       int64 `json:"agents"`
+	FailedAgents int64 `json:"failed_agents"`
+	MCPProposals int64 `json:"mcp_proposals"` // proposals Claude sent through MCP for this cycle
 }
 
 func (s *Server) aiUsage(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +70,14 @@ func (s *Server) aiUsage(w http.ResponseWriter, r *http.Request) {
 	anEngine := "template"
 	if key != "" {
 		anEngine = "claude"
+	}
+	if pol.LLM.RequireAI { // without a model nothing is written from templates: the analysis fails
+		if orchEngine == "template" {
+			orchEngine = "mcp"
+		}
+		if anEngine == "template" {
+			anEngine = "none"
+		}
 	}
 
 	fail := func(err error) { httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error()) }
@@ -113,12 +125,19 @@ func (s *Server) aiUsage(w http.ResponseWriter, r *http.Request) {
 			d = &v
 		}
 		model := c.Models
-		if model == "" {
+		switch {
+		case model != "" && c.McpProposals > 0:
+			model += ", claude.ai"
+		case model == "" && c.McpProposals > 0:
+			model = "claude.ai" // analysed by Claude through MCP
+		case model == "" && c.Agents > 0 && c.FailedAgents == c.Agents:
+			model = "none" // require_ai: no model answered — failed, no template
+		case model == "":
 			model = "template"
 		}
 		history = append(history, AIRun{Kind: "cycle", ID: c.ID, Title: title, Trigger: c.Trigger, By: c.RequestedBy, Via: c.Via, Status: c.Status,
 			StartedAt: c.StartedAt, DurationMs: d, Model: model, Calls: c.Calls, TokensIn: c.TokensIn, TokensOut: c.TokensOut, CostIDR: c.CostIdr,
-			TemplateSteps: c.TemplateSteps})
+			TemplateSteps: c.TemplateSteps, Agents: c.Agents, FailedAgents: c.FailedAgents, MCPProposals: c.McpProposals})
 	}
 	for _, x := range runs {
 		var d *int64
@@ -127,7 +146,10 @@ func (s *Server) aiUsage(w http.ResponseWriter, r *http.Request) {
 			d = &v
 		}
 		model := x.Model
-		if x.Engine == "template" || model == "" {
+		switch {
+		case x.Engine == "none":
+			model = "none" // require_ai: no model, no report
+		case x.Engine == "template" || model == "":
 			model = "template"
 		}
 		history = append(history, AIRun{Kind: "schedule", ID: x.ID, Title: "Analisis terjadwal · " + x.Name, Trigger: x.Trigger, By: x.TriggeredBy, Via: "mcp",
@@ -169,6 +191,7 @@ func (s *Server) aiUsage(w http.ResponseWriter, r *http.Request) {
 		prices[m] = map[string]float64{"in_usd_per_mtok": p.In, "out_usd_per_mtok": p.Out}
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
+		"require_ai": pol.LLM.RequireAI, "mcp_wait_sec": int(s.mcpWait().Seconds()),
 		"orchestrator": map[string]any{"engine": orchEngine, "mode": pol.LLM.Mode, "provider": pol.LLM.Provider, "model": pol.LLM.Model, "fallback": pol.LLM.Fallback,
 			"from_hour": from, "to_hour": to, "next_run_at": nextHourly(now, from, to)},
 		"mcp":     map[string]any{"connections": nonNil(conns), "calls_today": mcpToday, "sessions_30d": len(sessions), "last_at": mcpLast},
@@ -271,4 +294,11 @@ func mcpSessions(calls []gen.MCPCallsSinceRow) []AIRun {
 	}
 	flush()
 	return out
+}
+
+func (s *Server) mcpWait() time.Duration {
+	if s.cfg.MCPWait > 0 {
+		return s.cfg.MCPWait
+	}
+	return 10 * time.Minute
 }

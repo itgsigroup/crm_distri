@@ -26,6 +26,20 @@ type Router struct {
 type Validator func(json.RawMessage) error
 
 // Complete returns a validated answer; it never fails the caller: on error it returns the fallback.
+// HasModel: a real model answers (not the fake provider of LLM_PROVIDER=fake / no API key).
+func (r *Router) HasModel() bool {
+	if r == nil || r.Primary == nil {
+		return false
+	}
+	_, fake := r.Primary.(*Fake)
+	return !fake
+}
+
+// FromModel: a response a model wrote (not the fake provider, not the template fallback after a failure).
+func FromModel(res Response) bool {
+	return res.Provider != "" && res.Provider != "fake" && res.Provider != "template" && !res.Fallback
+}
+
 func (r *Router) Complete(ctx context.Context, req Request, valid Validator) Response {
 	m := NewMasker()
 	masked := req

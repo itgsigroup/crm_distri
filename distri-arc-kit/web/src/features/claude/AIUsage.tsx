@@ -6,7 +6,7 @@ import { Pill } from '../../components/ui'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { hhmm, shortDate } from '../../lib/format'
 import { useSchedules } from '../../app/queries'
-import { MODE, RUN_COMPARE, TRIGGER, dur, hourly, modelLabel, rpAI, runFirstDir, runText, tok, type AIRun, type AIUsage as Usage, type RunColumn, type UsageTotals } from './usage'
+import { MODE, RUN_COMPARE, aiAgents, waitText, TRIGGER, dur, hourly, modelLabel, rpAI, runFirstDir, runText, tok, type AIRun, type AIUsage as Usage, type RunColumn, type UsageTotals } from './usage'
 
 const useAIUsage = () => useQuery({ queryKey: ['mcp', 'usage'], queryFn: () => api.get<Usage>('/mcp/usage'), refetchInterval: 30_000 })
 
@@ -54,12 +54,26 @@ export function AIUsage() {
     <div className="card au">
       <div className="card-h"><h2>Pemakaian AI</h2><span className="ai" style={{ marginLeft: 6 }}>model · biaya · jadwal · riwayat</span><span className="meta">diperbarui otomatis · biaya perkiraan (kurs Rp{Math.round(data.idr_per_usd).toLocaleString('id-ID')}/USD)</span></div>
 
-      {(o.engine === 'template' || a.engine === 'template') && (
+      {data.require_ai ? (
+        <div className={`au-note ${o.engine === 'claude' && a.engine === 'claude' ? 'ok' : ''}`}>
+          <Icon name={o.engine === 'claude' ? 'check' : 'alert'} />
+          <div>
+            <b>Wajib AI — tanpa template: analisis yang tidak dikerjakan AI dicatat Gagal</b>
+            <span>
+              {o.engine === 'claude'
+                ? <>Siklus Orchestrator dianalisis Claude API ({modelLabel(o.model)}); panggilan yang gagal tidak diganti template — agennya ditandai Gagal.</>
+                : <>Server belum punya API key, jadi setiap siklus menerbitkan data ke <b>Claude lewat MCP</b> dan menunggu {waitText(data.mcp_wait_sec)}. Agen yang tidak dikirimi analisis oleh Claude ditandai <b>Gagal</b>; bila tidak ada satu pun, siklusnya <b>Gagal</b>. Agar dianalisis: buka Claude (konektor GSI Orbit aktif) dan minta <i>"jalankan analisis GSI Orbit"</i> — Claude memanggil <code>orchestrator_run</code> → <code>orchestrator_input_get</code> → <code>orchestrator_submit</code>. Untuk analisis otomatis tiap jam tanpa menunggu, isi <code>LLM_PROVIDER=anthropic</code> dan <code>ANTHROPIC_API_KEY</code> di server.</>}
+              {a.engine !== 'claude' && <> Analisis terjadwal gagal sampai kunci Claude diisi di kartu Analisis terjadwal.</>}
+              {' '}Angka (jadwal order, limit, skor) tetap dihitung dari data asli; AI yang menulis analisis, alasan, dan usulannya.
+            </span>
+          </div>
+        </div>
+      ) : (o.engine === 'template' || a.engine === 'template') && (
         <div className="au-note">
           <Icon name="alert" />
           <div>
-            <b>{m.connections.length ? 'Claude terhubung lewat MCP · analisis otomatis di server masih mode template' : o.engine === 'template' && a.engine === 'template' ? 'AI belum aktif — sistem berjalan dalam mode template' : o.engine === 'template' ? 'Siklus Orchestrator berjalan dalam mode template' : 'Analisis terjadwal berjalan dalam mode template'}</b>
-            <span>Tanpa API key Claude, tidak ada model AI yang dipanggil (di riwayat tertulis "Template (tanpa AI)", dulu "fake"). Ini <b>bukan data karangan</b>: semua angka, status dealer, jadwal order, limit, dan usulan dihitung oleh aturan agen dari data asli (BigQuery/Accurate, WhatsApp). Yang belum ada hanya kalimat alasan &amp; draft pesan yang ditulis ulang oleh Claude — sementara memakai kalimat template dari aturan yang sama. Untuk mengaktifkan Claude: isi <code>LLM_PROVIDER=anthropic</code> dan <code>ANTHROPIC_API_KEY</code> di server{a.engine === 'template' ? ', atau simpan kunci Claude di kartu Analisis terjadwal' : ''}.</span>
+            <b>Mode template (data contoh)</b>
+            <span>Kebijakan "wajib AI" dimatikan untuk data contoh: agen boleh memakai kalimat template dari aturannya sendiri. Semua angka tetap dihitung dari data.</span>
           </div>
         </div>
       )}
@@ -76,7 +90,7 @@ export function AIUsage() {
         <div className="au-engine">
           <div className="au-eh"><span className="au-ic"><Icon name="spark" /></span><div><b>Siklus Orchestrator</b><small>6 agen menganalisis semua dealer · jalur {MODE[o.mode] ?? o.mode}</small></div></div>
           <dl>
-            <div><dt>Model</dt><dd>{o.engine === 'claude' ? <>{modelLabel(o.model)} <small>· cadangan {o.fallback}</small></> : <>Template <small>· API key belum diisi, tanpa biaya</small></>}</dd></div>
+            <div><dt>Model</dt><dd>{o.engine === 'claude' ? <>{modelLabel(o.model)} <small>· cadangan {o.fallback}</small></> : o.engine === 'mcp' ? <>Claude lewat MCP <small>· menunggu {waitText(data.mcp_wait_sec)} per siklus; tanpa jawaban = Gagal</small></> : <>Template <small>· API key belum diisi, tanpa biaya</small></>}</dd></div>
             <div><dt>Setiap</dt><dd>{hourly(o.from_hour, o.to_hour)} <small>· + tombol Analisis ulang</small></dd></div>
             <div><dt>Berikutnya</dt><dd>{when(o.next_run_at)} WIB</dd></div>
             {o.engine === 'claude' && price(o.model) && <div><dt>Harga</dt><dd>${price(o.model).in_usd_per_mtok} / ${price(o.model).out_usd_per_mtok} <small>per 1 jt token masuk / keluar</small></dd></div>}
@@ -85,7 +99,7 @@ export function AIUsage() {
         <div className="au-engine">
           <div className="au-eh"><span className="au-ic mcp"><Icon name="cal" /></span><div><b>Analisis terjadwal (MCP)</b><small>Claude membaca data lewat tool MCP sesuai jadwal</small></div></div>
           <dl>
-            <div><dt>Model</dt><dd>{a.engine === 'claude' ? modelLabel(a.model) : <>Template <small>· kunci Claude belum diisi</small></>}</dd></div>
+            <div><dt>Model</dt><dd>{a.engine === 'claude' ? modelLabel(a.model) : a.engine === 'none' ? <>Tanpa AI — gagal <small>· isi kunci Claude di kartu Analisis terjadwal</small></> : <>Template <small>· kunci Claude belum diisi</small></>}</dd></div>
             <div><dt>Setiap</dt><dd>{active.length ? active.map((s) => <span key={s.id} className="au-sch">{s.name} · {s.description}{s.next_runs[0] ? <small> · berikutnya {when(s.next_runs[0])}</small> : null}</span>) : <small>Belum ada jadwal aktif</small>}</dd></div>
             <div><dt>Hari ini</dt><dd>{a.runs_today} analisis · {rpAI(a.spent_today_idr)}{a.daily_budget_idr > 0 ? <small> dari anggaran {rpAI(a.daily_budget_idr)}</small> : <small> · tanpa batas</small>}</dd></div>
             {a.engine === 'claude' && price(a.model) && <div><dt>Harga</dt><dd>${price(a.model).in_usd_per_mtok} / ${price(a.model).out_usd_per_mtok} <small>per 1 jt token masuk / keluar</small></dd></div>}
@@ -141,7 +155,7 @@ export function AIUsage() {
               {t.shown.map((r) => (
                 <tr key={r.kind + r.id}>
                   <td className="num">{when(r.started_at)}</td>
-                  <td><b>{r.title}</b><small className="au-sub">{TRIGGER[r.trigger] ?? r.trigger}{r.by ? ` · ${r.by}` : ''}{r.kind === 'mcp' ? ` · ${r.calls} panggilan tool` : r.kind === 'schedule' ? ` · ${r.calls} langkah MCP` : r.calls ? ` · ${r.calls} panggilan model AI${r.template_steps ? ` + ${r.template_steps} template` : ''}` : ` · ${r.template_steps ?? 0} langkah template, tanpa AI`}</small></td>
+                  <td><b>{r.title}</b><small className="au-sub">{TRIGGER[r.trigger] ?? r.trigger}{r.by ? ` · ${r.by}` : ''}{r.kind === 'mcp' ? ` · ${r.calls} panggilan tool` : r.kind === 'schedule' ? ` · ${r.calls} langkah MCP` : r.agents && r.model === 'template' ? ` · tanpa AI (template, sebelum wajib AI)` : r.agents ? ` · ${aiAgents(r)}/${r.agents} agen dianalisis AI${r.mcp_proposals ? ` · ${r.mcp_proposals} usulan dari Claude (MCP)` : ''}${r.calls ? ` · ${r.calls} panggilan model` : ''}` : r.calls ? ` · ${r.calls} panggilan model AI${r.template_steps ? ` + ${r.template_steps} template` : ''}` : ` · ${r.template_steps ?? 0} langkah template, tanpa AI`}</small></td>
                   <td>{modelLabel(r.model)}</td>
                   <td className="r num">{r.tokens_in + r.tokens_out ? `${tok(r.tokens_in)} / ${tok(r.tokens_out)}` : '—'}</td>
                   <td className="r num">{r.kind === 'mcp' ? <small className="muted" title="Dibayar langganan Claude, tanpa biaya API di server">langganan</small> : <b>{rpAI(r.cost_idr)}</b>}</td>

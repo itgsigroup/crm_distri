@@ -29,7 +29,7 @@ func newRouter(ctx context.Context, cfg config.Config, st *store.Store, log *slo
 }
 
 func newOrchestrator(ctx context.Context, cfg config.Config, st *store.Store, c clock.Clock, log *slog.Logger) *orchestrator.Orchestrator {
-	return &orchestrator.Orchestrator{St: st, Clock: c, Router: newRouter(ctx, cfg, st, log), Log: log, OdooWrite: cfg.OdooWrite}
+	return &orchestrator.Orchestrator{St: st, Clock: c, Router: newRouter(ctx, cfg, st, log), Log: log, OdooWrite: cfg.OdooWrite, MCPWait: cfg.MCPWait}
 }
 
 // arc ctl reanalyze --scope all|screen:orbit|dealer:<slug>|agent:<name> [--if-empty]

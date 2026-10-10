@@ -249,7 +249,7 @@ export interface BriefPoint {
 }
 export interface Brief {
   generated_at: string
-  source: 'template' | 'llm'
+  source: 'template' | 'llm' | 'none'
   points: BriefPoint[]
   counts: { wa: number; so: number; payments: number; branches: number }
   confidence: number

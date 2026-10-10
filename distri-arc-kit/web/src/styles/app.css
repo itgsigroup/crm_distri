@@ -946,3 +946,5 @@ body.map-maximized{overflow:hidden}
 @keyframes au-pulse{50%{opacity:.3}}
 @media (max-width:1200px){.au-engines{grid-template-columns:1fr 1fr}}
 @media (max-width:900px){.au-engines{grid-template-columns:1fr}}
+.au-note.ok{background:var(--good-soft);border-color:color-mix(in srgb,var(--good) 30%,transparent)}
+.au-note.ok>.i{color:var(--good)}

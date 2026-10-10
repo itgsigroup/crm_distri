@@ -114,10 +114,12 @@ export function ControlCenter() {
 
           <div className="card brief">
             <div className="card-h"><span className="ai">Ringkasan Orchestrator · {brief ? new Date(brief.generated_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '—'}</span><span className="meta">{c ? `Dari ${c.wa} WhatsApp, ${c.so} SO, ${c.payments} pembayaran, stok ${c.branches} cabang` : ''}</span></div>
-            {brief && <BriefPoints brief={brief} />}
+            {brief && (brief.points.length ? <BriefPoints brief={brief} /> : (
+              <p className="cl-empty" style={{ margin: '4px 0 8px' }}>Belum ada ringkasan dari AI hari ini — siklus terakhir tidak dianalisis AI (wajib AI, tanpa template). Minta Claude lewat MCP: <i>"jalankan analisis GSI Orbit"</i>, atau isi API key Claude di server.</p>
+            ))}
             <div className="foot">
               <Prov icon="chat">{c?.wa ?? 0} WhatsApp</Prov><Prov icon="doc">{c?.so ?? 0} SO Odoo</Prov><Prov icon="box">{c?.payments ?? 0} pembayaran</Prov><Prov icon="building">stok {c?.branches ?? 0} cabang</Prov>
-              <Prov style={{ marginLeft: 'auto' }}>{brief?.source === 'template' ? 'template dari metrik' : 'confidence ' + brief?.confidence}</Prov>
+              <Prov style={{ marginLeft: 'auto' }}>{brief?.source === 'none' ? 'belum dianalisis AI' : brief?.source === 'template' ? 'template dari metrik' : 'confidence ' + brief?.confidence}</Prov>
             </div>
           </div>
 

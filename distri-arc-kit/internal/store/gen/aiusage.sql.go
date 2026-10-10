@@ -16,7 +16,10 @@ const cycleAIUsage = `-- name: CycleAIUsage :many
 select c.id, c.number, c.trigger, c.scope, coalesce(c.via, '') as via, coalesce(c.requested_by, '') as requested_by, c.status,
   c.started_at, c.duration_ms,
   coalesce(l.calls, 0)::bigint as calls, coalesce(l.tokens_in, 0)::bigint as tokens_in, coalesce(l.tokens_out, 0)::bigint as tokens_out,
-  coalesce(l.cost_idr, 0)::bigint as cost_idr, coalesce(l.models, '')::text as models, coalesce(l.template_steps, 0)::bigint as template_steps
+  coalesce(l.cost_idr, 0)::bigint as cost_idr, coalesce(l.models, '')::text as models, coalesce(l.template_steps, 0)::bigint as template_steps,
+  (select count(*) from agent_runs a where a.cycle_id = c.id)::bigint as agents,
+  (select count(*) from agent_runs a where a.cycle_id = c.id and a.status = 'failed')::bigint as failed_agents,
+  (select count(*) from proposals p where p.cycle_id = c.id and p.payload->>'source' = 'mcp')::bigint as mcp_proposals
 from cycles c
 left join (select cycle_id, count(*) filter (where coalesce(provider, '') not in ('fake', 'template')) as calls,
              count(*) filter (where coalesce(provider, '') in ('fake', 'template')) as template_steps,
@@ -42,6 +45,9 @@ type CycleAIUsageRow struct {
 	CostIdr       int64     `json:"cost_idr"`
 	Models        string    `json:"models"`
 	TemplateSteps int64     `json:"template_steps"`
+	Agents        int64     `json:"agents"`
+	FailedAgents  int64     `json:"failed_agents"`
+	McpProposals  int64     `json:"mcp_proposals"`
 }
 
 // Orchestrator cycles with the model calls they made.
@@ -70,6 +76,9 @@ func (q *Queries) CycleAIUsage(ctx context.Context, lim int32) ([]CycleAIUsageRo
 			&i.CostIdr,
 			&i.Models,
 			&i.TemplateSteps,
+			&i.Agents,
+			&i.FailedAgents,
+			&i.McpProposals,
 		); err != nil {
 			return nil, err
 		}

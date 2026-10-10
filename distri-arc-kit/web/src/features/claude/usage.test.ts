@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RUN_COMPARE, argsText, dur, hourly, modelLabel, rpAI, tok, type AIRun } from './usage'
+import { RUN_COMPARE, aiAgents, argsText, waitText, dur, hourly, modelLabel, rpAI, tok, type AIRun } from './usage'
 
 const run = (x: Partial<AIRun>): AIRun => ({ kind: 'cycle', id: '1', title: 'Siklus #1', trigger: 'schedule', by: '', via: 'api', status: 'done', started_at: '2026-10-10T01:00:00Z', duration_ms: 1000, model: 'claude-sonnet-5-5', calls: 2, tokens_in: 100, tokens_out: 20, cost_idr: 50, ...x })
 
@@ -22,6 +22,8 @@ describe('pemakaian AI', () => {
     expect(modelLabel('template')).toBe('Template (tanpa AI)')
     expect(modelLabel('fake')).toBe('Template (tanpa AI)')
     expect(modelLabel('claude.ai')).toBe('Claude (akun claude.ai)')
+    expect(modelLabel('none')).toBe('Tanpa AI — gagal')
+    expect(modelLabel('claude-sonnet-5-5, claude.ai')).toBe('Claude Sonnet 5.5, Claude (akun claude.ai)')
   })
 
   it('sorts the history by cost and tokens', () => {
@@ -34,5 +36,15 @@ describe('riwayat MCP', () => {
   it('shows call arguments short', () => {
     expect(argsText({ dealer_id: 'mitra', limit: 10 })).toBe('dealer_id=mitra, limit=10')
     expect(argsText(null)).toBe('')
+  })
+})
+
+describe('wajib AI', () => {
+  it('counts only agents a model analysed', () => {
+    expect(aiAgents({ model: 'template', agents: 6, failed_agents: 0 })).toBe(0)
+    expect(aiAgents({ model: 'none', agents: 6, failed_agents: 6 })).toBe(0)
+    expect(aiAgents({ model: 'claude.ai', agents: 6, failed_agents: 5 })).toBe(1)
+    expect(waitText(25)).toBe('25 detik')
+    expect(waitText(600)).toBe('10 menit')
   })
 })

@@ -165,6 +165,9 @@ func (o *Orchestrator) writeBrief(ctx context.Context, r *stageRun) error {
 			}
 		}
 	}
+	if source != "llm" && r.in.Policies.LLM.RequireAI {
+		return nil // require_ai: no template brief — Pusat kendali says no AI summary was written
+	}
 	br.Source = source
 	b2, _ := json.Marshal(br)
 	cyc := r.cyc.ID
