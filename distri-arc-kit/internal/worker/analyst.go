@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 	"distri-arc/internal/analyst"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/jobs"
+	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/store"
 )
 
@@ -70,3 +72,74 @@ func (w *AnalystRunWorker) Work(ctx context.Context, job *river.Job[jobs.Analyst
 
 // Timeout gives a run with several model turns room.
 func (w *AnalystRunWorker) Timeout(*river.Job[jobs.AnalystRunArgs]) time.Duration { return runTimeout }
+
+// ButtonSchedule is the analyst schedule row the "Analisis ulang" button runs through (never on a cron: disabled).
+const ButtonSchedule = "Analisis ulang lewat MCP (tombol)"
+
+// CycleMCPWorker lets the server-side Claude analyse a cycle through the MCP tools: it waits until the cycle has
+// published its agents' Input, writes the task into the button's schedule and runs it like "Jalankan sekarang".
+type CycleMCPWorker struct {
+	river.WorkerDefaults[jobs.CycleMCPArgs]
+	runner *analyst.Runner
+	wait   time.Duration
+}
+
+func (w *CycleMCPWorker) Work(ctx context.Context, job *river.Job[jobs.CycleMCPArgs]) error {
+	cid, err := uuid.Parse(job.Args.CycleID)
+	if err != nil {
+		return river.JobCancel(err)
+	}
+	st := w.runner.St
+	var names []string
+	for i := 0; i < 180; i++ { // the cycle publishes its Input at the start of Analisis
+		cyc, err := st.Q.GetCycle(ctx, cid)
+		if err != nil {
+			return river.JobCancel(err)
+		}
+		if cyc.Status != "queued" && cyc.Status != "running" {
+			return nil // finished or failed before Analisis
+		}
+		rows, err := st.Q.ListCycleInputs(ctx, cid)
+		if err != nil {
+			return err
+		}
+		if len(rows) > 0 {
+			for _, x := range rows {
+				names = append(names, x.Agent)
+			}
+			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cid.String(), names, w.wait)
+			id, err := ensureButtonSchedule(ctx, st, prompt)
+			if err != nil {
+				return err
+			}
+			if _, err := w.runner.Run(ctx, id, nil, "manual", job.Args.By); err != nil {
+				return river.JobCancel(err)
+			}
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(500 * time.Millisecond):
+		}
+	}
+	return river.JobCancel(errors.New("siklus tidak menerbitkan Input dalam 90 detik"))
+}
+
+// ensureButtonSchedule keeps one disabled schedule for the button and sets its task to this cycle's prompt.
+func ensureButtonSchedule(ctx context.Context, st *store.Store, prompt string) (uuid.UUID, error) {
+	var id uuid.UUID
+	err := st.Pool.QueryRow(ctx, `update mcp_schedules set prompt = $2, updated_at = now() where name = $1 returning id`, ButtonSchedule, prompt).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = st.Pool.QueryRow(ctx, `insert into mcp_schedules (name, prompt, cron, enabled, scopes, max_steps) values ($1, $2, '0 0 1 1 *', false, '{read,analyze,orchestrate}', 30) returning id`,
+			ButtonSchedule, prompt).Scan(&id)
+	}
+	return id, err
+}
+
+func deref64(p *int64) int64 {
+	if p == nil {
+		return 0
+	}
+	return *p
+}

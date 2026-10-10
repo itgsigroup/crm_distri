@@ -139,3 +139,12 @@ type AnalystRunArgs struct {
 }
 
 func (AnalystRunArgs) Kind() string { return "analyst.run" }
+
+// CycleMCPArgs: the "Analisis ulang" button asked for a cycle analysed by Claude through MCP; with a Claude key on
+// the server, the analyst engine (Claude as MCP client) fetches each agent's Input and submits its analysis.
+type CycleMCPArgs struct {
+	CycleID string `json:"cycle_id"`
+	By      string `json:"by,omitempty"`
+}
+
+func (CycleMCPArgs) Kind() string { return "cycle.mcp_analyst" }

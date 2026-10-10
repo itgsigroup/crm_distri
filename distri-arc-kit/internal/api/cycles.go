@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
+	"slices"
 	"strconv"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"distri-arc/internal/analyst"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/httpx"
@@ -26,6 +29,7 @@ func (s *Server) cycleRoutes(r chi.Router) {
 	r.Get("/cycles", s.listCycles)
 	r.Post("/cycles", s.postCycle)
 	r.Get("/cycles/{id}", s.getCycle)
+	r.Get("/cycles/{id}/inputs", s.cycleInputs)
 	r.Get("/conflicts", s.conflicts)
 	r.Get("/agents", s.agents)
 	r.Post("/agents/{name}/run", s.runAgent)
@@ -116,6 +120,13 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 	if via != "mcp" {
 		via = "api"
 	}
+	// require_ai without a model on the server: the button's analysis goes to Claude through MCP
+	pol, _ := policy.Load(r.Context(), s.st.Q)
+	serverModel := s.cfg.LLMProvider == "anthropic" && s.cfg.AnthropicKey != ""
+	if pol.LLM.RequireAI && !serverModel {
+		via = "mcp"
+	}
+	anKey, _ := analyst.LoadKey(r.Context(), s.st.Q, s.secret(), s.cfg.AnthropicKey)
 	u, _ := CurrentUser(r.Context())
 	o := &orchestrator.Orchestrator{St: s.st, Clock: s.clock}
 	var cyc gen.Cycle
@@ -127,6 +138,9 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 		cyc = c
 		if s.jobs != nil {
 			_, err = s.jobs.InsertTx(r.Context(), tx, jobs.CycleRunArgs{CycleID: c.ID.String()}, nil)
+			if err == nil && via == "mcp" && anKey != "" { // the server's Claude analyses it through the MCP tools
+				_, err = s.jobs.InsertTx(r.Context(), tx, jobs.CycleMCPArgs{CycleID: c.ID.String(), By: deref(u.Email)}, nil)
+			}
 		}
 		return err
 	})
@@ -136,8 +150,68 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 	case err != nil:
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 	default:
-		httpx.JSON(w, http.StatusAccepted, s.cycleView(r, cyc))
+		out := cycleQueued{CycleView: s.cycleView(r, cyc)}
+		if via == "mcp" {
+			var names []string
+			for _, a := range proposals.All() {
+				if n := sc.Agents(); n == nil || slices.Contains(n, a.Name()) {
+					names = append(names, a.Name())
+				}
+			}
+			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cyc.ID.String(), names, s.mcpWait())
+			m := &cycleMCP{Engine: "claude_ai", Prompt: prompt, ClaudeURL: "https://claude.ai/new?q=" + url.QueryEscape(prompt), WaitSec: int(s.mcpWait().Seconds()), Agents: names}
+			if anKey != "" {
+				m.Engine = "claude_api" // Claude on the server (Analisis terjadwal engine) does it; nothing to open
+			}
+			out.MCP = m
+		}
+		httpx.JSON(w, http.StatusAccepted, out)
 	}
+}
+
+// cycleQueued is POST /cycles: the cycle, and how it is analysed when it goes to Claude through MCP.
+type cycleQueued struct {
+	CycleView
+	MCP *cycleMCP `json:"mcp,omitempty"`
+}
+
+type cycleMCP struct {
+	Engine    string   `json:"engine"` // claude_api: the server's Claude does it · claude_ai: the person opens Claude
+	Prompt    string   `json:"prompt"`
+	ClaudeURL string   `json:"claude_url"`
+	WaitSec   int      `json:"wait_sec"`
+	Agents    []string `json:"agents"`
+}
+
+// cycleInputs: per agent, whether Claude sent its analysis through MCP yet (the button's progress).
+func (s *Server) cycleInputs(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Siklus tidak ditemukan")
+		return
+	}
+	rows, err := s.st.Q.ListCycleInputs(r.Context(), id)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	type item struct {
+		Agent       string     `json:"agent"`
+		SubmittedAt *time.Time `json:"submitted_at"`
+		SubmittedBy *uuid.UUID `json:"submitted_by"` // the MCP connection that sent it
+	}
+	out := make([]item, 0, len(rows))
+	for _, x := range rows {
+		out = append(out, item{Agent: x.Agent, SubmittedAt: x.SubmittedAt, SubmittedBy: x.SubmittedBy})
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": out})
+}
+
+func deref64(p *int64) int64 {
+	if p == nil {
+		return 0
+	}
+	return *p
 }
 
 func (s *Server) getCycle(w http.ResponseWriter, r *http.Request) {

@@ -9,6 +9,7 @@ import { STAGE_LABEL } from '../lib/i18n/id'
 import { useSse } from './SseProvider'
 import { useCycleLatest, useQueue } from './queries'
 import { STAGES, TICK_MS, cycleReducer, initialCycle, type CycleUI } from './cycle'
+import { MCPAnalysisSheet, type QueuedCycle } from './MCPAnalysis'
 
 /** Label of a scope string, as the API's domain.Scope.Label ("screen:orbit" → "orbit"). */
 export function scopeLabel(scope: string): string {
@@ -30,7 +31,7 @@ const Ctx = createContext<OrchCtx>({ s: initialCycle, reanalyze: () => {} })
 export function OrchProvider({ children }: { children: ReactNode }) {
   const [s, dispatch] = useReducer(cycleReducer, initialCycle)
   const { subscribe } = useSse()
-  const { toast, alert } = useFeedback()
+  const { toast, alert, openSheet } = useFeedback()
   const qc = useQueryClient()
 
   useEffect(
@@ -101,15 +102,18 @@ export function OrchProvider({ children }: { children: ReactNode }) {
       }
       const v = via === 'mcp' ? 'mcp' : 'api'
       api
-        .post<Cycle>('/cycles', { scope, via: v })
-        .then((c) => dispatch({ type: 'start', cycleId: c.id, label: c.label, via: v }))
+        .post<QueuedCycle>('/cycles', { scope, via: v })
+        .then((c) => {
+          dispatch({ type: 'start', cycleId: c.id, label: c.label, via: c.mcp ? 'mcp' : v })
+          if (c.mcp) openSheet(<MCPAnalysisSheet cycle={c} />) // Claude analyses it through MCP; results stay in GSI Orbit
+        })
         .catch((e: unknown) =>
           e instanceof ApiError && e.status === 409
             ? alert({ icon: 'warning', title: 'Analisis sedang berjalan', text: 'Orchestrator masih menganalisis. Tunggu sampai selesai, lalu coba lagi.' })
             : alert({ icon: 'error', title: 'Analisis gagal dimulai', text: e instanceof Error ? e.message : 'Gagal memulai analisis', details: [['Waktu', `${hhmm(new Date())} WIB`]] }),
         )
     },
-    [s.running, toast, alert],
+    [s.running, toast, alert, openSheet],
   )
 
   return <Ctx.Provider value={{ s, reanalyze }}>{children}</Ctx.Provider>

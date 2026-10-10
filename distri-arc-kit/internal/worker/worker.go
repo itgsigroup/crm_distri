@@ -284,10 +284,11 @@ type Deps struct {
 	Orchestrator *orchestrator.Orchestrator
 	Identify     *identify.Service
 	Ops          ops.Env
-	AlertFrom    string // ALERT_WA_FROM
-	SessionKey   []byte // opens sealed secrets (BigQuery key, Claude API key)
-	AlertGroup   string // ALERT_WA_GROUP
-	AnalystKey   string // ANTHROPIC_API_KEY for scheduled analysis when no key was saved in the app
+	AlertFrom    string        // ALERT_WA_FROM
+	SessionKey   []byte        // opens sealed secrets (BigQuery key, Claude API key)
+	AlertGroup   string        // ALERT_WA_GROUP
+	AnalystKey   string        // ANTHROPIC_API_KEY for scheduled analysis when no key was saved in the app
+	MCPWait      time.Duration // how long a cycle waits for Claude through MCP (prompt text)
 }
 
 // New builds the river client with all workers and periodic jobs registered.
@@ -304,7 +305,9 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	river.AddWorker(workers, &DataApplyWorker{st: st, clock: c, log: log})
 	river.AddWorker(workers, &AlertsWorker{st: st, clock: c, log: log, env: deps.Ops, from: deps.AlertFrom, group: deps.AlertGroup})
 	river.AddWorker(workers, &AnalystTickWorker{st: st, clock: c})
-	river.AddWorker(workers, &AnalystRunWorker{runner: &analyst.Runner{St: st, Clock: c, Log: log, Orch: deps.Orchestrator, SessionKey: deps.SessionKey, EnvKey: deps.AnalystKey}})
+	anRunner := &analyst.Runner{St: st, Clock: c, Log: log, Orch: deps.Orchestrator, SessionKey: deps.SessionKey, EnvKey: deps.AnalystKey}
+	river.AddWorker(workers, &AnalystRunWorker{runner: anRunner})
+	river.AddWorker(workers, &CycleMCPWorker{runner: anRunner, wait: deps.MCPWait})
 	var periodic []*river.PeriodicJob
 	if deps.Odoo != nil {
 		river.AddWorker(workers, &OdooSyncWorker{syncer: odoo.NewSyncer(st, deps.Odoo, c, log), svc: svc})

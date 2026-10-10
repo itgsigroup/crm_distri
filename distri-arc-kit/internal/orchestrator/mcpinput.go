@@ -443,3 +443,20 @@ func waitLabel(d time.Duration) string {
 	}
 	return fmt.Sprintf("%d detik", int(d.Seconds()))
 }
+
+// MCPPrompt is what Claude is asked when a cycle waits for its analysis through MCP: the "Analisis ulang" button
+// pre-fills it in claude.ai, and the server-side Claude (Analisis terjadwal engine) receives it as its task.
+func MCPPrompt(number int64, cycleID string, agentNames []string, wait time.Duration) string {
+	if wait <= 0 {
+		wait = 10 * time.Minute
+	}
+	return fmt.Sprintf(`Pakai konektor GSI Orbit. Siklus Orchestrator #%d (cycle_id %s) sedang menunggu analisis dari kamu — batas %s.
+
+Untuk setiap agen berikut: %s
+1. Panggil orchestrator_input_get {"cycle_id": "%s", "agent": "<nama agen>"} — isinya data dealer (dimasking), kebijakan, dan kandidat usulan yang angkanya dihitung sistem.
+2. Analisis datanya: pilih kandidat yang benar-benar perlu, tulis ulang "why" (alasan singkat berbasis angka) dan "preview" (draft pesan, Bahasa Indonesia, sopan). Jangan ubah angka, dealer_id, kind, signal_ids, atau dedupe_key; buang kandidat yang lemah.
+3. Kirim lewat orchestrator_submit {"cycle_id": "%s", "agent": "<nama agen>", "proposals": [...]}.
+
+Kerjakan semua agen, lalu beri ringkasan singkat apa yang kamu usulkan. Kamu hanya mengusulkan — keputusan tetap di aplikasi GSI Orbit.`,
+		number, cycleID, waitLabel(wait), strings.Join(agentNames, ", "), cycleID, cycleID)
+}

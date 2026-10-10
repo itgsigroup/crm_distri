@@ -317,8 +317,10 @@ func (o *Orchestrator) agentList(sc domain.Scope) []agents.Agent {
 func (o *Orchestrator) analyze(ctx context.Context, r *stageRun) (map[string]any, error) {
 	list := o.agentList(r.scope)
 	strict := r.in.Policies.LLM.RequireAI
-	// without a model on the server, a cycle that must be analysed by AI goes to Claude through MCP
-	if r.in.Policies.LLM.Mode == "mcp" || (strict && !o.Router.HasModel()) {
+	// a cycle asked for "lewat MCP" (button or Claude's orchestrator_run), or one that must be analysed by AI
+	// while the server has no model, goes to Claude through MCP
+	viaMCP := r.cyc.Via != nil && *r.cyc.Via == "mcp"
+	if r.in.Policies.LLM.Mode == "mcp" || viaMCP || (strict && !o.Router.HasModel()) {
 		return o.analyzeViaMCP(ctx, r, list)
 	}
 	r.byAgent = map[string][]domain.Proposal{}

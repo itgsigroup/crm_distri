@@ -948,3 +948,18 @@ body.map-maximized{overflow:hidden}
 @media (max-width:900px){.au-engines{grid-template-columns:1fr}}
 .au-note.ok{background:var(--good-soft);border-color:color-mix(in srgb,var(--good) 30%,transparent)}
 .au-note.ok>.i{color:var(--good)}
+
+/* "Analisis ulang" → Claude through MCP */
+.mcpa{display:flex;flex-direction:column;gap:14px}
+.mcpa-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;font-size:13px;line-height:1.55;color:var(--text-2)}
+.mcpa-steps b{color:var(--text)}
+.mcpa-steps .btn{margin-left:10px;height:32px;font-size:12.5px;text-decoration:none;vertical-align:middle}
+.mcpa-note{display:flex;gap:8px;margin:0;padding:10px 12px;border-radius:10px;background:var(--good-soft);font-size:13px;line-height:1.5;color:var(--text)}
+.mcpa-note .i{flex:none;width:16px;height:16px;color:var(--good);margin-top:2px}
+.mcpa-agents{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.mcpa-h{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+.mcpa-agents ul{list-style:none;margin:0;padding:0}
+.mcpa-agents li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13px;font-weight:600}
+.mcpa-agents li:first-child{border-top:0}
+.mcpa-prompt summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--text-2)}
+.mcpa-prompt pre{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);font-family:var(--font-mono);font-size:11.5px;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto}

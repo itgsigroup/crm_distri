@@ -332,3 +332,9 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - **Dengan API key**, usulan yang teksnya tidak ditulis model dibuang dan agennya Gagal.
 - **Ringkasan Orchestrator** hanya ditulis AI; Pusat kendali menampilkan "Belum ada ringkasan dari AI" (bukan kalimat template). **Analisis terjadwal** tanpa kunci Claude = Gagal.
 - MCP Claude → Pemakaian AI: kotak "Wajib AI", model "Claude lewat MCP" / "Tanpa AI — gagal", riwayat siklus "x/6 agen dianalisis AI" dan jumlah usulan dari Claude (MCP); siklus lama ditandai "tanpa AI (template, sebelum wajib AI)". ADR 0025.
+
+## Tombol "Analisis ulang" → dianalisis Claude lewat MCP, hasil tetap di sistem · 2026-10-10
+- Klik **Analisis ulang** (Pusat kendali, Orchestrator, Dock, "Lewat MCP") saat wajib AI dan server tanpa model: siklus dikerjakan **Claude lewat MCP** dan usulannya tersimpan di GSI Orbit (`orchestrator_submit`).
+  - **Kunci Claude API tersimpan** (Analisis terjadwal → Atur mesin): Claude di server langsung mengerjakan lewat tool MCP (job `cycle.mcp_analyst`, jadwal tersembunyi "Analisis ulang lewat MCP (tombol)") — tanpa membuka apa pun.
+  - **Tanpa kunci**: panel **"Claude menganalisis lewat MCP"** terbuka — tombol **Buka Claude** membuka claude.ai dengan perintah siklus itu sudah terisi (cukup tekan Enter, memakai langganan Claude), salin perintah, dan progres per agen yang diperbarui tiap 3 detik ("dikirim Claude 06.45" / "menunggu Claude…" / "Gagal · tanpa jawaban").
+- Siklus dengan via MCP (tombol atau `orchestrator_run` dari Claude) selalu memakai jalur MCP. API: `POST /cycles` membawa `mcp {engine, prompt, claude_url, wait_sec, agents}`; `GET /cycles/{id}/inputs`. Diuji lokal: klik → panel → Claude (simulasi MCP) mengirim AI Kredit → tercentang, 2 usulan bersumber MCP tersimpan, agen lain Gagal setelah batas tunggu, siklus #8 Sebagian.
