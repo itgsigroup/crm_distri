@@ -582,6 +582,18 @@ func (q *Queries) PurgeSignals(ctx context.Context, cutoff time.Time) (int64, er
 	return result.RowsAffected(), nil
 }
 
+const purgeWAMessageInsights = `-- name: PurgeWAMessageInsights :execrows
+delete from wa_message_insights where sent_at < $1::timestamptz
+`
+
+func (q *Queries) PurgeWAMessageInsights(ctx context.Context, cutoff time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeWAMessageInsights, cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const resolveAlerts = `-- name: ResolveAlerts :many
 update system_alerts set resolved_at = $1::timestamptz
 where resolved_at is null and not (key = any($2::text[]))

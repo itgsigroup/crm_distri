@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -20,6 +21,7 @@ import (
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
 	"distri-arc/internal/wa"
+	"distri-arc/internal/waanalysis"
 )
 
 func (s *Server) chatRoutes(r chi.Router) {
@@ -149,6 +151,21 @@ type MessageView struct {
 	Annotation json.RawMessage `json:"annotation"`
 	SignalID   *uuid.UUID      `json:"signal_id"`
 	Proposal   *MsgProposal    `json:"proposal,omitempty"`
+	Analysis   *MsgAnalysis    `json:"analysis,omitempty"`
+}
+
+// MsgAnalysis is Analisa WhatsApp of one bubble (ADR 0027): the request and the AI note from the last analysis that
+// read it, the reply state live (a reply sent after the analysis counts at once).
+type MsgAnalysis struct {
+	State       string            `json:"state"` // replied | waiting | needs_reply | closing | reply | follow_up
+	WaitMin     *int              `json:"wait_min"`
+	Analyzed    bool              `json:"analyzed"` // false: written after the last analysis
+	Intent      string            `json:"intent,omitempty"`
+	Items       []waanalysis.Item `json:"items,omitempty"`
+	Note        string            `json:"note,omitempty"`
+	Confidence  *int16            `json:"confidence,omitempty"`
+	AnalyzedAt  *time.Time        `json:"analyzed_at,omitempty"`
+	CycleNumber *int64            `json:"cycle_number,omitempty"`
 }
 
 // MsgProposal is the agent proposal triggered by a message (the button on its annotation).
@@ -205,11 +222,78 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, v)
 	}
+	var lastAnalysis *time.Time
+	if k := deref(t.Kind); k == "dealer" || k == "new" {
+		var err error
+		if lastAnalysis, err = s.attachMsgAnalysis(r.Context(), t.ID, out, r.URL.Query().Get("before") == ""); err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"thread": map[string]any{
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "dealer_id": deref(t.DealerSlug),
 		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
 		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
+		"analyzed_at": lastAnalysis,
 	}, "messages": out})
+}
+
+// attachMsgAnalysis adds Analisa WhatsApp to each bubble of a one-to-one conversation. The newest page reads the
+// reply state live from its own messages (a reply sent after the analysis counts at once); an older page keeps the
+// state the analysis stored, since the reply may sit on a newer page.
+func (s *Server) attachMsgAnalysis(ctx context.Context, thread uuid.UUID, msgs []MessageView, newest bool) (*time.Time, error) {
+	if len(msgs) == 0 {
+		return nil, nil
+	}
+	ids := make([]uuid.UUID, len(msgs))
+	th := waanalysis.Thread{ID: thread}
+	for i, m := range msgs {
+		ids[i] = m.ID
+		if m.Status != "failed" {
+			th.Messages = append(th.Messages, waanalysis.Message{ID: m.ID, In: m.Direction == "in", Text: m.Body, At: m.SentAt})
+		}
+	}
+	rows, err := s.st.Q.WAMessageInsights(ctx, gen.WAMessageInsightsParams{ThreadID: thread, MessageIds: ids})
+	if err != nil {
+		return nil, err
+	}
+	stored := map[uuid.UUID]gen.WAMessageInsightsRow{}
+	for _, x := range rows {
+		stored[x.MessageID] = x
+	}
+	live := map[uuid.UUID]waanalysis.MessageInsight{}
+	if newest {
+		for _, x := range waanalysis.AnalyzeMessages(th, nil, s.clock.Now()) {
+			live[x.MessageID] = x
+		}
+	}
+	for i := range msgs {
+		a := &MsgAnalysis{}
+		x, ok := stored[msgs[i].ID]
+		if ok {
+			at := x.AnalyzedAt
+			a.Analyzed, a.Intent, a.AnalyzedAt, a.CycleNumber, a.Confidence = true, x.Intent, &at, x.CycleNumber, x.Confidence
+			a.State = x.State
+			if x.WaitMin != nil {
+				w := int(*x.WaitMin)
+				a.WaitMin = &w
+			}
+			_ = json.Unmarshal(x.Items, &a.Items)
+			a.Note = deref(x.Note)
+		}
+		if l, ok := live[msgs[i].ID]; ok {
+			a.State, a.WaitMin = l.State, l.WaitMin
+		}
+		if a.State == "" {
+			continue // failed send, or an older bubble never analysed
+		}
+		msgs[i].Analysis = a
+	}
+	last, err := s.st.Q.LastWAMessageAnalysis(ctx, thread)
+	if err != nil || last.IsZero() {
+		return nil, nil
+	}
+	return &last, nil
 }
 
 func (s *Server) chatRead(w http.ResponseWriter, r *http.Request) {

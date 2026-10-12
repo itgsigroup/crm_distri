@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Chat · analisa per bubble · 2026-10-12 (ADR 0027)
+- Setiap analisa (siklus per jam, *Analisis ulang*, *Analisa lanjut* di Chat, analisa per dealer) kini juga menganalisa **setiap bubble** chat dealer & nomor baru: permintaan + barang, dibalas berapa menit kemudian / menunggu berapa lama / pesan penutup, dan untuk pesan sales berapa lama pelanggan menunggu.
+- Catatan AI per pesan pelanggan ditulis Claude lewat MCP (`orchestrator_submit` → `messages`) atau model di server.
+- Di halaman Chat: baris analisa di bawah tiap bubble, tombol ✦ *Per pesan* untuk tampil/sembunyi; status balasan selalu terkini.
+- *Analisa lanjut* untuk nomor baru tidak lagi gagal (scope `screen:chat`). Migrasi 0021 `wa_message_insights`.
+
 ## Dashboard · riwayat di setiap kartu · 2026-10-12
 - Kartu Dashboard (Dealer di Orbit sampai Kas masuk · prediksi 30 hari) kini punya grafik batang + garis: **12 bulan** terakhir atau **Per hari** (tanggal 1 sampai akhir bulan, pilih bulannya). Arahkan kursor/ketuk batang untuk nilainya dan perubahan dari titik sebelumnya (hijau = membaik, merah = memburuk).
 - Setiap titik dihitung ulang di Go dengan rumus `metrics` pada riwayat order/invoice/pembayaran yang dipotong di tanggal itu (bayar sesudahnya dianggap belum terjadi); omzet dan kas masuk = nilai aktual di bulan/hari tersebut. API `GET /api/dashboard/trend`, dataset 2 tahun di-cache 5 menit.

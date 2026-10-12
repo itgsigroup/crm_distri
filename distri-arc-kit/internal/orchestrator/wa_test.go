@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"distri-arc/internal/domain"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/store/gen"
@@ -99,14 +100,22 @@ func (m *modelStub) Complete(_ context.Context, r llm.Request) (llm.Response, er
 	}
 	m.masked = append(m.masked, string(r.Input))
 	var in struct {
-		Threads []struct{ ID string } `json:"threads"`
+		Threads []struct {
+			ID       string
+			Messages []struct{ ID string } `json:"messages"`
+		} `json:"threads"`
 	}
 	_ = json.Unmarshal(r.Input, &in)
-	var lines []map[string]any
+	var lines, notes []map[string]any
 	for _, t := range in.Threads {
 		lines = append(lines, map[string]any{"id": t.ID, "summary": "Pelanggan menunggu konfirmasi dari sales.", "confidence": 0.8})
+		for _, m := range t.Messages {
+			if m.ID != "" {
+				notes = append(notes, map[string]any{"id": m.ID, "note": "Minta konfirmasi stok dan jadwal kirim.", "confidence": 0.7})
+			}
+		}
 	}
-	b, _ := json.Marshal(map[string]any{"overview": "Satu dealer menunggu balasan; sales perlu membalas hari ini.", "threads": lines})
+	b, _ := json.Marshal(map[string]any{"overview": "Satu dealer menunggu balasan; sales perlu membalas hari ini.", "threads": lines, "messages": notes})
 	return llm.Response{JSON: b, Provider: "stub", Model: "claude-sonnet-5-5"}, nil
 }
 
@@ -140,6 +149,11 @@ func TestWhatsAppSummaryByModel(t *testing.T) {
 	}
 	if lines == 0 {
 		t.Error("no AI line stored")
+	}
+	var notes int
+	_ = st.Pool.QueryRow(ctx, "select count(*) from wa_message_insights where note is not null and confidence = 70 and note_cycle_id = $1", rep.Cycle.ID).Scan(&notes)
+	if notes == 0 {
+		t.Error("no AI note per bubble stored")
 	}
 	if len(stub.masked) != 1 || strings.Contains(stub.masked[0], "Pak Hasan") {
 		t.Errorf("names not masked: %v", stub.masked)
@@ -210,5 +224,57 @@ func TestFailedCycleStillPlansChats(t *testing.T) {
 	bad := orchestrator.ParseWAAnswer("x", []map[string]any{{"id": uuid.NewString(), "summary": "y", "confidence": 0.5}})
 	if _, err := o.WASubmit(ctx, c.ID, bad, nil); err == nil {
 		t.Error("unknown conversation accepted")
+	}
+}
+
+// Every analysis reads each bubble (ADR 0027): a full cycle all one-to-one conversations of the window, a dealer's
+// cycle only that dealer's, the chat screen all of them; groups never. Re-running replaces, never duplicates.
+func TestCycleReadsEveryBubble(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	count := func(where string, args ...any) int {
+		var n int
+		if err := st.Pool.QueryRow(ctx, "select count(*) from wa_message_insights i join chat_threads t on t.id = i.thread_id "+where, args...).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		return n
+	}
+	rep, err := o.Run(ctx, all, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := count("where i.cycle_id = $1", rep.Cycle.ID)
+	if n == 0 || count("where t.kind = 'group'") != 0 {
+		t.Fatalf("%d bubbles, groups read", n)
+	}
+	// seed: Graha's PO waits for a reply; Mitra's sales wrote first (a follow-up), the dealer's answer waits
+	if count("join dealers d on d.id = t.dealer_id where d.slug = 'graha' and i.direction = 'in' and i.state = 'needs_reply' and i.wait_min > 120") != 1 {
+		t.Error("graha's PO is not marked as waiting for a reply")
+	}
+	if count("join dealers d on d.id = t.dealer_id where d.slug = 'mitra' and i.direction = 'out' and i.state = 'follow_up' and i.wait_min is null") != 1 {
+		t.Error("mitra's reminder is not a follow-up")
+	}
+	// a dealer's cycle re-reads only that dealer's bubbles
+	g, err := o.Run(ctx, domain.Scope{Kind: "dealer", ID: "graha"}, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count("join dealers d on d.id = t.dealer_id where i.cycle_id = $1 and d.slug <> 'graha'", g.Cycle.ID) != 0 || count("where i.cycle_id = $1", g.Cycle.ID) == 0 {
+		t.Error("dealer cycle read other dealers' bubbles, or none of graha's")
+	}
+	if total := count(""); total != n {
+		t.Errorf("re-run duplicated: %d rows, %d before", total, n)
+	}
+	// "Analisa lanjut" on a new number's chat
+	sc, err := domain.ParseScope("screen:chat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := o.Run(ctx, sc, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count("where i.cycle_id = $1", c.Cycle.ID) != n {
+		t.Error("chat screen cycle did not read every bubble")
 	}
 }

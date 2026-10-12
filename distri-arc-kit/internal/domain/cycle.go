@@ -11,7 +11,7 @@ var Stages = []string{"ingest", "analyze", "synthesize", "decide", "execute", "l
 // StageLabels are the UI names of the stages.
 var StageLabels = map[string]string{"ingest": "Ingest", "analyze": "Analisis", "synthesize": "Sintesis", "decide": "Keputusan", "execute": "Eksekusi", "learn": "Belajar"}
 
-// Scope is what a cycle analyses: all | screen:<orbit|segmen|stock|credit|dealer> | dealer:<slug> | agent:<name>.
+// Scope is what a cycle analyses: all | screen:<orbit|segmen|stock|credit|dealer|chat> | dealer:<slug> | agent:<name>.
 type Scope struct {
 	Kind string `json:"kind"`
 	ID   string `json:"id,omitempty"`
@@ -30,7 +30,7 @@ func ParseScope(s string) (Scope, error) {
 	switch kind {
 	case "screen":
 		switch id {
-		case "orbit", "segmen", "stock", "credit", "relasi", "dealer":
+		case "orbit", "segmen", "stock", "credit", "relasi", "dealer", "chat":
 		default:
 			return Scope{}, fmt.Errorf("unknown screen %q", id)
 		}
@@ -62,7 +62,7 @@ func (s Scope) Label() string {
 	case "", "all":
 		return "semua"
 	case "screen":
-		return map[string]string{"orbit": "orbit", "segmen": "segmen", "stock": "push stok", "credit": "kredit", "relasi": "peta relasi", "dealer": "dealer"}[s.ID]
+		return map[string]string{"orbit": "orbit", "segmen": "segmen", "stock": "push stok", "credit": "kredit", "relasi": "peta relasi", "dealer": "dealer", "chat": "chat"}[s.ID]
 	case "agent":
 		return s.ID
 	}
@@ -80,6 +80,8 @@ func (s Scope) Agents() []string {
 			return []string{"AI Stok"}
 		case "credit":
 			return []string{"AI Kredit", "AI Penagihan"}
+		case "chat": // the conversations: requests and new numbers (every bubble is read by Ingest)
+			return []string{"AI Order", "AI Prospek"}
 		}
 	case "agent":
 		return []string{s.ID}

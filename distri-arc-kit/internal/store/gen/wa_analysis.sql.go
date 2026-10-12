@@ -88,6 +88,18 @@ func (q *Queries) InsertWAInsight(ctx context.Context, arg InsertWAInsightParams
 	return err
 }
 
+const lastWAMessageAnalysis = `-- name: LastWAMessageAnalysis :one
+select max(analyzed_at)::timestamptz as analyzed_at from wa_message_insights where thread_id = $1
+`
+
+// When the bubbles of a conversation were last analysed (null: never).
+func (q *Queries) LastWAMessageAnalysis(ctx context.Context, threadID uuid.UUID) (time.Time, error) {
+	row := q.db.QueryRow(ctx, lastWAMessageAnalysis, threadID)
+	var analyzed_at time.Time
+	err := row.Scan(&analyzed_at)
+	return analyzed_at, err
+}
+
 const latestWAAnalysis = `-- name: LatestWAAnalysis :one
 select a.cycle_id, a.window_days, a.threads, a.inbound, a.outbound, a.waiting, a.reply_median_min, a.overview, a.source, a.created_at, c.number as cycle_number, c.status as cycle_status
 from wa_analyses a join cycles c on c.id = a.cycle_id
@@ -335,6 +347,28 @@ func (q *Queries) SetWAInsightSummary(ctx context.Context, arg SetWAInsightSumma
 	return err
 }
 
+const setWAMessageNote = `-- name: SetWAMessageNote :exec
+update wa_message_insights set note = $1, confidence = $2, note_cycle_id = $3::uuid
+where message_id = $4
+`
+
+type SetWAMessageNoteParams struct {
+	Note       *string    `json:"note"`
+	Confidence *int16     `json:"confidence"`
+	CycleID    *uuid.UUID `json:"cycle_id"`
+	MessageID  uuid.UUID  `json:"message_id"`
+}
+
+func (q *Queries) SetWAMessageNote(ctx context.Context, arg SetWAMessageNoteParams) error {
+	_, err := q.db.Exec(ctx, setWAMessageNote,
+		arg.Note,
+		arg.Confidence,
+		arg.CycleID,
+		arg.MessageID,
+	)
+	return err
+}
+
 const setWAOverview = `-- name: SetWAOverview :exec
 update wa_analyses set overview = $2, source = $3 where cycle_id = $1
 `
@@ -380,6 +414,81 @@ func (q *Queries) ThreadsWaitingSince(ctx context.Context, ids []uuid.UUID) ([]T
 			&i.DealerID,
 			&i.SalesName,
 			&i.WaitingSince,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const upsertWAMessageInsights = `-- name: UpsertWAMessageInsights :exec
+insert into wa_message_insights (message_id, thread_id, sent_at, direction, state, intent, items, wait_min, cycle_id, analyzed_at)
+select x.message_id, x.thread_id, x.sent_at, x.direction, x.state, x.intent, coalesce(x.items, '[]'), x.wait_min, $1::uuid, $2::timestamptz
+from jsonb_to_recordset($3::jsonb)
+  as x(message_id uuid, thread_id uuid, sent_at timestamptz, direction text, state text, intent text, items jsonb, wait_min int)
+on conflict (message_id) do update set state = excluded.state, intent = excluded.intent, items = excluded.items, wait_min = excluded.wait_min,
+  cycle_id = excluded.cycle_id, analyzed_at = excluded.analyzed_at
+`
+
+type UpsertWAMessageInsightsParams struct {
+	CycleID    *uuid.UUID      `json:"cycle_id"`
+	AnalyzedAt time.Time       `json:"analyzed_at"`
+	Rows       json.RawMessage `json:"rows"`
+}
+
+// One analysis of many bubbles at once (a JSON array of rows); the AI note is kept.
+func (q *Queries) UpsertWAMessageInsights(ctx context.Context, arg UpsertWAMessageInsightsParams) error {
+	_, err := q.db.Exec(ctx, upsertWAMessageInsights, arg.CycleID, arg.AnalyzedAt, arg.Rows)
+	return err
+}
+
+const wAMessageInsights = `-- name: WAMessageInsights :many
+select i.message_id, i.state, i.intent, i.items, i.wait_min, i.analyzed_at, i.note, i.confidence, c.number as cycle_number
+from wa_message_insights i left join cycles c on c.id = i.cycle_id
+where i.thread_id = $1 and i.message_id = any($2::uuid[])
+`
+
+type WAMessageInsightsParams struct {
+	ThreadID   uuid.UUID   `json:"thread_id"`
+	MessageIds []uuid.UUID `json:"message_ids"`
+}
+
+type WAMessageInsightsRow struct {
+	MessageID   uuid.UUID       `json:"message_id"`
+	State       string          `json:"state"`
+	Intent      string          `json:"intent"`
+	Items       json.RawMessage `json:"items"`
+	WaitMin     *int32          `json:"wait_min"`
+	AnalyzedAt  time.Time       `json:"analyzed_at"`
+	Note        *string         `json:"note"`
+	Confidence  *int16          `json:"confidence"`
+	CycleNumber *int64          `json:"cycle_number"`
+}
+
+// The analysis of the bubbles of one conversation (the chat page), with the cycle that wrote it.
+func (q *Queries) WAMessageInsights(ctx context.Context, arg WAMessageInsightsParams) ([]WAMessageInsightsRow, error) {
+	rows, err := q.db.Query(ctx, wAMessageInsights, arg.ThreadID, arg.MessageIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WAMessageInsightsRow{}
+	for rows.Next() {
+		var i WAMessageInsightsRow
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.State,
+			&i.Intent,
+			&i.Items,
+			&i.WaitMin,
+			&i.AnalyzedAt,
+			&i.Note,
+			&i.Confidence,
+			&i.CycleNumber,
 		); err != nil {
 			return nil, err
 		}

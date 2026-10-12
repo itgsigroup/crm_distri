@@ -308,11 +308,28 @@ export interface MessageView {
   annotation: Annotation | null
   signal_id: string | null
   proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }
+  /** Analisa WhatsApp of this bubble (one-to-one chats): request + AI note from the last analysis, reply state live */
+  analysis?: MsgAnalysis
+}
+export type MsgState = 'replied' | 'waiting' | 'needs_reply' | 'closing' | 'reply' | 'follow_up'
+export interface MsgAnalysis {
+  state: MsgState
+  wait_min: number | null
+  /** false: written after the last analysis */
+  analyzed: boolean
+  intent?: WAIntent
+  items?: WAItem[]
+  note?: string
+  confidence?: number
+  analyzed_at?: string
+  cycle_number?: number
 }
 export interface ThreadDetail {
   thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; dealer_id: string; sales: string; sales_wa: string; account_label: string; account_masked: string; suggestions: string[] | null; tag: Tag | null; unread: number
     /** the contact's number of a one-to-one chat */
-    phone?: string; dealer_code?: string; dealer_city?: string; waiting_since?: string | null }
+    phone?: string; dealer_code?: string; dealer_city?: string; waiting_since?: string | null
+    /** when the bubbles were last analysed (null: never) */
+    analyzed_at?: string | null }
   messages: MessageView[]
 }
 export interface Identification {

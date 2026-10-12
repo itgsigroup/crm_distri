@@ -121,6 +121,7 @@ type stageRun struct {
 	waThreads map[uuid.UUID]waanalysis.Thread
 	waOpen    map[uuid.UUID]bool // conversations an open proposal already answers
 	waRead    bool
+	waMsgs    int // bubbles analysed by this cycle (any scope)
 }
 
 // Execute runs a queued cycle through the six stages.
@@ -306,7 +307,11 @@ func (o *Orchestrator) ingest(ctx context.Context, r *stageRun) (map[string]any,
 		text = waText(r) + " · " + text
 	} else {
 		text = fmt.Sprintf("%d WA · ", wa) + text
+		if r.waMsgs > 0 {
+			text = fmt.Sprintf("%d pesan WhatsApp dianalisa · ", r.waMsgs) + text
+		}
 	}
+	detail["wa_messages"] = r.waMsgs
 	detail["text"] = text
 	return detail, nil
 }

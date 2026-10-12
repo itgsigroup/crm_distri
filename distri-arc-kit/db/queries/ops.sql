@@ -134,3 +134,6 @@ insert into outbox (channel, to_ref, payload) values ('wa_system', $1, $2) retur
 -- The internal group that receives ops alerts: the one named in ALERT_WA_GROUP, else the first internal group.
 select jid, name from wa_groups where kind = 'internal' and (sqlc.arg(jid)::text = '' or jid = sqlc.arg(jid)::text)
 order by name limit 1;
+
+-- name: PurgeWAMessageInsights :execrows
+delete from wa_message_insights where sent_at < sqlc.arg(cutoff)::timestamptz;

@@ -65,3 +65,26 @@ delete from plan_items where plan_date = $1 and link like 'chat:%';
 
 -- name: MaxPlanSeq :one
 select coalesce(max(seq), 0)::int as seq from plan_items where plan_date = $1;
+
+-- name: UpsertWAMessageInsights :exec
+-- One analysis of many bubbles at once (a JSON array of rows); the AI note is kept.
+insert into wa_message_insights (message_id, thread_id, sent_at, direction, state, intent, items, wait_min, cycle_id, analyzed_at)
+select x.message_id, x.thread_id, x.sent_at, x.direction, x.state, x.intent, coalesce(x.items, '[]'), x.wait_min, sqlc.narg(cycle_id)::uuid, sqlc.arg(analyzed_at)::timestamptz
+from jsonb_to_recordset(sqlc.arg(rows)::jsonb)
+  as x(message_id uuid, thread_id uuid, sent_at timestamptz, direction text, state text, intent text, items jsonb, wait_min int)
+on conflict (message_id) do update set state = excluded.state, intent = excluded.intent, items = excluded.items, wait_min = excluded.wait_min,
+  cycle_id = excluded.cycle_id, analyzed_at = excluded.analyzed_at;
+
+-- name: SetWAMessageNote :exec
+update wa_message_insights set note = sqlc.arg(note), confidence = sqlc.arg(confidence), note_cycle_id = sqlc.narg(cycle_id)::uuid
+where message_id = sqlc.arg(message_id);
+
+-- name: WAMessageInsights :many
+-- The analysis of the bubbles of one conversation (the chat page), with the cycle that wrote it.
+select i.message_id, i.state, i.intent, i.items, i.wait_min, i.analyzed_at, i.note, i.confidence, c.number as cycle_number
+from wa_message_insights i left join cycles c on c.id = i.cycle_id
+where i.thread_id = sqlc.arg(thread_id) and i.message_id = any(sqlc.arg(message_ids)::uuid[]);
+
+-- name: LastWAMessageAnalysis :one
+-- When the bubbles of a conversation were last analysed (null: never).
+select max(analyzed_at)::timestamptz as analyzed_at from wa_message_insights where thread_id = $1;

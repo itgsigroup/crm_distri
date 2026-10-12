@@ -26,20 +26,26 @@ import (
 // links them to the proposals the agents made and puts the conversations waiting too long for a reply into Rencana
 // hari ini, Belajar asks the model for the overview and one line per conversation.
 
-// readWA loads and analyses the conversations of the window (full cycles only).
+// readWA loads and analyses the conversations of the window. Every analysis reads each bubble of the conversations
+// in its scope (one dealer's, or all); only a full cycle writes the conversation analysis, the totals and the plan.
 func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
-	if r.scope.Kind != "all" {
-		return nil
-	}
 	now := o.Clock.Now()
 	rows, err := o.St.Q.WAWindowMessages(ctx, gen.WAWindowMessagesParams{Since: now.AddDate(0, 0, -waanalysis.WindowDays), Until: now})
 	if err != nil {
 		return err
 	}
+	var dealer *uuid.UUID
+	if r.scope.Kind == "dealer" {
+		d, err := o.St.Q.GetDealer(ctx, &r.scope.ID)
+		if err != nil {
+			return err
+		}
+		dealer = &d.ID
+	}
 	var threads []waanalysis.Thread
 	at := map[uuid.UUID]int{}
 	for _, m := range rows {
-		if m.ThreadID == nil {
+		if m.ThreadID == nil || (dealer != nil && (m.DealerID == nil || *m.DealerID != *dealer)) {
 			continue
 		}
 		i, ok := at[*m.ThreadID]
@@ -50,6 +56,12 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 				DealerSlug: deref(m.DealerSlug), DealerName: deref(m.DealerName), SalesID: m.SalesID, SalesName: deref(m.SalesName)})
 		}
 		threads[i].Messages = append(threads[i].Messages, waanalysis.Message{ID: m.ID, SignalID: m.SignalID, In: deref(m.Direction) == "in", Text: deref(m.Body), At: m.SentAt})
+	}
+	if err := o.saveWAMessages(ctx, r, threads, now); err != nil {
+		return err
+	}
+	if r.scope.Kind != "all" {
+		return nil
 	}
 	r.waThreads = map[uuid.UUID]waanalysis.Thread{}
 	for _, t := range threads {
@@ -66,6 +78,40 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 		return err
 	}
 	return o.writeChatSteps(ctx, r)
+}
+
+// saveWAMessages stores the analysis of every bubble of the conversations read (the latest analysis per message).
+func (o *Orchestrator) saveWAMessages(ctx context.Context, r *stageRun, threads []waanalysis.Thread, now time.Time) error {
+	type row struct {
+		MessageID uuid.UUID         `json:"message_id"`
+		ThreadID  uuid.UUID         `json:"thread_id"`
+		SentAt    time.Time         `json:"sent_at"`
+		Direction string            `json:"direction"`
+		State     string            `json:"state"`
+		Intent    string            `json:"intent"`
+		Items     []waanalysis.Item `json:"items"`
+		WaitMin   *int              `json:"wait_min"`
+	}
+	var rows []row
+	for _, t := range threads {
+		for _, m := range waanalysis.AnalyzeMessages(t, r.in.Products, now) {
+			dir := "out"
+			if m.In {
+				dir = "in"
+			}
+			rows = append(rows, row{m.MessageID, m.ThreadID, m.SentAt, dir, m.State, m.Intent, m.Items, m.WaitMin})
+		}
+	}
+	r.waMsgs = len(rows)
+	if len(rows) == 0 {
+		return nil
+	}
+	b, err := json.Marshal(rows)
+	if err != nil {
+		return err
+	}
+	cyc := r.cyc.ID
+	return o.St.Q.UpsertWAMessageInsights(ctx, gen.UpsertWAMessageInsightsParams{CycleID: &cyc, AnalyzedAt: now, Rows: b})
 }
 
 // linkWA adds the proposals made from each conversation's messages (this cycle's included).
@@ -217,8 +263,16 @@ type waLine struct {
 
 // waMsg / waThreadIn are one conversation as the reader (the model, or Claude through MCP) sees it.
 type waMsg struct {
+	ID   string `json:"id,omitempty"` // customer messages of the window: the bubble a note may be written for
 	Dir  string `json:"dir"`
 	Text string `json:"text"`
+}
+
+// waNote is the AI note on one customer bubble.
+type waNote struct {
+	ID         string  `json:"id"`
+	Note       string  `json:"note"`
+	Confidence float64 `json:"confidence"`
 }
 
 type waThreadIn struct {
@@ -239,6 +293,7 @@ type waReading struct {
 	Threads []waThreadIn      `json:"threads"`
 	names   []string
 	want    map[string]bool
+	msgWant map[string]bool
 }
 
 // waReadingFor builds the reading of a cycle from what Ingest stored (the same for the API model and for MCP).
@@ -257,7 +312,8 @@ func (o *Orchestrator) waReadingFor(ctx context.Context, cycleID uuid.UUID) (*wa
 			WaitingSince: x.WaitingSince, NeedsReply: x.NeedsReply, ReplyMedianMin: intp(x.ReplyMedianMin)})
 	}
 	tot, _ := waanalysis.Summarize(ins)
-	rd := &waReading{Totals: tot, Threads: []waThreadIn{}, want: map[string]bool{}}
+	rd := &waReading{Totals: tot, Threads: []waThreadIn{}, want: map[string]bool{}, msgWant: map[string]bool{}}
+	window := now.AddDate(0, 0, -waanalysis.WindowDays)
 	for _, x := range rows { // ListWAInsights: most urgent first
 		if len(rd.Threads) >= maxWASummaries {
 			break
@@ -280,7 +336,12 @@ func (o *Orchestrator) waReadingFor(ctx context.Context, cycleID uuid.UUID) (*wa
 			if m.Status == "failed" || strings.TrimSpace(deref(m.Body)) == "" {
 				continue
 			}
-			t.Msgs = append(t.Msgs, waMsg{deref(m.Direction), clipText(deref(m.Body), 300)})
+			wm := waMsg{Dir: deref(m.Direction), Text: clipText(deref(m.Body), 300)}
+			if wm.Dir == "in" && !m.SentAt.Before(window) {
+				wm.ID = m.ID.String()
+				rd.msgWant[wm.ID] = true
+			}
+			t.Msgs = append(t.Msgs, wm)
 		}
 		// the person in the title ("Mbak Rina · Toko Sinar") and the sales are masked before leaving the server
 		if p, _, ok := strings.Cut(x.Title, " · "); ok || x.Kind == "new" {
@@ -310,6 +371,7 @@ var ErrNoWA = errors.New("siklus ini tidak punya Analisa WhatsApp")
 type waAnswer struct {
 	Overview string   `json:"overview"`
 	Threads  []waLine `json:"threads"`
+	Messages []waNote `json:"messages,omitempty"` // per bubble (optional)
 }
 
 func (rd *waReading) check(a waAnswer) error {
@@ -325,6 +387,17 @@ func (rd *waReading) check(a waAnswer) error {
 		}
 		if l.Confidence < 0 || l.Confidence > 1 {
 			return fmt.Errorf("confidence %s harus 0–1", l.ID)
+		}
+	}
+	for _, n := range a.Messages {
+		if !rd.msgWant[n.ID] {
+			return fmt.Errorf("pesan %q tidak ada di Input (hanya pesan pelanggan yang punya id)", n.ID)
+		}
+		if strings.TrimSpace(n.Note) == "" || utf8.RuneCountInString(n.Note) > 200 {
+			return fmt.Errorf("note pesan %s kosong atau lebih dari 200 karakter", n.ID)
+		}
+		if n.Confidence < 0 || n.Confidence > 1 {
+			return fmt.Errorf("confidence pesan %s harus 0–1", n.ID)
 		}
 	}
 	return nil
@@ -348,6 +421,17 @@ func (o *Orchestrator) storeWA(ctx context.Context, cycleID uuid.UUID, a waAnswe
 				return err
 			}
 		}
+		for _, n := range a.Messages {
+			id, err := uuid.Parse(n.ID)
+			if err != nil {
+				continue
+			}
+			note := strings.TrimSpace(n.Note)
+			c := int16(max(0, min(100, n.Confidence*100+0.5)))
+			if err := q.SetWAMessageNote(ctx, gen.SetWAMessageNoteParams{Note: &note, Confidence: &c, CycleID: &cycleID, MessageID: id}); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 }
@@ -368,7 +452,9 @@ func (o *Orchestrator) writeWASummary(ctx context.Context, r *stageRun) error {
 	schema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"overview", "threads"}, "properties": map[string]any{
 		"overview": map[string]any{"type": "string"},
 		"threads": map[string]any{"type": "array", "items": map[string]any{"type": "object", "additionalProperties": false, "required": []string{"id", "summary", "confidence"},
-			"properties": map[string]any{"id": map[string]any{"type": "string"}, "summary": map[string]any{"type": "string"}, "confidence": map[string]any{"type": "number"}}}}}}
+			"properties": map[string]any{"id": map[string]any{"type": "string"}, "summary": map[string]any{"type": "string"}, "confidence": map[string]any{"type": "number"}}}},
+		"messages": map[string]any{"type": "array", "items": map[string]any{"type": "object", "additionalProperties": false, "required": []string{"id", "note", "confidence"},
+			"properties": map[string]any{"id": map[string]any{"type": "string"}, "note": map[string]any{"type": "string"}, "confidence": map[string]any{"type": "number"}}}}}}
 	check := func(raw json.RawMessage) error {
 		var a waAnswer
 		if err := json.Unmarshal(raw, &a); err != nil {
@@ -416,7 +502,7 @@ func (o *Orchestrator) WAInputFor(ctx context.Context, cycleID uuid.UUID) (json.
 	return masked, nil
 }
 
-const waMCPSubmit = `Kirim lewat orchestrator_submit {"cycle_id": "<cycle_id>", "agent": "Analisa WhatsApp", "overview": "...", "threads": [{"id": "<id percakapan>", "summary": "...", "confidence": 0.8}]}. Placeholder <PIC_n>/<NO_n> biarkan apa adanya.`
+const waMCPSubmit = `Kirim lewat orchestrator_submit {"cycle_id": "<cycle_id>", "agent": "Analisa WhatsApp", "overview": "...", "threads": [{"id": "<id percakapan>", "summary": "...", "confidence": 0.8}], "messages": [{"id": "<id pesan pelanggan>", "note": "...", "confidence": 0.8}]}. Placeholder <PIC_n>/<NO_n> biarkan apa adanya.`
 
 // WASubmit is orchestrator_submit for agent "Analisa WhatsApp": Claude's overview and lines, validated against the
 // Input it was given, unmasked, stored as AI (any time after Ingest — also when the cycle itself failed).
@@ -435,6 +521,9 @@ func (o *Orchestrator) WASubmit(ctx context.Context, cycleID uuid.UUID, a waAnsw
 	for i := range a.Threads {
 		a.Threads[i].Summary = llm.UnmaskWith(a.Threads[i].Summary, mapping)
 	}
+	for i := range a.Messages {
+		a.Messages[i].Note = llm.UnmaskWith(a.Messages[i].Note, mapping)
+	}
 	if err := rd.check(a); err != nil {
 		return SubmitResult{Rejected: []string{err.Error()}}, fmt.Errorf("%w: %s", ErrBadSubmit, err.Error())
 	}
@@ -445,12 +534,19 @@ func (o *Orchestrator) WASubmit(ctx context.Context, cycleID uuid.UUID, a waAnsw
 	b, _ := json.Marshal(a)
 	_ = o.St.Q.SubmitCycleInput(ctx, gen.SubmitCycleInputParams{CycleID: cycleID, Agent: AgentWA, Submitted: b, SubmittedBy: client, SubmittedAt: &now})
 	_ = events.Notify(ctx, o.St.Pool, "cycle_done", map[string]any{"id": cycleID, "source": "mcp", "agent": AgentWA})
-	return SubmitResult{Accepted: len(a.Threads), Rejected: []string{}, Mode: "stored"}, nil
+	return SubmitResult{Accepted: len(a.Threads) + len(a.Messages), Rejected: []string{}, Mode: "stored"}, nil
 }
 
-// ParseWAAnswer reads an MCP submission (overview + threads).
-func ParseWAAnswer(overview string, threads []map[string]any) waAnswer {
+// ParseWAAnswer reads an MCP submission (overview + threads + optional notes per customer message).
+func ParseWAAnswer(overview string, threads []map[string]any, messages ...map[string]any) waAnswer {
 	a := waAnswer{Overview: overview, Threads: []waLine{}}
+	for _, m := range messages {
+		n := waNote{}
+		n.ID, _ = m["id"].(string)
+		n.Note, _ = m["note"].(string)
+		n.Confidence, _ = m["confidence"].(float64)
+		a.Messages = append(a.Messages, n)
+	}
 	for _, t := range threads {
 		l := waLine{}
 		l.ID, _ = t["id"].(string)

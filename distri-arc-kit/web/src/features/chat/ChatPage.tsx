@@ -11,6 +11,7 @@ import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../.
 import { useOrch } from '../../app/orch'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf } from './Connect'
 import { countFilters, FILTERS, filterOf, fmtPhone, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
+import { bubbleLine } from './bubble'
 
 
 // Proposal buttons on annotations get their real labels from AI proposals (stage 05); until then the label
@@ -118,7 +119,23 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
   )
 }
 
-function Bubble({ m, via, group }: { m: MessageView; via: string; group: boolean }) {
+/** Analisa WhatsApp under one bubble: the request, the reply state, the AI note (ADR 0027). */
+function BubbleAnalysis({ a, dir }: { a: NonNullable<MessageView['analysis']>; dir: MessageView['direction'] }) {
+  const l = bubbleLine(a)
+  return (
+    <div className={`bub-an ${dir}`}>
+      <div className="bub-an-row">
+        {l.request && <span className={`pill ${l.request.tone}`}>{l.request.label}</span>}
+        {l.request?.items && <span className="bub-an-items">{l.request.items}</span>}
+        {l.state && <span className={`bub-an-st ${l.tone}`}>{l.state}</span>}
+        {!a.analyzed && <span className="bub-an-new">belum dianalisa</span>}
+      </div>
+      {a.note && <div className="bub-an-note"><span className="ai" />{a.note}</div>}
+    </div>
+  )
+}
+
+function Bubble({ m, via, group, analysis }: { m: MessageView; via: string; group: boolean; analysis: boolean }) {
   const a = m.annotation
   return (
     <div className={`m ${m.direction}`}>
@@ -131,6 +148,7 @@ function Bubble({ m, via, group }: { m: MessageView; via: string; group: boolean
           {m.proposal ? <> · <AnnProposal p={m.proposal} /></> : a.act && ACT_LABEL[a.act] && <> · <AnnAction act={a.act} /></>}
         </span>
       )}
+      {analysis && m.analysis && <BubbleAnalysis a={m.analysis} dir={m.direction} />}
     </div>
   )
 }
@@ -147,6 +165,28 @@ function AnnAction({ act }: { act: string }) {
   return <button onClick={() => toast(`${label}: proposal disusun agen setelah Stage 05`)}>{label}</button>
 }
 
+const PER_MSG_KEY = 'chat.analysis.per-message'
+
+/** Show the analysis under every bubble (on by default, remembered on this browser). */
+function usePerMessageAnalysis(): [boolean, (v: boolean) => void] {
+  const [on, setOn] = useState(() => {
+    try {
+      return localStorage.getItem(PER_MSG_KEY) !== 'off'
+    } catch {
+      return true
+    }
+  })
+  const set = (v: boolean) => {
+    setOn(v)
+    try {
+      localStorage.setItem(PER_MSG_KEY, v ? 'on' : 'off')
+    } catch {
+      /* private window: not remembered */
+    }
+  }
+  return [on, set]
+}
+
 function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   id: string; onBack: () => void; picked: boolean; lead: boolean; setLead: (v: boolean) => void; onAccurate: () => void
 }) {
@@ -159,6 +199,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const [older, setOlder] = useState<MessageView[]>([])
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [perMsg, setPerMsg] = usePerMessageAnalysis()
   const body = useRef<HTMLDivElement>(null)
   const from = (data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
   const send = useMutation({
@@ -210,7 +251,13 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         </div>
         <div className="ibc-acts">
           <Waiting since={t.waiting_since} now={now} />
-          <button className="btn ibc-ai" disabled={orch.running} onClick={() => reanalyze(t.dealer_id ? `dealer:${t.dealer_id}` : 'screen:chat')} title="Jalankan Orchestrator untuk percakapan ini"><span className="ai" style={{ fontSize: 0 }} />{orch.running ? 'Menganalisis…' : 'Analisa lanjut'}</button>
+          {t.kind !== 'group' && (
+            <button type="button" className={`ibc-an-tg${perMsg ? ' on' : ''}`} aria-pressed={perMsg} aria-label="Analisa per pesan" onClick={() => setPerMsg(!perMsg)}
+              title={t.analyzed_at ? `Analisa per pesan · terakhir dianalisa ${shortDate(t.analyzed_at)} ${hhmm(t.analyzed_at)}` : 'Analisa per pesan · belum pernah dianalisa — tekan Analisa lanjut'}>
+              <Icon name="spark" /><span className="ibc-an-l">Per pesan</span>
+            </button>
+          )}
+          <button className="btn ibc-ai" disabled={orch.running} onClick={() => reanalyze(t.dealer_id ? `dealer:${t.dealer_id}` : 'screen:chat')} title="Jalankan Orchestrator untuk percakapan ini — setiap pesan ikut dianalisa"><span className="ai" style={{ fontSize: 0 }} />{orch.running ? 'Menganalisis…' : 'Analisa lanjut'}</button>
           {t.kind !== 'group' && <button className="btn ibc-acc" onClick={onAccurate}><Icon name="send" />Accurate</button>}
           {!lead && <button className="ibl-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
         </div>
@@ -226,7 +273,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           return (
             <div key={m.id} style={{ display: 'contents' }}>
               {sep}
-              <Bubble m={m} via={from} group={t.kind === 'group'} />
+              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} />
             </div>
           )
         })}

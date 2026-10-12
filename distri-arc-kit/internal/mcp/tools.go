@@ -168,6 +168,7 @@ type submitIn struct {
 	Proposals []map[string]any `json:"proposals,omitempty" jsonschema:"proposal seperti candidates di Input (kind, dealer_id, title, why, preview, confidence, signal_ids)"`
 	Overview  string           `json:"overview,omitempty" jsonschema:"agent Analisa WhatsApp: ringkasan chat untuk CEO (2–3 kalimat)"`
 	Threads   []map[string]any `json:"threads,omitempty" jsonschema:"agent Analisa WhatsApp: [{id, summary, confidence 0–1}] per percakapan di Input"`
+	Messages  []map[string]any `json:"messages,omitempty" jsonschema:"agent Analisa WhatsApp (opsional): [{id, note, confidence 0–1}] catatan per pesan pelanggan yang punya id di Input"`
 }
 
 type decideIn struct {
@@ -794,11 +795,11 @@ func (s *Server) registerOrchestrate() {
 					threads = append(threads, p)
 				}
 			}
-			res, err := s.Orch.WASubmit(ctx, id, orchestrator.ParseWAAnswer(overview, threads), &c.ID)
+			res, err := s.Orch.WASubmit(ctx, id, orchestrator.ParseWAAnswer(overview, threads, in.Messages...), &c.ID)
 			if err != nil {
 				return nil, result{CycleID: &id}, err
 			}
-			return res, result{Summary: fmt.Sprintf("Analisa WhatsApp · %d percakapan", res.Accepted), CycleID: &id}, nil
+			return res, result{Summary: fmt.Sprintf("Analisa WhatsApp · %d percakapan & pesan", res.Accepted), CycleID: &id}, nil
 		}
 		raw, _ := json.Marshal(in.Proposals)
 		res, err := s.Orch.Submit(ctx, id, in.Agent, raw, &c.ID)

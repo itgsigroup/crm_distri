@@ -141,3 +141,45 @@ func count(t *testing.T, st *store.Store, sql string, args ...any) int {
 	}
 	return n
 }
+
+// Analisa WhatsApp per bubble (ADR 0027): the thread carries, on each bubble, the request and the AI note of the
+// last analysis and the reply state read live; a bubble written after the analysis says it was not analysed yet.
+func TestThreadBubbleAnalysis(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	var threadID, poID uuid.UUID
+	var sentAt time.Time
+	if err := st.Pool.QueryRow(ctx, `select t.id, m.id, m.sent_at from chat_threads t join chat_messages m on m.thread_id = t.id
+		where t.seed_key = 'seed:thread:c-graha' and m.direction = 'in' order by m.sent_at desc limit 1`).Scan(&threadID, &poID, &sentAt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into wa_message_insights (message_id, thread_id, sent_at, direction, state, intent, items, wait_min, analyzed_at, note, confidence)
+		values ($1, $2, $3, 'in', 'waiting', 'order', '[{"name":"Kamera IP 4MP","qty":10}]', 30, $4, 'PO proyek apartemen — konfirmasi terima & jadwal kirim', 80)`,
+		poID, threadID, sentAt, sentAt.Add(30*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	code, out := get(t, srv, "/api/chat/threads/"+threadID.String(), "sam@gsi.co.id")
+	if code != http.StatusOK {
+		t.Fatalf("thread: %d", code)
+	}
+	if out["thread"].(map[string]any)["analyzed_at"] == nil {
+		t.Error("thread without analyzed_at")
+	}
+	var po map[string]any
+	for _, m := range out["messages"].([]any) {
+		mm := m.(map[string]any)
+		if mm["id"] == poID.String() {
+			po, _ = mm["analysis"].(map[string]any)
+		}
+	}
+	if po == nil || po["analyzed"] != true || po["intent"] != "order" || po["note"] == "" || po["confidence"] != float64(80) {
+		t.Fatalf("po analysis %v", po)
+	}
+	// the reply state is read now: the analysis stored "waiting", the customer's first unanswered message is > 2 h old
+	if po["state"] != "needs_reply" {
+		t.Errorf("state %v (stored: waiting)", po["state"])
+	}
+	if items := po["items"].([]any); len(items) != 1 {
+		t.Errorf("items %v", items)
+	}
+}

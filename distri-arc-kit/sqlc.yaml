@@ -22,6 +22,7 @@ sql:
       - db/migrations/0018_mcp_schedules.sql
       - db/migrations/0019_sales_merge.sql
       - db/migrations/0020_wa_analysis.sql
+      - db/migrations/0021_wa_message_insights.sql
     queries: db/queries
     gen:
       go:

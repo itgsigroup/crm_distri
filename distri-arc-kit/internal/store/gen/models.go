@@ -915,6 +915,22 @@ type WaLink struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type WaMessageInsight struct {
+	MessageID   uuid.UUID       `json:"message_id"`
+	ThreadID    uuid.UUID       `json:"thread_id"`
+	SentAt      time.Time       `json:"sent_at"`
+	Direction   string          `json:"direction"`
+	State       string          `json:"state"`
+	Intent      string          `json:"intent"`
+	Items       json.RawMessage `json:"items"`
+	WaitMin     *int32          `json:"wait_min"`
+	CycleID     *uuid.UUID      `json:"cycle_id"`
+	AnalyzedAt  time.Time       `json:"analyzed_at"`
+	Note        *string         `json:"note"`
+	Confidence  *int16          `json:"confidence"`
+	NoteCycleID *uuid.UUID      `json:"note_cycle_id"`
+}
+
 type WaNumber struct {
 	WaNumber     string     `json:"wa_number"`
 	SalesID      *uuid.UUID `json:"sales_id"`

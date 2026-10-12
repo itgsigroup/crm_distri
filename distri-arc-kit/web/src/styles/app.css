@@ -773,6 +773,20 @@ body.map-maximized{overflow:hidden}
 .ibc-ai{background:var(--kp-ai);color:#fff}
 .ibc-ai:disabled{opacity:.6}
 .ibc-acc{background:var(--wa-green);color:#fff}
+.ibc-an-tg{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 11px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);font-size:12px;font-weight:600;color:var(--text-2)}
+.ibc-an-tg .i{width:13px;height:13px}
+.ibc-an-tg.on{border-color:var(--indigo);color:var(--indigo);background:var(--indigo-soft)}
+@media (max-width:1500px){.ibc-an-l{display:none}.ibc-an-tg{padding:0 10px}}
+/* Analisa WhatsApp per bubble (ADR 0027) */
+.bub-an{display:flex;flex-direction:column;gap:4px;max-width:min(520px,100%);margin-top:4px;padding:6px 9px;border-radius:9px;background:var(--surface);border:1px dashed var(--line-strong);font-size:11.5px;line-height:1.45;color:var(--text-2)}
+.bub-an.out{align-self:flex-end}
+.bub-an-row{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px}
+.bub-an .pill{font-size:10.5px;padding:1px 7px}
+.bub-an-items{font-weight:600;color:var(--text)}
+.bub-an-st.good{color:var(--good)}.bub-an-st.warn{color:var(--warn)}.bub-an-st.bad{color:var(--bad);font-weight:650}.bub-an-st.neutral{color:var(--text-3)}
+.bub-an-new{font-size:10.5px;color:var(--text-3);font-style:italic}
+.bub-an-note{display:flex;gap:6px;align-items:baseline;color:var(--text)}
+.bub-an-note .ai{flex:none}
 .ibc-acc .i{width:14px;height:14px}
 .ibc-body{background:var(--wa-bg);padding:14px 22px}
 .ibc-start{display:flex;justify-content:center;margin-bottom:4px}
@@ -803,7 +817,7 @@ body.map-maximized{overflow:hidden}
   .ibc-h .back .i{transform:rotate(180deg)}
   .ibc-h .back{display:grid;width:32px;height:32px;border-radius:50%;place-items:center;background:var(--surface-3);flex:none}
   .ibc-h{flex-wrap:wrap}
-  .ibc-acts{width:100%;justify-content:flex-end}
+  .ibc-acts{width:100%;justify-content:flex-end;flex-wrap:wrap}
   .ibc-body{padding:12px}
 }
 
