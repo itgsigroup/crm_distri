@@ -165,7 +165,9 @@ type inputGetIn struct {
 type submitIn struct {
 	CycleID   string           `json:"cycle_id"`
 	Agent     string           `json:"agent"`
-	Proposals []map[string]any `json:"proposals" jsonschema:"proposal seperti candidates di Input (kind, dealer_id, title, why, preview, confidence, signal_ids)"`
+	Proposals []map[string]any `json:"proposals,omitempty" jsonschema:"proposal seperti candidates di Input (kind, dealer_id, title, why, preview, confidence, signal_ids)"`
+	Overview  string           `json:"overview,omitempty" jsonschema:"agent Analisa WhatsApp: ringkasan chat untuk CEO (2–3 kalimat)"`
+	Threads   []map[string]any `json:"threads,omitempty" jsonschema:"agent Analisa WhatsApp: [{id, summary, confidence 0–1}] per percakapan di Input"`
 }
 
 type decideIn struct {
@@ -763,7 +765,7 @@ func (s *Server) registerOrchestrate() {
 		}
 		return s.planChange(ctx, c, in)
 	})
-	tool(s, "orchestrator.input.get", ScopeOrchestrate, "Input agen untuk satu siklus (dimasking) — klien MCP menjadi mesin analisis lalu memanggil orchestrator_submit.", func(ctx context.Context, _ *Client, in inputGetIn) (any, result, error) {
+	tool(s, "orchestrator.input.get", ScopeOrchestrate, "Input agen untuk satu siklus (dimasking) — klien MCP menjadi mesin analisis lalu memanggil orchestrator_submit. Agent \"Analisa WhatsApp\" berisi chat dealer untuk diringkas.", func(ctx context.Context, _ *Client, in inputGetIn) (any, result, error) {
 		id, err := uuid.Parse(in.CycleID)
 		if err != nil {
 			return nil, result{}, fmt.Errorf("cycle_id: %w", err)
@@ -776,10 +778,17 @@ func (s *Server) registerOrchestrate() {
 		_ = json.Unmarshal(raw, &v)
 		return v, result{Summary: in.Agent, CycleID: &id}, nil
 	})
-	tool(s, "orchestrator.submit", ScopeOrchestrate, "Mengirim proposal untuk Input yang diminta. Divalidasi: kind agen, signal_ids hanya dari Input, dealer dikenal.", func(ctx context.Context, c *Client, in submitIn) (any, result, error) {
+	tool(s, "orchestrator.submit", ScopeOrchestrate, "Mengirim proposal untuk Input yang diminta. Divalidasi: kind agen, signal_ids hanya dari Input, dealer dikenal. Untuk agent \"Analisa WhatsApp\": kirim overview + threads (bukan proposals).", func(ctx context.Context, c *Client, in submitIn) (any, result, error) {
 		id, err := uuid.Parse(in.CycleID)
 		if err != nil {
 			return nil, result{}, fmt.Errorf("cycle_id: %w", err)
+		}
+		if in.Agent == orchestrator.AgentWA {
+			res, err := s.Orch.WASubmit(ctx, id, orchestrator.ParseWAAnswer(in.Overview, in.Threads), &c.ID)
+			if err != nil {
+				return nil, result{CycleID: &id}, err
+			}
+			return res, result{Summary: fmt.Sprintf("Analisa WhatsApp · %d percakapan", res.Accepted), CycleID: &id}, nil
 		}
 		raw, _ := json.Marshal(in.Proposals)
 		res, err := s.Orch.Submit(ctx, id, in.Agent, raw, &c.ID)

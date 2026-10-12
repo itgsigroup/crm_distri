@@ -13,6 +13,15 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteChatPlanItems = `-- name: DeleteChatPlanItems :exec
+delete from plan_items where plan_date = $1 and link like 'chat:%'
+`
+
+func (q *Queries) DeleteChatPlanItems(ctx context.Context, planDate time.Time) error {
+	_, err := q.db.Exec(ctx, deleteChatPlanItems, planDate)
+	return err
+}
+
 const deleteWAInsights = `-- name: DeleteWAInsights :exec
 delete from wa_insights where cycle_id = $1
 `
@@ -255,6 +264,17 @@ func (q *Queries) ListWAInsights(ctx context.Context, cycleID uuid.UUID) ([]List
 		return nil, err
 	}
 	return items, nil
+}
+
+const maxPlanSeq = `-- name: MaxPlanSeq :one
+select coalesce(max(seq), 0)::int as seq from plan_items where plan_date = $1
+`
+
+func (q *Queries) MaxPlanSeq(ctx context.Context, planDate time.Time) (int32, error) {
+	row := q.db.QueryRow(ctx, maxPlanSeq, planDate)
+	var seq int32
+	err := row.Scan(&seq)
+	return seq, err
 }
 
 const saveWAAnalysis = `-- name: SaveWAAnalysis :exec

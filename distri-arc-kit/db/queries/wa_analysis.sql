@@ -59,3 +59,9 @@ select t.id, t.dealer_id, s.name as sales_name,
      and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out' and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t left join sales_users s on s.id = t.sales_id
 where t.id = any(sqlc.arg(ids)::uuid[]);
+
+-- name: DeleteChatPlanItems :exec
+delete from plan_items where plan_date = $1 and link like 'chat:%';
+
+-- name: MaxPlanSeq :one
+select coalesce(max(seq), 0)::int as seq from plan_items where plan_date = $1;

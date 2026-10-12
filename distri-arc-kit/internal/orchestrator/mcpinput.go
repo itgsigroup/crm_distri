@@ -253,6 +253,9 @@ func (o *Orchestrator) agentByName(name string) agents.Agent {
 
 // InputFor returns (building and storing when needed) the Input of an agent for a cycle (orchestrator.input.get).
 func (o *Orchestrator) InputFor(ctx context.Context, cycleID uuid.UUID, agent string) (json.RawMessage, error) {
+	if agent == AgentWA {
+		return o.WAInputFor(ctx, cycleID)
+	}
 	if row, err := o.St.Q.GetCycleInput(ctx, gen.GetCycleInputParams{CycleID: cycleID, Agent: agent}); err == nil {
 		return row.Input, nil
 	}
@@ -457,6 +460,8 @@ Untuk setiap agen berikut: %s
 2. Analisis datanya: pilih kandidat yang benar-benar perlu, tulis ulang "why" (alasan singkat berbasis angka) dan "preview" (draft pesan, Bahasa Indonesia, sopan). Jangan ubah angka, dealer_id, kind, signal_ids, atau dedupe_key; buang kandidat yang lemah.
 3. Kirim lewat orchestrator_submit {"cycle_id": "%s", "agent": "<nama agen>", "proposals": [...]}.
 
+Lalu baca chat WhatsApp: panggil orchestrator_input_get {"cycle_id": "%s", "agent": "Analisa WhatsApp"}, tulis ringkasan untuk CEO dan satu kalimat per percakapan, kirim lewat orchestrator_submit {"cycle_id": "%s", "agent": "Analisa WhatsApp", "overview": "...", "threads": [{"id": "...", "summary": "...", "confidence": 0.8}]}.
+
 Kerjakan semua agen, lalu beri ringkasan singkat apa yang kamu usulkan. Kamu hanya mengusulkan — keputusan tetap di aplikasi GSI Orbit.`,
-		number, cycleID, waitLabel(wait), strings.Join(agentNames, ", "), cycleID, cycleID)
+		number, cycleID, waitLabel(wait), strings.Join(agentNames, ", "), cycleID, cycleID, cycleID, cycleID)
 }

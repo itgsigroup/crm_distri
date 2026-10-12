@@ -116,7 +116,7 @@ export function WAOverviewCard({ data, scoped }: { data: WAAnalysis | undefined;
             <div className="wa-ai"><span className="ai">Ringkasan AI</span><p>{data.overview}</p></div>
           ) : (
             <p className="cl-empty wa-ai-empty">
-              {scoped ? 'Ringkasan AI mencakup semua sales — di halaman sales ini hanya angkanya.' : 'Belum dibaca AI pada siklus ini — angka di atas dihitung GSI Orbit dari chat. Ringkasan dan satu baris per percakapan ditulis AI bila ada model Claude di server (wajib AI, tanpa template).'}
+              {scoped ? 'Ringkasan AI mencakup semua sales — di halaman sales ini hanya angkanya.' : <>Belum dibaca AI pada siklus ini — angka di atas dihitung GSI Orbit dari chat. Ringkasan dan satu baris per percakapan ditulis Claude lewat MCP: tekan <b>Analisis ulang → Lewat MCP</b>, atau minta di Claude <i>"jalankan analisis GSI Orbit"</i>.</>}
             </p>
           )}
         </>
@@ -220,8 +220,8 @@ export function WAHowCard() {
       <CardH title="Cara Orchestrator membaca WhatsApp" />
       <ul className="wa-how">
         <li><Icon name="refresh" /><span>Setiap siklus penuh membaca chat <b>7 hari terakhir</b> di samping data BigQuery: permintaan (order, harga, stok, rilis kredit, retur) dikenali dengan ekstraktor yang sama dengan AI Order.</span></li>
-        <li><Icon name="cal" /><span>Chat yang menunggu balasan <b>lebih dari 2 jam</b> dan belum dijawab usulan agen masuk <b>Rencana hari ini</b> sebagai “Balas chat”.</span></li>
-        <li><Icon name="lock" /><span>Grup internal dan chat antar karyawan tidak dibaca. Nama dan nomor dimasking sebelum ke AI; tidak ada pesan yang terkirim tanpa keputusan Anda.</span></li>
+        <li><Icon name="cal" /><span>Chat yang menunggu balasan <b>lebih dari 2 jam</b> dan belum dijawab usulan agen masuk <b>Rencana hari ini</b> sebagai “Balas chat” — juga saat siklus gagal di tahap Analisis.</span></li>
+        <li><Icon name="lock" /><span>Grup internal dan chat antar karyawan tidak dibaca. Ringkasan ditulis Claude lewat MCP dengan nama dan nomor dimasking; tidak ada pesan yang terkirim tanpa keputusan Anda.</span></li>
       </ul>
     </div>
   )

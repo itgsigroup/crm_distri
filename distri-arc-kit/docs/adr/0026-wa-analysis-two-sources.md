@@ -32,3 +32,11 @@ jadi 2 analisa", dan hasil WhatsApp masuk Rencana.
 - Rencana pada data contoh bertambah satu langkah (Graha: PO kemarin 16.20 belum dibalas): 9 langkah, bukan 8.
 - Ambang 2 jam, jendela 7 hari, dan maks 3 langkah masih konstanta di `waanalysis`; bisa dijadikan kebijakan.
 - Jalur MCP (tanpa model di server) belum menulis ringkasan WhatsApp; Claude dapat membacanya lewat `wa.analisis`.
+
+## Pembaruan 2026-10-12 — tanpa API key, lewat MCP
+- Langkah "Balas chat" ditulis sudah di **Ingest** (`writeChatSteps`), jadi tetap masuk Rencana walau siklus gagal di
+  Analisis (tidak ada jawaban AI). Keputusan menulis ulang seluruh Rencana bila siklus sampai sana.
+- Ringkasan AI WhatsApp ditulis **Claude lewat MCP**: `orchestrator_input_get` dengan agent `Analisa WhatsApp`
+  (chat dimasking, mapping disimpan di `cycle_inputs`) dan `orchestrator_submit` dengan `overview` + `threads`.
+  Divalidasi terhadap Input, di-unmask, disimpan `source = ai`. Bisa dikirim kapan saja setelah Ingest, juga untuk
+  siklus yang gagal. Prompt "Analisis ulang lewat MCP" menyertakan langkah ini.

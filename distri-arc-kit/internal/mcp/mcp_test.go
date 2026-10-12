@@ -362,3 +362,28 @@ func TestWAAnalisisMasked(t *testing.T) {
 		t.Fatalf("PII leaked: %s", b)
 	}
 }
+
+// Claude (MCP, no API key) reads the chats of a cycle and sends the Analisa WhatsApp lines back (ADR 0026).
+func TestWAThroughMCP(t *testing.T) {
+	e := setup(t)
+	rep, err := e.o.Run(context.Background(), domain.Scope{Kind: "all"}, domain.Trigger{Source: "schedule"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs := e.connect(t, e.token(t, "Claude", "read", "analyze", "orchestrate"))
+	cid := rep.Cycle.ID.String()
+	in, txt, ok := call(t, cs, "orchestrator_input_get", map[string]any{"cycle_id": cid, "agent": "Analisa WhatsApp"})
+	if !ok || len(in["threads"].([]any)) == 0 {
+		t.Fatalf("input: %v %s", in, txt)
+	}
+	id := in["threads"].([]any)[0].(map[string]any)["id"].(string)
+	out, txt, ok := call(t, cs, "orchestrator_submit", map[string]any{"cycle_id": cid, "agent": "Analisa WhatsApp", "overview": "Dua dealer menunggu balasan.",
+		"threads": []map[string]any{{"id": id, "summary": "Menunggu konfirmasi PO dari sales.", "confidence": 0.8}}})
+	if !ok || out["accepted"].(float64) != 1 {
+		t.Fatalf("submit: %v %s", out, txt)
+	}
+	a, _ := e.st.Q.LatestWAAnalysis(context.Background())
+	if a.Source != "ai" || a.Overview == nil || *a.Overview != "Dua dealer menunggu balasan." {
+		t.Fatalf("stored %s %v", a.Source, a.Overview)
+	}
+}

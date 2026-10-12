@@ -13,7 +13,9 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"distri-arc/internal/agents"
+	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
+	"distri-arc/internal/events"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/waanalysis"
@@ -55,7 +57,15 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 	}
 	r.wa = waanalysis.Analyze(threads, r.in.Products, now)
 	r.waRead = true
-	return o.saveWA(ctx, r)
+	// link to the proposals already open and put the waiting chats into the plan now: a cycle that fails at
+	// Analisis (no AI answer) still reads WhatsApp and still asks the sales to reply
+	if err := o.linkWA(ctx, r); err != nil {
+		return err
+	}
+	if err := o.saveWA(ctx, r); err != nil {
+		return err
+	}
+	return o.writeChatSteps(ctx, r)
 }
 
 // linkWA adds the proposals made from each conversation's messages (this cycle's included).
@@ -205,120 +215,279 @@ type waLine struct {
 	Confidence float64 `json:"confidence"`
 }
 
-// writeWASummary asks the model to read the conversations. Only a model's answer is stored (ADR 0025): without one
-// the tab shows the numbers and says the conversations were not read by AI.
-func (o *Orchestrator) writeWASummary(ctx context.Context, r *stageRun) error {
-	if !r.waRead || len(r.wa) == 0 || o.Router == nil || !o.Router.HasModel() {
-		return nil
+// waMsg / waThreadIn are one conversation as the reader (the model, or Claude through MCP) sees it.
+type waMsg struct {
+	Dir  string `json:"dir"`
+	Text string `json:"text"`
+}
+
+type waThreadIn struct {
+	ID      string            `json:"id"`
+	Title   string            `json:"title"`
+	Dealer  string            `json:"dealer,omitempty"`
+	Sales   string            `json:"sales,omitempty"`
+	Intent  string            `json:"intent"`
+	Items   []waanalysis.Item `json:"items,omitempty"`
+	Waiting string            `json:"waiting,omitempty"`
+	Msgs    []waMsg           `json:"messages"`
+}
+
+// waReading is what is read for a cycle's Analisa WhatsApp: the totals and the most urgent conversations with
+// customer messages (≤ maxWASummaries), their last 8 messages; names are the people to mask.
+type waReading struct {
+	Totals  waanalysis.Totals `json:"totals"`
+	Threads []waThreadIn      `json:"threads"`
+	names   []string
+	want    map[string]bool
+}
+
+// waReadingFor builds the reading of a cycle from what Ingest stored (the same for the API model and for MCP).
+func (o *Orchestrator) waReadingFor(ctx context.Context, cycleID uuid.UUID) (*waReading, error) {
+	rows, err := o.St.Q.ListWAInsights(ctx, cycleID)
+	if err != nil {
+		return nil, err
 	}
-	tot, _ := waanalysis.Summarize(r.wa)
-	type msg struct {
-		Dir  string `json:"dir"`
-		Text string `json:"text"`
+	if len(rows) == 0 {
+		return nil, ErrNoWA
 	}
-	type th struct {
-		ID      string            `json:"id"`
-		Title   string            `json:"title"`
-		Dealer  string            `json:"dealer,omitempty"`
-		Sales   string            `json:"sales,omitempty"`
-		Intent  string            `json:"intent"`
-		Items   []waanalysis.Item `json:"items,omitempty"`
-		Waiting string            `json:"waiting,omitempty"`
-		Msgs    []msg             `json:"messages"`
+	now := o.Clock.Now()
+	var ins []waanalysis.Insight
+	for _, x := range rows {
+		ins = append(ins, waanalysis.Insight{Kind: x.Kind, SalesName: deref(x.SalesName), Intent: x.Intent, Inbound: int(x.Inbound), Outbound: int(x.Outbound),
+			WaitingSince: x.WaitingSince, NeedsReply: x.NeedsReply, ReplyMedianMin: intp(x.ReplyMedianMin)})
 	}
-	var threads []th
-	var names []string
-	want := map[string]bool{}
-	for _, in := range r.wa {
-		if len(threads) >= maxWASummaries {
+	tot, _ := waanalysis.Summarize(ins)
+	rd := &waReading{Totals: tot, Threads: []waThreadIn{}, want: map[string]bool{}}
+	for _, x := range rows { // ListWAInsights: most urgent first
+		if len(rd.Threads) >= maxWASummaries {
 			break
 		}
-		if in.Inbound == 0 {
+		if x.Inbound == 0 {
 			continue
 		}
-		t := th{ID: in.ThreadID.String(), Title: in.Title, Dealer: in.DealerName, Sales: in.SalesName, Intent: waanalysis.IntentLabel(in.Intent), Items: in.Items}
-		if in.WaitingSince != nil {
-			t.Waiting = waanalysis.WaitLabel(in.WaitMin)
+		var items []waanalysis.Item
+		_ = json.Unmarshal(x.Items, &items)
+		t := waThreadIn{ID: x.ThreadID.String(), Title: x.Title, Dealer: deref(x.DealerName), Sales: deref(x.SalesName), Intent: waanalysis.IntentLabel(x.Intent), Items: items}
+		if x.WaitingSince != nil {
+			t.Waiting = waanalysis.WaitLabel(int(now.Sub(*x.WaitingSince).Minutes()))
 		}
-		ms := r.waThreads[in.ThreadID].Messages
-		if len(ms) > 8 {
-			ms = ms[len(ms)-8:]
+		tid := x.ThreadID
+		msgs, err := o.St.Q.ListThreadMessages(ctx, gen.ListThreadMessagesParams{ThreadID: &tid, SentAt: now.Add(time.Minute), Limit: 8})
+		if err != nil {
+			return nil, err
 		}
-		for _, m := range ms {
-			d := "out"
-			if m.In {
-				d = "in"
+		for _, m := range msgs {
+			if m.Status == "failed" || strings.TrimSpace(deref(m.Body)) == "" {
+				continue
 			}
-			t.Msgs = append(t.Msgs, msg{d, clipText(m.Text, 300)})
+			t.Msgs = append(t.Msgs, waMsg{deref(m.Direction), clipText(deref(m.Body), 300)})
 		}
 		// the person in the title ("Mbak Rina · Toko Sinar") and the sales are masked before leaving the server
-		if p, _, ok := strings.Cut(in.Title, " · "); ok || in.Kind == "new" {
-			names = append(names, strings.TrimSpace(p))
+		if p, _, ok := strings.Cut(x.Title, " · "); ok || x.Kind == "new" {
+			rd.names = append(rd.names, strings.TrimSpace(p))
 		}
-		if in.SalesName != "" {
-			names = append(names, in.SalesName)
+		if n := deref(x.SalesName); n != "" {
+			rd.names = append(rd.names, n)
 		}
-		threads = append(threads, t)
-		want[t.ID] = true
+		rd.Threads = append(rd.Threads, t)
+		rd.want[t.ID] = true
 	}
-	if len(threads) == 0 {
+	return rd, nil
+}
+
+func intp(v *int32) *int {
+	if v == nil {
 		return nil
 	}
-	input, _ := json.Marshal(map[string]any{"totals": tot, "threads": threads})
-	fallback, _ := json.Marshal(map[string]any{"overview": "", "threads": []waLine{}})
-	schema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"overview", "threads"}, "properties": map[string]any{
-		"overview": map[string]any{"type": "string"},
-		"threads": map[string]any{"type": "array", "items": map[string]any{"type": "object", "additionalProperties": false, "required": []string{"id", "summary", "confidence"},
-			"properties": map[string]any{"id": map[string]any{"type": "string"}, "summary": map[string]any{"type": "string"}, "confidence": map[string]any{"type": "number"}}}}}}
-	check := func(raw json.RawMessage) error {
-		var out struct {
-			Overview string
-			Threads  []waLine
-		}
-		if err := json.Unmarshal(raw, &out); err != nil {
-			return err
-		}
-		if strings.TrimSpace(out.Overview) == "" || utf8.RuneCountInString(out.Overview) > 800 {
-			return errors.New("overview empty or too long")
-		}
-		for _, l := range out.Threads {
-			if !want[l.ID] {
-				return fmt.Errorf("unknown conversation %q", l.ID)
-			}
-			if strings.TrimSpace(l.Summary) == "" || utf8.RuneCountInString(l.Summary) > 300 {
-				return errors.New("summary empty or too long")
-			}
-		}
-		return nil
+	x := int(*v)
+	return &x
+}
+
+// ErrNoWA: the cycle has no Analisa WhatsApp (not a full cycle, or no conversation in the window).
+var ErrNoWA = errors.New("siklus ini tidak punya Analisa WhatsApp")
+
+// waAnswer is the reading's answer: an overview and one line per conversation.
+type waAnswer struct {
+	Overview string   `json:"overview"`
+	Threads  []waLine `json:"threads"`
+}
+
+func (rd *waReading) check(a waAnswer) error {
+	if strings.TrimSpace(a.Overview) == "" || utf8.RuneCountInString(a.Overview) > 800 {
+		return errors.New("overview kosong atau lebih dari 800 karakter")
 	}
-	cid := r.cyc.ID.String()
-	actx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
-	res := o.Router.Complete(actx, llm.Request{Purpose: "wa.summary", Agent: AgentWA, CycleID: &cid, System: llm.Prompt("system") + "\n\n" + llm.Prompt("wa"),
-		Input: input, Schema: schema, MaxTokens: 3000, Names: names, Fallback: fallback}, check)
-	if !llm.FromModel(res) || check(res.JSON) != nil {
-		return nil // no AI line is better than a template one (ADR 0025)
+	for _, l := range a.Threads {
+		if !rd.want[l.ID] {
+			return fmt.Errorf("percakapan %q tidak ada di Input", l.ID)
+		}
+		if strings.TrimSpace(l.Summary) == "" || utf8.RuneCountInString(l.Summary) > 300 {
+			return fmt.Errorf("summary %s kosong atau lebih dari 300 karakter", l.ID)
+		}
+		if l.Confidence < 0 || l.Confidence > 1 {
+			return fmt.Errorf("confidence %s harus 0–1", l.ID)
+		}
 	}
-	var out struct {
-		Overview string
-		Threads  []waLine
-	}
-	if err := json.Unmarshal(res.JSON, &out); err != nil {
-		return nil
-	}
+	return nil
+}
+
+// storeWA saves an AI answer for a cycle (source ai).
+func (o *Orchestrator) storeWA(ctx context.Context, cycleID uuid.UUID, a waAnswer) error {
 	return o.St.Tx(ctx, func(q *gen.Queries, _ pgx.Tx) error {
-		ov := strings.TrimSpace(out.Overview)
-		if err := q.SetWAOverview(ctx, gen.SetWAOverviewParams{CycleID: r.cyc.ID, Overview: &ov, Source: "ai"}); err != nil {
+		ov := strings.TrimSpace(a.Overview)
+		if err := q.SetWAOverview(ctx, gen.SetWAOverviewParams{CycleID: cycleID, Overview: &ov, Source: "ai"}); err != nil {
 			return err
 		}
-		for _, l := range out.Threads {
+		for _, l := range a.Threads {
 			id, err := uuid.Parse(l.ID)
 			if err != nil {
 				continue
 			}
 			s := strings.TrimSpace(l.Summary)
 			c := int16(max(0, min(100, l.Confidence*100+0.5)))
-			if err := q.SetWAInsightSummary(ctx, gen.SetWAInsightSummaryParams{CycleID: r.cyc.ID, ThreadID: id, Summary: &s, Confidence: &c}); err != nil {
+			if err := q.SetWAInsightSummary(ctx, gen.SetWAInsightSummaryParams{CycleID: cycleID, ThreadID: id, Summary: &s, Confidence: &c}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// writeWASummary asks the server's model to read the conversations. Only a model's answer is stored (ADR 0025).
+// Without a model the reading waits for Claude through MCP (orchestrator_input_get / orchestrator_submit with agent
+// "Analisa WhatsApp").
+func (o *Orchestrator) writeWASummary(ctx context.Context, r *stageRun) error {
+	if !r.waRead || len(r.wa) == 0 || o.Router == nil || !o.Router.HasModel() {
+		return nil
+	}
+	rd, err := o.waReadingFor(ctx, r.cyc.ID)
+	if err != nil || len(rd.Threads) == 0 {
+		return nil
+	}
+	input, _ := json.Marshal(rd)
+	fallback, _ := json.Marshal(waAnswer{Threads: []waLine{}})
+	schema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"overview", "threads"}, "properties": map[string]any{
+		"overview": map[string]any{"type": "string"},
+		"threads": map[string]any{"type": "array", "items": map[string]any{"type": "object", "additionalProperties": false, "required": []string{"id", "summary", "confidence"},
+			"properties": map[string]any{"id": map[string]any{"type": "string"}, "summary": map[string]any{"type": "string"}, "confidence": map[string]any{"type": "number"}}}}}}
+	check := func(raw json.RawMessage) error {
+		var a waAnswer
+		if err := json.Unmarshal(raw, &a); err != nil {
+			return err
+		}
+		return rd.check(a)
+	}
+	cid := r.cyc.ID.String()
+	actx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	res := o.Router.Complete(actx, llm.Request{Purpose: "wa.summary", Agent: AgentWA, CycleID: &cid, System: llm.Prompt("system") + "\n\n" + llm.Prompt("wa"),
+		Input: input, Schema: schema, MaxTokens: 3000, Names: rd.names, Fallback: fallback}, check)
+	if !llm.FromModel(res) || check(res.JSON) != nil {
+		return nil // no AI line is better than a template one (ADR 0025)
+	}
+	var a waAnswer
+	if err := json.Unmarshal(res.JSON, &a); err != nil {
+		return nil
+	}
+	return o.storeWA(ctx, r.cyc.ID, a)
+}
+
+// ---------- MCP: Claude reads the conversations (no API key on the server) ----------
+
+// WAInputFor is orchestrator_input_get for agent "Analisa WhatsApp": the cycle's reading, masked; the mapping to
+// unmask the answer is kept in cycle_inputs (never sent to the client).
+func (o *Orchestrator) WAInputFor(ctx context.Context, cycleID uuid.UUID) (json.RawMessage, error) {
+	if row, err := o.St.Q.GetCycleInput(ctx, gen.GetCycleInputParams{CycleID: cycleID, Agent: AgentWA}); err == nil {
+		return row.Input, nil
+	}
+	rd, err := o.waReadingFor(ctx, cycleID)
+	if err != nil {
+		return nil, err
+	}
+	raw, _ := json.Marshal(map[string]any{"cycle_id": cycleID, "agent": AgentWA, "instructions": llm.Prompt("wa") + " " + waMCPSubmit,
+		"totals": rd.Totals, "threads": rd.Threads})
+	var tree any
+	_ = json.Unmarshal(raw, &tree)
+	m := llm.NewMasker()
+	masked, _ := json.Marshal(maskStrings(tree, m, rd.names))
+	mb, _ := json.Marshal(m.Mapping())
+	if err := o.St.Q.UpsertCycleInput(ctx, gen.UpsertCycleInputParams{CycleID: cycleID, Agent: AgentWA, Input: masked, SignalIds: []uuid.UUID{}, Mapping: mb}); err != nil {
+		return nil, err
+	}
+	return masked, nil
+}
+
+const waMCPSubmit = `Kirim lewat orchestrator_submit {"cycle_id": "<cycle_id>", "agent": "Analisa WhatsApp", "overview": "...", "threads": [{"id": "<id percakapan>", "summary": "...", "confidence": 0.8}]}. Placeholder <PIC_n>/<NO_n> biarkan apa adanya.`
+
+// WASubmit is orchestrator_submit for agent "Analisa WhatsApp": Claude's overview and lines, validated against the
+// Input it was given, unmasked, stored as AI (any time after Ingest — also when the cycle itself failed).
+func (o *Orchestrator) WASubmit(ctx context.Context, cycleID uuid.UUID, a waAnswer, client *uuid.UUID) (SubmitResult, error) {
+	row, err := o.St.Q.GetCycleInput(ctx, gen.GetCycleInputParams{CycleID: cycleID, Agent: AgentWA})
+	if err != nil {
+		return SubmitResult{}, ErrNoInput
+	}
+	rd, err := o.waReadingFor(ctx, cycleID)
+	if err != nil {
+		return SubmitResult{}, err
+	}
+	var mapping map[string]string
+	_ = json.Unmarshal(row.Mapping, &mapping)
+	a.Overview = llm.UnmaskWith(a.Overview, mapping)
+	for i := range a.Threads {
+		a.Threads[i].Summary = llm.UnmaskWith(a.Threads[i].Summary, mapping)
+	}
+	if err := rd.check(a); err != nil {
+		return SubmitResult{Rejected: []string{err.Error()}}, fmt.Errorf("%w: %s", ErrBadSubmit, err.Error())
+	}
+	if err := o.storeWA(ctx, cycleID, a); err != nil {
+		return SubmitResult{}, err
+	}
+	now := o.Clock.Now()
+	b, _ := json.Marshal(a)
+	_ = o.St.Q.SubmitCycleInput(ctx, gen.SubmitCycleInputParams{CycleID: cycleID, Agent: AgentWA, Submitted: b, SubmittedBy: client, SubmittedAt: &now})
+	_ = events.Notify(ctx, o.St.Pool, "cycle_done", map[string]any{"id": cycleID, "source": "mcp", "agent": AgentWA})
+	return SubmitResult{Accepted: len(a.Threads), Rejected: []string{}, Mode: "stored"}, nil
+}
+
+// ParseWAAnswer reads an MCP submission (overview + threads).
+func ParseWAAnswer(overview string, threads []map[string]any) waAnswer {
+	a := waAnswer{Overview: overview, Threads: []waLine{}}
+	for _, t := range threads {
+		l := waLine{}
+		l.ID, _ = t["id"].(string)
+		l.Summary, _ = t["summary"].(string)
+		l.Confidence, _ = t["confidence"].(float64)
+		a.Threads = append(a.Threads, l)
+	}
+	return a
+}
+
+// ---------- Rencana: "Balas chat" from Ingest ----------
+
+// writeChatSteps puts the conversations waiting for a reply into today's plan already in Ingest, so they reach
+// Rencana hari ini even when the cycle fails later (no AI answer). Decide rewrites the whole plan with them.
+func (o *Orchestrator) writeChatSteps(ctx context.Context, r *stageRun) error {
+	now := o.Clock.Now()
+	today := clock.Today(now)
+	cands := chatCands(r)
+	cyc := r.cyc.ID
+	return o.St.Tx(ctx, func(q *gen.Queries, _ pgx.Tx) error {
+		if err := q.DeleteChatPlanItems(ctx, today); err != nil {
+			return err
+		}
+		seq, err := q.MaxPlanSeq(ctx, today)
+		if err != nil {
+			return err
+		}
+		slot := firstSlot(now).Format("15.04")
+		for i, c := range cands {
+			if i >= waanalysis.MaxPlanSteps {
+				break
+			}
+			it := chatStep(c)
+			seq++
+			agent, auto := it.Agent, it.Autonomy
+			if err := q.InsertPlanItem(ctx, gen.InsertPlanItemParams{PlanDate: today, CycleID: &cyc, Seq: seq, TimeLabel: &slot, Agent: &agent,
+				Autonomy: &auto, TextHtml: &it.Text, Status: it.Status, Link: strp(it.Link)}); err != nil {
 				return err
 			}
 		}

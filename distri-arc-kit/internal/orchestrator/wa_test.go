@@ -150,3 +150,65 @@ func TestWhatsAppSummaryByModel(t *testing.T) {
 		t.Errorf("%d wa.summary calls logged", calls)
 	}
 }
+
+// A cycle that fails at Analisis (AI required, no model, nobody answers through MCP) still read WhatsApp in Ingest
+// and still put the waiting chat into Rencana hari ini (ADR 0026).
+func TestFailedCycleStillPlansChats(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	if _, err := st.Pool.Exec(ctx, `update policies set value = jsonb_set(value, '{require_ai}', 'true') where key = 'llm.routing'`); err != nil {
+		t.Fatal(err)
+	}
+	o.MCPWait = 500 * time.Millisecond
+	if _, err := o.Run(ctx, all, sched); err == nil {
+		t.Fatal("cycle without any AI answer should fail")
+	}
+	c, _ := st.Q.LatestCycle(ctx)
+	if c.Status != "failed" {
+		t.Fatalf("status %s", c.Status)
+	}
+	if a, err := st.Q.LatestWAAnalysis(ctx); err != nil || a.CycleID != c.ID || a.Threads == 0 {
+		t.Fatalf("no WhatsApp reading on the failed cycle: %+v %v", a, err)
+	}
+	var n int
+	_ = st.Pool.QueryRow(ctx, "select count(*) from plan_items where link like 'chat:%' and text_html like '%[[dealer:graha|%'").Scan(&n)
+	if n != 1 {
+		t.Fatalf("%d Balas chat steps for Graha", n)
+	}
+	// Claude answers through MCP afterwards: the reading of the failed cycle gets its AI lines
+	raw, err := o.InputFor(ctx, c.ID, orchestrator.AgentWA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "Pak Hasan") {
+		t.Fatal("names not masked in the MCP input")
+	}
+	var in struct {
+		Threads []struct {
+			ID    string `json:"id"`
+			Title string `json:"title"`
+		} `json:"threads"`
+	}
+	_ = json.Unmarshal(raw, &in)
+	if len(in.Threads) == 0 {
+		t.Fatalf("input %s", raw)
+	}
+	person, _, _ := strings.Cut(in.Threads[0].Title, " · ") // a placeholder like <PIC_1>
+	ans := orchestrator.ParseWAAnswer("Satu dealer menunggu balasan sejak kemarin.", []map[string]any{{"id": in.Threads[0].ID, "summary": person + " menunggu konfirmasi PO.", "confidence": 0.7}})
+	if _, err := o.WASubmit(ctx, c.ID, ans, nil); err != nil {
+		t.Fatal(err)
+	}
+	a, _ := st.Q.LatestWAAnalysis(ctx)
+	if a.Source != "ai" {
+		t.Errorf("source %s", a.Source)
+	}
+	var sum string
+	_ = st.Pool.QueryRow(ctx, "select summary from wa_insights where cycle_id = $1 and thread_id = $2", c.ID, uuid.MustParse(in.Threads[0].ID)).Scan(&sum)
+	if strings.Contains(sum, "<PIC") || sum == "" {
+		t.Errorf("summary not unmasked: %q", sum)
+	}
+	bad := orchestrator.ParseWAAnswer("x", []map[string]any{{"id": uuid.NewString(), "summary": "y", "confidence": 0.5}})
+	if _, err := o.WASubmit(ctx, c.ID, bad, nil); err == nil {
+		t.Error("unknown conversation accepted")
+	}
+}
