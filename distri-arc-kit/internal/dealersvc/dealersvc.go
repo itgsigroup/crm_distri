@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
@@ -116,10 +117,20 @@ func (s *Service) Load(ctx context.Context) (*Dataset, error) {
 	return &Dataset{Today: now, Policies: pol, Dealers: dealers, Histories: h}, nil
 }
 
+// recountLockKey serialises RecountContacts (the Orchestrator cycle holds key 42).
+const recountLockKey = 43
+
 // Recompute computes and stores metrics for the given dealers (all when ids is empty).
 func (s *Service) Recompute(ctx context.Context, ids ...uuid.UUID) (map[uuid.UUID]domain.DealerMetrics, error) {
-	// PIC aktif first: interactions_90d / last_interaction_at from the messages of each contact's number
-	if err := s.st.Q.RecountContacts(ctx, s.clock.Now().AddDate(0, 0, -90)); err != nil {
+	// PIC aktif first: interactions_90d / last_interaction_at from the messages of each contact's number. The update
+	// touches every contact: two at once (a cycle and the worker's recompute after a WhatsApp message) deadlock, so
+	// they take turns on a transaction-scoped advisory lock.
+	if err := s.st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, "select pg_advisory_xact_lock($1, hashtext(current_schema()))", recountLockKey); err != nil {
+			return err
+		}
+		return q.RecountContacts(ctx, s.clock.Now().AddDate(0, 0, -90))
+	}); err != nil {
 		return nil, err
 	}
 	ds, err := s.Load(ctx)
