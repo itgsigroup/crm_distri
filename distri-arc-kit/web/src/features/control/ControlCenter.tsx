@@ -5,7 +5,7 @@ import { CardH, Pill, Prov } from '../../components/ui'
 import { fmtRp, greeting, hhmm, shortDate } from '../../lib/format'
 import { AGENT_NAMES } from '../../lib/i18n/id'
 import { PipeChips } from '../../app/Dock'
-import { useAgenda, useBrief, useConflicts, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, usePlan, useQueue, useSegmenMovers, useStockPush } from '../../app/queries'
+import { useAgenda, useBrief, useConflicts, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, usePlan, useQueue, useSegmenMovers, useStockPush, useWAAnalysis } from '../../app/queries'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { PlanList, planMeta } from './Plan'
 import { useMore } from '../../components/More'
@@ -13,6 +13,7 @@ import { BriefPoints, DriftList, DueList, PushList, TightList, dueLabel } from '
 import { Queue } from './Queue'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import type { AgendaRow, KPI } from '../../api/types'
+import { AnalisaTabs, WAHowCard, WAOverviewCard, WASalesCard, WAThreadsCard, useAnalisaTab } from '../wa/WAAnalysis'
 
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -46,6 +47,16 @@ export function ControlCenter() {
   const signalN = scoped ? (brief?.counts ? brief.counts.wa + brief.counts.so + brief.counts.payments : 0) : full ? full.signals_count ?? 0 : 0
   const conflictN = scoped ? conflicts.length : full?.conflict_count ?? 0
   const [agentsOpen, setAgentsOpen] = useState(false)
+  // two analyses: BigQuery (SO, payments, stock) and WhatsApp (what dealers wrote) — ADR 0026
+  const an = useAnalisaTab()
+  const { data: wa } = useWAAnalysis(sales, an.canWA)
+  const waDue = wa?.totals.needs_reply ?? 0
+  const waPlan = plan && { ...plan, items: plan.items.filter((it) => it.link?.startsWith('chat:')) }
+  // the status strip points at cards of the BigQuery tab
+  const goTo = (id: string) => {
+    if (an.tab !== 'bq') an.setTab('bq')
+    setTimeout(() => scrollTo(id), 60)
+  }
 
   const c = brief?.counts
   const first = me?.name.split(' ')[0] ?? ''
@@ -74,10 +85,11 @@ export function ControlCenter() {
             </p>
           </div>
           <div className="status-strip">
-            <button onClick={() => scrollTo('queue-card')}><span className="n" style={{ background: 'var(--accent)' }}>{pending}</span>Keputusan</button>
-            <button onClick={() => scrollTo('due-card')}><span className="n" style={{ background: 'var(--good)' }}>{due.length}</span>Jadwal order<span className="m">· 7 hari</span></button>
-            <button onClick={() => scrollTo('drift-card')}><span className="n" style={{ background: 'var(--warn)' }}>{drift.length}</span>Lewat jadwal</button>
+            <button onClick={() => goTo('queue-card')}><span className="n" style={{ background: 'var(--accent)' }}>{pending}</span>Keputusan</button>
+            <button onClick={() => goTo('due-card')}><span className="n" style={{ background: 'var(--good)' }}>{due.length}</span>Jadwal order<span className="m">· 7 hari</span></button>
+            <button onClick={() => goTo('drift-card')}><span className="n" style={{ background: 'var(--warn)' }}>{drift.length}</span>Lewat jadwal</button>
             <button onClick={() => nav('/kredit')}><span className="n" style={{ background: 'var(--bad)' }}>{bad.length}</span>Over limit / overdue</button>
+            {an.canWA && <button onClick={() => an.setTab('wa')}><span className="n" style={{ background: 'var(--accent)' }}>{waDue}</span>Chat menunggu<span className="m">· &gt; 2 jam</span></button>}
             <button onClick={() => nav('/orbit')}><span className="n" style={{ background: 'var(--indigo)' }}>◎</span>Buka Orbit</button>
           </div>
         </div>
@@ -99,7 +111,24 @@ export function ControlCenter() {
         </div>
       </div>
 
-      <div className="today">
+      <AnalisaTabs {...an} waBadge={waDue} />
+      {an.tab === 'wa' && (
+        <div className="today">
+          <div className="stack">
+            <WAOverviewCard data={wa} scoped={scoped} />
+            <div className="card">
+              <div className="card-h"><h2>Rencana dari WhatsApp</h2><span className="ai" style={{ marginLeft: 6 }}>disusun Orchestrator</span><span className="meta">chat yang menunggu &gt; 2 jam tanpa usulan agen</span></div>
+              {waPlan && waPlan.items.length > 0 ? <PlanList plan={waPlan} /> : <p className="sg-hint">Tidak ada chat yang perlu dibalas di Rencana hari ini.</p>}
+            </div>
+            <WAThreadsCard data={wa} />
+          </div>
+          <div className="stack">
+            <WASalesCard rows={wa?.sales ?? []} />
+            <WAHowCard />
+          </div>
+        </div>
+      )}
+      {an.tab === 'bq' && <div className="today">
         <div className="stack">
           <div className="card" id="plan-card">
             <div className="card-h"><h2>Rencana hari ini</h2><span className="ai" style={{ marginLeft: 6 }}>disusun Orchestrator</span><span className="meta">{planMeta(plan)}</span></div>
@@ -174,7 +203,7 @@ export function ControlCenter() {
             </ul>
           </div>
         </div>
-      </div>
+      </div>}
     </>
   )
 }

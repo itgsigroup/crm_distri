@@ -855,6 +855,19 @@ type VDealerBoard struct {
 	Score       int32       `json:"score"`
 }
 
+type WaAnalysis struct {
+	CycleID        uuid.UUID `json:"cycle_id"`
+	WindowDays     int16     `json:"window_days"`
+	Threads        int32     `json:"threads"`
+	Inbound        int32     `json:"inbound"`
+	Outbound       int32     `json:"outbound"`
+	Waiting        int32     `json:"waiting"`
+	ReplyMedianMin *int32    `json:"reply_median_min"`
+	Overview       *string   `json:"overview"`
+	Source         string    `json:"source"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
 type WaGroup struct {
 	ID          uuid.UUID `json:"id"`
 	Jid         *string   `json:"jid"`
@@ -863,6 +876,30 @@ type WaGroup struct {
 	Branch      *string   `json:"branch"`
 	Members     *int32    `json:"members"`
 	ReadEnabled bool      `json:"read_enabled"`
+}
+
+type WaInsight struct {
+	CycleID        uuid.UUID       `json:"cycle_id"`
+	ThreadID       uuid.UUID       `json:"thread_id"`
+	Kind           string          `json:"kind"`
+	DealerID       *uuid.UUID      `json:"dealer_id"`
+	SalesID        *uuid.UUID      `json:"sales_id"`
+	Title          string          `json:"title"`
+	Intent         string          `json:"intent"`
+	Items          json.RawMessage `json:"items"`
+	LastText       *string         `json:"last_text"`
+	Inbound        int32           `json:"inbound"`
+	Outbound       int32           `json:"outbound"`
+	LastInAt       *time.Time      `json:"last_in_at"`
+	LastOutAt      *time.Time      `json:"last_out_at"`
+	WaitingSince   *time.Time      `json:"waiting_since"`
+	ReplyMedianMin *int32          `json:"reply_median_min"`
+	NeedsReply     bool            `json:"needs_reply"`
+	Priority       int32           `json:"priority"`
+	SignalIds      []uuid.UUID     `json:"signal_ids"`
+	ProposalIds    []uuid.UUID     `json:"proposal_ids"`
+	Summary        *string         `json:"summary"`
+	Confidence     *int16          `json:"confidence"`
 }
 
 type WaLink struct {

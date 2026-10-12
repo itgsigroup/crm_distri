@@ -342,3 +342,23 @@ func TestRoutingMCP(t *testing.T) {
 		t.Fatal("submitted proposals not stored by the cycle")
 	}
 }
+
+// wa.analisis reads the last cycle's Analisa WhatsApp (ADR 0026) with the people's names masked.
+func TestWAAnalisisMasked(t *testing.T) {
+	e := setup(t)
+	cs := e.connect(t, e.token(t, "Claude", "read"))
+	if out, _, ok := call(t, cs, "wa_analisis", map[string]any{}); !ok || out["catatan"] == nil || out["percakapan"] != nil {
+		t.Fatalf("before a cycle: %v", out)
+	}
+	if _, err := e.o.Run(context.Background(), domain.Scope{Kind: "all"}, domain.Trigger{Source: "schedule"}); err != nil {
+		t.Fatal(err)
+	}
+	out, txt, ok := call(t, cs, "wa_analisis", map[string]any{})
+	if !ok || out["masked"] != true || len(out["percakapan"].([]any)) == 0 {
+		t.Fatalf("wa.analisis: %v %s", out, txt)
+	}
+	b, _ := json.Marshal(out)
+	if strings.Contains(string(b), "Pak Hasan") || strings.Contains(string(b), "Mbak Rina") {
+		t.Fatalf("PII leaked: %s", b)
+	}
+}

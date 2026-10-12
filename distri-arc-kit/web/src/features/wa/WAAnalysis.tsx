@@ -1,0 +1,217 @@
+import { useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router'
+import type { WAAnalysis, WAHistoryRow, WAInsight, WASalesRow } from '../../api/types'
+import { Icon } from '../../components/Icon'
+import { CardH, Pill } from '../../components/ui'
+import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
+import { fmtNum, hhmm, shortDate } from '../../lib/format'
+import { useMe } from '../../app/queries'
+import { INTENTS, WA_COMPARE, intentLabel, intentTone, itemsText, waFilter, waFirstDir, waText, waTie, waitLabel, who, type WAColumn, type WAFilter } from './wa'
+
+// Analisa WhatsApp (ADR 0026): the second analysis on Pusat kendali and Orchestrator, next to the BigQuery one.
+
+export type Analisa = 'bq' | 'wa'
+
+/** The page's analysis tab (?analisa=wa, kept next to ?sales=). WhatsApp needs the chat page: it quotes customers. */
+export function useAnalisaTab() {
+  const [params, setParams] = useSearchParams()
+  const { data: me } = useMe()
+  const canWA = !!me?.screens.includes('chat')
+  const tab: Analisa = canWA && params.get('analisa') === 'wa' ? 'wa' : 'bq'
+  const setTab = (t: Analisa) => {
+    const p = new URLSearchParams(params)
+    if (t === 'wa') p.set('analisa', 'wa')
+    else p.delete('analisa')
+    setParams(p, { replace: true })
+  }
+  return { tab, setTab, canWA }
+}
+
+/** "Analisa BigQuery | Analisa WhatsApp" */
+export function AnalisaTabs({ tab, setTab, canWA, waBadge }: ReturnType<typeof useAnalisaTab> & { waBadge?: number }) {
+  if (!canWA) return null
+  return (
+    <div className="an-tabs" role="tablist" aria-label="Sumber analisa">
+      <div className="seg">
+        <button role="tab" aria-selected={tab === 'bq'} className={tab === 'bq' ? 'is-active' : ''} onClick={() => setTab('bq')}><Icon name="doc" />Analisa BigQuery</button>
+        <button role="tab" aria-selected={tab === 'wa'} className={tab === 'wa' ? 'is-active' : ''} onClick={() => setTab('wa')}>
+          <Icon name="chat" />Analisa WhatsApp{waBadge ? <span className="an-badge" title="chat menunggu balasan">{waBadge}</span> : null}
+        </button>
+      </div>
+      <span className="an-src">{tab === 'bq' ? 'SO · pembayaran · stok dari data Accurate (BigQuery)' : 'chat dealer & nomor baru · grup internal tidak dibaca'}</span>
+    </div>
+  )
+}
+
+const replyText = (m: number | null) => (m == null ? '—' : waitLabel(m))
+
+/** Counts, requests and the AI overview. */
+export function WAOverviewCard({ data, scoped }: { data: WAAnalysis | undefined; scoped: boolean }) {
+  const t = data?.totals
+  const max = Math.max(1, ...INTENTS.map((i) => t?.by_intent[i.key] ?? 0))
+  const due = data ? waitLabel(data.reply_due_min) : '2 jam'
+  return (
+    <div className="card">
+      <CardH title="Analisa WhatsApp" ai="dibaca Orchestrator" meta={data?.cycle_number ? `siklus #${fmtNum(data.cycle_number)} · ${data.generated_at ? `${shortDate(data.generated_at)} · ${hhmm(data.generated_at)}` : ''} · ${data.window_days} hari terakhir` : 'belum ada siklus'} />
+      {!data?.cycle_number ? (
+        <p className="sg-hint">Orchestrator membaca chat WhatsApp di setiap siklus penuh (tiap jam 06.00–20.00 atau lewat Analisis ulang). Hasilnya muncul di sini setelah siklus pertama.</p>
+      ) : (
+        <>
+          <div className="kpis wa-kpis">
+            <div className="kpi-t"><small>Percakapan</small><b>{fmtNum(t?.threads ?? 0)}</b><span className="dl n">{t?.dealers ?? 0} dealer · {t?.new_numbers ?? 0} nomor baru</span></div>
+            <div className="kpi-t"><small>Pesan</small><b>{fmtNum(t?.inbound ?? 0)}<em>masuk</em></b><span className="dl n">{fmtNum(t?.outbound ?? 0)} balasan sales</span></div>
+            <div className="kpi-t"><small>Menunggu balasan</small><b style={t?.needs_reply ? { color: 'var(--bad)' } : undefined}>{t?.needs_reply ?? 0}</b><span className={`dl ${t?.needs_reply ? 'bad' : 'n'}`}>lebih dari {due} · {t?.waiting ?? 0} belum dibalas</span></div>
+            <div className="kpi-t"><small>Waktu balas</small><b>{replyText(t?.reply_median_min ?? null)}</b><span className="dl n">median per percakapan</span></div>
+          </div>
+          <div className="wa-intents" aria-label="Permintaan di chat">
+            {INTENTS.map((i) => {
+              const n = t?.by_intent[i.key] ?? 0
+              return (
+                <div className="wa-int" key={i.key}>
+                  <span className="l">{i.label}</span>
+                  <span className="bar"><i style={{ width: `${(n / max) * 100}%`, background: `var(--${i.tone === 'neutral' ? 'text-3' : i.tone})` }} /></span>
+                  <span className="v num">{n}</span>
+                </div>
+              )
+            })}
+          </div>
+          {data.overview ? (
+            <div className="wa-ai"><span className="ai">Ringkasan AI</span><p>{data.overview}</p></div>
+          ) : (
+            <p className="cl-empty wa-ai-empty">
+              {scoped ? 'Ringkasan AI mencakup semua sales — di halaman sales ini hanya angkanya.' : 'Belum dibaca AI pada siklus ini — angka di atas dihitung GSI Orbit dari chat. Ringkasan dan satu baris per percakapan ditulis AI bila ada model Claude di server (wajib AI, tanpa template).'}
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+const FILTERS: [WAFilter, string][] = [['all', 'Semua'], ['reply', 'Perlu dibalas'], ['waiting', 'Belum dibalas'], ['order', 'Order'], ['ask_price', 'Harga'], ['ask_stock', 'Stok'], ['release', 'Rilis'], ['return', 'Retur']]
+
+/** Conversations as a data table: what each one asks, how long it waits, the AI line, and the way to the chat. */
+export function WAThreadsCard({ data }: { data: WAAnalysis | undefined }) {
+  const nav = useNavigate()
+  const [filter, setFilter] = useState<WAFilter>('all')
+  const all = useMemo(() => data?.items ?? [], [data])
+  const rows = useMemo(() => waFilter(all, filter), [all, filter])
+  const t = useDataTable<WAInsight, WAColumn>({ rows, text: waText, compare: WA_COMPARE, tie: waTie, initial: { column: 'menunggu', dir: 'desc' }, firstDir: waFirstDir })
+  const counts = (f: WAFilter) => waFilter(all, f).length
+  return (
+    <div className="card">
+      <CardH title="Percakapan" ai="AI Order · Analisa WhatsApp" meta="permintaan, lama menunggu, dan langkah berikutnya" />
+      <div className="chips wa-chips">
+        {FILTERS.map(([k, l]) => {
+          const n = counts(k)
+          if (k !== 'all' && k !== 'reply' && n === 0) return null
+          return <button key={k} className={`chip ${filter === k ? 'is-active' : ''}`} onClick={() => setFilter(k)}>{l}<span className="n">{n}</span></button>
+        })}
+      </div>
+      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari dealer, sales, barang, pesan…" label="Cari percakapan" meta={`${fmtNum(t.matches.length)} percakapan`} />
+      {all.length === 0 ? (
+        <p className="sg-hint">Belum ada chat dealer atau nomor baru dalam {data?.window_days ?? 7} hari terakhir.</p>
+      ) : t.matches.length === 0 ? (
+        <p className="sg-hint">Tidak ada percakapan yang cocok.</p>
+      ) : (
+        <div className="odl-wrap">
+          <table className="odl wa-table">
+            <thead><tr>
+              <SortTh t={t} c="percakapan">Percakapan</SortTh><SortTh t={t} c="sales">Sales</SortTh><SortTh t={t} c="permintaan">Permintaan</SortTh>
+              <SortTh t={t} c="menunggu" right>Menunggu</SortTh><SortTh t={t} c="balas" right>Waktu balas</SortTh><SortTh t={t} c="pesan">Pesan terakhir · AI</SortTh><th />
+            </tr></thead>
+            <tbody>
+              {t.shown.map((r) => (
+                <tr key={r.thread_id} className={r.needs_reply ? 'wa-due' : undefined}>
+                  <td>
+                    {r.dealer_id ? <button className="ev" onClick={() => nav('/dealer/' + r.dealer_id)}>{who(r)}</button> : <b>{r.title}</b>}
+                    <div className="wa-sub">{r.kind === 'new' ? <Pill tone="indigo">nomor baru</Pill> : r.title.split(' · ')[0]}</div>
+                  </td>
+                  <td className="nowrap">{r.sales || <span style={{ color: 'var(--text-3)' }}>—</span>}</td>
+                  <td>
+                    <span className={`pill ${intentTone(r.intent)}`}>{intentLabel(r.intent)}</span>
+                    {r.items.length > 0 && <div className="wa-sub">{itemsText(r.items)}</div>}
+                    {r.proposal_ids.length > 0 && <div className="wa-sub"><Icon name="spark" />{r.proposal_ids.length} usulan agen</div>}
+                  </td>
+                  <td className="r num nowrap">
+                    {r.waiting_since ? <span style={{ color: r.needs_reply ? 'var(--bad)' : 'var(--warn)', fontWeight: 600 }}>{waitLabel(r.wait_min)}</span> : r.answered ? <Pill tone="good" icon="check">dibalas</Pill> : <span style={{ color: 'var(--text-3)' }}>—</span>}
+                  </td>
+                  <td className="r num nowrap">{replyText(r.reply_median_min)}</td>
+                  <td className="wa-msg">
+                    {r.summary ? <><span className="ai" />{r.summary}</> : r.last_text ? <q>{r.last_text}</q> : <span style={{ color: 'var(--text-3)' }}>hanya pesan sales</span>}
+                  </td>
+                  <td className="r"><button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => nav('/chat/' + r.thread_id)}>Buka chat</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <TablePager t={t} noun="percakapan" />
+    </div>
+  )
+}
+
+/** Per sales: conversations, waiting, reply time. */
+export function WASalesCard({ rows }: { rows: WASalesRow[] }) {
+  return (
+    <div className="card">
+      <CardH title="Waktu balas per sales" meta="chat yang menunggu dulu" />
+      {rows.length === 0 ? <p className="sg-hint">Belum ada percakapan.</p> : (
+        <div className="tbl-wrap">
+          <table className="matrix wa-sales">
+            <thead><tr><th>Sales</th><th className="r">Chat</th><th className="r" title="belum dibalas (lebih dari 2 jam)">Menunggu</th><th className="r">Balas</th></tr></thead>
+            <tbody>{rows.map((s) => (
+              <tr key={s.name}>
+                <td><b>{s.name}</b></td>
+                <td className="r num">{s.threads}</td>
+                <td className="r num" style={s.needs_reply ? { color: 'var(--bad)', fontWeight: 700 } : undefined}>{s.waiting}</td>
+                <td className="r num">{replyText(s.reply_median_min)}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** How the Orchestrator reads WhatsApp (privacy and what it does with it). */
+export function WAHowCard() {
+  return (
+    <div className="card">
+      <CardH title="Cara Orchestrator membaca WhatsApp" />
+      <ul className="wa-how">
+        <li><Icon name="refresh" /><span>Setiap siklus penuh membaca chat <b>7 hari terakhir</b> di samping data BigQuery: permintaan (order, harga, stok, rilis kredit, retur) dikenali dengan ekstraktor yang sama dengan AI Order.</span></li>
+        <li><Icon name="cal" /><span>Chat yang menunggu balasan <b>lebih dari 2 jam</b> dan belum dijawab usulan agen masuk <b>Rencana hari ini</b> sebagai “Balas chat”.</span></li>
+        <li><Icon name="lock" /><span>Grup internal dan chat antar karyawan tidak dibaca. Nama dan nomor dimasking sebelum ke AI; tidak ada pesan yang terkirim tanpa keputusan Anda.</span></li>
+      </ul>
+    </div>
+  )
+}
+
+/** Orchestrator: what each cycle read from WhatsApp. */
+export function WAHistoryCard({ rows }: { rows: WAHistoryRow[] }) {
+  return (
+    <div className="card">
+      <CardH title="Riwayat baca WhatsApp" meta="per siklus · seluruh tim" />
+      {rows.length === 0 ? <p className="sg-hint">Belum ada siklus yang membaca WhatsApp.</p> : (
+        <div className="odl-wrap">
+          <table className="odl wa-hist">
+            <thead><tr><th>Waktu</th><th className="r">No.</th><th className="r">Chat</th><th className="r">Menunggu</th><th className="r">Balas</th><th>Dibaca</th></tr></thead>
+            <tbody>{rows.slice(0, 12).map((h) => (
+              <tr key={`${h.cycle_number}-${h.at}`}>
+                <td className="num nowrap">{shortDate(h.at)} · {hhmm(h.at)}</td>
+                <td className="r num">#{fmtNum(h.cycle_number ?? 0)}</td>
+                <td className="r num">{h.threads}</td>
+                <td className="r num">{h.waiting}</td>
+                <td className="r num">{replyText(h.reply_median_min)}</td>
+                <td>{h.source === 'ai' ? <Pill tone="indigo">AI</Pill> : <Pill tone="neutral">angka</Pill>}{h.status === 'failed' && <span style={{ color: 'var(--bad)', fontSize: 12, marginLeft: 6 }}>siklus gagal</span>}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}

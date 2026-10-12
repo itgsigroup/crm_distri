@@ -106,11 +106,13 @@ export function PlanList({ plan }: { plan: Plan | undefined }) {
               <div className="pm">
                 <span className="ai">{it.agent}</span>
                 <span className={`pill ${auto ? 'good' : 'warn'}`}>{auto ? 'otonom' : 'butuh approve'}</span>
-                {done ? <span className="pill good">✓ dijalankan</span> : rej ? <span className="pill bad">ditolak</span> : <span className="pill neutral">{STATUS[it.status] ?? (auto ? 'terjadwal' : 'menunggu Anda')}</span>}
+                {done ? <span className="pill good">✓ {it.link?.startsWith('chat:') ? 'dibalas' : 'dijalankan'}</span> : rej ? <span className="pill bad">ditolak</span> : <span className="pill neutral">{STATUS[it.status] ?? (auto ? 'terjadwal' : 'menunggu Anda')}</span>}
               </div>
             </div>
             <div className="pa">
-              {it.link === 'chat' && !done && !rej && next?.status === 'proposed' ? (
+              {it.link?.startsWith('chat:') ? (
+                done ? null : <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => nav('/chat/' + it.link!.slice(5))}>Buka chat</button>
+              ) : it.link === 'chat' && !done && !rej && next?.status === 'proposed' ? (
                 <span style={{ display: 'flex', gap: 6 }}>
                   <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => nav('/chat')}>Lihat</button>
                   <ActBtn next={next} small />

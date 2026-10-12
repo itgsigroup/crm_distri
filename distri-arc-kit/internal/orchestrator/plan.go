@@ -10,6 +10,7 @@ import (
 
 	"distri-arc/internal/agents"
 	"distri-arc/internal/domain"
+	"distri-arc/internal/waanalysis"
 )
 
 // PlanCand is a stored proposal of today as the plan sees it.
@@ -101,7 +102,11 @@ func stockValue(c PlanCand) float64 {
 // a shipment, reminders that need a firm tone, the most valuable aging-stock bundle, follow-ups of dealers past
 // their cycle, and new dealers. Decisions that react to a request (price, return, limit) stay in Keputusan;
 // follow-ups due in 2–7 days stay in Jadwal order. Times start at the next half hour (≥ 07.30), 30 minutes apart.
-func Build(cands []PlanCand, now time.Time) []domain.PlanItem {
+func Build(cands []PlanCand, now time.Time) []domain.PlanItem { return BuildWithChats(cands, nil, now) }
+
+// BuildWithChats is Build with the WhatsApp half (ADR 0026): the first MaxPlanSteps conversations waiting for a
+// reply (most urgent first) open the steps that need a human — a dealer waiting for an answer comes before a campaign.
+func BuildWithChats(cands []PlanCand, chats []ChatCand, now time.Time) []domain.PlanItem {
 	var h1, h3, waiting, approve []PlanCand
 	pushes := []PlanCand{}
 	for _, c := range cands {
@@ -193,6 +198,14 @@ func Build(cands []PlanCand, now time.Time) []domain.PlanItem {
 	}
 	if slot.Before(atClock(now, 8, 30)) {
 		slot = atClock(now, 8, 30) // steps that need a human start once the working day has begun
+	}
+	for i, c := range chats {
+		if i >= waanalysis.MaxPlanSteps || len(items) >= MaxPlanItems {
+			break
+		}
+		it := chatStep(c)
+		it.Time = next()
+		items = append(items, it)
 	}
 	for _, c := range approve {
 		if len(items) >= MaxPlanItems {

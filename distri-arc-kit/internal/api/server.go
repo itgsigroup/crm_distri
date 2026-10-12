@@ -108,6 +108,7 @@ func (s *Server) Handler() http.Handler {
 			r.Get("/me", s.me)
 			s.readRoutes(r)
 			s.chatRoutes(r)
+			s.waAnalysisRoutes(r)
 			s.connectionRoutes(r)
 			s.proposalRoutes(r)
 			s.cycleRoutes(r)

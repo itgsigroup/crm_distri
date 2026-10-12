@@ -29,6 +29,7 @@ import (
 	"distri-arc/internal/proposals"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
+	"distri-arc/internal/waanalysis"
 )
 
 // ErrRunning is returned while another cycle is queued or running.
@@ -115,6 +116,11 @@ type stageRun struct {
 	outbox    int
 	learned   int
 	partial   bool
+	// Analisa WhatsApp (ADR 0026), full cycles only
+	wa        []waanalysis.Insight
+	waThreads map[uuid.UUID]waanalysis.Thread
+	waOpen    map[uuid.UUID]bool // conversations an open proposal already answers
+	waRead    bool
 }
 
 // Execute runs a queued cycle through the six stages.
@@ -282,14 +288,27 @@ func (o *Orchestrator) ingest(ctx context.Context, r *stageRun) (map[string]any,
 		return nil, err
 	}
 	r.in = in
+	// the second source: what the dealers wrote on WhatsApp (ADR 0026)
+	if err := o.readWA(ctx, r); err != nil {
+		return nil, fmt.Errorf("whatsapp: %w", err)
+	}
 	branches := map[string]bool{}
 	for _, s := range in.Stock {
 		branches[s.Branch] = true
 	}
 	wa := counts["wa"] + counts["wa_group"]
-	text := fmt.Sprintf("%d WA · %d SO · %d bayar · stok %d cabang", wa, counts["so"], counts["payment"], len(branches))
-	return map[string]any{"signals": r.recent, "wa": wa, "so": counts["so"], "payments": counts["payment"], "branches": len(branches),
-		"dealers": len(in.Dealers), "recomputed": len(touched), "policy_changed": policyChanged, "text": text}, nil
+	text := fmt.Sprintf("BigQuery %d SO · %d bayar · stok %d cabang", counts["so"], counts["payment"], len(branches))
+	detail := map[string]any{"signals": r.recent, "wa": wa, "so": counts["so"], "payments": counts["payment"], "branches": len(branches),
+		"dealers": len(in.Dealers), "recomputed": len(touched), "policy_changed": policyChanged}
+	if r.waRead {
+		tot, _ := waanalysis.Summarize(r.wa)
+		detail["wa_threads"], detail["wa_needs_reply"] = tot.Threads, tot.NeedsReply
+		text = waText(r) + " · " + text
+	} else {
+		text = fmt.Sprintf("%d WA · ", wa) + text
+	}
+	detail["text"] = text
+	return detail, nil
 }
 
 // ---------- 2. Analisis ----------
@@ -626,7 +645,14 @@ func (o *Orchestrator) decide(ctx context.Context, r *stageRun) (map[string]any,
 		pcs = append(pcs, pc)
 	}
 	if r.scope.Kind == "all" {
-		r.plan = Build(pcs, now)
+		// Analisa WhatsApp: link the conversations to the proposals stored above; the ones still waiting go to the plan
+		if err := o.linkWA(ctx, r); err != nil {
+			return nil, err
+		}
+		if err := o.saveWA(ctx, r); err != nil {
+			return nil, err
+		}
+		r.plan = BuildWithChats(pcs, chatCands(r), now)
 		if err := o.writePlan(ctx, r, pcs, today); err != nil {
 			return nil, err
 		}
@@ -829,6 +855,9 @@ func (o *Orchestrator) learn(ctx context.Context, r *stageRun) (map[string]any, 
 	}
 	if r.scope.Kind == "all" {
 		if err := o.writeBrief(ctx, r); err != nil {
+			return nil, err
+		}
+		if err := o.writeWASummary(ctx, r); err != nil {
 			return nil, err
 		}
 	}

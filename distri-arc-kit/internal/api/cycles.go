@@ -356,10 +356,27 @@ func (s *Server) planToday(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	scopeName := ""
+	if scoped {
+		scopeName = s.scopeSalesName(r)
+	}
 	items := make([]PlanStepView, 0, len(rows))
 	auto := 0
 	for _, it := range rows {
 		v := PlanStepView{PlanItem: it, Proposals: []PlanProposal{}}
+		// "Balas chat" (Analisa WhatsApp): no proposal behind it — the conversation's dealer or sales places it, and
+		// it is done once the reply went out
+		if tid, ok := chatStepThread(it.Link); ok {
+			mine, answered := s.chatStepState(r, tid, set, scoped, scopeName)
+			if !mine {
+				continue
+			}
+			if answered && v.Status == domain.PlanScheduled {
+				v.Status = domain.PlanDone
+			}
+			items = append(items, v)
+			continue
+		}
 		ids := it.ProposalIds
 		if len(ids) == 0 && it.ProposalID != nil {
 			ids = []uuid.UUID{*it.ProposalID}

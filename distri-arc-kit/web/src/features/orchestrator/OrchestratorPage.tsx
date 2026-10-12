@@ -8,15 +8,17 @@ import { hhmm, shortDate } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { useAgents, useConflicts, useCycleLatest, useCycles, useMCPCalls, useMCPInfo, useQueue } from '../../app/queries'
+import { useAgents, useConflicts, useCycleLatest, useCycles, useMCPCalls, useMCPInfo, usePlan, useQueue, useWAAnalysis } from '../../app/queries'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import { Queue } from '../control/Queue'
+import { PlanList } from '../control/Plan'
+import { AnalisaTabs, WAHistoryCard, WAHowCard, WAOverviewCard, WASalesCard, WAThreadsCard, useAnalisaTab } from '../wa/WAAnalysis'
 import { MCPClientsPanel, MCPRules, ModeSeg } from '../settings/AIConnections'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { CONFLICT_COMPARE, RUN_COMPARE, conflictFirstDir, conflictText, conflictTie, finishedRuns, runFirstDir, runText, runTie, type ConflictColumn, type RunColumn } from './tables'
 
 // Default stage descriptions before the first cycle (mockup STAGES).
-const STAGE_HINT = ['WA · SO · bayar · stok cabang', '6 agen paralel', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
+const STAGE_HINT = ['WhatsApp + BigQuery (SO · bayar · stok)', '6 agen paralel', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
 
 /** Pipeline analisis (mockup pipeHtml, full form). */
 function Pipeline({ stages }: { stages: CycleStage[] }) {
@@ -138,6 +140,11 @@ export function OrchestratorPage() {
   const { data: calls = [] } = useMCPCalls()
   const shown = st.running && latest?.cycle ? latest.cycle : (latest?.last_full ?? latest?.last_done)
   const meta = st.run ? `siklus #${st.run.toLocaleString('id-ID')} · ${st.last} · ${st.dur}` : 'belum ada siklus'
+  // two analyses read by every full cycle: BigQuery and WhatsApp (ADR 0026)
+  const an = useAnalisaTab()
+  const { data: wa } = useWAAnalysis(sales, an.canWA)
+  const { data: plan } = usePlan(sales)
+  const waPlan = plan && { ...plan, items: plan.items.filter((it) => it.link?.startsWith('chat:')) }
 
   return (
     <>
@@ -158,7 +165,29 @@ export function OrchestratorPage() {
           </div>
         </div>
       </div>
-      <div className="orch-grid">
+      <AnalisaTabs {...an} waBadge={wa?.totals.needs_reply ?? 0} />
+      {an.tab === 'wa' && (
+        <div className="orch-grid">
+          <div className="stack">
+            <div className="card">
+              <div className="card-h"><h2>Pipeline analisis</h2><span className="meta">{meta}</span></div>
+              <Pipeline stages={shown?.stages ?? []} />
+            </div>
+            <WAOverviewCard data={wa} scoped={!!sales || page.locked} />
+            <WAThreadsCard data={wa} />
+          </div>
+          <div className="stack">
+            <div className="card">
+              <div className="card-h"><h2>Masuk Rencana hari ini</h2><span className="ai" style={{ marginLeft: 6 }}>dari WhatsApp</span><span className="meta">“Balas chat” · butuh sales</span></div>
+              {waPlan && waPlan.items.length > 0 ? <PlanList plan={waPlan} /> : <p className="sg-hint">Tidak ada chat yang perlu dibalas di Rencana hari ini.</p>}
+            </div>
+            <WAHistoryCard rows={wa?.history ?? []} />
+            <WASalesCard rows={wa?.sales ?? []} />
+            <WAHowCard />
+          </div>
+        </div>
+      )}
+      {an.tab === 'bq' && <div className="orch-grid">
         <div className="stack">
           <div className="card">
             <div className="card-h"><h2>Pipeline analisis</h2><span className="meta">{meta}</span></div>
@@ -226,7 +255,7 @@ export function OrchestratorPage() {
             </div>
           </div>
         </div>
-      </div>
+      </div>}
     </>
   )
 }

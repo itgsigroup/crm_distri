@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Analisa WhatsApp + BigQuery · 2026-10-12 (ADR 0026)
+- Pusat kendali dan Orchestrator punya dua tab: **Analisa BigQuery** (isi sebelumnya) dan **Analisa WhatsApp**.
+- Orchestrator membaca chat WhatsApp 7 hari terakhir di setiap siklus penuh (`internal/waanalysis`): permintaan per percakapan, barang, chat yang menunggu balasan, waktu balas per sales; disimpan di `wa_analyses` / `wa_insights` (migrasi 0020) dengan provenance sinyal dan usulan.
+- Chat yang menunggu > 2 jam tanpa usulan agen masuk **Rencana hari ini** sebagai "Balas chat" (tombol Buka chat, selesai otomatis setelah dibalas, terbatas per sales).
+- Ringkasan AI per siklus dan per percakapan hanya bila ditulis model (PII dimasking, tercatat di `llm_calls`).
+- API `GET /api/wa/analysis`, tool MCP `wa.analisis`; teks tahap Ingest kini "WhatsApp … · BigQuery …".
+
 ## Stage 00 — Fondasi · 2026-10-05
 - `cmd/arc` satu binary: `api` (chi, `/api/health`, `/api/me`), `worker` (river, heartbeat tiap menit → `audit_log`), `ctl` (`migrate`, `seed [--if-empty]`, `reset`, `counts`).
 - Migrasi goose `0001_init.sql` (semua tabel `03-data-model.md` + `commitments`, view `v_dealer_board`) dan `0002_river.sql`.

@@ -149,7 +149,7 @@ var BaseLabel = map[string]string{"ceo": "CEO", "admin": "Admin", "finance": "Fi
 // guarded maps API path prefixes to the page they belong to. Shared reads (dealers, proposals, /stock/push and
 // /dealers/credit-tight used on Pusat kendali, the branch list) stay open to every signed-in user.
 var guarded = []struct{ prefix, screen string }{
-	{"/api/chat/", "chat"}, {"/api/wa/groups", "chat"}, {"/api/wa/pair", "chat"}, {"/api/wa/links", "chat"},
+	{"/api/chat/", "chat"}, {"/api/wa/analysis", "chat"}, {"/api/wa/groups", "chat"}, {"/api/wa/pair", "chat"}, {"/api/wa/links", "chat"},
 	{"/api/credit/", "ar"},
 	{"/api/relasi", "net"},
 	{"/api/stock/aging", "stock"}, {"/api/stock/critical", "stock"}, {"/api/stock/sales-by-product", "stock"},

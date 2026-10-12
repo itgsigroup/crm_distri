@@ -39,7 +39,8 @@ var all = domain.Scope{Kind: "all"}
 var sched = domain.Trigger{Source: "schedule", Via: "api"}
 
 // docs/stages/06 acceptance on the seed: six stages done, the two conflicts, and the plan of the mockup
-// (8 steps: 3 auto, 5 approve).
+// (8 steps: 3 auto, 5 approve) plus one "Balas chat" step from Analisa WhatsApp (ADR 0026): Graha's PO message
+// of yesterday 16.20 has no reply yet.
 func TestCycleOnSeed(t *testing.T) {
 	st, o := setup(t)
 	ctx := context.Background()
@@ -90,8 +91,8 @@ func TestCycleOnSeed(t *testing.T) {
 			approve++
 		}
 	}
-	if len(rep.Plan) != 8 || auto != 3 || approve != 5 {
-		t.Errorf("plan %d items (%d auto, %d approve), want 8 (3, 5)", len(rep.Plan), auto, approve)
+	if len(rep.Plan) != 9 || auto != 3 || approve != 6 {
+		t.Errorf("plan %d items (%d auto, %d approve), want 9 (3, 6)", len(rep.Plan), auto, approve)
 	}
 }
 
@@ -218,7 +219,7 @@ func TestScopedRun(t *testing.T) {
 		t.Errorf("note %q", deref(rep.Cycle.Note))
 	}
 	plan, _ := st.Q.ListPlan(ctx, clock.Today(now.Now()))
-	if len(plan) != 8 {
+	if len(plan) != 9 {
 		t.Errorf("plan changed by a scoped run: %d", len(plan))
 	}
 }
@@ -257,7 +258,7 @@ func TestStage09AgentsInCycle(t *testing.T) {
 	if a, _, ok := find("new_dealer", "Toko Mandiri"); !ok || a != "approve" {
 		t.Errorf("new_dealer Mandiri: %v %s", ok, a)
 	}
-	if len(rep.Plan) != 8 {
+	if len(rep.Plan) != 9 {
 		t.Errorf("plan %d steps", len(rep.Plan))
 	}
 	titles := map[string]string{}

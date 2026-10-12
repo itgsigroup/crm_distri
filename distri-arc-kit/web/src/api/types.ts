@@ -493,3 +493,48 @@ export interface MasterCustomer {
   credit_limit: number; payment_terms_days: number; phone: string | null; master_locked: string[]; owner_name: string | null; owner_id: string | null; omzet_bln: number; status: string
 }
 export interface TeamMember { id: string; name: string; branch: string; role: string; wa_number: string | null; email: string | null; external_name: string | null; active: boolean; dealers: number; login_email: string | null }
+
+// ---------- Analisa WhatsApp (ADR 0026) ----------
+export type WAIntent = 'order' | 'ask_price' | 'ask_stock' | 'release' | 'return' | 'other' | 'none'
+export interface WAItem { name: string; qty: number }
+export interface WAInsight {
+  thread_id: string
+  kind: 'dealer' | 'new'
+  title: string
+  dealer_id?: string
+  dealer_name?: string
+  sales: string
+  intent: WAIntent
+  items: WAItem[]
+  last_text: string
+  inbound: number
+  outbound: number
+  last_in_at: string | null
+  last_out_at: string | null
+  waiting_since: string | null
+  wait_min: number
+  reply_median_min: number | null
+  needs_reply: boolean
+  answered: boolean
+  priority: number
+  signal_ids: string[]
+  proposal_ids: string[]
+  summary: string
+  confidence: number | null
+}
+export interface WATotals { threads: number; dealers: number; new_numbers: number; inbound: number; outbound: number; waiting: number; needs_reply: number; reply_median_min: number | null; by_intent: Partial<Record<WAIntent, number>> }
+export interface WASalesRow { name: string; threads: number; inbound: number; waiting: number; needs_reply: number; reply_median_min: number | null }
+export interface WAHistoryRow { cycle_number: number | null; at: string; status: string; via: string; threads: number; inbound: number; outbound: number; waiting: number; reply_median_min: number | null; source: 'rules' | 'ai' }
+export interface WAAnalysis {
+  cycle_number: number | null
+  cycle_status?: string
+  generated_at: string | null
+  window_days: number
+  reply_due_min: number
+  source: 'none' | 'rules' | 'ai'
+  overview: string | null
+  totals: WATotals
+  sales: WASalesRow[]
+  items: WAInsight[]
+  history: WAHistoryRow[]
+}

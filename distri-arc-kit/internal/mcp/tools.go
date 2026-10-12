@@ -20,6 +20,7 @@ import (
 	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
+	"distri-arc/internal/waanalysis"
 )
 
 // ---------- inputs ----------
@@ -108,6 +109,11 @@ type topIn struct {
 type threadIn struct {
 	DealerID string `json:"dealer_id"`
 	Limit    int    `json:"limit,omitempty"`
+}
+
+type waIn struct {
+	Sales string `json:"sales,omitempty" jsonschema:"nama sales (opsional)"`
+	Limit int    `json:"limit,omitempty" jsonschema:"jumlah percakapan (bawaan 20, maks 100)"`
 }
 
 type branchIn struct {
@@ -441,6 +447,53 @@ func (s *Server) registerRead() {
 			}
 		}
 		return map[string]any{"dealer": it.Name, "masked": mask, "messages": msgs}, result{Summary: fmt.Sprintf("%d pesan", len(msgs))}, nil
+	})
+	tool(s, "wa.analisis", ScopeRead, "Analisa WhatsApp siklus terakhir: permintaan per percakapan dealer/nomor baru (order, harga, stok, rilis, retur), chat yang menunggu balasan, waktu balas per sales (PII dimasking bila mask_pii_in_read).", func(ctx context.Context, _ *Client, in waIn) (any, result, error) {
+		a, err := s.St.Q.LatestWAAnalysis(ctx)
+		if err != nil {
+			return map[string]any{"catatan": "Belum ada siklus yang membaca WhatsApp."}, result{Summary: "belum ada analisa"}, nil
+		}
+		rows, err := s.St.Q.ListWAInsights(ctx, a.CycleID)
+		if err != nil {
+			return nil, result{}, err
+		}
+		_, _, mask, _ := s.permissions(ctx)
+		m := llm.NewMasker()
+		var ins []waanalysis.Insight
+		var items []map[string]any
+		limit := in.Limit
+		if limit <= 0 || limit > 100 {
+			limit = 20
+		}
+		for _, x := range rows {
+			if in.Sales != "" && !strings.EqualFold(deref(x.SalesName), in.Sales) {
+				continue
+			}
+			i := waanalysis.Insight{Kind: x.Kind, SalesName: deref(x.SalesName), Intent: x.Intent, Inbound: int(x.Inbound), Outbound: int(x.Outbound), WaitingSince: x.WaitingSince, NeedsReply: x.NeedsReply}
+			if x.ReplyMedianMin != nil {
+				v := int(*x.ReplyMedianMin)
+				i.ReplyMedianMin = &v
+			}
+			ins = append(ins, i)
+			if len(items) >= limit {
+				continue
+			}
+			title, text := x.Title, deref(x.LastText)
+			if mask {
+				person, _, _ := strings.Cut(title, " · ")
+				title, text = m.Mask(title, []string{person}), m.Mask(text, []string{person})
+			}
+			var its []waanalysis.Item
+			_ = json.Unmarshal(x.Items, &its)
+			items = append(items, map[string]any{"thread_id": x.ThreadID, "dealer_id": deref(x.DealerSlug), "judul": title, "sales": deref(x.SalesName),
+				"permintaan": waanalysis.IntentLabel(x.Intent), "barang": waanalysis.ItemsText(its), "pesan_terakhir": text, "menunggu_sejak": x.WaitingSince,
+				"perlu_dibalas": x.NeedsReply, "ringkasan_ai": deref(x.Summary), "proposal_ids": x.ProposalIds})
+		}
+		tot, sales := waanalysis.Summarize(ins)
+		return map[string]any{"siklus": a.CycleNumber, "waktu": a.CreatedAt, "jendela_hari": a.WindowDays, "sumber": a.Source, "ringkasan_ai": deref(a.Overview),
+				"total": tot, "per_sales": sales, "percakapan": items, "masked": mask,
+				"catatan": "Analisa kedua di samping data BigQuery: dihitung GSI Orbit dari chat WhatsApp dealer dan nomor baru; grup internal tidak dibaca."},
+			result{Summary: fmt.Sprintf("%d chat · %d perlu dibalas", tot.Threads, tot.NeedsReply)}, nil
 	})
 	tool(s, "kpi.utama", ScopeRead, "KPI utama: order tepat jadwal, DSO (order → bayar), perputaran stok.", func(ctx context.Context, _ *Client, in branchIn) (any, result, error) {
 		b, err := s.views.Board(ctx)

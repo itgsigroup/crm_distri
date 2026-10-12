@@ -46,3 +46,7 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 
 ## Chat → Kirim ke Accurate (2026-10-09)
 - Tombol **Kirim ke Accurate** di Chat saat ini menyiapkan data pelanggan untuk disalin ke Accurate Online (GSI Orbit tidak menulis ke Accurate). Untuk benar-benar membuat/memperbarui pelanggan dari Chat dibutuhkan API Accurate Online (OAuth app + database id) dan keputusan siapa yang boleh menyetujui — perlu kredensial & persetujuan Sam.
+
+## Analisa WhatsApp (2026-10-12, ADR 0026)
+- Ambang "menunggu balasan" 2 jam berlaku 24 jam (chat malam hari ikut terhitung). Perlu jam kerja saja, atau ambang lain per peran? · 2 jam · konstanta `waanalysis.ReplyDue`
+- Tanpa API key Claude di server, ringkasan AI WhatsApp tidak ditulis (jalur MCP baru bisa membaca lewat `wa.analisis`). Perlu Claude lewat MCP juga menulis ringkasan ini? · belum · —
