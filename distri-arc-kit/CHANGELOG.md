@@ -2,7 +2,7 @@
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
 ## Analisa WhatsApp + BigQuery · 2026-10-12 (ADR 0026)
-- Tab **Analisa BigQuery | Analisa WhatsApp** dihapus: Pusat kendali dan Orchestrator kembali ke tampilan awal, kartu Analisa WhatsApp (ringkasan, percakapan, waktu balas per sales, riwayat baca) tampil langsung di dalamnya. Tombol "Chat menunggu" menggulir ke kartu WhatsApp.
+- Pusat kendali dan Orchestrator kembali ke **tata letak awal**, tetapi seluruh analisanya dari **WhatsApp** (tab BigQuery dihapus). Pusat kendali: Rencana ("Balas chat"), Keputusan dari chat, Ringkasan WhatsApp, Menunggu balasan, Minta order, KPI WhatsApp (chat terbalas, waktu balas, menunggu), Agenda sales per chat menunggu, Tanya stok & harga, Rilis kredit & retur. Orchestrator: Pipeline, Analisa WhatsApp, Percakapan, Riwayat baca WhatsApp, kartu per sales, MCP, Matriks permintaan.
 - Label **Analisa WhatsApp terakhir** (jam, berapa lama lalu, siklus, jumlah chat) di Pusat kendali dan Orchestrator; oranye bila > 2 jam.
 - "Balas chat" masuk Rencana sejak tahap Ingest — tetap ada walau siklus gagal di Analisis.
 - Ringkasan AI WhatsApp lewat Claude MCP (tanpa API key): agent `Analisa WhatsApp` di `orchestrator_input_get` / `orchestrator_submit`.

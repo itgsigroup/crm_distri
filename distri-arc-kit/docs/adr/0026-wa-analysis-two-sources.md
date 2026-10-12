@@ -40,3 +40,12 @@ jadi 2 analisa", dan hasil WhatsApp masuk Rencana.
   (chat dimasking, mapping disimpan di `cycle_inputs`) dan `orchestrator_submit` dengan `overview` + `threads`.
   Divalidasi terhadap Input, di-unmask, disimpan `source = ai`. Bisa dikirim kapan saja setelah Ingest, juga untuk
   siklus yang gagal. Prompt "Analisis ulang lewat MCP" menyertakan langkah ini.
+
+## Pembaruan 2026-10-12 — satu tampilan, analisa WhatsApp
+- Tab **Analisa BigQuery | Analisa WhatsApp** dihapus atas permintaan Sam. Pusat kendali dan Orchestrator memakai
+  tata letak awal (mockup), dan setiap kartu kini membaca `GET /api/wa/analysis`: kartu BigQuery (Jadwal order, Lewat
+  jadwal, KPI, Push stok, Limit tipis, Resolusi konflik, Riwayat analisis, Agen, Matriks otonomi) diganti padanan
+  WhatsApp di posisi yang sama (`web/src/features/wa/WACards.tsx`). Data BigQuery tetap dibaca siklus dan dipakai
+  halaman lain (Orbit, Dealer, Stok, Kredit).
+- Pengguna tanpa halaman Chat melihat pesan bahwa analisa WhatsApp butuh akses Chat.
+

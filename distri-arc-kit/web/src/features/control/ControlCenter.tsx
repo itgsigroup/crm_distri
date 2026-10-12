@@ -1,63 +1,52 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Icon } from '../../components/Icon'
-import { CardH, Pill, Prov } from '../../components/ui'
-import { fmtRp, greeting, hhmm, shortDate } from '../../lib/format'
+import { CardH, Pill } from '../../components/ui'
+import { greeting, hhmm, shortDate } from '../../lib/format'
 import { AGENT_NAMES } from '../../lib/i18n/id'
 import { PipeChips } from '../../app/Dock'
-import { useAgenda, useBrief, useConflicts, useCreditTight, useDrift, useDue, useKpi, useMe, useNow, usePlan, useQueue, useSegmenMovers, useStockPush, useWAAnalysis } from '../../app/queries'
+import { useMe, useNow, usePlan, useQueue, useWAAnalysis } from '../../app/queries'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { PlanList, planMeta } from './Plan'
-import { useMore } from '../../components/More'
-import { BriefPoints, DriftList, DueList, PushList, TightList, dueLabel } from './lists'
+import { PlanList } from './Plan'
 import { Queue } from './Queue'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
-import type { AgendaRow, KPI } from '../../api/types'
-import { WALastRead, WAOverviewCard, WASalesCard, WAThreadsCard, useCanWA } from '../wa/WAAnalysis'
+import { WALastRead, useCanWA } from '../wa/WAAnalysis'
+import { WAAgenda, WABrief, WAChatList, WAWheels, waIntent, waWaiting } from '../wa/WACards'
+import { waitLabel } from '../wa/wa'
 
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+// Pusat kendali: the original layout, every analysis read from WhatsApp (ADR 0026).
 export function ControlCenter() {
   const nav = useNavigate()
   const { data: me } = useMe()
   const now = useNow()
   const page = useSalesPage()
   const sales = page.sales
-  const { data: brief } = useBrief(sales)
-  const { data: due = [] } = useDue(7, sales)
-  const { data: drift = [] } = useDrift(sales)
-  const { data: tight = [] } = useCreditTight(sales)
-  const { data: kpi } = useKpi(sales)
-  const { data: agenda = [] } = useAgenda(sales)
-  const { data: push = [] } = useStockPush(sales)
-  const { data: segMovers = [] } = useSegmenMovers(sales)
   const orch = useOrchStatus()
   const { reanalyze } = useOrch()
-  const { data: plan } = usePlan(sales)
-  const full = orch.lastFull
-  const { data: queue = [] } = useQueue(sales)
-  // one sales' page counts only their decisions; everyone's page keeps the Orchestrator's count
-  const pending = sales ? queue.filter((q) => q.status === 'proposed').length : orch.pending
-  // one sales' page: the cycle's own counts cover every sales, so count this sales' plan, signals and conflicts
-  const scoped = !!sales || page.locked // a sales user's data is scoped by the API too
-  const { data: conflicts = [] } = useConflicts(sales, scoped)
-  const autoN = scoped ? plan?.auto ?? 0 : full?.auto_count ?? 0
-  const signalN = scoped ? (brief?.counts ? brief.counts.wa + brief.counts.so + brief.counts.payments : 0) : full ? full.signals_count ?? 0 : 0
-  const conflictN = scoped ? conflicts.length : full?.conflict_count ?? 0
-  const [agentsOpen, setAgentsOpen] = useState(false)
-  // Analisa WhatsApp (ADR 0026) sits inside the page; it quotes customers, so only for users with the chat page
   const canWA = useCanWA()
   const { data: wa } = useWAAnalysis(sales, canWA)
-  const waDue = wa?.totals.needs_reply ?? 0
+  const { data: plan } = usePlan(sales)
+  const { data: queue = [] } = useQueue(sales)
+  const [agentsOpen, setAgentsOpen] = useState(false)
+  const scoped = !!sales || page.locked
 
-  const c = brief?.counts
+  const t = wa?.totals
+  const due = waitLabel(wa?.reply_due_min ?? 120)
+  // only what came from WhatsApp: "Balas chat" steps and the proposals tied to a conversation
+  const waPlan = plan && { ...plan, items: plan.items.filter((it) => it.link?.startsWith('chat:')) }
+  const waIds = new Set((wa?.items ?? []).flatMap((r) => r.proposal_ids))
+  const waQueue = queue.filter((q) => waIds.has(q.id))
+  const pending = waQueue.filter((q) => q.status === 'proposed').length
+  const waiting = waWaiting(wa)
+  const orders = waIntent(wa, 'order')
+  const asks = waIntent(wa, 'ask_stock', 'ask_price')
+  const credit = waIntent(wa, 'release', 'return')
   const first = me?.name.split(' ')[0] ?? ''
-  const bad = tight.filter((d) => d.metrics.credit.state === 'over limit' || d.metrics.credit.state === 'overdue')
-  const signals = c ? c.wa + c.so + c.payments : 0
-  const up = segMovers.filter((m) => m.kind === 'moved' && m.up).length
-  const down = segMovers.filter((m) => m.kind === 'moved' && !m.up)
+  const n = (k: keyof NonNullable<typeof t>['by_intent']) => t?.by_intent[k] ?? 0
 
   return (
     <>
@@ -68,23 +57,22 @@ export function ControlCenter() {
           <div className="greet">
             <h2>{greeting(now)}, {first}.</h2>
             <p>
-              {full ? (
-                <>Orchestrator sudah memproses {c?.wa ?? 0} WhatsApp, {c?.so ?? 0} SO, {c?.payments ?? 0} pembayaran, dan stok {c?.branches ?? 0} cabang. {autoN} langkah otonom, {pending} menunggu keputusan{sales ? '' : ' Anda'}.</>
+              {!canWA ? (
+                <>Analisa WhatsApp mengutip pesan pelanggan, jadi hanya tampil untuk pengguna dengan akses halaman Chat.</>
+              ) : wa?.cycle_number ? (
+                <>Orchestrator sudah membaca {fmt(t?.threads)} percakapan WhatsApp ({t?.dealers ?? 0} dealer, {t?.new_numbers ?? 0} nomor baru) dengan {fmt(t?.inbound)} pesan masuk. {t?.needs_reply ?? 0} chat menunggu lebih dari {due}, {pending} menunggu keputusan{sales ? '' : ' Anda'}.</>
               ) : (
-                <>
-                  {c ? <>Data masuk sejak kemarin: {c.wa} WhatsApp, {c.so} SO, {c.payments} pembayaran, dan stok {c.branches} cabang. </> : null}
-                  Orchestrator belum menjalankan siklus — langkah otonom dan keputusan muncul setelah siklus pertama.
-                </>
+                <>Orchestrator belum membaca WhatsApp — analisa chat muncul setelah siklus penuh pertama.</>
               )}
             </p>
           </div>
           <div className="status-strip">
             <button onClick={() => scrollTo('queue-card')}><span className="n" style={{ background: 'var(--accent)' }}>{pending}</span>Keputusan</button>
-            <button onClick={() => scrollTo('due-card')}><span className="n" style={{ background: 'var(--good)' }}>{due.length}</span>Jadwal order<span className="m">· 7 hari</span></button>
-            <button onClick={() => scrollTo('drift-card')}><span className="n" style={{ background: 'var(--warn)' }}>{drift.length}</span>Lewat jadwal</button>
-            <button onClick={() => nav('/kredit')}><span className="n" style={{ background: 'var(--bad)' }}>{bad.length}</span>Over limit / overdue</button>
-            {canWA && <button onClick={() => scrollTo('wa-card')}><span className="n" style={{ background: 'var(--accent)' }}>{waDue}</span>Chat menunggu<span className="m">· &gt; 2 jam</span></button>}
-            <button onClick={() => nav('/orbit')}><span className="n" style={{ background: 'var(--indigo)' }}>◎</span>Buka Orbit</button>
+            <button onClick={() => scrollTo('reply-card')}><span className="n" style={{ background: 'var(--bad)' }}>{t?.needs_reply ?? 0}</span>Chat menunggu<span className="m">· &gt; {due}</span></button>
+            <button onClick={() => scrollTo('reply-card')}><span className="n" style={{ background: 'var(--warn)' }}>{t?.waiting ?? 0}</span>Belum dibalas</button>
+            <button onClick={() => scrollTo('order-card')}><span className="n" style={{ background: 'var(--good)' }}>{n('order')}</span>Minta order</button>
+            <button onClick={() => nav('/chat')}><span className="n" style={{ background: 'var(--indigo)' }}>{t?.new_numbers ?? 0}</span>Nomor baru</button>
+            <button onClick={() => nav('/chat')}><span className="n" style={{ background: 'var(--indigo)' }}><Icon name="chat" /></span>Buka Chat</button>
           </div>
         </div>
         <div className="orch-card">
@@ -97,7 +85,7 @@ export function ControlCenter() {
           <LastUpdate />
           <WALastRead sales={sales} compact />
           <div className="oc-foot">
-            <div className="oc-nums"><span><b>{full || scoped ? signalN : signals}</b> sinyal</span><span><b>{autoN}</b> otonom</span><span><b>{pending}</b> keputusan</span><span><b>{conflictN}</b> konflik diselesaikan</span></div>
+            <div className="oc-nums"><span><b>{fmt(t?.threads)}</b> chat</span><span><b>{fmt(t?.inbound)}</b> pesan masuk</span><span><b>{t?.needs_reply ?? 0}</b> menunggu</span><span><b>{pending}</b> keputusan</span></div>
             <div className="oc-btns">
               <button className="btn primary" disabled={orch.running} onClick={() => reanalyze('all')}><Icon name="refresh" />Analisis ulang</button>
               <button className="btn ghost" onClick={() => nav(page.link('/orchestrator'))}>Buka Orchestrator</button>
@@ -106,157 +94,75 @@ export function ControlCenter() {
         </div>
       </div>
 
-      <div className="today">
+      {canWA && <div className="today">
         <div className="stack">
           <div className="card" id="plan-card">
-            <div className="card-h"><h2>Rencana hari ini</h2><span className="ai" style={{ marginLeft: 6 }}>disusun Orchestrator</span><span className="meta">{planMeta(plan)}</span></div>
-            <PlanList plan={plan} />
-            <div className="plan-foot"><span className="pol"><Icon name="lock" />Langkah berlabel <b>otonom</b> berjalan sendiri dalam batas kebijakan; yang lain menunggu Anda.</span><button className="btn ghost" onClick={() => scrollTo('queue-card')}>Ke keputusan</button></div>
+            <div className="card-h"><h2>Rencana hari ini</h2><span className="ai" style={{ marginLeft: 6 }}>dari WhatsApp</span><span className="meta">chat yang menunggu &gt; {due} tanpa usulan agen</span></div>
+            {waPlan && waPlan.items.length > 0 ? <PlanList plan={waPlan} /> : <p className="sg-hint">Tidak ada chat yang perlu dibalas di Rencana hari ini.</p>}
+            <div className="plan-foot"><span className="pol"><Icon name="lock" />Tidak ada pesan yang terkirim sendiri — tombol membuka Chat, balasan dikirim sales.</span><button className="btn ghost" onClick={() => scrollTo('queue-card')}>Ke keputusan</button></div>
           </div>
 
           <div className="card" id="queue-card">
-            <div className="card-h"><h2>Keputusan</h2><span className="meta">{pending ? `${pending} item · di luar batas otonomi agen` : 'Semua keputusan hari ini selesai'}</span></div>
-            <Queue items={queue} />
+            <div className="card-h"><h2>Keputusan</h2><span className="meta">{pending ? `${pending} item · usulan agen dari chat WhatsApp` : 'Tidak ada usulan dari chat yang menunggu'}</span></div>
+            <Queue items={waQueue} />
           </div>
 
           <div className="card brief">
-            <div className="card-h"><span className="ai">Ringkasan Orchestrator · {brief ? new Date(brief.generated_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) : '—'}</span><span className="meta">{c ? `Dari ${c.wa} WhatsApp, ${c.so} SO, ${c.payments} pembayaran, stok ${c.branches} cabang` : ''}</span></div>
-            {brief && (brief.points.length ? <BriefPoints brief={brief} /> : (
-              <p className="cl-empty" style={{ margin: '4px 0 8px' }}>Belum ada ringkasan dari AI hari ini — siklus terakhir tidak dianalisis AI (wajib AI, tanpa template). Minta Claude lewat MCP: <i>"jalankan analisis GSI Orbit"</i>, atau isi API key Claude di server.</p>
-            ))}
-            <div className="foot">
-              <Prov icon="chat">{c?.wa ?? 0} WhatsApp</Prov><Prov icon="doc">{c?.so ?? 0} SO Odoo</Prov><Prov icon="box">{c?.payments ?? 0} pembayaran</Prov><Prov icon="building">stok {c?.branches ?? 0} cabang</Prov>
-              <Prov style={{ marginLeft: 'auto' }}>{brief?.source === 'none' ? 'belum dianalisis AI' : brief?.source === 'template' ? 'template dari metrik' : 'confidence ' + brief?.confidence}</Prov>
-            </div>
+            <div className="card-h"><span className="ai">Ringkasan WhatsApp · {wa?.generated_at ? `${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : '—'}</span><span className="meta">{wa?.cycle_number ? `${wa.window_days} hari terakhir · siklus #${wa.cycle_number.toLocaleString('id-ID')}` : ''}</span></div>
+            <WABrief data={wa} scoped={scoped} />
           </div>
 
-          {canWA && (
-            <>
-              <div id="wa-card"><WAOverviewCard data={wa} scoped={scoped} /></div>
-              <WAThreadsCard data={wa} />
-            </>
-          )}
-
           <div className="grid-2">
-            <div className="card" id="due-card">
-              <div className="card-h"><h2>Jadwal order · 7 hari</h2><span className="ai" style={{ marginLeft: 6 }}>AI Follow-up</span><span className="meta">Dealer yang <em>seharusnya</em> order minggu ini</span></div>
-              <DueList items={due} />
+            <div className="card" id="reply-card">
+              <div className="card-h"><h2>Menunggu balasan</h2><span className="ai" style={{ marginLeft: 6 }}>AI Follow-up</span><span className="meta">merah = lewat {due}</span></div>
+              <WAChatList items={waiting} empty="Semua chat sudah dibalas." />
             </div>
-            <div className="card" id="drift-card">
-              <div className="card-h"><h2>Lewat jadwal</h2><span className="ai" style={{ marginLeft: 6 }}>AI Follow-up</span><span className="meta">Lewat 1,2× siklus order — sebelum ordernya hilang</span></div>
-              <DriftList items={drift} />
+            <div className="card" id="order-card">
+              <div className="card-h"><h2>Minta order</h2><span className="ai" style={{ marginLeft: 6 }}>AI Order</span><span className="meta">order yang ditulis dealer di chat</span></div>
+              <WAChatList items={orders} empty="Belum ada permintaan order di chat." />
             </div>
           </div>
         </div>
 
         <div className="stack">
           <div className="card">
-            <CardH title="KPI utama" meta="Harus bergerak seirama" />
-            {kpi && <Wheels kpi={kpi} />}
-            {kpi && (
-              <p className="note" style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 12, lineHeight: 1.5 }}>
-                Order tepat jadwal {kpi.on_schedule_pct >= kpi.targets.on_schedule_pct ? 'terjaga' : 'melambat'} ({kpi.drift_count} dealer lewat jadwal) → DSO ikut ({fmtRp(kpi.overdue_amount)} lewat tempo) → limit {kpi.tight_count} dealer tipis → order tertahan.
-                {push[0] && <> Yang memutar lagi: push stok {push[0].name.toLowerCase()} ke dealer yang jadwal order.</>}
-              </p>
-            )}
+            <CardH title="KPI WhatsApp" meta="Balas cepat, order tidak hilang" />
+            <WAWheels data={wa} />
           </div>
           <div className="card">
-            <CardH title="Agenda sales" meta="dibagi Orchestrator · hari ini" />
-            <Agenda rows={agenda} />
-          </div>
-          {canWA && <WASalesCard rows={wa?.sales ?? []} />}
-          <div className="card">
-            <CardH title="Push stok" ai="AI Stok" meta="Stok → dealer yang product mix-nya cocok" />
-            <PushList items={push} />
+            <CardH title="Agenda sales" meta="chat yang menunggu balasan · per sales" />
+            <WAAgenda data={wa} />
           </div>
           <div className="card">
-            <CardH title="Limit tipis" ai="AI Kredit" meta="Kredit yang menahan order" />
-            <TightList items={tight} />
+            <CardH title="Tanya stok & harga" ai="AI Stok" meta="Jawab cepat sebelum dealer beli di tempat lain" />
+            <WAChatList items={asks} empty="Belum ada pertanyaan stok atau harga." limit={5} />
+          </div>
+          <div className="card">
+            <CardH title="Rilis kredit & retur" ai="AI Kredit" meta="Permintaan yang butuh keputusan" />
+            <WAChatList items={credit} empty="Belum ada permintaan rilis kredit atau retur." limit={5} />
           </div>
           <div className={`agents-line ${agentsOpen ? 'open' : ''}`} onClick={() => setAgentsOpen(!agentsOpen)}>
             <span className="dot-live" />
-            <span><b>6 agen AI</b> siap memproses {c?.wa ?? 0} WA, {c?.so ?? 0} SO, {c?.payments ?? 0} pembayaran · 0 kirim tanpa approve</span>
+            <span><b>6 agen AI</b> membaca {fmt(t?.threads)} chat WhatsApp · 0 kirim tanpa approve</span>
             <Icon name="chev" className="i chev" />
           </div>
           <div className="agents-body">
             <ul className="feed">
-              <li><span className="ag">{AGENT_NAMES[0]}</span><div><b>{brief?.points[0]?.orders ?? 0} SO</b> 7 hari terakhir dari {brief?.points[0]?.order_dealers ?? 0} dealer; permintaan WA diproses setelah WhatsApp tersambung</div></li>
-              <li><span className="ag">{AGENT_NAMES[1]}</span><div>{due.length} dealer jadwal order minggu ini, {drift.length} lewat jadwal{up ? `; ${up} dealer naik segmen` : ''}{down.length ? `, ${down.length} turun (${down.map((m) => m.name.replace(/^(PT|CV|UD|Toko)\s/, '') + `: ${m.from} → ${m.to}`).join(', ')})` : ''}</div></li>
-              <li><span className="ag">{AGENT_NAMES[2]}</span><div>{bad.length} dealer over limit / overdue, {tight.length - bad.length} tipis</div></li>
-              <li><span className="ag">{AGENT_NAMES[3]}</span><div>{push.map((p) => `${p.name} → ${(p.candidates ?? []).length} dealer`).join('; ') || 'tidak ada stok menua'}</div></li>
-              <li><span className="ag">{AGENT_NAMES[4]}</span><div>{(brief?.points[2]?.dealers ?? []).filter((d) => d.late_days).length} dealer dengan invoice lewat tempo; nada pengingat mengikuti pola bayar</div></li>
-              <li><span className="ag">{AGENT_NAMES[5]}</span><div>Nomor baru dikenali setelah WhatsApp tersambung (Stage 03)</div></li>
+              <li><span className="ag">{AGENT_NAMES[0]}</span><div>{n('order')} chat minta order{orders.some((r) => r.items.length) ? `, ${orders.filter((r) => r.items.length).length} dengan barang & jumlah` : ''}</div></li>
+              <li><span className="ag">{AGENT_NAMES[1]}</span><div>{t?.waiting ?? 0} chat belum dibalas, {t?.needs_reply ?? 0} lewat {due}</div></li>
+              <li><span className="ag">{AGENT_NAMES[2]}</span><div>{n('release')} chat minta rilis kredit</div></li>
+              <li><span className="ag">{AGENT_NAMES[3]}</span><div>{n('ask_stock')} chat tanya stok, {n('ask_price')} tanya harga</div></li>
+              <li><span className="ag">{AGENT_NAMES[4]}</span><div>{n('return')} chat retur / klaim</div></li>
+              <li><span className="ag">{AGENT_NAMES[5]}</span><div>{t?.new_numbers ?? 0} nomor baru menghubungi</div></li>
             </ul>
           </div>
         </div>
-      </div>
+      </div>}
     </>
   )
 }
 
-/** KPI wheels (mockup renderWheels). */
-function Wheels({ kpi }: { kpi: KPI }) {
-  const t = kpi.targets
-  const W: [string, string, string, number, string, string][] = [
-    ['Order tepat jadwal', kpi.on_schedule_pct + '%', '% dealer order di dalam 1,2× siklus order', kpi.on_schedule_pct, `target ≥ ${t.on_schedule_pct}%`, kpi.on_schedule_pct >= t.on_schedule_pct ? 'good' : 'warn'],
-    ['DSO (order → bayar)', kpi.dso_days + ' hr', 'order → bayar, rata-rata dealer', Math.round((1 - (kpi.dso_days - 25) / 30) * 100), `target ${t.dso_days} hr`, kpi.dso_days <= t.dso_days ? 'good' : 'warn'],
-    ['Perputaran stok', kpi.stock_turn_days + ' hr', 'perputaran stok', Math.round((1 - (kpi.stock_turn_days - 30) / 40) * 100), `target ${t.stock_turn_days} hr`, kpi.stock_turn_days <= t.stock_turn_days ? 'good' : 'warn'],
-  ]
-  const c = 2 * Math.PI * 26
-  return (
-    <div className="wheels">
-      {W.map(([title, v, s, p, tg, k]) => (
-        <div className="wheel" key={title}>
-          <svg viewBox="0 0 64 64">
-            <circle cx="32" cy="32" r="26" fill="none" stroke="var(--surface-3)" strokeWidth="7" />
-            <circle cx="32" cy="32" r="26" fill="none" stroke={`var(--${k})`} strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - Math.max(0.05, Math.min(1, p / 100)))} transform="rotate(-90 32 32)" />
-            <text x="32" y="36" textAnchor="middle">{v}</text>
-          </svg>
-          <div><b>{title}</b><span>{s}</span><small>{tg}</small></div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/** Agenda sales (mockup renderAgenda): busiest sales first, 3 dealers each; sales with nothing urgent fold into one line. */
-function Agenda({ rows }: { rows: AgendaRow[] }) {
-  const nav = useNavigate()
-  const [openRow, setOpenRow] = useState('')
-  const busy = rows.filter((r) => (r.items ?? []).length > 0).sort((a, b) => b.count - a.count)
-  const idle = rows.filter((r) => (r.items ?? []).length === 0)
-  const [shown, more] = useMore(busy, 6)
-  return (
-    <div className="agenda">
-      {shown.map((r) => {
-        const items = r.items ?? []
-        const all = openRow === r.sales.key
-        return (
-          <div className="ag-row" key={r.sales.key}>
-            <div className="ag-who">
-              <span className="avatar">{r.sales.initials}</span>
-              <div><b>{r.sales.name}</b><span>{r.sales.branch} · {r.dealers} dealer</span></div>
-              <span className="ag-n" title="dealer perlu perhatian">{r.count}</span>
-            </div>
-            <ul>
-              {(all ? items : items.slice(0, 3)).map((it) => (
-                <li key={it.kind + it.dealer_id}>
-                  <span className="dot" style={{ background: it.kind === 'due' ? 'var(--good)' : it.kind === 'drift' ? 'var(--warn)' : 'var(--bad)' }} />
-                  <button className="ev" onClick={() => nav('/dealer/' + it.dealer_id)}>{it.short_name}</button>
-                  <span className="ag-what">{it.kind === 'due' ? `jadwal ${dueLabel(it.due_in ?? 0)}` : it.kind === 'drift' ? `lewat ${it.late_days} hr` : 'tagih dulu'}</span>
-                </li>
-              ))}
-              {items.length > 3 && <li><button className="ev-more" onClick={() => setOpenRow(all ? '' : r.sales.key)}>{all ? 'ringkas' : `+${items.length - 3} dealer lainnya`}</button></li>}
-            </ul>
-          </div>
-        )
-      })}
-      {more}
-      {idle.length > 0 && <p className="ag-idle">{idle.length} sales tanpa agenda mendesak: {idle.slice(0, 6).map((r) => r.sales.name.split(' ')[0]).join(', ')}{idle.length > 6 ? `, +${idle.length - 6}` : ''}</p>}
-      {rows.length === 0 && <p className="ag-idle">Belum ada agenda hari ini.</p>}
-    </div>
-  )
-}
+const fmt = (v: number | undefined) => (v ?? 0).toLocaleString('id-ID')
 
 /** "Update terakhir analisis": when the last cycle finished, its number, and how long ago (refreshed every minute). */
 function LastUpdate() {

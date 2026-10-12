@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import type { WAAnalysis, WAHistoryRow, WAInsight, WASalesRow } from '../../api/types'
+import type { WAAnalysis, WAHistoryRow, WAInsight } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { CardH, Pill } from '../../components/ui'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
@@ -156,30 +156,6 @@ export function WAThreadsCard({ data }: { data: WAAnalysis | undefined }) {
         </div>
       )}
       <TablePager t={t} noun="percakapan" />
-    </div>
-  )
-}
-
-/** Per sales: conversations, waiting, reply time. */
-export function WASalesCard({ rows }: { rows: WASalesRow[] }) {
-  return (
-    <div className="card">
-      <CardH title="Waktu balas per sales" meta="chat yang menunggu dulu" />
-      {rows.length === 0 ? <p className="sg-hint">Belum ada percakapan.</p> : (
-        <div className="tbl-wrap">
-          <table className="matrix wa-sales">
-            <thead><tr><th>Sales</th><th className="r">Chat</th><th className="r" title="belum dibalas (lebih dari 2 jam)">Menunggu</th><th className="r">Balas</th></tr></thead>
-            <tbody>{rows.map((s) => (
-              <tr key={s.name}>
-                <td><b>{s.name}</b></td>
-                <td className="r num">{s.threads}</td>
-                <td className="r num" style={s.needs_reply ? { color: 'var(--bad)', fontWeight: 700 } : undefined}>{s.waiting}</td>
-                <td className="r num">{replyText(s.reply_median_min)}</td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
-      )}
     </div>
   )
 }

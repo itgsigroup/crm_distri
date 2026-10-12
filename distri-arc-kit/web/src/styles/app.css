@@ -966,6 +966,8 @@ body.map-maximized{overflow:hidden}
 
 /* Analisa BigQuery | Analisa WhatsApp (ADR 0026) */
 .wa-kpis{margin-bottom:14px}
+.wa-brief{margin:4px 0 10px;font-size:13.5px;line-height:1.6;color:var(--text);white-space:pre-line}
+.wa-intents.one{grid-template-columns:1fr}
 .wa-intents{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 22px;margin:2px 0 12px}
 .wa-int{display:grid;grid-template-columns:130px minmax(0,1fr) 28px;align-items:center;gap:10px;font-size:12.5px;color:var(--text-2)}
 .wa-int .bar{height:7px;border-radius:4px;background:var(--surface-3);overflow:hidden}
@@ -983,10 +985,8 @@ body.map-maximized{overflow:hidden}
 .wa-sub .i{width:12px;height:12px}
 .wa-msg{min-width:220px;max-width:360px;font-size:12.5px;line-height:1.45;color:var(--text-2)}
 .wa-msg q{quotes:'“' '”'}
-.wa-sales td,.wa-sales th{white-space:nowrap}
 @media (max-width:760px){.wa-intents{grid-template-columns:1fr}.wa-int{grid-template-columns:110px minmax(0,1fr) 28px}}
 .odl.wa-hist{min-width:0;font-size:12.5px}
-.wa-sales{width:100%;font-size:12.5px}
 .wa-table td:first-child{padding-left:12px}
 .wa-msg{max-width:300px}
 .wa-last{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:12.5px;color:var(--text-2)}
