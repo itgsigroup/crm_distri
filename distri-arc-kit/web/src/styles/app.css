@@ -997,3 +997,10 @@ body.map-maximized{overflow:hidden}
 .wa-sales{width:100%;font-size:12.5px}
 .wa-table td:first-child{padding-left:12px}
 .wa-msg{max-width:300px}
+.wa-last{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:12.5px;color:var(--text-2)}
+.wa-last .i{width:14px;height:14px;color:var(--good);margin-right:2px}
+.wa-last b{color:var(--text)}
+.wa-last.stale .i,.wa-last.stale b{color:var(--warn)}
+.an-tabs .wa-last{margin-left:auto;padding:5px 10px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow)}
+.oc-last+.wa-last.compact{margin-top:6px}
+@media (max-width:760px){.an-tabs .wa-last{margin-left:0}}

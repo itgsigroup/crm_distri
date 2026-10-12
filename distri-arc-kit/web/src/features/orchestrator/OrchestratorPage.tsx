@@ -157,6 +157,7 @@ export function OrchestratorPage() {
         <div className="oh-r">
           <div className="oh-kv"><small>Status</small><b>{st.running ? `Menganalisis ${st.scope} · ${st.stage}` : 'Siap · menunggu siklus'}</b></div>
           <div className="oh-kv"><small>Analisis terakhir</small><b>{st.run ? `#${st.run.toLocaleString('id-ID')} · ${st.last}` : '—'}</b></div>
+          {an.canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${(wa.cycle_number ?? 0).toLocaleString('id-ID')} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
           <div className="oh-kv"><small>Berikutnya</small><b>{st.next} · tiap jam</b></div>
           <div className="oh-kv"><small>Jalur analisis</small><ModeSeg /></div>
           <div className="oh-btns">
@@ -165,7 +166,7 @@ export function OrchestratorPage() {
           </div>
         </div>
       </div>
-      <AnalisaTabs {...an} waBadge={wa?.totals.needs_reply ?? 0} />
+      <AnalisaTabs {...an} waBadge={wa?.totals.needs_reply ?? 0} sales={sales} />
       {an.tab === 'wa' && (
         <div className="orch-grid">
           <div className="stack">

@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import type { WAAnalysis, WAHistoryRow, WAInsight, WASalesRow } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { CardH, Pill } from '../../components/ui'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { fmtNum, hhmm, shortDate } from '../../lib/format'
-import { useMe } from '../../app/queries'
+import { useMe, useWAAnalysis } from '../../app/queries'
 import { INTENTS, WA_COMPARE, intentLabel, intentTone, itemsText, waFilter, waFirstDir, waText, waTie, waitLabel, who, type WAColumn, type WAFilter } from './wa'
 
 // Analisa WhatsApp (ADR 0026): the second analysis on Pusat kendali and Orchestrator, next to the BigQuery one.
@@ -27,8 +27,44 @@ export function useAnalisaTab() {
   return { tab, setTab, canWA }
 }
 
+/** "5 menit lalu", "2 jam lalu"; '' after a day (the date says enough). */
+function ago(at: string, now: number): string {
+  const mins = Math.round((now - Date.parse(at)) / 60_000)
+  if (mins < 1) return 'baru saja'
+  if (mins < 60) return `${mins} menit lalu`
+  if (mins < 24 * 60) return `${Math.floor(mins / 60)} jam lalu`
+  return ''
+}
+
+/** "Analisa WhatsApp terakhir: 12 Okt · 12.00 WIB (5 menit lalu) · siklus #98 · 34 chat" — when the Orchestrator last
+ * read the chats. Older than two hours (a cycle missed) turns amber. Hidden for users without the chat page. */
+export function WALastRead({ sales, compact = false }: { sales?: string; compact?: boolean }) {
+  const { data: me } = useMe()
+  const canWA = !!me?.screens.includes('chat')
+  const { data } = useWAAnalysis(sales, canWA)
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(t)
+  }, [])
+  if (!canWA || !data) return null
+  if (!data.generated_at) {
+    return <div className={`wa-last${compact ? ' compact' : ''}`}><Icon name="chat" />Analisa WhatsApp terakhir: <b>belum ada</b> · dibaca di siklus berikutnya</div>
+  }
+  const at = data.generated_at
+  const stale = now - Date.parse(at) > 2 * 60 * 60_000
+  const a = ago(at, now)
+  return (
+    <div className={`wa-last${stale ? ' stale' : ''}${compact ? ' compact' : ''}`} title={stale ? 'Lebih dari 2 jam sejak chat terakhir dibaca — cek Riwayat analisis' : undefined}>
+      <Icon name="chat" />Analisa WhatsApp terakhir: <b>{shortDate(at)} · {hhmm(at)} WIB</b>
+      {a && <span> ({a})</span>}
+      {!compact && <span> · siklus #{fmtNum(data.cycle_number ?? 0)} · {fmtNum(data.totals.threads)} chat</span>}
+    </div>
+  )
+}
+
 /** "Analisa BigQuery | Analisa WhatsApp" */
-export function AnalisaTabs({ tab, setTab, canWA, waBadge }: ReturnType<typeof useAnalisaTab> & { waBadge?: number }) {
+export function AnalisaTabs({ tab, setTab, canWA, waBadge, sales }: ReturnType<typeof useAnalisaTab> & { waBadge?: number; sales?: string }) {
   if (!canWA) return null
   return (
     <div className="an-tabs" role="tablist" aria-label="Sumber analisa">
@@ -39,6 +75,7 @@ export function AnalisaTabs({ tab, setTab, canWA, waBadge }: ReturnType<typeof u
         </button>
       </div>
       <span className="an-src">{tab === 'bq' ? 'SO · pembayaran · stok dari data Accurate (BigQuery)' : 'chat dealer & nomor baru · grup internal tidak dibaca'}</span>
+      <WALastRead sales={sales} />
     </div>
   )
 }

@@ -13,7 +13,7 @@ import { BriefPoints, DriftList, DueList, PushList, TightList, dueLabel } from '
 import { Queue } from './Queue'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import type { AgendaRow, KPI } from '../../api/types'
-import { AnalisaTabs, WAHowCard, WAOverviewCard, WASalesCard, WAThreadsCard, useAnalisaTab } from '../wa/WAAnalysis'
+import { AnalisaTabs, WALastRead, WAHowCard, WAOverviewCard, WASalesCard, WAThreadsCard, useAnalisaTab } from '../wa/WAAnalysis'
 
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -101,6 +101,7 @@ export function ControlCenter() {
           </div>
           <div className="oc-pipe"><PipeChips /></div>
           <LastUpdate />
+          <WALastRead sales={sales} compact />
           <div className="oc-foot">
             <div className="oc-nums"><span><b>{full || scoped ? signalN : signals}</b> sinyal</span><span><b>{autoN}</b> otonom</span><span><b>{pending}</b> keputusan</span><span><b>{conflictN}</b> konflik diselesaikan</span></div>
             <div className="oc-btns">
@@ -111,7 +112,7 @@ export function ControlCenter() {
         </div>
       </div>
 
-      <AnalisaTabs {...an} waBadge={waDue} />
+      <AnalisaTabs {...an} waBadge={waDue} sales={sales} />
       {an.tab === 'wa' && (
         <div className="today">
           <div className="stack">
