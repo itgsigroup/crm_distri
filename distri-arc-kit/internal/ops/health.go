@@ -147,6 +147,9 @@ func Check(ctx context.Context, st *store.Store, env Env, now time.Time) Health 
 	h.LLM = llm
 	if cs, err := st.Q.HealthCycles(ctx); err == nil {
 		for _, c := range cs {
+			if c.Status == "running" || c.Status == "queued" {
+				continue // a cycle still going says nothing yet: it must not "recover" the streak every hour
+			}
 			if c.Status != "failed" {
 				break
 			}

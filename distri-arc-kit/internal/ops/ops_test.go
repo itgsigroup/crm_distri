@@ -226,3 +226,49 @@ func TestRelinkingNumberStaysDown(t *testing.T) {
 		t.Fatalf("first pairing alerted: %+v", al)
 	}
 }
+
+// The bridge confirms every send against the outbox: a system alert to an internal group is approved (no proposal),
+// one aimed elsewhere is not; a dealer row without a decision never is.
+func TestSystemAlertApprovedForBridge(t *testing.T) {
+	st := setup(t)
+	ctx := context.Background()
+	var internal, dealer uuid.UUID
+	if err := st.Pool.QueryRow(ctx, `insert into outbox (channel, to_ref, payload) values ('wa_system', $1, $2) returning id`,
+		"120363041100000001@g.us", `{"from":"6281234504471","to":"120363041100000001@g.us","text":"⚠️ x"}`).Scan(&internal); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Pool.QueryRow(ctx, `insert into outbox (channel, to_ref, payload) values ('wa_system', $1, $2) returning id`,
+		wa.UserJID("6281900300102"), `{"from":"6281234504471","to":"6281900300102@s.whatsapp.net","text":"x"}`).Scan(&dealer); err != nil {
+		t.Fatal(err)
+	}
+	if ok, err := st.Q.OutboxApprovedForSend(ctx, internal); err != nil || !ok {
+		t.Fatalf("internal alert not approved: %v %v", ok, err)
+	}
+	if ok, _ := st.Q.OutboxApprovedForSend(ctx, dealer); ok {
+		t.Fatal("system row to a dealer approved")
+	}
+	_, _ = st.Pool.Exec(ctx, "update outbox set status = 'sent' where id = $1", internal)
+	if ok, _ := st.Q.OutboxApprovedForSend(ctx, internal); ok {
+		t.Fatal("a sent alert approved again")
+	}
+}
+
+// A cycle still running does not "recover" a failed streak (the alert used to flap every hour).
+func TestRunningCycleKeepsFailedStreak(t *testing.T) {
+	st := setup(t)
+	ctx := context.Background()
+	for i, status := range []string{"failed", "failed", "failed", "running"} {
+		if _, err := st.Pool.Exec(ctx, `insert into cycles (trigger, scope, status, started_at) values ('schedule', 'all', $1, $2)`,
+			status, now.Add(time.Duration(i)*time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	al := ops.Alerts(ops.Check(ctx, st, ops.Env{}, now.Add(4*time.Hour)))
+	found := false
+	for _, a := range al {
+		found = found || a.Key == "cycle_failed"
+	}
+	if !found {
+		t.Fatalf("streak broken by the running cycle: %+v", al)
+	}
+}

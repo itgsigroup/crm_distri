@@ -1363,13 +1363,16 @@ func (q *Queries) OpenCommitments(ctx context.Context, dealerID *uuid.UUID) ([]O
 }
 
 const outboxApprovedForSend = `-- name: OutboxApprovedForSend :one
-select exists(select 1 from outbox o join proposals p on p.id = o.proposal_id
+select (exists(select 1 from outbox o join proposals p on p.id = o.proposal_id
   where o.id = $1 and o.channel = 'wa' and o.status in ('pending', 'failed')
-    and p.decided_at is not null and p.status in ('approved', 'edited', 'executed'))::bool as approved
+    and p.decided_at is not null and p.status in ('approved', 'edited', 'executed'))
+  or exists(select 1 from outbox o join wa_groups g on g.jid = o.payload->>'to' and g.kind = 'internal'
+  where o.id = $1 and o.channel = 'wa_system' and o.proposal_id is null and o.status in ('pending', 'failed')))::bool as approved
 `
 
 // The bridge asks before every send: the row must be a WhatsApp row of a proposal a person (or the system within
 // policy) approved, and not delivered yet (CLAUDE.md §2 — nothing reaches a dealer without a recorded decision).
+// The one exception is a system alert (channel wa_system) to an internal GSI group: staff only, never a dealer.
 func (q *Queries) OutboxApprovedForSend(ctx context.Context, id uuid.UUID) (bool, error) {
 	row := q.db.QueryRow(ctx, outboxApprovedForSend, id)
 	var approved bool

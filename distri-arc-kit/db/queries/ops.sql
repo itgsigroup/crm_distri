@@ -97,7 +97,7 @@ select count(*)::bigint as calls, coalesce(sum(cost_idr), 0)::bigint as cost_idr
 from llm_calls where created_at >= sqlc.arg(since)::timestamptz;
 
 -- name: HealthCycles :many
-select number, status, started_at, finished_at, duration_ms from cycles order by started_at desc limit 5;
+select number, status, started_at, finished_at, duration_ms from cycles order by started_at desc limit 10;
 
 -- name: HealthOutbox :many
 select status, count(*)::bigint as n from outbox group by status order by status;

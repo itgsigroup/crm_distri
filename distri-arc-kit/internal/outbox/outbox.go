@@ -101,7 +101,7 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 		return 0, err
 	}
 	if ob.Channel == "wa_system" {
-		return 0, s.sendSystem(ctx, ob)
+		return s.sendSystem(ctx, ob)
 	}
 	if ob.Channel != "wa" {
 		return 0, s.sendOdoo(ctx, ob)
@@ -234,23 +234,30 @@ type SystemPayload struct {
 	Text string `json:"text"`
 }
 
-// sendSystem delivers an ops alert to an internal group. No proposal, no send window: the group is GSI staff.
-func (s *Sender) sendSystem(ctx context.Context, ob gen.Outbox) error {
+// sendSystem delivers an ops alert to an internal group. No proposal, no send window: the group is GSI staff. The
+// bridge confirms the row against the outbox like any send (an internal-group system row is the only kind it accepts
+// without a proposal); its anti-ban pacing may ask to wait, then the alert goes out later instead of failing.
+func (s *Sender) sendSystem(ctx context.Context, ob gen.Outbox) (time.Duration, error) {
 	var p SystemPayload
 	if err := json.Unmarshal(ob.Payload, &p); err != nil {
-		return err
+		return 0, err
 	}
 	g, err := s.st.Q.GetWAGroupByJID(ctx, &p.To)
 	if err != nil || g.Kind == nil || *g.Kind != "internal" {
 		e := ErrNotInternal.Error()
 		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
-		return ErrNotInternal
+		return 0, ErrNotInternal
 	}
-	if _, err := s.t.Send(ctx, p.From, p.To, p.Text); err != nil {
+	if _, err := s.t.Send(wa.WithAction(ctx, ob.ID.String()), p.From, p.To, p.Text); err != nil {
 		e := err.Error()
+		var refused *wa.SendRefused
+		if errors.As(err, &refused) && refused.Temporary() {
+			_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "pending", Error: &e})
+			return refused.RetryAfter, nil
+		}
 		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
-		return err
+		return 0, err
 	}
 	now := s.clock.Now()
-	return s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: ob.ID, Status: "sent", SentAt: &now})
+	return 0, s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: ob.ID, Status: "sent", SentAt: &now})
 }

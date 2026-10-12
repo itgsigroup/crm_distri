@@ -111,7 +111,7 @@ func (q *Queries) HealthCounts(ctx context.Context) (HealthCountsRow, error) {
 }
 
 const healthCycles = `-- name: HealthCycles :many
-select number, status, started_at, finished_at, duration_ms from cycles order by started_at desc limit 5
+select number, status, started_at, finished_at, duration_ms from cycles order by started_at desc limit 10
 `
 
 type HealthCyclesRow struct {

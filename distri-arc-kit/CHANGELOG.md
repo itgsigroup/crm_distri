@@ -2,6 +2,9 @@
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
 ## Fix · nomor WhatsApp yang terlepas dari HP tetap ber-alert · 2026-10-12
+- **Alert WhatsApp ke grup internal kini benar-benar terkirim.** Sejak 9 Okt semua 65 alert ditolak penjaga kirim ("kirim tanpa outbox yang disetujui ditolak"): alert sistem dikirim tanpa id outbox dan bridge hanya menerima kiriman proposal yang disetujui. Kini baris `wa_system` ke grup **internal** disetujui bridge (tetap tidak pernah ke dealer); bila penjaga anti-blokir meminta tunggu, alert dijadwalkan ulang, bukan gagal.
+- Alert "Siklus gagal" tidak lagi bolak-balik "Pulih" tiap jam: siklus yang masih berjalan tidak memutus hitungan gagal beruntun.
+- Deploy hanya me-restart wa-bridge bila build, unit, atau pengaturan WA/bridge berubah (12 Okt: 9 restart sehari; tiap restart = sambung ulang semua HP tertaut).
 - Nomor yang perangkat tertautnya dihapus dari HP (`device_removed` / logout) setelah restart bridge tampil "pairing" (QR baru) dan alert "WhatsApp terputus" hilang — padahal chat tidak sinkron. Kini nomor yang pernah terpasang lalu kembali "pairing"/"unpaired" dihitung terputus sampai QR dipindai ulang; pesan alert menyebut penyebabnya.
 
 ## Chat · analisa per bubble · 2026-10-12 (ADR 0027)

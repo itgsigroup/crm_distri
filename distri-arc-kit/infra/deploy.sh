@@ -40,7 +40,19 @@ install -o arc -g arc -m 755 "$KIT/bin/arc.new" "$ROOT/bin/arc.new"
 rsync -a --delete "$KIT/web/dist/" "$ROOT/web.new/"
 rsync -a --delete "$KIT/infra/" "$ROOT/infra/"
 install -d -o arc -g arc "$ROOT/wa-bridge" /var/lib/distri-arc/wa-bridge
-rsync -a --delete "$KIT/apps/wa-bridge/dist" "$KIT/apps/wa-bridge/node_modules" "$KIT/apps/wa-bridge/package.json" "$ROOT/wa-bridge/"
+# the bridge holds the linked phones: restart it only when its build, unit or settings changed. Every restart is a
+# reconnect of each linked device, and a burst of them (one per deploy) is a pattern WhatsApp may answer with
+# device_removed (ADR 0004 anti-ban; 12 Oct: 9 restarts in a day, one phone unlinked).
+bridge_sum() {
+  { cd "$KIT/apps/wa-bridge" && find dist package.json package-lock.json -type f -print0 | sort -z | xargs -0 sha256sum
+    sha256sum "$KIT/infra/systemd/distri-arc-wa-bridge.service"
+    grep -E '^(WA_|BRIDGE_)' "$ENV_FILE" | sort; } | sha256sum | cut -d' ' -f1
+}
+BRIDGE_SUM="$(bridge_sum)"
+BRIDGE_CHANGED=1
+[[ -f $ROOT/wa-bridge/.build-sum && "$(cat "$ROOT/wa-bridge/.build-sum")" == "$BRIDGE_SUM" ]] && BRIDGE_CHANGED=0
+rsync -a --delete --exclude .build-sum "$KIT/apps/wa-bridge/dist" "$KIT/apps/wa-bridge/node_modules" "$KIT/apps/wa-bridge/package.json" "$ROOT/wa-bridge/"
+echo "$BRIDGE_SUM" > "$ROOT/wa-bridge/.build-sum"
 chown -R arc:arc "$ROOT/wa-bridge"
 chown -R arc:arc "$ROOT/web.new" "$ROOT/infra"
 
@@ -63,7 +75,12 @@ systemctl enable --now distri-arc-backup.timer >/dev/null
 systemctl enable distri-arc-api distri-arc-worker >/dev/null
 if grep -qE '^WA_TRANSPORT=baileys' $ENV_FILE; then
   systemctl enable distri-arc-wa-bridge >/dev/null
-  systemctl restart distri-arc-wa-bridge   # sessions are restored from Postgres; phones stay linked
+  if [[ $BRIDGE_CHANGED == 1 ]] || ! systemctl is-active --quiet distri-arc-wa-bridge; then
+    systemctl restart distri-arc-wa-bridge   # sessions are restored from Postgres; phones stay linked
+    echo "deploy: wa-bridge restarted (changed)"
+  else
+    echo "deploy: wa-bridge unchanged — not restarted, phones stay connected"
+  fi
 fi
 systemctl restart distri-arc-api distri-arc-worker
 
