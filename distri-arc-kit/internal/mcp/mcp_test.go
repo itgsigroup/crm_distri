@@ -382,6 +382,12 @@ func TestWAThroughMCP(t *testing.T) {
 	if !ok || out["accepted"].(float64) != 1 {
 		t.Fatalf("submit: %v %s", out, txt)
 	}
+	// a client with the older tool schema sends it inside proposals
+	out, txt, ok = call(t, cs, "orchestrator_submit", map[string]any{"cycle_id": cid, "agent": "Analisa WhatsApp", "proposals": []map[string]any{
+		{"overview": "Dua dealer menunggu balasan."}, {"id": id, "summary": "Menunggu konfirmasi PO.", "confidence": 0.7}}})
+	if !ok || out["accepted"].(float64) != 1 {
+		t.Fatalf("submit in proposals: %v %s", out, txt)
+	}
 	a, _ := e.st.Q.LatestWAAnalysis(context.Background())
 	if a.Source != "ai" || a.Overview == nil || *a.Overview != "Dua dealer menunggu balasan." {
 		t.Fatalf("stored %s %v", a.Source, a.Overview)

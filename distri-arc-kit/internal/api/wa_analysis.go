@@ -116,9 +116,9 @@ func (s *Server) waAnalysis(w http.ResponseWriter, r *http.Request) {
 		}
 		v := WAInsightView{Insight: in}
 		// the waiting state is read now, not at the cycle: a reply sent since clears it
-		if ws, ok := waiting[x.ThreadID]; ok {
-			v.Answered = in.WaitingSince != nil && ws == nil
-			v.WaitingSince = ws
+		// (it only clears: a closing "Ok Bu" the cycle saw as needing no reply stays answered)
+		if ws, ok := waiting[x.ThreadID]; ok && in.WaitingSince != nil && ws == nil {
+			v.Answered, v.WaitingSince = true, nil
 		}
 		v.WaitMin, v.NeedsReply = 0, false
 		if v.WaitingSince != nil {

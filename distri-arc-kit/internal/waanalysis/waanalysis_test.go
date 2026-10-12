@@ -123,3 +123,16 @@ func TestLabels(t *testing.T) {
 		t.Error("label")
 	}
 }
+
+func TestIsAck(t *testing.T) {
+	for _, s := range []string{"Ok Bu", "Okwy", "sama samaa", "siap pak", "Terima kasih banyak", "👍"} {
+		if !IsAck(s) {
+			t.Errorf("%q should be a closing message", s)
+		}
+	}
+	for _, s := range []string{"Klo upsnya gmna Bu", "ready kak?", "[gambar]", "hardisk 10tb 4unit", "Type apa? Tak ajukan dulu"} {
+		if IsAck(s) {
+			t.Errorf("%q needs a reply", s)
+		}
+	}
+}

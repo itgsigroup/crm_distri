@@ -147,6 +147,9 @@ func analyzeThread(t Thread, catalog []agents.Product, now time.Time) Insight {
 		}
 		runStart, pending = nil, nil
 	}
+	if runStart != nil && allAck(pending) {
+		runStart = nil // "Ok Bu", "siap", "terima kasih 👍": the conversation is closed, nobody waits for a reply
+	}
 	if runStart != nil {
 		in.WaitingSince = runStart
 		in.WaitMin = max(0, int(now.Sub(*runStart).Minutes()))
@@ -184,6 +187,36 @@ func analyzeThread(t Thread, catalog []agents.Product, now time.Time) Insight {
 		in.Priority = intentWeight[in.Intent] / 5
 	}
 	return in
+}
+
+// ackWords are the words of a closing message that needs no reply.
+var ackWords = map[string]bool{"ok": true, "oke": true, "okee": true, "okey": true, "okay": true, "okeh": true, "okwy": true, "okk": true, "okok": true, "siap": true,
+	"baik": true, "sip": true, "sipp": true, "mantap": true, "mantab": true, "terima": true, "kasih": true, "makasih": true, "trims": true, "tq": true,
+	"thx": true, "thanks": true, "thank": true, "you": true, "sama": true, "samaa": true, "noted": true, "iya": true, "ya": true, "yaa": true, "y": true,
+	"bu": true, "pak": true, "mba": true, "mbak": true, "mas": true, "kak": true, "ko": true, "ci": true, "gan": true, "bro": true, "sis": true, "banyak": true}
+
+// IsAck: a short closing message ("Ok Bu", "siap pak", "terima kasih", "👍") that needs no reply.
+func IsAck(text string) bool {
+	low := strings.ToLower(strings.TrimSpace(text))
+	if low == "" || utf8.RuneCountInString(low) > 40 {
+		return false
+	}
+	words := strings.FieldsFunc(low, func(r rune) bool { return r < 'a' || r > 'z' })
+	for _, w := range words {
+		if !ackWords[w] {
+			return false
+		}
+	}
+	return len(words) > 0 || !strings.ContainsAny(low, "0123456789?") // only emoji / punctuation ("👍", "🙏🏻")
+}
+
+func allAck(ms []Message) bool {
+	for _, m := range ms {
+		if !IsAck(m.Text) {
+			return false
+		}
+	}
+	return len(ms) > 0
 }
 
 func addItem(xs []Item, it Item) []Item {

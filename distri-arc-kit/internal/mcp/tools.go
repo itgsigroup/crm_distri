@@ -784,7 +784,17 @@ func (s *Server) registerOrchestrate() {
 			return nil, result{}, fmt.Errorf("cycle_id: %w", err)
 		}
 		if in.Agent == orchestrator.AgentWA {
-			res, err := s.Orch.WASubmit(ctx, id, orchestrator.ParseWAAnswer(in.Overview, in.Threads), &c.ID)
+			overview, threads := in.Overview, in.Threads
+			// clients that still have the older tool schema send it inside proposals: {"overview": …} and {id, summary, confidence}
+			for _, p := range in.Proposals {
+				if ov, ok := p["overview"].(string); ok && overview == "" {
+					overview = ov
+				}
+				if _, ok := p["id"]; ok {
+					threads = append(threads, p)
+				}
+			}
+			res, err := s.Orch.WASubmit(ctx, id, orchestrator.ParseWAAnswer(overview, threads), &c.ID)
 			if err != nil {
 				return nil, result{CycleID: &id}, err
 			}
