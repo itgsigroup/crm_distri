@@ -86,11 +86,13 @@ on conflict (wa_number) do update set sales_id = excluded.sales_id, label = excl
 
 -- name: SetWANumberState :exec
 update wa_numbers set state = $2, jid = coalesce($3, jid), last_seen_at = now(),
-  paired_at = case when $2 = 'connected' and paired_at is null then now() else paired_at end, updated_at = now()
+  paired_at = case when $2 = 'connected' and paired_at is null then now() else paired_at end, updated_at = now(),
+  state_since = case when state is distinct from $2 then now() else state_since end
 where wa_number = $1;
 
 -- name: SetWANumberQR :exec
-update wa_numbers set qr = $2, qr_expires_at = $3, state = 'pairing', updated_at = now() where wa_number = $1;
+update wa_numbers set qr = $2, qr_expires_at = $3, state = 'pairing', updated_at = now(),
+  state_since = case when state is distinct from 'pairing' then now() else state_since end where wa_number = $1;
 
 -- name: FindContactByNumber :one
 select c.*, d.slug as dealer_slug, d.name as dealer_name, d.owner_id as dealer_owner

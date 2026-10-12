@@ -947,4 +947,5 @@ type WaNumber struct {
 	CreatedAt    time.Time  `json:"created_at"`
 	UserID       *uuid.UUID `json:"user_id"`
 	SessionID    string     `json:"session_id"`
+	StateSince   time.Time  `json:"state_since"`
 }

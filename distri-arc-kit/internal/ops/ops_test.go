@@ -211,7 +211,14 @@ func TestAlertsToInternalGroup(t *testing.T) {
 func TestRelinkingNumberStaysDown(t *testing.T) {
 	st := setup(t)
 	ctx := context.Background()
-	if _, err := st.Pool.Exec(ctx, "update wa_numbers set state = 'pairing', paired_at = $1 where wa_number = '6281534509032'", now.AddDate(0, 0, -3)); err != nil {
+	if _, err := st.Pool.Exec(ctx, "update wa_numbers set state = 'pairing', paired_at = $1, state_since = $2 where wa_number = '6281534509032'", now.AddDate(0, 0, -3), now.Add(-30*time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	// 30 s after a bridge restart: reconnecting, not removed
+	if al := ops.Alerts(ops.Check(ctx, st, ops.Env{}, now)); len(al) != 0 {
+		t.Fatalf("restart alerted: %+v", al)
+	}
+	if _, err := st.Pool.Exec(ctx, "update wa_numbers set state_since = $1 where wa_number = '6281534509032'", now.Add(-10*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	h := ops.Check(ctx, st, ops.Env{}, now)

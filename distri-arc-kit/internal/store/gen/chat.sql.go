@@ -402,7 +402,7 @@ func (q *Queries) GetWALink(ctx context.Context, sessionID string) (WaLink, erro
 }
 
 const getWANumber = `-- name: GetWANumber :one
-select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id from wa_numbers where wa_number = $1
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id, state_since from wa_numbers where wa_number = $1
 `
 
 func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, error) {
@@ -424,12 +424,13 @@ func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, e
 		&i.CreatedAt,
 		&i.UserID,
 		&i.SessionID,
+		&i.StateSince,
 	)
 	return i, err
 }
 
 const getWANumberBySession = `-- name: GetWANumberBySession :one
-select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id from wa_numbers where session_id = $1
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id, state_since from wa_numbers where session_id = $1
 `
 
 func (q *Queries) GetWANumberBySession(ctx context.Context, sessionID string) (WaNumber, error) {
@@ -451,12 +452,13 @@ func (q *Queries) GetWANumberBySession(ctx context.Context, sessionID string) (W
 		&i.CreatedAt,
 		&i.UserID,
 		&i.SessionID,
+		&i.StateSince,
 	)
 	return i, err
 }
 
 const getWANumberByUser = `-- name: GetWANumberByUser :one
-select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id from wa_numbers where user_id = $1
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id, state_since from wa_numbers where user_id = $1
 `
 
 func (q *Queries) GetWANumberByUser(ctx context.Context, userID *uuid.UUID) (WaNumber, error) {
@@ -478,6 +480,7 @@ func (q *Queries) GetWANumberByUser(ctx context.Context, userID *uuid.UUID) (WaN
 		&i.CreatedAt,
 		&i.UserID,
 		&i.SessionID,
+		&i.StateSince,
 	)
 	return i, err
 }
@@ -1161,7 +1164,7 @@ func (q *Queries) ListWAGroups(ctx context.Context) ([]WaGroup, error) {
 }
 
 const listWANumbers = `-- name: ListWANumbers :many
-select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, n.user_id, n.session_id, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email,
+select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, n.user_id, n.session_id, n.state_since, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email,
   r.name as user_role, us.branch as user_branch, c.thread_count, c.unread_count, c.last_message_at
 from wa_numbers n left join sales_users s on s.id = n.sales_id left join users u on u.id = n.user_id
   left join roles r on r.key = coalesce(u.role_key, u.role) left join sales_users us on us.id = u.sales_user_id
@@ -1186,6 +1189,7 @@ type ListWANumbersRow struct {
 	CreatedAt     time.Time   `json:"created_at"`
 	UserID        *uuid.UUID  `json:"user_id"`
 	SessionID     string      `json:"session_id"`
+	StateSince    time.Time   `json:"state_since"`
 	SalesName     *string     `json:"sales_name"`
 	SalesBranch   *string     `json:"sales_branch"`
 	UserName      *string     `json:"user_name"`
@@ -1223,6 +1227,7 @@ func (q *Queries) ListWANumbers(ctx context.Context) ([]ListWANumbersRow, error)
 			&i.CreatedAt,
 			&i.UserID,
 			&i.SessionID,
+			&i.StateSince,
 			&i.SalesName,
 			&i.SalesBranch,
 			&i.UserName,
@@ -1545,7 +1550,8 @@ func (q *Queries) SetWALink(ctx context.Context, arg SetWALinkParams) error {
 }
 
 const setWANumberQR = `-- name: SetWANumberQR :exec
-update wa_numbers set qr = $2, qr_expires_at = $3, state = 'pairing', updated_at = now() where wa_number = $1
+update wa_numbers set qr = $2, qr_expires_at = $3, state = 'pairing', updated_at = now(),
+  state_since = case when state is distinct from 'pairing' then now() else state_since end where wa_number = $1
 `
 
 type SetWANumberQRParams struct {
@@ -1561,7 +1567,8 @@ func (q *Queries) SetWANumberQR(ctx context.Context, arg SetWANumberQRParams) er
 
 const setWANumberState = `-- name: SetWANumberState :exec
 update wa_numbers set state = $2, jid = coalesce($3, jid), last_seen_at = now(),
-  paired_at = case when $2 = 'connected' and paired_at is null then now() else paired_at end, updated_at = now()
+  paired_at = case when $2 = 'connected' and paired_at is null then now() else paired_at end, updated_at = now(),
+  state_since = case when state is distinct from $2 then now() else state_since end
 where wa_number = $1
 `
 

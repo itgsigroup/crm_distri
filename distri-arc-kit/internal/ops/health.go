@@ -42,18 +42,22 @@ type WAState struct {
 	LastSeen  *time.Time `json:"last_seen_at"`
 }
 
-// waDown: the number does not sync. A number that was linked and now shows a QR again ("pairing", "unpaired") was
-// removed from the phone's linked devices (device_removed / logged out) — after a bridge restart the logout reads as
-// a fresh pairing, which must not hide it.
-func waDown(state string, wasPaired bool) bool {
+// waDown: the number does not sync. A number that was linked and still shows a QR ("pairing", "unpaired") after
+// WARelinkGrace was removed from the phone's linked devices (device_removed / logged out) — after a bridge restart
+// the logout reads as a fresh pairing, which must not hide it. Within the grace it is a restart reconnecting.
+func waDown(state string, wasPaired bool, inState time.Duration) bool {
 	switch state {
 	case "disconnected", "logged_out":
 		return true
 	case "pairing", "unpaired":
-		return wasPaired
+		return wasPaired && inState >= WARelinkGrace
 	}
 	return false
 }
+
+// WARelinkGrace: how long a linked number may show a QR before it counts as removed from the phone (a bridge
+// restart reconnects within seconds).
+const WARelinkGrace = 3 * time.Minute
 
 // OdooModel is one synced Odoo model.
 type OdooModel struct {
@@ -107,7 +111,7 @@ func Check(ctx context.Context, st *store.Store, env Env, now time.Time) Health 
 		for _, r := range rows {
 			w := WAState{Number: r.WaNumber, Sales: deref(r.SalesName), State: r.State, Transport: r.Transport, LastSeen: r.LastSeenAt}
 			h.WA = append(h.WA, w)
-			if waDown(r.State, r.PairedAt != nil) {
+			if waDown(r.State, r.PairedAt != nil, now.Sub(r.StateSince)) {
 				h.waDown = append(h.waDown, w)
 			}
 		}

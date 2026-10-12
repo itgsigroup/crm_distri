@@ -8,6 +8,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Perbaikan: (1) index `chat_messages(from_number, sent_at)` (migrasi 0022, 11,8 → 2,7 dtk); (2) hitung ulang PIC hanya untuk kontak dealer terkait, penuh tiap 10 menit; (3) pesan dalam 20 detik digabung menjadi satu job (`DealerBatcher`); (4) browser menggabungkan refetch dari event SSE (sebelumnya ±5 refetch daftar chat per detik per tab).
 
 ## Fix · nomor WhatsApp yang terlepas dari HP tetap ber-alert · 2026-10-12
+- Masa tenggang 3 menit: setelah restart bridge nomor tampil "unpaired" beberapa detik sebelum tersambung — bukan lagi alert "perangkat tertaut dihapus" (kolom `wa_numbers.state_since`, migrasi 0023).
 - **Alert WhatsApp ke grup internal kini benar-benar terkirim.** Sejak 9 Okt semua 65 alert ditolak penjaga kirim ("kirim tanpa outbox yang disetujui ditolak"): alert sistem dikirim tanpa id outbox dan bridge hanya menerima kiriman proposal yang disetujui. Kini baris `wa_system` ke grup **internal** disetujui bridge (tetap tidak pernah ke dealer); bila penjaga anti-blokir meminta tunggu, alert dijadwalkan ulang, bukan gagal.
 - Alert "Siklus gagal" tidak lagi bolak-balik "Pulih" tiap jam: siklus yang masih berjalan tidak memutus hitungan gagal beruntun.
 - Deploy hanya me-restart wa-bridge bila build, unit, atau pengaturan WA/bridge berubah (12 Okt: 9 restart sehari; tiap restart = sambung ulang semua HP tertaut).
