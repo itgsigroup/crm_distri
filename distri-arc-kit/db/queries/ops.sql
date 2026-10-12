@@ -86,7 +86,7 @@ delete from identifications where wa_number = sqlc.arg(wa_number)::text;
 update dealers set memo_updated_at = null where id = any(sqlc.arg(dealer_ids)::uuid[]);
 
 -- name: HealthWANumbers :many
-select n.wa_number, n.state, n.transport, n.last_seen_at, s.name as sales_name
+select n.wa_number, n.state, n.transport, n.last_seen_at, n.paired_at, s.name as sales_name
 from wa_numbers n left join sales_users s on s.id = n.sales_id order by s.name;
 
 -- name: HealthOdoo :many

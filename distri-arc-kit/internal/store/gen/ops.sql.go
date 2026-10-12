@@ -232,7 +232,7 @@ func (q *Queries) HealthOutbox(ctx context.Context) ([]HealthOutboxRow, error) {
 }
 
 const healthWANumbers = `-- name: HealthWANumbers :many
-select n.wa_number, n.state, n.transport, n.last_seen_at, s.name as sales_name
+select n.wa_number, n.state, n.transport, n.last_seen_at, n.paired_at, s.name as sales_name
 from wa_numbers n left join sales_users s on s.id = n.sales_id order by s.name
 `
 
@@ -241,6 +241,7 @@ type HealthWANumbersRow struct {
 	State      string     `json:"state"`
 	Transport  string     `json:"transport"`
 	LastSeenAt *time.Time `json:"last_seen_at"`
+	PairedAt   *time.Time `json:"paired_at"`
 	SalesName  *string    `json:"sales_name"`
 }
 
@@ -258,6 +259,7 @@ func (q *Queries) HealthWANumbers(ctx context.Context) ([]HealthWANumbersRow, er
 			&i.State,
 			&i.Transport,
 			&i.LastSeenAt,
+			&i.PairedAt,
 			&i.SalesName,
 		); err != nil {
 			return nil, err

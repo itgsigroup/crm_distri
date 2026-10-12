@@ -205,3 +205,24 @@ func TestAlertsToInternalGroup(t *testing.T) {
 		t.Fatalf("dealer target: %v", err)
 	}
 }
+
+// A number removed from the phone's linked devices shows a QR again after a bridge restart ("pairing"): it still does
+// not sync, so the alert stays open until it is linked again. A number being linked for the first time is not down.
+func TestRelinkingNumberStaysDown(t *testing.T) {
+	st := setup(t)
+	ctx := context.Background()
+	if _, err := st.Pool.Exec(ctx, "update wa_numbers set state = 'pairing', paired_at = $1 where wa_number = '6281534509032'", now.AddDate(0, 0, -3)); err != nil {
+		t.Fatal(err)
+	}
+	h := ops.Check(ctx, st, ops.Env{}, now)
+	al := ops.Alerts(h)
+	if h.Status != "degraded" || len(al) != 1 || !strings.Contains(al[0].Message, "perangkat tertaut dihapus") {
+		t.Fatalf("health %s alerts %+v", h.Status, al)
+	}
+	if _, err := st.Pool.Exec(ctx, "update wa_numbers set paired_at = null where wa_number = '6281534509032'"); err != nil {
+		t.Fatal(err)
+	}
+	if al := ops.Alerts(ops.Check(ctx, st, ops.Env{}, now)); len(al) != 0 {
+		t.Fatalf("first pairing alerted: %+v", al)
+	}
+}

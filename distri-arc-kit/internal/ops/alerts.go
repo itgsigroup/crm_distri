@@ -30,7 +30,11 @@ func Alerts(h Health) []Alert {
 		if who == "" {
 			who = w.Number
 		}
-		out = append(out, Alert{Key: "wa_disconnected:" + w.Number, Message: fmt.Sprintf("WhatsApp %s (%s) terputus — pasangkan ulang di Pengaturan → WhatsApp", who, w.State)})
+		why := w.State
+		if why == "pairing" || why == "unpaired" {
+			why = "perangkat tertaut dihapus dari HP"
+		}
+		out = append(out, Alert{Key: "wa_disconnected:" + w.Number, Message: fmt.Sprintf("WhatsApp %s (%s) terputus — chat tidak sinkron; pindai QR ulang di Pengaturan → WhatsApp", who, why)})
 	}
 	if h.failedStreak >= CycleFailAlert {
 		out = append(out, Alert{Key: "cycle_failed", Message: fmt.Sprintf("Siklus Orchestrator gagal %d× berturut-turut — lihat log worker (RUNBOOK §3)", h.failedStreak)})

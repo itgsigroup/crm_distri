@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · nomor WhatsApp yang terlepas dari HP tetap ber-alert · 2026-10-12
+- Nomor yang perangkat tertautnya dihapus dari HP (`device_removed` / logout) setelah restart bridge tampil "pairing" (QR baru) dan alert "WhatsApp terputus" hilang — padahal chat tidak sinkron. Kini nomor yang pernah terpasang lalu kembali "pairing"/"unpaired" dihitung terputus sampai QR dipindai ulang; pesan alert menyebut penyebabnya.
+
 ## Chat · analisa per bubble · 2026-10-12 (ADR 0027)
 - Setiap analisa (siklus per jam, *Analisis ulang*, *Analisa lanjut* di Chat, analisa per dealer) kini juga menganalisa **setiap bubble** chat dealer & nomor baru: permintaan + barang, dibalas berapa menit kemudian / menunggu berapa lama / pesan penutup, dan untuk pesan sales berapa lama pelanggan menunggu.
 - Catatan AI per pesan pelanggan ditulis Claude lewat MCP (`orchestrator_submit` → `messages`) atau model di server.
