@@ -166,7 +166,8 @@ left join lateral (
      where t.kind = 'group' and x.wa_jid = t.wa_jid and x.id <> t.id)
   ) u order by u.sent_at desc limit 1
 ) lm on true
-order by case t.kind when 'dealer' then 0 when 'group' then 1 else 2 end, t.last_message_at desc nulls last;
+-- newest conversation first, like WhatsApp (the kind tabs filter; ordering by kind buried today's chats)
+order by t.last_message_at desc nulls last, t.id;
 
 -- name: GetThread :one
 -- sales_wa is the number replies go out from: the thread's own number, else its sales' main number.

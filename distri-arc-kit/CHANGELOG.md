@@ -2,6 +2,7 @@
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
 ## Fix · tidak ada pesan otomatis; grup lengkap di setiap nomor · 2026-10-12
+- Daftar chat diurutkan **chat terbaru di atas** (seperti WhatsApp). Sebelumnya diurutkan per jenis dulu (dealer → grup → nomor baru), sehingga chat dealer lama selalu di atas dan chat hari ini tertimbun.
 - **GSI Orbit tidak pernah mengirim pesan WhatsApp sendiri**, termasuk alert ke grup internal (permintaan Sam). Alert hanya tercatat di aplikasi (Pengaturan → Status sistem, `system_alerts`). Tiga lapis: Notifier tidak membuat pesan, outbox menolak baris `wa_system`, bridge menolak kiriman tanpa proposal yang disetujui manusia (pengecualian grup internal dihapus).
 - Grup yang beranggotakan beberapa nomor GSI kini tampil **lengkap di setiap nomor**: pesan disimpan sekali (di nomor yang menerimanya pertama), thread grup membaca pesan dari semua thread grup itu; waktu dan pesan terakhir di daftar chat ikut bergerak. Sebelumnya grup di nomor Catharina tampak bolong karena sebagian pesan tersimpan di thread Elisa/Granike.
 
