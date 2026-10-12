@@ -13,7 +13,7 @@ import { BriefPoints, DriftList, DueList, PushList, TightList, dueLabel } from '
 import { Queue } from './Queue'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import type { AgendaRow, KPI } from '../../api/types'
-import { AnalisaTabs, WALastRead, WAHowCard, WAOverviewCard, WASalesCard, WAThreadsCard, useAnalisaTab } from '../wa/WAAnalysis'
+import { WALastRead, WAOverviewCard, WASalesCard, WAThreadsCard, useCanWA } from '../wa/WAAnalysis'
 
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -47,16 +47,10 @@ export function ControlCenter() {
   const signalN = scoped ? (brief?.counts ? brief.counts.wa + brief.counts.so + brief.counts.payments : 0) : full ? full.signals_count ?? 0 : 0
   const conflictN = scoped ? conflicts.length : full?.conflict_count ?? 0
   const [agentsOpen, setAgentsOpen] = useState(false)
-  // two analyses: BigQuery (SO, payments, stock) and WhatsApp (what dealers wrote) — ADR 0026
-  const an = useAnalisaTab()
-  const { data: wa } = useWAAnalysis(sales, an.canWA)
+  // Analisa WhatsApp (ADR 0026) sits inside the page; it quotes customers, so only for users with the chat page
+  const canWA = useCanWA()
+  const { data: wa } = useWAAnalysis(sales, canWA)
   const waDue = wa?.totals.needs_reply ?? 0
-  const waPlan = plan && { ...plan, items: plan.items.filter((it) => it.link?.startsWith('chat:')) }
-  // the status strip points at cards of the BigQuery tab
-  const goTo = (id: string) => {
-    if (an.tab !== 'bq') an.setTab('bq')
-    setTimeout(() => scrollTo(id), 60)
-  }
 
   const c = brief?.counts
   const first = me?.name.split(' ')[0] ?? ''
@@ -85,11 +79,11 @@ export function ControlCenter() {
             </p>
           </div>
           <div className="status-strip">
-            <button onClick={() => goTo('queue-card')}><span className="n" style={{ background: 'var(--accent)' }}>{pending}</span>Keputusan</button>
-            <button onClick={() => goTo('due-card')}><span className="n" style={{ background: 'var(--good)' }}>{due.length}</span>Jadwal order<span className="m">· 7 hari</span></button>
-            <button onClick={() => goTo('drift-card')}><span className="n" style={{ background: 'var(--warn)' }}>{drift.length}</span>Lewat jadwal</button>
+            <button onClick={() => scrollTo('queue-card')}><span className="n" style={{ background: 'var(--accent)' }}>{pending}</span>Keputusan</button>
+            <button onClick={() => scrollTo('due-card')}><span className="n" style={{ background: 'var(--good)' }}>{due.length}</span>Jadwal order<span className="m">· 7 hari</span></button>
+            <button onClick={() => scrollTo('drift-card')}><span className="n" style={{ background: 'var(--warn)' }}>{drift.length}</span>Lewat jadwal</button>
             <button onClick={() => nav('/kredit')}><span className="n" style={{ background: 'var(--bad)' }}>{bad.length}</span>Over limit / overdue</button>
-            {an.canWA && <button onClick={() => an.setTab('wa')}><span className="n" style={{ background: 'var(--accent)' }}>{waDue}</span>Chat menunggu<span className="m">· &gt; 2 jam</span></button>}
+            {canWA && <button onClick={() => scrollTo('wa-card')}><span className="n" style={{ background: 'var(--accent)' }}>{waDue}</span>Chat menunggu<span className="m">· &gt; 2 jam</span></button>}
             <button onClick={() => nav('/orbit')}><span className="n" style={{ background: 'var(--indigo)' }}>◎</span>Buka Orbit</button>
           </div>
         </div>
@@ -112,24 +106,7 @@ export function ControlCenter() {
         </div>
       </div>
 
-      <AnalisaTabs {...an} waBadge={waDue} sales={sales} />
-      {an.tab === 'wa' && (
-        <div className="today">
-          <div className="stack">
-            <WAOverviewCard data={wa} scoped={scoped} />
-            <div className="card">
-              <div className="card-h"><h2>Rencana dari WhatsApp</h2><span className="ai" style={{ marginLeft: 6 }}>disusun Orchestrator</span><span className="meta">chat yang menunggu &gt; 2 jam tanpa usulan agen</span></div>
-              {waPlan && waPlan.items.length > 0 ? <PlanList plan={waPlan} /> : <p className="sg-hint">Tidak ada chat yang perlu dibalas di Rencana hari ini.</p>}
-            </div>
-            <WAThreadsCard data={wa} />
-          </div>
-          <div className="stack">
-            <WASalesCard rows={wa?.sales ?? []} />
-            <WAHowCard />
-          </div>
-        </div>
-      )}
-      {an.tab === 'bq' && <div className="today">
+      <div className="today">
         <div className="stack">
           <div className="card" id="plan-card">
             <div className="card-h"><h2>Rencana hari ini</h2><span className="ai" style={{ marginLeft: 6 }}>disusun Orchestrator</span><span className="meta">{planMeta(plan)}</span></div>
@@ -152,6 +129,13 @@ export function ControlCenter() {
               <Prov style={{ marginLeft: 'auto' }}>{brief?.source === 'none' ? 'belum dianalisis AI' : brief?.source === 'template' ? 'template dari metrik' : 'confidence ' + brief?.confidence}</Prov>
             </div>
           </div>
+
+          {canWA && (
+            <>
+              <div id="wa-card"><WAOverviewCard data={wa} scoped={scoped} /></div>
+              <WAThreadsCard data={wa} />
+            </>
+          )}
 
           <div className="grid-2">
             <div className="card" id="due-card">
@@ -180,6 +164,7 @@ export function ControlCenter() {
             <CardH title="Agenda sales" meta="dibagi Orchestrator · hari ini" />
             <Agenda rows={agenda} />
           </div>
+          {canWA && <WASalesCard rows={wa?.sales ?? []} />}
           <div className="card">
             <CardH title="Push stok" ai="AI Stok" meta="Stok → dealer yang product mix-nya cocok" />
             <PushList items={push} />
@@ -204,7 +189,7 @@ export function ControlCenter() {
             </ul>
           </div>
         </div>
-      </div>}
+      </div>
     </>
   )
 }

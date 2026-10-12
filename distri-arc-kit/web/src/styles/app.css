@@ -965,10 +965,6 @@ body.map-maximized{overflow:hidden}
 .mcpa-prompt pre{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);font-family:var(--font-mono);font-size:11.5px;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto}
 
 /* Analisa BigQuery | Analisa WhatsApp (ADR 0026) */
-.an-tabs{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px}
-.an-tabs .seg button{height:34px}
-.an-badge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;display:inline-grid;place-items:center}
-.an-src{font-size:12.5px;color:var(--text-3)}
 .wa-kpis{margin-bottom:14px}
 .wa-intents{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 22px;margin:2px 0 12px}
 .wa-int{display:grid;grid-template-columns:130px minmax(0,1fr) 28px;align-items:center;gap:10px;font-size:12.5px;color:var(--text-2)}
@@ -987,12 +983,8 @@ body.map-maximized{overflow:hidden}
 .wa-sub .i{width:12px;height:12px}
 .wa-msg{min-width:220px;max-width:360px;font-size:12.5px;line-height:1.45;color:var(--text-2)}
 .wa-msg q{quotes:'“' '”'}
-.wa-how{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.wa-how li{display:flex;gap:10px;font-size:13px;line-height:1.5;color:var(--text-2)}
-.wa-how li .i{flex:none;width:16px;height:16px;margin-top:2px;color:var(--accent)}
-.wa-how b{color:var(--text)}
 .wa-sales td,.wa-sales th{white-space:nowrap}
-@media (max-width:760px){.wa-intents{grid-template-columns:1fr}.wa-int{grid-template-columns:110px minmax(0,1fr) 28px}.an-src{flex-basis:100%}}
+@media (max-width:760px){.wa-intents{grid-template-columns:1fr}.wa-int{grid-template-columns:110px minmax(0,1fr) 28px}}
 .odl.wa-hist{min-width:0;font-size:12.5px}
 .wa-sales{width:100%;font-size:12.5px}
 .wa-table td:first-child{padding-left:12px}
@@ -1001,6 +993,4 @@ body.map-maximized{overflow:hidden}
 .wa-last .i{width:14px;height:14px;color:var(--good);margin-right:2px}
 .wa-last b{color:var(--text)}
 .wa-last.stale .i,.wa-last.stale b{color:var(--warn)}
-.an-tabs .wa-last{margin-left:auto;padding:5px 10px;border-radius:999px;background:var(--surface);box-shadow:var(--shadow)}
 .oc-last+.wa-last.compact{margin-top:6px}
-@media (max-width:760px){.an-tabs .wa-last{margin-left:0}}

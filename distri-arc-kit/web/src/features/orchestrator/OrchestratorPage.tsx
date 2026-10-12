@@ -8,17 +8,16 @@ import { hhmm, shortDate } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { useAgents, useConflicts, useCycleLatest, useCycles, useMCPCalls, useMCPInfo, usePlan, useQueue, useWAAnalysis } from '../../app/queries'
+import { useAgents, useConflicts, useCycleLatest, useCycles, useMCPCalls, useMCPInfo, useQueue, useWAAnalysis } from '../../app/queries'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import { Queue } from '../control/Queue'
-import { PlanList } from '../control/Plan'
-import { AnalisaTabs, WAHistoryCard, WAHowCard, WAOverviewCard, WASalesCard, WAThreadsCard, useAnalisaTab } from '../wa/WAAnalysis'
+import { WAHistoryCard, WAOverviewCard, WASalesCard, WAThreadsCard, useCanWA } from '../wa/WAAnalysis'
 import { MCPClientsPanel, MCPRules, ModeSeg } from '../settings/AIConnections'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { CONFLICT_COMPARE, RUN_COMPARE, conflictFirstDir, conflictText, conflictTie, finishedRuns, runFirstDir, runText, runTie, type ConflictColumn, type RunColumn } from './tables'
 
 // Default stage descriptions before the first cycle (mockup STAGES).
-const STAGE_HINT = ['WhatsApp + BigQuery (SO · bayar · stok)', '6 agen paralel', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
+const STAGE_HINT = ['WA · SO · bayar · stok cabang', '6 agen paralel', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
 
 /** Pipeline analisis (mockup pipeHtml, full form). */
 function Pipeline({ stages }: { stages: CycleStage[] }) {
@@ -140,11 +139,9 @@ export function OrchestratorPage() {
   const { data: calls = [] } = useMCPCalls()
   const shown = st.running && latest?.cycle ? latest.cycle : (latest?.last_full ?? latest?.last_done)
   const meta = st.run ? `siklus #${st.run.toLocaleString('id-ID')} · ${st.last} · ${st.dur}` : 'belum ada siklus'
-  // two analyses read by every full cycle: BigQuery and WhatsApp (ADR 0026)
-  const an = useAnalisaTab()
-  const { data: wa } = useWAAnalysis(sales, an.canWA)
-  const { data: plan } = usePlan(sales)
-  const waPlan = plan && { ...plan, items: plan.items.filter((it) => it.link?.startsWith('chat:')) }
+  // Analisa WhatsApp (ADR 0026) sits inside the page; it quotes customers, so only for users with the chat page
+  const canWA = useCanWA()
+  const { data: wa } = useWAAnalysis(sales, canWA)
 
   return (
     <>
@@ -157,7 +154,7 @@ export function OrchestratorPage() {
         <div className="oh-r">
           <div className="oh-kv"><small>Status</small><b>{st.running ? `Menganalisis ${st.scope} · ${st.stage}` : 'Siap · menunggu siklus'}</b></div>
           <div className="oh-kv"><small>Analisis terakhir</small><b>{st.run ? `#${st.run.toLocaleString('id-ID')} · ${st.last}` : '—'}</b></div>
-          {an.canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${(wa.cycle_number ?? 0).toLocaleString('id-ID')} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
+          {canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${(wa.cycle_number ?? 0).toLocaleString('id-ID')} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
           <div className="oh-kv"><small>Berikutnya</small><b>{st.next} · tiap jam</b></div>
           <div className="oh-kv"><small>Jalur analisis</small><ModeSeg /></div>
           <div className="oh-btns">
@@ -166,34 +163,14 @@ export function OrchestratorPage() {
           </div>
         </div>
       </div>
-      <AnalisaTabs {...an} waBadge={wa?.totals.needs_reply ?? 0} sales={sales} />
-      {an.tab === 'wa' && (
-        <div className="orch-grid">
-          <div className="stack">
-            <div className="card">
-              <div className="card-h"><h2>Pipeline analisis</h2><span className="meta">{meta}</span></div>
-              <Pipeline stages={shown?.stages ?? []} />
-            </div>
-            <WAOverviewCard data={wa} scoped={!!sales || page.locked} />
-            <WAThreadsCard data={wa} />
-          </div>
-          <div className="stack">
-            <div className="card">
-              <div className="card-h"><h2>Masuk Rencana hari ini</h2><span className="ai" style={{ marginLeft: 6 }}>dari WhatsApp</span><span className="meta">“Balas chat” · butuh sales</span></div>
-              {waPlan && waPlan.items.length > 0 ? <PlanList plan={waPlan} /> : <p className="sg-hint">Tidak ada chat yang perlu dibalas di Rencana hari ini.</p>}
-            </div>
-            <WAHistoryCard rows={wa?.history ?? []} />
-            <WASalesCard rows={wa?.sales ?? []} />
-            <WAHowCard />
-          </div>
-        </div>
-      )}
-      {an.tab === 'bq' && <div className="orch-grid">
+      <div className="orch-grid">
         <div className="stack">
           <div className="card">
             <div className="card-h"><h2>Pipeline analisis</h2><span className="meta">{meta}</span></div>
             <Pipeline stages={shown?.stages ?? []} />
           </div>
+          {canWA && <WAOverviewCard data={wa} scoped={!!sales || page.locked} />}
+          {canWA && <WAThreadsCard data={wa} />}
           {sales && (
             <div className="card">
               <div className="card-h"><h2>Keputusan sales ini</h2><span className="meta">{queue.length ? `${queue.length} item hari ini` : 'Tidak ada keputusan hari ini'}</span></div>
@@ -208,6 +185,7 @@ export function OrchestratorPage() {
             <div className="card-h"><h2>Riwayat analisis</h2><span className="meta">{sales ? 'siklus berjalan untuk seluruh tim · tanpa rincian dealer' : 'tiap jam · 06.00–20.00 · 100 siklus terakhir'}</span></div>
             <Runs cycles={cycles} />
           </div>
+          {canWA && <WAHistoryCard rows={wa?.history ?? []} />}
         </div>
         <div className="stack">
           <div className="card">
@@ -226,6 +204,7 @@ export function OrchestratorPage() {
               ))}
             </div>
           </div>
+          {canWA && <WASalesCard rows={wa?.sales ?? []} />}
           <div className="card">
             <div className="card-h"><h2>MCP sebagai orchestrator</h2>{info?.enabled ? <Pill tone="good" icon="check">Aktif</Pill> : <Pill tone="neutral" icon="plug">Mati</Pill>}<button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 'auto' }} onClick={() => openSheet(<MCPClientsPanel />)}>Klien &amp; token</button></div>
             <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5, marginBottom: 10 }}>Klien MCP (Claude Desktop, ChatGPT, agent eksternal) tidak hanya membaca data: mereka bisa memicu analisis ulang, meminta rencana, dan menjalankan satu agen — lewat tool yang sama dengan yang dipakai Orchestrator internal.</p>
@@ -256,7 +235,7 @@ export function OrchestratorPage() {
             </div>
           </div>
         </div>
-      </div>}
+      </div>
     </>
   )
 }

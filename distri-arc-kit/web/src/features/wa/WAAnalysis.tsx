@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useNavigate } from 'react-router'
 import type { WAAnalysis, WAHistoryRow, WAInsight, WASalesRow } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { CardH, Pill } from '../../components/ui'
@@ -8,23 +8,12 @@ import { fmtNum, hhmm, shortDate } from '../../lib/format'
 import { useMe, useWAAnalysis } from '../../app/queries'
 import { INTENTS, WA_COMPARE, intentLabel, intentTone, itemsText, waFilter, waFirstDir, waText, waTie, waitLabel, who, type WAColumn, type WAFilter } from './wa'
 
-// Analisa WhatsApp (ADR 0026): the second analysis on Pusat kendali and Orchestrator, next to the BigQuery one.
+// Analisa WhatsApp (ADR 0026): cards inside Pusat kendali and Orchestrator.
 
-export type Analisa = 'bq' | 'wa'
-
-/** The page's analysis tab (?analisa=wa, kept next to ?sales=). WhatsApp needs the chat page: it quotes customers. */
-export function useAnalisaTab() {
-  const [params, setParams] = useSearchParams()
+/** WhatsApp analysis quotes customers: only for users with the chat page. */
+export function useCanWA() {
   const { data: me } = useMe()
-  const canWA = !!me?.screens.includes('chat')
-  const tab: Analisa = canWA && params.get('analisa') === 'wa' ? 'wa' : 'bq'
-  const setTab = (t: Analisa) => {
-    const p = new URLSearchParams(params)
-    if (t === 'wa') p.set('analisa', 'wa')
-    else p.delete('analisa')
-    setParams(p, { replace: true })
-  }
-  return { tab, setTab, canWA }
+  return !!me?.screens.includes('chat')
 }
 
 /** "5 menit lalu", "2 jam lalu"; '' after a day (the date says enough). */
@@ -39,8 +28,7 @@ function ago(at: string, now: number): string {
 /** "Analisa WhatsApp terakhir: 12 Okt · 12.00 WIB (5 menit lalu) · siklus #98 · 34 chat" — when the Orchestrator last
  * read the chats. Older than two hours (a cycle missed) turns amber. Hidden for users without the chat page. */
 export function WALastRead({ sales, compact = false }: { sales?: string; compact?: boolean }) {
-  const { data: me } = useMe()
-  const canWA = !!me?.screens.includes('chat')
+  const canWA = useCanWA()
   const { data } = useWAAnalysis(sales, canWA)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -59,23 +47,6 @@ export function WALastRead({ sales, compact = false }: { sales?: string; compact
       <Icon name="chat" />Analisa WhatsApp terakhir: <b>{shortDate(at)} · {hhmm(at)} WIB</b>
       {a && <span> ({a})</span>}
       {!compact && <span> · siklus #{fmtNum(data.cycle_number ?? 0)} · {fmtNum(data.totals.threads)} chat</span>}
-    </div>
-  )
-}
-
-/** "Analisa BigQuery | Analisa WhatsApp" */
-export function AnalisaTabs({ tab, setTab, canWA, waBadge, sales }: ReturnType<typeof useAnalisaTab> & { waBadge?: number; sales?: string }) {
-  if (!canWA) return null
-  return (
-    <div className="an-tabs" role="tablist" aria-label="Sumber analisa">
-      <div className="seg">
-        <button role="tab" aria-selected={tab === 'bq'} className={tab === 'bq' ? 'is-active' : ''} onClick={() => setTab('bq')}><Icon name="doc" />Analisa BigQuery</button>
-        <button role="tab" aria-selected={tab === 'wa'} className={tab === 'wa' ? 'is-active' : ''} onClick={() => setTab('wa')}>
-          <Icon name="chat" />Analisa WhatsApp{waBadge ? <span className="an-badge" title="chat menunggu balasan">{waBadge}</span> : null}
-        </button>
-      </div>
-      <span className="an-src">{tab === 'bq' ? 'SO · pembayaran · stok dari data Accurate (BigQuery)' : 'chat dealer & nomor baru · grup internal tidak dibaca'}</span>
-      <WALastRead sales={sales} />
     </div>
   )
 }
@@ -209,20 +180,6 @@ export function WASalesCard({ rows }: { rows: WASalesRow[] }) {
           </table>
         </div>
       )}
-    </div>
-  )
-}
-
-/** How the Orchestrator reads WhatsApp (privacy and what it does with it). */
-export function WAHowCard() {
-  return (
-    <div className="card">
-      <CardH title="Cara Orchestrator membaca WhatsApp" />
-      <ul className="wa-how">
-        <li><Icon name="refresh" /><span>Setiap siklus penuh membaca chat <b>7 hari terakhir</b> di samping data BigQuery: permintaan (order, harga, stok, rilis kredit, retur) dikenali dengan ekstraktor yang sama dengan AI Order.</span></li>
-        <li><Icon name="cal" /><span>Chat yang menunggu balasan <b>lebih dari 2 jam</b> dan belum dijawab usulan agen masuk <b>Rencana hari ini</b> sebagai “Balas chat” — juga saat siklus gagal di tahap Analisis.</span></li>
-        <li><Icon name="lock" /><span>Grup internal dan chat antar karyawan tidak dibaca. Ringkasan ditulis Claude lewat MCP dengan nama dan nomor dimasking; tidak ada pesan yang terkirim tanpa keputusan Anda.</span></li>
-      </ul>
     </div>
   )
 }
