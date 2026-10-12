@@ -1,29 +1,64 @@
 import { Link } from 'react-router'
-import type { ReactNode } from 'react'
+import { createContext, useContext, useState, type ReactNode } from 'react'
 import { Icon } from '../../components/Icon'
 import { useOrchStatus } from '../../app/orch'
-import { useBrief, useCreditOverview, useKpi, useMe, useOrbit, useOrbitSummary, useStockCritical, useStockPush, useThreads } from '../../app/queries'
+import { useBrief, useCreditOverview, useKpi, useMe, useOrbit, useOrbitSummary, useStockCritical, useStockPush, useThreads, useTrend } from '../../app/queries'
 import { fmtNum, fmtRp, hhmm, shortDate } from '../../lib/format'
 import { KUAD } from '../../lib/i18n/id'
-import type { BoardItem, Segment } from '../../api/types'
+import type { BoardItem, Segment, Trend, TrendKey } from '../../api/types'
 import { dueSoon } from '../orbit/filters'
 import { DashboardTown } from './DashboardTown'
+import { TrendChart } from './TrendChart'
+import { TREND_BETTER, TREND_FMT, trendHeads } from './trend'
 import './dashboard.css'
 
 const segments: Segment[] = ['A', 'B', 'C', 'D', 'Baru']
 
-function Metric({ label, value, detail, tone, to }: { label: string; value: ReactNode; detail: string; tone?: string; to?: string }) {
-  const content = <><span className="db-metric-label">{label}</span><strong className="num">{value}</strong><span className="db-metric-detail">{detail}</span>{to && <Icon name="chev" className="i db-metric-arrow" />}</>
+// the history every card draws (12 months, or one month day by day)
+const TrendCtx = createContext<{ data?: Trend; pending: boolean }>({ pending: true })
+
+const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+const monthName = (ym: string) => `${MONTHS[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`
+
+function MetricTrend({ k, tone, unit }: { k?: TrendKey | 'stock'; tone?: string; unit: string }) {
+  const { data, pending } = useContext(TrendCtx)
+  if (!k) return null
+  if (k === 'stock') return <span className="db-trend-na">Riwayat tidak tersedia — data stok hanya posisi saat ini</span>
+  const values = data?.series[k]
+  if (!values) return <span className="db-trend-na">{pending ? 'Memuat riwayat…' : 'Riwayat belum tersedia'}</span>
+  return <TrendChart values={values} labels={data!.labels} heads={trendHeads(data!.mode, data!.labels, data!.dates, shortDate)} fmt={TREND_FMT[k]} tone={tone} unit={unit} better={TREND_BETTER[k]} />
+}
+
+function Metric({ label, value, detail, tone, to, trend, trendNote }: { label: string; value: ReactNode; detail: string; tone?: string; to?: string; trend?: TrendKey | 'stock'; trendNote?: string }) {
+  const content = <><span className="db-metric-label">{label}</span><strong className="num">{value}</strong><span className="db-metric-detail">{detail}</span>
+    <MetricTrend k={trend} tone={tone} unit={trendNote ?? label} />{trendNote && trend && trend !== 'stock' && <span className="db-trend-note">{trendNote}</span>}
+    {to && <Icon name="chev" className="i db-metric-arrow" />}</>
   return to ? <Link className={`db-metric ${tone ?? ''}`} to={to}>{content}</Link> : <div className={`db-metric ${tone ?? ''}`}>{content}</div>
+}
+
+/** "12 bulan | Per hari" and, per day, which month. */
+function TrendBar({ mode, setMode, month, setMonth, months }: { mode: 'months' | 'days'; setMode: (m: 'months' | 'days') => void; month: string; setMonth: (m: string) => void; months: string[] }) {
+  return <div className="db-trend-bar">
+    <div><b>Riwayat di setiap kartu</b><span>{mode === 'months' ? '12 bulan terakhir · satu titik per bulan' : `${monthName(month)} · tanggal 1 sampai akhir bulan`}</span></div>
+    <div className="db-trend-ctl">
+      <div className="seg" role="tablist" aria-label="Rentang riwayat">
+        <button role="tab" aria-selected={mode === 'months'} className={mode === 'months' ? 'is-active' : ''} onClick={() => setMode('months')}>12 bulan</button>
+        <button role="tab" aria-selected={mode === 'days'} className={mode === 'days' ? 'is-active' : ''} onClick={() => setMode('days')}>Per hari</button>
+      </div>
+      {mode === 'days' && months.length > 0 && <select className="db-trend-month" aria-label="Bulan" value={month} onChange={(e) => setMonth(e.target.value)}>
+        {months.map((m) => <option key={m} value={m}>{monthName(m)}</option>)}
+      </select>}
+    </div>
+  </div>
 }
 
 function CreditMetrics() {
   const { data, isPending, isError } = useCreditOverview()
   const value = (n: number | undefined) => isPending || isError || n == null ? '—' : fmtRp(n)
   return <>
-    <Metric label="Piutang terbuka" value={value(data?.receivable)} detail={isError ? 'Data kredit gagal dimuat' : `${fmtNum(data?.open_dealers ?? 0)} dealer · ${fmtNum(data?.open_invoices ?? 0)} invoice`} to="/kredit" />
-    <Metric label="Lewat tempo" value={value(data?.overdue)} detail={isError ? 'Data kredit gagal dimuat' : `${fmtNum(data?.overdue_dealers ?? 0)} dealer`} tone="bad" to="/kredit" />
-    <Metric label="Kas masuk · prediksi 30 hari" value={value(data?.forecast_30)} detail="Berdasarkan pola bayar dealer" to="/kredit" />
+    <Metric label="Piutang terbuka" value={value(data?.receivable)} detail={isError ? 'Data kredit gagal dimuat' : `${fmtNum(data?.open_dealers ?? 0)} dealer · ${fmtNum(data?.open_invoices ?? 0)} invoice`} to="/kredit" trend="receivable" />
+    <Metric label="Lewat tempo" value={value(data?.overdue)} detail={isError ? 'Data kredit gagal dimuat' : `${fmtNum(data?.overdue_dealers ?? 0)} dealer`} tone="bad" to="/kredit" trend="overdue" />
+    <Metric label="Kas masuk · prediksi 30 hari" value={value(data?.forecast_30)} detail="Berdasarkan pola bayar dealer" to="/kredit" trend="cash_in" trendNote="Grafik: kas masuk aktual" />
   </>
 }
 
@@ -68,6 +103,10 @@ export function DashboardPage() {
   const { data: push, isPending: pushPending, isError: pushError } = useStockPush()
   const { data: brief } = useBrief()
   const orch = useOrchStatus()
+  const [trendMode, setTrendMode] = useState<'months' | 'days'>('months')
+  const [trendMonth, setTrendMonth] = useState('')
+  const trend = useTrend(trendMode, trendMode === 'days' ? trendMonth || undefined : undefined)
+  const trendMonths = trend.data?.months ?? []
   const can = (screen: string) => me?.screens.includes(screen) ?? false
   const dealers = board ?? []
   const active = dealers.filter((d) => d.metrics.segment !== 'Prospek')
@@ -106,18 +145,21 @@ export function DashboardPage() {
 
     {(boardError || kpiError || pushError) && <div className="db-error" role="alert">Sebagian data gagal dimuat. Muat ulang halaman untuk mencoba lagi.</div>}
 
+    <TrendBar mode={trendMode} setMode={setTrendMode} month={trendMonth || trendMonths[0] || ''} setMonth={setTrendMonth} months={trendMonths} />
+    <TrendCtx.Provider value={{ data: trend.data, pending: trend.isPending }}>
     <div className="db-metrics">
-      <Metric label="Dealer di Orbit" value={boardPending || boardError ? '—' : fmtNum(active.length)} detail={boardPending ? 'Memuat data dealer…' : `${fmtNum(orbitSummary?.prospects ?? 0)} prospek di luar orbit`} to={can('dealer') ? '/dealer' : undefined} />
-      <Metric label="Omzet dealer · per bulan" value={boardPending || boardError ? '—' : fmtRp(omzet)} detail="Total estimasi omzet bulanan dealer" to={can('kuad') ? '/orbit/segmen' : undefined} />
-      <Metric label="Order tepat jadwal" value={kpiPending || kpiError ? '—' : `${kpi?.on_schedule_pct ?? 0}%`} detail={kpi ? `Target ${kpi.targets.on_schedule_pct}%` : 'Dari KPI order'} tone={kpi && kpi.on_schedule_pct < kpi.targets.on_schedule_pct ? 'warn' : undefined} to={can('today') ? '/' : undefined} />
-      <Metric label="Dealer At risk / Churn" value={boardPending || boardError ? '—' : fmtNum(atRisk)} detail="Perlu tindak lanjut" tone="bad" to={can('orbit') ? '/orbit' : undefined} />
-      <Metric label="Jadwal order · 14 hari" value={boardPending || boardError ? '—' : fmtNum(due)} detail="Dealer mendekati jadwal order" to={can('orbit') ? '/orbit?jadwal=minggu' : undefined} />
-      <Metric label="Stok menua untuk didorong" value={pushPending || pushError ? '—' : fmtNum(push?.length ?? 0)} detail={pushPending ? 'Memuat data stok…' : `${fmtRp((push ?? []).reduce((sum, item) => sum + item.value, 0))} nilai stok`} tone="warn" to={can('stock') ? '/stok' : undefined} />
-      <Metric label="DSO · order ke bayar" value={kpiPending || kpiError ? '—' : `${kpi?.dso_days ?? 0} hari`} detail={kpi ? `Target ≤ ${kpi.targets.dso_days} hari` : 'Rata-rata waktu pembayaran'} tone={kpi && kpi.dso_days > kpi.targets.dso_days ? 'warn' : undefined} to={can('ar') ? '/kredit' : undefined} />
-      <Metric label="Perputaran stok" value={kpiPending || kpiError ? '—' : `${kpi?.stock_turn_days ?? 0} hari`} detail={kpi ? `Target ≤ ${kpi.targets.stock_turn_days} hari` : 'Rata-rata waktu stok berputar'} tone={kpi && kpi.stock_turn_days > kpi.targets.stock_turn_days ? 'warn' : undefined} to={can('stock') ? '/stok' : undefined} />
-      <Metric label="Limit dealer tipis" value={kpiPending || kpiError ? '—' : fmtNum(kpi?.tight_count ?? 0)} detail="Berpotensi menahan order" tone="warn" to={can('ar') ? '/kredit' : undefined} />
+      <Metric label="Dealer di Orbit" value={boardPending || boardError ? '—' : fmtNum(active.length)} detail={boardPending ? 'Memuat data dealer…' : `${fmtNum(orbitSummary?.prospects ?? 0)} prospek di luar orbit`} to={can('dealer') ? '/dealer' : undefined} trend="dealers" />
+      <Metric label="Omzet dealer · per bulan" value={boardPending || boardError ? '—' : fmtRp(omzet)} detail="Total estimasi omzet bulanan dealer" to={can('kuad') ? '/orbit/segmen' : undefined} trend="omzet" trendNote={trendMode === 'months' ? 'Grafik: omzet aktual per bulan' : 'Grafik: omzet aktual per hari'} />
+      <Metric label="Order tepat jadwal" value={kpiPending || kpiError ? '—' : `${kpi?.on_schedule_pct ?? 0}%`} detail={kpi ? `Target ${kpi.targets.on_schedule_pct}%` : 'Dari KPI order'} tone={kpi && kpi.on_schedule_pct < kpi.targets.on_schedule_pct ? 'warn' : undefined} to={can('today') ? '/' : undefined} trend="on_schedule" />
+      <Metric label="Dealer At risk / Churn" value={boardPending || boardError ? '—' : fmtNum(atRisk)} detail="Perlu tindak lanjut" tone="bad" to={can('orbit') ? '/orbit' : undefined} trend="at_risk" />
+      <Metric label="Jadwal order · 14 hari" value={boardPending || boardError ? '—' : fmtNum(due)} detail="Dealer mendekati jadwal order" to={can('orbit') ? '/orbit?jadwal=minggu' : undefined} trend="due" />
+      <Metric label="Stok menua untuk didorong" value={pushPending || pushError ? '—' : fmtNum(push?.length ?? 0)} detail={pushPending ? 'Memuat data stok…' : `${fmtRp((push ?? []).reduce((sum, item) => sum + item.value, 0))} nilai stok`} tone="warn" to={can('stock') ? '/stok' : undefined} trend="stock" />
+      <Metric label="DSO · order ke bayar" value={kpiPending || kpiError ? '—' : `${kpi?.dso_days ?? 0} hari`} detail={kpi ? `Target ≤ ${kpi.targets.dso_days} hari` : 'Rata-rata waktu pembayaran'} tone={kpi && kpi.dso_days > kpi.targets.dso_days ? 'warn' : undefined} to={can('ar') ? '/kredit' : undefined} trend="dso" />
+      <Metric label="Perputaran stok" value={kpiPending || kpiError ? '—' : `${kpi?.stock_turn_days ?? 0} hari`} detail={kpi ? `Target ≤ ${kpi.targets.stock_turn_days} hari` : 'Rata-rata waktu stok berputar'} tone={kpi && kpi.stock_turn_days > kpi.targets.stock_turn_days ? 'warn' : undefined} to={can('stock') ? '/stok' : undefined} trend="stock" />
+      <Metric label="Limit dealer tipis" value={kpiPending || kpiError ? '—' : fmtNum(kpi?.tight_count ?? 0)} detail="Berpotensi menahan order" tone="warn" to={can('ar') ? '/kredit' : undefined} trend="tight" />
       {can('ar') && <CreditMetrics />}
     </div>
+    </TrendCtx.Provider>
 
     <div className="db-main">
       <div className="card db-panel">

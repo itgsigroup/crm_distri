@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Dashboard · riwayat di setiap kartu · 2026-10-12
+- Kartu Dashboard (Dealer di Orbit sampai Kas masuk · prediksi 30 hari) kini punya grafik batang + garis: **12 bulan** terakhir atau **Per hari** (tanggal 1 sampai akhir bulan, pilih bulannya). Arahkan kursor/ketuk batang untuk nilainya dan perubahan dari titik sebelumnya (hijau = membaik, merah = memburuk).
+- Setiap titik dihitung ulang di Go dengan rumus `metrics` pada riwayat order/invoice/pembayaran yang dipotong di tanggal itu (bayar sesudahnya dianggap belum terjadi); omzet dan kas masuk = nilai aktual di bulan/hari tersebut. API `GET /api/dashboard/trend`, dataset 2 tahun di-cache 5 menit.
+- Stok menua dan perputaran stok belum punya riwayat (data stok hanya posisi saat ini) — kartunya menyatakan itu.
+
 ## Analisa WhatsApp + BigQuery · 2026-10-12 (ADR 0026)
 - Pusat kendali dan Orchestrator kembali ke **tata letak awal**, tetapi seluruh analisanya dari **WhatsApp** (tab BigQuery dihapus). Pusat kendali: Rencana ("Balas chat"), Keputusan dari chat, Ringkasan WhatsApp, Menunggu balasan, Minta order, KPI WhatsApp (chat terbalas, waktu balas, menunggu), Agenda sales per chat menunggu, Tanya stok & harga, Rilis kredit & retur. Orchestrator: Pipeline, Analisa WhatsApp, Percakapan, Riwayat baca WhatsApp, kartu per sales, MCP, Matriks permintaan.
 - Label **Analisa WhatsApp terakhir** (jam, berapa lama lalu, siklus, jumlah chat) di Pusat kendali dan Orchestrator; oranye bila > 2 jam.

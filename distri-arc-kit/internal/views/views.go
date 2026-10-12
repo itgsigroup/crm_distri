@@ -128,6 +128,10 @@ type Builder struct {
 	mu     sync.Mutex
 	cached *Board // dealers with metrics, without today's next actions
 	at     time.Time
+
+	trendData *dealersvc.Dataset // two years of history for the dashboard trend
+	trendAt   time.Time
+	trends    map[string]trendEntry
 }
 
 // BoardTTL is how long the computed board is reused: metrics change with imports and cycles (minutes to an
@@ -137,7 +141,7 @@ const BoardTTL = time.Minute
 // Invalidate drops the cached board (after an import or a recompute in this process).
 func (b *Builder) Invalidate() {
 	b.mu.Lock()
-	b.cached = nil
+	b.cached, b.trendData, b.trends = nil, nil, nil
 	b.mu.Unlock()
 }
 

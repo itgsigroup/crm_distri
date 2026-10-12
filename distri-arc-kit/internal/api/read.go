@@ -34,6 +34,7 @@ func (s *Server) readRoutes(r chi.Router) {
 	r.Get("/segmen/summary", s.segmenSummary)
 	r.Get("/segmen/movers", s.segmenMovers)
 	r.Get("/kpi", s.kpi)
+	r.Get("/dashboard/trend", s.dashboardTrend)
 	r.Get("/agenda", s.agenda)
 	r.Get("/stock/aging", s.stockAging)
 	r.Get("/stock/critical", s.stockCritical)
@@ -546,4 +547,38 @@ func (s *Server) policies(w http.ResponseWriter, r *http.Request) {
 		out[p.Key] = map[string]any{"value": p.Value, "version": p.Version, "updated_at": p.UpdatedAt}
 	}
 	httpx.JSON(w, http.StatusOK, out)
+}
+
+// dashboardTrend is the history behind the dashboard cards: ?mode=months (12 months) or ?mode=days&month=2026-10
+// (one point per day). Credit series only for users with the Kredit page, like /api/credit/.
+func (s *Server) dashboardTrend(w http.ResponseWriter, r *http.Request) {
+	b, ok := s.board(w, r)
+	if !ok {
+		return
+	}
+	ids := make([]uuid.UUID, 0, len(b.Items))
+	for _, it := range b.Items {
+		ids = append(ids, it.UUID)
+	}
+	q := r.URL.Query()
+	month := b.Today
+	if m, err := time.ParseInLocation("2006-01", q.Get("month"), clock.WIB); err == nil {
+		month = m
+	}
+	t, err := s.views.Trend(r.Context(), ids, q.Get("mode"), month)
+	if err != nil {
+		s.log.Error("trend", "err", err)
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "Gagal menghitung riwayat")
+		return
+	}
+	if u, _ := CurrentUser(r.Context()); !can(u, "ar") {
+		series := map[string][]*int64{}
+		for k, v := range t.Series {
+			if k != "receivable" && k != "overdue" && k != "cash_in" {
+				series[k] = v
+			}
+		}
+		t.Series = series
+	}
+	httpx.JSON(w, http.StatusOK, t)
 }

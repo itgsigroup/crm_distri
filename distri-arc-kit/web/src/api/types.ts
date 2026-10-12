@@ -538,3 +538,16 @@ export interface WAAnalysis {
   items: WAInsight[]
   history: WAHistoryRow[]
 }
+
+// ---------- Dashboard trend ----------
+export type TrendKey = 'dealers' | 'omzet' | 'on_schedule' | 'at_risk' | 'due' | 'dso' | 'tight' | 'receivable' | 'overdue' | 'cash_in'
+/** History of the dashboard cards: one point per month (12) or per day of one month; null = a day still to come. */
+export interface Trend {
+  mode: 'months' | 'days'
+  month?: string
+  labels: string[]
+  dates: string[]
+  series: Partial<Record<TrendKey, (number | null)[]>>
+  unavailable: string[]
+  months: string[]
+}

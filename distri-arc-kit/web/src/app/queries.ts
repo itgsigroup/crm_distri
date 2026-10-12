@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api, type Items } from '../api/client'
 import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, AnalystInfo, CronPreview, MCPCall, MCPClient, MCPInfo, MCPPolicy, Schedule, ScheduleRun, ScheduleRunFull, Plan, Proposal, Relasi, RelasiInsight } from '../api/types'
+import type { Trend } from '../api/types'
 import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAAnalysis, WAGroup, WANumber } from '../api/types'
 import type {
   AgendaRow, AgingItem, ARRow, BoardItem, CreditOverview, CriticalItem, ExposureRow, ForecastRow, ProductSales, Brief, DealerDetail, Health, HealthFull, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
@@ -45,6 +46,9 @@ export const useSegmenMovers = (sales?: string) =>
 export const useDue = (days = 7, sales?: string) => useQuery({ queryKey: ['dealers', 'due', days, sales ?? 'all'], queryFn: () => api.get<Items<BoardItem>>(`/dealers/due?days=${days}${sp(sales, '&')}`).then((r) => r.items) })
 export const useDrift = (sales?: string) => useQuery({ queryKey: ['dealers', 'drift', sales ?? 'all'], queryFn: () => api.get<Items<BoardItem>>('/dealers/drift' + sp(sales)).then((r) => r.items) })
 export const useCreditTight = (sales?: string) => useQuery({ queryKey: ['dealers', 'credit-tight', sales ?? 'all'], queryFn: () => api.get<Items<BoardItem>>('/dealers/credit-tight' + sp(sales)).then((r) => r.items) })
+/** Dashboard history: 12 months, or one month day by day (month = 2026-10). */
+export const useTrend = (mode: 'months' | 'days', month?: string) =>
+  useQuery({ queryKey: ['trend', mode, month ?? ''], queryFn: () => api.get<Trend>(`/dashboard/trend?mode=${mode}${month ? `&month=${month}` : ''}`) })
 export const useKpi = (sales?: string) => useQuery({ queryKey: ['kpi', sales ?? 'all'], queryFn: () => api.get<KPI>('/kpi' + sp(sales)) })
 export const useAgenda = (sales?: string) => useQuery({ queryKey: ['agenda', sales ?? 'all'], queryFn: () => api.get<Items<AgendaRow>>('/agenda' + sp(sales)).then((r) => r.items) })
 export const useBrief = (sales?: string) => useQuery({ queryKey: ['brief', 'today', sales ?? 'all'], queryFn: () => api.get<Brief>('/brief/today' + sp(sales)) })

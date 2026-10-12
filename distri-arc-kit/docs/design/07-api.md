@@ -14,6 +14,7 @@ Base `/api`. JSON `snake_case`. Auth: cookie sesi (JWT HttpOnly, 12 jam) dari `P
 - `GET /brief/today` → ringkasan Orchestrator (4 poin + provenance)
 - `GET /dealers/due?days=7` · `GET /dealers/drift` · `GET /dealers/credit-tight`
 - `GET /kpi?branch=` → order tepat jadwal, DSO, perputaran stok + target
+- `GET /dashboard/trend?mode=months|days&month=YYYY-MM` → riwayat kartu Dashboard: 12 titik bulanan atau satu titik per hari (hari yang belum tiba `null`), dihitung ulang dengan rumus `metrics` pada riwayat yang dipotong di tanggal itu; seri kredit hanya untuk halaman Kredit; stok tidak punya riwayat (`unavailable`)
 - `GET /agenda?date=` → per sales: due, lewat jadwal, tagih dulu
 - `GET /stock/push` → kandidat push (ringkas)
 

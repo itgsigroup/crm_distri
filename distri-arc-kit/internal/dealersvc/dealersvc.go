@@ -39,12 +39,18 @@ type Dataset struct {
 
 // Load reads all dealers with 12 months of orders and invoices (plus every open invoice).
 func (s *Service) Load(ctx context.Context) (*Dataset, error) {
+	return s.LoadYears(ctx, 1)
+}
+
+// LoadYears is Load with `years` of history: the dashboard trend recomputes the metrics of a year ago, which need
+// that dealer's year before.
+func (s *Service) LoadYears(ctx context.Context, years int) (*Dataset, error) {
 	now := s.clock.Now()
 	pol, err := policy.Load(ctx, s.st.Q)
 	if err != nil {
 		return nil, err
 	}
-	since := now.AddDate(-1, 0, -7)
+	since := now.AddDate(-years, 0, -7)
 	dealers, err := s.st.Q.ListDealersFull(ctx)
 	if err != nil {
 		return nil, err
