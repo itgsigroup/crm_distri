@@ -188,7 +188,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 			before = x
 		}
 	}
-	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Limit: 30})
+	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Lim: 30})
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
@@ -214,9 +214,27 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	// a group: messages stored under another GSI number's thread of the group; one that number sent is shown as
+	// "in" from that number (this number did not send it)
+	others := map[uuid.UUID]string{}
+	if deref(t.Kind) == "group" {
+		accs, err := s.st.Q.GroupThreadAccounts(r.Context(), t.ID)
+		if err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+		for _, a := range accs {
+			if a.ID != t.ID {
+				others[a.ID] = a.AccountLabel
+			}
+		}
+	}
 	out := make([]MessageView, 0, len(msgs))
 	for _, m := range msgs {
 		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: deref(m.Body), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Annotation: m.Annotation, SignalID: m.SignalID}
+		if label, ok := others[deref(m.ThreadID)]; ok && v.Direction == "out" {
+			v.Direction, v.FromName, v.Internal = "in", label, true
+		}
 		if m.SignalID != nil {
 			v.Proposal = bySig[*m.SignalID]
 		}
@@ -314,7 +332,7 @@ func (s *Server) chatContext(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: s.clock.Now().Add(24 * 365 * time.Hour), Limit: 100})
+	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: s.clock.Now().Add(24 * 365 * time.Hour), Lim: 100})
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return

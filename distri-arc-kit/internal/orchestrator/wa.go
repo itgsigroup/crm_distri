@@ -328,7 +328,7 @@ func (o *Orchestrator) waReadingFor(ctx context.Context, cycleID uuid.UUID) (*wa
 			t.Waiting = waanalysis.WaitLabel(int(now.Sub(*x.WaitingSince).Minutes()))
 		}
 		tid := x.ThreadID
-		msgs, err := o.St.Q.ListThreadMessages(ctx, gen.ListThreadMessagesParams{ThreadID: &tid, SentAt: now.Add(time.Minute), Limit: 8})
+		msgs, err := o.St.Q.ListThreadMessages(ctx, gen.ListThreadMessagesParams{ThreadID: &tid, SentAt: now.Add(time.Minute), Lim: 8})
 		if err != nil {
 			return nil, err
 		}

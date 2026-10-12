@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · tidak ada pesan otomatis; grup lengkap di setiap nomor · 2026-10-12
+- **GSI Orbit tidak pernah mengirim pesan WhatsApp sendiri**, termasuk alert ke grup internal (permintaan Sam). Alert hanya tercatat di aplikasi (Pengaturan → Status sistem, `system_alerts`). Tiga lapis: Notifier tidak membuat pesan, outbox menolak baris `wa_system`, bridge menolak kiriman tanpa proposal yang disetujui manusia (pengecualian grup internal dihapus).
+- Grup yang beranggotakan beberapa nomor GSI kini tampil **lengkap di setiap nomor**: pesan disimpan sekali (di nomor yang menerimanya pertama), thread grup membaca pesan dari semua thread grup itu; waktu dan pesan terakhir di daftar chat ikut bergerak. Sebelumnya grup di nomor Catharina tampak bolong karena sebagian pesan tersimpan di thread Elisa/Granike.
+
 ## Fix · chat WhatsApp tidak sinkron (server kewalahan) · 2026-10-12
 - Gejala: chat Catharina terus berjalan di HP tapi tertinggal di sistem. Bridge mencatat "forward failed, queued" (API/worker tidak menjawab dalam 10 detik) dan pesan menumpuk di antrean bridge.
 - Penyebab: tiap pesan masuk dari dealer membuat satu job `metrics.recompute` tanpa penggabungan; tiap job menghitung ulang PIC aktif **semua 2,5 ribu kontak** tanpa index (11,8 dtk di data produksi) di bawah satu kunci. Riwayat nomor yang baru tersambung (ribuan pesan) menumpuk puluhan job, koneksi database habis, pemilihan leader River gagal, forward bridge timeout.

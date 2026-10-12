@@ -2,15 +2,9 @@ package ops
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-
-	"distri-arc/internal/outbox"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 )
@@ -21,8 +15,8 @@ type Alert struct {
 	Message string
 }
 
-// Alerts turns a health check into the conditions that page the internal group: a WhatsApp number disconnected,
-// two failed cycles in a row, a queue deeper than 500.
+// Alerts turns a health check into the open conditions shown in GSI Orbit: a WhatsApp number disconnected, two
+// failed cycles in a row, a queue deeper than 500. They are never sent to WhatsApp.
 func Alerts(h Health) []Alert {
 	var out []Alert
 	for _, w := range h.waDown {
@@ -45,19 +39,12 @@ func Alerts(h Health) []Alert {
 	return out
 }
 
-// Notifier writes system outbox rows for the internal alert group.
+// Notifier opens and resolves alerts (system_alerts). It never sends anything.
 type Notifier struct {
-	St       *store.Store
-	From     string // sending number (a connected sales/ops number)
-	GroupJID string // ALERT_WA_GROUP; empty = the first internal group
-	Enqueue  func(ctx context.Context, outboxID uuid.UUID) error
+	St *store.Store
 }
 
-// ErrNoAlertGroup means no internal group is known yet; alerts stay visible in Status sistem only.
-var ErrNoAlertGroup = errors.New("belum ada grup WhatsApp internal untuk alert")
-
-// Run opens new alerts (notifying each once), resolves the ones that cleared (with a recovery line) and returns the
-// alerts it notified.
+// Run opens new alerts, resolves the ones that cleared and returns the lines (new and recovered) for the log.
 func (n Notifier) Run(ctx context.Context, h Health, now time.Time) ([]string, error) {
 	active := Alerts(h)
 	keys := make([]string, 0, len(active))
@@ -82,31 +69,7 @@ func (n Notifier) Run(ctx context.Context, h Health, now time.Time) ([]string, e
 	for _, r := range resolved {
 		lines = append(lines, "✅ Pulih: "+r.Message)
 	}
-	if len(lines) == 0 {
-		return nil, nil
-	}
-	return lines, n.send(ctx, lines)
-}
-
-func (n Notifier) send(ctx context.Context, lines []string) error {
-	g, err := n.St.Q.InternalAlertGroup(ctx, n.GroupJID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return ErrNoAlertGroup
-	}
-	if err != nil {
-		return err
-	}
-	text := "GSI Orbit · status sistem\n"
-	for _, l := range lines {
-		text += "\n" + l
-	}
-	payload, _ := json.Marshal(outbox.SystemPayload{From: n.From, To: deref(g.Jid), Text: text})
-	id, err := n.St.Q.InsertSystemOutbox(ctx, gen.InsertSystemOutboxParams{ToRef: g.Jid, Payload: payload})
-	if err != nil {
-		return err
-	}
-	if n.Enqueue != nil {
-		return n.Enqueue(ctx, id)
-	}
-	return nil
+	// Alerts stay in GSI Orbit (Status sistem, the WhatsApp banner): nothing is ever sent to WhatsApp on its own —
+	// Sam, 12 Oct: "JANGAN KIRIM PESAN OTOMATIS". The lines are returned for the log only.
+	return lines, nil
 }

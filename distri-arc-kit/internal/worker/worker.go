@@ -303,7 +303,7 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	river.AddWorker(workers, &PilotWorker{st: st, clock: c})
 	river.AddWorker(workers, &DataSyncWorker{st: st, clock: c, log: log, secret: deps.SessionKey})
 	river.AddWorker(workers, &DataApplyWorker{st: st, clock: c, log: log})
-	river.AddWorker(workers, &AlertsWorker{st: st, clock: c, log: log, env: deps.Ops, from: deps.AlertFrom, group: deps.AlertGroup})
+	river.AddWorker(workers, &AlertsWorker{st: st, clock: c, log: log, env: deps.Ops})
 	river.AddWorker(workers, &AnalystTickWorker{st: st, clock: c})
 	anRunner := &analyst.Runner{St: st, Clock: c, Log: log, Orch: deps.Orchestrator, SessionKey: deps.SessionKey, EnvKey: deps.AnalystKey}
 	river.AddWorker(workers, &AnalystRunWorker{runner: anRunner})

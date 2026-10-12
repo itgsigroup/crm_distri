@@ -3,11 +3,8 @@ package worker
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"log/slog"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
 
 	"distri-arc/internal/clock"
@@ -52,37 +49,19 @@ func (w *RetentionWorker) Work(ctx context.Context, _ *river.Job[jobs.RetentionP
 	return w.st.Q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, After: after})
 }
 
-// AlertsWorker handles alerts.check: WA disconnected, cycles failing, queue backlog → internal group.
+// AlertsWorker handles alerts.check: WA disconnected, cycles failing, queue backlog → alerts inside GSI Orbit.
 type AlertsWorker struct {
 	river.WorkerDefaults[jobs.AlertsCheckArgs]
 	st    *store.Store
 	clock clock.Clock
 	log   *slog.Logger
 	env   ops.Env
-	from  string
-	group string
 }
 
-// Work checks health and notifies the internal group through the system outbox.
+// Work checks health and opens/resolves alerts inside GSI Orbit. Nothing is sent to WhatsApp.
 func (w *AlertsWorker) Work(ctx context.Context, _ *river.Job[jobs.AlertsCheckArgs]) error {
 	now := w.clock.Now()
-	h := ops.Check(ctx, w.st, w.env, now)
-	from := w.from
-	for _, n := range h.WA {
-		if from == "" && n.State == "connected" {
-			from = n.Number
-		}
-	}
-	client := river.ClientFromContext[pgx.Tx](ctx)
-	n := ops.Notifier{St: w.st, From: from, GroupJID: w.group, Enqueue: func(ctx context.Context, id uuid.UUID) error {
-		_, err := client.Insert(ctx, jobs.OutboxSendArgs{OutboxID: id.String()}, nil)
-		return err
-	}}
-	lines, err := n.Run(ctx, h, now)
-	if errors.Is(err, ops.ErrNoAlertGroup) {
-		w.log.Warn("ops alert not sent: no internal WhatsApp group", "alerts", lines)
-		return nil
-	}
+	lines, err := ops.Notifier{St: w.st}.Run(ctx, ops.Check(ctx, w.st, w.env, now), now)
 	if len(lines) > 0 {
 		w.log.Warn("ops alert", "lines", lines)
 	}

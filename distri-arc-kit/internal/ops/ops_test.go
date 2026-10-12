@@ -165,15 +165,15 @@ func TestPDPDeleteContact(t *testing.T) {
 	}
 }
 
-// Alerts reach the internal group once per incident, resolve with a recovery line, and never go to a dealer.
-func TestAlertsToInternalGroup(t *testing.T) {
+// Alerts open once per incident and resolve, inside GSI Orbit only: nothing is queued or sent to WhatsApp, and an
+// older system row still in the outbox is refused (Sam, 12 Oct: no automatic message).
+func TestAlertsNeverSendWhatsApp(t *testing.T) {
 	st := setup(t)
 	ctx := context.Background()
 	if _, err := st.Pool.Exec(ctx, "update wa_numbers set state = 'disconnected' where wa_number = '6281534509032'"); err != nil {
 		t.Fatal(err)
 	}
-	var queued []uuid.UUID
-	n := ops.Notifier{St: st, From: "6281234504471", Enqueue: func(_ context.Context, id uuid.UUID) error { queued = append(queued, id); return nil }}
+	n := ops.Notifier{St: st}
 	h := ops.Check(ctx, st, ops.Env{}, now)
 	if h.Status != "degraded" {
 		t.Fatalf("health %s %v", h.Status, h.Problems)
@@ -185,24 +185,29 @@ func TestAlertsToInternalGroup(t *testing.T) {
 	if again, _ := n.Run(ctx, ops.Check(ctx, st, ops.Env{}, now), now.Add(5*time.Minute)); len(again) != 0 {
 		t.Fatalf("alert repeated: %v", again)
 	}
-	fake := wa.NewFake()
-	if _, err := outbox.NewSender(st, fake, clock.Fixed(now), outbox.Rules{}).Send(ctx, queued[0]); err != nil {
-		t.Fatal(err)
-	}
-	if s := fake.Sent(); len(s) != 1 || s[0].ChatJID != "120363041100000001@g.us" {
-		t.Fatalf("sent %+v", s)
-	}
 	_, _ = st.Pool.Exec(ctx, "update wa_numbers set state = 'connected'")
 	rec, _ := n.Run(ctx, ops.Check(ctx, st, ops.Env{}, now), now.Add(10*time.Minute))
 	if len(rec) != 1 || !strings.HasPrefix(rec[0], "✅ Pulih") {
 		t.Fatalf("recovery %v", rec)
 	}
-	// a system row aimed at a dealer is refused
+	var queued int
+	_ = st.Pool.QueryRow(ctx, "select count(*) from outbox where channel = 'wa_system'").Scan(&queued)
+	if queued != 0 {
+		t.Fatalf("%d system messages queued", queued)
+	}
+	// an old system row, even to an internal group: refused by the sender and by the bridge's approval check
 	var id uuid.UUID
 	_ = st.Pool.QueryRow(ctx, `insert into outbox (channel, to_ref, payload) values ('wa_system', $1, $2) returning id`,
-		wa.UserJID("6281900300102"), `{"from":"6281234504471","to":"6281900300102@s.whatsapp.net","text":"x"}`).Scan(&id)
-	if _, err := outbox.NewSender(st, fake, clock.Fixed(now), outbox.Rules{}).Send(ctx, id); !errors.Is(err, outbox.ErrNotInternal) {
-		t.Fatalf("dealer target: %v", err)
+		"120363041100000001@g.us", `{"from":"6281234504471","to":"120363041100000001@g.us","text":"x"}`).Scan(&id)
+	if ok, _ := st.Q.OutboxApprovedForSend(ctx, id); ok {
+		t.Fatal("bridge would accept a system message")
+	}
+	fake := wa.NewFake()
+	if _, err := outbox.NewSender(st, fake, clock.Fixed(now), outbox.Rules{}).Send(ctx, id); !errors.Is(err, outbox.ErrNoAutoMessage) {
+		t.Fatalf("system row: %v", err)
+	}
+	if s := fake.Sent(); len(s) != 0 {
+		t.Fatalf("sent %+v", s)
 	}
 }
 
@@ -231,32 +236,6 @@ func TestRelinkingNumberStaysDown(t *testing.T) {
 	}
 	if al := ops.Alerts(ops.Check(ctx, st, ops.Env{}, now)); len(al) != 0 {
 		t.Fatalf("first pairing alerted: %+v", al)
-	}
-}
-
-// The bridge confirms every send against the outbox: a system alert to an internal group is approved (no proposal),
-// one aimed elsewhere is not; a dealer row without a decision never is.
-func TestSystemAlertApprovedForBridge(t *testing.T) {
-	st := setup(t)
-	ctx := context.Background()
-	var internal, dealer uuid.UUID
-	if err := st.Pool.QueryRow(ctx, `insert into outbox (channel, to_ref, payload) values ('wa_system', $1, $2) returning id`,
-		"120363041100000001@g.us", `{"from":"6281234504471","to":"120363041100000001@g.us","text":"⚠️ x"}`).Scan(&internal); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.Pool.QueryRow(ctx, `insert into outbox (channel, to_ref, payload) values ('wa_system', $1, $2) returning id`,
-		wa.UserJID("6281900300102"), `{"from":"6281234504471","to":"6281900300102@s.whatsapp.net","text":"x"}`).Scan(&dealer); err != nil {
-		t.Fatal(err)
-	}
-	if ok, err := st.Q.OutboxApprovedForSend(ctx, internal); err != nil || !ok {
-		t.Fatalf("internal alert not approved: %v %v", ok, err)
-	}
-	if ok, _ := st.Q.OutboxApprovedForSend(ctx, dealer); ok {
-		t.Fatal("system row to a dealer approved")
-	}
-	_, _ = st.Pool.Exec(ctx, "update outbox set status = 'sent' where id = $1", internal)
-	if ok, _ := st.Q.OutboxApprovedForSend(ctx, internal); ok {
-		t.Fatal("a sent alert approved again")
 	}
 }
 

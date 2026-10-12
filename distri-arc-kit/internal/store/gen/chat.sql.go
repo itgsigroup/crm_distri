@@ -485,6 +485,39 @@ func (q *Queries) GetWANumberByUser(ctx context.Context, userID *uuid.UUID) (WaN
 	return i, err
 }
 
+const groupThreadAccounts = `-- name: GroupThreadAccounts :many
+select x.id, x.account, coalesce(n.label, s.name, x.account) as account_label
+from chat_threads x join chat_threads t on t.id = $1 and t.kind = 'group' and x.wa_jid = t.wa_jid
+left join wa_numbers n on n.wa_number = x.account left join sales_users s on s.id = x.sales_id
+`
+
+type GroupThreadAccountsRow struct {
+	ID           uuid.UUID `json:"id"`
+	Account      *string   `json:"account"`
+	AccountLabel string    `json:"account_label"`
+}
+
+// The GSI numbers holding a group's messages (label shown on a message another number received or sent).
+func (q *Queries) GroupThreadAccounts(ctx context.Context, id uuid.UUID) ([]GroupThreadAccountsRow, error) {
+	rows, err := q.db.Query(ctx, groupThreadAccounts, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GroupThreadAccountsRow{}
+	for rows.Next() {
+		var i GroupThreadAccountsRow
+		if err := rows.Scan(&i.ID, &i.Account, &i.AccountLabel); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertAIDraftOrder = `-- name: InsertAIDraftOrder :one
 insert into orders (dealer_id, number, state, ordered_at, total, margin_pct, lines, created_by, source_system, source_id, source_write_date)
 values ($1, $2, 'order', $3, $4, $5, $6, 'ai_order_draft', 'odoo', $7, $3)
@@ -995,18 +1028,23 @@ func (q *Queries) ListInternalNumbers(ctx context.Context) ([]InternalNumber, er
 
 const listThreadMessages = `-- name: ListThreadMessages :many
 select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal from (
-  select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal from chat_messages where thread_id = $1 and sent_at < $2 order by sent_at desc limit $3
+  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal from chat_messages m
+  where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
+                        where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+    and m.sent_at < $2 order by m.sent_at desc limit $3
 ) x order by sent_at
 `
 
 type ListThreadMessagesParams struct {
 	ThreadID *uuid.UUID `json:"thread_id"`
 	SentAt   time.Time  `json:"sent_at"`
-	Limit    int32      `json:"limit"`
+	Lim      int32      `json:"lim"`
 }
 
+// A group is one conversation for every GSI number in it: each message is stored once (under the number that
+// received it first), so a group thread shows the messages of all threads of that group.
 func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessagesParams) ([]ChatMessage, error) {
-	rows, err := q.db.Query(ctx, listThreadMessages, arg.ThreadID, arg.SentAt, arg.Limit)
+	rows, err := q.db.Query(ctx, listThreadMessages, arg.ThreadID, arg.SentAt, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
@@ -1043,9 +1081,8 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 const listThreads = `-- name: ListThreads :many
 select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
   coalesce(n.label, s.name, t.account) as account_label,
-  (select m.body from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_body,
-  (select m.from_name from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_from,
-  (select m.direction from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1) as last_direction,
+  -- a group's last message may have been stored under another GSI number's thread of the same group
+  lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
   -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply
   (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
      and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
@@ -1054,6 +1091,16 @@ left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
 left join wa_groups g on g.id = t.group_id
 left join wa_numbers n on n.wa_number = t.account
+left join lateral (
+  select u.body, u.from_name, u.direction from (
+    (select m.body, m.from_name, m.direction, m.sent_at from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1)
+    union all
+    (select o.body, o.from_name, o.direction, o.sent_at from chat_threads x
+       cross join lateral (select m.body, m.from_name, m.direction, m.sent_at from chat_messages m
+                           where m.thread_id = x.id order by m.sent_at desc limit 1) o
+     where t.kind = 'group' and x.wa_jid = t.wa_jid and x.id <> t.id)
+  ) u order by u.sent_at desc limit 1
+) lm on true
 order by case t.kind when 'dealer' then 0 when 'group' then 1 else 2 end, t.last_message_at desc nulls last
 `
 
@@ -1368,16 +1415,14 @@ func (q *Queries) OpenCommitments(ctx context.Context, dealerID *uuid.UUID) ([]O
 }
 
 const outboxApprovedForSend = `-- name: OutboxApprovedForSend :one
-select (exists(select 1 from outbox o join proposals p on p.id = o.proposal_id
+select exists(select 1 from outbox o join proposals p on p.id = o.proposal_id
   where o.id = $1 and o.channel = 'wa' and o.status in ('pending', 'failed')
-    and p.decided_at is not null and p.status in ('approved', 'edited', 'executed'))
-  or exists(select 1 from outbox o join wa_groups g on g.jid = o.payload->>'to' and g.kind = 'internal'
-  where o.id = $1 and o.channel = 'wa_system' and o.proposal_id is null and o.status in ('pending', 'failed')))::bool as approved
+    and p.decided_at is not null and p.status in ('approved', 'edited', 'executed'))::bool as approved
 `
 
 // The bridge asks before every send: the row must be a WhatsApp row of a proposal a person (or the system within
 // policy) approved, and not delivered yet (CLAUDE.md §2 — nothing reaches a dealer without a recorded decision).
-// The one exception is a system alert (channel wa_system) to an internal GSI group: staff only, never a dealer.
+// No exception: system messages (alerts) are never sent (Sam, 12 Oct: no automatic message to WhatsApp).
 func (q *Queries) OutboxApprovedForSend(ctx context.Context, id uuid.UUID) (bool, error) {
 	row := q.db.QueryRow(ctx, outboxApprovedForSend, id)
 	var approved bool

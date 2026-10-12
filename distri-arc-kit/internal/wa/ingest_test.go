@@ -4,12 +4,16 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 
 	"distri-arc/db"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
+	"distri-arc/internal/store/gen"
 	"distri-arc/internal/testdb"
 	"distri-arc/internal/wa"
 )
@@ -141,5 +145,52 @@ func TestDigitsAndMask(t *testing.T) {
 	}
 	if wa.MaskNumber("6282212343310") != "+62 822-••••-3310" {
 		t.Error(wa.MaskNumber("6282212343310"))
+	}
+}
+
+// Two GSI numbers in one group receive the same messages (same WhatsApp id): each is stored once, yet the group
+// thread of either number lists all of them and both threads move (12 Oct: Catharina's group looked incomplete).
+func TestGroupMessagesShownOnEveryNumber(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	g := "120363041100000001@g.us"
+	t0 := time.Now().Add(-time.Hour)
+	msgs := []wa.Message{
+		{ID: "S1", Account: andi, ChatJID: g, IsGroup: true, FromNumber: "6281100001001", FromName: "Donny", Text: "bisa dikirim hari ini?", Time: t0},
+		{ID: "S1", Account: dewi, ChatJID: g, IsGroup: true, FromNumber: "6281100001001", FromName: "Donny", Text: "bisa dikirim hari ini?", Time: t0},
+		{ID: "S2", Account: dewi, ChatJID: g, IsGroup: true, FromNumber: "6281100001002", FromName: "Zaky", Text: "sedang diusahakan", Time: t0.Add(time.Minute)},
+		{ID: "S2", Account: andi, ChatJID: g, IsGroup: true, FromNumber: "6281100001002", FromName: "Zaky", Text: "sedang diusahakan", Time: t0.Add(time.Minute)},
+		{ID: "S3", Account: dewi, ChatJID: g, IsGroup: true, FromMe: true, FromNumber: dewi, Text: "siap", Time: t0.Add(2 * time.Minute)},
+	}
+	for _, m := range msgs {
+		if _, err := in.Process(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := count(t, st, "select count(*) from chat_messages where wa_msg_id in ('S1','S2','S3')"); n != 3 {
+		t.Fatalf("%d rows, want each message once", n)
+	}
+	for _, acc := range []string{andi, dewi} {
+		var id uuid.UUID
+		if err := st.Pool.QueryRow(ctx, "select id from chat_threads where wa_jid = $1 and account = $2", g, acc).Scan(&id); err != nil {
+			t.Fatal(acc, err)
+		}
+		rows, err := st.Q.ListThreadMessages(ctx, gen.ListThreadMessagesParams{ThreadID: &id, SentAt: time.Now().Add(time.Hour), Lim: 30})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var ids []string
+		for _, r := range rows {
+			if r.WaMsgID != nil && strings.HasPrefix(*r.WaMsgID, "S") {
+				ids = append(ids, *r.WaMsgID)
+			}
+		}
+		if strings.Join(ids, ",") != "S1,S2,S3" {
+			t.Errorf("number %s sees %v", acc, ids)
+		}
+	}
+	// andi's thread moved with S2 even though dewi stored it
+	if n := count(t, st, "select count(*) from chat_threads where wa_jid = $1 and account = $2 and last_message_at >= $3", g, andi, t0.Add(time.Minute)); n != 1 {
+		t.Error("andi's group thread did not move")
 	}
 }

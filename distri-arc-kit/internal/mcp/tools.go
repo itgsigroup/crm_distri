@@ -437,7 +437,7 @@ func (s *Server) registerRead() {
 			if t.DealerID == nil || *t.DealerID != it.UUID {
 				continue
 			}
-			rows, err := s.St.Q.ListThreadMessages(ctx, gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: s.Clock.Now().Add(24 * time.Hour), Limit: int32(limit)})
+			rows, err := s.St.Q.ListThreadMessages(ctx, gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: s.Clock.Now().Add(24 * time.Hour), Lim: int32(limit)})
 			if err != nil {
 				return nil, result{}, err
 			}

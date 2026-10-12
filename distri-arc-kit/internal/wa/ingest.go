@@ -143,6 +143,15 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		msgID, err := q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && m.IsGroup})
 		if errors.Is(err, pgx.ErrNoRows) {
 			res.Reason = DropDuplicate
+			if m.IsGroup {
+				// another GSI number in the group stored it first: this number's thread still moves (time, unread),
+				// its messages are read from every thread of the group
+				unread := int32(0)
+				if !m.FromMe && !m.History {
+					unread = 1
+				}
+				return q.TouchThread(ctx, gen.TouchThreadParams{ID: thread.ID, LastMessageAt: &m.Time, Unread: unread})
+			}
 			return nil
 		}
 		if err != nil {

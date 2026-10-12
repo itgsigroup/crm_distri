@@ -234,30 +234,12 @@ type SystemPayload struct {
 	Text string `json:"text"`
 }
 
-// sendSystem delivers an ops alert to an internal group. No proposal, no send window: the group is GSI staff. The
-// bridge confirms the row against the outbox like any send (an internal-group system row is the only kind it accepts
-// without a proposal); its anti-ban pacing may ask to wait, then the alert goes out later instead of failing.
+// ErrNoAutoMessage: GSI Orbit never sends a message on its own — not even an alert to the internal group.
+var ErrNoAutoMessage = errors.New("pesan otomatis dimatikan — GSI Orbit tidak mengirim pesan tanpa keputusan manusia")
+
+// sendSystem refuses every system row (an older one still queued): alerts stay inside GSI Orbit.
 func (s *Sender) sendSystem(ctx context.Context, ob gen.Outbox) (time.Duration, error) {
-	var p SystemPayload
-	if err := json.Unmarshal(ob.Payload, &p); err != nil {
-		return 0, err
-	}
-	g, err := s.st.Q.GetWAGroupByJID(ctx, &p.To)
-	if err != nil || g.Kind == nil || *g.Kind != "internal" {
-		e := ErrNotInternal.Error()
-		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
-		return 0, ErrNotInternal
-	}
-	if _, err := s.t.Send(wa.WithAction(ctx, ob.ID.String()), p.From, p.To, p.Text); err != nil {
-		e := err.Error()
-		var refused *wa.SendRefused
-		if errors.As(err, &refused) && refused.Temporary() {
-			_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "pending", Error: &e})
-			return refused.RetryAfter, nil
-		}
-		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
-		return 0, err
-	}
-	now := s.clock.Now()
-	return 0, s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: ob.ID, Status: "sent", SentAt: &now})
+	e := ErrNoAutoMessage.Error()
+	_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
+	return 0, ErrNoAutoMessage
 }
