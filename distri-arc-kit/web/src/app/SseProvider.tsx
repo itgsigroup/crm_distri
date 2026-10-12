@@ -14,6 +14,42 @@ const INVALIDATES: Record<string, string[][]> = {
   outbox_failed: [['proposals'], ['dealer'], ['plan']],
 }
 
+/** Collects query keys and invalidates each distinct one once per `wait` ms (leading edge immediate, then trailing). */
+export class InvalidationQueue {
+  private keys = new Map<string, string[]>()
+  private timer: ReturnType<typeof setTimeout> | undefined
+  private last = 0
+  private run: (key: string[]) => void
+  private wait: number
+  private now: () => number
+  constructor(run: (key: string[]) => void, wait: number, now: () => number = Date.now) {
+    this.run = run
+    this.wait = wait
+    this.now = now
+  }
+
+  add(key: string[]) {
+    this.keys.set(key.join('\u0000'), key)
+    if (this.timer !== undefined) return
+    const due = Math.max(0, this.last + this.wait - this.now())
+    this.timer = setTimeout(() => this.flush(), due)
+  }
+
+  private flush() {
+    this.timer = undefined
+    this.last = this.now()
+    const keys = [...this.keys.values()]
+    this.keys.clear()
+    keys.forEach((k) => this.run(k))
+  }
+
+  dispose() {
+    if (this.timer !== undefined) clearTimeout(this.timer)
+    this.timer = undefined
+    this.keys.clear()
+  }
+}
+
 type Listener = (event: string, data: unknown) => void
 const Ctx = createContext<{ connected: boolean; subscribe: (l: Listener) => () => void }>({ connected: false, subscribe: () => () => {} })
 
@@ -26,6 +62,9 @@ export function SseProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof EventSource === 'undefined') return
     const es = new EventSource('/api/events')
+    // a burst of events (a number's history arriving: dozens a minute) refetches each affected query once per
+    // second, not once per event: the chat list, thread and context were fetched ~5×/s per tab
+    const queue = new InvalidationQueue((queryKey) => qc.invalidateQueries({ queryKey }), 1500)
     es.addEventListener('hello', () => setConnected(true))
     es.onerror = () => setConnected(false)
     const handlers = Object.keys(INVALIDATES).map((name) => {
@@ -36,7 +75,7 @@ export function SseProvider({ children }: { children: ReactNode }) {
         } catch {
           data = e.data
         }
-        INVALIDATES[name].forEach((queryKey) => qc.invalidateQueries({ queryKey }))
+        INVALIDATES[name].forEach((queryKey) => queue.add(queryKey))
         listeners.forEach((l) => l(name, data))
       }
       es.addEventListener(name, h)
@@ -45,6 +84,7 @@ export function SseProvider({ children }: { children: ReactNode }) {
     return () => {
       handlers.forEach(([n, h]) => es.removeEventListener(n, h))
       es.close()
+      queue.dispose()
     }
   }, [qc, listeners])
   return (

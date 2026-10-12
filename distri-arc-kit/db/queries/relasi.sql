@@ -37,10 +37,12 @@ update contacts set interactions_base = interactions_90d, base_as_of = $2 where 
 
 -- name: RecountContacts :exec
 -- PIC aktif: messages from each contact's number in the last 90 days (plus the imported baseline while it is
--- inside the window), last interaction = newest of baseline and messages.
+-- inside the window), last interaction = newest of baseline and messages. dealer_ids limits it to those dealers'
+-- contacts (empty = every contact: the periodic full recompute).
 update contacts c set
   interactions_90d = (case when c.base_as_of is not null and c.base_as_of >= sqlc.arg(window_start)::timestamptz then coalesce(c.interactions_base, 0) else 0 end)
     + (select count(*) from chat_messages m where m.from_number = c.wa_number and m.direction = 'in' and m.sent_at >= sqlc.arg(window_start)::timestamptz
          and (c.base_as_of is null or m.sent_at > c.base_as_of))::int,
   last_interaction_at = greatest(c.last_interaction_at, (select max(m.sent_at) from chat_messages m where m.from_number = c.wa_number and m.direction = 'in'))
-where c.wa_number is not null;
+where c.wa_number is not null
+  and (coalesce(cardinality(sqlc.arg(dealer_ids)::uuid[]), 0) = 0 or c.dealer_id = any(sqlc.arg(dealer_ids)::uuid[]));

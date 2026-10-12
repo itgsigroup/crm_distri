@@ -31,12 +31,19 @@ update contacts c set
          and (c.base_as_of is null or m.sent_at > c.base_as_of))::int,
   last_interaction_at = greatest(c.last_interaction_at, (select max(m.sent_at) from chat_messages m where m.from_number = c.wa_number and m.direction = 'in'))
 where c.wa_number is not null
+  and (coalesce(cardinality($2::uuid[]), 0) = 0 or c.dealer_id = any($2::uuid[]))
 `
 
+type RecountContactsParams struct {
+	WindowStart time.Time   `json:"window_start"`
+	DealerIds   []uuid.UUID `json:"dealer_ids"`
+}
+
 // PIC aktif: messages from each contact's number in the last 90 days (plus the imported baseline while it is
-// inside the window), last interaction = newest of baseline and messages.
-func (q *Queries) RecountContacts(ctx context.Context, windowStart time.Time) error {
-	_, err := q.db.Exec(ctx, recountContacts, windowStart)
+// inside the window), last interaction = newest of baseline and messages. dealer_ids limits it to those dealers'
+// contacts (empty = every contact: the periodic full recompute).
+func (q *Queries) RecountContacts(ctx context.Context, arg RecountContactsParams) error {
+	_, err := q.db.Exec(ctx, recountContacts, arg.WindowStart, arg.DealerIds)
 	return err
 }
 

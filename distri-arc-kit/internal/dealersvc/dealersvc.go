@@ -129,13 +129,13 @@ const recountLockKey = 43
 // Recompute computes and stores metrics for the given dealers (all when ids is empty).
 func (s *Service) Recompute(ctx context.Context, ids ...uuid.UUID) (map[uuid.UUID]domain.DealerMetrics, error) {
 	// PIC aktif first: interactions_90d / last_interaction_at from the messages of each contact's number. The update
-	// touches every contact: two at once (a cycle and the worker's recompute after a WhatsApp message) deadlock, so
+	// touches the contacts of the given dealers (every contact when none is given): two at once (a cycle and the worker's recompute after a WhatsApp message) deadlock, so
 	// they take turns on a transaction-scoped advisory lock.
 	if err := s.st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, "select pg_advisory_xact_lock($1, hashtext(current_schema()))", recountLockKey); err != nil {
 			return err
 		}
-		return q.RecountContacts(ctx, s.clock.Now().AddDate(0, 0, -90))
+		return q.RecountContacts(ctx, gen.RecountContactsParams{WindowStart: s.clock.Now().AddDate(0, 0, -90), DealerIds: ids})
 	}); err != nil {
 		return nil, err
 	}

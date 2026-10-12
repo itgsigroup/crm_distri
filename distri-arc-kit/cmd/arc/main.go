@@ -194,9 +194,15 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		return err
 	}
 	orch.Jobs = client
-	ingest.OnDealer = func(ctx context.Context, id uuid.UUID) {
-		_, _ = client.Insert(ctx, jobs.RecomputeArgs{DealerIDs: []string{id.String()}}, nil)
-	}
+	// one recompute job per burst of messages, not per message (a freshly linked number's history is thousands)
+	recompute := worker.NewDealerBatcher(20*time.Second, func(ctx context.Context, ids []uuid.UUID) {
+		args := jobs.RecomputeArgs{DealerIDs: make([]string, len(ids))}
+		for i, id := range ids {
+			args.DealerIDs[i] = id.String()
+		}
+		_, _ = client.Insert(ctx, args, nil)
+	})
+	ingest.OnDealer = func(_ context.Context, id uuid.UUID) { recompute.Add(id) }
 	ingest.OnNewNumber = func(ctx context.Context, number string) {
 		_, _ = client.Insert(ctx, jobs.IdentifyArgs{WANumber: number}, nil)
 	}
