@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, rename, unlink } from 'node:fs/promises'
+import { access, appendFile, mkdir, readFile, rename, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Logger } from 'pino'
 import { sign } from './sign.js'
@@ -60,12 +60,16 @@ export class Forwarder {
     await appendFile(this.queuePath, body + '\n', { mode: 0o600 })
   }
 
+  /** Payloads not delivered yet: the queue plus a batch being flushed (or left by a restart mid-flush). */
   async queueLength(): Promise<number> {
-    try {
-      return (await readFile(this.queuePath, 'utf8')).split('\n').filter(Boolean).length
-    } catch {
-      return 0
+    const count = async (path: string) => {
+      try {
+        return (await readFile(path, 'utf8')).split('\n').filter(Boolean).length
+      } catch {
+        return 0
+      }
     }
+    return (await count(this.queuePath)) + (await count(this.queuePath + '.flushing'))
   }
 
   /** Retries queued payloads in order; anything still failing stays queued. */
@@ -74,10 +78,15 @@ export class Forwarder {
     this.flushing = true
     const work = this.queuePath + '.flushing'
     try {
-      try {
-        await rename(this.queuePath, work)
-      } catch {
-        return
+      // a batch left by a restart mid-flush goes first; renaming the queue onto it would have overwritten it (lost
+      // the rest of a freshly linked number's history, 12 Oct). The queue waits for the next round.
+      const leftover = await access(work).then(() => true, () => false)
+      if (!leftover) {
+        try {
+          await rename(this.queuePath, work)
+        } catch {
+          return
+        }
       }
       const lines = (await readFile(work, 'utf8')).split('\n').filter(Boolean)
       let failedAt = -1
@@ -92,7 +101,7 @@ export class Forwarder {
         }
       }
       if (failedAt >= 0) for (const l of lines.slice(failedAt)) await this.enqueue(l)
-      else this.log.info({ n: lines.length }, 'queue flushed')
+      else this.log.info({ n: lines.length, leftover }, 'queue flushed')
       await unlink(work).catch(() => {})
     } finally {
       this.flushing = false

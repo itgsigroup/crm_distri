@@ -1,4 +1,4 @@
-import { mkdtemp } from 'node:fs/promises'
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import pino from 'pino'
@@ -24,5 +24,26 @@ describe('Forwarder', () => {
     expect(got).toHaveLength(1)
     expect((got[0] as { status: { status: string } }).status.status).toBe('pairing')
     expect(await f.queueLength()).toBe(0)
+  })
+
+  it('a batch left by a restart mid-flush is delivered, not overwritten by the next queue', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'fwd-'))
+    const got: string[] = []
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      got.push((JSON.parse(String(init?.body)) as { event: { wamid: string } }).event.wamid)
+      return new Response('{"ok":true}', { status: 200 })
+    }) as typeof fetch
+    // the previous process died while flushing A and B; C was queued since
+    await writeFile(join(dir, 'queue.jsonl.flushing'), ['A', 'B'].map((w) => JSON.stringify({ event: { wamid: w } })).join('\n') + '\n')
+    await writeFile(join(dir, 'queue.jsonl'), JSON.stringify({ event: { wamid: 'C' } }) + '\n')
+    const f = new Forwarder('http://worker', 'secret-1234567890', dir, pino({ level: 'silent' }), fetchImpl)
+    expect(await f.queueLength()).toBe(3)
+    await f.flush()
+    expect(got).toEqual(['A', 'B'])
+    expect(await f.queueLength()).toBe(1)
+    await f.flush()
+    expect(got).toEqual(['A', 'B', 'C'])
+    expect(await f.queueLength()).toBe(0)
+    await expect(readFile(join(dir, 'queue.jsonl.flushing'))).rejects.toThrow()
   })
 })

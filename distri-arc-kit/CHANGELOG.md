@@ -4,6 +4,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 ## Fix · chat WhatsApp tidak sinkron (server kewalahan) · 2026-10-12
 - Gejala: chat Catharina terus berjalan di HP tapi tertinggal di sistem. Bridge mencatat "forward failed, queued" (API/worker tidak menjawab dalam 10 detik) dan pesan menumpuk di antrean bridge.
 - Penyebab: tiap pesan masuk dari dealer membuat satu job `metrics.recompute` tanpa penggabungan; tiap job menghitung ulang PIC aktif **semua 2,5 ribu kontak** tanpa index (11,8 dtk di data produksi) di bawah satu kunci. Riwayat nomor yang baru tersambung (ribuan pesan) menumpuk puluhan job, koneksi database habis, pemilihan leader River gagal, forward bridge timeout.
+- Bridge: antrean yang sedang di-flush saat bridge restart kini dikirim lebih dulu — sebelumnya ditimpa antrean berikutnya (pesan hilang); angka antrean di /health kini ikut menghitung batch yang sedang di-flush (sebelumnya 0 padahal 22 ribu pesan menunggu).
 - Perbaikan: (1) index `chat_messages(from_number, sent_at)` (migrasi 0022, 11,8 → 2,7 dtk); (2) hitung ulang PIC hanya untuk kontak dealer terkait, penuh tiap 10 menit; (3) pesan dalam 20 detik digabung menjadi satu job (`DealerBatcher`); (4) browser menggabungkan refetch dari event SSE (sebelumnya ±5 refetch daftar chat per detik per tab).
 
 ## Fix · nomor WhatsApp yang terlepas dari HP tetap ber-alert · 2026-10-12
