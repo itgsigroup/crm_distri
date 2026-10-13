@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { Policy } from './config.js'
 import { dailyCap } from './guard.js'
 import { SendError, type Sender, type SendTarget } from './sender.js'
+import { HistoryBusy } from './session.js'
 import { verify } from './sign.js'
 import type { Store } from './store.js'
 
@@ -10,6 +11,7 @@ export interface BridgeSession extends SendTarget {
   snapshot(): { session: string; status: string; phone: string; qr: string; reason?: string }
   listGroups(): Promise<unknown[]>
   profile(jid: string): Promise<unknown>
+  fetchHistory(chat: string, oldest: { id: string; fromMe: boolean; ts: number }, count: number): Promise<void>
 }
 
 export interface BridgeManager {
@@ -55,6 +57,8 @@ async function readBody(req: IncomingMessage): Promise<string> {
  *   GET    /sessions/{id}/groups          joined groups with members
  *   GET    /sessions/{id}/contacts/{jid}  profile (name, about, has_photo, business)
  *   POST   /sessions/{id}/send            {chat_id, text, action_id} → {wamid}
+ *   POST   /sessions/{id}/history         {chat_id, id, from_me, ts (ms), count ≤ 50} → 202; the phone's answer
+ *                                         arrives as history events (409 not connected, 429 paced)
  *   DELETE /sessions/{id}                 log out and forget the device
  *   GET    /health                        {sessions, queue, last_event, limits}
  */
@@ -112,6 +116,17 @@ export function handler(d: Deps) {
           if (e instanceof SendError) {
             return json(res, e.status, { error: e.message, code: e.code }, e.retryAfterSec ? { 'Retry-After': String(e.retryAfterSec) } : {})
           }
+          throw e
+        }
+      }
+      if (method === 'POST' && parts[2] === 'history') {
+        const inp = JSON.parse(body || '{}') as { chat_id?: string; id?: string; from_me?: boolean; ts?: number; count?: number }
+        if (!inp.chat_id || !inp.id || !Number.isFinite(inp.ts)) return json(res, 400, { error: 'chat_id, id dan ts wajib' })
+        try {
+          await s.fetchHistory(inp.chat_id, { id: inp.id, fromMe: !!inp.from_me, ts: Number(inp.ts) }, Number(inp.count ?? 50))
+          return json(res, 202, { ok: true })
+        } catch (e) {
+          if (e instanceof HistoryBusy) return json(res, e.status, { error: e.message, code: e.status === 409 ? 'not_linked' : 'paced' })
           throw e
         }
       }

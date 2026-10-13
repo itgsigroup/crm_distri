@@ -349,3 +349,27 @@ update wa_numbers set transport = $1, updated_at = now() where transport <> $1;
 -- A conversation with an unknown number shows the contact's name once the phone knows it (until then the masked
 -- number). Dealer and group threads keep their own titles.
 update chat_threads set title = $2 where id = $1 and kind = 'new' and title is distinct from $2;
+
+-- name: HistoryBackfillCandidates :many
+-- Conversations of connected numbers whose kept history may not reach a year back yet (wa.backfill): each with its
+-- oldest WhatsApp message, the anchor the phone is asked to sync history before. Busiest first.
+select t.id, t.account, t.wa_jid, t.history_req_oldest, t.history_tries,
+  o.wa_msg_id as oldest_wa_id, o.direction as oldest_direction, o.sent_at as oldest_at
+from chat_threads t
+join wa_numbers n on n.wa_number = t.account and n.state = 'connected'
+cross join lateral (
+  select m.wa_msg_id, m.direction, m.sent_at from chat_messages m
+  where m.thread_id = t.id and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%'
+  order by m.sent_at, m.id limit 1
+) o
+where t.history_done_at is null and t.wa_jid is not null and t.account is not null
+  and (t.history_req_at is null or t.history_req_at < sqlc.arg(retry_before)::timestamptz)
+order by t.last_message_at desc nulls last, t.id
+limit sqlc.arg(lim);
+
+-- name: SetHistoryRequested :exec
+update chat_threads set history_req_oldest = sqlc.arg(oldest)::timestamptz, history_req_at = sqlc.arg(at)::timestamptz,
+  history_tries = sqlc.arg(tries)::int where id = sqlc.arg(id)::uuid;
+
+-- name: SetHistoryDone :exec
+update chat_threads set history_done_at = sqlc.arg(at)::timestamptz where id = sqlc.arg(id)::uuid;

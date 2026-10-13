@@ -408,6 +408,19 @@ func (b *Baileys) Send(ctx context.Context, account, chatJID, text string) (stri
 	return out.WAMID, nil
 }
 
+// FetchHistory asks the bridge for an on-demand history sync of one chat: the linked phone sends up to `count`
+// messages before the anchor, which come back as history events (ADR 0028). A number not connected or throttled by
+// the bridge is ErrHistoryUnavailable (asked again on the next run).
+func (b *Baileys) FetchHistory(ctx context.Context, account, chatJID string, before HistoryAnchor, count int) error {
+	in := map[string]any{"chat_id": chatJID, "id": before.ID, "from_me": before.FromMe, "ts": before.At.UnixMilli(), "count": count}
+	_, _, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/history", in, nil)
+	var be *bridgeError
+	if errors.As(err, &be) && (be.Status == http.StatusNotFound || be.Status == http.StatusConflict || be.Status == http.StatusTooManyRequests) {
+		return fmt.Errorf("%w: %s", ErrHistoryUnavailable, be.Error())
+	}
+	return err
+}
+
 // Profile reads a contact's public profile through the bridge (cached and rate-limited there).
 func (b *Baileys) Profile(ctx context.Context, account, jid string) (Profile, error) {
 	var p struct {

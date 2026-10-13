@@ -50,3 +50,8 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 ## Analisa WhatsApp (2026-10-12, ADR 0026)
 - Ambang "menunggu balasan" 2 jam berlaku 24 jam (chat malam hari ikut terhitung). Perlu jam kerja saja, atau ambang lain per peran? · 2 jam · konstanta `waanalysis.ReplyDue`
 - ~~Ringkasan AI WhatsApp tanpa API key~~ — terjawab 2026-10-12: lewat Claude MCP (agent `Analisa WhatsApp`).
+
+## Riwayat WhatsApp 1 tahun (2026-10-13, ADR 0028)
+- Backfill on-demand (`fetchMessageHistory`) diuji dengan HP palsu, belum dengan HP sungguhan. Yang perlu dilihat di produksi sesudah deploy: log worker `wa backfill` (requested/done) dan bertambahnya pesan lama per chat. Bila chat 1-on-1 tidak pernah mendapat pesan lebih lama, kemungkinan HP menjawab hanya untuk JID bentuk lain (PN vs LID) — bridge kini memakai LID bila dikenal.
+- WhatsApp hanya mengirim riwayat yang masih ada di HP dan saat HP online; chat yang sudah dihapus di HP tidak bisa diambil.
+- Retensi chat kini 365 hari (dari 90). Bila kebijakan privasi/UU PDP GSI menetapkan lain, ubah di Pengaturan → Kebijakan `retention.chat_days`; backfill ikut berhenti di batas itu.

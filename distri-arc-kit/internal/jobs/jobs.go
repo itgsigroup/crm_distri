@@ -92,6 +92,11 @@ type RetentionPurgeArgs struct{}
 
 func (RetentionPurgeArgs) Kind() string { return "retention.purge" }
 
+// WABackfillArgs asks the linked phones for older chat history until a year back (every 2 minutes, ADR 0028).
+type WABackfillArgs struct{}
+
+func (WABackfillArgs) Kind() string { return "wa.backfill" }
+
 // AlertsCheckArgs evaluates ops alerts (every 5 minutes).
 type AlertsCheckArgs struct{}
 

@@ -14,7 +14,7 @@
  "autonomy.matrix":    { "...": "lihat 05-agents.md" },
  "mcp.permissions":    {"allow_reanalyze": true, "allow_plan_update_proposal": true, "allow_send": false, "mask_pii_in_read": true, "max_cycles_per_hour": 6},
  "llm.routing":        {"mode": "both", "provider": "anthropic", "model": "claude-sonnet-4-5", "fallback": "openai:gpt-4.1", "batch_hours": [6,20], "timezone": "Asia/Jakarta"},
- "retention":          {"chat_days": 90, "signals_months": 24, "llm_calls_days": 180}
+ "retention":          {"chat_days": 365, "signals_months": 24, "llm_calls_days": 180}
 }
 ```
 Perubahan lewat `PUT /policies/{key}` (ceo), divalidasi schema (JSON Schema per key di `internal/policy/schema/`), versi naik, history disimpan, `audit_log` dicatat, Orchestrator memuat ulang di siklus berikutnya (toast UI: "berlaku di run berikutnya").
@@ -25,7 +25,7 @@ Sebelum proposal `credit_release`/`so_draft` di atas Rp 25 jt untuk dealer denga
 ## Privasi (UU PDP)
 - **Nomor internal**: tabel `internal_numbers`; pesan DM antar nomor internal **tidak disimpan** (filter di `wa` parser sebelum DB). Grup internal (`wa_groups.kind='internal'`): hanya diekstrak untuk stok, surat jalan, jadwal, tugas; tidak memengaruhi metrik dealer.
 - **Identifikasi nomor** hanya untuk nomor inbound yang tidak dikenal; sumber: profil WA Business, Truecaller (API resmi bila ada), Getcontact **impor manual** (CSV dari aplikasi; tidak ada scraping). Hasil `identifications` disimpan 90 hari bila tidak menjadi dealer.
-- **Retensi**: `chat_messages` 90 hari (job harian `retention.purge`), `signals` 24 bulan, `llm_calls` 180 hari; dealer/transaksi tidak dihapus.
+- **Retensi**: `chat_messages` 365 hari (job harian `retention.purge`; ADR 0028, sebelumnya 90), `signals` 24 bulan, `llm_calls` 180 hari; dealer/transaksi tidak dihapus.
 - **Masking ke LLM eksternal**: nomor telepon, email, NIK, rekening diganti placeholder sebelum request; mapping placeholder hanya di memori proses; `llm_calls` menyimpan hash input bukan isi.
 - **Hak subjek data**: `arc ctl pdp export --dealer <id>` dan `pdp delete --contact <wa>` (menghapus kontak + pesan, menyisakan agregat).
 

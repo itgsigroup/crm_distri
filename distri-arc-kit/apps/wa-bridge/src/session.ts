@@ -21,11 +21,26 @@ const GROUP_TTL = 60 * 60_000
 const GROUP_LIST_TTL = 10 * 60_000
 const PROFILE_TTL = 7 * 24 * 60 * 60_000
 const STABLE_MS = 5 * 60_000
+// On-demand history (ADR 0028): one request per number every HISTORY_GAP_MS, at most HISTORY_PER_HOUR an hour —
+// WhatsApp Web asks the same way while someone scrolls up a chat.
+const HISTORY_GAP_MS = 4_000
+const HISTORY_PER_HOUR = 400
 // Close codes after which reconnecting would only look abusive: stop and ask a human.
 const FATAL = new Set<number>([DisconnectReason.loggedOut, DisconnectReason.forbidden, DisconnectReason.connectionReplaced, DisconnectReason.multideviceMismatch, DisconnectReason.badSession])
 
 const digits = (jid?: string | null) => (jid ?? '').split('@')[0].split(':')[0].replace(/\D/g, '')
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/** The number cannot ask its phone for history right now (not connected, or the request pace is used up). */
+export class HistoryBusy extends Error {
+  constructor(msg: string, public status: 409 | 429) { super(msg) }
+}
+
+/** Whether another on-demand history request fits the pace: the gap since the last one and the hourly cap. */
+export function historyAllowed(sent: number[], now: number): boolean {
+  const recent = sent.filter(t => t > now - 3_600_000)
+  return recent.length < HISTORY_PER_HOUR && (recent.length === 0 || now - recent[recent.length - 1] >= HISTORY_GAP_MS)
+}
 
 /** "ABCD1234" → "ABCD-1234", as WhatsApp shows it. */
 export const formatPairCode = (c: string) => (c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c)
@@ -38,8 +53,8 @@ export function contactName(c: Partial<Contact> | undefined): string {
 /**
  * One linked WhatsApp number. Connection hygiene to stay under WhatsApp's radar:
  * a stable device name, not marked online on connect (the phone keeps its
- * notifications), recent history only, cached group metadata, rate-limited
- * profile lookups, exponential reconnect backoff, and no reconnect after a
+ * notifications), history kept for historyDays (a year), cached group metadata,
+ * rate-limited profile lookups and history requests, exponential reconnect backoff, and no reconnect after a
  * logout/ban/replacement (a human must re-link).
  */
 export class Session implements SendTarget {
@@ -55,6 +70,7 @@ export class Session implements SendTarget {
   private groupList?: { at: number; items: { jid: string; meta: GroupMeta }[] }
   private profiles = new Map<string, { at: number; p: Profile }>()
   private lookups: number[] = []
+  private historyAsks: number[] = []
   private contacts = new Map<string, Partial<Contact>>()
   private recent = new Map<string, proto.IMessage>() // for retry receipts (getMessage)
   private unread = new Map<string, WAMessageKey[]>() // inbound not yet read, per chat: read before replying
@@ -71,9 +87,13 @@ export class Session implements SendTarget {
     private policy: Policy,
     private log: Logger,
     private deviceName = 'Distri ARC',
+    private minHistoryDays = 365,
   ) {}
 
   get id(): string { return this.meta.id }
+
+  /** Days of history forwarded: the session's own setting, never less than the bridge's floor. */
+  historyDays(): number { return Math.max(this.meta.historyDays, this.minHistoryDays) }
 
   snapshot(): Snapshot {
     const s: Snapshot = { session: this.meta.id, status: this.status, phone: this.meta.phone, qr: this.qr }
@@ -111,7 +131,10 @@ export class Session implements SendTarget {
       browser: Browsers.ubuntu(this.deviceName),
       logger: this.log,
       markOnlineOnConnect: false,
-      syncFullHistory: false,
+      // ask the phone for its full history on linking (the bridge forwards only historyDays of it), and accept every
+      // history sync type — the default drops FULL, and ON_DEMAND carries the backfill requests
+      syncFullHistory: true,
+      shouldSyncHistoryMessage: () => true,
       emitOwnEvents: false,
       generateHighQualityLinkPreview: false,
       shouldIgnoreJid: jid => !isConversation(jid),
@@ -214,7 +237,7 @@ export class Session implements SendTarget {
   }
 
   private async forwardMessages(messages: import('baileys').WAMessage[], history: boolean) {
-    const cutoff = Date.now() / 1000 - this.meta.historyDays * 86_400
+    const cutoff = Date.now() / 1000 - this.historyDays() * 86_400
     const r = this.resolver()
     const batch: WaEvent[] = []
     for (const m of messages) {
@@ -252,6 +275,25 @@ export class Session implements SendTarget {
     keys.push(key)
     this.unread.set(chat, keys.slice(-20))
     if (this.unread.size > 2000) this.unread.delete(this.unread.keys().next().value as string)
+  }
+
+  /**
+   * Asks the linked phone for up to `count` messages of a chat before the given one (on-demand history sync). The
+   * answer arrives later through messaging-history.set and is forwarded like any history. A one-to-one chat the
+   * phone addresses by LID is asked by its LID.
+   */
+  async fetchHistory(chat: string, oldest: { id: string; fromMe: boolean; ts: number }, count: number): Promise<void> {
+    const sock = this.sock
+    if (!sock || this.status !== 'connected') throw new HistoryBusy('sesi belum terhubung', 409)
+    const now = Date.now()
+    if (!historyAllowed(this.historyAsks, now)) throw new HistoryBusy('permintaan riwayat terlalu cepat', 429)
+    this.historyAsks = [...this.historyAsks.filter(t => t > now - 3_600_000), now]
+    let jid = chat
+    if (!isJidGroup(chat) && !isLidUser(chat)) {
+      const lid = await sock.signalRepository.lidMapping.getLIDForPN(chat).catch(() => null)
+      if (lid) jid = lid
+    }
+    await sock.fetchMessageHistory(Math.min(Math.max(count, 1), 50), { remoteJid: jid, fromMe: oldest.fromMe, id: oldest.id }, oldest.ts)
   }
 
   private async cachedGroup(jid: string): Promise<GroupMetadata | undefined> {
@@ -328,7 +370,7 @@ export class Session implements SendTarget {
 export class Manager {
   private sessions = new Map<string, Session>()
 
-  constructor(private store: PgStore, private fwd: Forwarder, private policy: Policy, private log: Logger, private deviceName = 'Distri ARC') {}
+  constructor(private store: PgStore, private fwd: Forwarder, private policy: Policy, private log: Logger, private deviceName = 'Distri ARC', private minHistoryDays = 365) {}
 
   get(id: string): Session | undefined { return this.sessions.get(id) }
 
@@ -342,7 +384,7 @@ export class Manager {
   async restore(): Promise<void> {
     for (const meta of await this.store.sessions()) {
       if (!meta.pairedAt) continue
-      const s = new Session(meta, this.store, this.fwd, this.policy, this.log.child({ session: meta.id }), this.deviceName)
+      const s = new Session(meta, this.store, this.fwd, this.policy, this.log.child({ session: meta.id }), this.deviceName, this.minHistoryDays)
       this.sessions.set(meta.id, s)
       await s.start().catch(err => this.log.warn({ session: meta.id, err: String(err) }, 'restore failed'))
     }
@@ -354,9 +396,9 @@ export class Manager {
     if (existing && (existing.status === 'connected' || (existing.meta.pairedAt && existing.reason === 'reconnecting'))) return existing.snapshot()
     if (existing) await existing.stop(false)
     await this.store.deleteSession(id) // fresh credentials for a new QR
-    const meta: SessionMeta = { id, label, historyDays: historyDays > 0 ? historyDays : 30, pairedAt: null, phone: '' }
+    const meta: SessionMeta = { id, label, historyDays: historyDays > 0 ? historyDays : this.minHistoryDays, pairedAt: null, phone: '' }
     await this.store.upsertSession(meta)
-    const s = new Session(meta, this.store, this.fwd, this.policy, this.log.child({ session: id }), this.deviceName)
+    const s = new Session(meta, this.store, this.fwd, this.policy, this.log.child({ session: id }), this.deviceName, this.minHistoryDays)
     s.codeMode = phoneCode
     s.codePhone = phone.replace(/\D/g, '')
     this.sessions.set(id, s)

@@ -43,6 +43,13 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Delete("/wa/numbers/{wa}", s.deleteWANumber)
 }
 
+// threadPageSize caps the first page of a conversation: far above a year of an ordinary chat, so the whole
+// retention window arrives at once; olderPageSize is each further page of a busier one.
+const (
+	threadPageSize = 3000
+	olderPageSize  = 500
+)
+
 // ThreadView is one row of the chat list.
 type ThreadView struct {
 	ID            uuid.UUID       `json:"id"`
@@ -182,16 +189,27 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	before := s.clock.Now().Add(24 * 365 * time.Hour)
+	// The first page is the whole conversation kept (retention.chat_days, a year): no "load more" per chat. Only
+	// a very busy chat goes past it and pages on (older pages of olderPageSize).
+	before, lim := s.clock.Now().Add(24*365*time.Hour), int32(threadPageSize)
 	if b := r.URL.Query().Get("before"); b != "" {
 		if x, err := time.Parse(time.RFC3339, b); err == nil {
-			before = x
+			before, lim = x, olderPageSize
 		}
 	}
-	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Lim: 30})
+	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Lim: lim})
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
+	}
+	hasMore := len(msgs) == int(lim)
+	keepDays := 0
+	if pol, err := policy.Load(r.Context(), s.st.Q); err == nil {
+		keepDays = pol.Retention.ChatDays
+	}
+	var historyFrom *time.Time
+	if !hasMore && len(msgs) > 0 {
+		historyFrom = &msgs[0].SentAt
 	}
 	var sigIDs []uuid.UUID
 	for _, m := range msgs {
@@ -253,7 +271,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
 		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
 		"analyzed_at": lastAnalysis,
-	}, "messages": out})
+	}, "messages": out, "has_more": hasMore, "history_from": historyFrom, "history_days": keepDays})
 }
 
 // attachMsgAnalysis adds Analisa WhatsApp to each bubble of a one-to-one conversation. The newest page reads the

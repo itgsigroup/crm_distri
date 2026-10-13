@@ -28,7 +28,7 @@ await store.init()
 
 const fwd = new Forwarder(cfg.apiUrl, cfg.secret, cfg.dataDir, log)
 const retry = fwd.start()
-const manager = new Manager(store, fwd, cfg.policy, waLog, cfg.deviceName)
+const manager = new Manager(store, fwd, cfg.policy, waLog, cfg.deviceName, cfg.historyDays)
 const sender = new Sender(store, fwd, cfg.policy)
 await manager.restore()
 

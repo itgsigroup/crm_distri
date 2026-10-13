@@ -30,7 +30,7 @@ Perintah lain: `/stage status` (tabel + saran), `/stage N` (hanya bila semua < N
 - **Setiap klaim AI membawa provenance**: `signal_ids`, waktu, `confidence`. Proposal tanpa provenance ditolak di layer domain, bukan di UI.
 - **Semua angka Orbit dihitung dari rumus di `01-glossary.md`**, di Go (package `metrics`), bukan oleh LLM. LLM hanya menulis alasan, draft pesan, dan memilih di antara opsi yang sudah dihitung.
 - **Idempoten**: menjalankan ulang job apa pun tidak menggandakan data (kunci unik: wa message id, odoo id + write_date, cycle id + agent).
-- **Privasi** (`09-policies-security.md`): nomor internal dikenali dan DM antar karyawan tidak dibaca; grup internal hanya untuk stok/jadwal/tugas; identifikasi nomor hanya untuk nomor inbound; chat disimpan 90 hari; PII dimasking sebelum ke provider LLM eksternal.
+- **Privasi** (`09-policies-security.md`): nomor internal dikenali dan DM antar karyawan tidak dibaca; grup internal hanya untuk stok/jadwal/tugas; identifikasi nomor hanya untuk nomor inbound; chat disimpan 365 hari (ADR 0028); PII dimasking sebelum ke provider LLM eksternal.
 - **Bahasa**: UI dan teks untuk pengguna dalam Bahasa Indonesia dengan istilah bisnis umum (Key account, share of wallet, DSO, follow-up). Istilah produk mengikuti `01-glossary.md` persis. Kode, komentar, nama identifier, commit: Inggris.
 
 ## 3. Kapan bertanya, kapan memutuskan sendiri

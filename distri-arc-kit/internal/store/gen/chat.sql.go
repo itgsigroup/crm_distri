@@ -255,7 +255,7 @@ func (q *Queries) GetSalesByNumber(ctx context.Context, waNumber *string) (Sales
 }
 
 const getThread = `-- name: GetThread :one
-select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
+select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
   (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
      and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
@@ -267,30 +267,34 @@ where t.id = $1
 `
 
 type GetThreadRow struct {
-	ID             uuid.UUID       `json:"id"`
-	Kind           *string         `json:"kind"`
-	DealerID       *uuid.UUID      `json:"dealer_id"`
-	GroupID        *uuid.UUID      `json:"group_id"`
-	ContactID      *uuid.UUID      `json:"contact_id"`
-	WaJid          *string         `json:"wa_jid"`
-	Title          *string         `json:"title"`
-	Subtitle       *string         `json:"subtitle"`
-	SalesID        *uuid.UUID      `json:"sales_id"`
-	LastMessageAt  *time.Time      `json:"last_message_at"`
-	Unread         int32           `json:"unread"`
-	Identification json.RawMessage `json:"identification"`
-	Tag            json.RawMessage `json:"tag"`
-	Suggestions    json.RawMessage `json:"suggestions"`
-	SeedKey        *string         `json:"seed_key"`
-	Account        *string         `json:"account"`
-	DealerSlug     *string         `json:"dealer_slug"`
-	DealerName     *string         `json:"dealer_name"`
-	SalesName      *string         `json:"sales_name"`
-	SalesWa        *string         `json:"sales_wa"`
-	AccountLabel   string          `json:"account_label"`
-	DealerCode     *string         `json:"dealer_code"`
-	DealerCity     *string         `json:"dealer_city"`
-	WaitingSince   interface{}     `json:"waiting_since"`
+	ID               uuid.UUID       `json:"id"`
+	Kind             *string         `json:"kind"`
+	DealerID         *uuid.UUID      `json:"dealer_id"`
+	GroupID          *uuid.UUID      `json:"group_id"`
+	ContactID        *uuid.UUID      `json:"contact_id"`
+	WaJid            *string         `json:"wa_jid"`
+	Title            *string         `json:"title"`
+	Subtitle         *string         `json:"subtitle"`
+	SalesID          *uuid.UUID      `json:"sales_id"`
+	LastMessageAt    *time.Time      `json:"last_message_at"`
+	Unread           int32           `json:"unread"`
+	Identification   json.RawMessage `json:"identification"`
+	Tag              json.RawMessage `json:"tag"`
+	Suggestions      json.RawMessage `json:"suggestions"`
+	SeedKey          *string         `json:"seed_key"`
+	Account          *string         `json:"account"`
+	HistoryReqOldest *time.Time      `json:"history_req_oldest"`
+	HistoryReqAt     *time.Time      `json:"history_req_at"`
+	HistoryTries     int32           `json:"history_tries"`
+	HistoryDoneAt    *time.Time      `json:"history_done_at"`
+	DealerSlug       *string         `json:"dealer_slug"`
+	DealerName       *string         `json:"dealer_name"`
+	SalesName        *string         `json:"sales_name"`
+	SalesWa          *string         `json:"sales_wa"`
+	AccountLabel     string          `json:"account_label"`
+	DealerCode       *string         `json:"dealer_code"`
+	DealerCity       *string         `json:"dealer_city"`
+	WaitingSince     interface{}     `json:"waiting_since"`
 }
 
 // sales_wa is the number replies go out from: the thread's own number, else its sales' main number.
@@ -314,6 +318,10 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 		&i.Suggestions,
 		&i.SeedKey,
 		&i.Account,
+		&i.HistoryReqOldest,
+		&i.HistoryReqAt,
+		&i.HistoryTries,
+		&i.HistoryDoneAt,
 		&i.DealerSlug,
 		&i.DealerName,
 		&i.SalesName,
@@ -327,7 +335,7 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 }
 
 const getThreadByAccountJID = `-- name: GetThreadByAccountJID :one
-select id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account from chat_threads where wa_jid = $1 and account is not distinct from $2
+select id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at from chat_threads where wa_jid = $1 and account is not distinct from $2
 `
 
 type GetThreadByAccountJIDParams struct {
@@ -356,6 +364,10 @@ func (q *Queries) GetThreadByAccountJID(ctx context.Context, arg GetThreadByAcco
 		&i.Suggestions,
 		&i.SeedKey,
 		&i.Account,
+		&i.HistoryReqOldest,
+		&i.HistoryReqAt,
+		&i.HistoryTries,
+		&i.HistoryDoneAt,
 	)
 	return i, err
 }
@@ -508,6 +520,69 @@ func (q *Queries) GroupThreadAccounts(ctx context.Context, id uuid.UUID) ([]Grou
 	for rows.Next() {
 		var i GroupThreadAccountsRow
 		if err := rows.Scan(&i.ID, &i.Account, &i.AccountLabel); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const historyBackfillCandidates = `-- name: HistoryBackfillCandidates :many
+select t.id, t.account, t.wa_jid, t.history_req_oldest, t.history_tries,
+  o.wa_msg_id as oldest_wa_id, o.direction as oldest_direction, o.sent_at as oldest_at
+from chat_threads t
+join wa_numbers n on n.wa_number = t.account and n.state = 'connected'
+cross join lateral (
+  select m.wa_msg_id, m.direction, m.sent_at from chat_messages m
+  where m.thread_id = t.id and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%'
+  order by m.sent_at, m.id limit 1
+) o
+where t.history_done_at is null and t.wa_jid is not null and t.account is not null
+  and (t.history_req_at is null or t.history_req_at < $1::timestamptz)
+order by t.last_message_at desc nulls last, t.id
+limit $2
+`
+
+type HistoryBackfillCandidatesParams struct {
+	RetryBefore time.Time `json:"retry_before"`
+	Lim         int32     `json:"lim"`
+}
+
+type HistoryBackfillCandidatesRow struct {
+	ID               uuid.UUID  `json:"id"`
+	Account          *string    `json:"account"`
+	WaJid            *string    `json:"wa_jid"`
+	HistoryReqOldest *time.Time `json:"history_req_oldest"`
+	HistoryTries     int32      `json:"history_tries"`
+	OldestWaID       *string    `json:"oldest_wa_id"`
+	OldestDirection  *string    `json:"oldest_direction"`
+	OldestAt         time.Time  `json:"oldest_at"`
+}
+
+// Conversations of connected numbers whose kept history may not reach a year back yet (wa.backfill): each with its
+// oldest WhatsApp message, the anchor the phone is asked to sync history before. Busiest first.
+func (q *Queries) HistoryBackfillCandidates(ctx context.Context, arg HistoryBackfillCandidatesParams) ([]HistoryBackfillCandidatesRow, error) {
+	rows, err := q.db.Query(ctx, historyBackfillCandidates, arg.RetryBefore, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []HistoryBackfillCandidatesRow{}
+	for rows.Next() {
+		var i HistoryBackfillCandidatesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Account,
+			&i.WaJid,
+			&i.HistoryReqOldest,
+			&i.HistoryTries,
+			&i.OldestWaID,
+			&i.OldestDirection,
+			&i.OldestAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -818,7 +893,7 @@ values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 on conflict (seed_key) do update set title = excluded.title, subtitle = excluded.subtitle, tag = excluded.tag,
   suggestions = excluded.suggestions, identification = excluded.identification, unread = excluded.unread,
   dealer_id = excluded.dealer_id, contact_id = excluded.contact_id, group_id = excluded.group_id
-returning id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account
+returning id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at
 `
 
 type InsertThreadParams struct {
@@ -875,6 +950,10 @@ func (q *Queries) InsertThread(ctx context.Context, arg InsertThreadParams) (Cha
 		&i.Suggestions,
 		&i.SeedKey,
 		&i.Account,
+		&i.HistoryReqOldest,
+		&i.HistoryReqAt,
+		&i.HistoryTries,
+		&i.HistoryDoneAt,
 	)
 	return i, err
 }
@@ -1079,7 +1158,7 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 }
 
 const listThreads = `-- name: ListThreads :many
-select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
+select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
   coalesce(n.label, s.name, t.account) as account_label,
   -- a group's last message may have been stored under another GSI number's thread of the same group
   lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
@@ -1105,31 +1184,35 @@ order by t.last_message_at desc nulls last, t.id
 `
 
 type ListThreadsRow struct {
-	ID             uuid.UUID       `json:"id"`
-	Kind           *string         `json:"kind"`
-	DealerID       *uuid.UUID      `json:"dealer_id"`
-	GroupID        *uuid.UUID      `json:"group_id"`
-	ContactID      *uuid.UUID      `json:"contact_id"`
-	WaJid          *string         `json:"wa_jid"`
-	Title          *string         `json:"title"`
-	Subtitle       *string         `json:"subtitle"`
-	SalesID        *uuid.UUID      `json:"sales_id"`
-	LastMessageAt  *time.Time      `json:"last_message_at"`
-	Unread         int32           `json:"unread"`
-	Identification json.RawMessage `json:"identification"`
-	Tag            json.RawMessage `json:"tag"`
-	Suggestions    json.RawMessage `json:"suggestions"`
-	SeedKey        *string         `json:"seed_key"`
-	Account        *string         `json:"account"`
-	DealerSlug     *string         `json:"dealer_slug"`
-	DealerName     *string         `json:"dealer_name"`
-	SalesName      *string         `json:"sales_name"`
-	GroupKind      *string         `json:"group_kind"`
-	AccountLabel   string          `json:"account_label"`
-	LastBody       *string         `json:"last_body"`
-	LastFrom       *string         `json:"last_from"`
-	LastDirection  *string         `json:"last_direction"`
-	WaitingSince   interface{}     `json:"waiting_since"`
+	ID               uuid.UUID       `json:"id"`
+	Kind             *string         `json:"kind"`
+	DealerID         *uuid.UUID      `json:"dealer_id"`
+	GroupID          *uuid.UUID      `json:"group_id"`
+	ContactID        *uuid.UUID      `json:"contact_id"`
+	WaJid            *string         `json:"wa_jid"`
+	Title            *string         `json:"title"`
+	Subtitle         *string         `json:"subtitle"`
+	SalesID          *uuid.UUID      `json:"sales_id"`
+	LastMessageAt    *time.Time      `json:"last_message_at"`
+	Unread           int32           `json:"unread"`
+	Identification   json.RawMessage `json:"identification"`
+	Tag              json.RawMessage `json:"tag"`
+	Suggestions      json.RawMessage `json:"suggestions"`
+	SeedKey          *string         `json:"seed_key"`
+	Account          *string         `json:"account"`
+	HistoryReqOldest *time.Time      `json:"history_req_oldest"`
+	HistoryReqAt     *time.Time      `json:"history_req_at"`
+	HistoryTries     int32           `json:"history_tries"`
+	HistoryDoneAt    *time.Time      `json:"history_done_at"`
+	DealerSlug       *string         `json:"dealer_slug"`
+	DealerName       *string         `json:"dealer_name"`
+	SalesName        *string         `json:"sales_name"`
+	GroupKind        *string         `json:"group_kind"`
+	AccountLabel     string          `json:"account_label"`
+	LastBody         *string         `json:"last_body"`
+	LastFrom         *string         `json:"last_from"`
+	LastDirection    *string         `json:"last_direction"`
+	WaitingSince     interface{}     `json:"waiting_since"`
 }
 
 // newest conversation first, like WhatsApp (the kind tabs filter; ordering by kind buried today's chats)
@@ -1159,6 +1242,10 @@ func (q *Queries) ListThreads(ctx context.Context) ([]ListThreadsRow, error) {
 			&i.Suggestions,
 			&i.SeedKey,
 			&i.Account,
+			&i.HistoryReqOldest,
+			&i.HistoryReqAt,
+			&i.HistoryTries,
+			&i.HistoryDoneAt,
 			&i.DealerSlug,
 			&i.DealerName,
 			&i.SalesName,
@@ -1467,6 +1554,42 @@ type SetChatMessageStatusParams struct {
 
 func (q *Queries) SetChatMessageStatus(ctx context.Context, arg SetChatMessageStatusParams) error {
 	_, err := q.db.Exec(ctx, setChatMessageStatus, arg.Status, arg.ID)
+	return err
+}
+
+const setHistoryDone = `-- name: SetHistoryDone :exec
+update chat_threads set history_done_at = $1::timestamptz where id = $2::uuid
+`
+
+type SetHistoryDoneParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetHistoryDone(ctx context.Context, arg SetHistoryDoneParams) error {
+	_, err := q.db.Exec(ctx, setHistoryDone, arg.At, arg.ID)
+	return err
+}
+
+const setHistoryRequested = `-- name: SetHistoryRequested :exec
+update chat_threads set history_req_oldest = $1::timestamptz, history_req_at = $2::timestamptz,
+  history_tries = $3::int where id = $4::uuid
+`
+
+type SetHistoryRequestedParams struct {
+	Oldest time.Time `json:"oldest"`
+	At     time.Time `json:"at"`
+	Tries  int32     `json:"tries"`
+	ID     uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetHistoryRequested(ctx context.Context, arg SetHistoryRequestedParams) error {
+	_, err := q.db.Exec(ctx, setHistoryRequested,
+		arg.Oldest,
+		arg.At,
+		arg.Tries,
+		arg.ID,
+	)
 	return err
 }
 

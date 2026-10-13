@@ -28,6 +28,7 @@ export interface Config {
   databaseUrl: string
   dataDir: string
   env: string
+  historyDays: number // chat history kept from the phone, at least (BRIDGE_HISTORY_DAYS; a year, ADR 0028)
   policy: Policy
 }
 
@@ -66,6 +67,7 @@ export function loadConfig(): Config {
     dataDir: str('BRIDGE_DATA_DIR', './data'),
     env: str('APP_ENV', 'dev'),
     deviceName: str('BRIDGE_DEVICE_NAME', 'Distri ARC'),
+    historyDays: num('BRIDGE_HISTORY_DAYS', 365),
     policy: {
       maxPerHour: num('BRIDGE_MAX_SEND_PER_HOUR', defaultPolicy.maxPerHour),
       maxPerDay: num('BRIDGE_MAX_SEND_PER_DAY', defaultPolicy.maxPerDay),

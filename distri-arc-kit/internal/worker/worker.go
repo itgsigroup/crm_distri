@@ -289,6 +289,7 @@ type Deps struct {
 	AlertGroup   string        // ALERT_WA_GROUP
 	AnalystKey   string        // ANTHROPIC_API_KEY for scheduled analysis when no key was saved in the app
 	MCPWait      time.Duration // how long a cycle waits for Claude through MCP (prompt text)
+	BackfillDays int           // WA_BACKFILL_DAYS: chat history asked from the phones (capped by retention.chat_days)
 }
 
 // New builds the river client with all workers and periodic jobs registered.
@@ -328,6 +329,12 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 		river.AddWorker(workers, &OutboxWorker{sender: outbox.NewSender(st, deps.Transport, c, deps.Rules).WithOdoo(deps.Odoo)})
 		river.AddWorker(workers, &WAPairWorker{t: deps.Transport, ingest: deps.Ingest})
 		river.AddWorker(workers, &WAUnpairWorker{t: deps.Transport, st: st})
+		if f, ok := deps.Transport.(wa.HistoryFetcher); ok && deps.BackfillDays > 0 {
+			river.AddWorker(workers, &WABackfillWorker{st: st, clock: c, log: log, f: f, days: deps.BackfillDays})
+			periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(2*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.WABackfillArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 2 * time.Minute}}
+			}, nil))
+		}
 	}
 	return river.NewClient[pgx.Tx](riverpgxv5.New(st.Pool), &river.Config{
 		Logger:  log,

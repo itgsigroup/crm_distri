@@ -183,22 +183,26 @@ type ChatMessagesDefault struct {
 }
 
 type ChatThread struct {
-	ID             uuid.UUID       `json:"id"`
-	Kind           *string         `json:"kind"`
-	DealerID       *uuid.UUID      `json:"dealer_id"`
-	GroupID        *uuid.UUID      `json:"group_id"`
-	ContactID      *uuid.UUID      `json:"contact_id"`
-	WaJid          *string         `json:"wa_jid"`
-	Title          *string         `json:"title"`
-	Subtitle       *string         `json:"subtitle"`
-	SalesID        *uuid.UUID      `json:"sales_id"`
-	LastMessageAt  *time.Time      `json:"last_message_at"`
-	Unread         int32           `json:"unread"`
-	Identification json.RawMessage `json:"identification"`
-	Tag            json.RawMessage `json:"tag"`
-	Suggestions    json.RawMessage `json:"suggestions"`
-	SeedKey        *string         `json:"seed_key"`
-	Account        *string         `json:"account"`
+	ID               uuid.UUID       `json:"id"`
+	Kind             *string         `json:"kind"`
+	DealerID         *uuid.UUID      `json:"dealer_id"`
+	GroupID          *uuid.UUID      `json:"group_id"`
+	ContactID        *uuid.UUID      `json:"contact_id"`
+	WaJid            *string         `json:"wa_jid"`
+	Title            *string         `json:"title"`
+	Subtitle         *string         `json:"subtitle"`
+	SalesID          *uuid.UUID      `json:"sales_id"`
+	LastMessageAt    *time.Time      `json:"last_message_at"`
+	Unread           int32           `json:"unread"`
+	Identification   json.RawMessage `json:"identification"`
+	Tag              json.RawMessage `json:"tag"`
+	Suggestions      json.RawMessage `json:"suggestions"`
+	SeedKey          *string         `json:"seed_key"`
+	Account          *string         `json:"account"`
+	HistoryReqOldest *time.Time      `json:"history_req_oldest"`
+	HistoryReqAt     *time.Time      `json:"history_req_at"`
+	HistoryTries     int32           `json:"history_tries"`
+	HistoryDoneAt    *time.Time      `json:"history_done_at"`
 }
 
 type Commitment struct {

@@ -3,20 +3,33 @@ import type { ThreadView } from '../../api/types'
 // Chat inbox helpers (pure, tested): conversation filters with counts, the "waiting for a reply" timer and the
 // lookup links shown next to a contact's number.
 
-export type Filter = 'all' | 'dealer' | 'group_internal' | 'group_external' | 'new'
+export type Filter = 'all' | 'unread' | 'dealer' | 'group_internal' | 'group_external' | 'new'
 
+// "Belum dibaca" cuts across the kinds, like WhatsApp's Unread chip.
 export const FILTERS: [Filter, string][] = [
-  ['all', 'Semua'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['group_external', 'Grup eksternal'], ['new', 'Nomor baru'],
+  ['all', 'Semua'], ['unread', 'Belum dibaca'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['group_external', 'Grup eksternal'], ['new', 'Nomor baru'],
 ]
 
-export function filterOf(t: Pick<ThreadView, 'kind' | 'group_kind'>): Exclude<Filter, 'all'> {
+type Filtered = Pick<ThreadView, 'kind' | 'group_kind' | 'unread'>
+
+export function filterOf(t: Pick<ThreadView, 'kind' | 'group_kind'>): Exclude<Filter, 'all' | 'unread'> {
   if (t.kind === 'group') return t.group_kind === 'external' ? 'group_external' : 'group_internal'
   return t.kind
 }
 
-export function countFilters(list: Pick<ThreadView, 'kind' | 'group_kind'>[]): Record<Filter, number> {
-  const c: Record<Filter, number> = { all: list.length, dealer: 0, group_internal: 0, group_external: 0, new: 0 }
-  for (const t of list) c[filterOf(t)]++
+/** Whether a conversation shows under a filter chip. */
+export function inFilter(t: Filtered, f: Filter): boolean {
+  if (f === 'all') return true
+  if (f === 'unread') return t.unread > 0
+  return filterOf(t) === f
+}
+
+export function countFilters(list: Filtered[]): Record<Filter, number> {
+  const c: Record<Filter, number> = { all: list.length, unread: 0, dealer: 0, group_internal: 0, group_external: 0, new: 0 }
+  for (const t of list) {
+    c[filterOf(t)]++
+    if (t.unread > 0) c.unread++
+  }
   return c
 }
 

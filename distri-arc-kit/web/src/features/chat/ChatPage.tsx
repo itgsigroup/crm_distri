@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
@@ -10,7 +10,7 @@ import { fmtRp, hhmm, shortDate, wib } from '../../lib/format'
 import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
 import { useOrch } from '../../app/orch'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf } from './Connect'
-import { countFilters, FILTERS, filterOf, fmtPhone, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
+import { countFilters, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
 import { bubbleLine } from './bubble'
 
 
@@ -66,7 +66,8 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
   const [q, setQ] = useState('')
   const n = wa?.items.find((x) => x.wa_number === account)
   const counts = useMemo(() => countFilters(list), [list])
-  const shown = list.filter((t) => (filter === 'all' || filterOf(t) === filter) && matchThread(t, q))
+  // the open conversation stays in "Belum dibaca" after reading it, as in WhatsApp
+  const shown = list.filter((t) => (inFilter(t, filter) || (filter === 'unread' && t.id === active)) && matchThread(t, q))
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['chat'] })
     qc.invalidateQueries({ queryKey: ['wa'] })
@@ -93,7 +94,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
         ))}
       </div>
       <div className="chat-list ibl-list">
-        {loaded && shown.length === 0 && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"` : 'Belum ada percakapan di sini'}</div>}
+        {loaded && shown.length === 0 && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"` : filter === 'unread' ? 'Semua chat sudah dibaca' : 'Belum ada percakapan di sini'}</div>}
         {shown.map((c) => (
           <button key={c.id} className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
             <span className={`av ${c.kind === 'group' ? 'grp' : ''}`}>{c.kind === 'group' ? <Icon name="people" /> : initials(c)}</span>
@@ -197,7 +198,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const { reanalyze, s: orch } = useOrch()
   const [text, setText] = useState('')
   const [older, setOlder] = useState<MessageView[]>([])
-  const [done, setDone] = useState(false)
+  const [olderMore, setOlderMore] = useState(true)
   const [loading, setLoading] = useState(false)
   const [perMsg, setPerMsg] = usePerMessageAnalysis()
   const body = useRef<HTMLDivElement>(null)
@@ -213,20 +214,34 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   useEffect(() => {
     if (body.current && older.length === 0) body.current.scrollTop = body.current.scrollHeight
   }, [data, older.length])
+  const keepOffset = useRef<number | null>(null)
+  useLayoutEffect(() => {
+    // after older bubbles are prepended, keep the bubble the user was reading in place
+    const el = body.current
+    if (el && keepOffset.current != null) {
+      el.scrollTop = el.scrollHeight - keepOffset.current
+      keepOffset.current = null
+    }
+  }, [older])
   useEffect(() => {
     if (picked && data && data.thread.unread > 0) api.post(`/chat/threads/${id}/read`).then(() => qc.invalidateQueries({ queryKey: ['chat', 'threads'] }))
   }, [data, id, qc, picked])
   if (!data) return <div className="pane th-pane ibc" />
   const t = data.thread
   const messages = [...older, ...data.messages]
-  const more = !done && data.messages.length >= 30
+  // The first page already holds the whole retention window (a year); a very busy chat pages on by itself.
+  const more = (older.length ? olderMore : !!data.has_more) && messages.length > 0
   const loadOlder = () => {
-    if (!messages.length) return
+    if (!more || loading) return
     setLoading(true)
+    if (body.current) keepOffset.current = body.current.scrollHeight - body.current.scrollTop
     api.get<ThreadDetail>(`/chat/threads/${id}?before=${encodeURIComponent(messages[0].sent_at)}`).then((r) => {
       setOlder((o) => [...r.messages, ...o])
-      if (r.messages.length < 30) setDone(true)
+      setOlderMore(!!r.has_more)
     }, (e: Error) => toast(e.message)).finally(() => setLoading(false))
+  }
+  const onScroll = () => {
+    if (body.current && body.current.scrollTop < 200) loadOlder()
   }
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -262,11 +277,11 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           {!lead && <button className="ibl-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
         </div>
       </div>
-      <div className="th-body ibc-body" ref={body}>
+      <div className="th-body ibc-body" ref={body} onScroll={onScroll}>
         <div className="ibc-start">
           {more
-            ? <button type="button" className="ibc-pill dark" disabled={loading} onClick={loadOlder}><Icon name="refresh" />{loading ? 'Memuat…' : 'Muat pesan sebelumnya'}</button>
-            : <span className="ibc-pill">Awal percakapan — pesan yang lebih lama tidak tersimpan di HP</span>}
+            ? <span className="ibc-pill dark"><Icon name="refresh" />{loading ? 'Memuat pesan sebelumnya…' : 'Gulir ke atas untuk pesan sebelumnya'}</span>
+            : <span className="ibc-pill" title="Pesan yang lebih lama tidak ada di HP atau sudah lewat masa simpan">{data.history_from ? `Riwayat sejak ${shortDate(data.history_from)}` : 'Awal percakapan'} · chat disimpan {data.history_days || 365} hari</span>}
         </div>
         {messages.map((m, i) => {
           const sep = i === 0 || dayKey(messages[i - 1].sent_at) !== dayKey(m.sent_at) ? <div className="day">{dayLabel(m.sent_at, now)}</div> : null
@@ -562,7 +577,7 @@ export function ChatPage() {
     for (const t of all ?? []) if (t.account) m[t.account] = (m[t.account] ?? 0) + t.unread
     return m
   }, [all])
-  const firstShown = (list ?? []).find((t) => filter === 'all' || filterOf(t) === filter)
+  const firstShown = (list ?? []).find((t) => inFilter(t, filter))
   const active = threadId ?? firstShown?.id
   const rail = <NumberRail account={account} setAccount={setAccount} unread={unread} />
   // No conversation yet (no number linked, or history still syncing): show how to connect the team's numbers.

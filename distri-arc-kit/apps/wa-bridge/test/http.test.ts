@@ -10,6 +10,7 @@ import { handler, type BridgeManager, type BridgeSession } from '../src/http.js'
 import { Sender } from '../src/sender.js'
 import { sign, verify } from '../src/sign.js'
 import { MemoryStore } from '../src/store.js'
+import { HistoryBusy } from '../src/session.js'
 
 const SECRET = 's3cret-s3cret-123'
 const log = pino({ level: 'silent' })
@@ -35,9 +36,15 @@ describe('bridge HTTP', () => {
     const store = new MemoryStore()
     await store.markInbound('s1', '6281@s.whatsapp.net', new Date(), false)
     const sent: string[] = []
+    const asked: unknown[] = []
+    let paced = false
     const session: BridgeSession = {
       id: 's1', connected: () => true, sendText: async (_c, text) => { sent.push(text); return 'W1' },
       snapshot: () => ({ session: 's1', status: 'connected', phone: '628', qr: '' }), listGroups: async () => [], profile: async () => ({}),
+      fetchHistory: async (chat, oldest, count) => {
+        if (paced) throw new HistoryBusy('permintaan riwayat terlalu cepat', 429)
+        asked.push({ chat, oldest, count })
+      },
     }
     const manager: BridgeManager = { get: id => (id === 's1' ? session : undefined), statuses: () => ({ s1: 'connected' }), create: async (id, _l, _d, code) => ({ session: id, status: 'pairing', qr: code ? 'code:ABCD-1234' : '2@qr' }), remove: async () => true }
     const fwd = new Forwarder(api, SECRET, await mkdtemp(join(tmpdir(), 'br-')), log)
@@ -58,6 +65,13 @@ describe('bridge HTTP', () => {
     expect(await (await post('/sessions', { id: '6281234567890', label: 'Andi', phone_code: true })).json()).toMatchObject({ qr: 'code:ABCD-1234' })
     expect((await post('/sessions', { id: 'cs-kantor', label: 'CS', phone_code: true })).status).toBe(400)
     expect(await (await post('/sessions', { id: 'link-ab12cd', label: 'Distri ARC', phone_code: true, phone: '0812-3456-7890' })).json()).toMatchObject({ qr: 'code:ABCD-1234' })
+    // on-demand history: signed, validated, paced
+    expect((await post('/sessions/s1/history', { chat_id: '6281@s.whatsapp.net', id: 'M0', ts: 1 }, 'bad')).status).toBe(401)
+    expect((await post('/sessions/s1/history', { chat_id: '6281@s.whatsapp.net' })).status).toBe(400)
+    expect((await post('/sessions/s1/history', { chat_id: '6281@s.whatsapp.net', id: 'M0', from_me: true, ts: 1759600000000, count: 50 })).status).toBe(202)
+    expect(asked).toEqual([{ chat: '6281@s.whatsapp.net', oldest: { id: 'M0', fromMe: true, ts: 1759600000000 }, count: 50 }])
+    paced = true
+    expect((await post('/sessions/s1/history', { chat_id: '6281@s.whatsapp.net', id: 'M0', ts: 1 })).status).toBe(429)
     const health = await (await fetch(bridge + '/health')).json()
     expect(health).toMatchObject({ ok: true, sessions: { s1: 'connected' }, limits: { s1: { last_hour: 1, per_hour: 20, today: 1 } } })
   })

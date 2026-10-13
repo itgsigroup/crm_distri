@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countFilters, filterOf, fmtPhone, lookupLinks, matchThread, waitLabel } from './inbox'
+import { countFilters, filterOf, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel } from './inbox'
 
 describe('chat inbox', () => {
   it('splits groups into internal and external', () => {
@@ -7,8 +7,15 @@ describe('chat inbox', () => {
     expect(filterOf({ kind: 'group', group_kind: 'internal' })).toBe('group_internal')
     expect(filterOf({ kind: 'group' })).toBe('group_internal')
     expect(filterOf({ kind: 'new' })).toBe('new')
-    expect(countFilters([{ kind: 'dealer' }, { kind: 'dealer' }, { kind: 'group', group_kind: 'external' }, { kind: 'new' }]))
-      .toEqual({ all: 4, dealer: 2, group_internal: 0, group_external: 1, new: 1 })
+    expect(countFilters([{ kind: 'dealer', unread: 0 }, { kind: 'dealer', unread: 2 }, { kind: 'group', group_kind: 'external', unread: 1 }, { kind: 'new', unread: 0 }]))
+      .toEqual({ all: 4, unread: 2, dealer: 2, group_internal: 0, group_external: 1, new: 1 })
+  })
+
+  it('filters unread conversations of every kind', () => {
+    expect(inFilter({ kind: 'group', group_kind: 'internal', unread: 3 }, 'unread')).toBe(true)
+    expect(inFilter({ kind: 'dealer', unread: 0 }, 'unread')).toBe(false)
+    expect(inFilter({ kind: 'dealer', unread: 0 }, 'all')).toBe(true)
+    expect(inFilter({ kind: 'new', unread: 1 }, 'dealer')).toBe(false)
   })
 
   it('searches name, subtitle and last message', () => {

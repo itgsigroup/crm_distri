@@ -331,6 +331,11 @@ export interface ThreadDetail {
     /** when the bubbles were last analysed (null: never) */
     analyzed_at?: string | null }
   messages: MessageView[]
+  /** older messages exist before this page (only a very busy chat: the first page holds the whole retention window) */
+  has_more?: boolean
+  /** the oldest message kept for this chat, and the retention window in days (policy retention.chat_days) */
+  history_from?: string | null
+  history_days?: number
 }
 export interface Identification {
   best_name: string

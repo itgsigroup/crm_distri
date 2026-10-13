@@ -189,7 +189,7 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		idf.Profiles = pr
 	}
 	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch, Identify: idf,
-		Ops: ops.EnvFrom(cfg), AlertFrom: cfg.AlertWAFrom, AlertGroup: cfg.AlertWAGroup, SessionKey: cfg.SessionKey(), AnalystKey: cfg.AnthropicKey, MCPWait: cfg.MCPWait})
+		Ops: ops.EnvFrom(cfg), AlertFrom: cfg.AlertWAFrom, AlertGroup: cfg.AlertWAGroup, SessionKey: cfg.SessionKey(), AnalystKey: cfg.AnthropicKey, MCPWait: cfg.MCPWait, BackfillDays: cfg.WABackfillDays})
 	if err != nil {
 		return err
 	}

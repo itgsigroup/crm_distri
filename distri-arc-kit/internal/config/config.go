@@ -46,7 +46,7 @@ type Config struct {
 	LLMModel     string // overrides policy llm.routing.model
 	AnthropicKey string
 	OpenAIKey    string
-	LLMIDRPerUSD float64 // cost estimate exchange rate (0 = built-in default)
+	LLMIDRPerUSD float64       // cost estimate exchange rate (0 = built-in default)
 	MCPWait      time.Duration // how long an Orchestrator cycle waits for Claude's analysis through MCP (MCP_WAIT, default 10m)
 
 	SessionSecret string // HMAC key of session tokens (required outside dev)
@@ -77,7 +77,7 @@ func Load() Config {
 		BridgeListen:    get("BRIDGE_LISTEN", "127.0.0.1:8112"),
 		WASendGap:       get("WA_SEND_GAP", "20s-90s"),
 		WAReplyDelay:    get("WA_REPLY_DELAY", "2s-6s"),
-		WABackfillDays:  atoi(get("WA_BACKFILL_DAYS", "30")),
+		WABackfillDays:  atoi(get("WA_BACKFILL_DAYS", "365")),
 		WACloudNumber:   get("WA_CLOUD_NUMBER", ""),
 		WACloudPhoneID:  get("WA_CLOUD_PHONE_ID", ""),
 		WACloudToken:    get("WA_CLOUD_TOKEN", ""),
