@@ -10,8 +10,8 @@ import { useCycleLatest, useMCPCalls, useMCPInfo, useQueue, useWAAnalysis } from
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import { Queue } from '../control/Queue'
 import { WAHistoryCard, WAOverviewCard, WAThreadsCard, useCanWA } from '../wa/WAAnalysis'
-import { WAIntentMatrix, WASalesGrid } from '../wa/WACards'
-import { MCPClientsPanel, MCPRules, ModeSeg } from '../settings/AIConnections'
+import { WASalesGrid } from '../wa/WACards'
+import { MCPClientsPanel, MCPRules } from '../settings/AIConnections'
 
 // Default stage descriptions before the first cycle (mockup STAGES).
 const STAGE_HINT = ['WA · SO · bayar · stok cabang', '6 agen paralel', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
@@ -68,17 +68,16 @@ export function OrchestratorPage() {
       <SalesBanner page={page} />
       <div className="card orch-head">
         <div className="oh-l">
-          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca sinyal, membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda.</p></div></div>
+          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen. Analisanya ditulis Claude lewat MCP; GSI Orbit hanya menyiapkan data dan angka, menyelesaikan konflik antar usulan, lalu menyerahkan keputusan kepada Anda.</p></div></div>
         </div>
         <div className="oh-r">
           <div className="oh-kv"><small>Status</small><b>{st.running ? `Menganalisis ${st.scope} · ${st.stage}` : 'Siap · menunggu siklus'}</b></div>
           <div className="oh-kv"><small>Analisis terakhir</small><b>{st.run ? `#${st.run.toLocaleString('id-ID')} · ${st.last}` : '—'}</b></div>
           {canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${(wa.cycle_number ?? 0).toLocaleString('id-ID')} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
           <div className="oh-kv"><small>Berikutnya</small><b>{st.next} · tiap jam</b></div>
-          <div className="oh-kv"><small>Jalur analisis</small><ModeSeg /></div>
+          <div className="oh-kv"><small>Jalur analisis</small><b>Claude lewat MCP</b></div>
           <div className="oh-btns">
-            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all')}><Icon name="refresh" />Analisis ulang sekarang</button>
-            <button className="btn ghost" disabled={st.running} onClick={() => reanalyze('all', 'mcp')}><Icon name="plug" />Lewat MCP</button>
+            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all', 'mcp')} title="Claude menganalisis lewat MCP"><Icon name="plug" />Analisis ulang (Claude · MCP)</button>
           </div>
         </div>
       </div>
@@ -124,10 +123,6 @@ export function OrchestratorPage() {
                 <div key={k}><small>{l}</small><code style={{ overflowWrap: 'anywhere' }}>{(info?.tools ?? []).filter((t) => t.scope === k).map((t) => t.name).join(' · ')}</code></div>
               ))}
             </div>
-          </div>
-          <div className="card">
-            <div className="card-h"><h2>Matriks permintaan</h2><span className="meta">apa yang diminta dealer di chat</span></div>
-            <WAIntentMatrix data={wa} />
           </div>
         </div>
       </div>}

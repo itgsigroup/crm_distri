@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import type { WAAnalysis, WAInsight, WAIntent, WASalesRow } from '../../api/types'
+import type { WAAnalysis, WAInsight, WASalesRow } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { useMore } from '../../components/More'
 import { Pill, Prov } from '../../components/ui'
 import { fmtNum } from '../../lib/format'
-import { INTENTS, intentLabel, intentTone, itemsText, waitLabel, who } from './wa'
+import { waitLabel, who } from './wa'
 
-// Analisa WhatsApp in the original Pusat kendali / Orchestrator layout: one WhatsApp card for every former BigQuery card.
+// Analisa WhatsApp in the original Pusat kendali / Orchestrator layout. Only numbers measured from the chats and what
+// Claude wrote through MCP (summary per conversation, overview) — no rule-based reading of requests (ADR 0032).
 
 const replyText = (m: number | null | undefined) => (m == null ? '—' : waitLabel(m))
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?'
@@ -18,7 +19,6 @@ export function byWait(rows: WAInsight[]): WAInsight[] {
 }
 
 export const waWaiting = (d: WAAnalysis | undefined) => byWait((d?.items ?? []).filter((r) => !!r.waiting_since))
-export const waIntent = (d: WAAnalysis | undefined, ...ks: WAIntent[]) => byWait((d?.items ?? []).filter((r) => ks.includes(r.intent)))
 
 /** One conversation per row (the row-list of the original Jadwal order / Lewat jadwal cards). */
 export function WAChatList({ items, empty, limit = 8 }: { items: WAInsight[]; empty: string; limit?: number }) {
@@ -37,12 +37,10 @@ export function WAChatList({ items, empty, limit = 8 }: { items: WAInsight[]; em
               <div className="t">
                 {r.dealer_id ? <button className="ev" onClick={() => nav('/dealer/' + r.dealer_id)}>{who(r)}</button> : <b>{who(r)}</b>}
                 {r.kind === 'new' && <> · <Pill tone="indigo">nomor baru</Pill></>}
-                {' · '}<span className={`pill ${intentTone(r.intent)}`}>{intentLabel(r.intent)}</span>
                 {r.sales && <> · {r.sales}</>}
               </div>
               <div className="s">
-                {r.items.length > 0 && <>{itemsText(r.items)} · </>}
-                {r.summary ? <><span className="ai" />{r.summary}</> : r.last_text ? <q>{r.last_text}</q> : 'hanya pesan sales'}
+                {r.summary ? <><span className="ai" title="ditulis Claude lewat MCP" />{r.summary}</> : r.last_text ? <q>{r.last_text}</q> : 'hanya pesan sales'}
                 {r.proposal_ids.length > 0 && <> · <Icon name="spark" />{r.proposal_ids.length} usulan agen</>}
               </div>
             </div>
@@ -66,7 +64,7 @@ export function WABrief({ data, scoped }: { data: WAAnalysis | undefined; scoped
         <p className="wa-brief">{data.overview}</p>
       ) : (
         <p className="cl-empty" style={{ margin: '4px 0 8px' }}>
-          {scoped ? 'Ringkasan AI mencakup semua sales — di halaman sales ini hanya angkanya.' : <>Belum ada ringkasan dari AI pada siklus ini — angka dihitung GSI Orbit dari chat. Minta Claude lewat MCP: <i>"jalankan analisis GSI Orbit"</i>, atau tekan <b>Analisis ulang → Lewat MCP</b>.</>}
+          {scoped ? 'Ringkasan Claude mencakup semua sales — di halaman sales ini hanya angkanya.' : <>Belum ada ringkasan dari Claude (MCP) pada siklus ini — yang tampil hanya angka dari chat. Tekan <b>Analisis ulang</b>, atau minta di Claude <i>"jalankan analisis GSI Orbit"</i>.</>}
         </p>
       )}
       <div className="foot">
@@ -74,13 +72,13 @@ export function WABrief({ data, scoped }: { data: WAAnalysis | undefined; scoped
         <Prov icon="building">{t?.dealers ?? 0} dealer</Prov>
         <Prov icon="people">{t?.new_numbers ?? 0} nomor baru</Prov>
         <Prov icon="doc">{fmtNum(t?.inbound ?? 0)} pesan masuk</Prov>
-        <Prov style={{ marginLeft: 'auto' }}>{data?.source === 'ai' ? 'ditulis AI' : data?.cycle_number ? 'belum dianalisis AI' : '—'}</Prov>
+        <Prov style={{ marginLeft: 'auto' }}>{data?.source === 'ai' ? 'ditulis Claude (MCP)' : data?.cycle_number ? 'belum dianalisis Claude' : '—'}</Prov>
       </div>
     </>
   )
 }
 
-/** KPI utama from WhatsApp: three wheels plus what dealers asked for. */
+/** KPI utama from WhatsApp: three wheels (measured from the chats). */
 export function WAWheels({ data }: { data: WAAnalysis | undefined }) {
   const t = data?.totals
   const due = data?.reply_due_min ?? 120
@@ -94,7 +92,6 @@ export function WAWheels({ data }: { data: WAAnalysis | undefined }) {
     ['Menunggu', String(late), `chat menunggu lebih dari ${waitLabel(due)}`, late ? Math.max(5, 100 - late * 20) : 100, 'target 0', late ? 'bad' : 'good'],
   ]
   const c = 2 * Math.PI * 26
-  const max = Math.max(1, ...INTENTS.map((i) => t?.by_intent[i.key] ?? 0))
   return (
     <>
       <div className="wheels">
@@ -108,18 +105,6 @@ export function WAWheels({ data }: { data: WAAnalysis | undefined }) {
             <div><b>{title}</b><span>{s}</span><small>{tg}</small></div>
           </div>
         ))}
-      </div>
-      <div className="wa-intents one" aria-label="Permintaan di chat" style={{ marginTop: 14 }}>
-        {INTENTS.map((i) => {
-          const n = t?.by_intent[i.key] ?? 0
-          return (
-            <div className="wa-int" key={i.key}>
-              <span className="l">{i.label}</span>
-              <span className="bar"><i style={{ width: `${(n / max) * 100}%`, background: `var(--${i.tone === 'neutral' ? 'text-3' : i.tone})` }} /></span>
-              <span className="v num">{n}</span>
-            </div>
-          )
-        })}
       </div>
     </>
   )
@@ -151,7 +136,7 @@ export function WAAgenda({ data }: { data: WAAnalysis | undefined }) {
                 <li key={r.thread_id}>
                   <span className="dot" style={{ background: r.needs_reply ? 'var(--bad)' : 'var(--warn)' }} />
                   <button className="ev" onClick={() => nav('/chat/' + r.thread_id)}>{who(r)}</button>
-                  <span className="ag-what">{intentLabel(r.intent).toLowerCase()} · {waitLabel(r.wait_min)}</span>
+                  <span className="ag-what">menunggu {waitLabel(r.wait_min)}</span>
                 </li>
               ))}
               {items.length > 3 && <li><button className="ev-more" onClick={() => setOpenRow(all ? '' : s.name)}>{all ? 'ringkas' : `+${items.length - 3} chat lainnya`}</button></li>}
@@ -175,35 +160,9 @@ export function WASalesGrid({ rows }: { rows: WASalesRow[] }) {
         <div className="agent-card" key={s.name}>
           <div className="ac-h"><span className="ni"><Icon name="chat" /></span><div><b>{s.name || 'Tanpa sales'}</b><span>{s.threads} percakapan · {s.inbound} pesan masuk</span></div></div>
           <div className="ac-kv"><span><small>Belum dibalas</small>{s.waiting}</span><span><small>Lewat 2 jam</small>{s.needs_reply}</span><span><small>Waktu balas</small>{replyText(s.reply_median_min)}</span></div>
-          <div className="ac-out"><span className="ai" />{s.needs_reply ? `${s.needs_reply} chat perlu dibalas sekarang` : s.waiting ? `${s.waiting} chat belum dibalas, masih dalam batas` : 'Semua chat sudah dibalas'}</div>
         </div>
       ))}
     </div>
   )
 }
 
-/** Orchestrator "Matriks" from WhatsApp: what dealers asked for, how much still waits, how much the agents answered. */
-export function WAIntentMatrix({ data }: { data: WAAnalysis | undefined }) {
-  const items = data?.items ?? []
-  return (
-    <div className="tbl-wrap">
-      <table className="matrix">
-        <thead><tr><th>Permintaan</th><th className="r">Chat</th><th className="r">Belum dibalas</th><th className="r">Lewat 2 jam</th><th className="r">Usulan agen</th></tr></thead>
-        <tbody>
-          {INTENTS.map((i) => {
-            const rs = items.filter((r) => r.intent === i.key)
-            return (
-              <tr key={i.key}>
-                <td><span className={`pill ${i.tone}`}>{i.label}</span></td>
-                <td className="r num">{rs.length}</td>
-                <td className="r num">{rs.filter((r) => !!r.waiting_since).length}</td>
-                <td className="r num" style={rs.some((r) => r.needs_reply) ? { color: 'var(--bad)', fontWeight: 700 } : undefined}>{rs.filter((r) => r.needs_reply).length}</td>
-                <td className="r num">{rs.reduce((n, r) => n + r.proposal_ids.length, 0)}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
-  )
-}

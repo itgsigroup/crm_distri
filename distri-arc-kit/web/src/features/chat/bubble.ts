@@ -1,5 +1,5 @@
 import type { MediaView, MessageView, MsgAnalysis } from '../../api/types'
-import { intentLabel, intentTone, itemsText, waitLabel } from '../wa/wa'
+import { waitLabel } from '../wa/wa'
 
 // Analisa WhatsApp per bubble (ADR 0027): the line under each message.
 
@@ -30,8 +30,7 @@ export function bubbleLine(a: MsgAnalysis): BubbleLine {
       line.tone = 'bad'
       break
     case 'closing':
-      line.state = 'pesan penutup — tidak perlu dibalas'
-      break
+      break // no rule-based judgement in the bubble (ADR 0032)
     case 'reply':
       line.state = w != null ? `membalas setelah pelanggan menunggu ${waitLabel(w)}` : 'membalas pelanggan'
       line.tone = w != null && w > REPLY_DUE ? 'warn' : 'good'
@@ -40,10 +39,7 @@ export function bubbleLine(a: MsgAnalysis): BubbleLine {
       line.state = 'sales menyapa lebih dulu'
       break
   }
-  if (a.analyzed && a.intent && a.intent !== 'none' && a.state !== 'closing' && a.state !== 'reply' && a.state !== 'follow_up') {
-    line.request = { label: intentLabel(a.intent), tone: intentTone(a.intent), items: itemsText(a.items ?? []) }
-  }
-  return line
+  return line // requests are not read by rules any more; Claude's note says what the customer wants (ADR 0032)
 }
 
 // Media and edits in a bubble (ADR 0029).

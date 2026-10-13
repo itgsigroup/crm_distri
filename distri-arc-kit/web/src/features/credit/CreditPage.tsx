@@ -74,7 +74,7 @@ export function CreditPage() {
             <ul className="cin">
               {top.map((f) => (
                 <li key={f.dealer_id}>
-                  <div><b>{f.name}</b><span>{f.invoices > 1 ? `${f.invoices} invoice ` : ''}{fmtRp(f.open)} · pola {f.pay_days} hari{f.asked_tempo ? ' · minta tempo' : f.late_count ? ` · ${f.late_count} lewat` : ''}</span><ScreenNote a={ai} k={f.dealer_id} /></div>
+                  <div><b>{f.name}</b><span>{f.invoices > 1 ? `${f.invoices} invoice ` : ''}{fmtRp(f.open)} · pola {f.pay_days} hari{f.late_count ? ` · ${f.late_count} lewat` : ''}</span><ScreenNote a={ai} k={f.dealer_id} /></div>
                   <div className="p"><i style={{ width: `${Math.round(f.probability * 100)}%` }} /></div>
                   <em className="num">{fmtRp(f.expected)}</em>
                 </li>

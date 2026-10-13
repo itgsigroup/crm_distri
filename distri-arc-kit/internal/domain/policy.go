@@ -124,6 +124,10 @@ type LLMRouting struct {
 	RequireAI bool `json:"require_ai"`
 }
 
+// MCPOnly: every analysis is written by Claude through MCP (ADR 0032) — no template fallback, and neither the server
+// model nor rules write proposals, summaries, notes or page readings.
+func (l LLMRouting) MCPOnly() bool { return l.Mode == "mcp" }
+
 type Retention struct {
 	ChatDays      int `json:"chat_days"`
 	SignalsMonths int `json:"signals_months"`
@@ -181,7 +185,7 @@ func DefaultPolicies() PolicySet {
 	p.OdooWrite = OdooWritePolicy{Notes: true}
 	p.Guard = AutonomyGuard{MinConfidence: 0.8, DealerMessages: "confirm"}
 	p.MCP = MCPPermissions{AllowReanalyze: true, AllowPlanUpdateProposal: true, MaskPIIInRead: true, MaxCyclesPerHour: 6}
-	p.LLM = LLMRouting{Mode: "both", Provider: "anthropic", Model: "claude-sonnet-5-5", Fallback: "openai:gpt-4.1", BatchHours: []int{6, 20}, Timezone: "Asia/Jakarta", RequireAI: true}
+	p.LLM = LLMRouting{Mode: "mcp", Provider: "anthropic", Model: "claude-sonnet-5-5", Fallback: "openai:gpt-4.1", BatchHours: []int{6, 20}, Timezone: "Asia/Jakarta", RequireAI: true}
 	p.Retention = Retention{ChatDays: 365, SignalsMonths: 24, LLMCallsDays: 180}
 	p.Pilot = PilotPolicy{Mode: "off", Branch: "Semarang", ShadowDays: 14, UnlockConfidence: 80, UnlockWeeks: 2, MinDecisionsPerWeek: 5, Unlocked: []string{}}
 	return p

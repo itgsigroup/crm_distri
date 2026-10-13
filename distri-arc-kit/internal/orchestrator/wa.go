@@ -501,6 +501,9 @@ func (o *Orchestrator) writeWASummary(ctx context.Context, r *stageRun) error {
 	if o.Router == nil || !o.Router.HasModel() || (r.waRead && len(r.wa) == 0) || (!r.waRead && r.waMsgs == 0) {
 		return nil
 	}
+	if (r.cyc.Via != nil && *r.cyc.Via == "mcp") || (r.in != nil && r.in.Policies.LLM.MCPOnly()) {
+		return nil // read by Claude through MCP (orchestrator_submit "Analisa WhatsApp"), ADR 0032
+	}
 	rd, err := o.waReadingFor(ctx, r.cyc.ID)
 	if err != nil || len(rd.Threads) == 0 {
 		return nil

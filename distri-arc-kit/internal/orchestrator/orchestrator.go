@@ -454,6 +454,9 @@ func (o *Orchestrator) synthesize(ctx context.Context, r *stageRun) (map[string]
 	ri.MakeCollect = func(d *agents.Dealer) *domain.Proposal {
 		one := *r.in
 		one.Dealers = []*agents.Dealer{d}
+		if r.in.Policies.LLM.MCPOnly() {
+			return nil // MCP only (ADR 0032): a collect comes from Claude's AI Penagihan answer, not written here
+		}
 		ps, err := agents.Collect{}.Analyze(ctx, &one, o.Router)
 		if err != nil || len(ps) == 0 || (r.in.Policies.LLM.RequireAI && !agents.ByAI(ps[0])) {
 			return nil

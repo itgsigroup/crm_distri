@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Analisa hanya dari Claude lewat MCP · 2026-10-13
+- Orchestrator, Pusat kendali, Chat, Push stok, Kredit · kas kini hanya menampilkan analisa yang ditulis **Claude lewat MCP** (usulan, ringkasan WhatsApp, ringkasan per percakapan, catatan per bubble, Analisa Stok/Kas) plus angka yang diukur dari data (ADR 0032).
+- Dihapus: deteksi "permintaan" berbasis kata kunci (bar, matriks, filter, kartu Minta order / Tanya stok & harga / Rilis kredit & retur), feed "6 agen AI", Rencana hari ini dari chat, baris AI di grid sales, anotasi dan "Rekomendasi balasan (AI)" contoh, tag chat, "pesan penutup", "minta tempo", saran template di panel lead.
+- Backend: jalur analisis `mcp` + wajib AI (migrasi 0030); tanpa fallback template, tanpa tagihan otomatis dari aturan, tanpa ringkasan WhatsApp/halaman dari model server dalam mode MCP. Tombol Analisis ulang di halaman-halaman ini lewat MCP.
+
 ## Feat · Chat: kirim file, pesan suara, dan polling · 2026-10-13
 - Tombol **📎** di kolom ketik: **Dokumen**, **Foto & video**, **Polling**. File tampil sebagai pratinjau dan kolom ketik menjadi keterangannya (maks. 25 MB).
 - Tombol **mikrofon** saat kolom ketik kosong (seperti WhatsApp): rekam, batal, atau kirim **pesan suara**; bridge mengubah rekaman browser ke ogg/opus (`ffmpeg`) agar diputar di HP pelanggan.

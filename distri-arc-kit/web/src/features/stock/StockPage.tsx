@@ -106,7 +106,7 @@ function PushStockTable({ list, total, branches, branch, setBranch, pushOf, ai, 
   return (
     <div className="card push-card">
       <div className="card-h">
-        <h2>Push stok</h2><span className="ai" style={{ marginLeft: 6 }}>Analisa Stok · Claude (MCP)</span><span className="meta">Stok menua → dealer yang product mix-nya cocok &amp; jadwal order</span>
+        <h2>Push stok</h2><span className="ai" style={{ marginLeft: 6 }}>Analisa Stok · Claude (MCP)</span><span className="meta">Stok menua · dealer cocok dihitung dari product mix &amp; jadwal order (rumus)</span>
         <button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 8 }} disabled={running} onClick={onReanalyze} title="Claude membaca stok menua lewat MCP dan menulis analisanya di halaman ini"><Icon name="plug" />Analisis ulang</button>
       </div>
       <ScreenBrief a={ai} what="stok menua" />

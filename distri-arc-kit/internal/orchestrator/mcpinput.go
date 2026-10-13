@@ -361,7 +361,8 @@ func (o *Orchestrator) Submit(ctx context.Context, cycleID uuid.UUID, agent stri
 // default 10 minutes). Agents nobody answered fail when require_ai is on (no answer at all: the cycle fails),
 // otherwise they fall back to the Go templates (stage partial).
 func (o *Orchestrator) analyzeViaMCP(ctx context.Context, r *stageRun, list []agents.Agent) (map[string]any, error) {
-	strict := r.in.Policies.LLM.RequireAI
+	// MCP only (ADR 0032): an agent Claude did not answer has no proposals — never the Go templates
+	strict := r.in.Policies.LLM.RequireAI || r.in.Policies.LLM.MCPOnly()
 	fallback := map[string][]domain.Proposal{}
 	cid := r.cyc.ID
 	var waiting []string

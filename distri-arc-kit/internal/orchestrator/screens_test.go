@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"distri-arc/internal/domain"
 	"distri-arc/internal/llm"
@@ -181,5 +182,37 @@ func TestOneConversationBubblesThroughMCP(t *testing.T) {
 	var note string
 	if err := st.Pool.QueryRow(ctx, "select coalesce(note, '') from wa_message_insights where message_id = $1", msg).Scan(&note); err != nil || note == "" {
 		t.Fatalf("bubble note %q %v", note, err)
+	}
+}
+
+// ADR 0032: with llm.routing mode "mcp" every analysis comes from Claude through MCP. Nobody answering means no
+// proposals (no Go templates, even with require_ai off) and no WhatsApp overview or page reading from the server model.
+func TestMCPOnlyWritesNothingWithoutClaude(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	if _, err := st.Pool.Exec(ctx, `update policies set value = value || '{"mode": "mcp", "require_ai": false}'::jsonb where key = 'llm.routing'`); err != nil {
+		t.Fatal(err)
+	}
+	o.MCPWait = 300 * time.Millisecond
+	o.Router = &llm.Router{Primary: &modelStub{}, St: st, Log: o.Log}
+	if _, err := o.Run(ctx, all, sched); err == nil {
+		t.Error("a cycle nobody analysed through MCP should not succeed")
+	}
+	c, err := st.Q.LatestCycle(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var n int
+	if err := st.Pool.QueryRow(ctx, "select count(*) from proposals where cycle_id = $1", c.ID).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 {
+		t.Fatalf("%d proposals stored without Claude answering through MCP", n)
+	}
+	if a, err := st.Q.LatestWAAnalysis(ctx); err == nil && (a.Source == "ai" || a.Overview != nil) {
+		t.Fatalf("WhatsApp overview written outside MCP: %+v", a)
+	}
+	if _, err := st.Q.LatestScreenAnalysis(ctx, "stock"); err == nil {
+		t.Fatal("page reading written outside MCP")
 	}
 }

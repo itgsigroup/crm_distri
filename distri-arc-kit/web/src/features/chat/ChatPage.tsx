@@ -15,13 +15,6 @@ import { AttachMenu, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoi
 import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, mediaCaption, mediaName } from './bubble'
 
 
-// Proposal buttons on annotations get their real labels from AI proposals (stage 05); until then the label
-// comes from the mockup's action of the same id.
-const ACT_LABEL: Record<string, [string, string]> = {
-  so_sinar: ['Buat SO', 'check'], credit_graha: ['Setujui DP 50%', 'shield'], price_indo: ['Setujui counter', 'cash'],
-  reorder_mitra: ['Kirim', 'chat'], transfer_cam: ['Usulkan transfer', 'refresh'],
-}
-
 function initials(t: ThreadView | ThreadDetail['thread']) {
   if (t.kind === 'group') return '#'
   if (t.kind === 'new' && !/[a-z]/i.test(t.title)) return '?'
@@ -103,7 +96,6 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
               <div className="ibr-top">
                 <b>{c.title}</b>
                 {c.kind === 'group' && <span className="ibr-tag grp">{c.group_kind === 'external' ? 'GRUP EKS' : 'GRUP'}</span>}
-                {c.tag && <span className={`ibr-tag ${c.tag.k}`}>{c.tag.t}</span>}
                 <Waiting since={c.waiting_since} now={now} />
               </div>
               {c.kind !== 'group' && c.subtitle && <span className="ibr-src">≈ {c.subtitle}</span>}
@@ -127,12 +119,10 @@ function BubbleAnalysis({ a, dir }: { a: NonNullable<MessageView['analysis']>; d
   return (
     <div className={`bub-an ${dir}`}>
       <div className="bub-an-row">
-        {l.request && <span className={`pill ${l.request.tone}`}>{l.request.label}</span>}
-        {l.request?.items && <span className="bub-an-items">{l.request.items}</span>}
         {l.state && <span className={`bub-an-st ${l.tone}`}>{l.state}</span>}
         {!a.analyzed && <span className="bub-an-new">belum dianalisa</span>}
       </div>
-      {a.note && <div className="bub-an-note"><span className="ai" />{a.note}</div>}
+      {a.note && <div className="bub-an-note" title="ditulis Claude lewat MCP"><span className="ai" />{a.note}</div>}
     </div>
   )
 }
@@ -259,7 +249,6 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
   m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date
   onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
 }) {
-  const a = m.annotation
   const caption = mediaCaption(m.body, m.media)
   const edit = editableNow(m, now)
   const del = deletableNow(m, now)
@@ -282,13 +271,7 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
         {(m.can_reply || edit || del || caption) && <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} />}
         {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
       </div>
-      {a && (
-        <span className={`ann ${a.k}`}>
-          <span className="ai" />
-          {a.t}
-          {m.proposal ? <> · <AnnProposal p={m.proposal} /></> : a.act && ACT_LABEL[a.act] && <> · <AnnAction act={a.act} /></>}
-        </span>
-      )}
+      {m.proposal && <span className="ann"><span className="ai" />Usulan Claude · <AnnProposal p={m.proposal} /></span>}
       {analysis && m.analysis && <BubbleAnalysis a={m.analysis} dir={m.direction} />}
     </div>
   )
@@ -327,12 +310,6 @@ function AnnProposal({ p }: { p: NonNullable<MessageView['proposal']> }) {
   const { openSheet } = useFeedback()
   const done = p.status === 'executed' || p.status === 'approved' || p.status === 'edited'
   return <button onClick={() => openSheet(<ProposalSheet id={p.id} />)}>{done ? 'Dijalankan ✓' : p.status === 'rejected' ? 'Ditolak' : p.button || 'Lihat'}</button>
-}
-
-function AnnAction({ act }: { act: string }) {
-  const [label] = ACT_LABEL[act]
-  const { toast } = useFeedback()
-  return <button onClick={() => toast(`${label}: proposal disusun agen setelah Stage 05`)}>{label}</button>
 }
 
 const PER_MSG_KEY = 'chat.analysis.per-message'
@@ -560,12 +537,6 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         })}
       </div>
       <div className="th-c ibc-c">
-        {(t.suggestions ?? []).length > 0 && (
-          <div className="ibc-sug">
-            <span className="ibc-sug-h"><span className="ai" style={{ fontSize: 0 }} />Rekomendasi balasan (AI) — klik untuk pakai</span>
-            <div className="sug">{(t.suggestions ?? []).map((x) => <button key={x} type="button" className="chip" onClick={() => setText(x)}>{x}</button>)}</div>
-          </div>
-        )}
         {replying && (
           <div className="ibc-editing reply">
             <ReplyIcon />
@@ -610,7 +581,7 @@ function Kv({ rows }: { rows: [string, ReactNode][] }) {
 
 /** The lead panel (Komo-style): who this is, where they came from, what AI suggests, and Accurate. */
 /** The tabs the slim (ringkas) lead panel offers as icons; a click opens the panel on that tab. */
-const MINI_TABS: [LeadTab, string, string][] = [['ai', 'spark', 'Analisa AI'], ['src', 'net', 'Sumber'], ['accurate', 'doc', 'Data Accurate'], ['stats', 'chart', 'Statistik']]
+const MINI_TABS: [LeadTab, string, string][] = [['ai', 'spark', 'Analisa Claude'], ['src', 'net', 'Sumber'], ['accurate', 'doc', 'Data Accurate'], ['stats', 'chart', 'Statistik']]
 
 function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean; setMini: (v: boolean) => void; onAccurate: () => void }) {
   const { data: ctx } = useChatContext(id)
@@ -633,26 +604,29 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
   const tone = d ? STATUS_TONE[d.metrics.status] ?? 'accent' : t.kind === 'new' ? 'accent' : 'neutral'
   const filled = d ? Math.max(1, Math.round((d.metrics.score / 100) * 7)) : t.kind === 'new' ? (idf ? Math.max(2, Math.round((idf.score / 100) * 7)) : 1) : 0
   const num = wa?.items.find((n) => n.wa_number === tv?.account)
-  const recommendation = d?.next?.title ?? idf?.potential ?? t.suggestions?.[0] ?? null
+  // only a proposal (written by Claude through MCP, ADR 0032) — no rule or template text
+  const recommendation = d?.next?.title ?? null
   const warn = d
     ? d.metrics.credit.state === 'over limit' || d.metrics.credit.state === 'overdue'
       ? { h: `Kredit ${d.metrics.credit.state}`, t: `Exposure ${fmtRp(d.metrics.credit.exposure)} dari limit ${fmtRp(d.credit_limit)}${d.metrics.credit.late_days ? ` · telat ${d.metrics.credit.late_days} hari` : ''}. Order baru perlu persetujuan kredit.` }
       : d.metrics.status === 'At risk' || d.metrics.status === 'Churn'
-        ? { h: `Dealer ${d.metrics.status}`, t: `Order terakhir ${d.metrics.last_order_days ?? '—'} hari lalu (ritme ${d.metrics.rhythm_days ?? '—'} hari). Prioritaskan follow-up.` }
+        ? { h: `Dealer ${d.metrics.status}`, t: `Order terakhir ${d.metrics.last_order_days ?? '—'} hari lalu (ritme ${d.metrics.rhythm_days ?? '—'} hari).` }
         : null
     : t.kind === 'new'
-      ? { h: 'Belum ada di master pelanggan', t: 'Nomor ini belum ditemukan di data pelanggan Accurate; bisa jadi calon dealer baru atau kontak dari dealer yang sudah ada.' }
+      ? { h: 'Belum ada di master pelanggan', t: 'Nomor ini belum ditemukan di data pelanggan Accurate.' }
       : null
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['chat', 'context', id] })
     qc.invalidateQueries({ queryKey: ['chat', 'thread', id] })
     toast('Panel lead diperbarui')
   }
-  const extracted = (
+  // Claude's notes per customer bubble (Analisa WhatsApp through MCP)
+  const notes = th.messages.filter((m) => m.direction === 'in' && m.analysis?.note)
+  const claudeNotes = (
     <ul className="ibp-ext">
-      {ctx.extracted.length === 0 && <li className="muted">Belum ada yang diekstrak dari chat ini</li>}
-      {ctx.extracted.map((e) => (
-        <li key={e.sent_at + e.annotation.t}><Icon name={e.annotation.k === 'bad' ? 'flag' : e.annotation.k === 'warn' ? 'alert' : 'check'} /><span>{e.annotation.t}<small>{e.from_name} · {hhmm(e.sent_at)}</small></span></li>
+      {notes.length === 0 && <li className="muted">Belum ada catatan Claude — tekan Analisa lanjut</li>}
+      {notes.slice(-12).map((m) => (
+        <li key={m.id}><span className="ai" style={{ fontSize: 0 }} /><span>{m.analysis!.note}<small>{m.from_name} · {hhmm(m.sent_at)}</small></span></li>
       ))}
     </ul>
   )
@@ -682,7 +656,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
       <div className="ibp-dark">
         <div className="ibp-bar">
           <Icon name={t.kind === 'dealer' ? 'building' : group ? 'people' : 'user-x'} />
-          <b>{kindLabel}</b><span>· Analisa AI</span>
+          <b>{kindLabel}</b><span>· Claude (MCP)</span>
           <span className="sp" />
           {d && <button type="button" onClick={() => nav('/dealer/' + d.id)} title="Buka halaman dealer" aria-label="Buka halaman dealer"><Icon name="arrow" /></button>}
           <button type="button" onClick={refresh} title="Muat ulang" aria-label="Muat ulang panel"><Icon name="refresh" /></button>
@@ -707,12 +681,11 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
             <Kv rows={[
               ['Telepon', t.phone ? fmtPhone(t.phone) : null],
               ['Tahap', stage],
-              ['Minat', t.tag?.t ?? tv?.tag?.t ?? null],
               ['Sumber', t.subtitle ? `≈ ${t.subtitle}` : null],
               ['Sales', t.sales || null],
             ]} />
             {warn && <div className="ibp-warn"><b>{warn.h}</b><span>{warn.t}</span></div>}
-            {recommendation && <div className="ibp-rec"><b><span className="ai" style={{ fontSize: 0 }} />REKOMENDASI AI</b><span>{recommendation}</span></div>}
+            {recommendation && <div className="ibp-rec"><b><span className="ai" style={{ fontSize: 0 }} />USULAN CLAUDE (MCP)</b><span>{recommendation}</span></div>}
             {d?.next && <ActBtn next={d.next} />}
             {t.kind === 'new' && (
               <div className="ibp-row">
@@ -721,7 +694,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
               </div>
             )}
             <div className="ibp-grid">
-              <button type="button" onClick={() => setTab('ai')}>Analisa AI <Icon name="arrow" /></button>
+              <button type="button" onClick={() => setTab('ai')}>Analisa Claude <Icon name="arrow" /></button>
               <button type="button" onClick={() => setTab('src')}>Asal lead <Icon name="arrow" /></button>
               <button type="button" onClick={() => setTab('accurate')}>Data Accurate <Icon name="arrow" /></button>
               {d && <button type="button" onClick={() => nav('/dealer/' + d.id)}>Halaman dealer <Icon name="arrow" /></button>}
@@ -731,10 +704,10 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
         )}
         {tab === 'ai' && (
           <>
-            <h4>Diekstrak dari chat ini <span className="ai" style={{ marginLeft: 4, fontSize: 0 }} /></h4>
-            {extracted}
-            {d?.next && <><h4>Langkah berikutnya</h4><div className="ibp-rec"><b>{d.next.agent}</b><span>{d.next.title}{d.next.why ? ` — ${d.next.why}` : ''}</span></div><ActBtn next={d.next} /></>}
-            {(t.suggestions ?? []).length > 0 && <><h4>Rekomendasi balasan</h4><ul className="ibp-ext">{t.suggestions!.map((x) => <li key={x}><Icon name="chat" /><span>{x}</span></li>)}</ul></>}
+            <h4>Catatan Claude per pesan <span className="ai" style={{ marginLeft: 4, fontSize: 0 }} /></h4>
+            {claudeNotes}
+            {d?.next && <><h4>Usulan Claude</h4><div className="ibp-rec"><b>{d.next.agent}</b><span>{d.next.title}{d.next.why ? ` — ${d.next.why}` : ''}</span></div><ActBtn next={d.next} /></>}
+            <p className="ibp-note">Analisa di panel ini hanya yang ditulis Claude lewat MCP (Analisa lanjut).</p>
           </>
         )}
         {tab === 'src' && (
@@ -752,7 +725,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
                 <ul className="ibp-ext">{idf.sources.map((x) => <li key={x.source}><Icon name={x.ok === 'true' ? 'check' : 'alert'} /><span>{x.value}<small>{x.source}</small></span></li>)}</ul>
               </>
             )}
-            {!idf && t.kind === 'new' && <p className="ibp-note">AI Prospek mengidentifikasi nomor ini setelah ia mengirim pesan.</p>}
+            {!idf && t.kind === 'new' && <p className="ibp-note">Nomor ini diidentifikasi setelah ia mengirim pesan.</p>}
           </>
         )}
         {tab === 'accurate' && (
@@ -828,7 +801,7 @@ function AccurateSheet({ id }: { id: string }) {
   const t = th.thread
   const d = ctx?.dealer
   const idf = ctx?.identification
-  const notes = (ctx?.extracted ?? []).slice(-3).map((e) => e.annotation.t)
+  const notes = th.messages.filter((m) => m.direction === 'in' && m.analysis?.note).slice(-3).map((m) => m.analysis!.note!)
   const fields: [string, string][] = [
     ['Nama pelanggan', d?.name ?? idf?.best_name ?? t.title],
     ['Perusahaan', idf?.best_org ?? ''],

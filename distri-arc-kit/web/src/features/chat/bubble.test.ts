@@ -3,8 +3,9 @@ import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, mediaCapti
 
 describe('bubbleLine', () => {
   it('a customer order waiting too long', () => {
+    // no rule-based request reading in the bubble (ADR 0032): only the measured wait
     const l = bubbleLine({ state: 'needs_reply', wait_min: 300, analyzed: true, intent: 'order', items: [{ name: 'Kamera IP 4MP', qty: 10 }] })
-    expect(l).toEqual({ state: 'menunggu 5 jam — perlu dibalas', tone: 'bad', request: { label: 'Minta order', tone: 'good', items: '10 Kamera IP 4MP' } })
+    expect(l).toEqual({ state: 'menunggu 5 jam — perlu dibalas', tone: 'bad' })
   })
   it('answered quickly, answered late, and the sales side', () => {
     expect(bubbleLine({ state: 'replied', wait_min: 25, analyzed: true, intent: 'ask_price' }).tone).toBe('good')
@@ -13,7 +14,7 @@ describe('bubbleLine', () => {
     expect(bubbleLine({ state: 'follow_up', wait_min: null, analyzed: true }).state).toBe('sales menyapa lebih dulu')
   })
   it('a closing message and a bubble not analysed yet carry no request', () => {
-    expect(bubbleLine({ state: 'closing', wait_min: null, analyzed: true, intent: 'other' }).request).toBeUndefined()
+    expect(bubbleLine({ state: 'closing', wait_min: null, analyzed: true, intent: 'other' })).toEqual({ state: '', tone: 'neutral' })
     expect(bubbleLine({ state: 'waiting', wait_min: 10, analyzed: false }).request).toBeUndefined()
   })
 })

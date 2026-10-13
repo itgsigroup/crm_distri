@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 const routes = [
-  ['pusat-kendali', '/', 'Rencana hari ini'],
+  ['pusat-kendali', '/', 'Menunggu balasan'],
   ['orbit', '/orbit', 'Isi orbit'],
   ['segmen', '/orbit/segmen', 'Isi segmen'],
   ['dealer-mitra', '/dealer/mitra', 'CV Mitra Jaya Teknik'],
@@ -31,10 +31,11 @@ for (const [name, path, text] of routes) {
 test('Pusat kendali shows the numbers from the API', async ({ page }) => {
   await page.goto('/', { waitUntil: 'networkidle' })
   const strip = page.locator('.status-strip')
-  // every analysis on Pusat kendali is read from WhatsApp (ADR 0026)
+  // Pusat kendali shows counts from WhatsApp and only Claude's (MCP) analysis — no rule-based request reading (ADR 0032)
   await expect(strip.getByText('Chat menunggu')).toBeVisible()
-  await expect(strip.getByText('Minta order')).toBeVisible()
-  await expect(page.locator('main').getByText('Ringkasan WhatsApp')).toBeVisible()
+  await expect(strip.getByText('Minta order')).toHaveCount(0)
+  await expect(page.locator('main').getByText(/Ringkasan Claude \(MCP\)/)).toBeVisible()
+  await expect(page.locator('main').getByText('6 agen AI')).toHaveCount(0)
   await expect(page.locator('main').getByText('Jadwal order · 7 hari')).toHaveCount(0)
   await expect(page.locator('.dn')).toHaveCount(0)
   await page.goto('/orbit', { waitUntil: 'networkidle' })
