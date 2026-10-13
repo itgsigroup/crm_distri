@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { countFilters, filterOf, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel } from './inbox'
 
+const W = '2026-10-09T10:00:00Z'
+
 describe('chat inbox', () => {
   it('splits groups into internal and external', () => {
     expect(filterOf({ kind: 'group', group_kind: 'external' })).toBe('group_external')
     expect(filterOf({ kind: 'group', group_kind: 'internal' })).toBe('group_internal')
     expect(filterOf({ kind: 'group' })).toBe('group_internal')
     expect(filterOf({ kind: 'new' })).toBe('new')
-    expect(countFilters([{ kind: 'dealer', unread: 0 }, { kind: 'dealer', unread: 2 }, { kind: 'group', group_kind: 'external', unread: 1 }, { kind: 'new', unread: 0 }]))
-      .toEqual({ all: 4, unread: 2, dealer: 2, group_internal: 0, group_external: 1, new: 1 })
+    expect(countFilters([{ kind: 'dealer', unread: 0, waiting_since: W }, { kind: 'dealer', unread: 2 }, { kind: 'group', group_kind: 'external', unread: 1, waiting_since: W }, { kind: 'new', unread: 0, waiting_since: W }]))
+      .toEqual({ all: 4, unread: 2, unreplied: 2, dealer: 2, group_internal: 0, group_external: 1, new: 1 })
   })
 
   it('filters unread conversations of every kind', () => {
@@ -16,6 +18,13 @@ describe('chat inbox', () => {
     expect(inFilter({ kind: 'dealer', unread: 0 }, 'unread')).toBe(false)
     expect(inFilter({ kind: 'dealer', unread: 0 }, 'all')).toBe(true)
     expect(inFilter({ kind: 'new', unread: 1 }, 'dealer')).toBe(false)
+  })
+
+  it('filters conversations waiting for our reply, not groups', () => {
+    expect(inFilter({ kind: 'dealer', unread: 0, waiting_since: W }, 'unreplied')).toBe(true)
+    expect(inFilter({ kind: 'new', unread: 0, waiting_since: W }, 'unreplied')).toBe(true)
+    expect(inFilter({ kind: 'dealer', unread: 3, waiting_since: null }, 'unreplied')).toBe(false)
+    expect(inFilter({ kind: 'group', group_kind: 'external', unread: 0, waiting_since: W }, 'unreplied')).toBe(false)
   })
 
   it('searches name, subtitle and last message', () => {

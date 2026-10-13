@@ -55,3 +55,8 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - Backfill on-demand (`fetchMessageHistory`) diuji dengan HP palsu, belum dengan HP sungguhan. Yang perlu dilihat di produksi sesudah deploy: log worker `wa backfill` (requested/done) dan bertambahnya pesan lama per chat. Bila chat 1-on-1 tidak pernah mendapat pesan lebih lama, kemungkinan HP menjawab hanya untuk JID bentuk lain (PN vs LID) — bridge kini memakai LID bila dikenal.
 - WhatsApp hanya mengirim riwayat yang masih ada di HP dan saat HP online; chat yang sudah dihapus di HP tidak bisa diambil.
 - Retensi chat kini 365 hari (dari 90). Bila kebijakan privasi/UU PDP GSI menetapkan lain, ubah di Pengaturan → Kebijakan `retention.chat_days`; backfill ikut berhenti di batas itu.
+
+## Media & edit di Chat (2026-10-13, ADR 0029)
+- Media hanya bisa dibuka lewat bridge Baileys. Untuk Cloud API perlu unduh lewat Graph API (`GET /{media-id}`) — belum dibuat.
+- Mengirim foto/dokumen dari Chat dan mengedit caption media belum dibuat; edit hanya untuk pesan teks.
+- Media dari pesan sebelum 13 Okt belum punya referensi unduh ("buka di ponsel") sampai WhatsApp mengirimnya lagi lewat sinkron riwayat. Belum diuji dengan HP sungguhan: unduh ulang file kedaluwarsa (`updateMediaMessage`) dan edit ke chat yang dialamatkan lewat LID.

@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { Policy } from './config.js'
 import { dailyCap } from './guard.js'
 import { SendError, type Sender, type SendTarget } from './sender.js'
-import { HistoryBusy } from './session.js'
+import { HistoryBusy, MediaBusy } from './session.js'
 import { verify } from './sign.js'
 import type { Store } from './store.js'
 
@@ -12,6 +12,7 @@ export interface BridgeSession extends SendTarget {
   listGroups(): Promise<unknown[]>
   profile(jid: string): Promise<unknown>
   fetchHistory(chat: string, oldest: { id: string; fromMe: boolean; ts: number }, count: number): Promise<void>
+  downloadMedia(ref: string): Promise<NodeJS.ReadableStream>
 }
 
 export interface BridgeManager {
@@ -57,6 +58,9 @@ async function readBody(req: IncomingMessage): Promise<string> {
  *   GET    /sessions/{id}/groups          joined groups with members
  *   GET    /sessions/{id}/contacts/{jid}  profile (name, about, has_photo, business)
  *   POST   /sessions/{id}/send            {chat_id, text, action_id} → {wamid}
+ *   POST   /sessions/{id}/edit            {chat_id, wamid, text, action_id} → {wamid}: edit a sent text (approved action)
+ *   POST   /sessions/{id}/media           {ref, mime} → the file (streamed, never stored); 409 not connected,
+ *                                         429 too many at once, 410 gone from WhatsApp and the phone
  *   POST   /sessions/{id}/history         {chat_id, id, from_me, ts (ms), count ≤ 50} → 202; the phone's answer
  *                                         arrives as history events (409 not connected, 429 paced)
  *   DELETE /sessions/{id}                 log out and forget the device
@@ -118,6 +122,34 @@ export function handler(d: Deps) {
           }
           throw e
         }
+      }
+      if (method === 'POST' && parts[2] === 'edit') {
+        const inp = JSON.parse(body || '{}') as { chat_id?: string; wamid?: string; text?: string; action_id?: string }
+        try {
+          return json(res, 200, await d.sender.edit(s, inp.chat_id ?? '', inp.wamid ?? '', inp.text ?? '', inp.action_id ?? ''))
+        } catch (e) {
+          if (e instanceof SendError) return json(res, e.status, { error: e.message, code: e.code })
+          throw e
+        }
+      }
+      if (method === 'POST' && parts[2] === 'media') {
+        const inp = JSON.parse(body || '{}') as { ref?: string; mime?: string }
+        if (!inp.ref) return json(res, 400, { error: 'ref wajib' })
+        let stream: NodeJS.ReadableStream
+        try {
+          stream = await s.downloadMedia(inp.ref)
+        } catch (e) {
+          if (e instanceof MediaBusy) return json(res, e.status, { error: e.message, code: e.status === 409 ? 'not_linked' : 'busy' })
+          const status = (e as { output?: { statusCode?: number }; status?: number }).output?.statusCode ?? (e as { status?: number }).status
+          if (status === 404 || status === 410) return json(res, 410, { error: 'media sudah tidak tersedia di WhatsApp', code: 'gone' })
+          throw e
+        }
+        res.writeHead(200, { 'Content-Type': /^[\w.+-]+\/[\w.+-]+/.test(inp.mime ?? '') ? (inp.mime as string).split(';')[0] : 'application/octet-stream' })
+        for await (const chunk of stream) {
+          if (!res.write(chunk)) await new Promise(r => res.once('drain', r))
+        }
+        res.end()
+        return
       }
       if (method === 'POST' && parts[2] === 'history') {
         const inp = JSON.parse(body || '{}') as { chat_id?: string; id?: string; from_me?: boolean; ts?: number; count?: number }

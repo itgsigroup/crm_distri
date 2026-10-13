@@ -1,6 +1,6 @@
 import type { WAMessage } from 'baileys'
 import { describe, expect, it } from 'vitest'
-import { messageText, toWaEvent, type Resolver } from '../src/events.js'
+import { decodeMediaRef, messageText, toWaEvent, type Resolver } from '../src/events.js'
 
 const r: Resolver = {
   ownPhone: '6281200000001',
@@ -22,6 +22,28 @@ describe('Baileys → WaEvent', () => {
     expect(own).toMatchObject({ from: '6281200000001', to: '6281299887766', from_me: true, is_history: true, sender_name: '' })
     const g = await toWaEvent('s-andi', msg({ id: 'A3', remoteJid: '1203@g.us', participant: '111@lid', fromMe: false }, { conversation: 'Jadwal survei Kamis' }), r, false)
     expect(g).toMatchObject({ is_group: true, chat_id: '1203@g.us', from: '6281299887766', group_meta: { name: 'Proyek RSUD' } })
+  })
+  it('keeps a download reference for media: key and CDN fields only, no caption or thumbnail', async () => {
+    const key = new Uint8Array([1, 2, 3, 4])
+    const ev = await toWaEvent('s', msg({ id: 'IMG1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, {
+      imageMessage: { caption: 'Foto kamera rusak', mimetype: 'image/jpeg', fileLength: 2048, mediaKey: key, directPath: '/v/t62/abc', url: 'https://mmg.whatsapp.net/abc', jpegThumbnail: new Uint8Array(500) },
+    }), r, false)
+    expect(ev).toMatchObject({ text: 'Foto kamera rusak', media_meta: { kind: 'image', mime: 'image/jpeg', size: 2048 } })
+    const back = decodeMediaRef(ev!.media_meta!.ref!)
+    expect(back.key).toMatchObject({ id: 'IMG1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false })
+    expect(back.message?.imageMessage).toMatchObject({ directPath: '/v/t62/abc', mimetype: 'image/jpeg' })
+    expect([...(back.message?.imageMessage?.mediaKey ?? [])]).toEqual([1, 2, 3, 4])
+    expect(back.message?.imageMessage?.caption ?? '').toBe('')
+    expect(back.message?.imageMessage?.jpegThumbnail?.length ?? 0).toBe(0)
+    const vn = await toWaEvent('s', msg({ id: 'VN1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, { audioMessage: { mimetype: 'audio/ogg; codecs=opus', seconds: 12, ptt: true, mediaKey: key, directPath: '/v/a' } }), r, false)
+    expect(vn?.media_meta).toMatchObject({ kind: 'audio', seconds: 12, ptt: true })
+    expect(vn?.media_meta?.ref).toBeTruthy()
+  })
+  it('maps an edit to the edited message id and its new text', async () => {
+    const ev = await toWaEvent('s', msg({ id: 'E1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, {
+      protocolMessage: { type: 14, key: { id: 'ORIG1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, editedMessage: { conversation: 'Minta 20 kamera, bukan 16' } },
+    }), r, false)
+    expect(ev).toMatchObject({ wamid: 'E1', edit_of: 'ORIG1', text: 'Minta 20 kamera, bukan 16' })
   })
   it('keeps media metadata but never content, and skips status, reactions and protocol messages', async () => {
     expect(messageText({ documentMessage: { fileName: 'BoQ.pdf', mimetype: 'application/pdf', caption: 'BoQ revisi' } })).toMatchObject({ text: 'BoQ revisi', media: { kind: 'document', file_name: 'BoQ.pdf' } })

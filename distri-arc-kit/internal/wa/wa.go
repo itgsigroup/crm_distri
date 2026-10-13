@@ -6,6 +6,8 @@ package wa
 
 import (
 	"context"
+	"errors"
+	"io"
 	"strings"
 	"time"
 )
@@ -24,6 +26,26 @@ type Message struct {
 	Time       time.Time `json:"time"`
 	ChatName   string    `json:"chat_name,omitempty"` // contact name on the linked phone (address book / push / business)
 	History    bool      `json:"history,omitempty"`   // synced history after linking, not a live message
+	Media      *Media    `json:"media,omitempty"`
+	// EditOf: this message is a WhatsApp edit of the message with that id; Text replaces its text.
+	EditOf string `json:"edit_of,omitempty"`
+}
+
+// Media describes a message's photo, video, voice note, document or sticker. The content is never stored: Ref is
+// the transport's reference to fetch it from WhatsApp when a person opens it (ADR 0029).
+type Media struct {
+	Kind     string `json:"kind"` // image | video | gif | audio | document | sticker | location | contact
+	Mime     string `json:"mime,omitempty"`
+	FileName string `json:"file_name,omitempty"`
+	Size     int64  `json:"size,omitempty"`
+	Seconds  int    `json:"seconds,omitempty"`
+	PTT      bool   `json:"ptt,omitempty"` // a voice note recorded in WhatsApp (not an audio file)
+	Ref      string `json:"ref,omitempty"`
+}
+
+// Viewable reports whether the file can be fetched to show in Chat.
+func (m *Media) Viewable() bool {
+	return m != nil && m.Ref != "" && m.Kind != "location" && m.Kind != "contact"
 }
 
 // Status is the connection state of one paired number.
@@ -121,6 +143,27 @@ const PairCodePrefix = "code:"
 // LinkingPrefix marks a device whose QR was just scanned (or code typed): the phone is logging in and the first
 // sync is starting; the number follows with the "connected" status.
 const LinkingPrefix = "linking:"
+
+// Editor is implemented by transports that can edit a text the number sent (WhatsApp: within 15 minutes). Like Send,
+// the outbox id of an approved edit travels in ctx (WithAction).
+type Editor interface {
+	Edit(ctx context.Context, account, chatJID, waMsgID, text string) error
+}
+
+// EditWindow is how long after sending WhatsApp accepts an edit.
+const EditWindow = 15 * time.Minute
+
+// MediaFetcher is implemented by transports that can fetch a message's media from WhatsApp on demand. The caller
+// closes the body.
+type MediaFetcher interface {
+	Media(ctx context.Context, account string, m Media) (io.ReadCloser, error)
+}
+
+// ErrMediaGone: WhatsApp no longer has the file and the phone could not upload it again.
+var ErrMediaGone = errors.New("media sudah tidak tersedia di WhatsApp")
+
+// ErrMediaUnavailable: the number holding the message is not connected, or too many files are being opened at once.
+var ErrMediaUnavailable = errors.New("media belum bisa dibuka")
 
 // Unpairer is implemented by transports that can log a linked device out (Pengaturan → WhatsApp → Lepas).
 type Unpairer interface {

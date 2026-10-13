@@ -4,7 +4,8 @@ import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
 import { fmtRp } from '../../lib/format'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { useCreditDealers, useCreditExposure, useCreditForecast, useCreditOverview, useOrbit } from '../../app/queries'
+import { useCreditDealers, useCreditExposure, useCreditForecast, useCreditOverview, useOrbit, useScreenAnalysis } from '../../app/queries'
+import { ScreenBrief, ScreenNote } from '../../components/ScreenAI'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { EXPOSURE_COMPARE, exposureFirstDir, exposureLines, exposureText, exposureTie, type ExposureColumn, type ExposureLine } from './exposure'
 
@@ -20,6 +21,7 @@ export function CreditPage() {
   const { data: ex = [] } = useCreditExposure()
   const { data: fc = [] } = useCreditForecast()
   const { data: board = [] } = useOrbit()
+  const { data: ai } = useScreenAnalysis('credit')
   const next = new Map(board.map((d) => [d.id, d.next]))
   const lines = useMemo(() => exposureLines(ex, board), [ex, board])
 
@@ -42,9 +44,10 @@ export function CreditPage() {
       <div className="grid-2">
         <div className="card">
           <div className="card-h">
-            <h2>Sisa limit tiap dealer</h2><span className="ai" style={{ marginLeft: 6 }}>AI Kredit</span><span className="meta">Ruang kredit tersisa · pola bayar</span>
-            <button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 8 }} disabled={orch.running} onClick={() => reanalyze('screen:credit')}><Icon name="refresh" />Analisis ulang</button>
+            <h2>Sisa limit tiap dealer</h2><span className="ai" style={{ marginLeft: 6 }}>Analisa Kas · Claude (MCP)</span><span className="meta">Ruang kredit tersisa · pola bayar</span>
+            <button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 8 }} disabled={orch.running} onClick={() => reanalyze('screen:credit', 'mcp')} title="Claude membaca piutang dan prediksi kas lewat MCP dan menulis analisanya di halaman ini"><Icon name="plug" />Analisis ulang</button>
           </div>
+          <ScreenBrief a={ai} what="piutang dan prediksi kas" />
           <ul className="l2c">
             {ar.slice(0, 5).map((x) => {
               const over = x.overdue > 0
@@ -58,8 +61,8 @@ export function CreditPage() {
                     <div className="seg5"><i className={over ? `cur ${k}` : 'done'} /><i className={over ? '' : 'done'} /><i className={over ? '' : 'done'} /><i /><i /></div>
                     <div className="stg"><span>{over ? 'lewat jatuh tempo' : 'belum jatuh tempo'}</span><em className="num" style={{ color: `var(--${k})` }}>{over ? x.late_days + ' hr' : 'OK'}</em></div>
                   </div>
-                  <div className="note">Terbuka {fmtRp(x.open)}{over && <> · <b style={{ color: 'var(--bad)' }}>lewat {fmtRp(x.overdue)}</b></>}</div>
-                  <div>{act ? <ActBtn small next={act} /> : <span className="pill good"><Icon name="check" />Pengingat H-3 otomatis</span>}</div>
+                  <div className="note">Terbuka {fmtRp(x.open)}{over && <> · <b style={{ color: 'var(--bad)' }}>lewat {fmtRp(x.overdue)}</b></>}<ScreenNote a={ai} k={x.dealer_id} /></div>
+                  <div>{act ? <ActBtn small next={act} /> : <span className="pill neutral">Belum ada usulan</span>}</div>
                 </li>
               )
             })}
@@ -71,7 +74,7 @@ export function CreditPage() {
             <ul className="cin">
               {top.map((f) => (
                 <li key={f.dealer_id}>
-                  <div><b>{f.name}</b><span>{f.invoices > 1 ? `${f.invoices} invoice ` : ''}{fmtRp(f.open)} · pola {f.pay_days} hari{f.asked_tempo ? ' · minta tempo' : f.late_count ? ` · ${f.late_count} lewat` : ''}</span></div>
+                  <div><b>{f.name}</b><span>{f.invoices > 1 ? `${f.invoices} invoice ` : ''}{fmtRp(f.open)} · pola {f.pay_days} hari{f.asked_tempo ? ' · minta tempo' : f.late_count ? ` · ${f.late_count} lewat` : ''}</span><ScreenNote a={ai} k={f.dealer_id} /></div>
                   <div className="p"><i style={{ width: `${Math.round(f.probability * 100)}%` }} /></div>
                   <em className="num">{fmtRp(f.expected)}</em>
                 </li>

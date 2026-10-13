@@ -140,7 +140,9 @@ with k as (
   update chat_message_keys set wa_msg_id = sqlc.narg(wa_msg_id)::text, sent_at = sqlc.arg(sent_at)::timestamptz
   where message_id = sqlc.arg(id)::uuid
 )
-update chat_messages set wa_msg_id = sqlc.narg(wa_msg_id)::text, status = sqlc.arg(status)::text, sent_at = sqlc.arg(sent_at)::timestamptz
+update chat_messages set wa_msg_id = sqlc.narg(wa_msg_id)::text, status = sqlc.arg(status)::text, sent_at = sqlc.arg(sent_at)::timestamptz,
+  -- the text that actually went out (an edit made while it was queued may have come too late)
+  body = coalesce(sqlc.narg(body)::text, body)
 where id = sqlc.arg(id)::uuid;
 
 -- name: ListThreads :many
@@ -373,3 +375,34 @@ update chat_threads set history_req_oldest = sqlc.arg(oldest)::timestamptz, hist
 
 -- name: SetHistoryDone :exec
 update chat_threads set history_done_at = sqlc.arg(at)::timestamptz where id = sqlc.arg(id)::uuid;
+
+-- name: SetChatMessageMediaRef :exec
+-- A message stored before media references were kept gets one when WhatsApp delivers it again (history sync).
+update chat_messages m set media = sqlc.arg(media)::jsonb
+from chat_message_keys k
+where k.wa_msg_id = sqlc.arg(wa_msg_id)::text and m.id = k.message_id and m.sent_at = k.sent_at
+  and (m.media is null or m.media->>'ref' is null);
+
+-- name: EditChatMessageByWAID :one
+-- A WhatsApp edit of a stored message (customer, phone or Chat): the new text replaces the old one.
+update chat_messages m set body = sqlc.arg(body)::text, edited_at = sqlc.arg(edited_at)::timestamptz
+from chat_message_keys k
+where k.wa_msg_id = sqlc.arg(wa_msg_id)::text and m.id = k.message_id and m.sent_at = k.sent_at
+returning m.id, m.thread_id;
+
+-- name: GetThreadMessage :one
+-- One message of a conversation; a group thread also owns the messages stored under another GSI number's thread of
+-- the group (as ListThreadMessages). account is the number that received it (media is fetched through it).
+select m.*, x.account as holder_account from chat_messages m
+join chat_threads x on x.id = m.thread_id
+join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
+where m.id = sqlc.arg(id)::uuid and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid));
+
+-- name: EditQueuedReply :one
+-- An edit of a reply still waiting in the outbox: the queued text changes before it goes out.
+update outbox set payload = jsonb_set(payload, '{text}', to_jsonb(sqlc.arg(text)::text))
+where channel = 'wa' and status = 'pending' and payload->>'message_id' = sqlc.arg(message_id)::text
+returning id, proposal_id;
+
+-- name: SetChatMessageBody :exec
+update chat_messages set body = sqlc.arg(body)::text, edited_at = sqlc.narg(edited_at)::timestamptz where id = sqlc.arg(id)::uuid;

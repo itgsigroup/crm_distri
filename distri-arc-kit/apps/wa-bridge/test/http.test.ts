@@ -10,7 +10,8 @@ import { handler, type BridgeManager, type BridgeSession } from '../src/http.js'
 import { Sender } from '../src/sender.js'
 import { sign, verify } from '../src/sign.js'
 import { MemoryStore } from '../src/store.js'
-import { HistoryBusy } from '../src/session.js'
+import { HistoryBusy, MediaBusy } from '../src/session.js'
+import { Readable } from 'node:stream'
 
 const SECRET = 's3cret-s3cret-123'
 const log = pino({ level: 'silent' })
@@ -39,7 +40,12 @@ describe('bridge HTTP', () => {
     const asked: unknown[] = []
     let paced = false
     const session: BridgeSession = {
-      id: 's1', connected: () => true, sendText: async (_c, text) => { sent.push(text); return 'W1' },
+      id: 's1', connected: () => true, sendText: async (_c, text) => { sent.push(text); return 'W1' }, editText: async (_c, id, text) => { sent.push(`edit ${id}: ${text}`) },
+      downloadMedia: async ref => {
+        if (ref === 'gone') throw Object.assign(new Error('gone'), { status: 410 })
+        if (ref === 'busy') throw new MediaBusy('terlalu banyak media dibuka bersamaan', 429)
+        return Readable.from([Buffer.from('JPEG'), Buffer.from('DATA')])
+      },
       snapshot: () => ({ session: 's1', status: 'connected', phone: '628', qr: '' }), listGroups: async () => [], profile: async () => ({}),
       fetchHistory: async (chat, oldest, count) => {
         if (paced) throw new HistoryBusy('permintaan riwayat terlalu cepat', 429)
@@ -65,6 +71,20 @@ describe('bridge HTTP', () => {
     expect(await (await post('/sessions', { id: '6281234567890', label: 'Andi', phone_code: true })).json()).toMatchObject({ qr: 'code:ABCD-1234' })
     expect((await post('/sessions', { id: 'cs-kantor', label: 'CS', phone_code: true })).status).toBe(400)
     expect(await (await post('/sessions', { id: 'link-ab12cd', label: 'Distri ARC', phone_code: true, phone: '0812-3456-7890' })).json()).toMatchObject({ qr: 'code:ABCD-1234' })
+    // edit: an approved action, like send
+    expect((await post('/sessions/s1/edit', { chat_id: '6281@s.whatsapp.net', wamid: 'W1', text: 'Halo Pak', action_id: 'proposed-2' })).status).toBe(403)
+    const ed = await post('/sessions/s1/edit', { chat_id: '6281@s.whatsapp.net', wamid: 'W1', text: 'Halo Pak', action_id: 'ok-3' })
+    expect(ed.status).toBe(403) // ok-3 is not approved by the fake API either
+    // media: streamed with the stored mime, never stored; gone and busy are distinct
+    expect((await post('/sessions/s1/media', { ref: 'r1', mime: 'image/jpeg' }, 'bad')).status).toBe(401)
+    expect((await post('/sessions/s1/media', {})).status).toBe(400)
+    const media = await post('/sessions/s1/media', { ref: 'r1', mime: 'image/jpeg' })
+    expect(media.status).toBe(200)
+    expect(media.headers.get('content-type')).toBe('image/jpeg')
+    expect(await media.text()).toBe('JPEGDATA')
+    expect((await post('/sessions/s1/media', { ref: 'r1', mime: '<script>' })).headers.get('content-type')).toBe('application/octet-stream')
+    expect((await post('/sessions/s1/media', { ref: 'gone' })).status).toBe(410)
+    expect((await post('/sessions/s1/media', { ref: 'busy' })).status).toBe(429)
     // on-demand history: signed, validated, paced
     expect((await post('/sessions/s1/history', { chat_id: '6281@s.whatsapp.net', id: 'M0', ts: 1 }, 'bad')).status).toBe(401)
     expect((await post('/sessions/s1/history', { chat_id: '6281@s.whatsapp.net' })).status).toBe(400)

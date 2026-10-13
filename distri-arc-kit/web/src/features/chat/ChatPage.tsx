@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, 
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
-import type { MessageView, ThreadDetail, ThreadView } from '../../api/types'
+import type { MediaView, MessageView, ThreadDetail, ThreadView } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
@@ -11,7 +11,7 @@ import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../.
 import { useOrch } from '../../app/orch'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf } from './Connect'
 import { countFilters, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
-import { bubbleLine } from './bubble'
+import { bubbleLine, editableNow, fmtDuration, fmtSize, mediaCaption, mediaName } from './bubble'
 
 
 // Proposal buttons on annotations get their real labels from AI proposals (stage 05); until then the label
@@ -66,8 +66,8 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
   const [q, setQ] = useState('')
   const n = wa?.items.find((x) => x.wa_number === account)
   const counts = useMemo(() => countFilters(list), [list])
-  // the open conversation stays in "Belum dibaca" after reading it, as in WhatsApp
-  const shown = list.filter((t) => (inFilter(t, filter) || (filter === 'unread' && t.id === active)) && matchThread(t, q))
+  // the open conversation stays in "Belum dibaca" / "Belum dibalas" after reading or answering it, as in WhatsApp
+  const shown = list.filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && matchThread(t, q))
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['chat'] })
     qc.invalidateQueries({ queryKey: ['wa'] })
@@ -94,7 +94,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
         ))}
       </div>
       <div className="chat-list ibl-list">
-        {loaded && shown.length === 0 && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"` : filter === 'unread' ? 'Semua chat sudah dibaca' : 'Belum ada percakapan di sini'}</div>}
+        {loaded && shown.length === 0 && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
         {shown.map((c) => (
           <button key={c.id} className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
             <span className={`av ${c.kind === 'group' ? 'grp' : ''}`}>{c.kind === 'group' ? <Icon name="people" /> : initials(c)}</span>
@@ -136,12 +136,86 @@ function BubbleAnalysis({ a, dir }: { a: NonNullable<MessageView['analysis']>; d
   )
 }
 
-function Bubble({ m, via, group, analysis }: { m: MessageView; via: string; group: boolean; analysis: boolean }) {
-  const a = m.annotation
+/** Loads a media file as a blob (video, voice note): seekable, and the API's error message when it fails. */
+function useMediaBlob(url: string) {
+  const [state, setState] = useState<{ src?: string; loading?: boolean; error?: string }>({})
+  useEffect(() => () => { if (state.src) URL.revokeObjectURL(state.src) }, [state.src])
+  const load = () => {
+    if (state.src || state.loading) return
+    setState({ loading: true })
+    fetch(url, { credentials: 'same-origin' }).then(async (r) => {
+      if (!r.ok) {
+        const e = await r.json().catch(() => null)
+        throw new Error(e?.error?.message ?? 'Gagal memuat media')
+      }
+      return r.blob()
+    }).then((b) => setState({ src: URL.createObjectURL(b) }), (e: Error) => setState({ error: e.message }))
+  }
+  return { ...state, load }
+}
+
+function Play() {
+  return <svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
+}
+
+/** A bubble's photo, video, voice note or document, fetched from WhatsApp when shown (ADR 0029). */
+function BubbleMedia({ md, url, onZoom }: { md: MediaView; url: string; onZoom: (url: string) => void }) {
+  const blob = useMediaBlob(url)
+  const [imgFailed, setImgFailed] = useState(false)
+  const name = mediaName(md)
+  if (!md.viewable || md.kind === 'location' || md.kind === 'contact') {
+    if (md.kind === 'location' || md.kind === 'contact') return null
+    return <div className="bub-media none" title="Media dari sebelum pembaruan ini — buka di WhatsApp ponsel"><Icon name="doc" />{name} · buka di ponsel</div>
+  }
+  if (md.kind === 'image' || md.kind === 'sticker') {
+    if (imgFailed) return <div className="bub-media none"><Icon name="alert" />{name} tidak bisa dimuat</div>
+    return (
+      <button type="button" className={`bub-media ${md.kind === 'sticker' ? 'sticker' : 'img'}`} onClick={() => md.kind === 'image' && onZoom(url)} aria-label={`Buka ${name}`}>
+        <img src={url} loading="lazy" alt={name} onError={() => setImgFailed(true)} />
+      </button>
+    )
+  }
+  if (md.kind === 'video' || md.kind === 'gif') {
+    if (blob.src) return <video className="bub-media vid" src={blob.src} controls={md.kind === 'video'} autoPlay playsInline loop={md.kind === 'gif'} muted={md.kind === 'gif'} />
+    return (
+      <button type="button" className="bub-media vid-ph" onClick={blob.load} disabled={blob.loading}>
+        <span className="bub-play">{blob.loading ? <Icon name="refresh" /> : <Play />}</span>
+        <span>{blob.error ?? `${name}${md.seconds ? ' · ' + fmtDuration(md.seconds) : ''}${md.size ? ' · ' + fmtSize(md.size) : ''}`}</span>
+      </button>
+    )
+  }
+  if (md.kind === 'audio') {
+    if (blob.src) return <audio className="bub-media aud" src={blob.src} controls autoPlay />
+    return (
+      <button type="button" className="bub-media vn" onClick={blob.load} disabled={blob.loading} aria-label={`Putar ${name}`}>
+        <span className="bub-play">{blob.loading ? <Icon name="refresh" /> : <Play />}</span>
+        <span className="vn-bar" aria-hidden="true" />
+        <span className="vn-t"><Icon name="mic" />{blob.error ?? (fmtDuration(md.seconds) || name)}</span>
+      </button>
+    )
+  }
   return (
-    <div className={`m ${m.direction}`}>
+    <a className="bub-media doc" href={url} target="_blank" rel="noreferrer noopener" download={md.file_name || undefined}>
+      <Icon name="doc" /><span><b>{name}</b><small>{[md.mime?.split('/')[1]?.split(';')[0]?.toUpperCase(), fmtSize(md.size)].filter(Boolean).join(' · ')}</small></span>
+    </a>
+  )
+}
+
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onZoom }: {
+  m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date; onEdit: (m: MessageView) => void; onZoom: (url: string) => void
+}) {
+  const a = m.annotation
+  const caption = mediaCaption(m.body, m.media)
+  const edit = editableNow(m, now)
+  return (
+    <div className={`m ${m.direction}${m.media ? ' has-media' : ''}`}>
       {group && m.direction === 'in' && <span className="who">{m.from_name}<span className={`pill ${m.internal ? 'neutral' : 'accent'}`}>{m.internal ? 'internal' : 'eksternal'}</span></span>}
-      <div className="bb">{m.body}<span className="tm">{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span></div>
+      <div className="bb">
+        {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} onZoom={onZoom} />}
+        {caption}
+        <span className="tm">{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
+        {edit && <button type="button" className="bub-edit" onClick={() => onEdit(m)} title="Edit pesan (WhatsApp: sampai 15 menit setelah terkirim)" aria-label="Edit pesan"><Icon name="edit" /></button>}
+      </div>
       {a && (
         <span className={`ann ${a.k}`}>
           <span className="ai" />
@@ -150,6 +224,24 @@ function Bubble({ m, via, group, analysis }: { m: MessageView; via: string; grou
         </span>
       )}
       {analysis && m.analysis && <BubbleAnalysis a={m.analysis} dir={m.direction} />}
+    </div>
+  )
+}
+
+/** A photo opened full size; Esc or a click closes it. */
+function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [onClose])
+  return (
+    <div className="bub-lightbox" role="dialog" aria-label="Foto" onClick={onClose}>
+      <img src={url} alt="Foto" onClick={(e) => e.stopPropagation()} />
+      <div className="bub-lb-bar">
+        <a href={url} download onClick={(e) => e.stopPropagation()}>Unduh</a>
+        <button type="button" onClick={onClose} aria-label="Tutup"><Icon name="x" /></button>
+      </div>
     </div>
   )
 }
@@ -201,7 +293,10 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const [olderMore, setOlderMore] = useState(true)
   const [loading, setLoading] = useState(false)
   const [perMsg, setPerMsg] = usePerMessageAnalysis()
+  const [editing, setEditing] = useState<MessageView | null>(null)
+  const [zoom, setZoom] = useState<string | null>(null)
   const body = useRef<HTMLDivElement>(null)
+  const input = useRef<HTMLInputElement>(null)
   const from = (data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
   const send = useMutation({
     mutationFn: (b: string) => api.post(`/chat/threads/${id}/messages`, { body: b }),
@@ -211,6 +306,24 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     },
     onError: (e: Error) => toast(e.message),
   })
+  const edit = useMutation({
+    mutationFn: (v: { id: string; body: string }) => api.patch<{ status: string }>(`/chat/threads/${id}/messages/${v.id}`, { body: v.body }),
+    onSuccess: (r, v) => {
+      setOlder((o) => o.map((m) => (m.id === v.id && r.status === 'pending' ? { ...m, body: v.body } : m)))
+      qc.invalidateQueries({ queryKey: ['chat'] })
+      toast(r.status === 'pending' ? 'Pesan di antrean diubah sebelum dikirim' : 'Edit dikirim ke WhatsApp — pesan pelanggan ikut berubah')
+    },
+    onError: (e: Error) => toast(e.message),
+  })
+  const startEdit = (m: MessageView) => {
+    setEditing(m)
+    setText(m.body)
+    requestAnimationFrame(() => input.current?.focus())
+  }
+  const cancelEdit = () => {
+    setEditing(null)
+    setText('')
+  }
   useEffect(() => {
     if (body.current && older.length === 0) body.current.scrollTop = body.current.scrollHeight
   }, [data, older.length])
@@ -248,6 +361,11 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     const v = text.trim()
     if (!v) return
     setText('')
+    if (editing) {
+      setEditing(null)
+      if (v !== editing.body) edit.mutate({ id: editing.id, body: v })
+      return
+    }
     send.mutate(v)
   }
   const links = t.kind === 'group' ? [] : lookupLinks(t.title, t.phone, t.dealer_city)
@@ -288,7 +406,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           return (
             <div key={m.id} style={{ display: 'contents' }}>
               {sep}
-              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} />
+              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onZoom={setZoom} />
             </div>
           )
         })}
@@ -300,12 +418,21 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
             <div className="sug">{(t.suggestions ?? []).map((x) => <button key={x} type="button" className="chip" onClick={() => setText(x)}>{x}</button>)}</div>
           </div>
         )}
+        {editing && (
+          <div className="ibc-editing">
+            <Icon name="edit" />
+            <span><b>Edit pesan</b><small>{editing.body}</small></span>
+            <button type="button" onClick={cancelEdit} aria-label="Batal edit"><Icon name="x" /></button>
+          </div>
+        )}
         <form onSubmit={submit}>
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Tulis balasan…" autoComplete="off" aria-label="Tulis balasan" />
-          <button type="submit" className="send" aria-label="Kirim" disabled={send.isPending}><Icon name="send" /></button>
+          <input ref={input} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && editing && cancelEdit()}
+            placeholder={editing ? 'Ubah pesan…' : 'Tulis balasan…'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : 'Tulis balasan'} />
+          <button type="submit" className="send" aria-label={editing ? 'Simpan edit' : 'Kirim'} disabled={send.isPending || edit.isPending}><Icon name={editing ? 'check' : 'send'} /></button>
         </form>
         <span className="pol"><Icon name="lock" />Dikirim dari {from} ({t.account_masked}) · jeda & "mengetik…" seperti manusia · penjaga anti-blokir</span>
       </div>
+      {zoom && <Lightbox url={zoom} onClose={() => setZoom(null)} />}
     </div>
   )
 }

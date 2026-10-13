@@ -1,4 +1,4 @@
-import type { MsgAnalysis } from '../../api/types'
+import type { MediaView, MessageView, MsgAnalysis } from '../../api/types'
 import { intentLabel, intentTone, itemsText, waitLabel } from '../wa/wa'
 
 // Analisa WhatsApp per bubble (ADR 0027): the line under each message.
@@ -44,4 +44,44 @@ export function bubbleLine(a: MsgAnalysis): BubbleLine {
     line.request = { label: intentLabel(a.intent), tone: intentTone(a.intent), items: itemsText(a.items ?? []) }
   }
   return line
+}
+
+// Media and edits in a bubble (ADR 0029).
+
+/** The caption of a media bubble: the body without the "[gambar]" / "[dokumen BoQ.pdf]" label the server adds. */
+export function mediaCaption(body: string, media?: MediaView): string {
+  return media ? body.replace(/^\[[^\]]*\]\s*/, '') : body
+}
+
+const KIND_LABEL: Record<string, string> = { image: 'Foto', video: 'Video', gif: 'GIF', audio: 'Audio', document: 'Dokumen', sticker: 'Stiker', location: 'Lokasi', contact: 'Kontak' }
+
+/** "Pesan suara", "Foto", "BoQ.pdf"… */
+export function mediaName(m: MediaView): string {
+  if (m.kind === 'audio' && m.ptt) return 'Pesan suara'
+  if (m.kind === 'document' && m.file_name) return m.file_name
+  return KIND_LABEL[m.kind] ?? 'Lampiran'
+}
+
+/** 0:07, 1:32, 12:05 */
+export function fmtDuration(sec?: number): string {
+  if (!sec || sec < 0) return ''
+  const m = Math.floor(sec / 60)
+  return `${m}:${String(Math.floor(sec % 60)).padStart(2, '0')}`
+}
+
+/** 820 B, 120 KB, 3,4 MB */
+export function fmtSize(b?: number): string {
+  if (!b || b <= 0) return ''
+  if (b < 1024) return `${b} B`
+  if (b < 1024 * 1024) return `${Math.round(b / 1024)} KB`
+  return `${(b / 1024 / 1024).toLocaleString('id-ID', { maximumFractionDigits: 1 })} MB`
+}
+
+/** WhatsApp accepts edits for 15 minutes after sending. */
+export const EDIT_WINDOW_MS = 15 * 60_000
+
+/** Whether the edit button shows now: queued replies always, sent texts until 15 minutes have passed. */
+export function editableNow(m: Pick<MessageView, 'can_edit' | 'status' | 'sent_at'>, now: Date): boolean {
+  if (!m.can_edit) return false
+  return m.status === 'pending' || now.getTime() - new Date(m.sent_at).getTime() < EDIT_WINDOW_MS
 }

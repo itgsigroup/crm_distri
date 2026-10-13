@@ -866,6 +866,9 @@ func (o *Orchestrator) learn(ctx context.Context, r *stageRun) (map[string]any, 
 			return nil, err
 		}
 	}
+	if err := o.writeScreenReadings(ctx, r); err != nil {
+		return nil, err
+	}
 	if len(r.signals) > 0 {
 		if err := o.St.Q.MarkSignalsProcessed(ctx, gen.MarkSignalsProcessedParams{At: now, Ids: r.signals}); err != nil {
 			return nil, err

@@ -194,3 +194,48 @@ func TestGroupMessagesShownOnEveryNumber(t *testing.T) {
 		t.Error("andi's group thread did not move")
 	}
 }
+
+// ADR 0029: a media message keeps its download reference (never the file); a message stored before that gets it when
+// history delivers it again; a WhatsApp edit replaces the stored text.
+func TestMediaReferenceAndEdits(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	cust := "6281900300777"
+	now := time.Now().Truncate(time.Second)
+	photo := &wa.Media{Kind: "image", Mime: "image/jpeg", Size: 2048, Ref: "REF-PHOTO"}
+	if r, err := in.Process(ctx, wa.Message{ID: "MEDIA1", Account: andi, ChatJID: wa.UserJID(cust), FromNumber: cust, Text: "[gambar] kamera rusak", Time: now, Media: photo}); err != nil || !r.Stored {
+		t.Fatalf("media: %+v %v", r, err)
+	}
+	if count(t, st, "select count(*) from chat_messages where wa_msg_id = 'MEDIA1' and media->>'ref' = 'REF-PHOTO' and media->>'kind' = 'image'") != 1 {
+		t.Fatal("media reference not stored")
+	}
+
+	// stored without a reference (before ADR 0029), then synced again with one
+	if _, err := in.Process(ctx, wa.Message{ID: "OLD1", Account: andi, ChatJID: wa.UserJID(cust), FromNumber: cust, Text: "[pesan suara]", Time: now.Add(-time.Hour), Media: &wa.Media{Kind: "audio"}}); err != nil {
+		t.Fatal(err)
+	}
+	vn := &wa.Media{Kind: "audio", Mime: "audio/ogg; codecs=opus", Seconds: 9, PTT: true, Ref: "REF-VN"}
+	if r, _ := in.Process(ctx, wa.Message{ID: "OLD1", Account: andi, ChatJID: wa.UserJID(cust), FromNumber: cust, Text: "[pesan suara]", Time: now.Add(-time.Hour), Media: vn, History: true}); r.Reason != wa.DropDuplicate {
+		t.Fatalf("second delivery: %+v", r)
+	}
+	if count(t, st, "select count(*) from chat_messages where wa_msg_id = 'OLD1' and media->>'ref' = 'REF-VN'") != 1 {
+		t.Fatal("reference not filled in on the second delivery")
+	}
+
+	// edits: the customer's, then the same edit again (idempotent); an edit of an unknown message is dropped
+	edit := wa.Message{ID: "EDIT1", Account: andi, ChatJID: wa.UserJID(cust), FromNumber: cust, Text: "kamera rusak 2 unit", Time: now.Add(time.Minute), EditOf: "MEDIA1"}
+	for range 2 {
+		if r, err := in.Process(ctx, edit); err != nil || !r.Stored {
+			t.Fatalf("edit: %+v %v", r, err)
+		}
+	}
+	if count(t, st, "select count(*) from chat_messages where wa_msg_id = 'MEDIA1' and body = 'kamera rusak 2 unit' and edited_at is not null") != 1 {
+		t.Fatal("edit not applied")
+	}
+	if count(t, st, "select count(*) from chat_message_keys where wa_msg_id = 'EDIT1'") != 0 {
+		t.Fatal("an edit must not be stored as a message of its own")
+	}
+	if r, _ := in.Process(ctx, wa.Message{ID: "EDIT2", Account: andi, ChatJID: wa.UserJID(cust), FromNumber: cust, Text: "x", Time: now, EditOf: "NOPE"}); r.Reason != wa.DropEditUnknown {
+		t.Fatalf("unknown edit: %+v", r)
+	}
+}

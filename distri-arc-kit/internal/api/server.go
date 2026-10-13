@@ -45,6 +45,7 @@ type Server struct {
 	hub   *events.Hub
 	jobs  *river.Client[pgx.Tx]
 	cloud *wa.CloudAPI
+	media wa.MediaFetcher // chat media from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
 	odoo  odoo.Source
 	mcp   *mcp.Server
 	idf   *identify.Service
@@ -54,6 +55,9 @@ type Server struct {
 	analystModel func(key string) analyst.Model
 	verifyKey    func(ctx context.Context, key string) error
 }
+
+// WithMedia sets where chat media is fetched from (tests; production uses the Baileys bridge).
+func (s *Server) WithMedia(f wa.MediaFetcher) *Server { s.media = f; return s }
 
 // WithAsk enables POST /ask (the command bar).
 func (s *Server) WithAsk(a *ask.Service) *Server { s.ask = a; return s }

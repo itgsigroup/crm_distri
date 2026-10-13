@@ -1,9 +1,13 @@
-import { isJidBroadcast, isJidGroup, isJidNewsletter, isJidStatusBroadcast, isLidUser, normalizeMessageContent, type WAMessage, type proto } from 'baileys'
+import { isJidBroadcast, isJidGroup, isJidNewsletter, isJidStatusBroadcast, isLidUser, normalizeMessageContent, proto, type WAMessage } from 'baileys'
 
 // WaEvent is the bridge → worker contract; Go side: internal/wa/baileys.go (bridgeEvent).
 export interface GroupMember { jid: string; phone: string; name: string }
 export interface GroupMeta { name: string; members: GroupMember[] }
-export interface MediaMeta { kind: string; mime: string; file_name: string; size: number }
+/**
+ * Media of a message. The content is never downloaded on arrival; `ref` is what WhatsApp needs to fetch it later on
+ * request (POST /sessions/{id}/media): the message key and the media's CDN path and decryption key, no thumbnail.
+ */
+export interface MediaMeta { kind: string; mime: string; file_name: string; size: number; seconds?: number; ptt?: boolean; ref?: string }
 export interface WaEvent {
   wamid: string
   session: string
@@ -18,6 +22,7 @@ export interface WaEvent {
   media_meta?: MediaMeta
   timestamp: string
   quoted?: string
+  edit_of?: string // the message this one edits (its text replaces the original's)
   from_me: boolean
   is_history: boolean
   chat_name?: string // saved contact / business / push name of a direct chat
@@ -35,20 +40,61 @@ const digits = (jid: string | null | undefined): string => (jid ?? '').split('@'
 
 const size = (v: unknown): number => (v == null ? 0 : Number(v))
 
-/** Extracts human text and media metadata. Media content is never downloaded. */
+type Media = proto.Message.IImageMessage & proto.Message.IVideoMessage & proto.Message.IAudioMessage & proto.Message.IDocumentMessage & proto.Message.IStickerMessage
+
+function meta(kind: string, x: Media): MediaMeta {
+  const out: MediaMeta = { kind, mime: x.mimetype ?? '', file_name: x.fileName ?? '', size: size(x.fileLength) }
+  if (x.seconds) out.seconds = x.seconds
+  if (x.ptt) out.ptt = true
+  return out
+}
+
+/** Extracts human text and media metadata. Media content is never downloaded here. */
 export function messageText(message: proto.IMessage | null | undefined): { text: string; media?: MediaMeta; quoted?: string } {
   const m = normalizeMessageContent(message)
   if (!m) return { text: '' }
   const quoted = m.extendedTextMessage?.contextInfo?.stanzaId ?? m.imageMessage?.contextInfo?.stanzaId ?? undefined
   if (m.conversation) return { text: m.conversation, quoted }
   if (m.extendedTextMessage) return { text: m.extendedTextMessage.text ?? '', quoted }
-  if (m.imageMessage) return { text: m.imageMessage.caption ?? '', media: { kind: 'image', mime: m.imageMessage.mimetype ?? '', file_name: '', size: size(m.imageMessage.fileLength) }, quoted }
-  if (m.documentMessage) return { text: m.documentMessage.caption ?? '', media: { kind: 'document', mime: m.documentMessage.mimetype ?? '', file_name: m.documentMessage.fileName ?? '', size: size(m.documentMessage.fileLength) }, quoted }
-  if (m.videoMessage) return { text: m.videoMessage.caption ?? '', media: { kind: 'video', mime: m.videoMessage.mimetype ?? '', file_name: '', size: size(m.videoMessage.fileLength) }, quoted }
-  if (m.audioMessage) return { text: '', media: { kind: 'audio', mime: m.audioMessage.mimetype ?? '', file_name: '', size: size(m.audioMessage.fileLength) }, quoted }
+  if (m.imageMessage) return { text: m.imageMessage.caption ?? '', media: meta('image', m.imageMessage), quoted }
+  if (m.documentMessage) return { text: m.documentMessage.caption ?? '', media: meta('document', m.documentMessage), quoted }
+  if (m.videoMessage) return { text: m.videoMessage.caption ?? '', media: meta(m.videoMessage.gifPlayback ? 'gif' : 'video', m.videoMessage), quoted }
+  if (m.audioMessage) return { text: '', media: meta('audio', m.audioMessage), quoted }
+  if (m.stickerMessage) return { text: '', media: meta('sticker', m.stickerMessage), quoted }
   if (m.locationMessage) return { text: m.locationMessage.name ?? '', media: { kind: 'location', mime: '', file_name: '', size: 0 } }
   if (m.contactMessage) return { text: m.contactMessage.displayName ?? '', media: { kind: 'contact', mime: '', file_name: '', size: 0 } }
   return { text: '' }
+}
+
+const MEDIA_FIELDS = ['imageMessage', 'videoMessage', 'audioMessage', 'documentMessage', 'stickerMessage'] as const
+
+/**
+ * The download reference of a media message: a WebMessageInfo holding only the key and the media fields WhatsApp
+ * needs to fetch and decrypt it (or to ask the phone to re-upload an expired file) — no caption, thumbnail or
+ * context. Base64 of the protobuf; null for messages without downloadable media.
+ */
+export function mediaRef(msg: WAMessage): string | null {
+  const m = normalizeMessageContent(msg.message)
+  const field = MEDIA_FIELDS.find(f => m?.[f])
+  if (!m || !field) return null
+  const x = m[field] as Media
+  if (!x.mediaKey || !(x.directPath || x.url)) return null
+  const media: Media = { url: x.url, directPath: x.directPath, mediaKey: x.mediaKey, fileEncSha256: x.fileEncSha256, fileSha256: x.fileSha256, fileLength: x.fileLength, mimetype: x.mimetype, mediaKeyTimestamp: x.mediaKeyTimestamp }
+  const k = msg.key
+  const info = proto.WebMessageInfo.encode({ key: { remoteJid: k.remoteJid, fromMe: k.fromMe, id: k.id, participant: k.participant }, message: { [field]: media } }).finish()
+  return Buffer.from(info).toString('base64')
+}
+
+/** Decodes a reference made by mediaRef back into a message Baileys can download. */
+export function decodeMediaRef(ref: string): WAMessage {
+  return proto.WebMessageInfo.decode(Buffer.from(ref, 'base64')) as WAMessage
+}
+
+/** An edit of an earlier message (WhatsApp "Edit"): the edited message's id and its new text. */
+export function editOf(message: proto.IMessage | null | undefined): { id: string; text: string } | null {
+  const p = normalizeMessageContent(message)?.protocolMessage
+  if (!p || p.type !== proto.Message.ProtocolMessage.Type.MESSAGE_EDIT || !p.key?.id || !p.editedMessage) return null
+  return { id: p.key.id, text: messageText(p.editedMessage).text }
 }
 
 /** Whether a chat is a customer/group conversation ARC may look at (not status, channels or broadcast lists). */
@@ -66,7 +112,8 @@ async function toPhoneJid(r: Resolver, jid: string, alt?: string | null): Promis
 export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, history: boolean): Promise<WaEvent | null> {
   const key = msg.key
   if (!key?.id || !isConversation(key.remoteJid) || !msg.message) return null
-  const { text, media, quoted } = messageText(msg.message)
+  const edit = editOf(msg.message)
+  const { text, media, quoted } = edit ? { text: edit.text, media: undefined, quoted: undefined } : messageText(msg.message)
   if (!text && !media) return null
   const group = !!isJidGroup(key.remoteJid)
   const chat = group ? key.remoteJid : await toPhoneJid(r, key.remoteJid, key.remoteJidAlt)
@@ -91,7 +138,11 @@ export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, hi
     is_history: history,
     transport: 'bridge',
   }
-  if (media) ev.media_meta = media
+  if (media) {
+    const ref = mediaRef(msg)
+    ev.media_meta = ref ? { ...media, ref } : media
+  }
+  if (edit) ev.edit_of = edit.id
   if (quoted) ev.quoted = quoted
   if (group) ev.group_meta = (await r.groupMeta(chat)) ?? { name: '', members: [] }
   return ev

@@ -23,6 +23,7 @@ const (
 	DropGroupDisabled = "group_disabled" // internal group with reading switched off
 	DropDuplicate     = "duplicate"      // same WhatsApp message id seen before
 	DropEmpty         = "empty"
+	DropEditUnknown   = "edit_unknown" // an edit of a message GSI Orbit never stored (dropped by the rules above)
 )
 
 // Result tells what Process did with a message.
@@ -63,6 +64,13 @@ func MaskNumber(n string) string {
 func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 	if strings.TrimSpace(m.Text) == "" {
 		return Result{Reason: DropEmpty}, nil
+	}
+	if m.EditOf != "" {
+		return in.edit(ctx, m)
+	}
+	var media json.RawMessage
+	if m.Media != nil {
+		media, _ = json.Marshal(m.Media)
 	}
 	var res Result
 	err := in.st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
@@ -140,9 +148,15 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			dir = "out"
 		}
 		id := m.ID
-		msgID, err := q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && m.IsGroup})
+		msgID, err := q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && m.IsGroup})
 		if errors.Is(err, pgx.ErrNoRows) {
 			res.Reason = DropDuplicate
+			if m.Media.Viewable() {
+				// stored before media references were kept: a history sync makes its file viewable
+				if err := q.SetChatMessageMediaRef(ctx, gen.SetChatMessageMediaRefParams{Media: media, WaMsgID: id}); err != nil {
+					return err
+				}
+			}
 			if m.IsGroup {
 				// another GSI number in the group stored it first: this number's thread still moves (time, unread),
 				// its messages are read from every thread of the group
@@ -204,6 +218,24 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 	}
 	if err == nil && res.DealerID != nil && in.OnDealer != nil {
 		in.OnDealer(ctx, *res.DealerID)
+	}
+	return res, err
+}
+
+// edit applies a WhatsApp edit (the customer's, one made on the phone, or one sent from Chat) to the stored message.
+// Idempotent: the same edit twice leaves the same text.
+func (in *Ingestor) edit(ctx context.Context, m Message) (Result, error) {
+	row, err := in.st.Q.EditChatMessageByWAID(ctx, gen.EditChatMessageByWAIDParams{Body: strings.TrimSpace(m.Text), EditedAt: m.Time, WaMsgID: m.EditOf})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Result{Reason: DropEditUnknown}, nil
+	}
+	if err != nil {
+		return Result{}, err
+	}
+	res := Result{Stored: true}
+	if row.ThreadID != nil {
+		res.ThreadID = *row.ThreadID
+		err = events.Notify(ctx, in.st.Pool, "chat_message", map[string]string{"thread_id": row.ThreadID.String()})
 	}
 	return res, err
 }

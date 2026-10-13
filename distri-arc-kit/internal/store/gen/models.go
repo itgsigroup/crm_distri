@@ -157,6 +157,7 @@ type ChatMessage struct {
 	Status     string          `json:"status"`
 	ProposalID *uuid.UUID      `json:"proposal_id"`
 	Internal   bool            `json:"internal"`
+	EditedAt   *time.Time      `json:"edited_at"`
 }
 
 type ChatMessageKey struct {
@@ -758,6 +759,15 @@ type SalesUser struct {
 	Email        *string    `json:"email"`
 	ExternalName *string    `json:"external_name"`
 	MergedInto   *uuid.UUID `json:"merged_into"`
+}
+
+type ScreenAnalysis struct {
+	CycleID   uuid.UUID       `json:"cycle_id"`
+	Screen    string          `json:"screen"`
+	Overview  string          `json:"overview"`
+	Lines     json.RawMessage `json:"lines"`
+	Source    string          `json:"source"`
+	CreatedAt time.Time       `json:"created_at"`
 }
 
 type Secret struct {

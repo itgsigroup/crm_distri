@@ -1,0 +1,231 @@
+package api_test
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+
+	"distri-arc/db"
+	"distri-arc/internal/api"
+	"distri-arc/internal/clock"
+	"distri-arc/internal/config"
+	"distri-arc/internal/outbox"
+	"distri-arc/internal/seed"
+	"distri-arc/internal/store"
+	"distri-arc/internal/store/gen"
+	"distri-arc/internal/testdb"
+	"distri-arc/internal/wa"
+)
+
+// fakeMedia serves REF1 as a JPEG and says REF-GONE expired on WhatsApp.
+type fakeMedia struct{ asked []string }
+
+func (f *fakeMedia) Media(_ context.Context, account string, m wa.Media) (io.ReadCloser, error) {
+	f.asked = append(f.asked, account+":"+m.Ref)
+	if m.Ref == "REF-GONE" {
+		return nil, wa.ErrMediaGone
+	}
+	return io.NopCloser(strings.NewReader("JPEGDATA")), nil
+}
+
+var chatNow = time.Date(2026, 10, 5, 9, 0, 0, 0, clock.WIB)
+
+func mediaServer(t *testing.T, f wa.MediaFetcher) (*httptest.Server, *store.Store) {
+	t.Helper()
+	st := testdb.New(t)
+	if _, err := seed.Run(context.Background(), st, db.Seed); err != nil {
+		t.Fatal(err)
+	}
+	s := api.New(config.Config{Env: "dev"}, st, clock.Fixed(chatNow), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if f != nil {
+		s = s.WithMedia(f)
+	}
+	srv := httptest.NewServer(s.Handler())
+	t.Cleanup(srv.Close)
+	return srv, st
+}
+
+func addMessage(t *testing.T, st *store.Store, thread uuid.UUID, waID, dir, status, body string, at time.Time, media *wa.Media) uuid.UUID {
+	t.Helper()
+	var raw json.RawMessage
+	if media != nil {
+		raw, _ = json.Marshal(media)
+	}
+	from := "6281234504471"
+	id, err := st.Q.InsertChatMessage(context.Background(), gen.InsertChatMessageParams{ThreadID: &thread, WaMsgID: &waID, Direction: &dir, FromNumber: &from, Body: &body, Media: raw, Status: status, SentAt: at})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
+func sinarThread(t *testing.T, st *store.Store) uuid.UUID {
+	t.Helper()
+	var id uuid.UUID
+	if err := st.Pool.QueryRow(context.Background(), "select id from chat_threads where seed_key = 'seed:thread:c-sinar'").Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
+// ADR 0029: a bubble's media comes from WhatsApp on request through the number that received it, never stored;
+// the reference never reaches the browser.
+func TestChatMediaStreamsFromWhatsApp(t *testing.T) {
+	f := &fakeMedia{}
+	srv, st := mediaServer(t, f)
+	th := sinarThread(t, st)
+	photo := addMessage(t, st, th, "IMG1", "in", "received", "[gambar] kamera rusak", chatNow.Add(-time.Hour), &wa.Media{Kind: "image", Mime: "image/jpeg", Size: 8, Ref: "REF1"})
+	old := addMessage(t, st, th, "IMG0", "in", "received", "[gambar]", chatNow.Add(-2*time.Hour), &wa.Media{Kind: "image"})
+	doc := addMessage(t, st, th, "DOC1", "in", "received", "[dokumen BoQ.html]", chatNow.Add(-3*time.Hour), &wa.Media{Kind: "document", Mime: "text/html", FileName: "BoQ.html", Ref: "REF2"})
+	gone := addMessage(t, st, th, "IMG9", "in", "received", "[gambar]", chatNow.Add(-4*time.Hour), &wa.Media{Kind: "image", Mime: "image/jpeg", Ref: "REF-GONE"})
+
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/api/chat/threads/"+th.String(), nil)
+	req.Header.Set("X-Dev-User", "andi@gsi.co.id")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	if strings.Contains(string(raw), "REF1") {
+		t.Fatal("the media reference must not reach the browser")
+	}
+	var detail struct {
+		Messages []struct {
+			ID    uuid.UUID `json:"id"`
+			Media *struct {
+				Kind     string `json:"kind"`
+				Viewable bool   `json:"viewable"`
+			} `json:"media"`
+		} `json:"messages"`
+	}
+	_ = json.Unmarshal(raw, &detail)
+	views := map[uuid.UUID]bool{}
+	for _, m := range detail.Messages {
+		if m.Media != nil {
+			views[m.ID] = m.Media.Viewable
+		}
+	}
+	if !views[photo] || views[old] {
+		t.Fatalf("viewable flags %v", views)
+	}
+
+	fetch := func(id uuid.UUID) *http.Response {
+		req, _ := http.NewRequest(http.MethodGet, srv.URL+"/api/chat/threads/"+th.String()+"/messages/"+id.String()+"/media", nil)
+		req.Header.Set("X-Dev-User", "andi@gsi.co.id")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { res.Body.Close() })
+		return res
+	}
+	r := fetch(photo)
+	body, _ := io.ReadAll(r.Body)
+	if r.StatusCode != 200 || string(body) != "JPEGDATA" || r.Header.Get("Content-Type") != "image/jpeg" || r.Header.Get("X-Content-Type-Options") != "nosniff" || !strings.HasPrefix(r.Header.Get("Cache-Control"), "private") {
+		t.Fatalf("photo: %d %q %v", r.StatusCode, body, r.Header)
+	}
+	if len(f.asked) != 1 || f.asked[0] != "6281234504471:REF1" {
+		t.Fatalf("fetched through %v", f.asked)
+	}
+	// a type the browser could run is only ever a download
+	if r := fetch(doc); r.Header.Get("Content-Type") != "application/octet-stream" || !strings.HasPrefix(r.Header.Get("Content-Disposition"), "attachment") {
+		t.Fatalf("document headers %v", r.Header)
+	}
+	if r := fetch(old); r.StatusCode != http.StatusNotFound {
+		t.Fatalf("no reference: %d", r.StatusCode)
+	}
+	if r := fetch(gone); r.StatusCode != http.StatusGone {
+		t.Fatalf("gone: %d", r.StatusCode)
+	}
+	// another sales user cannot reach this conversation's media
+	req, _ = http.NewRequest(http.MethodGet, srv.URL+"/api/chat/threads/"+th.String()+"/messages/"+photo.String()+"/media", nil)
+	req.Header.Set("X-Dev-User", "dewi@gsi.co.id")
+	if res, err := http.DefaultClient.Do(req); err != nil || res.StatusCode != http.StatusNotFound {
+		t.Fatalf("other sales: %v %v", err, res.Status)
+	}
+
+	// without the Baileys bridge (fake/Cloud API) the file cannot be fetched
+	srv2, st2 := mediaServer(t, nil)
+	th2 := sinarThread(t, st2)
+	p2 := addMessage(t, st2, th2, "IMG1", "in", "received", "[gambar]", chatNow.Add(-time.Hour), &wa.Media{Kind: "image", Mime: "image/jpeg", Ref: "REF1"})
+	if code, _ := sendJSON(t, http.MethodGet, srv2.URL+"/api/chat/threads/"+th2.String()+"/messages/"+p2.String()+"/media", "andi@gsi.co.id", nil); code != http.StatusConflict {
+		t.Fatalf("no bridge: %d", code)
+	}
+}
+
+// Editing like WhatsApp: a queued reply changes in the outbox; a sent text within 15 minutes is a human decision
+// that leaves through the outbox as an edit; later, or someone else's message, is refused.
+func TestChatEditIsAHumanDecision(t *testing.T) {
+	srv, st := mediaServer(t, nil)
+	ctx := context.Background()
+	th := sinarThread(t, st)
+	base := srv.URL + "/api/chat/threads/" + th.String() + "/messages/"
+	recent := addMessage(t, st, th, "WSENT1", "out", "sent", "Siap, dikirim Senen", chatNow.Add(-5*time.Minute), nil)
+	late := addMessage(t, st, th, "WOLD1", "out", "sent", "Halo", chatNow.Add(-20*time.Minute), nil)
+	theirs := addMessage(t, st, th, "WIN1", "in", "received", "Order 10", chatNow.Add(-6*time.Minute), nil)
+
+	if code, _ := sendJSON(t, http.MethodPatch, base+late.String(), "andi@gsi.co.id", map[string]string{"body": "Halo Pak"}); code != http.StatusConflict {
+		t.Fatalf("after 15 minutes: %d", code)
+	}
+	if code, _ := sendJSON(t, http.MethodPatch, base+theirs.String(), "andi@gsi.co.id", map[string]string{"body": "x"}); code != http.StatusConflict {
+		t.Fatalf("customer's message: %d", code)
+	}
+	code, out := sendJSON(t, http.MethodPatch, base+recent.String(), "andi@gsi.co.id", map[string]string{"body": "Siap, dikirim Senin pagi"})
+	if code != http.StatusAccepted {
+		t.Fatalf("edit: %d %v", code, out)
+	}
+	if count(t, st, "select count(*) from proposals where id = $1 and kind = 'reply' and status = 'approved' and decided_by is not null", out["proposal_id"]) != 1 {
+		t.Fatal("edit not recorded as a human decision")
+	}
+	if count(t, st, "select count(*) from audit_log where action = 'chat.edit'") != 1 {
+		t.Fatal("edit not audited")
+	}
+	fake := wa.NewFake()
+	r := outbox.DefaultRules()
+	if _, err := outbox.NewSender(st, fake, clock.Fixed(chatNow.Add(time.Minute)), r).Send(ctx, uuid.MustParse(out["outbox_id"].(string))); err != nil {
+		t.Fatal(err)
+	}
+	if s := fake.Sent(); len(s) != 1 || s[0].EditOf != "WSENT1" || s[0].Text != "Siap, dikirim Senin pagi" {
+		t.Fatalf("transport got %+v", s)
+	}
+	if count(t, st, "select count(*) from chat_messages where id = $1 and body = 'Siap, dikirim Senin pagi' and edited_at is not null", recent) != 1 {
+		t.Fatal("bubble not updated after the edit went out")
+	}
+
+	// an edit whose job runs after the window is refused by the worker, not sent
+	code, out = sendJSON(t, http.MethodPatch, base+recent.String(), "andi@gsi.co.id", map[string]string{"body": "Siap Bu"})
+	if code != http.StatusAccepted {
+		t.Fatalf("second edit: %d", code)
+	}
+	if _, err := outbox.NewSender(st, fake, clock.Fixed(chatNow.Add(20*time.Minute)), r).Send(ctx, uuid.MustParse(out["outbox_id"].(string))); !errors.Is(err, outbox.ErrRefused) || len(fake.Sent()) != 1 {
+		t.Fatalf("late edit: %v, sent %d", err, len(fake.Sent()))
+	}
+
+	// a reply still queued: the outbox text changes before it goes out
+	code, sent := sendJSON(t, http.MethodPost, srv.URL+"/api/chat/threads/"+th.String()+"/messages", "andi@gsi.co.id", map[string]string{"body": "Besok sore"})
+	if code != http.StatusAccepted {
+		t.Fatalf("reply: %d", code)
+	}
+	if code, _ := sendJSON(t, http.MethodPatch, base+sent["message_id"].(string), "andi@gsi.co.id", map[string]string{"body": "Besok pagi"}); code != http.StatusOK {
+		t.Fatalf("queued edit: %d", code)
+	}
+	if count(t, st, "select count(*) from outbox where id = $1 and payload->>'text' = 'Besok pagi'", sent["outbox_id"]) != 1 {
+		t.Fatal("queued text not changed")
+	}
+	if _, err := outbox.NewSender(st, fake, clock.Fixed(chatNow), outbox.Rules{}).Send(ctx, uuid.MustParse(sent["outbox_id"].(string))); err != nil {
+		t.Fatal(err)
+	}
+	if s := fake.Sent(); s[len(s)-1].Text != "Besok pagi" {
+		t.Fatalf("sent %+v", s[len(s)-1])
+	}
+}

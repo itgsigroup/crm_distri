@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
@@ -30,6 +32,8 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Post("/chat/threads/{id}/read", s.chatRead)
 	r.Get("/chat/threads/{id}/context", s.chatContext)
 	r.Post("/chat/threads/{id}/messages", s.chatSend)
+	r.Patch("/chat/threads/{id}/messages/{mid}", s.chatEdit)
+	r.Get("/chat/threads/{id}/messages/{mid}/media", s.chatMedia)
 	r.Get("/internal-numbers", s.internalNumbers)
 	r.Post("/internal-numbers", s.addInternalNumber)
 	r.Delete("/internal-numbers/{wa}", s.deleteInternalNumber)
@@ -159,6 +163,44 @@ type MessageView struct {
 	SignalID   *uuid.UUID      `json:"signal_id"`
 	Proposal   *MsgProposal    `json:"proposal,omitempty"`
 	Analysis   *MsgAnalysis    `json:"analysis,omitempty"`
+	Media      *MediaView      `json:"media,omitempty"`
+	EditedAt   *time.Time      `json:"edited_at,omitempty"`
+	// CanEdit: a text this number sent (or still queued); a sent one only within WhatsApp's 15 minutes
+	CanEdit bool `json:"can_edit,omitempty"`
+}
+
+// MediaView describes a bubble's photo, video, voice note or document; the file itself comes from
+// GET /chat/threads/{id}/messages/{mid}/media when the bubble is opened (ADR 0029).
+type MediaView struct {
+	Kind     string `json:"kind"`
+	Mime     string `json:"mime,omitempty"`
+	FileName string `json:"file_name,omitempty"`
+	Size     int64  `json:"size,omitempty"`
+	Seconds  int    `json:"seconds,omitempty"`
+	PTT      bool   `json:"ptt,omitempty"`
+	// Viewable: the file can be fetched from WhatsApp (messages stored before ADR 0029 have no reference)
+	Viewable bool `json:"viewable"`
+}
+
+func mediaView(raw json.RawMessage) *MediaView {
+	var m wa.Media
+	if len(raw) == 0 || json.Unmarshal(raw, &m) != nil || m.Kind == "" {
+		return nil
+	}
+	return &MediaView{Kind: m.Kind, Mime: m.Mime, FileName: m.FileName, Size: m.Size, Seconds: m.Seconds, PTT: m.PTT, Viewable: m.Viewable()}
+}
+
+// realWAID: the message has its WhatsApp id (not a reply still queued, not a local row).
+func realWAID(id *string) bool {
+	return id != nil && *id != "" && !strings.HasPrefix(*id, "outbox:") && !strings.HasPrefix(*id, "local:")
+}
+
+// canEdit: an own text bubble of this number's thread, queued or sent within WhatsApp's edit window.
+func canEdit(dir, status string, own bool, media *MediaView, waID *string, sentAt, now time.Time) bool {
+	if dir != "out" || !own || media != nil {
+		return false
+	}
+	return status == "pending" || (status == "sent" && realWAID(waID) && now.Sub(sentAt) < wa.EditWindow)
 }
 
 // MsgAnalysis is Analisa WhatsApp of one bubble (ADR 0027): the request and the AI note from the last analysis that
@@ -248,11 +290,14 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	out := make([]MessageView, 0, len(msgs))
+	now := s.clock.Now()
 	for _, m := range msgs {
-		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: deref(m.Body), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Annotation: m.Annotation, SignalID: m.SignalID}
+		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: deref(m.Body), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Annotation: m.Annotation, SignalID: m.SignalID,
+			Media: mediaView(m.Media), EditedAt: m.EditedAt}
 		if label, ok := others[deref(m.ThreadID)]; ok && v.Direction == "out" {
 			v.Direction, v.FromName, v.Internal = "in", label, true
 		}
+		v.CanEdit = canEdit(v.Direction, v.Status, deref(m.ThreadID) == t.ID, v.Media, m.WaMsgID, m.SentAt, now)
 		if m.SignalID != nil {
 			v.Proposal = bySig[*m.SignalID]
 		}
@@ -394,6 +439,43 @@ func (s *Server) chatContext(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, res)
 }
 
+// humanDecision records what a person does in Chat as an approved proposal of their own (decided_by): the reply or
+// edit they typed is the decision (CLAUDE.md §2). It hangs off the conversation's latest signal (provenance), or a
+// manual one when nothing came in yet.
+func (s *Server) humanDecision(ctx context.Context, q *gen.Queries, t gen.GetThreadRow, u User, title, body string, now time.Time) (gen.Proposal, error) {
+	sig, err := q.LatestThreadSignal(ctx, &t.ID)
+	if err != nil || sig == nil {
+		payload, _ := json.Marshal(map[string]any{"thread": t.ID, "reason": "balasan manusia tanpa pesan masuk"})
+		sm := "Balasan dari aplikasi"
+		id, err := q.InsertManualSignal(ctx, gen.InsertManualSignalParams{DealerID: t.DealerID, SalesID: u.SalesUserID, OccurredAt: now, DedupeKey: "reply:" + uuid.NewString(), Summary: &sm, Payload: payload})
+		if err != nil {
+			return gen.Proposal{}, err
+		}
+		sig = &id
+	}
+	reason := "Dikirim langsung dari Chat oleh " + deref(u.Name)
+	return q.InsertProposal(ctx, gen.InsertProposalParams{Agent: "Manusia", DealerID: t.DealerID, Kind: "reply", Title: title, Why: reason,
+		Preview: &body, Confidence: 1, SignalIds: []uuid.UUID{*sig}, Autonomy: "approve", Status: "approved", DecidedBy: u.SalesUserID, DecidedAt: &now, DecisionReason: &reason})
+}
+
+// chatAllowed: the checks every send or edit from Chat passes (a sales identity, a number, not in pilot shadow).
+func (s *Server) chatAllowed(w http.ResponseWriter, r *http.Request, t gen.GetThreadRow) (User, bool) {
+	u, _ := CurrentUser(r.Context())
+	if u.SalesUserID == nil {
+		httpx.Fail(w, http.StatusForbidden, "no_sales_user", "Pengguna tidak terhubung ke data sales")
+		return u, false
+	}
+	if t.SalesWa == nil || t.WaJid == nil {
+		httpx.Fail(w, http.StatusConflict, "no_number", "Percakapan ini belum terhubung ke nomor sales")
+		return u, false
+	}
+	if pol, err := policy.Load(r.Context(), s.st.Q); err == nil && pol.Pilot.Shadow() {
+		httpx.Fail(w, http.StatusConflict, "pilot_shadow", "Mode bayangan pilot: balas dari WhatsApp di ponsel — GSI Orbit belum mengirim")
+		return u, false
+	}
+	return u, true
+}
+
 // chatSend: a human typing a reply is itself the decision. It is recorded as a proposal kind=reply approved
 // by the sender (decided_by), written to the outbox and delivered by the worker (07-api › Chat).
 func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
@@ -408,36 +490,15 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pesan kosong")
 		return
 	}
-	u, _ := CurrentUser(r.Context())
-	if u.SalesUserID == nil {
-		httpx.Fail(w, http.StatusForbidden, "no_sales_user", "Pengguna tidak terhubung ke data sales")
-		return
-	}
-	if t.SalesWa == nil || t.WaJid == nil {
-		httpx.Fail(w, http.StatusConflict, "no_number", "Percakapan ini belum terhubung ke nomor sales")
-		return
-	}
-	if pol, err := policy.Load(r.Context(), s.st.Q); err == nil && pol.Pilot.Shadow() {
-		httpx.Fail(w, http.StatusConflict, "pilot_shadow", "Mode bayangan pilot: balas dari WhatsApp di ponsel — GSI Orbit belum mengirim")
+	u, ok := s.chatAllowed(w, r, t)
+	if !ok {
 		return
 	}
 	now := s.clock.Now()
 	body := strings.TrimSpace(in.Body)
 	var res map[string]any
 	err := s.st.Tx(r.Context(), func(q *gen.Queries, tx pgx.Tx) error {
-		sig, err := q.LatestThreadSignal(r.Context(), &t.ID)
-		if err != nil || sig == nil {
-			payload, _ := json.Marshal(map[string]any{"thread": t.ID, "reason": "balasan manusia tanpa pesan masuk"})
-			sm := "Balasan dari aplikasi"
-			id, err := q.InsertManualSignal(r.Context(), gen.InsertManualSignalParams{DealerID: t.DealerID, SalesID: u.SalesUserID, OccurredAt: now, DedupeKey: "reply:" + uuid.NewString(), Summary: &sm, Payload: payload})
-			if err != nil {
-				return err
-			}
-			sig = &id
-		}
-		reason := "Dikirim langsung dari Chat oleh " + deref(u.Name)
-		p, err := q.InsertProposal(r.Context(), gen.InsertProposalParams{Agent: "Manusia", DealerID: t.DealerID, Kind: "reply", Title: "Balasan ke " + deref(t.Title), Why: reason,
-			Preview: &body, Confidence: 1, SignalIds: []uuid.UUID{*sig}, Autonomy: "approve", Status: "approved", DecidedBy: u.SalesUserID, DecidedAt: &now, DecisionReason: &reason})
+		p, err := s.humanDecision(r.Context(), q, t, u, "Balasan ke "+deref(t.Title), body, now)
 		if err != nil {
 			return err
 		}
@@ -479,6 +540,195 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusAccepted, res)
+}
+
+// errEditGone: the queued reply left the outbox between reading and editing it.
+var errEditGone = errors.New("reply already sending")
+
+// chatEdit edits a text this number sent, like WhatsApp's Edit. A reply still queued changes in the outbox; a sent
+// one (within 15 minutes) is a new human decision — proposal, outbox row kind=edit, audit — that the worker carries
+// out through the bridge, which confirms the approval as for a send.
+func (s *Server) chatEdit(w http.ResponseWriter, r *http.Request) {
+	t, ok := s.threadParam(w, r)
+	if !ok {
+		return
+	}
+	mid, err := uuid.Parse(chi.URLParam(r, "mid"))
+	if err != nil {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Pesan tidak ditemukan")
+		return
+	}
+	var in struct {
+		Body string `json:"body"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || strings.TrimSpace(in.Body) == "" {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pesan kosong")
+		return
+	}
+	u, ok := s.chatAllowed(w, r, t)
+	if !ok {
+		return
+	}
+	m, err := s.st.Q.GetThreadMessage(r.Context(), gen.GetThreadMessageParams{ThreadID: t.ID, ID: mid})
+	if err != nil {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Pesan tidak ditemukan")
+		return
+	}
+	now := s.clock.Now()
+	body := strings.TrimSpace(in.Body)
+	if !canEdit(deref(m.Direction), m.Status, deref(m.ThreadID) == t.ID, mediaView(m.Media), m.WaMsgID, m.SentAt, now) {
+		msg := "Hanya pesan teks dari nomor ini yang bisa diedit"
+		if deref(m.Direction) == "out" && m.Status == "sent" && now.Sub(m.SentAt) >= wa.EditWindow {
+			msg = "Lewat 15 menit sejak dikirim — WhatsApp tidak menerima edit lagi"
+		}
+		httpx.Fail(w, http.StatusConflict, "not_editable", msg)
+		return
+	}
+	if body == deref(m.Body) {
+		httpx.JSON(w, http.StatusOK, map[string]any{"message_id": mid, "status": m.Status})
+		return
+	}
+	actor, kind, entity := deref(u.Email), "user", "chat_message"
+	if m.Status == "pending" {
+		err := s.st.Tx(r.Context(), func(q *gen.Queries, tx pgx.Tx) error {
+			if _, err := q.EditQueuedReply(r.Context(), gen.EditQueuedReplyParams{Text: body, MessageID: mid.String()}); errors.Is(err, pgx.ErrNoRows) {
+				return errEditGone
+			} else if err != nil {
+				return err
+			}
+			if err := q.SetChatMessageBody(r.Context(), gen.SetChatMessageBodyParams{ID: mid, Body: body}); err != nil {
+				return err
+			}
+			action := "chat.edit_queued"
+			after, _ := json.Marshal(map[string]any{"thread_id": t.ID, "before": deref(m.Body), "body": body})
+			if err := q.InsertAudit(r.Context(), gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &mid, After: after}); err != nil {
+				return err
+			}
+			_, err := tx.Exec(r.Context(), "select pg_notify('chat_message', $1)", `{"thread_id":"`+t.ID.String()+`"}`)
+			return err
+		})
+		if errors.Is(err, errEditGone) {
+			httpx.Fail(w, http.StatusConflict, "sending", "Pesan sedang dikirim — tunggu terkirim, lalu edit lagi")
+			return
+		}
+		if err != nil {
+			s.log.Error("chat edit queued", "err", err)
+			httpx.Fail(w, http.StatusInternalServerError, "internal", "Gagal mengubah pesan")
+			return
+		}
+		httpx.JSON(w, http.StatusOK, map[string]any{"message_id": mid, "status": "pending"})
+		return
+	}
+	var res map[string]any
+	err = s.st.Tx(r.Context(), func(q *gen.Queries, tx pgx.Tx) error {
+		p, err := s.humanDecision(r.Context(), q, t, u, "Edit pesan ke "+deref(t.Title), body, now)
+		if err != nil {
+			return err
+		}
+		sentAt := m.SentAt
+		payload, _ := json.Marshal(outbox.WAPayload{From: *t.SalesWa, To: *t.WaJid, Text: body, Kind: "edit", MessageID: mid.String(), ThreadID: t.ID.String(), EditOf: *m.WaMsgID, EditSentAt: &sentAt})
+		ob, err := q.InsertOutbox(r.Context(), gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "wa", ToRef: t.WaJid, Payload: payload})
+		if err != nil {
+			return err
+		}
+		action := "chat.edit"
+		after, _ := json.Marshal(map[string]any{"thread_id": t.ID, "outbox_id": ob.ID, "message_id": mid, "before": deref(m.Body), "body": body})
+		if err := q.InsertAudit(r.Context(), gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &mid, After: after}); err != nil {
+			return err
+		}
+		if s.jobs != nil {
+			if _, err := s.jobs.InsertTx(r.Context(), tx, jobs.OutboxSendArgs{OutboxID: ob.ID.String()}, nil); err != nil {
+				return err
+			}
+		}
+		res = map[string]any{"proposal_id": p.ID, "outbox_id": ob.ID, "message_id": mid, "status": "editing"}
+		return nil
+	})
+	if err != nil {
+		s.log.Error("chat edit", "err", err)
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "Gagal mencatat edit")
+		return
+	}
+	httpx.JSON(w, http.StatusAccepted, res)
+}
+
+// inlineMedia: types a browser may show in the page; anything else is downloaded as a file.
+var inlineMedia = map[string]bool{"image/jpeg": true, "image/png": true, "image/webp": true, "image/gif": true,
+	"video/mp4": true, "video/3gpp": true, "audio/ogg": true, "audio/mpeg": true, "audio/mp4": true, "audio/aac": true, "audio/amr": true, "application/pdf": true}
+
+// mediaFetcher is how the API reaches WhatsApp for a file (the Baileys bridge; tests set their own).
+func (s *Server) mediaFetcher() wa.MediaFetcher {
+	if s.media != nil {
+		return s.media
+	}
+	if s.cfg.WATransport != "baileys" {
+		return nil
+	}
+	return &wa.Baileys{BridgeURL: s.cfg.BridgeURL, Secret: s.cfg.BridgeSecret, Session: func(ctx context.Context, account string) string {
+		if n, err := s.st.Q.GetWANumber(ctx, account); err == nil {
+			return n.SessionID
+		}
+		return ""
+	}}
+}
+
+// chatMedia streams a bubble's photo, video, voice note or document from WhatsApp through the number that received
+// it (ADR 0029). Nothing is stored on the server; the browser keeps it in its private cache.
+func (s *Server) chatMedia(w http.ResponseWriter, r *http.Request) {
+	t, ok := s.threadParam(w, r)
+	if !ok {
+		return
+	}
+	mid, err := uuid.Parse(chi.URLParam(r, "mid"))
+	if err != nil {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Pesan tidak ditemukan")
+		return
+	}
+	m, err := s.st.Q.GetThreadMessage(r.Context(), gen.GetThreadMessageParams{ThreadID: t.ID, ID: mid})
+	var md wa.Media
+	if err != nil || json.Unmarshal(m.Media, &md) != nil || !md.Viewable() {
+		httpx.Fail(w, http.StatusNotFound, "no_media", "Media pesan ini tidak tersimpan — buka di WhatsApp ponsel")
+		return
+	}
+	f := s.mediaFetcher()
+	if f == nil {
+		httpx.Fail(w, http.StatusConflict, "media_unavailable", "Media hanya bisa dibuka lewat WhatsApp Baileys")
+		return
+	}
+	body, err := f.Media(r.Context(), deref(m.HolderAccount), md)
+	switch {
+	case errors.Is(err, wa.ErrMediaGone):
+		httpx.Fail(w, http.StatusGone, "media_gone", "Media sudah tidak tersedia di WhatsApp")
+		return
+	case errors.Is(err, wa.ErrMediaUnavailable):
+		httpx.Fail(w, http.StatusServiceUnavailable, "media_busy", "Nomor penerima belum terhubung atau sedang sibuk — coba lagi sebentar")
+		return
+	case err != nil:
+		s.log.Warn("chat media", "err", err, "message", mid)
+		httpx.Fail(w, http.StatusBadGateway, "media_failed", "Gagal mengambil media dari WhatsApp")
+		return
+	}
+	defer body.Close()
+	ct, _, _ := strings.Cut(md.Mime, ";")
+	ct = strings.ToLower(strings.TrimSpace(ct))
+	h := w.Header()
+	h.Set("X-Content-Type-Options", "nosniff")
+	h.Set("Content-Security-Policy", "sandbox; default-src 'none'")
+	h.Set("Cache-Control", "private, max-age=604800, immutable")
+	if inlineMedia[ct] {
+		h.Set("Content-Type", ct)
+		h.Set("Content-Disposition", "inline")
+	} else {
+		name := md.FileName
+		if name == "" {
+			name = "lampiran"
+		}
+		h.Set("Content-Type", "application/octet-stream")
+		h.Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": name}))
+	}
+	if _, err := io.Copy(w, body); err != nil {
+		s.log.Debug("chat media copy", "err", err)
+	}
 }
 
 func (s *Server) internalNumbers(w http.ResponseWriter, r *http.Request) {

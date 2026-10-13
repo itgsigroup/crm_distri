@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
@@ -45,6 +47,7 @@ func (s *Server) readRoutes(r chi.Router) {
 	r.Get("/credit/dealers", s.creditPart("dealers"))
 	r.Get("/credit/exposure", s.creditPart("exposure"))
 	r.Get("/credit/forecast", s.creditPart("forecast"))
+	r.Get("/screen-analysis/{screen}", s.screenAnalysis)
 }
 
 // board is the dealers the user works with: a sales user sees only the dealers they own in every list (07-api ›
@@ -581,4 +584,45 @@ func (s *Server) dashboardTrend(w http.ResponseWriter, r *http.Request) {
 		t.Series = series
 	}
 	httpx.JSON(w, http.StatusOK, t)
+}
+
+// screenAnalysis is the latest Analisa Stok / Analisa Kas (ADR 0030): what the AI wrote for the Push stok or
+// Kredit · kas page — an overview and one note per item, keyed like the page's rows (stock item id, dealer id).
+// null until an AI has read the page.
+func (s *Server) screenAnalysis(w http.ResponseWriter, r *http.Request) {
+	screen := chi.URLParam(r, "screen")
+	if screen != "stock" && screen != "credit" {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Halaman tidak dikenal")
+		return
+	}
+	row, err := s.st.Q.LatestScreenAnalysis(r.Context(), screen)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.JSON(w, http.StatusOK, map[string]any{"analysis": nil})
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	var lines map[string]json.RawMessage
+	_ = json.Unmarshal(row.Lines, &lines)
+	if screen == "credit" { // stored per dealer uuid; the page's rows use the dealer id
+		b, ok := s.board(w, r)
+		if !ok {
+			return
+		}
+		byUUID := map[string]string{}
+		for _, it := range b.Items {
+			byUUID[it.UUID.String()] = it.ID
+		}
+		out := map[string]json.RawMessage{}
+		for k, v := range lines {
+			if id, ok := byUUID[k]; ok {
+				out[id] = v // a sales user sees only the notes of their own dealers
+			}
+		}
+		lines = out
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"analysis": map[string]any{"screen": screen, "cycle_id": row.CycleID, "cycle_number": row.CycleNumber,
+		"generated_at": row.CreatedAt, "source": row.Source, "overview": row.Overview, "lines": lines}})
 }

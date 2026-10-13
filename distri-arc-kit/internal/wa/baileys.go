@@ -91,13 +91,11 @@ type bridgeEvent struct {
 	IsHistory  bool   `json:"is_history"`
 	ChatName   string `json:"chat_name"`
 	Account    string `json:"account"` // the linked phone's own number
+	EditOf     string `json:"edit_of"`
 	GroupMeta  *struct {
 		Name string `json:"name"`
 	} `json:"group_meta"`
-	MediaMeta *struct {
-		Kind     string `json:"kind"`
-		FileName string `json:"file_name"`
-	} `json:"media_meta"`
+	MediaMeta *Media `json:"media_meta"`
 }
 
 type bridgeStatus struct {
@@ -108,13 +106,13 @@ type bridgeStatus struct {
 	Reason  string `json:"reason"`
 }
 
-var mediaLabel = map[string]string{"image": "[gambar]", "video": "[video]", "audio": "[pesan suara]", "document": "[dokumen]", "location": "[lokasi]", "contact": "[kontak]"}
+var mediaLabel = map[string]string{"image": "[gambar]", "video": "[video]", "gif": "[GIF]", "audio": "[pesan suara]", "document": "[dokumen]", "sticker": "[stiker]", "location": "[lokasi]", "contact": "[kontak]"}
 
-// message converts a bridge event; media without a caption becomes a short label so the conversation stays
-// readable (media content is never downloaded).
+// message converts a bridge event; media gets a short label before its caption so the conversation (and the
+// analysis, which reads text only) stays readable. The media's download reference is kept, never its content.
 func (e bridgeEvent) message() Message {
 	text := strings.TrimSpace(e.Text)
-	if e.MediaMeta != nil {
+	if e.MediaMeta != nil && e.EditOf == "" {
 		label := mediaLabel[e.MediaMeta.Kind]
 		if label == "" {
 			label = "[lampiran]"
@@ -137,7 +135,8 @@ func (e bridgeEvent) message() Message {
 		acc = e.Session // sessions named after their number; never the digits inside a "link-…" id
 	}
 	m := Message{ID: e.WAMID, Account: acc, ChatJID: e.ChatID, FromNumber: Digits(e.From), FromName: e.SenderName,
-		IsGroup: e.IsGroup, FromMe: e.FromMe, Text: text, Time: t, ChatName: strings.TrimSpace(e.ChatName), History: e.IsHistory}
+		IsGroup: e.IsGroup, FromMe: e.FromMe, Text: text, Time: t, ChatName: strings.TrimSpace(e.ChatName), History: e.IsHistory,
+		Media: e.MediaMeta, EditOf: e.EditOf}
 	if e.GroupMeta != nil {
 		m.GroupName = e.GroupMeta.Name
 	}
@@ -406,6 +405,61 @@ func (b *Baileys) Send(ctx context.Context, account, chatJID, text string) (stri
 		return "", err
 	}
 	return out.WAMID, nil
+}
+
+// Edit asks the bridge to edit a text this number sent; the outbox id of the approved edit travels in ctx
+// (WithAction) and is confirmed by the bridge like a send.
+func (b *Baileys) Edit(ctx context.Context, account, chatJID, waMsgID, text string) error {
+	action := ActionFrom(ctx)
+	if action == "" {
+		return &SendRefused{Code: "not_approved", Reason: "edit tanpa outbox yang disetujui ditolak"}
+	}
+	_, _, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/edit",
+		map[string]string{"chat_id": chatJID, "wamid": waMsgID, "text": text, "action_id": action}, nil)
+	var be *bridgeError
+	if errors.As(err, &be) && (be.Status == http.StatusForbidden || be.Status == http.StatusConflict) {
+		r := &SendRefused{Code: be.Code, Reason: be.Msg}
+		if be.Code == "not_linked" {
+			r.RetryAfter = time.Minute
+		}
+		return r
+	}
+	return err
+}
+
+// mediaClient fetches files: no overall timeout (a video may take a while), the request context bounds it.
+var mediaClient = &http.Client{}
+
+// Media streams a message's file from WhatsApp through the bridge (ADR 0029): nothing is stored on the way.
+func (b *Baileys) Media(ctx context.Context, account string, m Media) (io.ReadCloser, error) {
+	body, _ := json.Marshal(map[string]string{"ref": m.Ref, "mime": m.Mime})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(b.BridgeURL, "/")+"/sessions/"+url.PathEscape(b.session(ctx, account))+"/media", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-ARC-Signature", sign(b.Secret, body))
+	res, err := mediaClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: wa-bridge tidak terjangkau", ErrMediaUnavailable)
+	}
+	switch res.StatusCode {
+	case http.StatusOK:
+		return res.Body, nil
+	case http.StatusGone:
+		res.Body.Close()
+		return nil, ErrMediaGone
+	case http.StatusNotFound, http.StatusConflict, http.StatusTooManyRequests:
+		res.Body.Close()
+		return nil, ErrMediaUnavailable
+	}
+	defer res.Body.Close()
+	raw, _ := io.ReadAll(io.LimitReader(res.Body, 4<<10))
+	var e struct {
+		Error string `json:"error"`
+	}
+	_ = json.Unmarshal(raw, &e)
+	return nil, &bridgeError{Status: res.StatusCode, Msg: e.Error}
 }
 
 // FetchHistory asks the bridge for an on-demand history sync of one chat: the linked phone sends up to `count`

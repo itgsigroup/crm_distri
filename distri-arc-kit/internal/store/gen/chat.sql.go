@@ -161,6 +161,56 @@ func (q *Queries) DropPendingBubble(ctx context.Context, proposalID *uuid.UUID) 
 	return err
 }
 
+const editChatMessageByWAID = `-- name: EditChatMessageByWAID :one
+update chat_messages m set body = $1::text, edited_at = $2::timestamptz
+from chat_message_keys k
+where k.wa_msg_id = $3::text and m.id = k.message_id and m.sent_at = k.sent_at
+returning m.id, m.thread_id
+`
+
+type EditChatMessageByWAIDParams struct {
+	Body     string    `json:"body"`
+	EditedAt time.Time `json:"edited_at"`
+	WaMsgID  string    `json:"wa_msg_id"`
+}
+
+type EditChatMessageByWAIDRow struct {
+	ID       uuid.UUID  `json:"id"`
+	ThreadID *uuid.UUID `json:"thread_id"`
+}
+
+// A WhatsApp edit of a stored message (customer, phone or Chat): the new text replaces the old one.
+func (q *Queries) EditChatMessageByWAID(ctx context.Context, arg EditChatMessageByWAIDParams) (EditChatMessageByWAIDRow, error) {
+	row := q.db.QueryRow(ctx, editChatMessageByWAID, arg.Body, arg.EditedAt, arg.WaMsgID)
+	var i EditChatMessageByWAIDRow
+	err := row.Scan(&i.ID, &i.ThreadID)
+	return i, err
+}
+
+const editQueuedReply = `-- name: EditQueuedReply :one
+update outbox set payload = jsonb_set(payload, '{text}', to_jsonb($1::text))
+where channel = 'wa' and status = 'pending' and payload->>'message_id' = $2::text
+returning id, proposal_id
+`
+
+type EditQueuedReplyParams struct {
+	Text      string `json:"text"`
+	MessageID string `json:"message_id"`
+}
+
+type EditQueuedReplyRow struct {
+	ID         uuid.UUID  `json:"id"`
+	ProposalID *uuid.UUID `json:"proposal_id"`
+}
+
+// An edit of a reply still waiting in the outbox: the queued text changes before it goes out.
+func (q *Queries) EditQueuedReply(ctx context.Context, arg EditQueuedReplyParams) (EditQueuedReplyRow, error) {
+	row := q.db.QueryRow(ctx, editQueuedReply, arg.Text, arg.MessageID)
+	var i EditQueuedReplyRow
+	err := row.Scan(&i.ID, &i.ProposalID)
+	return i, err
+}
+
 const findContactByNumber = `-- name: FindContactByNumber :one
 select c.id, c.dealer_id, c.name, c.role, c.wa_number, c.is_primary, c.last_interaction_at, c.interactions_90d, c.source_system, c.source_id, c.interactions_base, c.base_as_of, d.slug as dealer_slug, d.name as dealer_name, d.owner_id as dealer_owner
 from contacts c join dealers d on d.id = c.dealer_id where c.wa_number = $1 limit 1
@@ -368,6 +418,63 @@ func (q *Queries) GetThreadByAccountJID(ctx context.Context, arg GetThreadByAcco
 		&i.HistoryReqAt,
 		&i.HistoryTries,
 		&i.HistoryDoneAt,
+	)
+	return i, err
+}
+
+const getThreadMessage = `-- name: GetThreadMessage :one
+select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, x.account as holder_account from chat_messages m
+join chat_threads x on x.id = m.thread_id
+join chat_threads t on t.id = $1::uuid
+where m.id = $2::uuid and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+`
+
+type GetThreadMessageParams struct {
+	ThreadID uuid.UUID `json:"thread_id"`
+	ID       uuid.UUID `json:"id"`
+}
+
+type GetThreadMessageRow struct {
+	ID            uuid.UUID       `json:"id"`
+	ThreadID      *uuid.UUID      `json:"thread_id"`
+	WaMsgID       *string         `json:"wa_msg_id"`
+	Direction     *string         `json:"direction"`
+	FromNumber    *string         `json:"from_number"`
+	FromName      *string         `json:"from_name"`
+	Body          *string         `json:"body"`
+	Media         json.RawMessage `json:"media"`
+	SentAt        time.Time       `json:"sent_at"`
+	Annotation    json.RawMessage `json:"annotation"`
+	SignalID      *uuid.UUID      `json:"signal_id"`
+	Status        string          `json:"status"`
+	ProposalID    *uuid.UUID      `json:"proposal_id"`
+	Internal      bool            `json:"internal"`
+	EditedAt      *time.Time      `json:"edited_at"`
+	HolderAccount *string         `json:"holder_account"`
+}
+
+// One message of a conversation; a group thread also owns the messages stored under another GSI number's thread of
+// the group (as ListThreadMessages). account is the number that received it (media is fetched through it).
+func (q *Queries) GetThreadMessage(ctx context.Context, arg GetThreadMessageParams) (GetThreadMessageRow, error) {
+	row := q.db.QueryRow(ctx, getThreadMessage, arg.ThreadID, arg.ID)
+	var i GetThreadMessageRow
+	err := row.Scan(
+		&i.ID,
+		&i.ThreadID,
+		&i.WaMsgID,
+		&i.Direction,
+		&i.FromNumber,
+		&i.FromName,
+		&i.Body,
+		&i.Media,
+		&i.SentAt,
+		&i.Annotation,
+		&i.SignalID,
+		&i.Status,
+		&i.ProposalID,
+		&i.Internal,
+		&i.EditedAt,
+		&i.HolderAccount,
 	)
 	return i, err
 }
@@ -1106,8 +1213,8 @@ func (q *Queries) ListInternalNumbers(ctx context.Context) ([]InternalNumber, er
 }
 
 const listThreadMessages = `-- name: ListThreadMessages :many
-select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal from (
-  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal from chat_messages m
+select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at from (
+  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at from chat_messages m
   where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
                         where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
     and m.sent_at < $2 order by m.sent_at desc limit $3
@@ -1146,6 +1253,7 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 			&i.Status,
 			&i.ProposalID,
 			&i.Internal,
+			&i.EditedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1543,6 +1651,39 @@ func (q *Queries) PendingOutboxIDs(ctx context.Context) ([]uuid.UUID, error) {
 	return items, nil
 }
 
+const setChatMessageBody = `-- name: SetChatMessageBody :exec
+update chat_messages set body = $1::text, edited_at = $2::timestamptz where id = $3::uuid
+`
+
+type SetChatMessageBodyParams struct {
+	Body     string     `json:"body"`
+	EditedAt *time.Time `json:"edited_at"`
+	ID       uuid.UUID  `json:"id"`
+}
+
+func (q *Queries) SetChatMessageBody(ctx context.Context, arg SetChatMessageBodyParams) error {
+	_, err := q.db.Exec(ctx, setChatMessageBody, arg.Body, arg.EditedAt, arg.ID)
+	return err
+}
+
+const setChatMessageMediaRef = `-- name: SetChatMessageMediaRef :exec
+update chat_messages m set media = $1::jsonb
+from chat_message_keys k
+where k.wa_msg_id = $2::text and m.id = k.message_id and m.sent_at = k.sent_at
+  and (m.media is null or m.media->>'ref' is null)
+`
+
+type SetChatMessageMediaRefParams struct {
+	Media   json.RawMessage `json:"media"`
+	WaMsgID string          `json:"wa_msg_id"`
+}
+
+// A message stored before media references were kept gets one when WhatsApp delivers it again (history sync).
+func (q *Queries) SetChatMessageMediaRef(ctx context.Context, arg SetChatMessageMediaRefParams) error {
+	_, err := q.db.Exec(ctx, setChatMessageMediaRef, arg.Media, arg.WaMsgID)
+	return err
+}
+
 const setChatMessageStatus = `-- name: SetChatMessageStatus :exec
 update chat_messages set status = $1::text where id = $2::uuid
 `
@@ -1840,16 +1981,19 @@ func (q *Queries) TouchThread(ctx context.Context, arg TouchThreadParams) error 
 const updateChatMessageSent = `-- name: UpdateChatMessageSent :exec
 with k as (
   update chat_message_keys set wa_msg_id = $1::text, sent_at = $3::timestamptz
-  where message_id = $4::uuid
+  where message_id = $5::uuid
 )
-update chat_messages set wa_msg_id = $1::text, status = $2::text, sent_at = $3::timestamptz
-where id = $4::uuid
+update chat_messages set wa_msg_id = $1::text, status = $2::text, sent_at = $3::timestamptz,
+  -- the text that actually went out (an edit made while it was queued may have come too late)
+  body = coalesce($4::text, body)
+where id = $5::uuid
 `
 
 type UpdateChatMessageSentParams struct {
 	WaMsgID *string   `json:"wa_msg_id"`
 	Status  string    `json:"status"`
 	SentAt  time.Time `json:"sent_at"`
+	Body    *string   `json:"body"`
 	ID      uuid.UUID `json:"id"`
 }
 
@@ -1858,6 +2002,7 @@ func (q *Queries) UpdateChatMessageSent(ctx context.Context, arg UpdateChatMessa
 		arg.WaMsgID,
 		arg.Status,
 		arg.SentAt,
+		arg.Body,
 		arg.ID,
 	)
 	return err

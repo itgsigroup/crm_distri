@@ -1,6 +1,18 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Push stok dan Kredit · kas dianalisa Claude lewat MCP · 2026-10-13
+- **Analisa Stok** dan **Analisa Kas** (ADR 0030), seperti Analisa WhatsApp: Claude membaca stok menua dan piutang/prediksi kas lewat MCP (`orchestrator_input_get` → `orchestrator_submit` dengan `overview` + `lines`), lalu ringkasan dan catatan per SKU/dealer tampil di halaman bertanda "ditulis AI · siklus #n". Angka tetap dihitung GSI Orbit.
+- Tombol **Analisis ulang** di kedua halaman kini lewat MCP (membuka lembar Claude, atau Claude di server bila kunci API tersimpan).
+- Saran aturan tetap dihapus: "Usul: diskon atau retur / bundle tier C" di Push stok dan "Pengingat H-3 otomatis" di Kredit · kas (GSI Orbit tidak mengirim pesan otomatis). Tanpa analisa AI halaman menulis "Belum dianalisis AI".
+- Migrasi 0026 `screen_analyses`; endpoint `GET /screen-analysis/{stock|credit}`.
+
+## Feat · Chat: Belum dibalas, foto/video/VN di bubble, edit pesan · 2026-10-13
+- Chip **Belum dibalas** di daftar chat: percakapan dealer dan nomor baru yang pesan pelanggannya belum dijawab (grup tidak dihitung); chat yang dibuka tetap tampil sesudah dibalas.
+- **Foto, video, pesan suara, stiker, dan dokumen** dari pelanggan tampil di bubble (ADR 0029). Isinya tidak disimpan: bridge menyimpan referensi unduh, file diambil dari WhatsApp saat dibuka (foto saat terlihat, video/VN/dokumen saat diklik). Foto bisa dibuka besar dan diunduh.
+- **Edit pesan** seperti WhatsApp: tombol pensil di pesan keluar — yang masih di antrean diubah sebelum terkirim, yang sudah terkirim bisa diedit sampai 15 menit (dicatat sebagai keputusan manusia, lewat outbox dan bridge). Edit dari pelanggan atau dari HP ikut memperbarui bubble, ditandai "diedit" (migrasi 0025).
+- Media dari pesan lama baru bisa dibuka setelah WhatsApp mengirimnya lagi lewat sinkron riwayat; sampai itu tampil "buka di ponsel".
+
 ## Fix · jalur analisis bisa diganti lagi; Claude boleh menjawab "tidak ada usulan" · 2026-10-13
 - **Pengaturan → jalur analisis (api/mcp/both) selalu ditolak 400** sejak `require_ai` ditambahkan (ADR 0025): skema `llm.routing` belum mengenal kolom itu. Skema diperbaiki; test baru memeriksa setiap kebijakan default lolos skemanya setelah disimpan ulang.
 - **Claude lewat MCP kini bisa mengirim `proposals: []`** (tidak ada usulan untuk agen itu). Sebelumnya ditolak tanpa alasan, sehingga dengan wajib-AI agen itu menunggu 10 menit lalu gagal dan siklus menjadi "sebagian".

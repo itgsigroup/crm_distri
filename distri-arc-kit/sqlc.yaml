@@ -26,6 +26,8 @@ sql:
       - db/migrations/0022_chat_from_number_index.sql
       - db/migrations/0023_wa_state_since.sql
       - db/migrations/0024_wa_history_year.sql
+      - db/migrations/0025_chat_media_edit.sql
+      - db/migrations/0026_screen_analyses.sql
     queries: db/queries
     gen:
       go:

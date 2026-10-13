@@ -26,9 +26,12 @@ type WAPayload struct {
 	From      string `json:"from"` // sales number (digits)
 	To        string `json:"to"`   // chat JID
 	Text      string `json:"text"`
-	Kind      string `json:"kind"`       // proposal kind; "reply" = a human answering in a conversation
-	MessageID string `json:"message_id"` // pending chat_messages row shown in the thread
+	Kind      string `json:"kind"`       // proposal kind; "reply" = a human answering in a conversation, "edit" = a human editing a sent text
+	MessageID string `json:"message_id"` // pending chat_messages row shown in the thread (edit: the message edited)
 	ThreadID  string `json:"thread_id"`
+	// an edit: the WhatsApp id of the message edited and when it was sent (WhatsApp accepts edits for 15 minutes)
+	EditOf     string     `json:"edit_of,omitempty"`
+	EditSentAt *time.Time `json:"edit_sent_at,omitempty"`
 }
 
 // Rules are the anti-ban limits (09-policies-security): proactive messages are capped per sales per day and
@@ -110,6 +113,9 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	if err := json.Unmarshal(ob.Payload, &p); err != nil {
 		return 0, err
 	}
+	if p.Kind == "edit" {
+		return s.sendEdit(ctx, ob, p)
+	}
 	now := s.clock.Now()
 	if p.Kind == "reply" {
 		s.sleep(jitter(s.rules.ReplyMin, s.rules.ReplyMax))
@@ -168,7 +174,7 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	}
 	if p.MessageID != "" {
 		if mid, err := uuid.Parse(p.MessageID); err == nil {
-			_ = s.st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &msgID, Status: "sent", SentAt: sent})
+			_ = s.st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &msgID, Status: "sent", SentAt: sent, Body: &p.Text})
 		}
 	}
 	if err := s.st.Q.SetProposalExecuted(ctx, pidOf(ob)); err != nil {
@@ -242,4 +248,55 @@ func (s *Sender) sendSystem(ctx context.Context, ob gen.Outbox) (time.Duration, 
 	e := ErrNoAutoMessage.Error()
 	_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
 	return 0, ErrNoAutoMessage
+}
+
+// sendEdit carries out a human's edit of a text the number sent: no pacing (nothing new lands in the chat), but the
+// same approval check by the bridge, and never after WhatsApp's 15 minutes.
+func (s *Sender) sendEdit(ctx context.Context, ob gen.Outbox, p WAPayload) (time.Duration, error) {
+	fail := func(e string) (time.Duration, error) {
+		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
+		s.notifyFailed(ctx, ob, errors.New(e))
+		return 0, fmt.Errorf("%w: %s", ErrRefused, e)
+	}
+	ed, ok := s.t.(wa.Editor)
+	if !ok {
+		return fail("Transport WhatsApp ini tidak bisa mengedit pesan")
+	}
+	now := s.clock.Now()
+	if p.EditSentAt == nil || now.Sub(*p.EditSentAt) > wa.EditWindow {
+		return fail("Lewat 15 menit sejak dikirim — WhatsApp tidak menerima edit lagi")
+	}
+	err := ed.Edit(wa.WithAction(ctx, ob.ID.String()), p.From, p.To, p.EditOf, p.Text)
+	var refused *wa.SendRefused
+	if errors.As(err, &refused) {
+		if refused.Temporary() {
+			e := "Penjaga anti-blokir: " + refused.Reason
+			_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "pending", Error: &e})
+			return refused.RetryAfter, nil
+		}
+		return fail("Edit ditolak: " + refused.Reason)
+	}
+	if err != nil {
+		e := err.Error()
+		_ = s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: ob.ID, Status: "failed", Error: &e})
+		return 0, err
+	}
+	at := s.clock.Now()
+	if err := s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: ob.ID, Status: "sent", SentAt: &at}); err != nil {
+		return 0, err
+	}
+	if mid, err := uuid.Parse(p.MessageID); err == nil {
+		if err := s.st.Q.SetChatMessageBody(ctx, gen.SetChatMessageBodyParams{ID: mid, Body: p.Text, EditedAt: &at}); err != nil {
+			return 0, err
+		}
+	}
+	if err := s.st.Q.SetProposalExecuted(ctx, pidOf(ob)); err != nil {
+		return 0, err
+	}
+	actor, kind, action, entity := "worker", "system", "outbox.edited", "outbox"
+	after, _ := json.Marshal(map[string]any{"edit_of": p.EditOf, "from": p.From, "to": p.To, "proposal_id": ob.ProposalID})
+	_ = s.st.Q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &ob.ID, After: after})
+	_ = events.Notify(ctx, s.st.Pool, "chat_message", map[string]string{"thread_id": p.ThreadID})
+	_ = events.Notify(ctx, s.st.Pool, "proposal_changed", map[string]string{"id": pidOf(ob).String(), "status": "executed"})
+	return 0, nil
 }

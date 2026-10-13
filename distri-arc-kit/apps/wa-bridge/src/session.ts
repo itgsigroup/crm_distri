@@ -1,10 +1,10 @@
 import makeWASocket, {
-  Browsers, DisconnectReason, fetchLatestBaileysVersion, isJidGroup, isLidUser, jidNormalizedUser, makeCacheableSignalKeyStore,
+  Browsers, DisconnectReason, downloadMediaMessage, fetchLatestBaileysVersion, isJidGroup, isLidUser, jidNormalizedUser, makeCacheableSignalKeyStore,
   type Contact, type GroupMetadata, type WAMessageKey, type WASocket, type proto,
 } from 'baileys'
 import type { Logger } from 'pino'
 import type { Policy } from './config.js'
-import { isConversation, toGroupMeta, toWaEvent, type GroupMeta, type Resolver, type WaEvent } from './events.js'
+import { decodeMediaRef, isConversation, toGroupMeta, toWaEvent, type GroupMeta, type Resolver, type WaEvent } from './events.js'
 import type { Forwarder } from './forward.js'
 import { isOptOut, reconnectDelayMs } from './guard.js'
 import type { PgStore } from './pgstore.js'
@@ -30,6 +30,14 @@ const FATAL = new Set<number>([DisconnectReason.loggedOut, DisconnectReason.forb
 
 const digits = (jid?: string | null) => (jid ?? '').split('@')[0].split(':')[0].replace(/\D/g, '')
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+/** Media files a person may open at once per number: WhatsApp Web downloads a handful in parallel, not hundreds. */
+const MEDIA_PARALLEL = 4
+
+/** The number cannot fetch media right now (not connected, or too many downloads at once). */
+export class MediaBusy extends Error {
+  constructor(msg: string, public status: 409 | 429) { super(msg) }
+}
 
 /** The number cannot ask its phone for history right now (not connected, or the request pace is used up). */
 export class HistoryBusy extends Error {
@@ -71,6 +79,7 @@ export class Session implements SendTarget {
   private profiles = new Map<string, { at: number; p: Profile }>()
   private lookups: number[] = []
   private historyAsks: number[] = []
+  private downloads = 0
   private contacts = new Map<string, Partial<Contact>>()
   private recent = new Map<string, proto.IMessage>() // for retry receipts (getMessage)
   private unread = new Map<string, WAMessageKey[]>() // inbound not yet read, per chat: read before replying
@@ -339,6 +348,29 @@ export class Session implements SendTarget {
     p.has_photo = !!(await this.sock.profilePictureUrl(norm, 'preview').catch(() => undefined))
     this.profiles.set(norm, { at: Date.now(), p })
     return p
+  }
+
+  /**
+   * Downloads one media file a person opened in Chat, from a reference stored with the message (events.ts mediaRef).
+   * Streamed through, never stored. A file expired on WhatsApp's CDN is asked from the phone again (re-upload).
+   */
+  async downloadMedia(ref: string): Promise<NodeJS.ReadableStream> {
+    const sock = this.sock
+    if (!sock || this.status !== 'connected') throw new MediaBusy('sesi belum terhubung', 409)
+    if (this.downloads >= MEDIA_PARALLEL) throw new MediaBusy('terlalu banyak media dibuka bersamaan', 429)
+    this.downloads++
+    try {
+      return await downloadMediaMessage(decodeMediaRef(ref), 'stream', {}, { logger: this.log, reuploadRequest: sock.updateMediaMessage })
+    } finally {
+      this.downloads--
+    }
+  }
+
+  /** Edits a text this number sent (WhatsApp allows it for 15 minutes); the chat shows it as "Diedit". */
+  async editText(chat: string, wamid: string, text: string): Promise<void> {
+    const sock = this.sock
+    if (!sock) throw new Error('sesi belum terhubung')
+    await sock.sendMessage(chat, { text, edit: { remoteJid: chat, fromMe: true, id: wamid } })
   }
 
   /** Sends like a person: online, reads the chat (blue ticks), pauses, "typing…", then the message. */

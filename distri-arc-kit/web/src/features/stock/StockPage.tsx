@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
-import type { AgingItem, NextAction, Proposal } from '../../api/types'
+import type { AgingItem, NextAction, Proposal, ScreenAnalysis } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
 import { useFeedback } from '../../components/feedback'
 import { fmtRp, shortName } from '../../lib/format'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { useKpi, useSalesByProduct, useStockAging, useStockCritical, useStockProposals } from '../../app/queries'
+import { useKpi, useSalesByProduct, useScreenAnalysis, useStockAging, useStockCritical, useStockProposals } from '../../app/queries'
+import { ScreenBrief, ScreenNote } from '../../components/ScreenAI'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { AGING_COMPARE, agingText, agingTie, firstDir, type StockColumn } from './table'
 
@@ -28,6 +29,7 @@ export function StockPage() {
   const { data: critical = [] } = useStockCritical()
   const { data: sales = [] } = useSalesByProduct()
   const { data: props = [] } = useStockProposals()
+  const { data: ai } = useScreenAnalysis('stock')
   const [branch, setBranch] = useState('')
 
   const open = (p: Proposal) => p.status !== 'rejected' && p.status !== 'expired' && p.status !== 'suppressed'
@@ -52,7 +54,7 @@ export function StockPage() {
         <div className="kpi-t"><small>Push stok aktif</small><b className="num">{pushes.length}</b><span className="dl n">{fmtRp(activeValue)} → {activeDealers} dealer</span></div>
         <div className="kpi-t"><small>Stok kritis</small><b className="num">{critical.length}<em>SKU</em></b><span className="dl warn">habis &lt; 10 hari pada siklus order sekarang</span></div>
       </div>
-      <PushStockTable list={inBranch} total={aging.length} branches={branches} branch={branch} setBranch={setBranch} pushOf={pushOf} running={orch.running} onReanalyze={() => reanalyze('screen:stock')} onPromo={() => toast('Promo belum otomatis: atur harga promo di Accurate — data GSI Orbit dibaca dari BigQuery (baca saja)')} />
+      <PushStockTable list={inBranch} total={aging.length} branches={branches} branch={branch} setBranch={setBranch} pushOf={pushOf} ai={ai} running={orch.running} onReanalyze={() => reanalyze('screen:stock', 'mcp')} onPromo={() => toast('Promo belum otomatis: atur harga promo di Accurate — data GSI Orbit dibaca dari BigQuery (baca saja)')} />
       <div className="grid-2">
         <div className="card">
             <div className="card-h"><h2>Stok kritis</h2><span className="meta">Dari siklus order dealer di tiap cabang</span></div>
@@ -94,9 +96,9 @@ export function StockPage() {
 }
 
 /** Push stok as a data table: search, sort every column both ways, pages of 10/25/50. */
-function PushStockTable({ list, total, branches, branch, setBranch, pushOf, running, onReanalyze, onPromo }: {
+function PushStockTable({ list, total, branches, branch, setBranch, pushOf, ai, running, onReanalyze, onPromo }: {
   list: AgingItem[]; total: number; branches: string[]; branch: string; setBranch: (b: string) => void
-  pushOf: (name: string) => Proposal | undefined; running: boolean; onReanalyze: () => void; onPromo: () => void
+  pushOf: (name: string) => Proposal | undefined; ai: ScreenAnalysis | null | undefined; running: boolean; onReanalyze: () => void; onPromo: () => void
 }) {
   const t = useDataTable<AgingItem, StockColumn>({ rows: list, text: agingText, compare: AGING_COMPARE, tie: agingTie, initial: { column: 'umur', dir: 'desc' }, firstDir })
   const matches = t.matches
@@ -104,9 +106,10 @@ function PushStockTable({ list, total, branches, branch, setBranch, pushOf, runn
   return (
     <div className="card push-card">
       <div className="card-h">
-        <h2>Push stok</h2><span className="ai" style={{ marginLeft: 6 }}>AI Stok</span><span className="meta">Stok menua → dealer yang product mix-nya cocok &amp; jadwal order</span>
-        <button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 8 }} disabled={running} onClick={onReanalyze}><Icon name="refresh" />Analisis ulang</button>
+        <h2>Push stok</h2><span className="ai" style={{ marginLeft: 6 }}>Analisa Stok · Claude (MCP)</span><span className="meta">Stok menua → dealer yang product mix-nya cocok &amp; jadwal order</span>
+        <button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 8 }} disabled={running} onClick={onReanalyze} title="Claude membaca stok menua lewat MCP dan menulis analisanya di halaman ini"><Icon name="plug" />Analisis ulang</button>
       </div>
+      <ScreenBrief a={ai} what="stok menua" />
       {branches.length > 1 && (
         <div className="chips" style={{ marginBottom: 8 }}>
           {['', ...branches].map((b) => <button key={b || 'all'} className={`chip ${branch === b ? 'is-active' : ''}`} onClick={() => setBranch(b)}>{b || 'Semua cabang'}</button>)}
@@ -125,15 +128,14 @@ function PushStockTable({ list, total, branches, branch, setBranch, pushOf, runn
                 const p = pushOf(x.name)
                 const ds = (x.candidates ?? []).map((c) => shortName(c.name))
                 const n = x.candidate_count ?? ds.length
-                const note = n ? '' : x.age_days > 180 ? 'Usul: diskon atau retur ke supplier' : 'Usul: bundle untuk dealer tier C'
                 return (
                   <tr key={x.id}>
-                    <td className="odl-name"><b>{x.name}</b><small>{x.sku}{x.category ? ` · ${x.category}` : ''}</small></td>
+                    <td className="odl-name"><b>{x.name}</b><small>{x.sku}{x.category ? ` · ${x.category}` : ''}</small><ScreenNote a={ai} k={x.id} /></td>
                     <td>{x.branch}</td>
                     <td className="r num">{x.qty.toLocaleString('id-ID')} <small>{unit(x.name)}</small></td>
                     <td className="odl-rp">{fmtRp(x.value)}</td>
                     <td className="r"><em className="num" style={{ color: `var(--${k})`, fontStyle: 'normal', fontWeight: 700 }}>{x.age_days} hr</em></td>
-                    <td className="stock-dealers">{n ? <><b>{n}</b> · {ds.slice(0, 2).join(', ')}{n > 2 ? `, +${n - 2}` : ''}</> : <span className="muted">belum ada · {note}</span>}</td>
+                    <td className="stock-dealers">{n ? <><b>{n}</b> · {ds.slice(0, 2).join(', ')}{n > 2 ? `, +${n - 2}` : ''}</> : <span className="muted">belum ada dealer cocok</span>}</td>
                     <td className="odl-act">{p ? <ActBtn small next={toNext(p)} /> : <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={onPromo}>Buat promo</button>}</td>
                   </tr>
                 )

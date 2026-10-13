@@ -310,6 +310,23 @@ export interface MessageView {
   proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }
   /** Analisa WhatsApp of this bubble (one-to-one chats): request + AI note from the last analysis, reply state live */
   analysis?: MsgAnalysis
+  /** photo, video, voice note, document…; the file is fetched from WhatsApp when opened (ADR 0029) */
+  media?: MediaView
+  /** edited on WhatsApp (by the customer, on the phone, or from Chat) */
+  edited_at?: string | null
+  /** a text this number sent or still queued; a sent one only within 15 minutes */
+  can_edit?: boolean
+}
+export interface MediaView {
+  kind: 'image' | 'video' | 'gif' | 'audio' | 'document' | 'sticker' | 'location' | 'contact' | string
+  mime?: string
+  file_name?: string
+  size?: number
+  seconds?: number
+  /** a voice note recorded in WhatsApp */
+  ptt?: boolean
+  /** false: stored before media was kept viewable — open it on the phone */
+  viewable: boolean
 }
 export type MsgState = 'replied' | 'waiting' | 'needs_reply' | 'closing' | 'reply' | 'follow_up'
 export interface MsgAnalysis {
@@ -572,4 +589,16 @@ export interface Trend {
   series: Partial<Record<TrendKey, (number | null)[]>>
   unavailable: string[]
   months: string[]
+}
+
+/** Analisa Stok / Analisa Kas (ADR 0030): what the AI wrote for the Push stok or Kredit · kas page. */
+export interface ScreenAnalysis {
+  screen: 'stock' | 'credit'
+  cycle_id: string
+  cycle_number: number | null
+  generated_at: string
+  source: 'ai'
+  overview: string
+  /** per row: stock item id (Push stok) or dealer id (Kredit · kas) */
+  lines: Record<string, { note: string; confidence: number }>
 }

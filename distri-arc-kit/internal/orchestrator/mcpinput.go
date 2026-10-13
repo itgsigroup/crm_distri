@@ -256,6 +256,9 @@ func (o *Orchestrator) InputFor(ctx context.Context, cycleID uuid.UUID, agent st
 	if agent == AgentWA {
 		return o.WAInputFor(ctx, cycleID)
 	}
+	if IsScreenReading(agent) {
+		return o.ScreenInputFor(ctx, cycleID, agent)
+	}
 	if row, err := o.St.Q.GetCycleInput(ctx, gen.GetCycleInputParams{CycleID: cycleID, Agent: agent}); err == nil {
 		return row.Input, nil
 	}
@@ -458,15 +461,24 @@ func MCPPrompt(number int64, cycleID string, agentNames []string, wait time.Dura
 	if wait <= 0 {
 		wait = 10 * time.Minute
 	}
+	pages := ""
+	for _, a := range ScreenReadings(agentNames) {
+		what := "stok menua dan SKU kritis (halaman Push stok): ringkasan untuk CEO dan satu catatan per item"
+		if a == AgentCashRead {
+			what = "piutang dan prediksi kas (halaman Kredit · kas): ringkasan untuk CEO dan satu catatan per dealer"
+		}
+		pages += fmt.Sprintf("\nBaca juga %s: panggil orchestrator_input_get {\"cycle_id\": \"%s\", \"agent\": \"%s\"}, tulis %s, kirim lewat orchestrator_submit {\"cycle_id\": \"%s\", \"agent\": \"%s\", \"overview\": \"...\", \"lines\": [{\"key\": \"...\", \"note\": \"...\", \"confidence\": 0.8}]}.\n",
+			a, cycleID, a, what, cycleID, a)
+	}
 	return fmt.Sprintf(`Pakai konektor GSI Orbit. Siklus Orchestrator #%d (cycle_id %s) sedang menunggu analisis dari kamu — batas %s.
 
 Untuk setiap agen berikut: %s
 1. Panggil orchestrator_input_get {"cycle_id": "%s", "agent": "<nama agen>"} — isinya data dealer (dimasking), kebijakan, dan kandidat usulan yang angkanya dihitung sistem.
 2. Analisis datanya: pilih kandidat yang benar-benar perlu, tulis ulang "why" (alasan singkat berbasis angka) dan "preview" (draft pesan, Bahasa Indonesia, sopan). Jangan ubah angka, dealer_id, kind, signal_ids, atau dedupe_key; buang kandidat yang lemah.
 3. Kirim lewat orchestrator_submit {"cycle_id": "%s", "agent": "<nama agen>", "proposals": [...]}.
-
+%s
 Lalu baca chat WhatsApp: panggil orchestrator_input_get {"cycle_id": "%s", "agent": "Analisa WhatsApp"}, tulis ringkasan untuk CEO dan satu kalimat per percakapan, kirim lewat orchestrator_submit {"cycle_id": "%s", "agent": "Analisa WhatsApp", "overview": "...", "threads": [{"id": "...", "summary": "...", "confidence": 0.8}]}.
 
 Kerjakan semua agen, lalu beri ringkasan singkat apa yang kamu usulkan. Kamu hanya mengusulkan — keputusan tetap di aplikasi GSI Orbit.`,
-		number, cycleID, waitLabel(wait), strings.Join(agentNames, ", "), cycleID, cycleID, cycleID, cycleID)
+		number, cycleID, waitLabel(wait), strings.Join(agentNames, ", "), cycleID, cycleID, pages, cycleID, cycleID)
 }

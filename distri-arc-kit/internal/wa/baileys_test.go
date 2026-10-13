@@ -131,6 +131,16 @@ func TestBaileysEventsAndStatus(t *testing.T) {
 	if m == nil || m.Account != "6281234504471" || m.Text != "[gambar]" || m.FromName != "Mbak Rina" {
 		t.Fatalf("message %+v", m)
 	}
+	ev = `{"event":{"wamid":"W2","session":"6281234504471","from":"6281900300102","to":"6281234504471","chat_id":"6281900300102@s.whatsapp.net","text":"Foto unit","media_meta":{"kind":"video","mime":"video/mp4","size":9000,"seconds":14,"ref":"UkVG"},"timestamp":"2026-10-05T07:01:00Z","from_me":false}}`
+	_ = post(ev, sign(secret, []byte(ev)))
+	if m := (<-b.Events()).Message; m == nil || m.Text != "[video] Foto unit" || m.Media == nil || m.Media.Ref != "UkVG" || m.Media.Seconds != 14 || !m.Media.Viewable() {
+		t.Fatalf("media message %+v", m)
+	}
+	ev = `{"event":{"wamid":"W3","session":"6281234504471","from":"6281900300102","to":"6281234504471","chat_id":"6281900300102@s.whatsapp.net","text":"Minta 20 unit","edit_of":"W1","timestamp":"2026-10-05T07:02:00Z","from_me":false}}`
+	_ = post(ev, sign(secret, []byte(ev)))
+	if m := (<-b.Events()).Message; m == nil || m.EditOf != "W1" || m.Text != "Minta 20 unit" {
+		t.Fatalf("edit %+v", m)
+	}
 	st := `{"status":{"session":"6281234504471","status":"disconnected","phone":"","qr":"","reason":"logged_out"}}`
 	_ = post(st, sign(secret, []byte(st)))
 	if s := (<-b.Events()).Status; s == nil || s.State != "logged_out" {

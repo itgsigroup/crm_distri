@@ -169,6 +169,7 @@ type submitIn struct {
 	Overview  string           `json:"overview,omitempty" jsonschema:"agent Analisa WhatsApp: ringkasan chat untuk CEO (2–3 kalimat)"`
 	Threads   []map[string]any `json:"threads,omitempty" jsonschema:"agent Analisa WhatsApp: [{id, summary, confidence 0–1}] per percakapan di Input"`
 	Messages  []map[string]any `json:"messages,omitempty" jsonschema:"agent Analisa WhatsApp (opsional): [{id, note, confidence 0–1}] catatan per pesan pelanggan yang punya id di Input"`
+	Lines     []map[string]any `json:"lines,omitempty" jsonschema:"agent Analisa Stok / Analisa Kas: [{key, note, confidence 0–1}] satu catatan per item di Input (overview juga wajib)"`
 }
 
 type decideIn struct {
@@ -766,7 +767,7 @@ func (s *Server) registerOrchestrate() {
 		}
 		return s.planChange(ctx, c, in)
 	})
-	tool(s, "orchestrator.input.get", ScopeOrchestrate, "Input agen untuk satu siklus (dimasking) — klien MCP menjadi mesin analisis lalu memanggil orchestrator_submit. Agent \"Analisa WhatsApp\" berisi chat dealer untuk diringkas.", func(ctx context.Context, _ *Client, in inputGetIn) (any, result, error) {
+	tool(s, "orchestrator.input.get", ScopeOrchestrate, "Input agen untuk satu siklus (dimasking) — klien MCP menjadi mesin analisis lalu memanggil orchestrator_submit. Agent \"Analisa WhatsApp\" berisi chat dealer untuk diringkas; \"Analisa Stok\" stok menua per cabang; \"Analisa Kas\" piutang dan prediksi kas.", func(ctx context.Context, _ *Client, in inputGetIn) (any, result, error) {
 		id, err := uuid.Parse(in.CycleID)
 		if err != nil {
 			return nil, result{}, fmt.Errorf("cycle_id: %w", err)
@@ -779,10 +780,17 @@ func (s *Server) registerOrchestrate() {
 		_ = json.Unmarshal(raw, &v)
 		return v, result{Summary: in.Agent, CycleID: &id}, nil
 	})
-	tool(s, "orchestrator.submit", ScopeOrchestrate, "Mengirim proposal untuk Input yang diminta (proposals: [] = tidak ada usulan untuk agen ini, tetap dikirim agar siklus tidak menunggu). Divalidasi: kind agen, signal_ids hanya dari Input, dealer dikenal. Untuk agent \"Analisa WhatsApp\": kirim overview + threads (bukan proposals).", func(ctx context.Context, c *Client, in submitIn) (any, result, error) {
+	tool(s, "orchestrator.submit", ScopeOrchestrate, "Mengirim proposal untuk Input yang diminta (proposals: [] = tidak ada usulan untuk agen ini, tetap dikirim agar siklus tidak menunggu). Divalidasi: kind agen, signal_ids hanya dari Input, dealer dikenal. Untuk agent \"Analisa WhatsApp\": kirim overview + threads (bukan proposals). Untuk \"Analisa Stok\" / \"Analisa Kas\": kirim overview + lines.", func(ctx context.Context, c *Client, in submitIn) (any, result, error) {
 		id, err := uuid.Parse(in.CycleID)
 		if err != nil {
 			return nil, result{}, fmt.Errorf("cycle_id: %w", err)
+		}
+		if orchestrator.IsScreenReading(in.Agent) {
+			res, err := s.Orch.ScreenSubmit(ctx, id, in.Agent, orchestrator.ParseScreenAnswer(in.Overview, in.Lines), &c.ID)
+			if err != nil {
+				return nil, result{CycleID: &id}, err
+			}
+			return res, result{Summary: fmt.Sprintf("%s · %d catatan", in.Agent, res.Accepted), CycleID: &id}, nil
 		}
 		if in.Agent == orchestrator.AgentWA {
 			overview, threads := in.Overview, in.Threads

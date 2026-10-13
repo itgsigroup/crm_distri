@@ -7,11 +7,12 @@ const P = { ...defaultPolicy, typingMinMs: 0, typingMaxMs: 0, typingMsPerChar: 0
 const office = () => new Date(Date.UTC(2026, 9, 5, 3, 0)) // 10:00 WIB
 
 function target(connected = true) {
-  const sent: { chat: string; text: string }[] = []
+  const sent: { chat: string; text: string; edit?: string }[] = []
   const t: SendTarget = {
     id: 's1',
     connected: () => connected,
     sendText: async (chat, text) => { sent.push({ chat, text }); return 'WAMID' + sent.length },
+    editText: async (chat, wamid, text) => { sent.push({ chat, text, edit: wamid }) },
   }
   return { t, sent }
 }
@@ -35,6 +36,17 @@ describe('sender', () => {
     expect(await code(sender.send(t, '6281@s.whatsapp.net', 'Halo', 'proposed-9'))).toBe('403:not_approved')
     expect(sent).toHaveLength(0)
     expect(await sender.send(t, '6281@s.whatsapp.net', 'Halo', 'a1')).toEqual({ wamid: 'WAMID1', duplicate: false })
+  })
+  it('edits only for approved actions, once, without the hourly caps', async () => {
+    const { sender, store } = await setup(['a1'])
+    const { t, sent } = target()
+    expect(await code(sender.edit(t, '6281@s.whatsapp.net', 'W9', 'Halo Pak', 'nope'))).toBe('403:not_approved')
+    expect(await code(sender.edit(t, '6281@s.whatsapp.net', '', 'Halo Pak', 'a1'))).toBe('400:bad_request')
+    expect(await sender.edit(t, '6281@s.whatsapp.net', 'W9', 'Halo Pak', 'a1')).toEqual({ wamid: 'W9', duplicate: false })
+    expect(await sender.edit(t, '6281@s.whatsapp.net', 'W9', 'Halo Pak', 'a1')).toEqual({ wamid: 'W9', duplicate: true })
+    expect(sent).toEqual([{ chat: '6281@s.whatsapp.net', text: 'Halo Pak', edit: 'W9' }])
+    expect(store.sent).toHaveLength(1)
+    expect(await code(sender.edit(target(false).t, '6281@s.whatsapp.net', 'W9', 'x', 'a2'))).toBe('403:not_approved')
   })
   it('never sends the same action twice (retried request)', async () => {
     const { sender } = await setup()

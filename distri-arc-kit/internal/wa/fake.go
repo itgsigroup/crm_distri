@@ -86,6 +86,17 @@ func (f *Fake) Send(_ context.Context, account, chatJID, text string) (string, e
 	return id, nil
 }
 
+// Edit records an edit as a sent message with EditOf set.
+func (f *Fake) Edit(_ context.Context, account, chatJID, waMsgID, text string) error {
+	if text == "" || waMsgID == "" {
+		return fmt.Errorf("empty edit")
+	}
+	f.mu.Lock()
+	f.sent = append(f.sent, Message{ID: fmt.Sprintf("FAKE%06d", f.seq.Add(1)), Account: Digits(account), ChatJID: chatJID, FromNumber: Digits(account), FromMe: true, Text: text, EditOf: waMsgID})
+	f.mu.Unlock()
+	return nil
+}
+
 // SetProfile registers a WhatsApp Business profile the fake returns for a number (tests, seed demo).
 func (f *Fake) SetProfile(number string, p Profile) {
 	f.mu.Lock()
