@@ -1,7 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
-## Change · Pusat kendali ringkas · 2026-10-13
+## Change · Pusat kendali kembali ke kartu semula, tanpa ruang kosong · 2026-10-13
+- Tata letak bertab dibatalkan (permintaan Sam): Pusat kendali kembali ke kartu semula (sapaan + Orchestrator, Keputusan, Ringkasan Claude, Menunggu balasan, KPI WhatsApp, Agenda sales).
+- Ruang kosong dirapikan: kartu sapaan setinggi kartu Orchestrator (isi di tengah), kartu Orchestrator dan KPI WhatsApp dibuat lebih padat (chip pipeline terlipat, roda lebih kecil), kedua kolom berakhir sejajar, kotak "Tidak ada keputusan" lebih kecil.
+
+## Change · Pusat kendali ringkas (dibatalkan) · 2026-10-13
 - Pusat kendali dirapikan dari tujuh kartu menjadi empat bagian: satu baris kepala (sapaan, analisis terakhir, Analisis ulang, Chat, Orchestrator), satu baris angka (Keputusan, Menunggu, Belum dibalas, Chat terbalas, Waktu balas, Nomor baru), ringkasan Claude (MCP) satu strip, dan **satu kartu bertab**: Keputusan · Menunggu balasan · Per sales.
 - Klik kotak angka membuka tab yang sesuai; tab tersimpan di URL (`?tab=`). Angka yang dulu muncul berulang (sapaan, strip status, kartu Orchestrator, roda KPI, kaki ringkasan) kini sekali saja.
 

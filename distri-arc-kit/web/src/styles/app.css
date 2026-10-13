@@ -1170,3 +1170,25 @@ body.map-maximized{overflow:hidden}
 .cc-pane{padding:14px 20px 18px}
 @media (max-width:1100px){.cc-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:640px){.cc-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.cc-tab-meta{display:none}.cc-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.cc-tabs button{flex:none}.cc-top{padding:14px 16px}.cc-pane{padding:12px 14px}}
+
+/* Pusat kendali: the original cards, without gaps — the hero halves and the two columns are balanced by making the
+   Orchestrator and KPI cards denser, not by stretching cards into empty space */
+.cc-hero.cc-tidy{align-items:stretch}
+.cc-hero.cc-tidy .cc-left{display:flex;flex-direction:column;justify-content:center;gap:14px;padding:18px 22px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow)}
+.cc-hero.cc-tidy .cc-left .greet{margin:0}
+.cc-hero.cc-tidy .cc-left .greet h2{font-size:28px;margin-bottom:6px}
+.cc-hero.cc-tidy .orch-card{padding:14px 16px}
+.cc-hero.cc-tidy .oc-pipe{flex-wrap:wrap;gap:4px 2px;margin:8px 0 6px}
+.cc-hero.cc-tidy .oc-pipe .pl{display:none}
+.cc-hero.cc-tidy .oc-pipe>*:not(.pl){font-size:11px;padding:3px 7px}
+.cc-hero.cc-tidy .oc-last,.cc-hero.cc-tidy .wa-last{margin:2px 0;font-size:12px}
+.cc-hero.cc-tidy .oc-foot{margin-top:8px}
+.today.cc-tidy{align-items:stretch}
+.today.cc-tidy>.stack>.card:last-child{flex:1}
+.today.cc-tidy .queue .q.done{padding:12px 14px}
+.today.cc-tidy .queue .q.done .qd{font-size:12px}
+.today.cc-tidy .wheels{gap:8px}
+.today.cc-tidy .wheel{padding:8px 10px;gap:10px}
+.today.cc-tidy .wheel svg{width:46px;height:46px}
+.today.cc-tidy .wheel span{display:none}
+.today.cc-tidy .wheel b{font-size:13px}
