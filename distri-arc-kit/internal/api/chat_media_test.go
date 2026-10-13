@@ -1,13 +1,16 @@
 package api_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"strings"
 	"testing"
 	"time"
@@ -323,5 +326,89 @@ func TestChatDeleteForEveryone(t *testing.T) {
 	}
 	if deleted != 2 {
 		t.Fatalf("%d deleted bubbles", deleted)
+	}
+}
+
+func sendFile(t *testing.T, url, user, name, ctype string, data []byte, fields map[string]string) (int, map[string]any) {
+	t.Helper()
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	for k, v := range fields {
+		_ = mw.WriteField(k, v)
+	}
+	h := textproto.MIMEHeader{}
+	h.Set("Content-Disposition", `form-data; name="file"; filename="`+name+`"`)
+	h.Set("Content-Type", ctype)
+	part, _ := mw.CreatePart(h)
+	_, _ = part.Write(data)
+	_ = mw.Close()
+	req, _ := http.NewRequest(http.MethodPost, url, &buf)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("X-Dev-User", user)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	var out map[string]any
+	_ = json.NewDecoder(res.Body).Decode(&out)
+	return res.StatusCode, out
+}
+
+// Kirim file, pesan suara, polling (ADR 0031): the file waits in chat_outgoing_files until the outbox sends it, then
+// is deleted and the bubble keeps WhatsApp's download reference; a poll goes out as a poll.
+func TestChatSendsFilesVoiceNotesAndPolls(t *testing.T) {
+	srv, st := mediaServer(t, nil)
+	ctx := context.Background()
+	th := sinarThread(t, st)
+	url := srv.URL + "/api/chat/threads/" + th.String() + "/messages"
+	fake := wa.NewFake()
+	send := func(ob string, at time.Duration) {
+		t.Helper()
+		if _, err := outbox.NewSender(st, fake, clock.Fixed(chatNow.Add(at)), outbox.Rules{}).Send(ctx, uuid.MustParse(ob)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	code, out := sendFile(t, url, "andi@gsi.co.id", "stok.jpg", "image/jpeg", []byte("\xff\xd8\xff\xe0JPEGDATA"), map[string]string{"body": "Stok kamera di gudang"})
+	if code != http.StatusAccepted {
+		t.Fatalf("photo: %d %v", code, out)
+	}
+	if count(t, st, "select count(*) from chat_outgoing_files") != 1 ||
+		count(t, st, "select count(*) from chat_messages where id = $1 and body = '[gambar] Stok kamera di gudang' and media->>'kind' = 'image'", out["message_id"]) != 1 {
+		t.Fatal("photo not queued")
+	}
+	send(out["outbox_id"].(string), 0)
+	if s := fake.Sent(); len(s) != 1 || s[0].Media == nil || s[0].Media.Kind != "image" || s[0].Text != "Stok kamera di gudang" {
+		t.Fatalf("transport got %+v", s)
+	}
+	if count(t, st, "select count(*) from chat_outgoing_files") != 0 ||
+		count(t, st, "select count(*) from chat_messages where id = $1 and status = 'sent' and media->>'ref' like 'FAKEREF-%' and body = '[gambar] Stok kamera di gudang'", out["message_id"]) != 1 {
+		t.Fatal("sent photo: file kept or reference missing")
+	}
+
+	code, out = sendFile(t, url, "andi@gsi.co.id", "vn.webm", "audio/webm;codecs=opus", []byte("WEBMOPUS"), map[string]string{"voice": "1", "seconds": "7"})
+	if code != http.StatusAccepted {
+		t.Fatalf("voice note: %d %v", code, out)
+	}
+	send(out["outbox_id"].(string), time.Minute)
+	if s := fake.Sent(); s[len(s)-1].Media == nil || !s[len(s)-1].Media.PTT || s[len(s)-1].Media.Seconds != 7 {
+		t.Fatalf("voice note sent as %+v", s[len(s)-1])
+	}
+
+	code, out = sendJSON(t, http.MethodPost, url, "andi@gsi.co.id", map[string]any{"poll": map[string]any{"name": "Kirim kapan?", "options": []string{"Senin", "Selasa", "Senin"}}})
+	if code != http.StatusAccepted {
+		t.Fatalf("poll: %d %v", code, out)
+	}
+	send(out["outbox_id"].(string), 2*time.Minute)
+	if s := fake.Sent(); s[len(s)-1].Media == nil || s[len(s)-1].Media.Kind != "poll" {
+		t.Fatalf("poll sent as %+v", s[len(s)-1])
+	}
+	if code, _ := sendJSON(t, http.MethodPost, url, "andi@gsi.co.id", map[string]any{"poll": map[string]any{"name": "x", "options": []string{"satu"}}}); code != http.StatusBadRequest {
+		t.Fatalf("poll with one option: %d", code)
+	}
+	big := make([]byte, 25<<20+10)
+	if code, _ := sendFile(t, url, "andi@gsi.co.id", "besar.pdf", "application/pdf", big, nil); code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("file over 25 MB: %d", code)
 	}
 }

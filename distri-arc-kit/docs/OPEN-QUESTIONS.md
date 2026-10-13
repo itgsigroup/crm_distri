@@ -60,3 +60,7 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - Media hanya bisa dibuka lewat bridge Baileys. Untuk Cloud API perlu unduh lewat Graph API (`GET /{media-id}`) — belum dibuat.
 - Mengirim foto/dokumen dari Chat dan mengedit caption media belum dibuat; edit hanya untuk pesan teks.
 - Media dari pesan sebelum 13 Okt belum punya referensi unduh ("buka di ponsel") sampai WhatsApp mengirimnya lagi lewat sinkron riwayat. Belum diuji dengan HP sungguhan: unduh ulang file kedaluwarsa (`updateMediaMessage`) dan edit ke chat yang dialamatkan lewat LID.
+
+## Kirim file, VN, polling dari Chat (2026-10-13, ADR 0031)
+- Hasil vote polling belum dihitung di GSI Orbit (vote WhatsApp terenkripsi per pemilih; perlu menyimpan `messageSecret` polling dan mendekripsi `pollUpdateMessage`). Sementara hasil dilihat di HP.
+- Kirim stiker, lokasi, dan kontak belum dibuat. File > 25 MB lewat HP.

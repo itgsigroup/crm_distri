@@ -11,6 +11,7 @@ import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../.
 import { useOrch } from '../../app/orch'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf } from './Connect'
 import { countFilters, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
+import { AttachMenu, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
 import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, mediaCaption, mediaName } from './bubble'
 
 
@@ -208,10 +209,14 @@ function Play() {
 }
 
 /** A bubble's photo, video, voice note or document, fetched from WhatsApp when shown (ADR 0029). */
-function BubbleMedia({ md, url, onZoom }: { md: MediaView; url: string; onZoom: (url: string) => void }) {
+function BubbleMedia({ md, url, pending, onZoom }: { md: MediaView; url: string; pending?: boolean; onZoom: (url: string) => void }) {
   const blob = useMediaBlob(url)
   const [imgFailed, setImgFailed] = useState(false)
   const name = mediaName(md)
+  if (md.kind === 'poll') return <div className="bub-poll-h"><Icon name="chart" />Polling</div>
+  if (pending && !md.viewable) {
+    return <div className="bub-media none"><Icon name="refresh" />{md.kind === 'audio' && md.ptt ? `Pesan suara ${fmtDuration(md.seconds)}` : name}{md.size ? ` · ${fmtSize(md.size)}` : ''} · mengirim…</div>
+  }
   if (!md.viewable || md.kind === 'location' || md.kind === 'contact') {
     if (md.kind === 'location' || md.kind === 'contact') return null
     return <div className="bub-media none" title="Media dari sebelum pembaruan ini — buka di WhatsApp ponsel"><Icon name="doc" />{name} · buka di ponsel</div>
@@ -271,8 +276,8 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       {group && m.direction === 'in' && <span className="who">{m.from_name}<span className={`pill ${m.internal ? 'neutral' : 'accent'}`}>{m.internal ? 'internal' : 'eksternal'}</span></span>}
       <div className="bb">
         {m.quote && <QuoteBlock q={m.quote} mine={via} onJump={onJump} />}
-        {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} onZoom={onZoom} />}
-        {caption}
+        {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
+        {m.media?.kind === 'poll' ? <PollBody text={caption} /> : caption}
         <span className="tm">{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
         {(m.can_reply || edit || del || caption) && <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} />}
         {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
@@ -286,6 +291,17 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       )}
       {analysis && m.analysis && <BubbleAnalysis a={m.analysis} dir={m.direction} />}
     </div>
+  )
+}
+
+/** A poll's question and options ("Q\n• a\n• b"); votes are counted on the phones (OPEN-QUESTIONS). */
+function PollBody({ text }: { text: string }) {
+  const [q, ...opts] = text.split('\n')
+  return (
+    <span className="bub-poll">
+      <b>{q}</b>
+      {opts.map((o) => <span key={o} className="bub-poll-o"><i />{o.replace(/^•\s*/, '')}</span>)}
+    </span>
   )
 }
 
@@ -356,6 +372,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const [perMsg, setPerMsg] = usePerMessageAnalysis()
   const [editing, setEditing] = useState<MessageView | null>(null)
   const [replying, setReplying] = useState<MessageView | null>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const { openSheet } = useFeedback()
   const [zoom, setZoom] = useState<string | null>(null)
   const body = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
@@ -377,6 +395,41 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     },
     onError: (e: Error) => toast(e.message),
   })
+  const upload = useMutation({
+    mutationFn: (form: FormData) => api.upload(`/chat/threads/${id}/messages`, form),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['chat'] })
+      toast(`Masuk antrean kirim ke ${data?.thread.title} dari ${from} · lewat penjaga anti-blokir`)
+    },
+    onError: (e: Error) => toast(e.message),
+  })
+  const sendForm = (f: Blob, name: string, extra: Record<string, string>) => {
+    const form = new FormData()
+    form.append('file', f, name)
+    for (const [k, v] of Object.entries(extra)) form.append(k, v)
+    if (replying) form.append('reply_to', replying.id)
+    setReplying(null)
+    upload.mutate(form)
+  }
+  const voice = useVoiceRecorder(
+    (blob, seconds) => sendForm(blob, blob.type.includes('ogg') ? 'pesan-suara.ogg' : blob.type.includes('mp4') ? 'pesan-suara.m4a' : 'pesan-suara.webm', { voice: '1', seconds: String(seconds) }),
+    toast,
+  )
+  const pickFile = (f: File) => {
+    if (f.size > MAX_FILE) return toast('File lebih dari 25 MB — kirim lewat HP atau perkecil dulu')
+    setEditing(null)
+    setFile(f)
+    requestAnimationFrame(() => input.current?.focus())
+  }
+  const openPoll = () => openSheet(<PollSheet onSend={(p) => {
+    const body: Record<string, unknown> = { poll: p }
+    if (replying) body.reply_to = replying.id
+    return api.post(`/chat/threads/${id}/messages`, body).then(() => {
+      setReplying(null)
+      qc.invalidateQueries({ queryKey: ['chat'] })
+      toast('Polling masuk antrean kirim · lewat penjaga anti-blokir')
+    }, (e: Error) => { toast(e.message); throw e })
+  }} />)
   const remove = useMutation({
     mutationFn: (mid: string) => api.del<{ status: string }>(`/chat/threads/${id}/messages/${mid}`),
     onSuccess: (r, mid) => {
@@ -447,6 +500,12 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const submit = (e: FormEvent) => {
     e.preventDefault()
     const v = text.trim()
+    if (file && !editing) {
+      setText('')
+      sendForm(file, file.name, { body: v })
+      setFile(null)
+      return
+    }
     if (!v) return
     setText('')
     if (editing) {
@@ -521,11 +580,19 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
             <button type="button" onClick={cancelEdit} aria-label="Batal edit"><Icon name="x" /></button>
           </div>
         )}
-        <form onSubmit={submit}>
-          <input ref={input} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key !== 'Escape') return; if (editing) cancelEdit(); setReplying(null) }}
-            placeholder={editing ? 'Ubah pesan…' : 'Tulis balasan…'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : 'Tulis balasan'} />
-          <button type="submit" className="send" aria-label={editing ? 'Simpan edit' : 'Kirim'} disabled={send.isPending || edit.isPending}><Icon name={editing ? 'check' : 'send'} /></button>
-        </form>
+        {file && <FilePreview file={file} onRemove={() => setFile(null)} />}
+        {voice.recording ? (
+          <RecordingBar secs={voice.secs} onCancel={voice.cancel} onSend={voice.send} />
+        ) : (
+          <form onSubmit={submit}>
+            {!editing && <AttachMenu onFile={pickFile} onPoll={openPoll} disabled={upload.isPending} />}
+            <input ref={input} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key !== 'Escape') return; if (editing) cancelEdit(); setReplying(null); setFile(null) }}
+              placeholder={editing ? 'Ubah pesan…' : file ? 'Tambahkan keterangan…' : 'Tulis balasan…'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : file ? 'Keterangan file' : 'Tulis balasan'} />
+            {text.trim() || file || editing
+              ? <button type="submit" className="send" aria-label={editing ? 'Simpan edit' : 'Kirim'} disabled={send.isPending || edit.isPending || upload.isPending}><Icon name={editing ? 'check' : 'send'} /></button>
+              : <button type="button" className="send" onClick={voice.start} aria-label="Rekam pesan suara" title="Rekam pesan suara"><Mic /></button>}
+          </form>
+        )}
         <span className="pol"><Icon name="lock" />Dikirim dari {from} ({t.account_masked}) · jeda & "mengetik…" seperti manusia · penjaga anti-blokir</span>
       </div>
       {zoom && <Lightbox url={zoom} onClose={() => setZoom(null)} />}

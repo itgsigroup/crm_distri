@@ -29,7 +29,20 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T
 }
 
+/** POST multipart/form-data (a file from Chat); same error envelope as request. */
+async function upload<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch('/api' + path, { method: 'POST', body: form, credentials: 'same-origin', headers: { Accept: 'application/json', 'X-Requested-With': 'distri-arc' } })
+  const text = await res.text()
+  const data = text ? JSON.parse(text) : null
+  if (!res.ok) {
+    const e = data?.error ?? {}
+    throw new ApiError(res.status, e.code ?? 'error', e.message ?? (res.status === 413 ? 'File terlalu besar (maks. 25 MB)' : res.statusText))
+  }
+  return data as T
+}
+
 export const api = {
+  upload,
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body ?? {}),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body ?? {}),

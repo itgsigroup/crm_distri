@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: kirim file, pesan suara, dan polling · 2026-10-13
+- Tombol **📎** di kolom ketik: **Dokumen**, **Foto & video**, **Polling**. File tampil sebagai pratinjau dan kolom ketik menjadi keterangannya (maks. 25 MB).
+- Tombol **mikrofon** saat kolom ketik kosong (seperti WhatsApp): rekam, batal, atau kirim **pesan suara**; bridge mengubah rekaman browser ke ogg/opus (`ffmpeg`) agar diputar di HP pelanggan.
+- **Polling**: pertanyaan + 2–12 pilihan, satu atau beberapa jawaban; polling masuk dari pelanggan/grup ikut tampil.
+- Semua lewat outbox, persetujuan pengirim, dan penjaga anti-blokir; file disimpan sementara (`chat_outgoing_files`, migrasi 0029) sampai terkirim, lalu bubble memakai referensi unduh WhatsApp (ADR 0031).
+- nginx: batas upload 30 MB, mikrofon diizinkan untuk situs ini, CSP `media-src blob:` (sebelumnya video/VN di bubble tidak bisa diputar di produksi).
+
 ## Feat · Chat: menu per bubble — Balas, Salin, Edit, Hapus untuk semua orang · 2026-10-13
 - Tiap bubble punya menu **⌄** di pojoknya (seperti WhatsApp Web): **Balas**, **Salin**, **Edit** (pesan teks dari nomor ini, ≤ 15 menit) dan **Hapus untuk semua orang** (pesan dari nomor ini, ≤ 48 jam). Tombol balas cepat tetap di samping bubble.
 - Hapus: pesan yang masih antre dibatalkan sebelum terkirim; yang sudah terkirim menjadi keputusan manusia (proposal + audit `chat.delete`) yang dikirim lewat outbox dan bridge (`POST /sessions/{id}/delete`). Bubble menjadi "Anda menghapus pesan ini"; teks asli tetap tersimpan untuk audit.

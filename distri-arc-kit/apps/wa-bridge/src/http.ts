@@ -3,6 +3,7 @@ import type { Policy } from './config.js'
 import { dailyCap } from './guard.js'
 import { SendError, type Quote, type Sender, type SendTarget } from './sender.js'
 import { HistoryBusy, MediaBusy } from './session.js'
+import { ContentError, MAX_CONTENT_BYTES, type Content } from './content.js'
 import { verify } from './sign.js'
 import type { Store } from './store.js'
 
@@ -39,12 +40,12 @@ function json(res: ServerResponse, code: number, body: unknown, headers: Record<
   res.end(JSON.stringify(body))
 }
 
-async function readBody(req: IncomingMessage): Promise<string> {
+async function readBody(req: IncomingMessage, limit = 1 << 20): Promise<string> {
   const chunks: Buffer[] = []
   let size = 0
   for await (const c of req) {
     size += (c as Buffer).length
-    if (size > 1 << 20) throw new Error('body terlalu besar')
+    if (size > limit) throw new Error('body terlalu besar')
     chunks.push(c as Buffer)
   }
   return Buffer.concat(chunks).toString('utf8')
@@ -57,7 +58,9 @@ async function readBody(req: IncomingMessage): Promise<string> {
  *   GET    /sessions/{id}/qr              current QR / status
  *   GET    /sessions/{id}/groups          joined groups with members
  *   GET    /sessions/{id}/contacts/{jid}  profile (name, about, has_photo, business)
- *   POST   /sessions/{id}/send            {chat_id, text, action_id, quote?: {id, from_me, participant?, text}} → {wamid}
+ *   POST   /sessions/{id}/send            {chat_id, text, action_id, quote?: {id, from_me, participant?, text},
+ *                                          content?: {kind: image|video|document|audio|poll, mime, file_name, data (base64),
+ *                                          ptt, seconds, poll: {name, options, multi}}} → {wamid, ref?}
  *   POST   /sessions/{id}/edit            {chat_id, wamid, text, action_id} → {wamid}: edit a sent text (approved action)
  *   POST   /sessions/{id}/delete          {chat_id, wamid, action_id} → {wamid}: delete a sent message for everyone (approved action)
  *   POST   /sessions/{id}/media           {ref, mime} → the file (streamed, never stored); 409 not connected,
@@ -86,7 +89,8 @@ export function handler(d: Deps) {
         return json(res, 200, { ok: true, sessions: d.manager.statuses(), queue: await d.queueLength(), last_event: d.lastEvent()?.toISOString() ?? null, limits })
       }
 
-      const body = await readBody(req)
+      // a send may carry a file (base64, ≤ 25 MB raw); every other request stays small
+      const body = await readBody(req, url.pathname.endsWith('/send') ? Math.ceil(MAX_CONTENT_BYTES * 1.4) + (1 << 20) : 1 << 20)
       if (!verify(d.secret, body, req.headers['x-arc-signature'] as string | undefined)) return json(res, 401, { error: 'signature tidak valid' })
 
       if (parts[0] !== 'sessions') return json(res, 404, { error: 'tidak ditemukan' })
@@ -113,11 +117,12 @@ export function handler(d: Deps) {
       }
       if (method === 'GET' && parts[2] === 'contacts' && parts[3]) return json(res, 200, await s.profile(parts[3]))
       if (method === 'POST' && parts[2] === 'send') {
-        const inp = JSON.parse(body || '{}') as { chat_id?: string; text?: string; action_id?: string; quote?: Quote }
+        const inp = JSON.parse(body || '{}') as { chat_id?: string; text?: string; action_id?: string; quote?: Quote; content?: Content }
         try {
-          const out = await d.sender.send(s, inp.chat_id ?? '', inp.text ?? '', inp.action_id ?? '', inp.quote?.id ? inp.quote : undefined)
+          const out = await d.sender.send(s, inp.chat_id ?? '', inp.text ?? '', inp.action_id ?? '', inp.quote?.id ? inp.quote : undefined, inp.content?.kind ? inp.content : undefined)
           return json(res, 200, out)
         } catch (e) {
+          if (e instanceof ContentError) return json(res, 400, { error: e.message, code: 'bad_content' })
           if (e instanceof SendError) {
             return json(res, e.status, { error: e.message, code: e.code }, e.retryAfterSec ? { 'Retry-After': String(e.retryAfterSec) } : {})
           }

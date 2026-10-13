@@ -185,6 +185,16 @@ type ChatMessagesDefault struct {
 	Internal   bool            `json:"internal"`
 }
 
+type ChatOutgoingFile struct {
+	ID        uuid.UUID `json:"id"`
+	MessageID uuid.UUID `json:"message_id"`
+	Mime      string    `json:"mime"`
+	FileName  string    `json:"file_name"`
+	Size      int32     `json:"size"`
+	Data      []byte    `json:"data"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type ChatThread struct {
 	ID               uuid.UUID       `json:"id"`
 	Kind             *string         `json:"kind"`

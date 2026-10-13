@@ -14,6 +14,7 @@ function target(connected = true) {
     sendText: async (chat, text, _typing, quote) => { sent.push({ chat, text, ...(quote ? { edit: 'quote:' + quote.id } : {}) }); return 'WAMID' + sent.length },
     editText: async (chat, wamid, text) => { sent.push({ chat, text, edit: wamid }) },
     deleteText: async (chat, wamid) => { sent.push({ chat, text: '', edit: 'delete:' + wamid }) },
+    sendContent: async (chat, content, text) => { sent.push({ chat, text, edit: 'content:' + content.kind }); return { wamid: 'WAMID' + sent.length, ref: 'REF' } },
   }
   return { t, sent }
 }
@@ -45,6 +46,15 @@ describe('sender', () => {
     await sender.revoke(t, '6281@s.whatsapp.net', 'W9', 'a1')
     expect(await sender.revoke(t, '6281@s.whatsapp.net', 'W9', 'a1')).toEqual({ wamid: 'W9', duplicate: true })
     expect(sent).toEqual([{ chat: '6281@s.whatsapp.net', text: '', edit: 'delete:W9' }])
+  })
+  it('sends a file, voice note or poll as content and returns its media reference', async () => {
+    const { sender, store } = await setup(['a1', 'a2'])
+    const { t, sent } = target()
+    expect(await sender.send(t, '6281@s.whatsapp.net', 'Brosur', 'a1', undefined, { kind: 'document', mime: 'application/pdf', file_name: 'brosur.pdf', data: 'JVBERg==' }))
+      .toEqual({ wamid: 'WAMID1', duplicate: false, ref: 'REF' })
+    await store.markInbound('s1', '6282@s.whatsapp.net', new Date(), false) // another chat: the per-chat gap does not apply
+    await sender.send(t, '6282@s.whatsapp.net', '', 'a2', undefined, { kind: 'poll', poll: { name: 'Kirim kapan?', options: ['Senin', 'Selasa'] } })
+    expect(sent.map((x) => x.edit)).toEqual(['content:document', 'content:poll'])
   })
   it('sends a reply quoting the message it answers', async () => {
     const { sender } = await setup(['a1'])

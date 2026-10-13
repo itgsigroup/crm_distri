@@ -4,7 +4,8 @@ import makeWASocket, {
 } from 'baileys'
 import type { Logger } from 'pino'
 import type { Policy } from './config.js'
-import { decodeMediaRef, isConversation, toGroupMeta, toWaEvent, type GroupMeta, type Resolver, type WaEvent } from './events.js'
+import { ffmpegToOgg, toMessage, type AudioConverter, type Content } from './content.js'
+import { decodeMediaRef, isConversation, mediaRef, toGroupMeta, toWaEvent, type GroupMeta, type Resolver, type WaEvent } from './events.js'
 import type { Forwarder } from './forward.js'
 import { isOptOut, reconnectDelayMs } from './guard.js'
 import type { PgStore } from './pgstore.js'
@@ -380,8 +381,23 @@ export class Session implements SendTarget {
     await sock.sendMessage(chat, { delete: { remoteJid: chat, fromMe: true, id: wamid } })
   }
 
+  /** How voice notes recorded in the browser become ogg/opus (ffmpeg; tests replace it). */
+  convertAudio: AudioConverter = ffmpegToOgg
+
+  /** A file, voice note or poll, sent like a text (presence, read, typing — "recording…" for a voice note). */
+  async sendContent(chat: string, content: Content, text: string, typing: number, quote?: Quote): Promise<{ wamid: string; ref?: string }> {
+    const msg = await toMessage(content, text, this.convertAudio)
+    const m = await this.deliver(chat, msg, typing, quote, content.kind === 'audio' && content.ptt ? 'recording' : 'composing')
+    return { wamid: m.key.id as string, ref: mediaRef(m) ?? undefined }
+  }
+
   /** Sends like a person: online, reads the chat (blue ticks), pauses, "typing…", then the message. */
   async sendText(chat: string, text: string, typing: number, quote?: Quote): Promise<string> {
+    const m = await this.deliver(chat, { text }, typing, quote, 'composing')
+    return m.key.id as string
+  }
+
+  private async deliver(chat: string, content: import('baileys').AnyMessageContent, typing: number, quote: Quote | undefined, presence: 'composing' | 'recording'): Promise<import('baileys').WAMessage> {
     const sock = this.sock
     if (!sock) throw new Error('sesi belum terhubung')
     await sock.sendPresenceUpdate('available').catch(() => {})
@@ -391,20 +407,20 @@ export class Session implements SendTarget {
       await sock.readMessages(keys).catch(() => {})
       await sleep(1_200 + Math.floor(Math.random() * 1_800)) // reading before typing
     }
-    await sock.sendPresenceUpdate('composing', chat).catch(() => {})
+    await sock.sendPresenceUpdate(presence, chat).catch(() => {})
     await new Promise(r => setTimeout(r, typing))
     await sock.sendPresenceUpdate('paused', chat).catch(() => {})
     const quoted = quote?.id
       ? { key: { remoteJid: chat, fromMe: quote.from_me, id: quote.id, participant: quote.participant || undefined }, message: { conversation: quote.text } }
       : undefined
-    const m = await sock.sendMessage(chat, { text }, quoted ? { quoted } : undefined)
+    const m = await sock.sendMessage(chat, content, quoted ? { quoted } : undefined)
     await sock.sendPresenceUpdate('unavailable').catch(() => {})
     if (!m?.key.id) throw new Error('WhatsApp tidak mengembalikan id pesan')
     if (m.message) {
       this.recent.set(m.key.id, m.message)
       if (this.recent.size > 500) this.recent.delete(this.recent.keys().next().value as string)
     }
-    return m.key.id
+    return m
   }
 }
 

@@ -178,6 +178,31 @@ type Editor interface {
 	Edit(ctx context.Context, account, chatJID, waMsgID, text string) error
 }
 
+// Content is what a send from Chat carries besides text: a file (photo, video, document), a voice note, or a poll.
+type Content struct {
+	Kind     string `json:"kind"` // image | video | document | audio | poll
+	Mime     string `json:"mime,omitempty"`
+	FileName string `json:"file_name,omitempty"`
+	Data     []byte `json:"data,omitempty"` // base64 in JSON
+	PTT      bool   `json:"ptt,omitempty"`  // a voice note (converted to ogg/opus by the bridge)
+	Seconds  int    `json:"seconds,omitempty"`
+	Poll     *Poll  `json:"poll,omitempty"`
+}
+
+// Poll is a WhatsApp poll (vote): a question and 2–12 options, one or several answers.
+type Poll struct {
+	Name    string   `json:"name"`
+	Options []string `json:"options"`
+	Multi   bool     `json:"multi,omitempty"`
+}
+
+// ContentSender is implemented by transports that can send files, voice notes and polls. Like Send, the outbox id
+// travels in ctx (WithAction) and a quote in WithQuote; text is the caption. It returns the WhatsApp id and, for
+// media, the download reference of the sent file (shown in Chat like received media).
+type ContentSender interface {
+	SendContent(ctx context.Context, account, chatJID, text string, c Content) (waMsgID, ref string, err error)
+}
+
 // Deleter is implemented by transports that can delete a message the number sent, for everyone. The outbox id of
 // the approved delete travels in ctx (WithAction).
 type Deleter interface {

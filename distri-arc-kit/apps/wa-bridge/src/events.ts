@@ -63,6 +63,11 @@ export function messageText(message: proto.IMessage | null | undefined): { text:
   if (m.videoMessage) return { text: m.videoMessage.caption ?? '', media: meta(m.videoMessage.gifPlayback ? 'gif' : 'video', m.videoMessage), quoted }
   if (m.audioMessage) return { text: '', media: meta('audio', m.audioMessage), quoted }
   if (m.stickerMessage) return { text: '', media: meta('sticker', m.stickerMessage), quoted }
+  const poll = m.pollCreationMessage ?? m.pollCreationMessageV2 ?? m.pollCreationMessageV3
+  if (poll) {
+    const opts = (poll.options ?? []).map((o) => o.optionName ?? '').filter(Boolean)
+    return { text: [poll.name ?? '', ...opts.map((o) => '• ' + o)].join('\n'), media: { kind: 'poll', mime: '', file_name: '', size: 0 } }
+  }
   if (m.locationMessage) return { text: m.locationMessage.name ?? '', media: { kind: 'location', mime: '', file_name: '', size: 0 } }
   if (m.contactMessage) return { text: m.contactMessage.displayName ?? '', media: { kind: 'contact', mime: '', file_name: '', size: 0 } }
   return { text: '' }

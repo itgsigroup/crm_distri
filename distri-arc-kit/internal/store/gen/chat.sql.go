@@ -184,6 +184,15 @@ func (q *Queries) DeleteInternalNumber(ctx context.Context, waNumber string) err
 	return err
 }
 
+const deleteOutgoingFile = `-- name: DeleteOutgoingFile :exec
+delete from chat_outgoing_files where id = $1
+`
+
+func (q *Queries) DeleteOutgoingFile(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteOutgoingFile, id)
+	return err
+}
+
 const deleteWANumber = `-- name: DeleteWANumber :exec
 delete from wa_numbers where wa_number = $1 and sales_id is null
 `
@@ -318,6 +327,25 @@ func (q *Queries) GetOutbox(ctx context.Context, id uuid.UUID) (Outbox, error) {
 		&i.Attempts,
 		&i.SentAt,
 		&i.Error,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getOutgoingFile = `-- name: GetOutgoingFile :one
+select id, message_id, mime, file_name, size, data, created_at from chat_outgoing_files where id = $1
+`
+
+func (q *Queries) GetOutgoingFile(ctx context.Context, id uuid.UUID) (ChatOutgoingFile, error) {
+	row := q.db.QueryRow(ctx, getOutgoingFile, id)
+	var i ChatOutgoingFile
+	err := row.Scan(
+		&i.ID,
+		&i.MessageID,
+		&i.Mime,
+		&i.FileName,
+		&i.Size,
+		&i.Data,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -953,6 +981,31 @@ func (q *Queries) InsertOutbox(ctx context.Context, arg InsertOutboxParams) (Out
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const insertOutgoingFile = `-- name: InsertOutgoingFile :one
+insert into chat_outgoing_files (message_id, mime, file_name, size, data) values ($1, $2, $3, $4, $5) returning id
+`
+
+type InsertOutgoingFileParams struct {
+	MessageID uuid.UUID `json:"message_id"`
+	Mime      string    `json:"mime"`
+	FileName  string    `json:"file_name"`
+	Size      int32     `json:"size"`
+	Data      []byte    `json:"data"`
+}
+
+func (q *Queries) InsertOutgoingFile(ctx context.Context, arg InsertOutgoingFileParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertOutgoingFile,
+		arg.MessageID,
+		arg.Mime,
+		arg.FileName,
+		arg.Size,
+		arg.Data,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const insertProposal = `-- name: InsertProposal :one
@@ -1750,6 +1803,18 @@ func (q *Queries) PendingOutboxIDs(ctx context.Context) ([]uuid.UUID, error) {
 	return items, nil
 }
 
+const purgeOutgoingFiles = `-- name: PurgeOutgoingFiles :execrows
+delete from chat_outgoing_files where created_at < $1
+`
+
+func (q *Queries) PurgeOutgoingFiles(ctx context.Context, createdAt time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeOutgoingFiles, createdAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const setChatMessageBody = `-- name: SetChatMessageBody :exec
 update chat_messages set body = $1::text, edited_at = $2::timestamptz where id = $3::uuid
 `
@@ -1776,6 +1841,20 @@ type SetChatMessageDeletedParams struct {
 
 func (q *Queries) SetChatMessageDeleted(ctx context.Context, arg SetChatMessageDeletedParams) error {
 	_, err := q.db.Exec(ctx, setChatMessageDeleted, arg.DeletedAt, arg.ID)
+	return err
+}
+
+const setChatMessageMedia = `-- name: SetChatMessageMedia :exec
+update chat_messages set media = $1::jsonb where id = $2::uuid
+`
+
+type SetChatMessageMediaParams struct {
+	Media json.RawMessage `json:"media"`
+	ID    uuid.UUID       `json:"id"`
+}
+
+func (q *Queries) SetChatMessageMedia(ctx context.Context, arg SetChatMessageMediaParams) error {
+	_, err := q.db.Exec(ctx, setChatMessageMedia, arg.Media, arg.ID)
 	return err
 }
 

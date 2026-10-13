@@ -2,6 +2,7 @@ import type { Policy } from './config.js'
 import { evaluate, sendGapMs, typingMs, type GuardCode } from './guard.js'
 import { textHash } from './sign.js'
 import type { Store } from './store.js'
+import { guardText, type Content } from './content.js'
 
 /** What the sender needs from a live WhatsApp session. */
 /** The message a reply quotes (WhatsApp "Balas"): its key and text, shown above the reply on the customer's phone. */
@@ -11,6 +12,8 @@ export interface SendTarget {
   id: string
   connected(): boolean
   sendText(chat: string, text: string, typingMs: number, quote?: Quote): Promise<string>
+  /** A file, voice note or poll (text = caption); returns the id and the media's download reference. */
+  sendContent(chat: string, content: Content, text: string, typingMs: number, quote?: Quote): Promise<{ wamid: string; ref?: string }>
   editText(chat: string, wamid: string, text: string): Promise<void>
   deleteText(chat: string, wamid: string): Promise<void>
 }
@@ -41,9 +44,10 @@ export class Sender {
 
   private now(): Date { return this.opts.now ? this.opts.now() : new Date() }
 
-  async send(target: SendTarget, chat: string, text: string, actionId: string, quote?: Quote): Promise<{ wamid: string; duplicate: boolean }> {
+  async send(target: SendTarget, chat: string, text: string, actionId: string, quote?: Quote, content?: Content): Promise<{ wamid: string; duplicate: boolean; ref?: string }> {
     if (!actionId) throw new SendError(403, 'not_approved', 'kirim ditolak — action belum disetujui manusia')
-    if (!chat || !text.trim()) throw new SendError(400, 'bad_request', 'chat_id dan text wajib')
+    if (!chat || (!text.trim() && !content)) throw new SendError(400, 'bad_request', 'chat_id dan text wajib')
+    const gtext = guardText(content, text)
     const prior = await this.store.sentForAction(target.id, actionId)
     if (prior) return { wamid: prior.wamid, duplicate: true } // retried request: never send twice
     if (!(await this.approvals.actionApproved(actionId))) throw new SendError(403, 'not_approved', 'kirim ditolak — action belum disetujui manusia')
@@ -52,7 +56,7 @@ export class Sender {
     const run = async () => {
       const again = await this.store.sentForAction(target.id, actionId)
       if (again) return { wamid: again.wamid, duplicate: true }
-      const verdict = evaluate(this.policy, await this.store.facts(target.id, chat, text, this.now()))
+      const verdict = evaluate(this.policy, await this.store.facts(target.id, chat, gtext, this.now()))
       if (!verdict.ok) {
         const status = verdict.code === 'quiet_hours' ? 409 : ['opted_out', 'first_contact', 'broadcast'].includes(verdict.code) ? 403 : 429
         throw new SendError(status, verdict.code, verdict.reason, verdict.retryAfterSec)
@@ -61,11 +65,14 @@ export class Sender {
       const gap = sendGapMs(this.policy, this.opts.rnd)
       const wait = last === undefined ? 0 : Math.max(0, last + gap - this.now().getTime())
       if (wait > 0) await (this.opts.sleep ?? sleep)(wait)
-      const wamid = await target.sendText(chat, text, typingMs(this.policy, text), quote)
+      let wamid: string
+      let ref: string | undefined
+      if (content) ({ wamid, ref } = await target.sendContent(chat, content, text, typingMs(this.policy, text || 'x'.repeat(20)), quote))
+      else wamid = await target.sendText(chat, text, typingMs(this.policy, text), quote)
       const at = this.now()
       this.lastSendAt.set(target.id, at.getTime())
-      await this.store.recordSend({ session: target.id, chat, actionId, wamid, at, hash: textHash(text) })
-      return { wamid, duplicate: false }
+      await this.store.recordSend({ session: target.id, chat, actionId, wamid, at, hash: textHash(gtext) })
+      return ref ? { wamid, duplicate: false, ref } : { wamid, duplicate: false }
     }
     return this.serial(target.id, run)
   }

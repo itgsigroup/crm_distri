@@ -428,3 +428,18 @@ update chat_messages set deleted_at = sqlc.arg(deleted_at)::timestamptz where id
 update outbox set status = 'cancelled', error = 'Dihapus sebelum terkirim'
 where channel = 'wa' and status = 'pending' and payload->>'message_id' = sqlc.arg(message_id)::text
 returning id, proposal_id;
+
+-- name: InsertOutgoingFile :one
+insert into chat_outgoing_files (message_id, mime, file_name, size, data) values ($1, $2, $3, $4, $5) returning id;
+
+-- name: GetOutgoingFile :one
+select * from chat_outgoing_files where id = $1;
+
+-- name: DeleteOutgoingFile :exec
+delete from chat_outgoing_files where id = $1;
+
+-- name: PurgeOutgoingFiles :execrows
+delete from chat_outgoing_files where created_at < $1;
+
+-- name: SetChatMessageMedia :exec
+update chat_messages set media = sqlc.arg(media)::jsonb where id = sqlc.arg(id)::uuid;

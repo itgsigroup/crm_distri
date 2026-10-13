@@ -34,6 +34,20 @@ type WAPayload struct {
 	EditSentAt *time.Time `json:"edit_sent_at,omitempty"`
 	// a reply to one bubble (WhatsApp "Balas"): the quoted message
 	Quote *wa.Quote `json:"quote,omitempty"`
+	// a file, voice note or poll sent from Chat (Text is the caption); the file waits in chat_outgoing_files
+	Content *OutContent `json:"content,omitempty"`
+}
+
+// OutContent is the non-text part of a send from Chat.
+type OutContent struct {
+	Kind     string   `json:"kind"` // image | video | document | audio | poll
+	Mime     string   `json:"mime,omitempty"`
+	FileName string   `json:"file_name,omitempty"`
+	Size     int64    `json:"size,omitempty"`
+	PTT      bool     `json:"ptt,omitempty"`
+	Seconds  int      `json:"seconds,omitempty"`
+	FileID   string   `json:"file_id,omitempty"`
+	Poll     *wa.Poll `json:"poll,omitempty"`
 }
 
 // Rules are the anti-ban limits (09-policies-security): proactive messages are capped per sales per day and
@@ -149,7 +163,14 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 			return gap - now.Sub(last), nil
 		}
 	}
-	msgID, sendErr := s.t.Send(wa.WithQuote(wa.WithAction(ctx, id.String()), p.Quote), p.From, p.To, p.Text)
+	sctx := wa.WithQuote(wa.WithAction(ctx, id.String()), p.Quote)
+	var msgID, ref string
+	var sendErr error
+	if p.Content != nil {
+		msgID, ref, sendErr = s.sendContent(sctx, p)
+	} else {
+		msgID, sendErr = s.t.Send(sctx, p.From, p.To, p.Text)
+	}
 	sent := s.clock.Now()
 	var refused *wa.SendRefused
 	if errors.As(sendErr, &refused) {
@@ -176,7 +197,20 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	}
 	if p.MessageID != "" {
 		if mid, err := uuid.Parse(p.MessageID); err == nil {
-			_ = s.st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &msgID, Status: "sent", SentAt: sent, Body: &p.Text})
+			body := &p.Text
+			if p.Content != nil {
+				body = nil // the bubble keeps its "[gambar] caption" text
+				if ref != "" {
+					media, _ := json.Marshal(wa.Media{Kind: p.Content.Kind, Mime: p.Content.Mime, FileName: p.Content.FileName, Size: p.Content.Size, Seconds: p.Content.Seconds, PTT: p.Content.PTT, Ref: ref})
+					_ = s.st.Q.SetChatMessageMedia(ctx, gen.SetChatMessageMediaParams{ID: mid, Media: media})
+				}
+			}
+			_ = s.st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &msgID, Status: "sent", SentAt: sent, Body: body})
+		}
+	}
+	if p.Content != nil && p.Content.FileID != "" {
+		if fid, err := uuid.Parse(p.Content.FileID); err == nil {
+			_ = s.st.Q.DeleteOutgoingFile(ctx, fid) // sent: WhatsApp keeps the file, the message its reference
 		}
 	}
 	if err := s.st.Q.SetProposalExecuted(ctx, pidOf(ob)); err != nil {
@@ -318,4 +352,26 @@ func (s *Sender) sendEdit(ctx context.Context, ob gen.Outbox, p WAPayload) (time
 	_ = events.Notify(ctx, s.st.Pool, "chat_message", map[string]string{"thread_id": p.ThreadID})
 	_ = events.Notify(ctx, s.st.Pool, "proposal_changed", map[string]string{"id": pidOf(ob).String(), "status": "executed"})
 	return 0, nil
+}
+
+// sendContent sends a file, voice note or poll through a transport that can (the file comes from
+// chat_outgoing_files). A transport without it, or a file gone, is a final refusal.
+func (s *Sender) sendContent(ctx context.Context, p WAPayload) (string, string, error) {
+	cs, ok := s.t.(wa.ContentSender)
+	if !ok {
+		return "", "", &wa.SendRefused{Code: "bad_content", Reason: "transport WhatsApp ini tidak bisa mengirim file, pesan suara, atau polling"}
+	}
+	c := wa.Content{Kind: p.Content.Kind, Mime: p.Content.Mime, FileName: p.Content.FileName, PTT: p.Content.PTT, Seconds: p.Content.Seconds, Poll: p.Content.Poll}
+	if p.Content.FileID != "" {
+		fid, err := uuid.Parse(p.Content.FileID)
+		if err != nil {
+			return "", "", &wa.SendRefused{Code: "bad_content", Reason: "file tidak ditemukan"}
+		}
+		f, err := s.st.Q.GetOutgoingFile(ctx, fid)
+		if err != nil {
+			return "", "", &wa.SendRefused{Code: "bad_content", Reason: "file sudah tidak tersedia — kirim ulang"}
+		}
+		c.Data = f.Data
+	}
+	return cs.SendContent(ctx, p.From, p.To, p.Text, c)
 }

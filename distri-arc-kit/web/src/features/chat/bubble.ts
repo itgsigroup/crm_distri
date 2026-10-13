@@ -53,7 +53,7 @@ export function mediaCaption(body: string, media?: MediaView): string {
   return media ? body.replace(/^\[[^\]]*\]\s*/, '') : body
 }
 
-const KIND_LABEL: Record<string, string> = { image: 'Foto', video: 'Video', gif: 'GIF', audio: 'Audio', document: 'Dokumen', sticker: 'Stiker', location: 'Lokasi', contact: 'Kontak' }
+const KIND_LABEL: Record<string, string> = { image: 'Foto', video: 'Video', gif: 'GIF', audio: 'Audio', document: 'Dokumen', sticker: 'Stiker', location: 'Lokasi', contact: 'Kontak', poll: 'Polling' }
 
 /** "Pesan suara", "Foto", "BoQ.pdf"… */
 export function mediaName(m: MediaView): string {

@@ -101,6 +101,28 @@ func (f *Fake) Edit(_ context.Context, account, chatJID, waMsgID, text string) e
 	return nil
 }
 
+// SendContent records a file, voice note or poll as a sent message carrying its media (Kind "poll" for polls); a
+// media send gets a fake download reference.
+func (f *Fake) SendContent(ctx context.Context, account, chatJID, text string, c Content) (string, string, error) {
+	if c.Kind == "" || (c.Kind != "poll" && len(c.Data) == 0) || (c.Kind == "poll" && (c.Poll == nil || len(c.Poll.Options) < 2)) {
+		return "", "", fmt.Errorf("empty content")
+	}
+	id := fmt.Sprintf("FAKE%06d", f.seq.Add(1))
+	m := Message{ID: id, Account: Digits(account), ChatJID: chatJID, FromNumber: Digits(account), FromMe: true, Text: text,
+		Media: &Media{Kind: c.Kind, Mime: c.Mime, FileName: c.FileName, Size: int64(len(c.Data)), PTT: c.PTT, Seconds: c.Seconds}}
+	if q := QuoteFrom(ctx); q != nil {
+		m.QuotedID = q.ID
+	}
+	ref := ""
+	if c.Kind != "poll" {
+		ref = "FAKEREF-" + id
+	}
+	f.mu.Lock()
+	f.sent = append(f.sent, m)
+	f.mu.Unlock()
+	return id, ref, nil
+}
+
 // Delete records a delete-for-everyone as a sent message with RevokeOf set.
 func (f *Fake) Delete(_ context.Context, account, chatJID, waMsgID string) error {
 	if waMsgID == "" {

@@ -108,20 +108,26 @@ type bridgeStatus struct {
 	Reason  string `json:"reason"`
 }
 
-var mediaLabel = map[string]string{"image": "[gambar]", "video": "[video]", "gif": "[GIF]", "audio": "[pesan suara]", "document": "[dokumen]", "sticker": "[stiker]", "location": "[lokasi]", "contact": "[kontak]"}
+var mediaLabel = map[string]string{"image": "[gambar]", "video": "[video]", "gif": "[GIF]", "audio": "[pesan suara]", "document": "[dokumen]", "sticker": "[stiker]", "location": "[lokasi]", "contact": "[kontak]", "poll": "[polling]"}
+
+// MediaLabel is the short label a media message's text starts with ("[gambar] caption").
+func MediaLabel(kind, fileName string) string {
+	label := mediaLabel[kind]
+	if label == "" {
+		label = "[lampiran]"
+	}
+	if fileName != "" {
+		label = strings.TrimSuffix(label, "]") + " " + fileName + "]"
+	}
+	return label
+}
 
 // message converts a bridge event; media gets a short label before its caption so the conversation (and the
 // analysis, which reads text only) stays readable. The media's download reference is kept, never its content.
 func (e bridgeEvent) message() Message {
 	text := strings.TrimSpace(e.Text)
 	if e.MediaMeta != nil && e.EditOf == "" {
-		label := mediaLabel[e.MediaMeta.Kind]
-		if label == "" {
-			label = "[lampiran]"
-		}
-		if e.MediaMeta.FileName != "" {
-			label = strings.TrimSuffix(label, "]") + " " + e.MediaMeta.FileName + "]"
-		}
+		label := MediaLabel(e.MediaMeta.Kind, e.MediaMeta.FileName)
 		if text == "" {
 			text = label
 		} else {
@@ -411,6 +417,41 @@ func (b *Baileys) Send(ctx context.Context, account, chatJID, text string) (stri
 		return "", err
 	}
 	return out.WAMID, nil
+}
+
+// SendContent asks the bridge to send a file, voice note or poll (same approval and anti-ban path as Send).
+func (b *Baileys) SendContent(ctx context.Context, account, chatJID, text string, c Content) (string, string, error) {
+	action := ActionFrom(ctx)
+	if action == "" {
+		return "", "", &SendRefused{Code: "not_approved", Reason: "kirim tanpa outbox yang disetujui ditolak"}
+	}
+	in := map[string]any{"chat_id": chatJID, "text": text, "action_id": action, "content": c}
+	if q := QuoteFrom(ctx); q != nil {
+		in["quote"] = q
+	}
+	var out struct {
+		WAMID string `json:"wamid"`
+		Ref   string `json:"ref"`
+	}
+	_, hdr, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/send", in, &out)
+	var be *bridgeError
+	if errors.As(err, &be) && be.Status == http.StatusBadRequest && be.Code == "bad_content" {
+		return "", "", &SendRefused{Code: be.Code, Reason: be.Msg}
+	}
+	if errors.As(err, &be) && (be.Status == http.StatusForbidden || be.Status == http.StatusConflict || be.Status == http.StatusTooManyRequests) {
+		r := &SendRefused{Code: be.Code, Reason: be.Msg}
+		if s, err := strconv.Atoi(hdr.Get("Retry-After")); err == nil && s > 0 {
+			r.RetryAfter = time.Duration(s) * time.Second
+		}
+		if be.Code == "not_linked" {
+			r.RetryAfter = 10 * time.Minute
+		}
+		return "", "", r
+	}
+	if err != nil {
+		return "", "", err
+	}
+	return out.WAMID, out.Ref, nil
 }
 
 // Edit asks the bridge to edit a text this number sent; the outbox id of the approved edit travels in ctx

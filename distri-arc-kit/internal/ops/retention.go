@@ -78,6 +78,9 @@ func Purge(ctx context.Context, st *store.Store, now time.Time) (PurgeReport, er
 		if _, err := q.PurgeWAMessageInsights(ctx, chatCut); err != nil { // the analysis of the purged bubbles
 			return err
 		}
+		if _, err := q.PurgeOutgoingFiles(ctx, now.AddDate(0, 0, -7)); err != nil { // files of replies that never went out
+			return err
+		}
 		sigCut := now.AddDate(0, -ret.SignalsMonths, 0)
 		if r.Signals, err = q.PurgeSignals(ctx, sigCut); err != nil {
 			return err

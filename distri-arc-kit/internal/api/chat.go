@@ -8,6 +8,8 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -573,12 +575,13 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var in struct {
-		Body    string `json:"body"`
-		ReplyTo string `json:"reply_to"` // a bubble of this conversation to quote (WhatsApp "Balas")
-	}
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || strings.TrimSpace(in.Body) == "" {
-		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pesan kosong")
+	in, file, why := readChatSend(r)
+	if why != "" {
+		code := http.StatusBadRequest
+		if strings.Contains(why, "25 MB") {
+			code = http.StatusRequestEntityTooLarge
+		}
+		httpx.Fail(w, code, "invalid", why)
 		return
 	}
 	u, ok := s.chatAllowed(w, r, t)
@@ -595,7 +598,22 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		quote = q
 	}
 	now := s.clock.Now()
-	body := strings.TrimSpace(in.Body)
+	caption := strings.TrimSpace(in.Body)
+	body := caption // the bubble's text: "[gambar] caption", "[polling] Q • a • b", like received media
+	var media json.RawMessage
+	if in.Content != nil {
+		c := in.Content
+		label := wa.MediaLabel(c.Kind, map[bool]string{true: c.FileName}[c.Kind == "document"])
+		if c.Kind == "audio" && !c.PTT {
+			label = "[audio]"
+		}
+		if c.Kind == "poll" {
+			body = label + " " + c.Poll.Name + "\n• " + strings.Join(c.Poll.Options, "\n• ")
+		} else {
+			body = strings.TrimSpace(label + " " + caption)
+		}
+		media, _ = json.Marshal(wa.Media{Kind: c.Kind, Mime: c.Mime, FileName: c.FileName, Size: c.Size, Seconds: c.Seconds, PTT: c.PTT})
+	}
 	var res map[string]any
 	err := s.st.Tx(r.Context(), func(q *gen.Queries, tx pgx.Tx) error {
 		p, err := s.humanDecision(r.Context(), q, t, u, "Balasan ke "+deref(t.Title), body, now)
@@ -609,11 +627,22 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		if quote != nil {
 			quoted = &quote.ID
 		}
-		mid, err := q.InsertChatMessage(r.Context(), gen.InsertChatMessageParams{ThreadID: &t.ID, WaMsgID: &pendingID, Direction: &dir, FromNumber: &from, FromName: &name, Body: &body, SentAt: now, Status: "pending", ProposalID: &p.ID, QuotedWaID: quoted})
+		mid, err := q.InsertChatMessage(r.Context(), gen.InsertChatMessageParams{ThreadID: &t.ID, WaMsgID: &pendingID, Direction: &dir, FromNumber: &from, FromName: &name, Body: &body, Media: media, SentAt: now, Status: "pending", ProposalID: &p.ID, QuotedWaID: quoted})
 		if err != nil {
 			return err
 		}
-		payload, _ := json.Marshal(outbox.WAPayload{From: from, To: *t.WaJid, Text: body, Kind: "reply", MessageID: mid.String(), ThreadID: t.ID.String(), Quote: quote})
+		text := body
+		if in.Content != nil {
+			text = caption
+			if file != nil {
+				fid, err := q.InsertOutgoingFile(r.Context(), gen.InsertOutgoingFileParams{MessageID: mid, Mime: in.Content.Mime, FileName: in.Content.FileName, Size: int32(len(file)), Data: file})
+				if err != nil {
+					return err
+				}
+				in.Content.FileID = fid.String()
+			}
+		}
+		payload, _ := json.Marshal(outbox.WAPayload{From: from, To: *t.WaJid, Text: text, Kind: "reply", MessageID: mid.String(), ThreadID: t.ID.String(), Quote: quote, Content: in.Content})
 		to := *t.WaJid
 		ob, err := q.InsertOutbox(r.Context(), gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "wa", ToRef: &to, Payload: payload})
 		if err != nil {
@@ -667,6 +696,94 @@ func (s *Server) replyQuote(ctx context.Context, t gen.GetThreadRow, id string) 
 		q.Participant = wa.UserJID(deref(m.FromNumber))
 	}
 	return q, ""
+}
+
+// chatSendInput is a send from Chat: text (or caption), an optional bubble to quote, and an optional file, voice
+// note or poll.
+type chatSendInput struct {
+	Body    string             `json:"body"`
+	ReplyTo string             `json:"reply_to"` // a bubble of this conversation to quote (WhatsApp "Balas")
+	Poll    *wa.Poll           `json:"poll"`
+	Content *outbox.OutContent `json:"-"`
+}
+
+// maxChatFile is the largest file Chat sends (WhatsApp takes more for documents; uploads stay small).
+const maxChatFile = 25 << 20
+
+// readChatSend reads JSON {body, reply_to, poll} or multipart {body, reply_to, file, voice, seconds}. why is the
+// refusal for the person; the file's bytes come back separately (stored until the outbox sends them).
+func readChatSend(r *http.Request) (in chatSendInput, file []byte, why string) {
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		r.Body = http.MaxBytesReader(nil, r.Body, maxChatFile+(1<<20))
+		if err := r.ParseMultipartForm(8 << 20); err != nil {
+			return in, nil, "File lebih dari 25 MB — kirim lewat HP atau perkecil dulu"
+		}
+		in.Body, in.ReplyTo = r.FormValue("body"), r.FormValue("reply_to")
+		f, h, err := r.FormFile("file")
+		if err != nil {
+			return in, nil, "File tidak terbaca"
+		}
+		defer f.Close()
+		data, err := io.ReadAll(io.LimitReader(f, maxChatFile+1))
+		if err != nil || len(data) == 0 {
+			return in, nil, "File kosong"
+		}
+		if len(data) > maxChatFile {
+			return in, nil, "File lebih dari 25 MB — kirim lewat HP atau perkecil dulu"
+		}
+		ct, _, _ := strings.Cut(h.Header.Get("Content-Type"), ";")
+		ct = strings.ToLower(strings.TrimSpace(ct))
+		if ct == "" || ct == "application/octet-stream" {
+			ct, _, _ = strings.Cut(http.DetectContentType(data), ";")
+		}
+		c := &outbox.OutContent{Mime: ct, FileName: filepathBase(h.Filename), Size: int64(len(data))}
+		switch {
+		case r.FormValue("voice") == "1":
+			c.Kind, c.PTT = "audio", true
+			c.Mime = strings.TrimSpace(h.Header.Get("Content-Type")) // keep "audio/webm;codecs=opus" for the conversion
+			if sec, err := strconv.Atoi(r.FormValue("seconds")); err == nil && sec > 0 {
+				c.Seconds = sec
+			}
+		case ct == "image/jpeg" || ct == "image/png" || ct == "image/webp":
+			c.Kind = "image"
+		case ct == "video/mp4" || ct == "video/3gpp" || ct == "video/quicktime":
+			c.Kind = "video"
+		case strings.HasPrefix(ct, "audio/"):
+			c.Kind = "audio"
+		default:
+			c.Kind = "document"
+		}
+		in.Content = c
+		return in, data, ""
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		return in, nil, "Pesan kosong"
+	}
+	if in.Poll != nil {
+		p := &wa.Poll{Name: strings.TrimSpace(in.Poll.Name), Multi: in.Poll.Multi}
+		for _, o := range in.Poll.Options {
+			if o = strings.TrimSpace(o); o != "" && !slices.Contains(p.Options, o) {
+				p.Options = append(p.Options, o)
+			}
+		}
+		if p.Name == "" || len(p.Options) < 2 || len(p.Options) > 12 {
+			return in, nil, "Polling butuh pertanyaan dan 2–12 pilihan yang berbeda"
+		}
+		in.Content = &outbox.OutContent{Kind: "poll", Poll: p}
+		return in, nil, ""
+	}
+	if strings.TrimSpace(in.Body) == "" {
+		return in, nil, "Pesan kosong"
+	}
+	return in, nil, ""
+}
+
+// filepathBase is a file name without any directory a browser may send.
+func filepathBase(name string) string {
+	if i := strings.LastIndexAny(name, `/\`); i >= 0 {
+		name = name[i+1:]
+	}
+	return strings.TrimSpace(name)
 }
 
 // errEditGone: the queued reply left the outbox between reading and editing it.
