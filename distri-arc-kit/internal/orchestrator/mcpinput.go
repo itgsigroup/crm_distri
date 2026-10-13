@@ -477,7 +477,7 @@ Untuk setiap agen berikut: %s
 2. Analisis datanya: pilih kandidat yang benar-benar perlu, tulis ulang "why" (alasan singkat berbasis angka) dan "preview" (draft pesan, Bahasa Indonesia, sopan). Jangan ubah angka, dealer_id, kind, signal_ids, atau dedupe_key; buang kandidat yang lemah.
 3. Kirim lewat orchestrator_submit {"cycle_id": "%s", "agent": "<nama agen>", "proposals": [...]}.
 %s
-Lalu baca chat WhatsApp: panggil orchestrator_input_get {"cycle_id": "%s", "agent": "Analisa WhatsApp"}, tulis ringkasan untuk CEO dan satu kalimat per percakapan, kirim lewat orchestrator_submit {"cycle_id": "%s", "agent": "Analisa WhatsApp", "overview": "...", "threads": [{"id": "...", "summary": "...", "confidence": 0.8}]}.
+Lalu baca chat WhatsApp: panggil orchestrator_input_get {"cycle_id": "%s", "agent": "Analisa WhatsApp"}, tulis ringkasan untuk CEO, satu kalimat per percakapan, dan satu catatan per pesan pelanggan yang membawa id (analisa per bubble), kirim lewat orchestrator_submit {"cycle_id": "%s", "agent": "Analisa WhatsApp", "overview": "...", "threads": [{"id": "...", "summary": "...", "confidence": 0.8}], "messages": [{"id": "<id pesan>", "note": "...", "confidence": 0.8}]}.
 
 Kerjakan semua agen, lalu beri ringkasan singkat apa yang kamu usulkan. Kamu hanya mengusulkan — keputusan tetap di aplikasi GSI Orbit.`,
 		number, cycleID, waitLabel(wait), strings.Join(agentNames, ", "), cycleID, cycleID, pages, cycleID, cycleID)

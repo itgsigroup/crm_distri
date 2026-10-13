@@ -862,9 +862,10 @@ func (o *Orchestrator) learn(ctx context.Context, r *stageRun) (map[string]any, 
 		if err := o.writeBrief(ctx, r); err != nil {
 			return nil, err
 		}
-		if err := o.writeWASummary(ctx, r); err != nil {
-			return nil, err
-		}
+	}
+	// every analysis reads the bubbles of its scope; the model writes the notes (a full cycle also the overview)
+	if err := o.writeWASummary(ctx, r); err != nil {
+		return nil, err
 	}
 	if err := o.writeScreenReadings(ctx, r); err != nil {
 		return nil, err

@@ -34,7 +34,14 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 	if err != nil {
 		return err
 	}
-	var dealer *uuid.UUID
+	var dealer, thread *uuid.UUID
+	if r.scope.Kind == "thread" {
+		id, err := uuid.Parse(r.scope.ID)
+		if err != nil {
+			return err
+		}
+		thread = &id
+	}
 	if r.scope.Kind == "dealer" {
 		d, err := o.St.Q.GetDealer(ctx, &r.scope.ID)
 		if err != nil {
@@ -45,7 +52,7 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 	var threads []waanalysis.Thread
 	at := map[uuid.UUID]int{}
 	for _, m := range rows {
-		if m.ThreadID == nil || (dealer != nil && (m.DealerID == nil || *m.DealerID != *dealer)) {
+		if m.ThreadID == nil || (dealer != nil && (m.DealerID == nil || *m.DealerID != *dealer)) || (thread != nil && *m.ThreadID != *thread) {
 			continue
 		}
 		i, ok := at[*m.ThreadID]
@@ -303,7 +310,7 @@ func (o *Orchestrator) waReadingFor(ctx context.Context, cycleID uuid.UUID) (*wa
 		return nil, err
 	}
 	if len(rows) == 0 {
-		return nil, ErrNoWA
+		return o.bubbleReadingFor(ctx, cycleID)
 	}
 	now := o.Clock.Now()
 	var ins []waanalysis.Insight
@@ -350,6 +357,57 @@ func (o *Orchestrator) waReadingFor(ctx context.Context, cycleID uuid.UUID) (*wa
 		if n := deref(x.SalesName); n != "" {
 			rd.names = append(rd.names, n)
 		}
+		rd.Threads = append(rd.Threads, t)
+		rd.want[t.ID] = true
+	}
+	return rd, nil
+}
+
+// bubbleReadingFor is the reading of a cycle that did not analyse the whole of WhatsApp (one conversation, one
+// dealer, the chat screen): the conversations whose bubbles it read, most waiting first, so Claude can write the note
+// per customer message (and a line per conversation). No totals or overview are stored for such a cycle.
+func (o *Orchestrator) bubbleReadingFor(ctx context.Context, cycleID uuid.UUID) (*waReading, error) {
+	threads, err := o.St.Q.WACycleThreads(ctx, &cycleID)
+	if err != nil {
+		return nil, err
+	}
+	if len(threads) == 0 {
+		return nil, ErrNoWA
+	}
+	now := o.Clock.Now()
+	window := now.AddDate(0, 0, -waanalysis.WindowDays)
+	rd := &waReading{Threads: []waThreadIn{}, want: map[string]bool{}, msgWant: map[string]bool{}}
+	for _, x := range threads {
+		if len(rd.Threads) >= maxWASummaries {
+			break
+		}
+		t := waThreadIn{ID: x.ThreadID.String(), Title: deref(x.Title), Dealer: deref(x.DealerName), Sales: deref(x.SalesName), Intent: waanalysis.IntentLabel(x.Intent)}
+		if since, ok := x.WaitingSince.(time.Time); ok {
+			t.Waiting = waanalysis.WaitLabel(int(now.Sub(since).Minutes()))
+		}
+		tid := x.ThreadID
+		msgs, err := o.St.Q.ListThreadMessages(ctx, gen.ListThreadMessagesParams{ThreadID: &tid, SentAt: now.Add(time.Minute), Lim: 12})
+		if err != nil {
+			return nil, err
+		}
+		for _, m := range msgs {
+			if m.Status == "failed" || strings.TrimSpace(deref(m.Body)) == "" {
+				continue
+			}
+			wm := waMsg{Dir: deref(m.Direction), Text: clipText(deref(m.Body), 300)}
+			if wm.Dir == "in" && !m.SentAt.Before(window) {
+				wm.ID = m.ID.String()
+				rd.msgWant[wm.ID] = true
+			}
+			t.Msgs = append(t.Msgs, wm)
+		}
+		if p, _, ok := strings.Cut(deref(x.Title), " · "); ok || deref(x.Kind) == "new" {
+			rd.names = append(rd.names, strings.TrimSpace(p))
+		}
+		if n := deref(x.SalesName); n != "" {
+			rd.names = append(rd.names, n)
+		}
+		rd.Totals.Threads++
 		rd.Threads = append(rd.Threads, t)
 		rd.want[t.ID] = true
 	}
@@ -440,7 +498,7 @@ func (o *Orchestrator) storeWA(ctx context.Context, cycleID uuid.UUID, a waAnswe
 // Without a model the reading waits for Claude through MCP (orchestrator_input_get / orchestrator_submit with agent
 // "Analisa WhatsApp").
 func (o *Orchestrator) writeWASummary(ctx context.Context, r *stageRun) error {
-	if !r.waRead || len(r.wa) == 0 || o.Router == nil || !o.Router.HasModel() {
+	if o.Router == nil || !o.Router.HasModel() || (r.waRead && len(r.wa) == 0) || (!r.waRead && r.waMsgs == 0) {
 		return nil
 	}
 	rd, err := o.waReadingFor(ctx, r.cyc.ID)

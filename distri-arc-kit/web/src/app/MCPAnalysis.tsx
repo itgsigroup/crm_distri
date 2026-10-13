@@ -35,14 +35,15 @@ export function MCPAnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
       <SheetHead icon="plug" title={`Claude menganalisis lewat MCP · siklus #${cycle.number ?? ''}`}
         sub={m.engine === 'claude_api' ? 'Claude di server mengerjakan sendiri lewat tool MCP — hasilnya langsung tersimpan di GSI Orbit' : `Buka Claude dan kirim perintahnya — batas ${waitText(m.wait_sec)}; agen tanpa jawaban dicatat Gagal`} onClose={closeSheet} />
       <div className="sec mcpa">
-        {m.engine === 'claude_ai' ? (
+        {m.engine === 'claude_ai' ? (<>
           <ol className="mcpa-steps">
             <li><b>Buka Claude</b> (akun yang konektor GSI Orbit-nya aktif) — perintahnya sudah terisi.
               <a className="btn primary" href={m.claude_url} target="_blank" rel="noopener noreferrer"><Icon name="plug" />Buka Claude</a></li>
             <li><b>Tekan Enter.</b> Claude mengambil data tiap agen (<code>orchestrator_input_get</code>), menganalisis, lalu mengirim usulannya (<code>orchestrator_submit</code>).</li>
-            <li><b>Hasilnya tersimpan di GSI Orbit</b> — Keputusan, Rencana, dan Orchestrator ter-update sendiri. Halaman ini boleh ditutup.</li>
+            <li><b>Hasilnya tersimpan di GSI Orbit</b> — Keputusan, Rencana, Orchestrator, dan catatan per bubble chat ter-update sendiri. Halaman ini boleh ditutup.</li>
           </ol>
-        ) : (
+          <p className="mcpa-note"><Icon name="lock" />Claude Desktop / claude.ai hanya bekerja bila ada perintah yang dikirim di sana — aplikasi tidak bisa menjalankannya sendiri. Agar analisis langsung jalan tanpa membuka Claude, simpan kunci Claude API di <b>MCP Claude → Analisis terjadwal</b>: Claude di server memakai tool MCP yang sama.</p>
+        </>) : (
           <p className="mcpa-note"><Icon name="check" />Kunci Claude API tersimpan: Claude di server menjalankan analisis lewat tool MCP yang sama (tercatat di Riwayat MCP dan Analisis terjadwal). Tidak perlu membuka apa pun.</p>
         )}
         <div className="mcpa-agents">

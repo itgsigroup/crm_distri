@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Analisa lanjut di Chat: Claude (MCP) menganalisa percakapan itu, termasuk per bubble · 2026-10-13
+- Tombol **Analisa lanjut** kini menganalisa percakapan yang dibuka (scope baru `thread:<id>`; chat dealer tetap scope dealer) dan selalu lewat MCP.
+- Pembacaan Analisa WhatsApp untuk Claude kini juga dibuat untuk siklus satu percakapan/dealer/chat (sebelumnya hanya siklus penuh, sehingga Claude tidak bisa menulis catatan per bubble). Prompt MCP meminta catatan per pesan pelanggan (`messages`). Dengan model di server, catatan per bubble juga ditulis di siklus non-penuh.
+- Lembar MCP menjelaskan: Claude Desktop/claude.ai hanya bekerja bila perintahnya dikirim di sana; agar langsung jalan tanpa membuka Claude, simpan kunci Claude API (Analisis terjadwal).
+
 ## Feat · Push stok dan Kredit · kas dianalisa Claude lewat MCP · 2026-10-13
 - **Analisa Stok** dan **Analisa Kas** (ADR 0030), seperti Analisa WhatsApp: Claude membaca stok menua dan piutang/prediksi kas lewat MCP (`orchestrator_input_get` → `orchestrator_submit` dengan `overview` + `lines`), lalu ringkasan dan catatan per SKU/dealer tampil di halaman bertanda "ditulis AI · siklus #n". Angka tetap dihitung GSI Orbit.
 - Tombol **Analisis ulang** di kedua halaman kini lewat MCP (membuka lembar Claude, atau Claude di server bila kunci API tersimpan).

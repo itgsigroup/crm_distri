@@ -390,7 +390,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
               <Icon name="spark" /><span className="ibc-an-l">Per pesan</span>
             </button>
           )}
-          <button className="btn ibc-ai" disabled={orch.running} onClick={() => reanalyze(t.dealer_id ? `dealer:${t.dealer_id}` : 'screen:chat')} title="Jalankan Orchestrator untuk percakapan ini — setiap pesan ikut dianalisa"><span className="ai" style={{ fontSize: 0 }} />{orch.running ? 'Menganalisis…' : 'Analisa lanjut'}</button>
+          <button className="btn ibc-ai" disabled={orch.running} onClick={() => reanalyze(t.dealer_id ? `dealer:${t.dealer_id}` : `thread:${t.id}`, 'mcp')} title="Claude (MCP) menganalisa percakapan ini — catatan per pesan muncul di bawah tiap bubble"><span className="ai" style={{ fontSize: 0 }} />{orch.running ? 'Menganalisis…' : 'Analisa lanjut'}</button>
           {t.kind !== 'group' && <button className="btn ibc-acc" onClick={onAccurate}><Icon name="send" />Accurate</button>}
           {!lead && <button className="ibl-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
         </div>

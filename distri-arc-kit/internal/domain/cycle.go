@@ -11,7 +11,8 @@ var Stages = []string{"ingest", "analyze", "synthesize", "decide", "execute", "l
 // StageLabels are the UI names of the stages.
 var StageLabels = map[string]string{"ingest": "Ingest", "analyze": "Analisis", "synthesize": "Sintesis", "decide": "Keputusan", "execute": "Eksekusi", "learn": "Belajar"}
 
-// Scope is what a cycle analyses: all | screen:<orbit|segmen|stock|credit|dealer|chat> | dealer:<slug> | agent:<name>.
+// Scope is what a cycle analyses: all | screen:<orbit|segmen|stock|credit|dealer|chat> | dealer:<slug> | agent:<name> |
+// thread:<chat thread uuid> (Chat → Analisa lanjut on one conversation).
 type Scope struct {
 	Kind string `json:"kind"`
 	ID   string `json:"id,omitempty"`
@@ -35,6 +36,10 @@ func ParseScope(s string) (Scope, error) {
 			return Scope{}, fmt.Errorf("unknown screen %q", id)
 		}
 	case "dealer":
+	case "thread":
+		if len(id) != 36 || strings.Count(id, "-") != 4 {
+			return Scope{}, fmt.Errorf("thread %q: want a conversation id", id)
+		}
 	case "agent":
 		known := false
 		for _, a := range AgentNames {
@@ -65,6 +70,8 @@ func (s Scope) Label() string {
 		return map[string]string{"orbit": "orbit", "segmen": "segmen", "stock": "push stok", "credit": "kredit", "relasi": "peta relasi", "dealer": "dealer", "chat": "chat"}[s.ID]
 	case "agent":
 		return s.ID
+	case "thread":
+		return "percakapan"
 	}
 	return "dealer " + s.ID
 }
@@ -83,6 +90,8 @@ func (s Scope) Agents() []string {
 		case "chat": // the conversations: requests and new numbers (every bubble is read by Ingest)
 			return []string{"AI Order", "AI Prospek"}
 		}
+	case "thread": // one conversation: its requests or the new number, and each bubble (Analisa WhatsApp)
+		return []string{"AI Order", "AI Prospek"}
 	case "agent":
 		return []string{s.ID}
 	}

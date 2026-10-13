@@ -446,6 +446,64 @@ func (q *Queries) UpsertWAMessageInsights(ctx context.Context, arg UpsertWAMessa
 	return err
 }
 
+const wACycleThreads = `-- name: WACycleThreads :many
+select i.thread_id, t.kind, t.title, d.name as dealer_name, s.name as sales_name,
+  coalesce((array_agg(i.intent order by i.sent_at desc) filter (where i.direction = 'in'))[1], '')::text as intent,
+  min(i.sent_at) filter (where i.state in ('waiting', 'needs_reply')) as waiting_since,
+  max(i.sent_at)::timestamptz as last_at
+from wa_message_insights i
+join chat_threads t on t.id = i.thread_id
+left join dealers d on d.id = t.dealer_id
+left join sales_users s on s.id = t.sales_id
+where i.cycle_id = $1::uuid
+group by i.thread_id, t.kind, t.title, d.name, s.name
+having count(*) filter (where i.direction = 'in') > 0
+order by (min(i.sent_at) filter (where i.state in ('waiting', 'needs_reply'))) is null, max(i.sent_at) desc
+limit 50
+`
+
+type WACycleThreadsRow struct {
+	ThreadID     uuid.UUID   `json:"thread_id"`
+	Kind         *string     `json:"kind"`
+	Title        *string     `json:"title"`
+	DealerName   *string     `json:"dealer_name"`
+	SalesName    *string     `json:"sales_name"`
+	Intent       string      `json:"intent"`
+	WaitingSince interface{} `json:"waiting_since"`
+	LastAt       time.Time   `json:"last_at"`
+}
+
+// The conversations whose bubbles a cycle read (Analisa WhatsApp of one conversation, one dealer, or the chat screen):
+// waiting for a reply first, then the latest; the request of the newest customer bubble.
+func (q *Queries) WACycleThreads(ctx context.Context, cycleID *uuid.UUID) ([]WACycleThreadsRow, error) {
+	rows, err := q.db.Query(ctx, wACycleThreads, cycleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WACycleThreadsRow{}
+	for rows.Next() {
+		var i WACycleThreadsRow
+		if err := rows.Scan(
+			&i.ThreadID,
+			&i.Kind,
+			&i.Title,
+			&i.DealerName,
+			&i.SalesName,
+			&i.Intent,
+			&i.WaitingSince,
+			&i.LastAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const wAMessageInsights = `-- name: WAMessageInsights :many
 select i.message_id, i.state, i.intent, i.items, i.wait_min, i.analyzed_at, i.note, i.confidence, c.number as cycle_number
 from wa_message_insights i left join cycles c on c.id = i.cycle_id

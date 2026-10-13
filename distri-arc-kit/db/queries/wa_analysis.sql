@@ -88,3 +88,20 @@ where i.thread_id = sqlc.arg(thread_id) and i.message_id = any(sqlc.arg(message_
 -- name: LastWAMessageAnalysis :one
 -- When the bubbles of a conversation were last analysed (null: never).
 select max(analyzed_at)::timestamptz as analyzed_at from wa_message_insights where thread_id = $1;
+
+-- name: WACycleThreads :many
+-- The conversations whose bubbles a cycle read (Analisa WhatsApp of one conversation, one dealer, or the chat screen):
+-- waiting for a reply first, then the latest; the request of the newest customer bubble.
+select i.thread_id, t.kind, t.title, d.name as dealer_name, s.name as sales_name,
+  coalesce((array_agg(i.intent order by i.sent_at desc) filter (where i.direction = 'in'))[1], '')::text as intent,
+  min(i.sent_at) filter (where i.state in ('waiting', 'needs_reply')) as waiting_since,
+  max(i.sent_at)::timestamptz as last_at
+from wa_message_insights i
+join chat_threads t on t.id = i.thread_id
+left join dealers d on d.id = t.dealer_id
+left join sales_users s on s.id = t.sales_id
+where i.cycle_id = sqlc.narg(cycle_id)::uuid
+group by i.thread_id, t.kind, t.title, d.name, s.name
+having count(*) filter (where i.direction = 'in') > 0
+order by (min(i.sent_at) filter (where i.state in ('waiting', 'needs_reply'))) is null, max(i.sent_at) desc
+limit 50;

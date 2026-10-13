@@ -130,3 +130,56 @@ func TestScreenReadingByModel(t *testing.T) {
 		t.Error("a stock cycle wrote the cash reading")
 	}
 }
+
+// Chat → Analisa lanjut on one conversation (scope thread): Claude gets that conversation through MCP and its note per
+// customer bubble is stored (ADR 0027), although the cycle is not a full one.
+func TestOneConversationBubblesThroughMCP(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	var thread string
+	if err := st.Pool.QueryRow(ctx, `select t.id::text from chat_threads t join dealers d on d.id = t.dealer_id where d.slug = 'graha' limit 1`).Scan(&thread); err != nil {
+		t.Fatal(err)
+	}
+	sc, err := domain.ParseScope("thread:" + thread)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep, err := o.Run(ctx, sc, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := o.InputFor(ctx, rep.Cycle.ID, orchestrator.AgentWA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var in struct {
+		Threads []struct {
+			ID       string `json:"id"`
+			Messages []struct {
+				ID string `json:"id"`
+			} `json:"messages"`
+		} `json:"threads"`
+	}
+	_ = json.Unmarshal(raw, &in)
+	if len(in.Threads) != 1 || in.Threads[0].ID != thread {
+		t.Fatalf("reading of one conversation: %s", raw)
+	}
+	var msg string
+	for _, m := range in.Threads[0].Messages {
+		if m.ID != "" {
+			msg = m.ID
+		}
+	}
+	if msg == "" {
+		t.Fatal("no customer bubble to annotate")
+	}
+	ans := orchestrator.ParseWAAnswer("Graha menunggu konfirmasi.", []map[string]any{{"id": thread, "summary": "Menunggu konfirmasi PO.", "confidence": 0.8}},
+		map[string]any{"id": msg, "note": "Minta konfirmasi jadwal kirim — jawab hari ini.", "confidence": 0.7})
+	if _, err := o.WASubmit(ctx, rep.Cycle.ID, ans, nil); err != nil {
+		t.Fatal(err)
+	}
+	var note string
+	if err := st.Pool.QueryRow(ctx, "select coalesce(note, '') from wa_message_insights where message_id = $1", msg).Scan(&note); err != nil || note == "" {
+		t.Fatalf("bubble note %q %v", note, err)
+	}
+}
