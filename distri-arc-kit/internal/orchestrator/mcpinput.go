@@ -321,11 +321,16 @@ func (o *Orchestrator) Submit(ctx context.Context, cycleID uuid.UUID, agent stri
 	}
 	ok, rejected := ValidateSubmission(a, raw, row.SignalIds, mapping, in, o.Clock.Now().Format("2006-01-02"))
 	res := SubmitResult{Accepted: len(ok), Rejected: rejected}
-	if len(ok) == 0 {
+	if len(ok) == 0 && len(rejected) > 0 {
 		return res, fmt.Errorf("%w: %s", ErrBadSubmit, strings.Join(rejected, "; "))
 	}
+	// an empty list is an answer too: the model read the Input and has nothing to propose for this agent (before,
+	// it was refused and the agent failed after MCPWait under require_ai)
 	now := o.Clock.Now()
 	if cyc.Status == "running" && row.SubmittedAt == nil {
+		if ok == nil {
+			ok = []domain.Proposal{}
+		}
 		b, _ := json.Marshal(ok)
 		res.Mode = "waiting"
 		return res, o.St.Q.SubmitCycleInput(ctx, gen.SubmitCycleInputParams{CycleID: cycleID, Agent: agent, Submitted: b, SubmittedBy: client, SubmittedAt: &now})

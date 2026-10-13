@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · jalur analisis bisa diganti lagi; Claude boleh menjawab "tidak ada usulan" · 2026-10-13
+- **Pengaturan → jalur analisis (api/mcp/both) selalu ditolak 400** sejak `require_ai` ditambahkan (ADR 0025): skema `llm.routing` belum mengenal kolom itu. Skema diperbaiki; test baru memeriksa setiap kebijakan default lolos skemanya setelah disimpan ulang.
+- **Claude lewat MCP kini bisa mengirim `proposals: []`** (tidak ada usulan untuk agen itu). Sebelumnya ditolak tanpa alasan, sehingga dengan wajib-AI agen itu menunggu 10 menit lalu gagal dan siklus menjadi "sebagian".
+- Test: `TestToolsAndScopes` (macet 10 menit) kini memerankan Claude yang menjawab tiap agen seperti di produksi; e2e mengikuti dialog hasil Analisis ulang dan tampilan Orchestrator yang baru. `make check` dan e2e (26/26, data contoh segar) hijau.
+
 ## Feat · Chat: filter Belum dibaca dan riwayat WhatsApp 1 tahun · 2026-10-13
 - Chip **Belum dibaca** di daftar chat (seperti WhatsApp): semua jenis percakapan yang punya pesan belum dibaca, dengan jumlahnya; chat yang sedang dibuka tetap tampil sesudah dibaca.
 - Membuka percakapan langsung menampilkan **seluruh riwayat yang tersimpan (1 tahun)** — tombol "Muat pesan sebelumnya" dihapus; chat yang sangat ramai (> 3000 pesan) memuat sisanya otomatis saat digulir ke atas.

@@ -72,16 +72,20 @@ test('a proposal opens in the ActionSheet with its provenance (read-only)', asyn
   expect(errors).toEqual([])
 })
 
-test('Analisis ulang di Orbit runs a cycle and reports it (stage 06)', async ({ page }) => {
+test('Analisis ulang di Orbit runs a cycle and reports it (stage 06)', async ({ page, request }) => {
   await page.goto('/orbit', { waitUntil: 'networkidle' })
   const before = await page.locator('.orch-pill .op-t b').innerText()
   await page.getByRole('button', { name: 'Analisis ulang' }).first().click()
   await expect(page.locator('.dock')).toHaveClass(/running/)
-  await expect(page.locator('.toast')).toContainText('Analisis ulang orbit selesai', { timeout: 10_000 })
+  // the result is a dialog (Analisis berhasil / sebagian / gagal), not a toast
+  await expect(page.getByRole('alertdialog')).toContainText('Analisis ulang orbit selesai', { timeout: 10_000 })
   await expect(page.locator('.orch-pill .op-t b')).not.toHaveText(before)
+  // the cycle is recorded (with its conflicts) and is the last analysis on the Orchestrator screen
+  const last = ((await (await request.get('/api/cycles')).json()).items as { number: number; note: string; conflict_count: number }[])[0]
+  expect(last.note).toContain('Analisis ulang orbit')
+  expect(last.conflict_count).toBeGreaterThan(0)
   await page.goto('/orchestrator', { waitUntil: 'networkidle' })
-  await expect(page.locator('table.runs tbody tr').first()).toContainText('Analisis ulang orbit')
-  await expect(page.locator('.conflicts li')).not.toHaveCount(0)
+  await expect(page.locator('.oh-kv').filter({ hasText: 'Analisis terakhir' })).toContainText(`#${last.number.toLocaleString('id-ID')}`)
 })
 
 test('MCP panel and Koneksi AI come from the server (stage 07)', async ({ page }) => {
@@ -172,7 +176,7 @@ test('drift threshold 1,5× changes At risk on the next cycle; Cara baca opens P
     await expect(page.locator('.toast')).toContainText('berlaku di siklus berikutnya')
     await page.goto('/orbit', { waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'Analisis ulang' }).first().click()
-    await expect(page.locator('.toast')).toContainText('selesai', { timeout: 10_000 })
+    await expect(page.getByRole('alertdialog')).toContainText('selesai', { timeout: 10_000 })
     expect(await atRisk()).toBeLessThan(before)
   } finally {
     await request.put('/api/policies/orbit.thresholds', { data: { drift: 1.2, churn: 2, key_account: { sow_min: 50, on_time_min: 85 } } })

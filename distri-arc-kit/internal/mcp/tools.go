@@ -779,7 +779,7 @@ func (s *Server) registerOrchestrate() {
 		_ = json.Unmarshal(raw, &v)
 		return v, result{Summary: in.Agent, CycleID: &id}, nil
 	})
-	tool(s, "orchestrator.submit", ScopeOrchestrate, "Mengirim proposal untuk Input yang diminta. Divalidasi: kind agen, signal_ids hanya dari Input, dealer dikenal. Untuk agent \"Analisa WhatsApp\": kirim overview + threads (bukan proposals).", func(ctx context.Context, c *Client, in submitIn) (any, result, error) {
+	tool(s, "orchestrator.submit", ScopeOrchestrate, "Mengirim proposal untuk Input yang diminta (proposals: [] = tidak ada usulan untuk agen ini, tetap dikirim agar siklus tidak menunggu). Divalidasi: kind agen, signal_ids hanya dari Input, dealer dikenal. Untuk agent \"Analisa WhatsApp\": kirim overview + threads (bukan proposals).", func(ctx context.Context, c *Client, in submitIn) (any, result, error) {
 		id, err := uuid.Parse(in.CycleID)
 		if err != nil {
 			return nil, result{}, fmt.Errorf("cycle_id: %w", err)

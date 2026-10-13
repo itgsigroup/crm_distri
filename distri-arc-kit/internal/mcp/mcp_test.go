@@ -3,6 +3,7 @@ package mcp_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -109,6 +110,55 @@ func lastCall(t *testing.T, st *store.Store, tool string) string {
 	return status
 }
 
+// answerInputs plays Claude through MCP until the cycle is over (a value on done, put back for the caller): each
+// agent's published Input is answered with its own candidates.
+func answerInputs[T any](t *testing.T, e *env, cs *sdk.ClientSession, done chan T) {
+	t.Helper()
+	ctx := context.Background()
+	answered := map[string]bool{}
+	for i := 0; i < 150; i++ {
+		select {
+		case v := <-done:
+			done <- v
+			return
+		case <-time.After(100 * time.Millisecond):
+		}
+		rows, err := e.st.Pool.Query(ctx, "select cycle_id::text, agent from cycle_inputs where submitted_at is null")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var todo [][2]string
+		for rows.Next() {
+			var cid, agent string
+			_ = rows.Scan(&cid, &agent)
+			if !answered[cid+agent] {
+				todo = append(todo, [2]string{cid, agent})
+			}
+		}
+		rows.Close()
+		for _, x := range todo {
+			answered[x[0]+x[1]] = true
+			in, txt, ok := call(t, cs, "orchestrator_input_get", map[string]any{"cycle_id": x[0], "agent": x[1]})
+			if !ok {
+				t.Fatalf("input %s: %s", x[1], txt)
+			}
+			props := []any{}
+			cands, _ := in["candidates"].([]any)
+			for j, c := range cands {
+				p := c.(map[string]any)
+				p["dedupe_key"] = fmt.Sprintf("mcp:%s:%d", x[1], j)
+				props = append(props, p)
+			}
+			if _, txt, ok := call(t, cs, "orchestrator_submit", map[string]any{"cycle_id": x[0], "agent": x[1], "proposals": props}); !ok {
+				t.Fatalf("submit %s: %s", x[1], txt)
+			}
+		}
+	}
+	var st string
+	_ = e.st.Pool.QueryRow(ctx, "select status || coalesce(' ' || (select string_agg(agent || '=' || (submitted_at is not null)::text, ',') from cycle_inputs), '') from cycles order by number desc limit 1").Scan(&st)
+	t.Fatal("the cycle did not finish: " + st)
+}
+
 // Stage 07 acceptance: jadwal.due for Dewi, reanalyze a dealer (trigger mcp), read token cannot orchestrate,
 // actions.decide is human-only.
 func TestToolsAndScopes(t *testing.T) {
@@ -161,7 +211,34 @@ func TestToolsAndScopes(t *testing.T) {
 		}
 	}
 
-	out, txt, ok := call(t, full, "orchestrator_reanalyze", map[string]any{"scope": "dealer:mitra"})
+	// A cycle Claude asks for is analysed by Claude through MCP (ADR 0025): without a job queue it runs inside the
+	// tool call, so a second session plays Claude answering each agent's Input while the first one waits.
+	type reply struct {
+		out map[string]any
+		txt string
+		ok  bool
+	}
+	got := make(chan reply, 1)
+	go func() {
+		res, err := full.CallTool(ctx, &sdk.CallToolParams{Name: "orchestrator_reanalyze", Arguments: map[string]any{"scope": "dealer:mitra"}})
+		if err != nil {
+			got <- reply{txt: err.Error()}
+			return
+		}
+		var r reply
+		r.ok = !res.IsError
+		for _, c := range res.Content {
+			if tc, ok := c.(*sdk.TextContent); ok {
+				r.txt += tc.Text
+			}
+		}
+		b, _ := json.Marshal(res.StructuredContent)
+		_ = json.Unmarshal(b, &r.out)
+		got <- r
+	}()
+	answerInputs(t, e, e.connect(t, e.token(t, "Claude analis", "read", "analyze", "orchestrate")), got)
+	r := <-got
+	out, txt, ok := r.out, r.txt, r.ok
 	if !ok || out["status"] != "done" {
 		t.Fatalf("reanalyze: %v %s", out, txt)
 	}
@@ -391,5 +468,47 @@ func TestWAThroughMCP(t *testing.T) {
 	a, _ := e.st.Q.LatestWAAnalysis(context.Background())
 	if a.Source != "ai" || a.Overview == nil || *a.Overview != "Dua dealer menunggu balasan." {
 		t.Fatalf("stored %s %v", a.Source, a.Overview)
+	}
+}
+
+// "Nothing to propose" is an answer: an empty list is accepted while the cycle waits, the agent is done (not failed
+// after MCPWait under require_ai) and the cycle finishes at once.
+func TestRoutingMCPEmptyAnswer(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	if _, err := e.st.Pool.Exec(ctx, `update policies set value = jsonb_set(value, '{mode}', '"mcp"') where key = 'llm.routing'`); err != nil {
+		t.Fatal(err)
+	}
+	e.o.MCPWait = 30 * time.Second
+	cs := e.connect(t, e.token(t, "Model eksternal", "orchestrate"))
+	done := make(chan *orchestrator.Report, 1)
+	go func() {
+		rep, err := e.o.Run(ctx, domain.Scope{Kind: "agent", ID: "AI Kredit"}, domain.Trigger{Source: "mcp", By: "test"})
+		if err != nil {
+			t.Error(err)
+		}
+		done <- rep
+	}()
+	var cid string
+	for i := 0; i < 50 && cid == ""; i++ {
+		_ = e.st.Pool.QueryRow(ctx, "select cycle_id::text from cycle_inputs limit 1").Scan(&cid)
+		time.Sleep(100 * time.Millisecond)
+	}
+	if cid == "" {
+		t.Fatal("Analisis did not publish an Input")
+	}
+	start := time.Now()
+	out, txt, ok := call(t, cs, "orchestrator_submit", map[string]any{"cycle_id": cid, "agent": "AI Kredit", "proposals": []any{}})
+	if !ok || out["mode"] != "waiting" || out["accepted"] != float64(0) {
+		t.Fatalf("empty submit: %v %s", out, txt)
+	}
+	rep := <-done
+	if rep == nil || rep.Cycle.Status != "done" || time.Since(start) > 10*time.Second {
+		t.Fatalf("cycle %+v after %s", rep, time.Since(start))
+	}
+	var status string
+	_ = e.st.Pool.QueryRow(ctx, "select status from agent_runs where cycle_id = $1 and agent = 'AI Kredit'", rep.Cycle.ID).Scan(&status)
+	if status != "done" {
+		t.Fatalf("agent run %q", status)
 	}
 }

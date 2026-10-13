@@ -9,11 +9,32 @@ import (
 	"time"
 
 	"distri-arc/db"
+	"distri-arc/internal/domain"
 	"distri-arc/internal/policy"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/testdb"
 )
+
+// Every default policy, written back the way the API saves it (the whole Go struct), satisfies its schema: a field
+// added to a struct but not to its schema made every save of that policy fail (llm.routing require_ai).
+func TestDefaultPoliciesRoundTripSchemas(t *testing.T) {
+	b, err := json.Marshal(domain.DefaultPolicies())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var all map[string]json.RawMessage
+	_ = json.Unmarshal(b, &all)
+	for _, k := range policy.Keys() {
+		v, ok := all[k]
+		if !ok || string(v) == "null" {
+			continue // a key the domain set does not carry (data.source…) or only the seed fills (autonomy.matrix)
+		}
+		if err := policy.Validate(k, v); err != nil {
+			t.Errorf("%s: %v", k, err)
+		}
+	}
+}
 
 // Every seeded policy satisfies its schema, and every key has a schema.
 func TestSeedPoliciesValidate(t *testing.T) {
