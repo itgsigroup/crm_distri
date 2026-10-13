@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Pusat kendali ringkas · 2026-10-13
+- Pusat kendali dirapikan dari tujuh kartu menjadi empat bagian: satu baris kepala (sapaan, analisis terakhir, Analisis ulang, Chat, Orchestrator), satu baris angka (Keputusan, Menunggu, Belum dibalas, Chat terbalas, Waktu balas, Nomor baru), ringkasan Claude (MCP) satu strip, dan **satu kartu bertab**: Keputusan · Menunggu balasan · Per sales.
+- Klik kotak angka membuka tab yang sesuai; tab tersimpan di URL (`?tab=`). Angka yang dulu muncul berulang (sapaan, strip status, kartu Orchestrator, roda KPI, kaki ringkasan) kini sekali saja.
+
 ## Change · Analisa hanya dari Claude lewat MCP · 2026-10-13
 - Orchestrator, Pusat kendali, Chat, Push stok, Kredit · kas kini hanya menampilkan analisa yang ditulis **Claude lewat MCP** (usulan, ringkasan WhatsApp, ringkasan per percakapan, catatan per bubble, Analisa Stok/Kas) plus angka yang diukur dari data (ADR 0032).
 - Dihapus: deteksi "permintaan" berbasis kata kunci (bar, matriks, filter, kartu Minta order / Tanya stok & harga / Rilis kredit & retur), feed "6 agen AI", Rencana hari ini dari chat, baris AI di grid sales, anotasi dan "Rekomendasi balasan (AI)" contoh, tag chat, "pesan penutup", "minta tempo", saran template di panel lead.
