@@ -36,6 +36,9 @@ func backfillSetup(t *testing.T) (context.Context, *wa.Ingestor, func() int, fun
 	t.Helper()
 	st, in := setup(t)
 	ctx := context.Background()
+	gap := wa.HistoryGap
+	wa.HistoryGap = 0
+	t.Cleanup(func() { wa.HistoryGap = gap })
 	if _, err := st.Pool.Exec(ctx, "update chat_threads set history_done_at = now()"); err != nil {
 		t.Fatal(err)
 	}
@@ -100,5 +103,21 @@ func TestBackfillStopsAtTheRetentionWindowAndWaitsForAnOfflineNumber(t *testing.
 	}
 	if r := backfill(p, base.Add(time.Hour), 7); r.Done != 1 || done() != 1 || len(p.calls) != 1 {
 		t.Fatalf("history older than the window was asked for: %+v", r)
+	}
+}
+
+func TestBackfillSpacesRequestsOfOneNumber(t *testing.T) {
+	ctx, in, _, backfill := backfillSetup(t)
+	wa.HistoryGap = 300 * time.Millisecond
+	other := "6289900002222"
+	if _, err := in.Process(ctx, wa.Message{ID: "C1", Account: andi, ChatJID: wa.UserJID(other), FromNumber: other, Text: "halo", Time: base.AddDate(0, 0, -3)}); err != nil {
+		t.Fatal(err)
+	}
+	start := time.Now()
+	if r := backfill(&fakePhone{}, base, 365); r.Requested != 2 {
+		t.Fatalf("%+v", r)
+	}
+	if time.Since(start) < 300*time.Millisecond {
+		t.Fatal("two requests of one number not spaced")
 	}
 }

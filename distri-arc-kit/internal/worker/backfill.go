@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/riverqueue/river"
 
@@ -22,6 +23,11 @@ type WABackfillWorker struct {
 	log   *slog.Logger
 	f     wa.HistoryFetcher
 	days  int
+}
+
+// Timeout: a round spaces requests per number (wa.HistoryGap) and takes about a minute — river's default.
+func (w *WABackfillWorker) Timeout(*river.Job[jobs.WABackfillArgs]) time.Duration {
+	return 5 * time.Minute
 }
 
 // Work sends one round of history requests.

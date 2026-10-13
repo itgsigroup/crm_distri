@@ -10,6 +10,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Chip **Belum dibaca** di daftar chat (seperti WhatsApp): semua jenis percakapan yang punya pesan belum dibaca, dengan jumlahnya; chat yang sedang dibuka tetap tampil sesudah dibaca.
 - Membuka percakapan langsung menampilkan **seluruh riwayat yang tersimpan (1 tahun)** — tombol "Muat pesan sebelumnya" dihapus; chat yang sangat ramai (> 3000 pesan) memuat sisanya otomatis saat digulir ke atas.
 - **Retensi chat 90 → 365 hari** (migrasi 0024; tetap bisa diubah di Pengaturan). Tanpa ini riwayat lama terhapus lagi tiap malam.
+- Backfill menjaga jeda 4,5 detik per nomor sendiri (40 permintaan per putaran, ±1200/jam untuk 3 nomor). Di produksi, putaran pertama hanya 3 dari 20 permintaan yang lolos: sisanya ditolak penjaga laju bridge (4 detik per nomor).
 - **Sinkron riwayat 1 tahun** (ADR 0028): bridge meneruskan riwayat 365 hari (`BRIDGE_HISTORY_DAYS`) dan meminta riwayat penuh saat pairing; job `wa.backfill` tiap 2 menit meminta HP 50 pesan lebih lama per percakapan (`fetchMessageHistory`) sampai 1 tahun atau sampai HP tidak punya lagi — nomor yang sudah tertaut tidak perlu scan ulang. `WA_BACKFILL_DAYS` default 365.
 
 ## Fix · tidak ada pesan otomatis; grup lengkap di setiap nomor · 2026-10-12

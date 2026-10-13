@@ -33,9 +33,14 @@ const (
 	historyWait = 3 * time.Minute
 	// historyMaxTries: requests in a row that brought nothing older before the chat counts as complete.
 	historyMaxTries = 3
-	// historyPerRun caps the requests of one run (the bridge also spaces them per number).
-	historyPerRun = 20
+	// historyPerRun caps the requests of one run: with HistoryGap per number a run of 3 numbers takes about a
+	// minute, ~1200 requests an hour — the bridge's own cap (400 per number per hour).
+	historyPerRun = 40
 )
+
+// HistoryGap spaces two requests of one number, just above the bridge's pace (4 s): a request sent sooner is refused
+// there and the chat waits a whole run. A variable for tests.
+var HistoryGap = 4500 * time.Millisecond
 
 // BackfillReport counts one wa.backfill run.
 type BackfillReport struct {
@@ -60,6 +65,7 @@ func Backfill(ctx context.Context, st *store.Store, f HistoryFetcher, now time.T
 		return r, err
 	}
 	cutoff := now.AddDate(0, 0, -days)
+	last := map[string]time.Time{} // previous request per number in this run (wall clock)
 	for _, c := range rows {
 		if !c.OldestAt.After(cutoff) {
 			if err := st.Q.SetHistoryDone(ctx, gen.SetHistoryDoneParams{At: now, ID: c.ID}); err != nil {
@@ -80,6 +86,14 @@ func Backfill(ctx context.Context, st *store.Store, f HistoryFetcher, now time.T
 			continue
 		}
 		anchor := HistoryAnchor{ID: deref(c.OldestWaID), FromMe: deref(c.OldestDirection) == "out", At: c.OldestAt}
+		if prev, ok := last[deref(c.Account)]; ok {
+			select {
+			case <-ctx.Done():
+				return r, ctx.Err()
+			case <-time.After(time.Until(prev.Add(HistoryGap))):
+			}
+		}
+		last[deref(c.Account)] = time.Now()
 		if err := f.FetchHistory(ctx, deref(c.Account), deref(c.WaJid), anchor, HistoryBatch); err != nil {
 			r.Skipped++
 			if !errors.Is(err, ErrHistoryUnavailable) {
