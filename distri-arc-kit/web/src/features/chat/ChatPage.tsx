@@ -431,7 +431,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           )}
           <button className="btn ibc-ai" disabled={orch.running} onClick={() => reanalyze(t.dealer_id ? `dealer:${t.dealer_id}` : `thread:${t.id}`, 'mcp')} title="Claude (MCP) menganalisa percakapan ini — catatan per pesan muncul di bawah tiap bubble"><span className="ai" style={{ fontSize: 0 }} />{orch.running ? 'Menganalisis…' : 'Analisa lanjut'}</button>
           {t.kind !== 'group' && <button className="btn ibc-acc" onClick={onAccurate}><Icon name="send" />Accurate</button>}
-          {!lead && <button className="ibl-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
+          {!lead && <button className="ibl-btn ibc-lead-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
         </div>
       </div>
       <div className="th-body ibc-body" ref={body} onScroll={onScroll}>
@@ -492,7 +492,10 @@ function Kv({ rows }: { rows: [string, ReactNode][] }) {
 }
 
 /** The lead panel (Komo-style): who this is, where they came from, what AI suggests, and Accurate. */
-function LeadPane({ id, onClose, onAccurate }: { id: string; onClose: () => void; onAccurate: () => void }) {
+/** The tabs the slim (ringkas) lead panel offers as icons; a click opens the panel on that tab. */
+const MINI_TABS: [LeadTab, string, string][] = [['ai', 'spark', 'Analisa AI'], ['src', 'net', 'Sumber'], ['accurate', 'doc', 'Data Accurate'], ['stats', 'chart', 'Statistik']]
+
+function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean; setMini: (v: boolean) => void; onAccurate: () => void }) {
   const { data: ctx } = useChatContext(id)
   const { data: th } = useThread(id)
   const { data: wa } = useWAStatus()
@@ -501,7 +504,7 @@ function LeadPane({ id, onClose, onAccurate }: { id: string; onClose: () => void
   const nav = useNavigate()
   const { openSheet, toast } = useFeedback()
   const [tab, setTab] = useState<LeadTab>('main')
-  if (!ctx || !th) return <div className="pane ibp" />
+  if (!ctx || !th) return <div className={`pane ibp${mini ? ' mini' : ''}`} />
   const t = th.thread
   const tv = list.find((x) => x.id === id)
   const d = ctx.dealer
@@ -537,6 +540,26 @@ function LeadPane({ id, onClose, onAccurate }: { id: string; onClose: () => void
     </ul>
   )
   const ins = th.messages.filter((m) => m.direction === 'in').length
+  const name = d?.name ?? idf?.best_name ?? t.title
+  if (mini) {
+    const open = (k: LeadTab) => {
+      setTab(k)
+      setMini(false)
+    }
+    return (
+      <div className="pane ibp mini" aria-label={`Panel ${kindLabel} (ringkas)`}>
+        <button type="button" className="ibp-mini-open" onClick={() => setMini(false)} title="Perbesar panel" aria-label="Perbesar panel"><Icon name="chev" /></button>
+        <button type="button" className={`ibp-mini-av ${tone}`} onClick={() => open('main')} title={`${name} · ${stage}`} aria-label={`${kindLabel} ${name}`}>
+          {group ? <Icon name="people" /> : initials(t)}
+        </button>
+        <em className={`ibp-mini-st ${tone}`} title={stage}>{stage}</em>
+        {warn && <button type="button" className="ibp-mini-ic warn" onClick={() => open('main')} title={warn.h} aria-label={warn.h}><Icon name="alert" /></button>}
+        <span className="ibp-mini-sep" />
+        {MINI_TABS.map(([k, icon, label]) => <button key={k} type="button" className="ibp-mini-ic" onClick={() => open(k)} title={label} aria-label={label}><Icon name={icon} /></button>)}
+        {!group && <button type="button" className="ibp-mini-ic acc" onClick={onAccurate} title="Kirim ke Accurate" aria-label="Kirim ke Accurate"><Icon name="send" /></button>}
+      </div>
+    )
+  }
   return (
     <div className="pane ibp">
       <div className="ibp-dark">
@@ -546,7 +569,7 @@ function LeadPane({ id, onClose, onAccurate }: { id: string; onClose: () => void
           <span className="sp" />
           {d && <button type="button" onClick={() => nav('/dealer/' + d.id)} title="Buka halaman dealer" aria-label="Buka halaman dealer"><Icon name="arrow" /></button>}
           <button type="button" onClick={refresh} title="Muat ulang" aria-label="Muat ulang panel"><Icon name="refresh" /></button>
-          <button type="button" onClick={onClose} title="Tutup panel" aria-label="Tutup panel"><Icon name="x" /></button>
+          <button type="button" className="ibp-shrink" onClick={() => setMini(true)} title="Ringkas panel" aria-label="Ringkas panel"><Icon name="chev" /></button>
         </div>
         <div className="ibp-id">
           <div><b>{d?.name ?? idf?.best_name ?? t.title}</b><span>{t.phone ? fmtPhone(t.phone) : group ? `${from(t)} · ${t.account_masked}` : t.subtitle}</span></div>
@@ -764,10 +787,10 @@ export function ChatPage() {
   }
   const accurate = () => active && openSheet(<AccurateSheet id={active} />)
   return (
-    <div className={`chat multi komo ${threadId ? 'show-thread' : ''} ${lead && active ? 'with-lead' : ''}`}>
+    <div className={`chat multi komo ${threadId ? 'show-thread' : ''} ${active ? 'with-lead' : ''} ${active && !lead ? 'lead-mini' : ''}`}>
       {rail}
       <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)} />
-      {active && lead && <LeadPane key={'l' + active} id={active} onClose={() => setLead(false)} onAccurate={accurate} />}
+      {active && <LeadPane key={'l' + active} id={active} mini={!lead} setMini={(v) => setLead(!v)} onAccurate={accurate} />}
       {active ? <ThreadPane key={active} id={active} picked={!!threadId} onBack={() => nav('/chat')} lead={lead} setLead={setLead} onAccurate={accurate} /> : <div className="pane th-pane" />}
     </div>
   )

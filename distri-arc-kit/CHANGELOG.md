@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: panel lead bisa diringkas · 2026-10-13
+- Tombol × di panel lead diganti **Ringkas**: panel menjadi strip sempit yang tetap terlihat — avatar dengan warna tahap, tahap (teks tegak), peringatan, ikon tab (Analisa AI, Sumber, Data Accurate, Statistik) dan Kirim ke Accurate. Klik panah atau ikon mana pun untuk memperbesar lagi (langsung ke tab itu). Pilihan diingat di browser. Di HP panel tetap berupa lembar bawah.
+
 ## Feat · Chat: Balas (reply) per bubble seperti WhatsApp · 2026-10-13
 - Tombol **Balas** di tiap bubble (saat kursor di atas pesan): kolom ketik menampilkan "Membalas …", dan balasan terkirim sebagai reply WhatsApp sungguhan — di HP pelanggan pesan aslinya tampil terkutip. Tetap keputusan manusia lewat outbox dan pemeriksaan persetujuan bridge.
 - Balasan dari pelanggan atau dari HP ikut tercatat (bridge membaca kutipan dari semua jenis pesan: teks, foto, VN, dokumen), dan bubble menampilkan kotak kutipan; klik kutipan untuk loncat ke pesan aslinya.
