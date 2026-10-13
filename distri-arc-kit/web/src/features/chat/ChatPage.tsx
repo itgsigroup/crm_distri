@@ -11,7 +11,7 @@ import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../.
 import { useOrch } from '../../app/orch'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf } from './Connect'
 import { countFilters, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
-import { bubbleLine, editableNow, fmtDuration, fmtSize, mediaCaption, mediaName } from './bubble'
+import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, mediaCaption, mediaName } from './bubble'
 
 
 // Proposal buttons on annotations get their real labels from AI proposals (stage 05); until then the label
@@ -158,6 +158,39 @@ function ReplyIcon() {
   return <svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z" fill="currentColor" /></svg>
 }
 
+/** WhatsApp-style menu of one bubble (⌄ in its corner): Balas, Salin, Edit, Hapus untuk semua orang. */
+function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete }: {
+  m: MessageView; edit: boolean; del: boolean; onReply: () => void; onEdit: () => void; onDelete: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLSpanElement>(null)
+  const { toast } = useFeedback()
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc) }
+  }, [open])
+  const pick = (f: () => void) => () => { setOpen(false); f() }
+  const text = mediaCaption(m.body, m.media)
+  const copy = () => navigator.clipboard?.writeText(text).then(() => toast('Pesan disalin'), () => toast('Gagal menyalin'))
+  return (
+    <span className={`bub-menu${open ? ' open' : ''}`} ref={ref}>
+      <button type="button" className="bub-menu-btn" onClick={() => setOpen(!open)} aria-label="Menu pesan" aria-haspopup="menu" aria-expanded={open}><Icon name="chev" /></button>
+      {open && (
+        <span className="bub-menu-list" role="menu">
+          {m.can_reply && <button type="button" role="menuitem" onClick={pick(onReply)}><ReplyIcon />Balas</button>}
+          {text && <button type="button" role="menuitem" onClick={pick(copy)}><Icon name="doc" />Salin</button>}
+          {edit && <button type="button" role="menuitem" onClick={pick(onEdit)}><Icon name="edit" />Edit</button>}
+          {del && <button type="button" role="menuitem" className="bad" onClick={pick(onDelete)}><Icon name="x" />Hapus untuk semua orang</button>}
+        </span>
+      )}
+    </span>
+  )
+}
+
 /** The quoted bubble above a reply; a click jumps to it. */
 function QuoteBlock({ q, mine, onJump }: { q: NonNullable<MessageView['quote']>; mine: string; onJump: (id: string) => void }) {
   const who = q.direction === 'out' ? mine || 'Anda' : q.from_name || 'Pelanggan'
@@ -217,13 +250,22 @@ function BubbleMedia({ md, url, onZoom }: { md: MediaView; url: string; onZoom: 
   )
 }
 
-function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onJump, onZoom }: {
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom }: {
   m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date
-  onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
+  onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
 }) {
   const a = m.annotation
   const caption = mediaCaption(m.body, m.media)
   const edit = editableNow(m, now)
+  const del = deletableNow(m, now)
+  if (m.deleted) {
+    return (
+      <div className={`m ${m.direction}`} data-mid={m.id}>
+        {group && m.direction === 'in' && <span className="who">{m.from_name}</span>}
+        <div className="bb bub-deleted"><Icon name="lock" />{m.direction === 'out' ? 'Anda menghapus pesan ini' : 'Pesan ini dihapus'}<span className="tm">{hhmm(m.sent_at)}</span></div>
+      </div>
+    )
+  }
   return (
     <div className={`m ${m.direction}${m.media ? ' has-media' : ''}`} data-mid={m.id}>
       {group && m.direction === 'in' && <span className="who">{m.from_name}<span className={`pill ${m.internal ? 'neutral' : 'accent'}`}>{m.internal ? 'internal' : 'eksternal'}</span></span>}
@@ -232,12 +274,8 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onJump,
         {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} onZoom={onZoom} />}
         {caption}
         <span className="tm">{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
-        {(m.can_reply || edit) && (
-          <span className="bub-acts">
-            {m.can_reply && <button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button>}
-            {edit && <button type="button" onClick={() => onEdit(m)} title="Edit pesan (WhatsApp: sampai 15 menit setelah terkirim)" aria-label="Edit pesan"><Icon name="edit" /></button>}
-          </span>
-        )}
+        {(m.can_reply || edit || del || caption) && <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} />}
+        {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
       </div>
       {a && (
         <span className={`ann ${a.k}`}>
@@ -339,6 +377,18 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     },
     onError: (e: Error) => toast(e.message),
   })
+  const remove = useMutation({
+    mutationFn: (mid: string) => api.del<{ status: string }>(`/chat/threads/${id}/messages/${mid}`),
+    onSuccess: (r, mid) => {
+      setOlder((o) => o.map((m) => (m.id === mid && r.status === 'deleted' ? { ...m, deleted: true, body: '' } : m)))
+      qc.invalidateQueries({ queryKey: ['chat'] })
+      toast(r.status === 'deleted' ? 'Pesan dihapus' : 'Dihapus untuk semua orang lewat WhatsApp — pesan di HP pelanggan ikut terhapus')
+    },
+    onError: (e: Error) => toast(e.message),
+  })
+  const deleteMsg = (m: MessageView) => {
+    if (window.confirm(m.status === 'pending' ? 'Batalkan pesan ini sebelum terkirim?' : 'Hapus pesan ini untuk semua orang? Pesan di HP pelanggan ikut terhapus.')) remove.mutate(m.id)
+  }
   const startReply = (m: MessageView) => {
     setEditing(null)
     setReplying(m)
@@ -445,7 +495,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           return (
             <div key={m.id} style={{ display: 'contents' }}>
               {sep}
-              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onJump={jumpTo} onZoom={setZoom} />
+              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} />
             </div>
           )
         })}

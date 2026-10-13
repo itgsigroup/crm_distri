@@ -62,6 +62,9 @@ func MaskNumber(n string) string {
 
 // Process stores one message (or drops it by the privacy rules).
 func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
+	if m.RevokeOf != "" {
+		return in.revoke(ctx, m)
+	}
 	if strings.TrimSpace(m.Text) == "" {
 		return Result{Reason: DropEmpty}, nil
 	}
@@ -226,6 +229,24 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 // Idempotent: the same edit twice leaves the same text.
 func (in *Ingestor) edit(ctx context.Context, m Message) (Result, error) {
 	row, err := in.st.Q.EditChatMessageByWAID(ctx, gen.EditChatMessageByWAIDParams{Body: strings.TrimSpace(m.Text), EditedAt: m.Time, WaMsgID: m.EditOf})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Result{Reason: DropEditUnknown}, nil
+	}
+	if err != nil {
+		return Result{}, err
+	}
+	res := Result{Stored: true}
+	if row.ThreadID != nil {
+		res.ThreadID = *row.ThreadID
+		err = events.Notify(ctx, in.st.Pool, "chat_message", map[string]string{"thread_id": row.ThreadID.String()})
+	}
+	return res, err
+}
+
+// revoke applies a WhatsApp delete-for-everyone to the stored message ("Pesan ini dihapus"); the text stays for the
+// audit trail. Idempotent.
+func (in *Ingestor) revoke(ctx context.Context, m Message) (Result, error) {
+	row, err := in.st.Q.DeleteChatMessageByWAID(ctx, gen.DeleteChatMessageByWAIDParams{DeletedAt: m.Time, WaMsgID: m.RevokeOf})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Result{Reason: DropEditUnknown}, nil
 	}

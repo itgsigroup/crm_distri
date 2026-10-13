@@ -409,6 +409,22 @@ update chat_messages set body = sqlc.arg(body)::text, edited_at = sqlc.narg(edit
 
 -- name: MessagesByWAIDs :many
 -- The bubbles quoted by replies (WhatsApp "Balas") that are not on the page being shown.
-select m.id, k.wa_msg_id, m.thread_id, m.direction, m.from_name, m.body, m.media
+select m.id, k.wa_msg_id, m.thread_id, m.direction, m.from_name, m.body, m.media, m.deleted_at
 from chat_message_keys k join chat_messages m on m.id = k.message_id and m.sent_at = k.sent_at
 where k.wa_msg_id = any(sqlc.arg(ids)::text[]);
+
+-- name: DeleteChatMessageByWAID :one
+-- A WhatsApp delete-for-everyone of a stored message (customer, phone or Chat).
+update chat_messages m set deleted_at = sqlc.arg(deleted_at)::timestamptz
+from chat_message_keys k
+where k.wa_msg_id = sqlc.arg(wa_msg_id)::text and m.id = k.message_id and m.sent_at = k.sent_at and m.deleted_at is null
+returning m.id, m.thread_id;
+
+-- name: SetChatMessageDeleted :exec
+update chat_messages set deleted_at = sqlc.arg(deleted_at)::timestamptz where id = sqlc.arg(id)::uuid;
+
+-- name: CancelQueuedReply :one
+-- A reply deleted while still waiting in the outbox: it never goes out.
+update outbox set status = 'cancelled', error = 'Dihapus sebelum terkirim'
+where channel = 'wa' and status = 'pending' and payload->>'message_id' = sqlc.arg(message_id)::text
+returning id, proposal_id;

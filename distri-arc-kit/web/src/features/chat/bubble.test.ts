@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bubbleLine, editableNow, fmtDuration, fmtSize, mediaCaption, mediaName } from './bubble'
+import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, mediaCaption, mediaName } from './bubble'
 
 describe('bubbleLine', () => {
   it('a customer order waiting too long', () => {
@@ -39,5 +39,15 @@ describe('bubble media and edits', () => {
     expect(editableNow({ can_edit: true, status: 'sent', sent_at: '2026-10-13T04:44:00Z' }, now)).toBe(false)
     expect(editableNow({ can_edit: true, status: 'pending', sent_at: '2026-10-13T04:00:00Z' }, now)).toBe(true)
     expect(editableNow({ can_edit: false, status: 'sent', sent_at: '2026-10-13T04:59:00Z' }, now)).toBe(false)
+  })
+})
+
+describe('bubble delete', () => {
+  it('offers delete for everyone for 48 hours, and while queued', () => {
+    const now = new Date('2026-10-13T05:00:00Z')
+    expect(deletableNow({ can_delete: true, status: 'sent', sent_at: '2026-10-12T05:00:00Z' }, now)).toBe(true)
+    expect(deletableNow({ can_delete: true, status: 'sent', sent_at: '2026-10-11T04:00:00Z' }, now)).toBe(false)
+    expect(deletableNow({ can_delete: true, status: 'pending', sent_at: '2026-10-01T00:00:00Z' }, now)).toBe(true)
+    expect(deletableNow({ can_delete: false, status: 'sent', sent_at: '2026-10-13T04:59:00Z' }, now)).toBe(false)
   })
 })

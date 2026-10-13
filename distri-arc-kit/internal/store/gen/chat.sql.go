@@ -59,6 +59,25 @@ func (q *Queries) AssignThreadsSales(ctx context.Context, arg AssignThreadsSales
 	return err
 }
 
+const cancelQueuedReply = `-- name: CancelQueuedReply :one
+update outbox set status = 'cancelled', error = 'Dihapus sebelum terkirim'
+where channel = 'wa' and status = 'pending' and payload->>'message_id' = $1::text
+returning id, proposal_id
+`
+
+type CancelQueuedReplyRow struct {
+	ID         uuid.UUID  `json:"id"`
+	ProposalID *uuid.UUID `json:"proposal_id"`
+}
+
+// A reply deleted while still waiting in the outbox: it never goes out.
+func (q *Queries) CancelQueuedReply(ctx context.Context, messageID string) (CancelQueuedReplyRow, error) {
+	row := q.db.QueryRow(ctx, cancelQueuedReply, messageID)
+	var i CancelQueuedReplyRow
+	err := row.Scan(&i.ID, &i.ProposalID)
+	return i, err
+}
+
 const clearUserWANumber = `-- name: ClearUserWANumber :exec
 update users set wa_number = null where wa_number = $1
 `
@@ -129,6 +148,31 @@ func (q *Queries) DealerOpenInvoiceList(ctx context.Context, dealerID *uuid.UUID
 		return nil, err
 	}
 	return items, nil
+}
+
+const deleteChatMessageByWAID = `-- name: DeleteChatMessageByWAID :one
+update chat_messages m set deleted_at = $1::timestamptz
+from chat_message_keys k
+where k.wa_msg_id = $2::text and m.id = k.message_id and m.sent_at = k.sent_at and m.deleted_at is null
+returning m.id, m.thread_id
+`
+
+type DeleteChatMessageByWAIDParams struct {
+	DeletedAt time.Time `json:"deleted_at"`
+	WaMsgID   string    `json:"wa_msg_id"`
+}
+
+type DeleteChatMessageByWAIDRow struct {
+	ID       uuid.UUID  `json:"id"`
+	ThreadID *uuid.UUID `json:"thread_id"`
+}
+
+// A WhatsApp delete-for-everyone of a stored message (customer, phone or Chat).
+func (q *Queries) DeleteChatMessageByWAID(ctx context.Context, arg DeleteChatMessageByWAIDParams) (DeleteChatMessageByWAIDRow, error) {
+	row := q.db.QueryRow(ctx, deleteChatMessageByWAID, arg.DeletedAt, arg.WaMsgID)
+	var i DeleteChatMessageByWAIDRow
+	err := row.Scan(&i.ID, &i.ThreadID)
+	return i, err
 }
 
 const deleteInternalNumber = `-- name: DeleteInternalNumber :exec
@@ -423,7 +467,7 @@ func (q *Queries) GetThreadByAccountJID(ctx context.Context, arg GetThreadByAcco
 }
 
 const getThreadMessage = `-- name: GetThreadMessage :one
-select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, x.account as holder_account from chat_messages m
+select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, x.account as holder_account from chat_messages m
 join chat_threads x on x.id = m.thread_id
 join chat_threads t on t.id = $1::uuid
 where m.id = $2::uuid and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
@@ -451,6 +495,7 @@ type GetThreadMessageRow struct {
 	Internal      bool            `json:"internal"`
 	EditedAt      *time.Time      `json:"edited_at"`
 	QuotedWaID    *string         `json:"quoted_wa_id"`
+	DeletedAt     *time.Time      `json:"deleted_at"`
 	HolderAccount *string         `json:"holder_account"`
 }
 
@@ -476,6 +521,7 @@ func (q *Queries) GetThreadMessage(ctx context.Context, arg GetThreadMessagePara
 		&i.Internal,
 		&i.EditedAt,
 		&i.QuotedWaID,
+		&i.DeletedAt,
 		&i.HolderAccount,
 	)
 	return i, err
@@ -1217,8 +1263,8 @@ func (q *Queries) ListInternalNumbers(ctx context.Context) ([]InternalNumber, er
 }
 
 const listThreadMessages = `-- name: ListThreadMessages :many
-select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at, quoted_wa_id from (
-  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id from chat_messages m
+select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at, quoted_wa_id, deleted_at from (
+  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at from chat_messages m
   where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
                         where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
     and m.sent_at < $2 order by m.sent_at desc limit $3
@@ -1259,6 +1305,7 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 			&i.Internal,
 			&i.EditedAt,
 			&i.QuotedWaID,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1543,7 +1590,7 @@ func (q *Queries) MarkThreadRead(ctx context.Context, id uuid.UUID) error {
 }
 
 const messagesByWAIDs = `-- name: MessagesByWAIDs :many
-select m.id, k.wa_msg_id, m.thread_id, m.direction, m.from_name, m.body, m.media
+select m.id, k.wa_msg_id, m.thread_id, m.direction, m.from_name, m.body, m.media, m.deleted_at
 from chat_message_keys k join chat_messages m on m.id = k.message_id and m.sent_at = k.sent_at
 where k.wa_msg_id = any($1::text[])
 `
@@ -1556,6 +1603,7 @@ type MessagesByWAIDsRow struct {
 	FromName  *string         `json:"from_name"`
 	Body      *string         `json:"body"`
 	Media     json.RawMessage `json:"media"`
+	DeletedAt *time.Time      `json:"deleted_at"`
 }
 
 // The bubbles quoted by replies (WhatsApp "Balas") that are not on the page being shown.
@@ -1576,6 +1624,7 @@ func (q *Queries) MessagesByWAIDs(ctx context.Context, ids []string) ([]Messages
 			&i.FromName,
 			&i.Body,
 			&i.Media,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1713,6 +1762,20 @@ type SetChatMessageBodyParams struct {
 
 func (q *Queries) SetChatMessageBody(ctx context.Context, arg SetChatMessageBodyParams) error {
 	_, err := q.db.Exec(ctx, setChatMessageBody, arg.Body, arg.EditedAt, arg.ID)
+	return err
+}
+
+const setChatMessageDeleted = `-- name: SetChatMessageDeleted :exec
+update chat_messages set deleted_at = $1::timestamptz where id = $2::uuid
+`
+
+type SetChatMessageDeletedParams struct {
+	DeletedAt time.Time `json:"deleted_at"`
+	ID        uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetChatMessageDeleted(ctx context.Context, arg SetChatMessageDeletedParams) error {
+	_, err := q.db.Exec(ctx, setChatMessageDeleted, arg.DeletedAt, arg.ID)
 	return err
 }
 

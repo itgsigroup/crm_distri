@@ -101,6 +101,17 @@ func (f *Fake) Edit(_ context.Context, account, chatJID, waMsgID, text string) e
 	return nil
 }
 
+// Delete records a delete-for-everyone as a sent message with RevokeOf set.
+func (f *Fake) Delete(_ context.Context, account, chatJID, waMsgID string) error {
+	if waMsgID == "" {
+		return fmt.Errorf("empty delete")
+	}
+	f.mu.Lock()
+	f.sent = append(f.sent, Message{ID: fmt.Sprintf("FAKE%06d", f.seq.Add(1)), Account: Digits(account), ChatJID: chatJID, FromNumber: Digits(account), FromMe: true, RevokeOf: waMsgID})
+	f.mu.Unlock()
+	return nil
+}
+
 // SetProfile registers a WhatsApp Business profile the fake returns for a number (tests, seed demo).
 func (f *Fake) SetProfile(number string, p Profile) {
 	f.mu.Lock()

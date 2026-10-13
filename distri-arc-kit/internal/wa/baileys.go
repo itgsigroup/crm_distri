@@ -93,6 +93,7 @@ type bridgeEvent struct {
 	Account    string `json:"account"` // the linked phone's own number
 	EditOf     string `json:"edit_of"`
 	Quoted     string `json:"quoted"`
+	RevokeOf   string `json:"revoke_of"`
 	GroupMeta  *struct {
 		Name string `json:"name"`
 	} `json:"group_meta"`
@@ -137,7 +138,7 @@ func (e bridgeEvent) message() Message {
 	}
 	m := Message{ID: e.WAMID, Account: acc, ChatJID: e.ChatID, FromNumber: Digits(e.From), FromName: e.SenderName,
 		IsGroup: e.IsGroup, FromMe: e.FromMe, Text: text, Time: t, ChatName: strings.TrimSpace(e.ChatName), History: e.IsHistory,
-		Media: e.MediaMeta, EditOf: e.EditOf, QuotedID: e.Quoted}
+		Media: e.MediaMeta, EditOf: e.EditOf, QuotedID: e.Quoted, RevokeOf: e.RevokeOf}
 	if e.GroupMeta != nil {
 		m.GroupName = e.GroupMeta.Name
 	}
@@ -421,6 +422,25 @@ func (b *Baileys) Edit(ctx context.Context, account, chatJID, waMsgID, text stri
 	}
 	_, _, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/edit",
 		map[string]string{"chat_id": chatJID, "wamid": waMsgID, "text": text, "action_id": action}, nil)
+	var be *bridgeError
+	if errors.As(err, &be) && (be.Status == http.StatusForbidden || be.Status == http.StatusConflict) {
+		r := &SendRefused{Code: be.Code, Reason: be.Msg}
+		if be.Code == "not_linked" {
+			r.RetryAfter = time.Minute
+		}
+		return r
+	}
+	return err
+}
+
+// Delete asks the bridge to delete a message this number sent, for everyone (approved action in ctx, like Edit).
+func (b *Baileys) Delete(ctx context.Context, account, chatJID, waMsgID string) error {
+	action := ActionFrom(ctx)
+	if action == "" {
+		return &SendRefused{Code: "not_approved", Reason: "hapus tanpa outbox yang disetujui ditolak"}
+	}
+	_, _, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/delete",
+		map[string]string{"chat_id": chatJID, "wamid": waMsgID, "action_id": action}, nil)
 	var be *bridgeError
 	if errors.As(err, &be) && (be.Status == http.StatusForbidden || be.Status == http.StatusConflict) {
 		r := &SendRefused{Code: be.Code, Reason: be.Msg}

@@ -29,6 +29,7 @@ sql:
       - db/migrations/0025_chat_media_edit.sql
       - db/migrations/0026_screen_analyses.sql
       - db/migrations/0027_chat_reply.sql
+      - db/migrations/0028_chat_delete.sql
     queries: db/queries
     gen:
       go:

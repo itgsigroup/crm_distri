@@ -59,6 +59,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
  *   GET    /sessions/{id}/contacts/{jid}  profile (name, about, has_photo, business)
  *   POST   /sessions/{id}/send            {chat_id, text, action_id, quote?: {id, from_me, participant?, text}} → {wamid}
  *   POST   /sessions/{id}/edit            {chat_id, wamid, text, action_id} → {wamid}: edit a sent text (approved action)
+ *   POST   /sessions/{id}/delete          {chat_id, wamid, action_id} → {wamid}: delete a sent message for everyone (approved action)
  *   POST   /sessions/{id}/media           {ref, mime} → the file (streamed, never stored); 409 not connected,
  *                                         429 too many at once, 410 gone from WhatsApp and the phone
  *   POST   /sessions/{id}/history         {chat_id, id, from_me, ts (ms), count ≤ 50} → 202; the phone's answer
@@ -127,6 +128,15 @@ export function handler(d: Deps) {
         const inp = JSON.parse(body || '{}') as { chat_id?: string; wamid?: string; text?: string; action_id?: string }
         try {
           return json(res, 200, await d.sender.edit(s, inp.chat_id ?? '', inp.wamid ?? '', inp.text ?? '', inp.action_id ?? ''))
+        } catch (e) {
+          if (e instanceof SendError) return json(res, e.status, { error: e.message, code: e.code })
+          throw e
+        }
+      }
+      if (method === 'POST' && parts[2] === 'delete') {
+        const inp = JSON.parse(body || '{}') as { chat_id?: string; wamid?: string; action_id?: string }
+        try {
+          return json(res, 200, await d.sender.revoke(s, inp.chat_id ?? '', inp.wamid ?? '', inp.action_id ?? ''))
         } catch (e) {
           if (e instanceof SendError) return json(res, e.status, { error: e.message, code: e.code })
           throw e

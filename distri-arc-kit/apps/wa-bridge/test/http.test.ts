@@ -40,7 +40,7 @@ describe('bridge HTTP', () => {
     const asked: unknown[] = []
     let paced = false
     const session: BridgeSession = {
-      id: 's1', connected: () => true, sendText: async (_c, text) => { sent.push(text); return 'W1' }, editText: async (_c, id, text) => { sent.push(`edit ${id}: ${text}`) },
+      id: 's1', connected: () => true, sendText: async (_c, text) => { sent.push(text); return 'W1' }, editText: async (_c, id, text) => { sent.push(`edit ${id}: ${text}`) }, deleteText: async (_c, id) => { sent.push(`delete ${id}`) },
       downloadMedia: async ref => {
         if (ref === 'gone') throw Object.assign(new Error('gone'), { status: 410 })
         if (ref === 'busy') throw new MediaBusy('terlalu banyak media dibuka bersamaan', 429)

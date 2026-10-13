@@ -271,3 +271,57 @@ func TestChatReplyQuotesABubble(t *testing.T) {
 		t.Fatalf("reply bubble %v", reply)
 	}
 }
+
+// Hapus untuk semua orang: a queued reply is cancelled before it goes out; a sent message (≤ 48 hours) is a human
+// decision that leaves through the outbox; the bubble shows as deleted without its text; older ones are refused.
+func TestChatDeleteForEveryone(t *testing.T) {
+	srv, st := mediaServer(t, nil)
+	ctx := context.Background()
+	th := sinarThread(t, st)
+	base := srv.URL + "/api/chat/threads/" + th.String() + "/messages"
+	sent := addMessage(t, st, th, "WDEL1", "out", "sent", "Harga salah, abaikan", chatNow.Add(-2*time.Hour), nil)
+	old := addMessage(t, st, th, "WDEL0", "out", "sent", "Lama", chatNow.Add(-72*time.Hour), nil)
+	theirs := addMessage(t, st, th, "WDELIN", "in", "received", "Order 3", chatNow.Add(-time.Hour), nil)
+
+	if code, _ := sendJSON(t, http.MethodDelete, base+"/"+old.String(), "andi@gsi.co.id", nil); code != http.StatusConflict {
+		t.Fatalf("after 48 hours: %d", code)
+	}
+	if code, _ := sendJSON(t, http.MethodDelete, base+"/"+theirs.String(), "andi@gsi.co.id", nil); code != http.StatusConflict {
+		t.Fatalf("customer's message: %d", code)
+	}
+	code, out := sendJSON(t, http.MethodDelete, base+"/"+sent.String(), "andi@gsi.co.id", nil)
+	if code != http.StatusAccepted || count(t, st, "select count(*) from audit_log where action = 'chat.delete'") != 1 {
+		t.Fatalf("delete: %d %v", code, out)
+	}
+	fake := wa.NewFake()
+	if _, err := outbox.NewSender(st, fake, clock.Fixed(chatNow), outbox.Rules{}).Send(ctx, uuid.MustParse(out["outbox_id"].(string))); err != nil {
+		t.Fatal(err)
+	}
+	if s := fake.Sent(); len(s) != 1 || s[0].RevokeOf != "WDEL1" {
+		t.Fatalf("transport got %+v", s)
+	}
+
+	// a reply still queued: cancelled, never sent
+	_, q := sendJSON(t, http.MethodPost, base, "andi@gsi.co.id", map[string]string{"body": "Salah kirim"})
+	if code, _ := sendJSON(t, http.MethodDelete, base+"/"+q["message_id"].(string), "andi@gsi.co.id", nil); code != http.StatusOK {
+		t.Fatalf("queued delete: %d", code)
+	}
+	if _, err := outbox.NewSender(st, fake, clock.Fixed(chatNow), outbox.Rules{}).Send(ctx, uuid.MustParse(q["outbox_id"].(string))); err != nil || len(fake.Sent()) != 1 {
+		t.Fatalf("cancelled reply went out: %v %d", err, len(fake.Sent()))
+	}
+
+	_, detail := get(t, srv, "/api/chat/threads/"+th.String(), "andi@gsi.co.id")
+	deleted := 0
+	for _, m := range detail["messages"].([]any) {
+		mm := m.(map[string]any)
+		if mm["deleted"] == true {
+			deleted++
+			if mm["body"] != "" || mm["can_reply"] == true {
+				t.Errorf("deleted bubble shows %v", mm)
+			}
+		}
+	}
+	if deleted != 2 {
+		t.Fatalf("%d deleted bubbles", deleted)
+	}
+}

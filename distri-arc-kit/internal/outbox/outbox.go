@@ -97,8 +97,8 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	if err != nil {
 		return 0, err
 	}
-	if ob.Status == "sent" || ob.Status == "shadow" {
-		return 0, nil // idempotent; shadow rows are never delivered
+	if ob.Status == "sent" || ob.Status == "shadow" || ob.Status == "cancelled" {
+		return 0, nil // idempotent; shadow rows and replies deleted before sending are never delivered
 	}
 	if pol, err := policy.Load(ctx, s.st.Q); err == nil && pol.Pilot.Shadow() && ob.Channel != "wa_system" {
 		// a row queued before the pilot switched to shadow mode: keep it, do not deliver
@@ -115,7 +115,7 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	if err := json.Unmarshal(ob.Payload, &p); err != nil {
 		return 0, err
 	}
-	if p.Kind == "edit" {
+	if p.Kind == "edit" || p.Kind == "delete" {
 		return s.sendEdit(ctx, ob, p)
 	}
 	now := s.clock.Now()
@@ -252,23 +252,35 @@ func (s *Sender) sendSystem(ctx context.Context, ob gen.Outbox) (time.Duration, 
 	return 0, ErrNoAutoMessage
 }
 
-// sendEdit carries out a human's edit of a text the number sent: no pacing (nothing new lands in the chat), but the
-// same approval check by the bridge, and never after WhatsApp's 15 minutes.
+// sendEdit carries out a human's edit (or delete for everyone) of a message the number sent: no pacing (nothing new
+// lands in the chat), but the same approval check by the bridge, and never after WhatsApp's window.
 func (s *Sender) sendEdit(ctx context.Context, ob gen.Outbox, p WAPayload) (time.Duration, error) {
 	fail := func(e string) (time.Duration, error) {
 		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
 		s.notifyFailed(ctx, ob, errors.New(e))
 		return 0, fmt.Errorf("%w: %s", ErrRefused, e)
 	}
-	ed, ok := s.t.(wa.Editor)
-	if !ok {
-		return fail("Transport WhatsApp ini tidak bisa mengedit pesan")
-	}
 	now := s.clock.Now()
-	if p.EditSentAt == nil || now.Sub(*p.EditSentAt) > wa.EditWindow {
-		return fail("Lewat 15 menit sejak dikirim — WhatsApp tidak menerima edit lagi")
+	var err error
+	if p.Kind == "delete" {
+		del, ok := s.t.(wa.Deleter)
+		if !ok {
+			return fail("Transport WhatsApp ini tidak bisa menghapus pesan")
+		}
+		if p.EditSentAt == nil || now.Sub(*p.EditSentAt) > wa.DeleteWindow {
+			return fail("Lewat 48 jam sejak dikirim — hapus untuk semua orang tidak tersedia lagi")
+		}
+		err = del.Delete(wa.WithAction(ctx, ob.ID.String()), p.From, p.To, p.EditOf)
+	} else {
+		ed, ok := s.t.(wa.Editor)
+		if !ok {
+			return fail("Transport WhatsApp ini tidak bisa mengedit pesan")
+		}
+		if p.EditSentAt == nil || now.Sub(*p.EditSentAt) > wa.EditWindow {
+			return fail("Lewat 15 menit sejak dikirim — WhatsApp tidak menerima edit lagi")
+		}
+		err = ed.Edit(wa.WithAction(ctx, ob.ID.String()), p.From, p.To, p.EditOf, p.Text)
 	}
-	err := ed.Edit(wa.WithAction(ctx, ob.ID.String()), p.From, p.To, p.EditOf, p.Text)
 	var refused *wa.SendRefused
 	if errors.As(err, &refused) {
 		if refused.Temporary() {
@@ -288,14 +300,19 @@ func (s *Sender) sendEdit(ctx context.Context, ob gen.Outbox, p WAPayload) (time
 		return 0, err
 	}
 	if mid, err := uuid.Parse(p.MessageID); err == nil {
-		if err := s.st.Q.SetChatMessageBody(ctx, gen.SetChatMessageBodyParams{ID: mid, Body: p.Text, EditedAt: &at}); err != nil {
+		if p.Kind == "delete" {
+			err = s.st.Q.SetChatMessageDeleted(ctx, gen.SetChatMessageDeletedParams{ID: mid, DeletedAt: at})
+		} else {
+			err = s.st.Q.SetChatMessageBody(ctx, gen.SetChatMessageBodyParams{ID: mid, Body: p.Text, EditedAt: &at})
+		}
+		if err != nil {
 			return 0, err
 		}
 	}
 	if err := s.st.Q.SetProposalExecuted(ctx, pidOf(ob)); err != nil {
 		return 0, err
 	}
-	actor, kind, action, entity := "worker", "system", "outbox.edited", "outbox"
+	actor, kind, action, entity := "worker", "system", "outbox."+map[bool]string{true: "deleted", false: "edited"}[p.Kind == "delete"], "outbox"
 	after, _ := json.Marshal(map[string]any{"edit_of": p.EditOf, "from": p.From, "to": p.To, "proposal_id": ob.ProposalID})
 	_ = s.st.Q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &ob.ID, After: after})
 	_ = events.Notify(ctx, s.st.Pool, "chat_message", map[string]string{"thread_id": p.ThreadID})

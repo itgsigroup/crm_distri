@@ -373,6 +373,13 @@ export class Session implements SendTarget {
     await sock.sendMessage(chat, { text, edit: { remoteJid: chat, fromMe: true, id: wamid } })
   }
 
+  /** Deletes a message this number sent, for everyone (WhatsApp: "Pesan ini dihapus"). */
+  async deleteText(chat: string, wamid: string): Promise<void> {
+    const sock = this.sock
+    if (!sock) throw new Error('sesi belum terhubung')
+    await sock.sendMessage(chat, { delete: { remoteJid: chat, fromMe: true, id: wamid } })
+  }
+
   /** Sends like a person: online, reads the chat (blue ticks), pauses, "typing…", then the message. */
   async sendText(chat: string, text: string, typing: number, quote?: Quote): Promise<string> {
     const sock = this.sock

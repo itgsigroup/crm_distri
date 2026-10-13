@@ -252,3 +252,20 @@ func TestReplyKeepsQuotedMessage(t *testing.T) {
 		t.Fatal("quoted id not stored")
 	}
 }
+
+// A customer's delete for everyone marks the stored message deleted (its text kept for the audit trail).
+func TestRevokeMarksDeleted(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	cust := "6281900300999"
+	now := time.Now()
+	if _, err := in.Process(ctx, wa.Message{ID: "V1", Account: andi, ChatJID: wa.UserJID(cust), FromNumber: cust, Text: "salah kirim", Time: now}); err != nil {
+		t.Fatal(err)
+	}
+	if r, err := in.Process(ctx, wa.Message{ID: "V2", Account: andi, ChatJID: wa.UserJID(cust), FromNumber: cust, Time: now.Add(time.Minute), RevokeOf: "V1"}); err != nil || !r.Stored {
+		t.Fatalf("revoke: %+v %v", r, err)
+	}
+	if count(t, st, "select count(*) from chat_messages where wa_msg_id = 'V1' and deleted_at is not null and body = 'salah kirim'") != 1 {
+		t.Fatal("not marked deleted")
+	}
+}

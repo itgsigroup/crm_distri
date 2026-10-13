@@ -13,6 +13,7 @@ function target(connected = true) {
     connected: () => connected,
     sendText: async (chat, text, _typing, quote) => { sent.push({ chat, text, ...(quote ? { edit: 'quote:' + quote.id } : {}) }); return 'WAMID' + sent.length },
     editText: async (chat, wamid, text) => { sent.push({ chat, text, edit: wamid }) },
+    deleteText: async (chat, wamid) => { sent.push({ chat, text: '', edit: 'delete:' + wamid }) },
   }
   return { t, sent }
 }
@@ -36,6 +37,14 @@ describe('sender', () => {
     expect(await code(sender.send(t, '6281@s.whatsapp.net', 'Halo', 'proposed-9'))).toBe('403:not_approved')
     expect(sent).toHaveLength(0)
     expect(await sender.send(t, '6281@s.whatsapp.net', 'Halo', 'a1')).toEqual({ wamid: 'WAMID1', duplicate: false })
+  })
+  it('deletes for everyone only for an approved action, once', async () => {
+    const { sender } = await setup(['a1'])
+    const { t, sent } = target()
+    expect(await code(sender.revoke(t, '6281@s.whatsapp.net', 'W9', 'nope'))).toBe('403:not_approved')
+    await sender.revoke(t, '6281@s.whatsapp.net', 'W9', 'a1')
+    expect(await sender.revoke(t, '6281@s.whatsapp.net', 'W9', 'a1')).toEqual({ wamid: 'W9', duplicate: true })
+    expect(sent).toEqual([{ chat: '6281@s.whatsapp.net', text: '', edit: 'delete:W9' }])
   })
   it('sends a reply quoting the message it answers', async () => {
     const { sender } = await setup(['a1'])

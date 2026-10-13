@@ -33,6 +33,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Get("/chat/threads/{id}/context", s.chatContext)
 	r.Post("/chat/threads/{id}/messages", s.chatSend)
 	r.Patch("/chat/threads/{id}/messages/{mid}", s.chatEdit)
+	r.Delete("/chat/threads/{id}/messages/{mid}", s.chatDelete)
 	r.Get("/chat/threads/{id}/messages/{mid}/media", s.chatMedia)
 	r.Get("/internal-numbers", s.internalNumbers)
 	r.Post("/internal-numbers", s.addInternalNumber)
@@ -171,6 +172,10 @@ type MessageView struct {
 	Quote *MsgQuote `json:"quote,omitempty"`
 	// CanReply: the message has its WhatsApp id, so a reply can quote it
 	CanReply bool `json:"can_reply,omitempty"`
+	// Deleted: deleted for everyone (by the customer, on the phone, or from Chat); the text is not shown
+	Deleted bool `json:"deleted,omitempty"`
+	// CanDelete: a message this number sent (or still queued); a sent one within DeleteWindow
+	CanDelete bool `json:"can_delete,omitempty"`
 }
 
 // MsgQuote is the quoted bubble shown above a reply.
@@ -216,7 +221,10 @@ func (s *Server) quotesFor(ctx context.Context, msgs []gen.ChatMessage) (map[str
 	if len(want) == 0 {
 		return out, nil
 	}
-	quote := func(id uuid.UUID, dir, from, body string, media json.RawMessage) *MsgQuote {
+	quote := func(id uuid.UUID, dir, from, body string, media json.RawMessage, deleted *time.Time) *MsgQuote {
+		if deleted != nil {
+			body, media = "Pesan ini dihapus", nil
+		}
 		q := &MsgQuote{ID: &id, Direction: dir, FromName: from, Body: body}
 		if mv := mediaView(media); mv != nil {
 			q.MediaKind = mv.Kind
@@ -225,7 +233,7 @@ func (s *Server) quotesFor(ctx context.Context, msgs []gen.ChatMessage) (map[str
 	}
 	for _, m := range msgs {
 		if m.WaMsgID != nil && want[*m.WaMsgID] {
-			out[*m.WaMsgID] = quote(m.ID, deref(m.Direction), deref(m.FromName), deref(m.Body), m.Media)
+			out[*m.WaMsgID] = quote(m.ID, deref(m.Direction), deref(m.FromName), deref(m.Body), m.Media, m.DeletedAt)
 		}
 	}
 	var missing []string
@@ -242,7 +250,7 @@ func (s *Server) quotesFor(ctx context.Context, msgs []gen.ChatMessage) (map[str
 		return nil, err
 	}
 	for _, m := range rows {
-		out[m.WaMsgID] = quote(m.ID, deref(m.Direction), deref(m.FromName), deref(m.Body), m.Media)
+		out[m.WaMsgID] = quote(m.ID, deref(m.Direction), deref(m.FromName), deref(m.Body), m.Media, m.DeletedAt)
 	}
 	return out, nil
 }
@@ -250,6 +258,14 @@ func (s *Server) quotesFor(ctx context.Context, msgs []gen.ChatMessage) (map[str
 // realWAID: the message has its WhatsApp id (not a reply still queued, not a local row).
 func realWAID(id *string) bool {
 	return id != nil && *id != "" && !strings.HasPrefix(*id, "outbox:") && !strings.HasPrefix(*id, "local:")
+}
+
+// canDelete: an own bubble of this number's thread, queued or sent within DeleteWindow (delete for everyone).
+func canDelete(dir, status string, own bool, waID *string, sentAt, now time.Time) bool {
+	if dir != "out" || !own {
+		return false
+	}
+	return status == "pending" || (status == "sent" && realWAID(waID) && now.Sub(sentAt) < wa.DeleteWindow)
 }
 
 // canEdit: an own text bubble of this number's thread, queued or sent within WhatsApp's edit window.
@@ -361,6 +377,10 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		}
 		v.CanEdit = canEdit(v.Direction, v.Status, deref(m.ThreadID) == t.ID, v.Media, m.WaMsgID, m.SentAt, now)
 		v.CanReply = realWAID(m.WaMsgID) && v.Status != "failed"
+		v.CanDelete = canDelete(v.Direction, v.Status, deref(m.ThreadID) == t.ID, m.WaMsgID, m.SentAt, now)
+		if m.DeletedAt != nil {
+			v.Deleted, v.Body, v.Media, v.CanEdit, v.CanReply, v.CanDelete, v.Analysis = true, "", nil, false, false, false, nil
+		}
 		if m.QuotedWaID != nil {
 			q, ok := quotes[*m.QuotedWaID]
 			if !ok {
@@ -754,6 +774,105 @@ func (s *Server) chatEdit(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.log.Error("chat edit", "err", err)
 		httpx.Fail(w, http.StatusInternalServerError, "internal", "Gagal mencatat edit")
+		return
+	}
+	httpx.JSON(w, http.StatusAccepted, res)
+}
+
+// chatDelete deletes a message this number sent, for everyone (WhatsApp "Hapus untuk semua orang"). A reply still
+// queued is cancelled in the outbox; a sent one (within DeleteWindow) is a human decision — proposal, outbox row
+// kind=delete, audit — that the worker carries out through the bridge. The text stays for the audit trail.
+func (s *Server) chatDelete(w http.ResponseWriter, r *http.Request) {
+	t, ok := s.threadParam(w, r)
+	if !ok {
+		return
+	}
+	mid, err := uuid.Parse(chi.URLParam(r, "mid"))
+	if err != nil {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Pesan tidak ditemukan")
+		return
+	}
+	u, ok := s.chatAllowed(w, r, t)
+	if !ok {
+		return
+	}
+	m, err := s.st.Q.GetThreadMessage(r.Context(), gen.GetThreadMessageParams{ThreadID: t.ID, ID: mid})
+	if err != nil {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Pesan tidak ditemukan")
+		return
+	}
+	now := s.clock.Now()
+	if m.DeletedAt != nil {
+		httpx.JSON(w, http.StatusOK, map[string]any{"message_id": mid, "status": "deleted"})
+		return
+	}
+	if !canDelete(deref(m.Direction), m.Status, deref(m.ThreadID) == t.ID, m.WaMsgID, m.SentAt, now) {
+		msg := "Hanya pesan dari nomor ini yang bisa dihapus untuk semua orang"
+		if deref(m.Direction) == "out" && m.Status == "sent" && now.Sub(m.SentAt) >= wa.DeleteWindow {
+			msg = "Lewat 48 jam sejak dikirim — hapus untuk semua orang tidak tersedia lagi"
+		}
+		httpx.Fail(w, http.StatusConflict, "not_deletable", msg)
+		return
+	}
+	actor, kind, entity := deref(u.Email), "user", "chat_message"
+	if m.Status == "pending" {
+		err := s.st.Tx(r.Context(), func(q *gen.Queries, tx pgx.Tx) error {
+			if _, err := q.CancelQueuedReply(r.Context(), mid.String()); errors.Is(err, pgx.ErrNoRows) {
+				return errEditGone
+			} else if err != nil {
+				return err
+			}
+			if err := q.SetChatMessageDeleted(r.Context(), gen.SetChatMessageDeletedParams{ID: mid, DeletedAt: now}); err != nil {
+				return err
+			}
+			action := "chat.delete_queued"
+			after, _ := json.Marshal(map[string]any{"thread_id": t.ID, "body": deref(m.Body)})
+			if err := q.InsertAudit(r.Context(), gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &mid, After: after}); err != nil {
+				return err
+			}
+			_, err := tx.Exec(r.Context(), "select pg_notify('chat_message', $1)", `{"thread_id":"`+t.ID.String()+`"}`)
+			return err
+		})
+		if errors.Is(err, errEditGone) {
+			httpx.Fail(w, http.StatusConflict, "sending", "Pesan sedang dikirim — tunggu terkirim, lalu hapus")
+			return
+		}
+		if err != nil {
+			s.log.Error("chat delete queued", "err", err)
+			httpx.Fail(w, http.StatusInternalServerError, "internal", "Gagal menghapus pesan")
+			return
+		}
+		httpx.JSON(w, http.StatusOK, map[string]any{"message_id": mid, "status": "deleted"})
+		return
+	}
+	var res map[string]any
+	err = s.st.Tx(r.Context(), func(q *gen.Queries, tx pgx.Tx) error {
+		p, err := s.humanDecision(r.Context(), q, t, u, "Hapus pesan ke "+deref(t.Title), "Hapus untuk semua orang: "+deref(m.Body), now)
+		if err != nil {
+			return err
+		}
+		sentAt := m.SentAt
+		payload, _ := json.Marshal(outbox.WAPayload{From: *t.SalesWa, To: *t.WaJid, Kind: "delete", MessageID: mid.String(), ThreadID: t.ID.String(), EditOf: *m.WaMsgID, EditSentAt: &sentAt})
+		ob, err := q.InsertOutbox(r.Context(), gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "wa", ToRef: t.WaJid, Payload: payload})
+		if err != nil {
+			return err
+		}
+		action := "chat.delete"
+		after, _ := json.Marshal(map[string]any{"thread_id": t.ID, "outbox_id": ob.ID, "message_id": mid, "body": deref(m.Body)})
+		if err := q.InsertAudit(r.Context(), gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &mid, After: after}); err != nil {
+			return err
+		}
+		if s.jobs != nil {
+			if _, err := s.jobs.InsertTx(r.Context(), tx, jobs.OutboxSendArgs{OutboxID: ob.ID.String()}, nil); err != nil {
+				return err
+			}
+		}
+		res = map[string]any{"proposal_id": p.ID, "outbox_id": ob.ID, "message_id": mid, "status": "deleting"}
+		return nil
+	})
+	if err != nil {
+		s.log.Error("chat delete", "err", err)
+		httpx.Fail(w, http.StatusInternalServerError, "internal", "Gagal mencatat hapus")
 		return
 	}
 	httpx.JSON(w, http.StatusAccepted, res)

@@ -46,6 +46,12 @@ describe('Baileys → WaEvent', () => {
     expect(messageText({ documentMessage: { fileName: 'PO.pdf', contextInfo: ctx } }).quoted).toBe('Q1')
     expect(messageText({ conversation: 'tanpa kutipan' }).quoted).toBeUndefined()
   })
+  it('maps a delete for everyone to the deleted message id', async () => {
+    const ev = await toWaEvent('s', msg({ id: 'D1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, {
+      protocolMessage: { type: 0, key: { id: 'ORIG2', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false } },
+    }), r, false)
+    expect(ev).toMatchObject({ wamid: 'D1', revoke_of: 'ORIG2', text: '' })
+  })
   it('maps an edit to the edited message id and its new text', async () => {
     const ev = await toWaEvent('s', msg({ id: 'E1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, {
       protocolMessage: { type: 14, key: { id: 'ORIG1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, editedMessage: { conversation: 'Minta 20 kamera, bukan 16' } },

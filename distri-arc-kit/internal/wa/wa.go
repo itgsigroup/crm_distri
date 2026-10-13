@@ -31,6 +31,8 @@ type Message struct {
 	EditOf string `json:"edit_of,omitempty"`
 	// QuotedID: the message this one replies to (WhatsApp "Balas").
 	QuotedID string `json:"quoted_id,omitempty"`
+	// RevokeOf: this message deletes the message with that id for everyone ("Pesan ini dihapus").
+	RevokeOf string `json:"revoke_of,omitempty"`
 }
 
 // Quote is the message a reply sent from Chat quotes: its WhatsApp key and text.
@@ -175,6 +177,15 @@ const LinkingPrefix = "linking:"
 type Editor interface {
 	Edit(ctx context.Context, account, chatJID, waMsgID, text string) error
 }
+
+// Deleter is implemented by transports that can delete a message the number sent, for everyone. The outbox id of
+// the approved delete travels in ctx (WithAction).
+type Deleter interface {
+	Delete(ctx context.Context, account, chatJID, waMsgID string) error
+}
+
+// DeleteWindow is how long after sending GSI Orbit offers "Hapus untuk semua orang" (WhatsApp allows about 2 days).
+const DeleteWindow = 48 * time.Hour
 
 // EditWindow is how long after sending WhatsApp accepts an edit.
 const EditWindow = 15 * time.Minute

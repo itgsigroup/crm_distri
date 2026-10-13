@@ -12,6 +12,7 @@ export interface SendTarget {
   connected(): boolean
   sendText(chat: string, text: string, typingMs: number, quote?: Quote): Promise<string>
   editText(chat: string, wamid: string, text: string): Promise<void>
+  deleteText(chat: string, wamid: string): Promise<void>
 }
 
 export class SendError extends Error {
@@ -74,8 +75,18 @@ export class Sender {
    * linked); no anti-ban caps — an edit adds no message to the chat — but it waits its turn behind the number's sends.
    */
   async edit(target: SendTarget, chat: string, wamid: string, text: string, actionId: string): Promise<{ wamid: string; duplicate: boolean }> {
-    if (!actionId) throw new SendError(403, 'not_approved', 'edit ditolak — action belum disetujui manusia')
-    if (!chat || !wamid || !text.trim()) throw new SendError(400, 'bad_request', 'chat_id, wamid dan text wajib')
+    if (!text.trim()) throw new SendError(400, 'bad_request', 'chat_id, wamid dan text wajib')
+    return this.change(target, chat, wamid, actionId, () => target.editText(chat, wamid, text), textHash(text))
+  }
+
+  /** Deletes a message this number sent, for everyone, for an approved delete action (same checks as an edit). */
+  async revoke(target: SendTarget, chat: string, wamid: string, actionId: string): Promise<{ wamid: string; duplicate: boolean }> {
+    return this.change(target, chat, wamid, actionId, () => target.deleteText(chat, wamid), textHash('revoke:' + wamid))
+  }
+
+  private async change(target: SendTarget, chat: string, wamid: string, actionId: string, apply: () => Promise<void>, hash: string): Promise<{ wamid: string; duplicate: boolean }> {
+    if (!actionId) throw new SendError(403, 'not_approved', 'perubahan ditolak — action belum disetujui manusia')
+    if (!chat || !wamid) throw new SendError(400, 'bad_request', 'chat_id dan wamid wajib')
     const prior = await this.store.sentForAction(target.id, actionId)
     if (prior) return { wamid: prior.wamid, duplicate: true }
     if (!(await this.approvals.actionApproved(actionId))) throw new SendError(403, 'not_approved', 'edit ditolak — action belum disetujui manusia')
@@ -83,8 +94,8 @@ export class Sender {
     return this.serial(target.id, async () => {
       const again = await this.store.sentForAction(target.id, actionId)
       if (again) return { wamid: again.wamid, duplicate: true }
-      await target.editText(chat, wamid, text)
-      await this.store.recordSend({ session: target.id, chat, actionId, wamid, at: this.now(), hash: textHash(text) })
+      await apply()
+      await this.store.recordSend({ session: target.id, chat, actionId, wamid, at: this.now(), hash })
       return { wamid, duplicate: false }
     })
   }

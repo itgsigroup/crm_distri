@@ -159,6 +159,7 @@ type ChatMessage struct {
 	Internal   bool            `json:"internal"`
 	EditedAt   *time.Time      `json:"edited_at"`
 	QuotedWaID *string         `json:"quoted_wa_id"`
+	DeletedAt  *time.Time      `json:"deleted_at"`
 }
 
 type ChatMessageKey struct {

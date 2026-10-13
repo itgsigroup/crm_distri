@@ -23,6 +23,7 @@ export interface WaEvent {
   timestamp: string
   quoted?: string
   edit_of?: string // the message this one edits (its text replaces the original's)
+  revoke_of?: string // the message this one deletes for everyone ("Pesan ini dihapus")
   from_me: boolean
   is_history: boolean
   chat_name?: string // saved contact / business / push name of a direct chat
@@ -91,6 +92,13 @@ export function decodeMediaRef(ref: string): WAMessage {
   return proto.WebMessageInfo.decode(Buffer.from(ref, 'base64')) as WAMessage
 }
 
+/** A delete-for-everyone of an earlier message: the deleted message's id. */
+export function revokeOf(message: proto.IMessage | null | undefined): string | null {
+  const p = normalizeMessageContent(message)?.protocolMessage
+  if (!p || p.type !== proto.Message.ProtocolMessage.Type.REVOKE || !p.key?.id) return null
+  return p.key.id
+}
+
 /** An edit of an earlier message (WhatsApp "Edit"): the edited message's id and its new text. */
 export function editOf(message: proto.IMessage | null | undefined): { id: string; text: string } | null {
   const p = normalizeMessageContent(message)?.protocolMessage
@@ -114,8 +122,9 @@ export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, hi
   const key = msg.key
   if (!key?.id || !isConversation(key.remoteJid) || !msg.message) return null
   const edit = editOf(msg.message)
-  const { text, media, quoted } = edit ? { text: edit.text, media: undefined, quoted: undefined } : messageText(msg.message)
-  if (!text && !media) return null
+  const revoke = revokeOf(msg.message)
+  const { text, media, quoted } = edit ? { text: edit.text, media: undefined, quoted: undefined } : revoke ? { text: '', media: undefined, quoted: undefined } : messageText(msg.message)
+  if (!text && !media && !revoke) return null
   const group = !!isJidGroup(key.remoteJid)
   const chat = group ? key.remoteJid : await toPhoneJid(r, key.remoteJid, key.remoteJidAlt)
   const fromMe = !!key.fromMe
@@ -144,6 +153,7 @@ export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, hi
     ev.media_meta = ref ? { ...media, ref } : media
   }
   if (edit) ev.edit_of = edit.id
+  if (revoke) ev.revoke_of = revoke
   if (quoted) ev.quoted = quoted
   if (group) ev.group_meta = (await r.groupMeta(chat)) ?? { name: '', members: [] }
   return ev

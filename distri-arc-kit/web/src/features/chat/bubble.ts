@@ -85,3 +85,12 @@ export function editableNow(m: Pick<MessageView, 'can_edit' | 'status' | 'sent_a
   if (!m.can_edit) return false
   return m.status === 'pending' || now.getTime() - new Date(m.sent_at).getTime() < EDIT_WINDOW_MS
 }
+
+/** "Hapus untuk semua orang" is offered for 48 hours after sending (WhatsApp allows about 2 days). */
+export const DELETE_WINDOW_MS = 48 * 3600_000
+
+/** Whether "Hapus untuk semua orang" shows now: queued replies always, sent messages for 48 hours. */
+export function deletableNow(m: Pick<MessageView, 'can_delete' | 'status' | 'sent_at'>, now: Date): boolean {
+  if (!m.can_delete) return false
+  return m.status === 'pending' || now.getTime() - new Date(m.sent_at).getTime() < DELETE_WINDOW_MS
+}

@@ -320,6 +320,10 @@ export interface MessageView {
   quote?: { id: string | null; direction: 'in' | 'out' | ''; from_name: string; body: string; media_kind?: string }
   /** has its WhatsApp id: a reply can quote it */
   can_reply?: boolean
+  /** deleted for everyone (customer, phone, or Chat): the text is not shown */
+  deleted?: boolean
+  /** a message this number sent or still queued; a sent one within 48 hours */
+  can_delete?: boolean
 }
 export interface MediaView {
   kind: 'image' | 'video' | 'gif' | 'audio' | 'document' | 'sticker' | 'location' | 'contact' | string

@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: menu per bubble — Balas, Salin, Edit, Hapus untuk semua orang · 2026-10-13
+- Tiap bubble punya menu **⌄** di pojoknya (seperti WhatsApp Web): **Balas**, **Salin**, **Edit** (pesan teks dari nomor ini, ≤ 15 menit) dan **Hapus untuk semua orang** (pesan dari nomor ini, ≤ 48 jam). Tombol balas cepat tetap di samping bubble.
+- Hapus: pesan yang masih antre dibatalkan sebelum terkirim; yang sudah terkirim menjadi keputusan manusia (proposal + audit `chat.delete`) yang dikirim lewat outbox dan bridge (`POST /sessions/{id}/delete`). Bubble menjadi "Anda menghapus pesan ini"; teks asli tetap tersimpan untuk audit.
+- Penghapusan oleh pelanggan atau dari HP ikut tercatat: bubble menjadi "Pesan ini dihapus" (migrasi 0028 `chat_messages.deleted_at`). Kutipan yang menunjuk pesan terhapus ikut tertulis "Pesan ini dihapus".
+- Perbaikan tampilan banner "Membalas …" / "Edit pesan" di kolom ketik.
+
 ## Feat · Chat: panel lead bisa diringkas · 2026-10-13
 - Tombol × di panel lead diganti **Ringkas**: panel menjadi strip sempit yang tetap terlihat — avatar dengan warna tahap, tahap (teks tegak), peringatan, ikon tab (Analisa AI, Sumber, Data Accurate, Statistik) dan Kirim ke Accurate. Klik panah atau ikon mana pun untuk memperbesar lagi (langsung ke tab itu). Pilihan diingat di browser. Di HP panel tetap berupa lembar bawah.
 

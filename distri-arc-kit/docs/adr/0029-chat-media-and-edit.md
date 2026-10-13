@@ -36,6 +36,11 @@ seperti di WhatsApp; di daftar chat ada filter **Belum dibalas**. Sebelumnya bri
   participant, text}` di payload outbox; bridge mengirimnya dengan opsi `quoted` Baileys. Pesan yang belum punya id
   WhatsApp (masih antre) tidak bisa dikutip.
 
+- **Hapus untuk semua orang** — tambahan 13 Okt: `chat_messages.deleted_at` (migrasi 0028). Dari Chat: pesan dari
+  nomor itu, ≤ 48 jam (WhatsApp ±2 hari) — keputusan manusia lewat outbox `kind=delete`, bridge mengirim `{delete: key}`;
+  balasan yang masih antre dibatalkan (`outbox.status = cancelled`). Dari WhatsApp: `protocolMessage` `REVOKE` →
+  `revoke_of`. Teks asli tidak dihapus dari database (audit), hanya tidak ditampilkan.
+
 ## Konsekuensi
 - Media dari pesan yang tersimpan sebelum perubahan ini belum punya `ref` ("buka di ponsel"); referensinya terisi
   saat WhatsApp mengirim pesan itu lagi (sinkron riwayat / `wa.backfill`).
