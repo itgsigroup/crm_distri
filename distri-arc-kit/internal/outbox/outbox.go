@@ -32,6 +32,8 @@ type WAPayload struct {
 	// an edit: the WhatsApp id of the message edited and when it was sent (WhatsApp accepts edits for 15 minutes)
 	EditOf     string     `json:"edit_of,omitempty"`
 	EditSentAt *time.Time `json:"edit_sent_at,omitempty"`
+	// a reply to one bubble (WhatsApp "Balas"): the quoted message
+	Quote *wa.Quote `json:"quote,omitempty"`
 }
 
 // Rules are the anti-ban limits (09-policies-security): proactive messages are capped per sales per day and
@@ -147,7 +149,7 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 			return gap - now.Sub(last), nil
 		}
 	}
-	msgID, sendErr := s.t.Send(wa.WithAction(ctx, id.String()), p.From, p.To, p.Text)
+	msgID, sendErr := s.t.Send(wa.WithQuote(wa.WithAction(ctx, id.String()), p.Quote), p.From, p.To, p.Text)
 	sent := s.clock.Now()
 	var refused *wa.SendRefused
 	if errors.As(sendErr, &refused) {

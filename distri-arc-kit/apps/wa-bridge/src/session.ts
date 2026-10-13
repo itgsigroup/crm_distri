@@ -8,7 +8,7 @@ import { decodeMediaRef, isConversation, toGroupMeta, toWaEvent, type GroupMeta,
 import type { Forwarder } from './forward.js'
 import { isOptOut, reconnectDelayMs } from './guard.js'
 import type { PgStore } from './pgstore.js'
-import type { SendTarget } from './sender.js'
+import type { Quote, SendTarget } from './sender.js'
 import type { SessionMeta } from './store.js'
 
 export type Status = 'pairing' | 'connected' | 'disconnected'
@@ -374,7 +374,7 @@ export class Session implements SendTarget {
   }
 
   /** Sends like a person: online, reads the chat (blue ticks), pauses, "typing…", then the message. */
-  async sendText(chat: string, text: string, typing: number): Promise<string> {
+  async sendText(chat: string, text: string, typing: number, quote?: Quote): Promise<string> {
     const sock = this.sock
     if (!sock) throw new Error('sesi belum terhubung')
     await sock.sendPresenceUpdate('available').catch(() => {})
@@ -387,7 +387,10 @@ export class Session implements SendTarget {
     await sock.sendPresenceUpdate('composing', chat).catch(() => {})
     await new Promise(r => setTimeout(r, typing))
     await sock.sendPresenceUpdate('paused', chat).catch(() => {})
-    const m = await sock.sendMessage(chat, { text })
+    const quoted = quote?.id
+      ? { key: { remoteJid: chat, fromMe: quote.from_me, id: quote.id, participant: quote.participant || undefined }, message: { conversation: quote.text } }
+      : undefined
+    const m = await sock.sendMessage(chat, { text }, quoted ? { quoted } : undefined)
     await sock.sendPresenceUpdate('unavailable').catch(() => {})
     if (!m?.key.id) throw new Error('WhatsApp tidak mengembalikan id pesan')
     if (m.message) {

@@ -229,3 +229,45 @@ func TestChatEditIsAHumanDecision(t *testing.T) {
 		t.Fatalf("sent %+v", s[len(s)-1])
 	}
 }
+
+// Balas (reply) like WhatsApp: a reply quotes a bubble with its WhatsApp id; it leaves through the outbox with the
+// quote, and the conversation shows the quoted bubble above it. A bubble not yet sent cannot be quoted.
+func TestChatReplyQuotesABubble(t *testing.T) {
+	srv, st := mediaServer(t, nil)
+	ctx := context.Background()
+	th := sinarThread(t, st)
+	asked := addMessage(t, st, th, "WQ1", "in", "received", "Ada stok DVR 8 channel?", chatNow.Add(-10*time.Minute), nil)
+	url := srv.URL + "/api/chat/threads/" + th.String() + "/messages"
+	code, out := sendJSON(t, http.MethodPost, url, "andi@gsi.co.id", map[string]string{"body": "Ada Mbak, 12 unit.", "reply_to": asked.String()})
+	if code != http.StatusAccepted {
+		t.Fatalf("reply: %d %v", code, out)
+	}
+	if count(t, st, "select count(*) from outbox where id = $1 and payload->'quote'->>'id' = 'WQ1' and (payload->'quote'->>'from_me')::bool = false", out["outbox_id"]) != 1 {
+		t.Fatal("quote not in the outbox payload")
+	}
+	// the queued reply cannot be quoted yet
+	if code, _ := sendJSON(t, http.MethodPost, url, "andi@gsi.co.id", map[string]string{"body": "x", "reply_to": out["message_id"].(string)}); code != http.StatusConflict {
+		t.Fatalf("quoting a queued reply: %d", code)
+	}
+	fake := wa.NewFake()
+	if _, err := outbox.NewSender(st, fake, clock.Fixed(chatNow), outbox.Rules{}).Send(ctx, uuid.MustParse(out["outbox_id"].(string))); err != nil {
+		t.Fatal(err)
+	}
+	if s := fake.Sent(); len(s) != 1 || s[0].QuotedID != "WQ1" {
+		t.Fatalf("transport got %+v", s)
+	}
+	code, detail := get(t, srv, "/api/chat/threads/"+th.String(), "andi@gsi.co.id")
+	if code != http.StatusOK {
+		t.Fatal(code)
+	}
+	var reply map[string]any
+	for _, m := range detail["messages"].([]any) {
+		if mm := m.(map[string]any); mm["id"] == out["message_id"] {
+			reply = mm
+		}
+	}
+	q, _ := reply["quote"].(map[string]any)
+	if q == nil || q["id"] != asked.String() || q["body"] != "Ada stok DVR 8 channel?" || q["direction"] != "in" || reply["can_reply"] != true {
+		t.Fatalf("reply bubble %v", reply)
+	}
+}

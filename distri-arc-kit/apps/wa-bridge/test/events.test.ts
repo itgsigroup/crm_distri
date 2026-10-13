@@ -39,6 +39,13 @@ describe('Baileys → WaEvent', () => {
     expect(vn?.media_meta).toMatchObject({ kind: 'audio', seconds: 12, ptt: true })
     expect(vn?.media_meta?.ref).toBeTruthy()
   })
+  it('keeps the message a reply quotes, for text and media alike', async () => {
+    const ctx = { stanzaId: 'Q1', participant: '6281299887766@s.whatsapp.net' }
+    expect(messageText({ extendedTextMessage: { text: 'Siap', contextInfo: ctx } }).quoted).toBe('Q1')
+    expect(messageText({ audioMessage: { mimetype: 'audio/ogg', contextInfo: ctx } }).quoted).toBe('Q1')
+    expect(messageText({ documentMessage: { fileName: 'PO.pdf', contextInfo: ctx } }).quoted).toBe('Q1')
+    expect(messageText({ conversation: 'tanpa kutipan' }).quoted).toBeUndefined()
+  })
   it('maps an edit to the edited message id and its new text', async () => {
     const ev = await toWaEvent('s', msg({ id: 'E1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, {
       protocolMessage: { type: 14, key: { id: 'ORIG1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, editedMessage: { conversation: 'Minta 20 kamera, bukan 16' } },

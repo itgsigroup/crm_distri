@@ -92,6 +92,7 @@ type bridgeEvent struct {
 	ChatName   string `json:"chat_name"`
 	Account    string `json:"account"` // the linked phone's own number
 	EditOf     string `json:"edit_of"`
+	Quoted     string `json:"quoted"`
 	GroupMeta  *struct {
 		Name string `json:"name"`
 	} `json:"group_meta"`
@@ -136,7 +137,7 @@ func (e bridgeEvent) message() Message {
 	}
 	m := Message{ID: e.WAMID, Account: acc, ChatJID: e.ChatID, FromNumber: Digits(e.From), FromName: e.SenderName,
 		IsGroup: e.IsGroup, FromMe: e.FromMe, Text: text, Time: t, ChatName: strings.TrimSpace(e.ChatName), History: e.IsHistory,
-		Media: e.MediaMeta, EditOf: e.EditOf}
+		Media: e.MediaMeta, EditOf: e.EditOf, QuotedID: e.Quoted}
 	if e.GroupMeta != nil {
 		m.GroupName = e.GroupMeta.Name
 	}
@@ -389,7 +390,11 @@ func (b *Baileys) Send(ctx context.Context, account, chatJID, text string) (stri
 	var out struct {
 		WAMID string `json:"wamid"`
 	}
-	_, hdr, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/send", map[string]string{"chat_id": chatJID, "text": text, "action_id": action}, &out)
+	in := map[string]any{"chat_id": chatJID, "text": text, "action_id": action}
+	if q := QuoteFrom(ctx); q != nil {
+		in["quote"] = q
+	}
+	_, hdr, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/send", in, &out)
 	var be *bridgeError
 	if errors.As(err, &be) && (be.Status == http.StatusForbidden || be.Status == http.StatusConflict || be.Status == http.StatusTooManyRequests) {
 		r := &SendRefused{Code: be.Code, Reason: be.Msg}

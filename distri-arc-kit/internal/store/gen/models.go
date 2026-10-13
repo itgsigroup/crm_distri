@@ -158,6 +158,7 @@ type ChatMessage struct {
 	ProposalID *uuid.UUID      `json:"proposal_id"`
 	Internal   bool            `json:"internal"`
 	EditedAt   *time.Time      `json:"edited_at"`
+	QuotedWaID *string         `json:"quoted_wa_id"`
 }
 
 type ChatMessageKey struct {

@@ -239,3 +239,16 @@ func TestMediaReferenceAndEdits(t *testing.T) {
 		t.Fatalf("unknown edit: %+v", r)
 	}
 }
+
+// A customer's reply keeps the id of the message it quotes (WhatsApp "Balas").
+func TestReplyKeepsQuotedMessage(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	cust := "6281900300888"
+	if _, err := in.Process(ctx, wa.Message{ID: "R1", Account: andi, ChatJID: wa.UserJID(cust), FromNumber: cust, Text: "Yang ini ya", Time: time.Now(), QuotedID: "ORIG9"}); err != nil {
+		t.Fatal(err)
+	}
+	if count(t, st, "select count(*) from chat_messages where wa_msg_id = 'R1' and quoted_wa_id = 'ORIG9'") != 1 {
+		t.Fatal("quoted id not stored")
+	}
+}

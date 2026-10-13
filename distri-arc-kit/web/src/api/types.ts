@@ -316,6 +316,10 @@ export interface MessageView {
   edited_at?: string | null
   /** a text this number sent or still queued; a sent one only within 15 minutes */
   can_edit?: boolean
+  /** the bubble this message replies to (WhatsApp "Balas"); id null when that message is not kept */
+  quote?: { id: string | null; direction: 'in' | 'out' | ''; from_name: string; body: string; media_kind?: string }
+  /** has its WhatsApp id: a reply can quote it */
+  can_reply?: boolean
 }
 export interface MediaView {
   kind: 'image' | 'video' | 'gif' | 'audio' | 'document' | 'sticker' | 'location' | 'contact' | string

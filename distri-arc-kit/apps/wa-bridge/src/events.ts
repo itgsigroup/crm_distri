@@ -53,7 +53,8 @@ function meta(kind: string, x: Media): MediaMeta {
 export function messageText(message: proto.IMessage | null | undefined): { text: string; media?: MediaMeta; quoted?: string } {
   const m = normalizeMessageContent(message)
   if (!m) return { text: '' }
-  const quoted = m.extendedTextMessage?.contextInfo?.stanzaId ?? m.imageMessage?.contextInfo?.stanzaId ?? undefined
+  // the message replied to ("Balas"): every content type carries it in its contextInfo
+  const quoted = Object.values(m).map((v) => (v && typeof v === 'object' && 'contextInfo' in v ? (v as { contextInfo?: proto.IContextInfo | null }).contextInfo?.stanzaId : undefined)).find(Boolean) ?? undefined
   if (m.conversation) return { text: m.conversation, quoted }
   if (m.extendedTextMessage) return { text: m.extendedTextMessage.text ?? '', quoted }
   if (m.imageMessage) return { text: m.imageMessage.caption ?? '', media: meta('image', m.imageMessage), quoted }

@@ -29,6 +29,32 @@ type Message struct {
 	Media      *Media    `json:"media,omitempty"`
 	// EditOf: this message is a WhatsApp edit of the message with that id; Text replaces its text.
 	EditOf string `json:"edit_of,omitempty"`
+	// QuotedID: the message this one replies to (WhatsApp "Balas").
+	QuotedID string `json:"quoted_id,omitempty"`
+}
+
+// Quote is the message a reply sent from Chat quotes: its WhatsApp key and text.
+type Quote struct {
+	ID          string `json:"id"`
+	FromMe      bool   `json:"from_me"`
+	Participant string `json:"participant,omitempty"` // a group member's JID (groups only)
+	Text        string `json:"text"`
+}
+
+type quoteKey struct{}
+
+// WithQuote makes the send a reply to q (the transport shows it quoted, like WhatsApp "Balas").
+func WithQuote(ctx context.Context, q *Quote) context.Context {
+	if q == nil || q.ID == "" {
+		return ctx
+	}
+	return context.WithValue(ctx, quoteKey{}, q)
+}
+
+// QuoteFrom is the quote set by WithQuote (nil when none).
+func QuoteFrom(ctx context.Context) *Quote {
+	q, _ := ctx.Value(quoteKey{}).(*Quote)
+	return q
 }
 
 // Media describes a message's photo, video, voice note, document or sticker. The content is never stored: Ref is

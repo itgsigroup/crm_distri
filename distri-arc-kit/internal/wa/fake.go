@@ -75,13 +75,17 @@ func (f *Fake) Status(context.Context) []Status {
 }
 
 // Send records the message.
-func (f *Fake) Send(_ context.Context, account, chatJID, text string) (string, error) {
+func (f *Fake) Send(ctx context.Context, account, chatJID, text string) (string, error) {
 	if text == "" {
 		return "", fmt.Errorf("empty message")
 	}
 	id := fmt.Sprintf("FAKE%06d", f.seq.Add(1))
+	m := Message{ID: id, Account: Digits(account), ChatJID: chatJID, FromNumber: Digits(account), FromMe: true, Text: text}
+	if q := QuoteFrom(ctx); q != nil {
+		m.QuotedID = q.ID
+	}
 	f.mu.Lock()
-	f.sent = append(f.sent, Message{ID: id, Account: Digits(account), ChatJID: chatJID, FromNumber: Digits(account), FromMe: true, Text: text})
+	f.sent = append(f.sent, m)
 	f.mu.Unlock()
 	return id, nil
 }

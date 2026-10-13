@@ -148,7 +148,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			dir = "out"
 		}
 		id := m.ID
-		msgID, err := q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && m.IsGroup})
+		msgID, err := q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, QuotedWaID: strp(m.QuotedID), SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && m.IsGroup})
 		if errors.Is(err, pgx.ErrNoRows) {
 			res.Reason = DropDuplicate
 			if m.Media.Viewable() {
@@ -367,4 +367,11 @@ func deref[T any](p *T) T {
 		return z
 	}
 	return *p
+}
+
+func strp(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }

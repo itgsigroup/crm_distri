@@ -423,7 +423,7 @@ func (q *Queries) GetThreadByAccountJID(ctx context.Context, arg GetThreadByAcco
 }
 
 const getThreadMessage = `-- name: GetThreadMessage :one
-select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, x.account as holder_account from chat_messages m
+select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, x.account as holder_account from chat_messages m
 join chat_threads x on x.id = m.thread_id
 join chat_threads t on t.id = $1::uuid
 where m.id = $2::uuid and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
@@ -450,6 +450,7 @@ type GetThreadMessageRow struct {
 	ProposalID    *uuid.UUID      `json:"proposal_id"`
 	Internal      bool            `json:"internal"`
 	EditedAt      *time.Time      `json:"edited_at"`
+	QuotedWaID    *string         `json:"quoted_wa_id"`
 	HolderAccount *string         `json:"holder_account"`
 }
 
@@ -474,6 +475,7 @@ func (q *Queries) GetThreadMessage(ctx context.Context, arg GetThreadMessagePara
 		&i.ProposalID,
 		&i.Internal,
 		&i.EditedAt,
+		&i.QuotedWaID,
 		&i.HolderAccount,
 	)
 	return i, err
@@ -736,14 +738,14 @@ func (q *Queries) InsertAIDraftOrder(ctx context.Context, arg InsertAIDraftOrder
 const insertChatMessage = `-- name: InsertChatMessage :one
 with k as (
   insert into chat_message_keys (wa_msg_id, message_id, sent_at)
-  values (coalesce($2::text, 'local:' || gen_random_uuid()), gen_random_uuid(), $13::timestamptz)
+  values (coalesce($2::text, 'local:' || gen_random_uuid()), gen_random_uuid(), $14::timestamptz)
   on conflict (wa_msg_id) do nothing
   returning message_id, sent_at
 )
-insert into chat_messages (id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal)
+insert into chat_messages (id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, quoted_wa_id)
 select k.message_id, $1::uuid, $2::text, $3::text, $4::text,
        $5::text, $6::text, $7::jsonb, k.sent_at, $8::jsonb,
-       $9::uuid, $10::text, $11::uuid, $12::bool
+       $9::uuid, $10::text, $11::uuid, $12::bool, $13::text
 from k
 returning id
 `
@@ -761,6 +763,7 @@ type InsertChatMessageParams struct {
 	Status     string          `json:"status"`
 	ProposalID *uuid.UUID      `json:"proposal_id"`
 	Internal   bool            `json:"internal"`
+	QuotedWaID *string         `json:"quoted_wa_id"`
 	SentAt     time.Time       `json:"sent_at"`
 }
 
@@ -779,6 +782,7 @@ func (q *Queries) InsertChatMessage(ctx context.Context, arg InsertChatMessagePa
 		arg.Status,
 		arg.ProposalID,
 		arg.Internal,
+		arg.QuotedWaID,
 		arg.SentAt,
 	)
 	var id uuid.UUID
@@ -1213,8 +1217,8 @@ func (q *Queries) ListInternalNumbers(ctx context.Context) ([]InternalNumber, er
 }
 
 const listThreadMessages = `-- name: ListThreadMessages :many
-select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at from (
-  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at from chat_messages m
+select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at, quoted_wa_id from (
+  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id from chat_messages m
   where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
                         where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
     and m.sent_at < $2 order by m.sent_at desc limit $3
@@ -1254,6 +1258,7 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 			&i.ProposalID,
 			&i.Internal,
 			&i.EditedAt,
+			&i.QuotedWaID,
 		); err != nil {
 			return nil, err
 		}
@@ -1535,6 +1540,51 @@ update chat_threads set unread = 0 where id = $1
 func (q *Queries) MarkThreadRead(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, markThreadRead, id)
 	return err
+}
+
+const messagesByWAIDs = `-- name: MessagesByWAIDs :many
+select m.id, k.wa_msg_id, m.thread_id, m.direction, m.from_name, m.body, m.media
+from chat_message_keys k join chat_messages m on m.id = k.message_id and m.sent_at = k.sent_at
+where k.wa_msg_id = any($1::text[])
+`
+
+type MessagesByWAIDsRow struct {
+	ID        uuid.UUID       `json:"id"`
+	WaMsgID   string          `json:"wa_msg_id"`
+	ThreadID  *uuid.UUID      `json:"thread_id"`
+	Direction *string         `json:"direction"`
+	FromName  *string         `json:"from_name"`
+	Body      *string         `json:"body"`
+	Media     json.RawMessage `json:"media"`
+}
+
+// The bubbles quoted by replies (WhatsApp "Balas") that are not on the page being shown.
+func (q *Queries) MessagesByWAIDs(ctx context.Context, ids []string) ([]MessagesByWAIDsRow, error) {
+	rows, err := q.db.Query(ctx, messagesByWAIDs, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []MessagesByWAIDsRow{}
+	for rows.Next() {
+		var i MessagesByWAIDsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.WaMsgID,
+			&i.ThreadID,
+			&i.Direction,
+			&i.FromName,
+			&i.Body,
+			&i.Media,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const nameNewThread = `-- name: NameNewThread :exec

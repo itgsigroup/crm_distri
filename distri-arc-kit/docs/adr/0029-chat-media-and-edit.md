@@ -31,6 +31,11 @@ seperti di WhatsApp; di daftar chat ada filter **Belum dibalas**. Sebelumnya bri
 - **Belum dibalas** = percakapan satu-satu (dealer, nomor baru) yang punya pesan pelanggan setelah balasan terakhir kita
   (`waiting_since`). Grup tidak dihitung: obrolan grup bukan permintaan ke satu nomor.
 
+- **Balas (reply)** — tambahan 13 Okt: `chat_messages.quoted_wa_id` (migrasi 0027) menyimpan id WhatsApp pesan yang
+  dikutip (bridge membaca `contextInfo.stanzaId` dari semua jenis pesan). Balasan dari Chat membawa `quote {id, from_me,
+  participant, text}` di payload outbox; bridge mengirimnya dengan opsi `quoted` Baileys. Pesan yang belum punya id
+  WhatsApp (masih antre) tidak bisa dikutip.
+
 ## Konsekuensi
 - Media dari pesan yang tersimpan sebelum perubahan ini belum punya `ref` ("buka di ponsel"); referensinya terisi
   saat WhatsApp mengirim pesan itu lagi (sinkron riwayat / `wa.backfill`).

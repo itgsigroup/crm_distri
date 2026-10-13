@@ -128,10 +128,10 @@ with k as (
   on conflict (wa_msg_id) do nothing
   returning message_id, sent_at
 )
-insert into chat_messages (id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal)
+insert into chat_messages (id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, quoted_wa_id)
 select k.message_id, sqlc.narg(thread_id)::uuid, sqlc.narg(wa_msg_id)::text, sqlc.narg(direction)::text, sqlc.narg(from_number)::text,
        sqlc.narg(from_name)::text, sqlc.narg(body)::text, sqlc.narg(media)::jsonb, k.sent_at, sqlc.narg(annotation)::jsonb,
-       sqlc.narg(signal_id)::uuid, sqlc.arg(status)::text, sqlc.narg(proposal_id)::uuid, sqlc.arg(internal)::bool
+       sqlc.narg(signal_id)::uuid, sqlc.arg(status)::text, sqlc.narg(proposal_id)::uuid, sqlc.arg(internal)::bool, sqlc.narg(quoted_wa_id)::text
 from k
 returning id;
 
@@ -406,3 +406,9 @@ returning id, proposal_id;
 
 -- name: SetChatMessageBody :exec
 update chat_messages set body = sqlc.arg(body)::text, edited_at = sqlc.narg(edited_at)::timestamptz where id = sqlc.arg(id)::uuid;
+
+-- name: MessagesByWAIDs :many
+-- The bubbles quoted by replies (WhatsApp "Balas") that are not on the page being shown.
+select m.id, k.wa_msg_id, m.thread_id, m.direction, m.from_name, m.body, m.media
+from chat_message_keys k join chat_messages m on m.id = k.message_id and m.sent_at = k.sent_at
+where k.wa_msg_id = any(sqlc.arg(ids)::text[]);

@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { Policy } from './config.js'
 import { dailyCap } from './guard.js'
-import { SendError, type Sender, type SendTarget } from './sender.js'
+import { SendError, type Quote, type Sender, type SendTarget } from './sender.js'
 import { HistoryBusy, MediaBusy } from './session.js'
 import { verify } from './sign.js'
 import type { Store } from './store.js'
@@ -57,7 +57,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
  *   GET    /sessions/{id}/qr              current QR / status
  *   GET    /sessions/{id}/groups          joined groups with members
  *   GET    /sessions/{id}/contacts/{jid}  profile (name, about, has_photo, business)
- *   POST   /sessions/{id}/send            {chat_id, text, action_id} → {wamid}
+ *   POST   /sessions/{id}/send            {chat_id, text, action_id, quote?: {id, from_me, participant?, text}} → {wamid}
  *   POST   /sessions/{id}/edit            {chat_id, wamid, text, action_id} → {wamid}: edit a sent text (approved action)
  *   POST   /sessions/{id}/media           {ref, mime} → the file (streamed, never stored); 409 not connected,
  *                                         429 too many at once, 410 gone from WhatsApp and the phone
@@ -112,9 +112,9 @@ export function handler(d: Deps) {
       }
       if (method === 'GET' && parts[2] === 'contacts' && parts[3]) return json(res, 200, await s.profile(parts[3]))
       if (method === 'POST' && parts[2] === 'send') {
-        const inp = JSON.parse(body || '{}') as { chat_id?: string; text?: string; action_id?: string }
+        const inp = JSON.parse(body || '{}') as { chat_id?: string; text?: string; action_id?: string; quote?: Quote }
         try {
-          const out = await d.sender.send(s, inp.chat_id ?? '', inp.text ?? '', inp.action_id ?? '')
+          const out = await d.sender.send(s, inp.chat_id ?? '', inp.text ?? '', inp.action_id ?? '', inp.quote?.id ? inp.quote : undefined)
           return json(res, 200, out)
         } catch (e) {
           if (e instanceof SendError) {

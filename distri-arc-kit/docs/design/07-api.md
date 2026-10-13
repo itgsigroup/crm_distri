@@ -30,6 +30,7 @@ Base `/api`. JSON `snake_case`. Auth: cookie sesi (JWT HttpOnly, 12 jam) dari `P
 ## Chat
 - `GET /chat/threads?tab=all|dealer|group_internal|new&q=` · `GET /chat/threads/{id}?before=` (30 pesan)
 - `POST /chat/threads/{id}/messages {body}` → membuat **proposal `kind='reply'` auto-approved oleh pengirim manusia** (tercatat `decided_by`), masuk outbox → kirim. (Manusia mengirim sendiri = keputusan.)
+- `POST /chat/threads/{id}/messages {body, reply_to?}` — `reply_to` = id bubble yang dibalas (WhatsApp "Balas"; harus sudah punya id WhatsApp, kalau belum 409). Bubble membawa `quote {id, direction, from_name, body, media_kind}` dan `can_reply`.
 - `PATCH /chat/threads/{id}/messages/{mid} {body}` → edit pesan teks dari nomor itu (ADR 0029): masih di antrean → teks outbox diubah (200); sudah terkirim ≤ 15 menit → proposal `reply` baru + outbox `kind=edit` (202); selain itu 409.
 - `GET /screen-analysis/{stock|credit}` → Analisa Stok / Analisa Kas terakhir yang ditulis AI (ADR 0030): `{analysis: {cycle_number, generated_at, source, overview, lines: {<id baris>: {note, confidence}}} | null}`.
 - `GET /chat/threads/{id}/messages/{mid}/media` → file media pesan (foto, video, VN, dokumen) diambil dari WhatsApp saat dibuka, tidak disimpan (ADR 0029); 404 tanpa referensi, 410 hilang di WhatsApp, 503 nomor belum terhubung, 409 bukan transport Baileys. Bubble membawa `media {kind, mime, file_name, size, seconds, ptt, viewable}`, `edited_at`, `can_edit`.

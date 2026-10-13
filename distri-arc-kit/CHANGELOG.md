@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: Balas (reply) per bubble seperti WhatsApp · 2026-10-13
+- Tombol **Balas** di tiap bubble (saat kursor di atas pesan): kolom ketik menampilkan "Membalas …", dan balasan terkirim sebagai reply WhatsApp sungguhan — di HP pelanggan pesan aslinya tampil terkutip. Tetap keputusan manusia lewat outbox dan pemeriksaan persetujuan bridge.
+- Balasan dari pelanggan atau dari HP ikut tercatat (bridge membaca kutipan dari semua jenis pesan: teks, foto, VN, dokumen), dan bubble menampilkan kotak kutipan; klik kutipan untuk loncat ke pesan aslinya.
+- Migrasi 0027 `chat_messages.quoted_wa_id`; `POST /chat/threads/{id}/messages {body, reply_to}`.
+
 ## Fix · Analisa lanjut di Chat: Claude (MCP) menganalisa percakapan itu, termasuk per bubble · 2026-10-13
 - Tombol **Analisa lanjut** kini menganalisa percakapan yang dibuka (scope baru `thread:<id>`; chat dealer tetap scope dealer) dan selalu lewat MCP.
 - Pembacaan Analisa WhatsApp untuk Claude kini juga dibuat untuk siklus satu percakapan/dealer/chat (sebelumnya hanya siklus penuh, sehingga Claude tidak bisa menulis catatan per bubble). Prompt MCP meminta catatan per pesan pelanggan (`messages`). Dengan model di server, catatan per bubble juga ditulis di siklus non-penuh.

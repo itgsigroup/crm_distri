@@ -167,6 +167,19 @@ type MessageView struct {
 	EditedAt   *time.Time      `json:"edited_at,omitempty"`
 	// CanEdit: a text this number sent (or still queued); a sent one only within WhatsApp's 15 minutes
 	CanEdit bool `json:"can_edit,omitempty"`
+	// Quote: the bubble this message replies to (WhatsApp "Balas"); ID is empty when that message is not kept
+	Quote *MsgQuote `json:"quote,omitempty"`
+	// CanReply: the message has its WhatsApp id, so a reply can quote it
+	CanReply bool `json:"can_reply,omitempty"`
+}
+
+// MsgQuote is the quoted bubble shown above a reply.
+type MsgQuote struct {
+	ID        *uuid.UUID `json:"id"`
+	Direction string     `json:"direction"`
+	FromName  string     `json:"from_name"`
+	Body      string     `json:"body"`
+	MediaKind string     `json:"media_kind,omitempty"`
 }
 
 // MediaView describes a bubble's photo, video, voice note or document; the file itself comes from
@@ -188,6 +201,50 @@ func mediaView(raw json.RawMessage) *MediaView {
 		return nil
 	}
 	return &MediaView{Kind: m.Kind, Mime: m.Mime, FileName: m.FileName, Size: m.Size, Seconds: m.Seconds, PTT: m.PTT, Viewable: m.Viewable()}
+}
+
+// quotesFor resolves the messages quoted by replies on a page: from the page itself, else from the database (an older
+// bubble, or one stored under another GSI number's thread of a group).
+func (s *Server) quotesFor(ctx context.Context, msgs []gen.ChatMessage) (map[string]*MsgQuote, error) {
+	out := map[string]*MsgQuote{}
+	want := map[string]bool{}
+	for _, m := range msgs {
+		if m.QuotedWaID != nil && *m.QuotedWaID != "" {
+			want[*m.QuotedWaID] = true
+		}
+	}
+	if len(want) == 0 {
+		return out, nil
+	}
+	quote := func(id uuid.UUID, dir, from, body string, media json.RawMessage) *MsgQuote {
+		q := &MsgQuote{ID: &id, Direction: dir, FromName: from, Body: body}
+		if mv := mediaView(media); mv != nil {
+			q.MediaKind = mv.Kind
+		}
+		return q
+	}
+	for _, m := range msgs {
+		if m.WaMsgID != nil && want[*m.WaMsgID] {
+			out[*m.WaMsgID] = quote(m.ID, deref(m.Direction), deref(m.FromName), deref(m.Body), m.Media)
+		}
+	}
+	var missing []string
+	for id := range want {
+		if _, ok := out[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+	if len(missing) == 0 {
+		return out, nil
+	}
+	rows, err := s.st.Q.MessagesByWAIDs(ctx, missing)
+	if err != nil {
+		return nil, err
+	}
+	for _, m := range rows {
+		out[m.WaMsgID] = quote(m.ID, deref(m.Direction), deref(m.FromName), deref(m.Body), m.Media)
+	}
+	return out, nil
 }
 
 // realWAID: the message has its WhatsApp id (not a reply still queued, not a local row).
@@ -289,6 +346,11 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	quotes, err := s.quotesFor(r.Context(), msgs)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
 	out := make([]MessageView, 0, len(msgs))
 	now := s.clock.Now()
 	for _, m := range msgs {
@@ -298,6 +360,14 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 			v.Direction, v.FromName, v.Internal = "in", label, true
 		}
 		v.CanEdit = canEdit(v.Direction, v.Status, deref(m.ThreadID) == t.ID, v.Media, m.WaMsgID, m.SentAt, now)
+		v.CanReply = realWAID(m.WaMsgID) && v.Status != "failed"
+		if m.QuotedWaID != nil {
+			q, ok := quotes[*m.QuotedWaID]
+			if !ok {
+				q = &MsgQuote{Body: "Pesan tidak tersimpan di GSI Orbit"}
+			}
+			v.Quote = q
+		}
 		if m.SignalID != nil {
 			v.Proposal = bySig[*m.SignalID]
 		}
@@ -484,7 +554,8 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Body string `json:"body"`
+		Body    string `json:"body"`
+		ReplyTo string `json:"reply_to"` // a bubble of this conversation to quote (WhatsApp "Balas")
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || strings.TrimSpace(in.Body) == "" {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pesan kosong")
@@ -493,6 +564,15 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 	u, ok := s.chatAllowed(w, r, t)
 	if !ok {
 		return
+	}
+	var quote *wa.Quote
+	if in.ReplyTo != "" {
+		q, why := s.replyQuote(r.Context(), t, in.ReplyTo)
+		if why != "" {
+			httpx.Fail(w, http.StatusConflict, "not_quotable", why)
+			return
+		}
+		quote = q
 	}
 	now := s.clock.Now()
 	body := strings.TrimSpace(in.Body)
@@ -505,11 +585,15 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		dir, from := "out", *t.SalesWa
 		name := deref(t.SalesName)
 		pendingID := "outbox:" + p.ID.String()
-		mid, err := q.InsertChatMessage(r.Context(), gen.InsertChatMessageParams{ThreadID: &t.ID, WaMsgID: &pendingID, Direction: &dir, FromNumber: &from, FromName: &name, Body: &body, SentAt: now, Status: "pending", ProposalID: &p.ID})
+		var quoted *string
+		if quote != nil {
+			quoted = &quote.ID
+		}
+		mid, err := q.InsertChatMessage(r.Context(), gen.InsertChatMessageParams{ThreadID: &t.ID, WaMsgID: &pendingID, Direction: &dir, FromNumber: &from, FromName: &name, Body: &body, SentAt: now, Status: "pending", ProposalID: &p.ID, QuotedWaID: quoted})
 		if err != nil {
 			return err
 		}
-		payload, _ := json.Marshal(outbox.WAPayload{From: from, To: *t.WaJid, Text: body, Kind: "reply", MessageID: mid.String(), ThreadID: t.ID.String()})
+		payload, _ := json.Marshal(outbox.WAPayload{From: from, To: *t.WaJid, Text: body, Kind: "reply", MessageID: mid.String(), ThreadID: t.ID.String(), Quote: quote})
 		to := *t.WaJid
 		ob, err := q.InsertOutbox(r.Context(), gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "wa", ToRef: &to, Payload: payload})
 		if err != nil {
@@ -540,6 +624,29 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusAccepted, res)
+}
+
+// replyQuote is the WhatsApp key and text of a bubble a reply quotes. The bubble must belong to the conversation and
+// have its WhatsApp id; in a group, a member's message is addressed by its sender. why is the refusal for the person.
+func (s *Server) replyQuote(ctx context.Context, t gen.GetThreadRow, id string) (q *wa.Quote, why string) {
+	mid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, "Pesan yang dibalas tidak ditemukan"
+	}
+	m, err := s.st.Q.GetThreadMessage(ctx, gen.GetThreadMessageParams{ThreadID: t.ID, ID: mid})
+	if err != nil {
+		return nil, "Pesan yang dibalas tidak ditemukan"
+	}
+	if !realWAID(m.WaMsgID) {
+		return nil, "Pesan itu belum terkirim — tunggu terkirim, lalu balas"
+	}
+	// sent by this number: its own thread's outgoing message; anything else came from someone else
+	fromMe := deref(m.Direction) == "out" && deref(m.ThreadID) == t.ID
+	q = &wa.Quote{ID: *m.WaMsgID, FromMe: fromMe, Text: deref(m.Body)}
+	if wa.IsGroupJID(deref(t.WaJid)) && !fromMe && deref(m.FromNumber) != "" {
+		q.Participant = wa.UserJID(deref(m.FromNumber))
+	}
+	return q, ""
 }
 
 // errEditGone: the queued reply left the outbox between reading and editing it.

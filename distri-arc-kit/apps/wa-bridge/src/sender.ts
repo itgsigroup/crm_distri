@@ -4,10 +4,13 @@ import { textHash } from './sign.js'
 import type { Store } from './store.js'
 
 /** What the sender needs from a live WhatsApp session. */
+/** The message a reply quotes (WhatsApp "Balas"): its key and text, shown above the reply on the customer's phone. */
+export interface Quote { id: string; from_me: boolean; participant?: string; text: string }
+
 export interface SendTarget {
   id: string
   connected(): boolean
-  sendText(chat: string, text: string, typingMs: number): Promise<string>
+  sendText(chat: string, text: string, typingMs: number, quote?: Quote): Promise<string>
   editText(chat: string, wamid: string, text: string): Promise<void>
 }
 
@@ -37,7 +40,7 @@ export class Sender {
 
   private now(): Date { return this.opts.now ? this.opts.now() : new Date() }
 
-  async send(target: SendTarget, chat: string, text: string, actionId: string): Promise<{ wamid: string; duplicate: boolean }> {
+  async send(target: SendTarget, chat: string, text: string, actionId: string, quote?: Quote): Promise<{ wamid: string; duplicate: boolean }> {
     if (!actionId) throw new SendError(403, 'not_approved', 'kirim ditolak — action belum disetujui manusia')
     if (!chat || !text.trim()) throw new SendError(400, 'bad_request', 'chat_id dan text wajib')
     const prior = await this.store.sentForAction(target.id, actionId)
@@ -57,7 +60,7 @@ export class Sender {
       const gap = sendGapMs(this.policy, this.opts.rnd)
       const wait = last === undefined ? 0 : Math.max(0, last + gap - this.now().getTime())
       if (wait > 0) await (this.opts.sleep ?? sleep)(wait)
-      const wamid = await target.sendText(chat, text, typingMs(this.policy, text))
+      const wamid = await target.sendText(chat, text, typingMs(this.policy, text), quote)
       const at = this.now()
       this.lastSendAt.set(target.id, at.getTime())
       await this.store.recordSend({ session: target.id, chat, actionId, wamid, at, hash: textHash(text) })

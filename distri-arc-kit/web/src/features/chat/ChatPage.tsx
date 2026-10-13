@@ -154,6 +154,22 @@ function useMediaBlob(url: string) {
   return { ...state, load }
 }
 
+function ReplyIcon() {
+  return <svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z" fill="currentColor" /></svg>
+}
+
+/** The quoted bubble above a reply; a click jumps to it. */
+function QuoteBlock({ q, mine, onJump }: { q: NonNullable<MessageView['quote']>; mine: string; onJump: (id: string) => void }) {
+  const who = q.direction === 'out' ? mine || 'Anda' : q.from_name || 'Pelanggan'
+  const text = q.media_kind ? mediaCaption(q.body, { kind: q.media_kind, viewable: false }) || mediaName({ kind: q.media_kind, viewable: false }) : q.body
+  return (
+    <button type="button" className={`bub-quote ${q.direction === 'out' ? 'out' : 'in'}`} disabled={!q.id} onClick={() => q.id && onJump(q.id)} title={q.id ? 'Lihat pesan yang dibalas' : undefined}>
+      <b>{q.id ? who : 'Pesan'}</b>
+      <span>{text}</span>
+    </button>
+  )
+}
+
 function Play() {
   return <svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
 }
@@ -201,20 +217,27 @@ function BubbleMedia({ md, url, onZoom }: { md: MediaView; url: string; onZoom: 
   )
 }
 
-function Bubble({ m, via, group, analysis, thread, now, onEdit, onZoom }: {
-  m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date; onEdit: (m: MessageView) => void; onZoom: (url: string) => void
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onJump, onZoom }: {
+  m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date
+  onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
 }) {
   const a = m.annotation
   const caption = mediaCaption(m.body, m.media)
   const edit = editableNow(m, now)
   return (
-    <div className={`m ${m.direction}${m.media ? ' has-media' : ''}`}>
+    <div className={`m ${m.direction}${m.media ? ' has-media' : ''}`} data-mid={m.id}>
       {group && m.direction === 'in' && <span className="who">{m.from_name}<span className={`pill ${m.internal ? 'neutral' : 'accent'}`}>{m.internal ? 'internal' : 'eksternal'}</span></span>}
       <div className="bb">
+        {m.quote && <QuoteBlock q={m.quote} mine={via} onJump={onJump} />}
         {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} onZoom={onZoom} />}
         {caption}
         <span className="tm">{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
-        {edit && <button type="button" className="bub-edit" onClick={() => onEdit(m)} title="Edit pesan (WhatsApp: sampai 15 menit setelah terkirim)" aria-label="Edit pesan"><Icon name="edit" /></button>}
+        {(m.can_reply || edit) && (
+          <span className="bub-acts">
+            {m.can_reply && <button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button>}
+            {edit && <button type="button" onClick={() => onEdit(m)} title="Edit pesan (WhatsApp: sampai 15 menit setelah terkirim)" aria-label="Edit pesan"><Icon name="edit" /></button>}
+          </span>
+        )}
       </div>
       {a && (
         <span className={`ann ${a.k}`}>
@@ -294,12 +317,13 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const [loading, setLoading] = useState(false)
   const [perMsg, setPerMsg] = usePerMessageAnalysis()
   const [editing, setEditing] = useState<MessageView | null>(null)
+  const [replying, setReplying] = useState<MessageView | null>(null)
   const [zoom, setZoom] = useState<string | null>(null)
   const body = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLInputElement>(null)
   const from = (data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
   const send = useMutation({
-    mutationFn: (b: string) => api.post(`/chat/threads/${id}/messages`, { body: b }),
+    mutationFn: (v: { body: string; reply_to?: string }) => api.post(`/chat/threads/${id}/messages`, v),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['chat'] })
       toast(`Masuk antrean kirim ke ${data?.thread.title} dari ${from} · lewat penjaga anti-blokir`)
@@ -315,7 +339,21 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     },
     onError: (e: Error) => toast(e.message),
   })
+  const startReply = (m: MessageView) => {
+    setEditing(null)
+    setReplying(m)
+    requestAnimationFrame(() => input.current?.focus())
+  }
+  const jumpTo = (mid: string) => {
+    const el = body.current?.querySelector<HTMLElement>(`[data-mid="${mid}"]`)
+    if (!el) return toast('Pesan yang dibalas ada di riwayat lebih lama — gulir ke atas')
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.classList.remove('flash')
+    void el.offsetWidth
+    el.classList.add('flash')
+  }
   const startEdit = (m: MessageView) => {
+    setReplying(null)
     setEditing(m)
     setText(m.body)
     requestAnimationFrame(() => input.current?.focus())
@@ -366,7 +404,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       if (v !== editing.body) edit.mutate({ id: editing.id, body: v })
       return
     }
-    send.mutate(v)
+    send.mutate(replying ? { body: v, reply_to: replying.id } : { body: v })
+    setReplying(null)
   }
   const links = t.kind === 'group' ? [] : lookupLinks(t.title, t.phone, t.dealer_city)
   return (
@@ -406,7 +445,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           return (
             <div key={m.id} style={{ display: 'contents' }}>
               {sep}
-              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onZoom={setZoom} />
+              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onJump={jumpTo} onZoom={setZoom} />
             </div>
           )
         })}
@@ -418,6 +457,13 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
             <div className="sug">{(t.suggestions ?? []).map((x) => <button key={x} type="button" className="chip" onClick={() => setText(x)}>{x}</button>)}</div>
           </div>
         )}
+        {replying && (
+          <div className="ibc-editing reply">
+            <ReplyIcon />
+            <span><b>Membalas {replying.direction === 'out' ? from || 'Anda' : replying.from_name || t.title}</b><small>{mediaCaption(replying.body, replying.media) || (replying.media ? mediaName(replying.media) : '')}</small></span>
+            <button type="button" onClick={() => setReplying(null)} aria-label="Batal balas"><Icon name="x" /></button>
+          </div>
+        )}
         {editing && (
           <div className="ibc-editing">
             <Icon name="edit" />
@@ -426,7 +472,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           </div>
         )}
         <form onSubmit={submit}>
-          <input ref={input} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && editing && cancelEdit()}
+          <input ref={input} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key !== 'Escape') return; if (editing) cancelEdit(); setReplying(null) }}
             placeholder={editing ? 'Ubah pesan…' : 'Tulis balasan…'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : 'Tulis balasan'} />
           <button type="submit" className="send" aria-label={editing ? 'Simpan edit' : 'Kirim'} disabled={send.isPending || edit.isPending}><Icon name={editing ? 'check' : 'send'} /></button>
         </form>

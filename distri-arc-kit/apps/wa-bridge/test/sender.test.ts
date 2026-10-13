@@ -11,7 +11,7 @@ function target(connected = true) {
   const t: SendTarget = {
     id: 's1',
     connected: () => connected,
-    sendText: async (chat, text) => { sent.push({ chat, text }); return 'WAMID' + sent.length },
+    sendText: async (chat, text, _typing, quote) => { sent.push({ chat, text, ...(quote ? { edit: 'quote:' + quote.id } : {}) }); return 'WAMID' + sent.length },
     editText: async (chat, wamid, text) => { sent.push({ chat, text, edit: wamid }) },
   }
   return { t, sent }
@@ -36,6 +36,12 @@ describe('sender', () => {
     expect(await code(sender.send(t, '6281@s.whatsapp.net', 'Halo', 'proposed-9'))).toBe('403:not_approved')
     expect(sent).toHaveLength(0)
     expect(await sender.send(t, '6281@s.whatsapp.net', 'Halo', 'a1')).toEqual({ wamid: 'WAMID1', duplicate: false })
+  })
+  it('sends a reply quoting the message it answers', async () => {
+    const { sender } = await setup(['a1'])
+    const { t, sent } = target()
+    await sender.send(t, '6281@s.whatsapp.net', 'Siap Pak', 'a1', { id: 'Q9', from_me: false, text: 'Ada stok DVR?' })
+    expect(sent).toEqual([{ chat: '6281@s.whatsapp.net', text: 'Siap Pak', edit: 'quote:Q9' }])
   })
   it('edits only for approved actions, once, without the hourly caps', async () => {
     const { sender, store } = await setup(['a1'])
