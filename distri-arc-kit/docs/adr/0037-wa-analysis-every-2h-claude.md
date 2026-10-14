@@ -17,3 +17,11 @@ Status: diterima · 2026-10-14 (Sam)
 ## Konsekuensi
 - Butuh kunci Claude API di MCP Claude → Analisis terjadwal → Atur mesin, dan anggaran harian yang cukup untuk 12 run
   per hari (kebijakan `mcp.analyst.daily_budget_idr`).
+
+## Revisi 2026-10-14 (Sam, sore) — routine claude.ai, tanpa kunci API
+- Jadwal `wa_analysis` kini `runner = 'external'` (migrasi 0037): server tidak memanggil Claude. Routine Claude di
+  claude.ai (langganan CEO, konektor CRM DISTRI) berjalan tiap 2 jam di jam genap WIB (cron UTC `0 1-23/2 * * *`) dan
+  menjalankan `orchestrator_reanalyze screen:wa` → `orchestrator_input_get` → `orchestrator_submit`.
+- Setiap kiriman Analisa WhatsApp untuk siklus `screen:wa` / `all` dicatat sebagai run jadwal ini (berhasil, atau gagal
+  dengan alasan bila ditolak). Label Pusat kendali merah "terlambat" bila tidak ada run berhasil > 2½ jam.
+- Tombol Jalankan di server diganti tautan ke claude.ai/code/routines (Run now).

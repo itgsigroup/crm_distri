@@ -60,10 +60,11 @@ func (q *Queries) DeleteMCPSchedule(ctx context.Context, id uuid.UUID) (*uuid.UU
 }
 
 const dueMCPSchedules = `-- name: DueMCPSchedules :many
-select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key from mcp_schedules where enabled and (next_run_at is null or next_run_at <= $1) order by next_run_at nulls first
+select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key, runner from mcp_schedules where enabled and runner = 'server' and (next_run_at is null or next_run_at <= $1) order by next_run_at nulls first
 `
 
 // Enabled schedules whose next run has come (or was never computed).
+// A schedule run by an outside Claude (runner external) is never started here.
 func (q *Queries) DueMCPSchedules(ctx context.Context, nextRunAt *time.Time) ([]McpSchedule, error) {
 	rows, err := q.db.Query(ctx, dueMCPSchedules, nextRunAt)
 	if err != nil {
@@ -88,6 +89,7 @@ func (q *Queries) DueMCPSchedules(ctx context.Context, nextRunAt *time.Time) ([]
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Key,
+			&i.Runner,
 		); err != nil {
 			return nil, err
 		}
@@ -148,7 +150,7 @@ func (q *Queries) FinishMCPScheduleRun(ctx context.Context, arg FinishMCPSchedul
 }
 
 const getMCPSchedule = `-- name: GetMCPSchedule :one
-select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key from mcp_schedules where id = $1
+select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key, runner from mcp_schedules where id = $1
 `
 
 func (q *Queries) GetMCPSchedule(ctx context.Context, id uuid.UUID) (McpSchedule, error) {
@@ -169,12 +171,13 @@ func (q *Queries) GetMCPSchedule(ctx context.Context, id uuid.UUID) (McpSchedule
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Key,
+		&i.Runner,
 	)
 	return i, err
 }
 
 const getMCPScheduleByKey = `-- name: GetMCPScheduleByKey :one
-select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key from mcp_schedules where key = $1
+select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key, runner from mcp_schedules where key = $1
 `
 
 func (q *Queries) GetMCPScheduleByKey(ctx context.Context, key *string) (McpSchedule, error) {
@@ -195,6 +198,7 @@ func (q *Queries) GetMCPScheduleByKey(ctx context.Context, key *string) (McpSche
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Key,
+		&i.Runner,
 	)
 	return i, err
 }
@@ -250,7 +254,7 @@ func (q *Queries) GetMCPScheduleRun(ctx context.Context, id uuid.UUID) (GetMCPSc
 
 const insertMCPSchedule = `-- name: InsertMCPSchedule :one
 insert into mcp_schedules (name, prompt, cron, enabled, scopes, max_steps, created_by, next_run_at)
-values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key
+values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key, runner
 `
 
 type InsertMCPScheduleParams struct {
@@ -291,6 +295,7 @@ func (q *Queries) InsertMCPSchedule(ctx context.Context, arg InsertMCPSchedulePa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Key,
+		&i.Runner,
 	)
 	return i, err
 }
@@ -411,6 +416,17 @@ func (q *Queries) LastMCPScheduleRuns(ctx context.Context) ([]LastMCPScheduleRun
 	return items, nil
 }
 
+const lastOKMCPScheduleRun = `-- name: LastOKMCPScheduleRun :one
+select finished_at from mcp_schedule_runs where schedule_id = $1 and status = 'ok' order by finished_at desc nulls last limit 1
+`
+
+func (q *Queries) LastOKMCPScheduleRun(ctx context.Context, scheduleID uuid.UUID) (*time.Time, error) {
+	row := q.db.QueryRow(ctx, lastOKMCPScheduleRun, scheduleID)
+	var finished_at *time.Time
+	err := row.Scan(&finished_at)
+	return finished_at, err
+}
+
 const latestMCPScheduleRun = `-- name: LatestMCPScheduleRun :one
 select id, status, error, started_at, finished_at, report from mcp_schedule_runs where schedule_id = $1 order by started_at desc limit 1
 `
@@ -506,7 +522,7 @@ func (q *Queries) ListMCPScheduleRuns(ctx context.Context, arg ListMCPScheduleRu
 }
 
 const listMCPSchedules = `-- name: ListMCPSchedules :many
-select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key from mcp_schedules order by created_at
+select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key, runner from mcp_schedules order by created_at
 `
 
 func (q *Queries) ListMCPSchedules(ctx context.Context) ([]McpSchedule, error) {
@@ -533,6 +549,7 @@ func (q *Queries) ListMCPSchedules(ctx context.Context) ([]McpSchedule, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Key,
+			&i.Runner,
 		); err != nil {
 			return nil, err
 		}
@@ -542,6 +559,41 @@ func (q *Queries) ListMCPSchedules(ctx context.Context) ([]McpSchedule, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const recordExternalRun = `-- name: RecordExternalRun :exec
+insert into mcp_schedule_runs (schedule_id, slot, trigger, triggered_by, status, engine, model, report, steps, error, started_at, finished_at)
+values ($1, $2, 'schedule', $3, $4, 'claude', $5,
+  $6, $7, $8, $2, now())
+on conflict (schedule_id, slot) do update set status = excluded.status, report = coalesce(excluded.report, mcp_schedule_runs.report),
+  steps = excluded.steps, error = excluded.error, triggered_by = excluded.triggered_by, finished_at = now()
+`
+
+type RecordExternalRunParams struct {
+	ScheduleID  uuid.UUID       `json:"schedule_id"`
+	Slot        *time.Time      `json:"slot"`
+	TriggeredBy *string         `json:"triggered_by"`
+	Status      string          `json:"status"`
+	Model       *string         `json:"model"`
+	Report      *string         `json:"report"`
+	Steps       json.RawMessage `json:"steps"`
+	Error       *string         `json:"error"`
+}
+
+// One Analisa WhatsApp Claude submitted from outside (a claude.ai routine) is a run of the external schedule; the slot
+// is the cycle's time, so a second submit for the same cycle updates its run.
+func (q *Queries) RecordExternalRun(ctx context.Context, arg RecordExternalRunParams) error {
+	_, err := q.db.Exec(ctx, recordExternalRun,
+		arg.ScheduleID,
+		arg.Slot,
+		arg.TriggeredBy,
+		arg.Status,
+		arg.Model,
+		arg.Report,
+		arg.Steps,
+		arg.Error,
+	)
+	return err
 }
 
 const setMCPScheduleClient = `-- name: SetMCPScheduleClient :exec
@@ -575,7 +627,7 @@ func (q *Queries) TouchMCPScheduleRun(ctx context.Context, arg TouchMCPScheduleR
 const updateMCPSchedule = `-- name: UpdateMCPSchedule :one
 update mcp_schedules set name = $2, prompt = $3, cron = $4, enabled = $5, scopes = $6, max_steps = $7, next_run_at = $8,
   updated_at = now()
-where id = $1 returning id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key
+where id = $1 returning id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key, runner
 `
 
 type UpdateMCPScheduleParams struct {
@@ -616,6 +668,7 @@ func (q *Queries) UpdateMCPSchedule(ctx context.Context, arg UpdateMCPSchedulePa
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Key,
+		&i.Runner,
 	)
 	return i, err
 }

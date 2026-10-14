@@ -156,11 +156,13 @@ type scheduleView struct {
 	CreatedAt   time.Time   `json:"created_at"`
 	// Key: a schedule the app depends on (wa_analysis: Analisa WhatsApp every 2 h, ADR 0037) — it can be paused, not deleted
 	Key string `json:"key,omitempty"`
+	// Runner: server (this server starts Claude with an API key) | external (a Claude routine on claude.ai, ADR 0037)
+	Runner string `json:"runner"`
 }
 
 func (s *Server) scheduleView(sc gen.McpSchedule, last map[uuid.UUID]gen.LastMCPScheduleRunsRow) scheduleView {
 	v := scheduleView{ID: sc.ID, Name: sc.Name, Prompt: sc.Prompt, Cron: sc.Cron, Description: cron.Describe(sc.Cron), Enabled: sc.Enabled,
-		Scopes: sc.Scopes, MaxSteps: sc.MaxSteps, NextRuns: []time.Time{}, LastRunAt: sc.LastRunAt, CreatedAt: sc.CreatedAt, Key: deref(sc.Key)}
+		Scopes: sc.Scopes, MaxSteps: sc.MaxSteps, NextRuns: []time.Time{}, LastRunAt: sc.LastRunAt, CreatedAt: sc.CreatedAt, Key: deref(sc.Key), Runner: sc.Runner}
 	if spec, err := cron.Parse(sc.Cron); err == nil && sc.Enabled {
 		v.NextRuns = spec.NextN(s.clock.Now(), 3)
 	}
@@ -316,8 +318,13 @@ func (s *Server) runSchedule(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if _, err := s.st.Q.GetMCPSchedule(r.Context(), id); err != nil {
+	sc, err := s.st.Q.GetMCPSchedule(r.Context(), id)
+	if err != nil {
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Jadwal tidak ditemukan")
+		return
+	}
+	if sc.Runner == "external" {
+		httpx.Fail(w, http.StatusConflict, "external", "Jadwal ini dijalankan routine Claude di claude.ai — jalankan dari claude.ai/code/routines (Run now)")
 		return
 	}
 	by := deref(u.Name)

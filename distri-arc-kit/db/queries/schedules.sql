@@ -21,7 +21,8 @@ update mcp_schedules set client_id = $2 where id = $1;
 
 -- name: DueMCPSchedules :many
 -- Enabled schedules whose next run has come (or was never computed).
-select * from mcp_schedules where enabled and (next_run_at is null or next_run_at <= $1) order by next_run_at nulls first;
+-- A schedule run by an outside Claude (runner external) is never started here.
+select * from mcp_schedules where enabled and runner = 'server' and (next_run_at is null or next_run_at <= $1) order by next_run_at nulls first;
 
 -- name: AdvanceMCPSchedule :execrows
 -- Moves next_run_at only if nobody else did (two ticks never both fire one slot).
@@ -71,3 +72,15 @@ select * from mcp_schedules where key = $1;
 
 -- name: LatestMCPScheduleRun :one
 select id, status, error, started_at, finished_at, report from mcp_schedule_runs where schedule_id = $1 order by started_at desc limit 1;
+
+-- name: RecordExternalRun :exec
+-- One Analisa WhatsApp Claude submitted from outside (a claude.ai routine) is a run of the external schedule; the slot
+-- is the cycle's time, so a second submit for the same cycle updates its run.
+insert into mcp_schedule_runs (schedule_id, slot, trigger, triggered_by, status, engine, model, report, steps, error, started_at, finished_at)
+values (sqlc.arg(schedule_id), sqlc.arg(slot), 'schedule', sqlc.arg(triggered_by), sqlc.arg(status), 'claude', sqlc.arg(model),
+  sqlc.narg(report), sqlc.arg(steps), sqlc.narg(error), sqlc.arg(slot), now())
+on conflict (schedule_id, slot) do update set status = excluded.status, report = coalesce(excluded.report, mcp_schedule_runs.report),
+  steps = excluded.steps, error = excluded.error, triggered_by = excluded.triggered_by, finished_at = now();
+
+-- name: LastOKMCPScheduleRun :one
+select finished_at from mcp_schedule_runs where schedule_id = $1 and status = 'ok' order by finished_at desc nulls last limit 1;

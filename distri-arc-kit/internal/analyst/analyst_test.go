@@ -219,8 +219,23 @@ func TestWAAnalysisSchedule(t *testing.T) {
 	st, _, rn := setup(t)
 	ctx := context.Background()
 	sch, err := st.Q.GetMCPScheduleByKey(ctx, ptr(analyst.KeyWAAnalysis))
-	if err != nil || sch.Cron != "0 */2 * * *" || !sch.Enabled {
+	if err != nil || sch.Cron != "0 */2 * * *" || !sch.Enabled || sch.Runner != "external" {
 		t.Fatalf("schedule %+v %v", sch, err)
+	}
+	// the server never starts an external schedule
+	for _, at := range []time.Time{now.Now(), now.Now().Add(3 * time.Hour)} {
+		for _, d := range must(analyst.Due(ctx, st.Q, at)) {
+			if d.ScheduleID == sch.ID {
+				t.Fatal("external schedule started on the server")
+			}
+		}
+	}
+	if got, _ := st.Q.GetMCPSchedule(ctx, sch.ID); got.NextRunAt != nil {
+		t.Fatal("the server ticks the external schedule")
+	}
+	// run by the server (with an API key) it is still a success only when Claude's submit landed
+	if _, err := st.Pool.Exec(ctx, "update mcp_schedules set runner = 'server' where id = $1", sch.ID); err != nil {
+		t.Fatal(err)
 	}
 	run, err := rn.Run(ctx, sch.ID, nil, "manual", "Sam")
 	if err != nil || run.Status != "error" || !strings.Contains(deref(run.Error), "butuh Claude") {
@@ -252,3 +267,10 @@ func TestWAAnalysisSchedule(t *testing.T) {
 }
 
 func ptr[T any](v T) *T { return &v }
+
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}

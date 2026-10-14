@@ -575,3 +575,46 @@ func TestMarginCheck(t *testing.T) {
 		}
 	}
 }
+
+// ADR 0037 rev.: Claude's Analisa WhatsApp from a claude.ai routine (screen:wa) is recorded as a run of the external
+// schedule — succeeded, or failed with the reason; Analisa lanjut on one chat is not a run.
+func TestWARoutineRecordsRun(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	cs := e.connect(t, e.token(t, "Claude routine", "read", "orchestrate"))
+	out, txt, ok := call(t, cs, "orchestrator_reanalyze", map[string]any{"scope": "screen:wa"})
+	if !ok {
+		t.Fatalf("reanalyze: %s", txt)
+	}
+	cid := out["cycle_id"].(string)
+	for i := 0; i < 50; i++ {
+		var st string
+		_ = e.st.Pool.QueryRow(ctx, "select status from cycles where id = $1", cid).Scan(&st)
+		if st != "queued" && st != "running" {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if _, txt, ok := call(t, cs, "orchestrator_input_get", map[string]any{"cycle_id": cid, "agent": "Analisa WhatsApp"}); !ok {
+		t.Fatalf("input: %s", txt)
+	}
+	if _, txt, ok := call(t, cs, "orchestrator_submit", map[string]any{"cycle_id": cid, "agent": "Analisa WhatsApp", "overview": "Dua dealer menunggu balasan.", "threads": []any{}}); !ok {
+		t.Fatalf("submit: %s", txt)
+	}
+	var status, report string
+	if err := e.st.Pool.QueryRow(ctx, "select r.status, coalesce(r.report, '') from mcp_schedule_runs r join mcp_schedules s on s.id = r.schedule_id where s.key = 'wa_analysis'").Scan(&status, &report); err != nil {
+		t.Fatal(err)
+	}
+	if status != "ok" || !strings.Contains(report, "Dua dealer menunggu balasan.") {
+		t.Fatalf("run %s %q", status, report)
+	}
+	// a refused submit (unknown cycle id for the agent) does not count as a run of another cycle
+	if _, _, ok := call(t, cs, "orchestrator_submit", map[string]any{"cycle_id": uuid.NewString(), "agent": "Analisa WhatsApp", "overview": "x"}); ok {
+		t.Fatal("submit to an unknown cycle accepted")
+	}
+	var n int
+	_ = e.st.Pool.QueryRow(ctx, "select count(*) from mcp_schedule_runs r join mcp_schedules s on s.id = r.schedule_id where s.key = 'wa_analysis'").Scan(&n)
+	if n != 1 {
+		t.Fatalf("%d runs", n)
+	}
+}

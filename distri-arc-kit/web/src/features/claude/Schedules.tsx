@@ -253,14 +253,15 @@ function Row({ sch, info }: { sch: Schedule; info: AnalystInfo }) {
       <button className={`sw ${sch.enabled ? 'on' : ''}`} disabled={!edit || toggle.isPending} aria-label={sch.enabled ? 'Jeda jadwal' : 'Aktifkan jadwal'} onClick={() => toggle.mutate()} />
       <div className="an-row-main">
         <b>{sch.name}</b>
-        <span>{sch.description} · <code>{sch.cron}</code> · {sch.scopes.map((s) => SCOPE[s]?.[0] ?? s).join(', ')} · maks {sch.max_steps} langkah</span>
+        <span>{sch.runner === 'external' ? 'Dijalankan routine Claude di claude.ai lewat konektor CRM DISTRI (tanpa kunci API) · ' : ''}{sch.description} · <code>{sch.cron}</code> · {sch.scopes.map((s) => SCOPE[s]?.[0] ?? s).join(', ')} · maks {sch.max_steps} langkah</span>
         <span>
           {sch.enabled && sch.next_runs[0] ? <>Berikutnya <b>{when(sch.next_runs[0])}</b></> : 'Dijeda'}
           {last && <> · terakhir {when(last.started_at)} <Pill tone={STATUS[last.status][1]}>{STATUS[last.status][0]}</Pill>{last.cost_idr ? ` ${rpSmall(last.cost_idr)}` : ''}</>}
         </span>
       </div>
       <div className="an-row-act">
-        {edit && <button className="btn ghost" disabled={run.isPending || last?.status === 'running'} onClick={() => run.mutate()}><Icon name="refresh" />{last?.status === 'running' ? 'Berjalan…' : 'Jalankan'}</button>}
+        {edit && sch.runner === 'external' && <a className="btn ghost" href="https://claude.ai/code/routines" target="_blank" rel="noreferrer noopener"><Icon name="refresh" />Jalankan di claude.ai</a>}
+        {edit && sch.runner !== 'external' && <button className="btn ghost" disabled={run.isPending || last?.status === 'running'} onClick={() => run.mutate()}><Icon name="refresh" />{last?.status === 'running' ? 'Berjalan…' : 'Jalankan'}</button>}
         <button className="btn ghost" onClick={() => openSheet(<ReportsSheet sch={sch} />)}><Icon name="doc" />Laporan</button>
         {edit && <button className="btn quiet" onClick={() => openSheet(<ScheduleSheet sch={sch} info={info} />)}>Ubah</button>}
       </div>
@@ -279,7 +280,7 @@ function WAHistory({ sch }: { sch: Schedule }) {
         <b>Riwayat Analisa WhatsApp · Pusat kendali</b>
         <span>{sch.enabled ? `tiap 2 jam · berikutnya ${sch.next_runs[0] ? when(sch.next_runs[0]) : '—'}` : 'dijeda'} · {runs.filter((r) => r.status === 'ok').length} berhasil dari {runs.length} terakhir</span>
       </div>
-      {isLoading ? <p className="cl-empty">Memuat…</p> : runs.length === 0 ? <p className="cl-empty">Belum berjalan. Jalankan pertama lewat tombol <b>Jalankan</b> pada jadwal di bawah.</p> : (
+      {isLoading ? <p className="cl-empty">Memuat…</p> : runs.length === 0 ? <p className="cl-empty">Belum ada analisa yang masuk. {sch.runner === 'external' ? <>Routine Claude di claude.ai mengirimnya tiap 2 jam; untuk mencoba sekarang tekan <b>Run now</b> di claude.ai/code/routines.</> : <>Jalankan pertama lewat tombol <b>Jalankan</b> pada jadwal di bawah.</>}</p> : (
         <table className="tbl an-wa-tbl">
           <thead><tr><th>Waktu</th><th>Hasil</th><th>Keterangan</th><th className="r">Biaya</th></tr></thead>
           <tbody>

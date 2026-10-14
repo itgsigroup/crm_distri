@@ -839,6 +839,7 @@ func (s *Server) registerOrchestrate() {
 				}
 			}
 			res, err := s.Orch.WASubmit(ctx, id, orchestrator.ParseWAAnswer(overview, threads, in.Messages...), &c.ID)
+			s.recordWARun(ctx, c, id, overview, res, err)
 			if err != nil {
 				return nil, result{CycleID: &id}, err
 			}

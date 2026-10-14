@@ -513,7 +513,8 @@ export interface ScheduleRunBrief { id: string; status: RunStatus; started_at: s
 export type RunStatus = 'running' | 'ok' | 'template' | 'error'
 export interface Schedule { id: string; name: string; prompt: string; cron: string; description: string; enabled: boolean; scopes: string[]; max_steps: number; next_runs: string[]; last_run_at: string | null; last_run: ScheduleRunBrief | null; created_at: string
   /** wa_analysis: Analisa WhatsApp every 2 h for Pusat kendali (ADR 0037) */
-  key?: string }
+  key?: string
+  runner?: 'server' | 'external' }
 export interface ScheduleRun { id: string; schedule_id: string; trigger: 'schedule' | 'manual'; triggered_by: string | null; status: RunStatus; engine: string | null; model: string | null; tokens_in: number; tokens_out: number; cost_idr: number; error: string | null; started_at: string; finished_at: string | null; step_count: number; preview: string }
 export interface RunStep { tool: string; args?: Record<string, unknown>; status: string; ms: number; summary?: string }
 export interface ScheduleRunFull extends Omit<ScheduleRun, 'step_count' | 'preview'> { report: string | null; steps: RunStep[]; schedule_name: string }
@@ -619,6 +620,8 @@ export interface WAAnalysis {
 
 export interface WAClaudeSchedule {
   schedule_id: string; name: string; enabled: boolean; cron: string; next_run_at: string | null
+  /** external: a Claude routine on claude.ai sends it (no API key on the server) */
+  runner?: 'server' | 'external'; last_ok_at?: string | null
   last: { id: string; status: 'running' | 'ok' | 'template' | 'error'; error: string | null; started_at: string; finished_at: string | null } | null
 }
 

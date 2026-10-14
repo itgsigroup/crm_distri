@@ -204,7 +204,11 @@ func (s *Server) waSchedule(ctx context.Context, now time.Time) map[string]any {
 	if next == nil || next.Before(now) {
 		next = analyst.NextRun(sch.Cron, now)
 	}
-	out := map[string]any{"schedule_id": sch.ID, "name": sch.Name, "enabled": sch.Enabled, "cron": sch.Cron, "next_run_at": next, "last": nil}
+	out := map[string]any{"schedule_id": sch.ID, "name": sch.Name, "enabled": sch.Enabled, "cron": sch.Cron, "next_run_at": next, "last": nil,
+		"runner": sch.Runner, "last_ok_at": nil}
+	if at, err := s.st.Q.LastOKMCPScheduleRun(ctx, sch.ID); err == nil {
+		out["last_ok_at"] = at
+	}
 	if !sch.Enabled {
 		out["next_run_at"] = nil
 	}

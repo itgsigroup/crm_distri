@@ -5,6 +5,7 @@ import { Icon } from '../../components/Icon'
 import { useMore } from '../../components/More'
 import { Pill, Prov } from '../../components/ui'
 import { fmtNum, hhmm, shortDate } from '../../lib/format'
+import { useNow } from '../../app/queries'
 import { waitLabel, who } from './wa'
 
 // Analisa WhatsApp in the original Pusat kendali / Orchestrator layout. Only numbers measured from the chats and what
@@ -169,6 +170,7 @@ export function WASalesGrid({ rows }: { rows: WASalesRow[] }) {
 /** The label of Claude's Analisa WhatsApp every 2 hours (ADR 0037): succeeded, failed (why), running, and the next
  * run; the history is on MCP Claude. */
 export function WAClaudeStatus({ data }: { data?: WAAnalysis }) {
+  const now = useNow()
   const c = data?.claude
   if (!c) return null
   const last = c.last
@@ -176,7 +178,12 @@ export function WAClaudeStatus({ data }: { data?: WAAnalysis }) {
   const next = c.enabled && c.next_run_at ? `berikutnya ${hhmm(c.next_run_at)}` : 'jadwal dijeda'
   let tone = 'neutral'
   let text = 'Analisa Claude belum pernah berjalan'
-  if (last?.status === 'running') {
+  // a routine on claude.ai sends it every 2 hours: no success for 2½ hours means it did not come
+  const late = c.runner === 'external' && c.enabled && (!c.last_ok_at || now.getTime() - new Date(c.last_ok_at).getTime() > 150 * 60_000)
+  if (late && last?.status !== 'error') {
+    tone = 'bad'
+    text = c.last_ok_at ? `Analisa Claude terlambat · terakhir berhasil ${at(c.last_ok_at)}` : 'Analisa Claude belum masuk dari routine claude.ai'
+  } else if (last?.status === 'running') {
     tone = 'accent'
     text = 'Claude sedang menganalisa WhatsApp…'
   } else if (last?.status === 'ok') {
@@ -190,7 +197,7 @@ export function WAClaudeStatus({ data }: { data?: WAAnalysis }) {
     <div className={`wa-claude ${tone}`} title={last?.error ?? undefined}>
       <span className="ai" style={{ fontSize: 0 }} />
       <b>{text}</b>
-      <span>tiap 2 jam lewat MCP · {next}</span>
+      <span>tiap 2 jam lewat MCP{c.runner === 'external' ? ' · routine claude.ai' : ''} · {next}</span>
       {last?.status !== 'ok' && last?.error && <span className="wa-claude-err">{last.error}</span>}
       <Link to="/claude">Riwayat</Link>
     </div>
