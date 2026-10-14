@@ -507,7 +507,9 @@ export interface MCPCall { id: string; client_id: string | null; client_name: st
 export interface AnalystInfo { engine: 'claude' | 'template'; key_source: '' | 'ui' | 'env'; key_hint: string; model: string; models: { id: string; label: string }[]; daily_budget_idr: number; spent_today_idr: number; runs_today: number; can_configure: boolean; can_schedule: boolean; min_gap_minutes: number }
 export interface ScheduleRunBrief { id: string; status: RunStatus; started_at: string; finished_at: string | null; cost_idr: number }
 export type RunStatus = 'running' | 'ok' | 'template' | 'error'
-export interface Schedule { id: string; name: string; prompt: string; cron: string; description: string; enabled: boolean; scopes: string[]; max_steps: number; next_runs: string[]; last_run_at: string | null; last_run: ScheduleRunBrief | null; created_at: string }
+export interface Schedule { id: string; name: string; prompt: string; cron: string; description: string; enabled: boolean; scopes: string[]; max_steps: number; next_runs: string[]; last_run_at: string | null; last_run: ScheduleRunBrief | null; created_at: string
+  /** wa_analysis: Analisa WhatsApp every 2 h for Pusat kendali (ADR 0037) */
+  key?: string }
 export interface ScheduleRun { id: string; schedule_id: string; trigger: 'schedule' | 'manual'; triggered_by: string | null; status: RunStatus; engine: string | null; model: string | null; tokens_in: number; tokens_out: number; cost_idr: number; error: string | null; started_at: string; finished_at: string | null; step_count: number; preview: string }
 export interface RunStep { tool: string; args?: Record<string, unknown>; status: string; ms: number; summary?: string }
 export interface ScheduleRunFull extends Omit<ScheduleRun, 'step_count' | 'preview'> { report: string | null; steps: RunStep[]; schedule_name: string }
@@ -607,6 +609,13 @@ export interface WAAnalysis {
   sales: WASalesRow[]
   items: WAInsight[]
   history: WAHistoryRow[]
+  /** Claude's Analisa WhatsApp every 2 hours through MCP (ADR 0037) */
+  claude?: WAClaudeSchedule | null
+}
+
+export interface WAClaudeSchedule {
+  schedule_id: string; name: string; enabled: boolean; cron: string; next_run_at: string | null
+  last: { id: string; status: 'running' | 'ok' | 'template' | 'error'; error: string | null; started_at: string; finished_at: string | null } | null
 }
 
 // ---------- Dashboard trend ----------

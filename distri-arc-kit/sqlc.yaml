@@ -36,6 +36,7 @@ sql:
       - db/migrations/0032_customer_groups_outsiders.sql
       - db/migrations/0033_holding_replies.sql
       - db/migrations/0034_chat_queue_cleanup.sql
+      - db/migrations/0035_wa_analysis_schedule.sql
     queries: db/queries
     gen:
       go:

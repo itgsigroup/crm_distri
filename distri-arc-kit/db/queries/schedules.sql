@@ -65,3 +65,9 @@ insert into mcp_clients (name, kind, scopes, owner_id) values ($1, 'schedule', $
 
 -- name: UpdateScheduleMCPClient :exec
 update mcp_clients set name = $2, scopes = $3, active = true where id = $1;
+
+-- name: GetMCPScheduleByKey :one
+select * from mcp_schedules where key = $1;
+
+-- name: LatestMCPScheduleRun :one
+select id, status, error, started_at, finished_at, report from mcp_schedule_runs where schedule_id = $1 order by started_at desc limit 1;

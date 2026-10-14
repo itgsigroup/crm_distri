@@ -77,7 +77,7 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 	if err := o.saveWAMessages(ctx, r, threads, now); err != nil {
 		return err
 	}
-	if r.scope.Kind != "all" {
+	if !r.scope.WAFull() {
 		return nil
 	}
 	r.waThreads = map[uuid.UUID]waanalysis.Thread{}

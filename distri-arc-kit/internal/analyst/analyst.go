@@ -183,6 +183,9 @@ func (r *Runner) Run(ctx context.Context, id uuid.UUID, slot *time.Time, trigger
 	if o.status == "" {
 		o.status = "ok"
 	}
+	if o.err == nil {
+		o.err = requiredOutcome(sch, o)
+	}
 	var errText *string
 	if o.err != nil {
 		o.status = "error"
@@ -534,4 +537,30 @@ func VerifyKey(ctx context.Context, key string) error {
 		return ErrKeyRejected
 	}
 	return err
+}
+
+// KeyWAAnalysis is the schedule that writes Analisa WhatsApp of Pusat kendali every 2 hours (ADR 0037).
+const KeyWAAnalysis = "wa_analysis"
+
+// requiredOutcome: a schedule the app depends on succeeds only when Claude did its part — for Analisa WhatsApp, an
+// accepted orchestrator_submit. Anything else (template mode, no submit, a refused submit) is a failed run, so the
+// label in Pusat kendali never says "berhasil" for an analysis that did not land.
+func requiredOutcome(sch gen.McpSchedule, o outcome) error {
+	if sch.Key == nil || *sch.Key != KeyWAAnalysis {
+		return nil
+	}
+	if o.engine != "claude" {
+		return errors.New("analisa WhatsApp butuh Claude: kunci Claude API belum diisi atau anggaran habis (MCP Claude → Analisis terjadwal → Atur mesin)")
+	}
+	for _, st := range o.steps {
+		if st.Tool == "orchestrator_submit" && st.Status == "ok" {
+			return nil
+		}
+	}
+	for _, st := range o.steps {
+		if st.Tool == "orchestrator_submit" {
+			return errors.New("claude mengirim Analisa WhatsApp tetapi ditolak: " + st.Summary)
+		}
+	}
+	return errors.New("claude selesai tanpa mengirim Analisa WhatsApp (orchestrator_submit) — Pusat kendali tidak diperbarui")
 }

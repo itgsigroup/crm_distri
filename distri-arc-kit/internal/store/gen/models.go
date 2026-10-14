@@ -517,6 +517,7 @@ type McpSchedule struct {
 	LastRunAt *time.Time `json:"last_run_at"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
+	Key       *string    `json:"key"`
 }
 
 type McpScheduleRun struct {

@@ -11,7 +11,7 @@ var Stages = []string{"ingest", "analyze", "synthesize", "decide", "execute", "l
 // StageLabels are the UI names of the stages.
 var StageLabels = map[string]string{"ingest": "Ingest", "analyze": "Analisis", "synthesize": "Sintesis", "decide": "Keputusan", "execute": "Eksekusi", "learn": "Belajar"}
 
-// Scope is what a cycle analyses: all | screen:<orbit|segmen|stock|credit|dealer|chat> | dealer:<slug> | agent:<name> |
+// Scope is what a cycle analyses: all | screen:<orbit|segmen|stock|credit|dealer|chat|wa> | dealer:<slug> | agent:<name> |
 // thread:<chat thread uuid> (Chat → Analisa lanjut on one conversation).
 type Scope struct {
 	Kind string `json:"kind"`
@@ -31,7 +31,7 @@ func ParseScope(s string) (Scope, error) {
 	switch kind {
 	case "screen":
 		switch id {
-		case "orbit", "segmen", "stock", "credit", "relasi", "dealer", "chat":
+		case "orbit", "segmen", "stock", "credit", "relasi", "dealer", "chat", "wa":
 		default:
 			return Scope{}, fmt.Errorf("unknown screen %q", id)
 		}
@@ -67,7 +67,7 @@ func (s Scope) Label() string {
 	case "", "all":
 		return "semua"
 	case "screen":
-		return map[string]string{"orbit": "orbit", "segmen": "segmen", "stock": "push stok", "credit": "kredit", "relasi": "peta relasi", "dealer": "dealer", "chat": "chat"}[s.ID]
+		return map[string]string{"orbit": "orbit", "segmen": "segmen", "stock": "push stok", "credit": "kredit", "relasi": "peta relasi", "dealer": "dealer", "chat": "chat", "wa": "analisa WhatsApp"}[s.ID]
 	case "agent":
 		return s.ID
 	case "thread":
@@ -89,6 +89,8 @@ func (s Scope) Agents() []string {
 			return []string{"AI Kredit", "AI Penagihan"}
 		case "chat": // the conversations: requests and new numbers (every bubble is read by Ingest)
 			return []string{"AI Order", "AI Prospek"}
+		case "wa": // Analisa WhatsApp of Pusat kendali only (every 2 h by Claude, ADR 0037): no agent proposals
+			return []string{}
 		}
 	case "thread": // one conversation: its requests or the new number, and each bubble (Analisa WhatsApp)
 		return []string{"AI Order", "AI Prospek"}
@@ -138,4 +140,9 @@ type PlanItem struct {
 	Status   string   `json:"status"`
 	Link     string   `json:"link,omitempty"`
 	WaitFor  string   `json:"wait_for,omitempty"`
+}
+
+// WAFull: the cycle writes the whole Analisa WhatsApp (totals, conversations, overview) — a full cycle or screen:wa.
+func (s Scope) WAFull() bool {
+	return s.Kind == "all" || s.Kind == "" || (s.Kind == "screen" && s.ID == "wa")
 }

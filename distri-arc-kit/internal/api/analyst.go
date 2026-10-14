@@ -154,11 +154,13 @@ type scheduleView struct {
 	LastRunAt   *time.Time  `json:"last_run_at"`
 	LastRun     any         `json:"last_run"`
 	CreatedAt   time.Time   `json:"created_at"`
+	// Key: a schedule the app depends on (wa_analysis: Analisa WhatsApp every 2 h, ADR 0037) — it can be paused, not deleted
+	Key string `json:"key,omitempty"`
 }
 
 func (s *Server) scheduleView(sc gen.McpSchedule, last map[uuid.UUID]gen.LastMCPScheduleRunsRow) scheduleView {
 	v := scheduleView{ID: sc.ID, Name: sc.Name, Prompt: sc.Prompt, Cron: sc.Cron, Description: cron.Describe(sc.Cron), Enabled: sc.Enabled,
-		Scopes: sc.Scopes, MaxSteps: sc.MaxSteps, NextRuns: []time.Time{}, LastRunAt: sc.LastRunAt, CreatedAt: sc.CreatedAt}
+		Scopes: sc.Scopes, MaxSteps: sc.MaxSteps, NextRuns: []time.Time{}, LastRunAt: sc.LastRunAt, CreatedAt: sc.CreatedAt, Key: deref(sc.Key)}
 	if spec, err := cron.Parse(sc.Cron); err == nil && sc.Enabled {
 		v.NextRuns = spec.NextN(s.clock.Now(), 3)
 	}
@@ -286,6 +288,10 @@ func (s *Server) deleteSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 	id, ok := s.scheduleID(w, r)
 	if !ok {
+		return
+	}
+	if sc, err := s.st.Q.GetMCPSchedule(r.Context(), id); err == nil && sc.Key != nil {
+		httpx.Fail(w, http.StatusConflict, "keyed_schedule", "Jadwal ini dipakai Pusat kendali — jeda saja, jangan dihapus")
 		return
 	}
 	client, err := s.st.Q.DeleteMCPSchedule(r.Context(), id)

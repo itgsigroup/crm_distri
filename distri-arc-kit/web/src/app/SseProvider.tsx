@@ -9,7 +9,7 @@ const INVALIDATES: Record<string, string[][]> = {
   chat_message: [['chat']],
   wa_status: [['wa']],
   mcp_call: [['mcp']],
-  mcp_schedule: [['mcp']],
+  mcp_schedule: [['mcp'], ['chat', 'wa-analysis']], // Claude's Analisa WhatsApp every 2 h: the label in Pusat kendali
   policy_changed: [['policies'], ['agents'], ['mcp']],
   outbox_failed: [['proposals'], ['dealer'], ['plan']],
 }

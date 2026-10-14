@@ -9,7 +9,7 @@ import { useOrch, useOrchStatus } from '../../app/orch'
 import { Queue } from './Queue'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import { WALastRead, useCanWA } from '../wa/WAAnalysis'
-import { WAAgenda, WABrief, WAChatList, WAWheels, waWaiting } from '../wa/WACards'
+import { WAAgenda, WABrief, WAChatList, WAClaudeStatus, WAWheels, waWaiting } from '../wa/WACards'
 import { waitLabel } from '../wa/wa'
 
 function scrollTo(id: string) {
@@ -94,6 +94,7 @@ export function ControlCenter() {
 
           <div className="card brief">
             <div className="card-h"> <span className="ai">Ringkasan Claude (MCP) · {wa?.generated_at ? `${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : '—'}</span><span className="meta">{wa?.cycle_number ? `${wa.window_days} hari terakhir · siklus #${wa.cycle_number.toLocaleString('id-ID')}` : ''}</span></div>
+            <WAClaudeStatus data={wa} />
             <WABrief data={wa} scoped={scoped} />
           </div>
 

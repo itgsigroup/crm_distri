@@ -268,6 +268,36 @@ function Row({ sch, info }: { sch: Schedule; info: AnalystInfo }) {
   )
 }
 
+/** History of Claude's Analisa WhatsApp every 2 hours (ADR 0037): each run, whether it landed in Pusat kendali, why
+ * not, and its report. */
+function WAHistory({ sch }: { sch: Schedule }) {
+  const { openSheet } = useFeedback()
+  const { data: runs = [], isLoading } = useScheduleRuns(sch.id)
+  return (
+    <div className="an-wa">
+      <div className="an-wa-h">
+        <b>Riwayat Analisa WhatsApp · Pusat kendali</b>
+        <span>{sch.enabled ? `tiap 2 jam · berikutnya ${sch.next_runs[0] ? when(sch.next_runs[0]) : '—'}` : 'dijeda'} · {runs.filter((r) => r.status === 'ok').length} berhasil dari {runs.length} terakhir</span>
+      </div>
+      {isLoading ? <p className="cl-empty">Memuat…</p> : runs.length === 0 ? <p className="cl-empty">Belum berjalan. Jalankan pertama lewat tombol <b>Jalankan</b> pada jadwal di bawah.</p> : (
+        <table className="tbl an-wa-tbl">
+          <thead><tr><th>Waktu</th><th>Hasil</th><th>Keterangan</th><th className="r">Biaya</th></tr></thead>
+          <tbody>
+            {runs.slice(0, 12).map((r) => (
+              <tr key={r.id} onClick={() => openSheet(<ReportsSheet sch={sch} />)} style={{ cursor: 'pointer' }}>
+                <td className="nowrap">{when(r.started_at)}{r.trigger === 'manual' ? ' · manual' : ''}</td>
+                <td><Pill tone={r.status === 'ok' ? 'good' : r.status === 'running' ? 'accent' : 'bad'}>{r.status === 'ok' ? 'Berhasil' : r.status === 'running' ? 'Berjalan' : 'Gagal'}</Pill></td>
+                <td className="an-wa-note">{r.error ?? (r.preview || '—')}</td>
+                <td className="r num">{r.cost_idr ? rpSmall(r.cost_idr) : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+}
+
 /** MCP Claude → Analisis terjadwal: cron schedules, the engine (API key, model, budget) and the reports. */
 export function Schedules() {
   const { data: info } = useAnalyst()
@@ -289,6 +319,7 @@ export function Schedules() {
         {info.can_schedule && <button className="btn primary" style={{ marginLeft: 'auto', height: 32, fontSize: 12.5 }} onClick={() => openSheet(<ScheduleSheet info={info} />)}><Icon name="cal" />Jadwal baru</button>}
       </div>
       <Engine info={info} />
+      {list.find((s) => s.key === 'wa_analysis') && <WAHistory sch={list.find((s) => s.key === 'wa_analysis')!} />}
       {list.length === 0 ? <p className="cl-empty">Belum ada jadwal. Buat satu — mis. ringkasan setiap pagi Senin–Sabtu 07.00.</p> : (
         <ul className="an-list">{list.map((s) => <Row key={s.id} sch={s} info={info} />)}</ul>
       )}

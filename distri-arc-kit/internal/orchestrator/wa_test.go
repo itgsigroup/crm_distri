@@ -361,3 +361,31 @@ func TestCycleReadsCustomerGroups(t *testing.T) {
 		t.Errorf("thread scope on the group's other thread read %d of the customer's bubble", n)
 	}
 }
+
+// ADR 0037: screen:wa is Analisa WhatsApp of Pusat kendali on its own — the conversations, totals and the reading for
+// Claude, without any agent (nothing waits for six answers every 2 hours).
+func TestWAScreenCycle(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	sc, err := domain.ParseScope("screen:wa")
+	if err != nil || sc.Agents() == nil || len(sc.Agents()) != 0 || !sc.WAFull() {
+		t.Fatalf("scope %+v %v", sc, err)
+	}
+	rep, err := o.Run(ctx, sc, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := st.Q.LatestWAAnalysis(ctx)
+	if err != nil || a.CycleID != rep.Cycle.ID || a.Threads == 0 {
+		t.Fatalf("analysis %+v %v", a, err)
+	}
+	var props int
+	_ = st.Pool.QueryRow(ctx, "select count(*) from proposals where cycle_id = $1", rep.Cycle.ID).Scan(&props)
+	if props != 0 {
+		t.Errorf("screen:wa made %d proposals", props)
+	}
+	raw, err := o.InputFor(ctx, rep.Cycle.ID, orchestrator.AgentWA)
+	if err != nil || !strings.Contains(string(raw), `"threads"`) {
+		t.Fatalf("input for Claude: %v %s", err, raw)
+	}
+}

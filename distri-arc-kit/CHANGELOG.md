@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Analisa WhatsApp otomatis oleh Claude (MCP) setiap 2 jam · 2026-10-14
+- Jadwal baru **"Analisa WhatsApp · tiap 2 jam"**: Claude membaca semua chat lewat MCP dan menulis ringkasan, baris per percakapan, dan catatan per pesan untuk Pusat kendali (siklus khusus `screen:wa`, tanpa agen lain). Tidak ada pesan yang dikirim ke pelanggan.
+- **Label di Pusat kendali**: "Analisa Claude berhasil · jam" / "gagal · alasan" / "sedang menganalisa", jadwal berikutnya, dan tautan Riwayat.
+- **Riwayat di halaman MCP Claude**: setiap run dengan hasil (berhasil/gagal), keterangan, biaya, dan laporan lengkap. Run dihitung berhasil hanya bila analisa Claude benar-benar masuk.
+- ADR 0037, migrasi 0035.
+
 ## Fix · Share of wallet, omzet, dan margin (laporan direktur, tugas 11–13) · 2026-10-14
 - **Share of wallet** tidak lagi 50 untuk semua: tanpa konfirmasi sales, diestimasi dari riwayat belanja dealer (3 bulan terakhir ÷ 3 bulan terbaik setahun). Dealer dengan riwayat < 6 bulan tampil "belum diketahui" dan tidak lagi otomatis Key account.
 - **Omzet dashboard** kini omzet aktual bulan lalu + bulan berjalan dari faktur (bukan rata-rata 6 bulan); sumber data dan jam sinkron tampil di dashboard dan di KPI/MCP. Impor menerima DPP (tanpa PPN), faktur batal, dan retur penjualan.

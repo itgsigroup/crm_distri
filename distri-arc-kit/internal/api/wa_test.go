@@ -380,3 +380,27 @@ func countRows(t *testing.T, st *store.Store, sql string) int {
 	}
 	return n
 }
+
+// ADR 0037: /wa/analysis carries Claude's Analisa WhatsApp schedule for the label in Pusat kendali; the schedule can
+// be paused but not deleted.
+func TestWAClaudeLabel(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	_, out := get(t, srv, "/api/wa/analysis", "sam@gsi.co.id")
+	c, ok := out["claude"].(map[string]any)
+	if !ok || c["enabled"] != true || c["next_run_at"] == nil || c["last"] != nil {
+		t.Fatalf("claude block %v", out["claude"])
+	}
+	if _, err := st.Pool.Exec(ctx, "insert into mcp_schedule_runs (schedule_id, trigger, status, error, finished_at) select id, 'schedule', 'error', 'kunci belum diisi', now() from mcp_schedules where key = 'wa_analysis'"); err != nil {
+		t.Fatal(err)
+	}
+	_, out = get(t, srv, "/api/wa/analysis", "sam@gsi.co.id")
+	if last := out["claude"].(map[string]any)["last"].(map[string]any); last["status"] != "error" || last["error"] != "kunci belum diisi" {
+		t.Fatalf("last run %v", last)
+	}
+	req, _ := http.NewRequest(http.MethodDelete, srv.URL+"/api/mcp/schedules/"+c["schedule_id"].(string), nil)
+	req.Header.Set("X-Dev-User", "sam@gsi.co.id")
+	if res, err := http.DefaultClient.Do(req); err == nil && res.StatusCode == http.StatusOK {
+		t.Error("the Pusat kendali schedule was deleted")
+	}
+}

@@ -60,7 +60,7 @@ func (q *Queries) DeleteMCPSchedule(ctx context.Context, id uuid.UUID) (*uuid.UU
 }
 
 const dueMCPSchedules = `-- name: DueMCPSchedules :many
-select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at from mcp_schedules where enabled and (next_run_at is null or next_run_at <= $1) order by next_run_at nulls first
+select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key from mcp_schedules where enabled and (next_run_at is null or next_run_at <= $1) order by next_run_at nulls first
 `
 
 // Enabled schedules whose next run has come (or was never computed).
@@ -87,6 +87,7 @@ func (q *Queries) DueMCPSchedules(ctx context.Context, nextRunAt *time.Time) ([]
 			&i.LastRunAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Key,
 		); err != nil {
 			return nil, err
 		}
@@ -147,7 +148,7 @@ func (q *Queries) FinishMCPScheduleRun(ctx context.Context, arg FinishMCPSchedul
 }
 
 const getMCPSchedule = `-- name: GetMCPSchedule :one
-select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at from mcp_schedules where id = $1
+select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key from mcp_schedules where id = $1
 `
 
 func (q *Queries) GetMCPSchedule(ctx context.Context, id uuid.UUID) (McpSchedule, error) {
@@ -167,6 +168,33 @@ func (q *Queries) GetMCPSchedule(ctx context.Context, id uuid.UUID) (McpSchedule
 		&i.LastRunAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Key,
+	)
+	return i, err
+}
+
+const getMCPScheduleByKey = `-- name: GetMCPScheduleByKey :one
+select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key from mcp_schedules where key = $1
+`
+
+func (q *Queries) GetMCPScheduleByKey(ctx context.Context, key *string) (McpSchedule, error) {
+	row := q.db.QueryRow(ctx, getMCPScheduleByKey, key)
+	var i McpSchedule
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Prompt,
+		&i.Cron,
+		&i.Enabled,
+		&i.Scopes,
+		&i.MaxSteps,
+		&i.ClientID,
+		&i.CreatedBy,
+		&i.NextRunAt,
+		&i.LastRunAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Key,
 	)
 	return i, err
 }
@@ -222,7 +250,7 @@ func (q *Queries) GetMCPScheduleRun(ctx context.Context, id uuid.UUID) (GetMCPSc
 
 const insertMCPSchedule = `-- name: InsertMCPSchedule :one
 insert into mcp_schedules (name, prompt, cron, enabled, scopes, max_steps, created_by, next_run_at)
-values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at
+values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key
 `
 
 type InsertMCPScheduleParams struct {
@@ -262,6 +290,7 @@ func (q *Queries) InsertMCPSchedule(ctx context.Context, arg InsertMCPSchedulePa
 		&i.LastRunAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Key,
 	)
 	return i, err
 }
@@ -382,6 +411,33 @@ func (q *Queries) LastMCPScheduleRuns(ctx context.Context) ([]LastMCPScheduleRun
 	return items, nil
 }
 
+const latestMCPScheduleRun = `-- name: LatestMCPScheduleRun :one
+select id, status, error, started_at, finished_at, report from mcp_schedule_runs where schedule_id = $1 order by started_at desc limit 1
+`
+
+type LatestMCPScheduleRunRow struct {
+	ID         uuid.UUID  `json:"id"`
+	Status     string     `json:"status"`
+	Error      *string    `json:"error"`
+	StartedAt  time.Time  `json:"started_at"`
+	FinishedAt *time.Time `json:"finished_at"`
+	Report     *string    `json:"report"`
+}
+
+func (q *Queries) LatestMCPScheduleRun(ctx context.Context, scheduleID uuid.UUID) (LatestMCPScheduleRunRow, error) {
+	row := q.db.QueryRow(ctx, latestMCPScheduleRun, scheduleID)
+	var i LatestMCPScheduleRunRow
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.Error,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.Report,
+	)
+	return i, err
+}
+
 const listMCPScheduleRuns = `-- name: ListMCPScheduleRuns :many
 select id, schedule_id, slot, trigger, triggered_by, status, engine, model, tokens_in, tokens_out, cost_idr, error, started_at, finished_at,
   jsonb_array_length(steps)::int as step_count, left(coalesce(report, ''), 280)::text as preview
@@ -450,7 +506,7 @@ func (q *Queries) ListMCPScheduleRuns(ctx context.Context, arg ListMCPScheduleRu
 }
 
 const listMCPSchedules = `-- name: ListMCPSchedules :many
-select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at from mcp_schedules order by created_at
+select id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key from mcp_schedules order by created_at
 `
 
 func (q *Queries) ListMCPSchedules(ctx context.Context) ([]McpSchedule, error) {
@@ -476,6 +532,7 @@ func (q *Queries) ListMCPSchedules(ctx context.Context) ([]McpSchedule, error) {
 			&i.LastRunAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Key,
 		); err != nil {
 			return nil, err
 		}
@@ -518,7 +575,7 @@ func (q *Queries) TouchMCPScheduleRun(ctx context.Context, arg TouchMCPScheduleR
 const updateMCPSchedule = `-- name: UpdateMCPSchedule :one
 update mcp_schedules set name = $2, prompt = $3, cron = $4, enabled = $5, scopes = $6, max_steps = $7, next_run_at = $8,
   updated_at = now()
-where id = $1 returning id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at
+where id = $1 returning id, name, prompt, cron, enabled, scopes, max_steps, client_id, created_by, next_run_at, last_run_at, created_at, updated_at, key
 `
 
 type UpdateMCPScheduleParams struct {
@@ -558,6 +615,7 @@ func (q *Queries) UpdateMCPSchedule(ctx context.Context, arg UpdateMCPSchedulePa
 		&i.LastRunAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Key,
 	)
 	return i, err
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"distri-arc/internal/analyst"
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/waanalysis"
 )
@@ -60,6 +62,7 @@ func (s *Server) waAnalysis(w http.ResponseWriter, r *http.Request) {
 			Inbound: h.Inbound, Outbound: h.Outbound, Waiting: h.Waiting, ReplyMedianMin: h.ReplyMedianMin, Source: h.Source})
 	}
 	out["history"] = history
+	out["claude"] = s.waSchedule(ctx, now)
 	a, err := s.st.Q.LatestWAAnalysis(ctx)
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.JSON(w, http.StatusOK, out) // no cycle has read WhatsApp yet
@@ -189,3 +192,26 @@ func (s *Server) chatStepState(r *http.Request, id uuid.UUID, set map[uuid.UUID]
 	t := rows[0]
 	return onSalesPage(set, scoped, t.DealerID, deref(t.SalesName), scopeName), timeOrNil(t.WaitingSince) == nil
 }
+
+// waSchedule is the state of Claude's Analisa WhatsApp every 2 hours (ADR 0037) for the label in Pusat kendali:
+// the last run (berhasil / gagal / berjalan) and the next one. Nil when the schedule was removed.
+func (s *Server) waSchedule(ctx context.Context, now time.Time) map[string]any {
+	sch, err := s.st.Q.GetMCPScheduleByKey(ctx, strPtr(analyst.KeyWAAnalysis))
+	if err != nil {
+		return nil
+	}
+	next := sch.NextRunAt
+	if next == nil || next.Before(now) {
+		next = analyst.NextRun(sch.Cron, now)
+	}
+	out := map[string]any{"schedule_id": sch.ID, "name": sch.Name, "enabled": sch.Enabled, "cron": sch.Cron, "next_run_at": next, "last": nil}
+	if !sch.Enabled {
+		out["next_run_at"] = nil
+	}
+	if run, err := s.st.Q.LatestMCPScheduleRun(ctx, sch.ID); err == nil {
+		out["last"] = map[string]any{"id": run.ID, "status": run.Status, "error": run.Error, "started_at": run.StartedAt, "finished_at": run.FinishedAt}
+	}
+	return out
+}
+
+func strPtr(v string) *string { return &v }

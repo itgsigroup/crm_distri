@@ -14,6 +14,7 @@ import (
 	"distri-arc/db"
 	"distri-arc/internal/analyst"
 	"distri-arc/internal/clock"
+	"distri-arc/internal/domain"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/seed"
@@ -56,11 +57,17 @@ func setup(t *testing.T) (*store.Store, gen.McpSchedule, *analyst.Runner) {
 	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	rows, err := st.Q.ListMCPSchedules(ctx)
-	if err != nil || len(rows) != 1 || rows[0].Name != "Ringkasan pagi" {
+	var morning *gen.McpSchedule
+	for i := range rows {
+		if rows[i].Name == "Ringkasan pagi" {
+			morning = &rows[i]
+		}
+	}
+	if err != nil || morning == nil {
 		t.Fatalf("migration schedule: %v %v", rows, err)
 	}
 	o := &orchestrator.Orchestrator{St: st, Clock: now, Router: &llm.Router{Primary: llm.NewFake(nil), St: st, Log: log}, Log: log}
-	return st, rows[0], &analyst.Runner{St: st, Clock: now, Log: log, Orch: o, SessionKey: []byte("0123456789abcdef0123456789abcdef")}
+	return st, *morning, &analyst.Runner{St: st, Clock: now, Log: log, Orch: o, SessionKey: []byte("0123456789abcdef0123456789abcdef")}
 }
 
 func steps(t *testing.T, run *gen.McpScheduleRun) []analyst.Step {
@@ -205,3 +212,43 @@ func deref(s *string) string {
 	}
 	return *s
 }
+
+// ADR 0037: Analisa WhatsApp every 2 hours is a run only when Claude's orchestrator_submit landed — without a key,
+// or when Claude ends without submitting, the run fails (the label in Pusat kendali says why).
+func TestWAAnalysisSchedule(t *testing.T) {
+	st, _, rn := setup(t)
+	ctx := context.Background()
+	sch, err := st.Q.GetMCPScheduleByKey(ctx, ptr(analyst.KeyWAAnalysis))
+	if err != nil || sch.Cron != "0 */2 * * *" || !sch.Enabled {
+		t.Fatalf("schedule %+v %v", sch, err)
+	}
+	run, err := rn.Run(ctx, sch.ID, nil, "manual", "Sam")
+	if err != nil || run.Status != "error" || !strings.Contains(deref(run.Error), "butuh Claude") {
+		t.Fatalf("without a key: %s %v %v", run.Status, deref(run.Error), err)
+	}
+	rn.EnvKey = "sk-ant-test-key-000000000000"
+	rn.NewModel = func(string) analyst.Model { return &script{turns: []string{finalTurn}} }
+	if run, _ = rn.Run(ctx, sch.ID, nil, "manual", "Sam"); run.Status != "error" || !strings.Contains(deref(run.Error), "tanpa mengirim") {
+		t.Fatalf("no submit: %s %v", run.Status, deref(run.Error))
+	}
+	// the cycle Claude reads (screen:wa), then the submit with its id
+	sc, _ := domain.ParseScope("screen:wa")
+	rep, err := rn.Orch.Run(ctx, sc, domain.Trigger{Source: "mcp", Via: "mcp"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cid := rep.Cycle.ID.String()
+	rn.NewModel = func(string) analyst.Model {
+		return &script{turns: []string{
+			toolTurn("1", "orchestrator_input_get", `{"cycle_id":"`+cid+`","agent":"Analisa WhatsApp"}`),
+			toolTurn("2", "orchestrator_submit", `{"cycle_id":"`+cid+`","agent":"Analisa WhatsApp","overview":"Satu dealer menunggu balasan.","threads":[]}`),
+			finalTurn,
+		}}
+	}
+	run, err = rn.Run(ctx, sch.ID, nil, "manual", "Sam")
+	if err != nil || run.Status != "ok" {
+		t.Fatalf("submitted: %s %v %v %+v", run.Status, deref(run.Error), err, steps(t, run))
+	}
+}
+
+func ptr[T any](v T) *T { return &v }
