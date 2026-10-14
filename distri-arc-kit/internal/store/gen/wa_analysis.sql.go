@@ -211,7 +211,7 @@ func (q *Queries) ListWAAnalyses(ctx context.Context, limit int32) ([]ListWAAnal
 }
 
 const listWAInsights = `-- name: ListWAInsights :many
-select i.cycle_id, i.thread_id, i.kind, i.dealer_id, i.sales_id, i.title, i.intent, i.items, i.last_text, i.inbound, i.outbound, i.last_in_at, i.last_out_at, i.waiting_since, i.reply_median_min, i.needs_reply, i.priority, i.signal_ids, i.proposal_ids, i.summary, i.confidence, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(n.team, 'sales')::text as team
+select i.cycle_id, i.thread_id, i.kind, i.dealer_id, i.sales_id, i.title, i.intent, i.items, i.last_text, i.inbound, i.outbound, i.last_in_at, i.last_out_at, i.waiting_since, i.reply_median_min, i.needs_reply, i.priority, i.signal_ids, i.proposal_ids, i.summary, i.confidence, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(n.team, 'sales')::text as team, t.account
 from wa_insights i
 left join dealers d on d.id = i.dealer_id
 left join sales_users s on s.id = i.sales_id
@@ -247,6 +247,7 @@ type ListWAInsightsRow struct {
 	DealerName     *string         `json:"dealer_name"`
 	SalesName      *string         `json:"sales_name"`
 	Team           string          `json:"team"`
+	Account        *string         `json:"account"`
 }
 
 // team: the team of the number holding the conversation (sales, admin, billing — ADR 0033).
@@ -285,6 +286,7 @@ func (q *Queries) ListWAInsights(ctx context.Context, cycleID uuid.UUID) ([]List
 			&i.DealerName,
 			&i.SalesName,
 			&i.Team,
+			&i.Account,
 		); err != nil {
 			return nil, err
 		}

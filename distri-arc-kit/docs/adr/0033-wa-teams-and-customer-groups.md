@@ -29,3 +29,18 @@ tidak pernah dibaca Claude.
 - Grup pelanggan dengan pelanggan yang belum ada di master kontak perlu ditandai manual sekali.
 - Usulan penagihan (`collect`) belum otomatis dikirim dari nomor tim Penagihan — tetap lewat nomor yang memegang
   percakapan (catatan di OPEN-QUESTIONS).
+
+## Revisi 2026-10-14 (Sam, sore)
+- **Grup pelanggan, aturan kedua.** Aturan "ada kontak pelanggan master" hampir tidak pernah cocok: WhatsApp
+  menyembunyikan nomor anggota grup yang bukan kontak di HP (LID), dan banyak pelanggan belum ada di master. Kini grup
+  adalah grup pelanggan **kecuali semua anggotanya nomor GSI** (nomor internal, nomor tertaut, nomor pengguna, nomor
+  sales); anggota yang nomornya disembunyikan dihitung bukan-GSI. Grup bernama untuk kerja internal (gudang, internal,
+  karyawan, staff, HRD, absensi) tetap internal; pilihan manual tetap dihormati. Migrasi 0032 menerapkannya ke grup
+  yang ada dan menandai pesan karyawan GSI di grup sebagai sisi kita. Konsekuensi privasi: nomor pribadi karyawan yang
+  belum terdaftar membuat grup internal terbaca — daftarkan di Pengaturan → WhatsApp → Nomor internal, atau tandai
+  "Ini grup internal".
+- **Penagihan hanya melihat WhatsApp-nya sendiri** (seperti sales): pengguna peran dasar finance membaca chat, nomor,
+  dan Analisa WhatsApp hanya dari nomor yang dipegangnya; admin/CEO membaca semua. Peran finance mendapat menu Chat
+  dan boleh memegang nomor (migrasi 0032).
+- **Tagihan tidak otomatis**: tidak ada pengiriman tagihan otomatis dari nomor Penagihan; Penagihan membalas manual
+  dari Chat atau HP. Setiap kirim tetap keputusan manusia.

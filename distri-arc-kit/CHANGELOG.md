@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Grup pelanggan masuk otomatis; Penagihan hanya melihat WhatsApp-nya · 2026-10-14
+- Grup kini dianggap **grup pelanggan kecuali semua anggotanya nomor GSI**. Sebelumnya hanya grup yang anggotanya cocok dengan kontak pelanggan master — padahal WhatsApp menyembunyikan nomor anggota grup (LID), jadi hampir tidak ada yang masuk. Grup bernama gudang/internal/karyawan/staff/HRD/absensi tetap internal; pilihan manual tetap. Grup yang sudah ada diperbarui (migrasi 0032).
+- Pesan karyawan GSI di grup (nomor internal, tertaut, pengguna, sales) dihitung sebagai balasan.
+- **Penagihan** (peran finance) hanya melihat chat, nomor, dan Analisa WhatsApp dari nomor yang dipegangnya, seperti sales; admin melihat semua. Peran finance mendapat menu Chat untuk membalas manual.
+- Tagihan tidak dikirim otomatis — Penagihan membalas manual.
+
 ## Feat · WhatsApp Admin & Penagihan terpisah dari Sales, grup pelanggan dibaca · 2026-10-14
 - Setiap nomor WhatsApp punya **tim**: Sales, Admin, atau Penagihan. Dipilih saat menautkan (Chat → + Nomor), bisa dipindah di detail nomor; nomor lama mengikuti peran pemegangnya (migrasi 0031, ADR 0033).
 - Rail nomor di Chat dikelompokkan **SALES · ADMIN · PENAGIHAN**; klik judul tim untuk melihat semua chat tim itu.

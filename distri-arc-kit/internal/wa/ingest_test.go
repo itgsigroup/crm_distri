@@ -270,13 +270,14 @@ func TestRevokeMarksDeleted(t *testing.T) {
 	}
 }
 
-// ADR 0033: a group with a customer of the master is a customer group (read by Analisa WhatsApp); a group of
-// employees stays internal; a kind a person chose is never changed by the rule.
+// ADR 0033: a group with anyone outside GSI is a customer group (read by Analisa WhatsApp) — a member WhatsApp hides
+// (LID), a customer not in the master, or a sender; a group of GSI numbers only, or named for internal work, stays
+// internal; a kind a person chose is never changed by the rule; an employee's message in a group is our side.
 func TestCustomerGroupIsRecognised(t *testing.T) {
 	st, in := setup(t)
 	ctx := context.Background()
-	var rina string
-	if err := st.Pool.QueryRow(ctx, "select wa_number from contacts where name = 'Mbak Rina'").Scan(&rina); err != nil {
+	staff := "6281100001001"
+	if _, err := st.Pool.Exec(ctx, "insert into internal_numbers (wa_number, label, department) values ($1, 'Pak Joko', 'Gudang') on conflict do nothing", staff); err != nil {
 		t.Fatal(err)
 	}
 	kind := func(jid string) string {
@@ -287,45 +288,51 @@ func TestCustomerGroupIsRecognised(t *testing.T) {
 		return k
 	}
 	now := time.Now()
-	// a new group whose members include a customer
-	withCustomer := "120363041100000101@g.us"
-	if _, err := in.Process(ctx, wa.Message{ID: "CG1", Account: andi, ChatJID: withCustomer, IsGroup: true, GroupName: "Proyek Toko Sinar", FromNumber: "6281100001001", FromName: "Pak Joko",
-		Text: "Jadwal pasang besok", Time: now, GroupMembers: []string{andi, "6281100001001", rina}}); err != nil {
-		t.Fatal(err)
+	process := func(m wa.Message) {
+		t.Helper()
+		if _, err := in.Process(ctx, m); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if k := kind(withCustomer); k != "external" {
-		t.Fatalf("group with a customer member: %s, want external", k)
+	// a member whose number WhatsApp hides: not GSI as far as anyone knows
+	hidden := "120363041100000101@g.us"
+	process(wa.Message{ID: "CG1", Account: andi, ChatJID: hidden, IsGroup: true, GroupName: "Proyek Toko Sinar", FromNumber: staff, FromName: "Pak Joko",
+		Text: "Jadwal pasang besok", Time: now, GroupMembers: []string{andi, staff}, GroupHidden: 1})
+	if k := kind(hidden); k != "external" {
+		t.Fatalf("group with a hidden member: %s, want external", k)
 	}
-	// a group of employees only stays internal …
-	staff := "120363041100000102@g.us"
-	if _, err := in.Process(ctx, wa.Message{ID: "CG2", Account: andi, ChatJID: staff, IsGroup: true, GroupName: "Tim Semarang", FromNumber: "6281100001001", FromName: "Pak Joko",
-		Text: "rapat jam 9", Time: now, GroupMembers: []string{andi, "6281100001001"}}); err != nil {
-		t.Fatal(err)
+	// GSI numbers only: internal …
+	team := "120363041100000102@g.us"
+	process(wa.Message{ID: "CG2", Account: andi, ChatJID: team, IsGroup: true, GroupName: "Tim Semarang", FromNumber: staff, Text: "rapat jam 9", Time: now, GroupMembers: []string{andi, staff, dewi}})
+	if k := kind(team); k != "internal" {
+		t.Fatalf("GSI-only group: %s, want internal", k)
 	}
-	if k := kind(staff); k != "internal" {
-		t.Fatalf("staff group: %s, want internal", k)
+	var internalMsg bool
+	_ = st.Pool.QueryRow(ctx, "select internal from chat_messages where wa_msg_id = 'CG2'").Scan(&internalMsg)
+	if !internalMsg {
+		t.Error("an employee's group message is not our side")
 	}
-	// … until a customer of the master writes in it
-	if _, err := in.Process(ctx, wa.Message{ID: "CG3", Account: andi, ChatJID: staff, IsGroup: true, FromNumber: rina, FromName: "Rina", Text: "pesan 10 kamera", Time: now.Add(time.Minute)}); err != nil {
-		t.Fatal(err)
+	// … until someone outside GSI (not in the customer master either) writes
+	process(wa.Message{ID: "CG3", Account: andi, ChatJID: team, IsGroup: true, FromNumber: "6285700001234", FromName: "Bu Sinta", Text: "pesan 10 kamera", Time: now.Add(time.Minute)})
+	if k := kind(team); k != "external" {
+		t.Fatalf("outsider wrote: %s, want external", k)
 	}
-	if k := kind(staff); k != "external" {
-		t.Fatalf("customer wrote: %s, want external", k)
-	}
-	if n := count(t, st, "select count(*) from chat_threads t join wa_groups g on g.id = t.group_id where g.jid = $1 and t.subtitle = 'Grup internal'", withCustomer); n != 0 {
+	if n := count(t, st, "select count(*) from chat_threads t join wa_groups g on g.id = t.group_id where g.jid = $1 and t.subtitle = 'Grup internal'", hidden); n != 0 {
 		t.Fatal("customer group thread labelled internal")
+	}
+	// named for internal work: internal whoever is in it
+	gudang := "120363041100000104@g.us"
+	process(wa.Message{ID: "CG6", Account: andi, ChatJID: gudang, IsGroup: true, GroupName: "Gudang Yogya", FromNumber: "6285700001234", Text: "stok?", Time: now, GroupHidden: 3})
+	if k := kind(gudang); k != "internal" {
+		t.Fatalf("gudang group: %s, want internal", k)
 	}
 	// a person chose internal: the rule leaves it
 	manual := "120363041100000103@g.us"
-	if _, err := in.Process(ctx, wa.Message{ID: "CG4", Account: andi, ChatJID: manual, IsGroup: true, GroupName: "Arisan", FromNumber: "6281100001001", Text: "halo", Time: now}); err != nil {
-		t.Fatal(err)
-	}
+	process(wa.Message{ID: "CG4", Account: andi, ChatJID: manual, IsGroup: true, GroupName: "Arisan", FromNumber: staff, Text: "halo", Time: now})
 	if _, err := st.Pool.Exec(ctx, "update wa_groups set kind = 'internal', kind_manual = true where jid = $1", manual); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := in.Process(ctx, wa.Message{ID: "CG5", Account: andi, ChatJID: manual, IsGroup: true, FromNumber: rina, Text: "ikut", Time: now.Add(time.Minute)}); err != nil {
-		t.Fatal(err)
-	}
+	process(wa.Message{ID: "CG5", Account: andi, ChatJID: manual, IsGroup: true, FromNumber: "6285700001234", Text: "ikut", Time: now.Add(time.Minute)})
 	if k := kind(manual); k != "internal" {
 		t.Fatalf("manual kind changed to %s", k)
 	}

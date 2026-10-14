@@ -22,13 +22,15 @@ type Message struct {
 	IsGroup    bool   `json:"is_group"`
 	GroupName  string `json:"group_name"`
 	// GroupMembers: the group's members' numbers (digits) when the transport knows them
-	GroupMembers []string  `json:"group_members,omitempty"`
-	FromMe       bool      `json:"from_me"`
-	Text         string    `json:"text"`
-	Time         time.Time `json:"time"`
-	ChatName     string    `json:"chat_name,omitempty"` // contact name on the linked phone (address book / push / business)
-	History      bool      `json:"history,omitempty"`   // synced history after linking, not a live message
-	Media        *Media    `json:"media,omitempty"`
+	GroupMembers []string `json:"group_members,omitempty"`
+	// GroupHidden: members whose number WhatsApp hides (LID only) — not GSI\'s numbers as far as anyone can tell
+	GroupHidden int       `json:"group_hidden,omitempty"`
+	FromMe      bool      `json:"from_me"`
+	Text        string    `json:"text"`
+	Time        time.Time `json:"time"`
+	ChatName    string    `json:"chat_name,omitempty"` // contact name on the linked phone (address book / push / business)
+	History     bool      `json:"history,omitempty"`   // synced history after linking, not a live message
+	Media       *Media    `json:"media,omitempty"`
 	// EditOf: this message is a WhatsApp edit of the message with that id; Text replaces its text.
 	EditOf string `json:"edit_of,omitempty"`
 	// QuotedID: the message this one replies to (WhatsApp "Balas").

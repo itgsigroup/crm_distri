@@ -66,8 +66,9 @@ func TestWAAnalysis(t *testing.T) {
 	if waDealers(fajarPage)["graha"] == nil || fajarPage["overview"] != nil {
 		t.Errorf("Fajar's page: %v", fajarPage["items"])
 	}
-	if code, _ := get(t, srv, "/api/wa/analysis", "finance@gsi.co.id"); code != http.StatusForbidden {
-		t.Errorf("finance without the chat page: %d", code)
+	// Penagihan (finance) reads only the conversations of the number it holds: none here, and no overview of everyone
+	if code, fin := get(t, srv, "/api/wa/analysis", "finance@gsi.co.id"); code != 200 || len(fin["items"].([]any)) != 0 || fin["overview"] != nil {
+		t.Errorf("finance sees other numbers' conversations: %d %v", code, fin["items"])
 	}
 
 	// the plan step of the conversation (the seed has Pak Hasan's next message at 10.12: the reply comes after it) is on Fajar's page, not Andi's, and done once the reply went out

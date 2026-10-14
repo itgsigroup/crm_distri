@@ -200,3 +200,51 @@ func TestWATeams(t *testing.T) {
 		}
 	}
 }
+
+// ADR 0033: Penagihan (base finance) reads only the WhatsApp number it holds, like a sales; admin reads every number.
+func TestPenagihanSeesOnlyOwnNumber(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	code, fin := post(t, srv.URL+"/api/users", "sam@gsi.co.id", map[string]any{"email": "tagih@gsi.co.id", "name": "Rina Penagihan", "role_key": "finance", "password": "rahasia-panjang-1"})
+	if code != http.StatusCreated {
+		t.Fatalf("create user: %d %v", code, fin)
+	}
+	in := wa.NewIngestor(st, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if _, err := st.Pool.Exec(ctx, "insert into wa_links (session_id, created_by, team) values ('link-tagih', 'sam@gsi.co.id', 'billing')"); err != nil {
+		t.Fatal(err)
+	}
+	if err := in.ProcessStatus(ctx, wa.Status{Session: "link-tagih", Account: "6281233330000", State: "connected"}); err != nil {
+		t.Fatal(err)
+	}
+	if code, out := put(t, srv.URL+"/api/wa/numbers/6281233330000/user", "sam@gsi.co.id", map[string]any{"user_id": fin["id"]}); code != 200 {
+		t.Fatalf("assign: %d %v", code, out)
+	}
+	var own string
+	if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('new', '6281300000009@s.whatsapp.net', 'Tagihan Toko C', '6281233330000', now()) returning id").Scan(&own); err != nil {
+		t.Fatal(err)
+	}
+	code, out := get(t, srv, "/api/chat/threads", "tagih@gsi.co.id")
+	if code != 200 {
+		t.Fatal(code)
+	}
+	items := out["items"].([]any)
+	if len(items) != 1 || items[0].(map[string]any)["id"] != own {
+		t.Fatalf("Penagihan sees %d chats, want only its own: %v", len(items), items)
+	}
+	var other string
+	_ = st.Pool.QueryRow(ctx, "select id from chat_threads where account is distinct from '6281233330000' limit 1").Scan(&other)
+	if code, _ := get(t, srv, "/api/chat/threads/"+other, "tagih@gsi.co.id"); code != http.StatusNotFound {
+		t.Errorf("Penagihan opened another number's chat: %d", code)
+	}
+	if code, _ := get(t, srv, "/api/chat/threads/"+own, "tagih@gsi.co.id"); code != 200 {
+		t.Errorf("Penagihan cannot open its own chat: %d", code)
+	}
+	_, status := get(t, srv, "/api/wa/status", "tagih@gsi.co.id")
+	if nums := status["items"].([]any); len(nums) != 1 || nums[0].(map[string]any)["wa_number"] != "6281233330000" {
+		t.Errorf("Penagihan sees numbers %v", nums)
+	}
+	// admin reads every number
+	if _, all := get(t, srv, "/api/chat/threads", "sam@gsi.co.id"); len(all["items"].([]any)) <= 1 {
+		t.Error("admin does not see every number's chats")
+	}
+}

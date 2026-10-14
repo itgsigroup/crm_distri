@@ -44,18 +44,6 @@ func (q *Queries) AdoptKamiCommitment(ctx context.Context, arg AdoptKamiCommitme
 	return id, err
 }
 
-const anyCustomerNumber = `-- name: AnyCustomerNumber :one
-select exists(select 1 from contacts where wa_number = any($1::text[]))::bool
-`
-
-// Whether one of the numbers is a customer contact of the master (a group with them is a customer group).
-func (q *Queries) AnyCustomerNumber(ctx context.Context, numbers []string) (bool, error) {
-	row := q.db.QueryRow(ctx, anyCustomerNumber, numbers)
-	var column_1 bool
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const assignThreadsSales = `-- name: AssignThreadsSales :exec
 update chat_threads set sales_id = $1 where account = $2
 `
@@ -106,6 +94,23 @@ update commitments set status = 'done' where id = $1
 func (q *Queries) CloseCommitment(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, closeCommitment, id)
 	return err
+}
+
+const countOutsiders = `-- name: CountOutsiders :one
+select count(*)::int from unnest($1::text[]) x(n)
+where x.n <> '' and not exists (select 1 from internal_numbers i where i.wa_number = x.n)
+  and not exists (select 1 from wa_numbers w where w.wa_number = x.n)
+  and not exists (select 1 from users u where u.wa_number = x.n)
+  and not exists (select 1 from sales_users s where s.wa_number = x.n)
+`
+
+// How many of the numbers are not GSI's: not an internal number, a linked number, a user's or a sales' number.
+// A group with someone outside GSI is a customer group (ADR 0033).
+func (q *Queries) CountOutsiders(ctx context.Context, numbers []string) (int32, error) {
+	row := q.db.QueryRow(ctx, countOutsiders, numbers)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const countSentToday = `-- name: CountSentToday :one

@@ -146,7 +146,7 @@ test('three roles see their own menu (stage 11)', async ({ page }) => {
   await expect(rail.locator('.me')).toContainText('Andi')
   await login(page, 'finance@gsi.co.id')
   await expect(rail.getByRole('button', { name: /Kredit/ })).toBeVisible()
-  await expect(rail.getByRole('button', { name: 'Chat' })).toHaveCount(0)
+  await expect(rail.getByRole('button', { name: 'Chat' })).toBeVisible() // Penagihan replies by hand from its own number (ADR 0033)
   await expect(rail.getByRole('button', { name: 'Pengaturan' })).toHaveCount(0)
   await login(page, 'sam@gsi.co.id')
   await expect(rail.getByRole('button', { name: 'Pengaturan' })).toBeVisible()

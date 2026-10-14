@@ -66,6 +66,7 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - Kirim stiker, lokasi, dan kontak belum dibuat. File > 25 MB lewat HP.
 
 ## Tim WhatsApp & grup pelanggan (2026-10-14, ADR 0033)
-- Usulan penagihan (`collect`, `installment`) masih dikirim dari nomor yang memegang percakapan, bukan otomatis dari nomor tim Penagihan. Bila tagihan harus selalu keluar dari nomor Penagihan, perlu aturan pilih-nomor di outbox (dan pelanggan harus pernah menyapa nomor itu — penjaga anti-blokir).
-- Grup pelanggan dikenali otomatis hanya bila ada kontak pelanggan master di dalamnya. Grup dengan pelanggan yang belum ada di master perlu ditandai manual sekali di Chat. Setelah deploy: cek Chat → filter "Grup pelanggan" dan tandai grup yang belum terdeteksi.
-- Peran pengguna tim Admin/Penagihan tetap melihat semua chat (scope "all"); bila Penagihan hanya boleh melihat chat timnya, perlu scope baru di Peran & akses.
+- ~~Tagihan otomatis dari nomor Penagihan~~ — diputuskan 2026-10-14: belum, Penagihan kirim manual.
+- ~~Scope Penagihan~~ — diputuskan 2026-10-14: hanya nomornya sendiri, admin semua.
+- Grup internal yang berisi nomor pribadi karyawan yang belum terdaftar ikut terbaca sebagai grup pelanggan. Setelah deploy: cek filter "Grup pelanggan" di Chat, tandai "Ini grup internal" bila salah, dan daftarkan nomor karyawan di Pengaturan → WhatsApp → Nomor internal.
+- Nomor anggota grup yang disembunyikan WhatsApp (LID) baru terbaca setelah nomor itu pernah chat langsung dengan nomor GSI atau tersimpan di kontak HP.

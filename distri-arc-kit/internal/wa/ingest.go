@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"strings"
 
 	"github.com/google/uuid"
@@ -94,28 +95,47 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		var dealerID, contactID, groupID *uuid.UUID
 		threadKind, title, subtitle := "", "", ""
 		fromInternal := internal(m.FromNumber)
+		if m.IsGroup && !fromInternal && !m.FromMe {
+			// in a group, any GSI number (linked, a user's, a sales') is our side
+			n, err := q.CountOutsiders(ctx, []string{Digits(m.FromNumber)})
+			if err != nil {
+				return err
+			}
+			fromInternal = n == 0 && Digits(m.FromNumber) != ""
+		}
 		if m.IsGroup {
 			kind = "wa_group"
 			g, err := q.GetWAGroupByJID(ctx, &m.ChatJID)
+			// someone outside GSI in the group — a member, a hidden member (WhatsApp shows a LID, not the number), or
+			// the sender — makes it a customer group (ADR 0033)
+			outside := func() (bool, error) {
+				nums := append([]string{}, m.GroupMembers...)
+				if !m.FromMe {
+					nums = append(nums, Digits(m.FromNumber))
+				}
+				n, err := q.CountOutsiders(ctx, nums)
+				return n > 0 || m.GroupHidden > 0, err
+			}
 			if errors.Is(err, pgx.ErrNoRows) {
-				// a new group is internal unless a customer of the master is in it (a customer group, ADR 0033)
 				name, gk := m.GroupName, "internal"
-				if customer, err := q.AnyCustomerNumber(ctx, append([]string{Digits(m.FromNumber)}, m.GroupMembers...)); err != nil {
-					return err
-				} else if customer {
-					gk = "external"
+				if !InternalGroupName(name) {
+					if out, err := outside(); err != nil {
+						return err
+					} else if out {
+						gk = "external"
+					}
 				}
 				var members *int32
-				if len(m.GroupMembers) > 0 {
-					n := int32(len(m.GroupMembers))
-					members = &n
+				if n := len(m.GroupMembers) + m.GroupHidden; n > 0 {
+					c := int32(n)
+					members = &c
 				}
 				g, err = q.UpsertWAGroup(ctx, gen.UpsertWAGroupParams{Jid: &m.ChatJID, Name: &name, Kind: &gk, Members: members, ReadEnabled: true})
-			} else if err == nil && deref(g.Kind) == "internal" && !g.KindManual && !m.FromMe && !fromInternal {
-				// a customer of the master writes in a group that started internal: it is a customer group
-				if customer, err := q.AnyCustomerNumber(ctx, []string{Digits(m.FromNumber)}); err != nil {
+			} else if err == nil && deref(g.Kind) == "internal" && !g.KindManual && !InternalGroupName(deref(g.Name)) {
+				// a group that started internal: someone outside GSI joined or wrote
+				if out, err := outside(); err != nil {
 					return err
-				} else if customer {
+				} else if out {
 					if err := q.MarkCustomerGroup(ctx, g.ID); err != nil {
 						return err
 					}
@@ -391,6 +411,12 @@ func contactName(m Message) string {
 	}
 	return ""
 }
+
+// internalGroupName: a group named for internal work stays internal whoever is in it (the same words as migration 0032).
+var internalGroupName = regexp.MustCompile(`(?i)internal|gudang|karyawan|staff|hrd|absensi`)
+
+// InternalGroupName reports whether a group's name says it is for GSI's own work.
+func InternalGroupName(name string) bool { return internalGroupName.MatchString(name) }
 
 func ShortDealer(name string) string {
 	for _, p := range []string{"PT ", "CV ", "UD ", "Toko "} {

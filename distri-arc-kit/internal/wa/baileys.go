@@ -153,6 +153,8 @@ func (e bridgeEvent) message() Message {
 		for _, x := range e.GroupMeta.Members {
 			if d := Digits(x.Phone); d != "" {
 				m.GroupMembers = append(m.GroupMembers, d)
+			} else {
+				m.GroupHidden++
 			}
 		}
 	}

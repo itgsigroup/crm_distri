@@ -51,7 +51,7 @@ order by c.number desc limit $1;
 
 -- name: ListWAInsights :many
 -- team: the team of the number holding the conversation (sales, admin, billing — ADR 0033).
-select i.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(n.team, 'sales')::text as team
+select i.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(n.team, 'sales')::text as team, t.account
 from wa_insights i
 left join dealers d on d.id = i.dealer_id
 left join sales_users s on s.id = i.sales_id

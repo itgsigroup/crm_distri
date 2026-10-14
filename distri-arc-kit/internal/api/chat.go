@@ -97,6 +97,51 @@ func phoneOfJID(jid *string) string {
 	return wa.Digits(strings.TrimSuffix(*jid, "@s.whatsapp.net"))
 }
 
+// chatViewer is which WhatsApp conversations a user reads (ADR 0033): CEO/admin every number; a sales the numbers of
+// their sales profile; Penagihan (base finance) only the number they hold.
+type chatViewer struct {
+	all      bool
+	sales    *uuid.UUID
+	accounts map[string]bool // Penagihan: the numbers they hold
+}
+
+func (s *Server) chatViewerOf(ctx context.Context, u User) (chatViewer, error) {
+	switch {
+	case deref(u.Role) == "sales":
+		return chatViewer{sales: u.SalesUserID}, nil
+	case deref(u.Role) == "finance" && !isAdmin(u):
+		v := chatViewer{accounts: map[string]bool{}}
+		if u.WaNumber != nil {
+			v.accounts[*u.WaNumber] = true
+		}
+		rows, err := s.st.Pool.Query(ctx, "select wa_number from wa_numbers where user_id = $1", u.ID)
+		if err != nil {
+			return v, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var n string
+			if err := rows.Scan(&n); err != nil {
+				return v, err
+			}
+			v.accounts[n] = true
+		}
+		return v, rows.Err()
+	}
+	return chatViewer{all: true}, nil
+}
+
+// sees reports whether the viewer reads a conversation held by account (its sales salesID).
+func (v chatViewer) sees(salesID *uuid.UUID, account *string) bool {
+	switch {
+	case v.all:
+		return true
+	case v.accounts != nil:
+		return account != nil && v.accounts[*account]
+	}
+	return v.sales != nil && salesID != nil && *salesID == *v.sales
+}
+
 func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.st.Q.ListThreads(r.Context())
 	if err != nil {
@@ -108,7 +153,11 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 	team := r.URL.Query().Get("team") // the conversations of one team's numbers
 	term := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
 	u, _ := CurrentUser(r.Context())
-	salesOnly := deref(u.Role) == "sales"
+	viewer, err := s.chatViewerOf(r.Context(), u)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
 	out := []ThreadView{}
 	for _, t := range rows {
 		kind := deref(t.Kind)
@@ -120,8 +169,8 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		if (account != "" && deref(t.Account) != account) || (team != "" && t.AccountTeam != team) {
 			continue
 		}
-		// a sales user reads only the conversations of their own numbers
-		if salesOnly && (u.SalesUserID == nil || t.SalesID == nil || *t.SalesID != *u.SalesUserID) {
+		// a sales or Penagihan user reads only the conversations of their own numbers
+		if !viewer.sees(t.SalesID, t.Account) {
 			continue
 		}
 		v := ThreadView{ID: t.ID, Kind: kind, Title: deref(t.Title), Subtitle: deref(t.Subtitle), DealerID: deref(t.DealerSlug), DealerName: deref(t.DealerName),
@@ -149,7 +198,8 @@ func (s *Server) threadParam(w http.ResponseWriter, r *http.Request) (gen.GetThr
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Percakapan tidak ditemukan")
 		return gen.GetThreadRow{}, false
 	}
-	if u, _ := CurrentUser(r.Context()); deref(u.Role) == "sales" && (u.SalesUserID == nil || t.SalesID == nil || *t.SalesID != *u.SalesUserID) {
+	u, _ := CurrentUser(r.Context())
+	if v, err := s.chatViewerOf(r.Context(), u); err != nil || !v.sees(t.SalesID, t.Account) {
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Percakapan tidak ditemukan") // another number's conversation
 		return gen.GetThreadRow{}, false
 	}
@@ -1143,11 +1193,23 @@ func (s *Server) patchWAGroup(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "kind (internal|external) dan read_enabled wajib")
 		return
 	}
-	// from Chat a sales marks only a group one of their own numbers is in (a customer group is read by Analisa WhatsApp)
-	if u, _ := CurrentUser(r.Context()); deref(u.Role) == "sales" && !isAdmin(u) {
-		var mine bool
-		if u.SalesUserID != nil {
-			_ = s.st.Pool.QueryRow(r.Context(), "select exists(select 1 from chat_threads where group_id = $1 and sales_id = $2)", id, *u.SalesUserID).Scan(&mine)
+	// from Chat a sales or Penagihan user marks only a group one of their own numbers is in (a customer group is read
+	// by Analisa WhatsApp)
+	u, _ := CurrentUser(r.Context())
+	if v, err := s.chatViewerOf(r.Context(), u); err != nil || (!v.all && !isAdmin(u)) {
+		mine := false
+		if err == nil {
+			rows, qerr := s.st.Pool.Query(r.Context(), "select sales_id, account from chat_threads where group_id = $1", id)
+			if qerr == nil {
+				for rows.Next() {
+					var sid *uuid.UUID
+					var acc *string
+					if rows.Scan(&sid, &acc) == nil && v.sees(sid, acc) {
+						mine = true
+					}
+				}
+				rows.Close()
+			}
 		}
 		if !mine {
 			httpx.Fail(w, http.StatusNotFound, "not_found", "Grup tidak ditemukan")
@@ -1188,8 +1250,8 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 	out := []map[string]any{}
 	for _, n := range rows {
 		mine := (n.UserID != nil && *n.UserID == u.ID) || (u.SalesUserID != nil && n.SalesID != nil && *n.SalesID == *u.SalesUserID)
-		if deref(u.Role) == "sales" && !mine {
-			continue // a sales user sees and pairs only their own number
+		if (deref(u.Role) == "sales" || (deref(u.Role) == "finance" && !isAdmin(u))) && !mine {
+			continue // a sales or Penagihan user sees and pairs only their own number
 		}
 		v := map[string]any{"wa_number": n.WaNumber, "masked": wa.MaskNumber(n.WaNumber), "sales": deref(n.SalesName), "branch": deref(n.SalesBranch), "transport": n.Transport,
 			"state": n.State, "last_seen_at": n.LastSeenAt, "paired_at": n.PairedAt, "backfill_days": n.BackfillDays, "label": deref(n.Label), "sales_id": n.SalesID,

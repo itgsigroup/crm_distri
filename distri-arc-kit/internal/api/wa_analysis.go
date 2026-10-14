@@ -82,6 +82,14 @@ func (s *Server) waAnalysis(w http.ResponseWriter, r *http.Request) {
 	if scoped {
 		scopeName = s.scopeSalesName(r)
 	}
+	u, _ := CurrentUser(ctx)
+	viewer, err := s.chatViewerOf(ctx, u)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	// Penagihan reads only the conversations of the number it holds (ADR 0033)
+	ownNumbers := viewer.accounts != nil
 	ids := make([]uuid.UUID, 0, len(rows))
 	for _, x := range rows {
 		ids = append(ids, x.ThreadID)
@@ -98,7 +106,7 @@ func (s *Server) waAnalysis(w http.ResponseWriter, r *http.Request) {
 	items := make([]WAInsightView, 0, len(rows))
 	plain := make([]waanalysis.Insight, 0, len(rows))
 	for _, x := range rows {
-		if !onSalesPage(set, scoped, x.DealerID, deref(x.SalesName), scopeName) {
+		if !onSalesPage(set, scoped, x.DealerID, deref(x.SalesName), scopeName) || (ownNumbers && !viewer.sees(nil, x.Account)) {
 			continue
 		}
 		in := waanalysis.Insight{ThreadID: x.ThreadID, Kind: x.Kind, Title: x.Title, DealerID: x.DealerID, DealerSlug: deref(x.DealerSlug), DealerName: deref(x.DealerName),
@@ -131,7 +139,7 @@ func (s *Server) waAnalysis(w http.ResponseWriter, r *http.Request) {
 	tot, sales := waanalysis.Summarize(plain)
 	out["cycle_number"], out["cycle_status"], out["generated_at"] = a.CycleNumber, a.CycleStatus, a.CreatedAt
 	out["source"], out["items"], out["totals"], out["sales"] = a.Source, items, tot, sales
-	if !scoped { // the overview covers every sales: one sales' page shows its own numbers only
+	if !scoped && !ownNumbers { // the overview covers every sales: one sales' page shows its own numbers only
 		out["overview"] = a.Overview
 	}
 	httpx.JSON(w, http.StatusOK, out)

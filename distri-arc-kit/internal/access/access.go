@@ -112,7 +112,7 @@ func LegacyScreens(base string) []string {
 	case "sales":
 		return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "konsep"}
 	case "finance":
-		return []string{"today", "orch", "orbit", "kuad", "dealer", "ar", "konsep"}
+		return []string{"today", "orch", "chat", "orbit", "kuad", "dealer", "ar", "konsep"}
 	case "warehouse":
 		return []string{"today", "chat", "stock", "dealer", "konsep"}
 	}

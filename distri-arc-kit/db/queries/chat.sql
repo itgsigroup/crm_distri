@@ -35,9 +35,14 @@ select * from wa_groups where id = $1;
 -- The automatic rule: a customer of the master is in the group — it becomes a customer group, unless a person chose.
 update wa_groups set kind = 'external' where id = $1 and kind = 'internal' and not kind_manual;
 
--- name: AnyCustomerNumber :one
--- Whether one of the numbers is a customer contact of the master (a group with them is a customer group).
-select exists(select 1 from contacts where wa_number = any(sqlc.arg(numbers)::text[]))::bool;
+-- name: CountOutsiders :one
+-- How many of the numbers are not GSI's: not an internal number, a linked number, a user's or a sales' number.
+-- A group with someone outside GSI is a customer group (ADR 0033).
+select count(*)::int from unnest(sqlc.arg(numbers)::text[]) x(n)
+where x.n <> '' and not exists (select 1 from internal_numbers i where i.wa_number = x.n)
+  and not exists (select 1 from wa_numbers w where w.wa_number = x.n)
+  and not exists (select 1 from users u where u.wa_number = x.n)
+  and not exists (select 1 from sales_users s where s.wa_number = x.n);
 
 -- name: ListWANumbers :many
 -- Every number with who holds it (user, role, branch) and its chats (count, unread, last activity).
