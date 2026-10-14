@@ -161,6 +161,8 @@ type ChatMessage struct {
 	QuotedWaID *string         `json:"quoted_wa_id"`
 	DeletedAt  *time.Time      `json:"deleted_at"`
 	Holding    *bool           `json:"holding"`
+	Closing    *bool           `json:"closing"`
+	AutoReply  *bool           `json:"auto_reply"`
 }
 
 type ChatMessageKey struct {
@@ -263,6 +265,13 @@ type Contact struct {
 	SourceID          *string    `json:"source_id"`
 	InteractionsBase  *int32     `json:"interactions_base"`
 	BaseAsOf          *time.Time `json:"base_as_of"`
+}
+
+type ContactType struct {
+	WaNumber string    `json:"wa_number"`
+	Type     string    `json:"type"`
+	SetBy    *string   `json:"set_by"`
+	SetAt    time.Time `json:"set_at"`
 }
 
 type Cycle struct {
@@ -928,6 +937,8 @@ type WaInsight struct {
 	ProposalIds    []uuid.UUID     `json:"proposal_ids"`
 	Summary        *string         `json:"summary"`
 	Confidence     *int16          `json:"confidence"`
+	ReplyWorkMin   []int32         `json:"reply_work_min"`
+	ReplyOffMin    []int32         `json:"reply_off_min"`
 }
 
 type WaLink struct {

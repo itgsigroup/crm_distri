@@ -46,8 +46,9 @@ func (q *Queries) DeleteWAInsights(ctx context.Context, cycleID uuid.UUID) error
 
 const insertWAInsight = `-- name: InsertWAInsight :exec
 insert into wa_insights (cycle_id, thread_id, kind, dealer_id, sales_id, title, intent, items, last_text, inbound, outbound,
-  last_in_at, last_out_at, waiting_since, reply_median_min, needs_reply, priority, signal_ids, proposal_ids, summary, confidence)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+  last_in_at, last_out_at, waiting_since, reply_median_min, needs_reply, priority, signal_ids, proposal_ids, summary, confidence,
+  reply_work_min, reply_off_min)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
 `
 
 type InsertWAInsightParams struct {
@@ -72,6 +73,8 @@ type InsertWAInsightParams struct {
 	ProposalIds    []uuid.UUID     `json:"proposal_ids"`
 	Summary        *string         `json:"summary"`
 	Confidence     *int16          `json:"confidence"`
+	ReplyWorkMin   []int32         `json:"reply_work_min"`
+	ReplyOffMin    []int32         `json:"reply_off_min"`
 }
 
 func (q *Queries) InsertWAInsight(ctx context.Context, arg InsertWAInsightParams) error {
@@ -97,6 +100,8 @@ func (q *Queries) InsertWAInsight(ctx context.Context, arg InsertWAInsightParams
 		arg.ProposalIds,
 		arg.Summary,
 		arg.Confidence,
+		arg.ReplyWorkMin,
+		arg.ReplyOffMin,
 	)
 	return err
 }
@@ -211,7 +216,7 @@ func (q *Queries) ListWAAnalyses(ctx context.Context, limit int32) ([]ListWAAnal
 }
 
 const listWAInsights = `-- name: ListWAInsights :many
-select i.cycle_id, i.thread_id, i.kind, i.dealer_id, i.sales_id, i.title, i.intent, i.items, i.last_text, i.inbound, i.outbound, i.last_in_at, i.last_out_at, i.waiting_since, i.reply_median_min, i.needs_reply, i.priority, i.signal_ids, i.proposal_ids, i.summary, i.confidence, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(n.team, 'sales')::text as team, t.account
+select i.cycle_id, i.thread_id, i.kind, i.dealer_id, i.sales_id, i.title, i.intent, i.items, i.last_text, i.inbound, i.outbound, i.last_in_at, i.last_out_at, i.waiting_since, i.reply_median_min, i.needs_reply, i.priority, i.signal_ids, i.proposal_ids, i.summary, i.confidence, i.reply_work_min, i.reply_off_min, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(n.team, 'sales')::text as team, t.account
 from wa_insights i
 left join dealers d on d.id = i.dealer_id
 left join sales_users s on s.id = i.sales_id
@@ -243,6 +248,8 @@ type ListWAInsightsRow struct {
 	ProposalIds    []uuid.UUID     `json:"proposal_ids"`
 	Summary        *string         `json:"summary"`
 	Confidence     *int16          `json:"confidence"`
+	ReplyWorkMin   []int32         `json:"reply_work_min"`
+	ReplyOffMin    []int32         `json:"reply_off_min"`
 	DealerSlug     *string         `json:"dealer_slug"`
 	DealerName     *string         `json:"dealer_name"`
 	SalesName      *string         `json:"sales_name"`
@@ -282,6 +289,8 @@ func (q *Queries) ListWAInsights(ctx context.Context, cycleID uuid.UUID) ([]List
 			&i.ProposalIds,
 			&i.Summary,
 			&i.Confidence,
+			&i.ReplyWorkMin,
+			&i.ReplyOffMin,
 			&i.DealerSlug,
 			&i.DealerName,
 			&i.SalesName,
@@ -406,9 +415,9 @@ func (q *Queries) SetWAOverview(ctx context.Context, arg SetWAOverviewParams) er
 
 const threadsWaitingSince = `-- name: ThreadsWaitingSince :many
 select t.id, t.dealer_id, s.name as sales_name,
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
      and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
-                               and not o.holding and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
+                               and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t left join sales_users s on s.id = t.sales_id
 where t.id = any($1::uuid[])
 `
@@ -583,6 +592,7 @@ func (q *Queries) WAMessageInsights(ctx context.Context, arg WAMessageInsightsPa
 const wAWindowMessages = `-- name: WAWindowMessages :many
 
 select m.id, coalesce(gt.id, m.thread_id)::uuid as thread_id, m.direction, m.body, m.sent_at, m.signal_id, m.internal, m.from_name, m.holding,
+  m.closing, m.auto_reply,
   t.kind as thread_kind, t.title as thread_title, t.dealer_id, t.sales_id,
   d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name
 from chat_messages m
@@ -592,6 +602,8 @@ left join lateral (select x.id from chat_threads x where t.kind = 'group' and x.
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
 where (t.kind in ('dealer','new') or (t.kind = 'group' and g.kind = 'external' and g.read_enabled))
+  -- a supplier or a personal number is not a customer (ADR 0035)
+  and not exists (select 1 from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1))
   and m.sent_at >= $1 and m.sent_at <= $2 and m.status <> 'failed'
 order by 2, m.sent_at, m.id
 `
@@ -611,6 +623,8 @@ type WAWindowMessagesRow struct {
 	Internal    bool       `json:"internal"`
 	FromName    *string    `json:"from_name"`
 	Holding     *bool      `json:"holding"`
+	Closing     *bool      `json:"closing"`
+	AutoReply   *bool      `json:"auto_reply"`
 	ThreadKind  *string    `json:"thread_kind"`
 	ThreadTitle *string    `json:"thread_title"`
 	DealerID    *uuid.UUID `json:"dealer_id"`
@@ -645,6 +659,8 @@ func (q *Queries) WAWindowMessages(ctx context.Context, arg WAWindowMessagesPara
 			&i.Internal,
 			&i.FromName,
 			&i.Holding,
+			&i.Closing,
+			&i.AutoReply,
 			&i.ThreadKind,
 			&i.ThreadTitle,
 			&i.DealerID,

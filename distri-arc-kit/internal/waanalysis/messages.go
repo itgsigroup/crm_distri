@@ -43,6 +43,11 @@ func AnalyzeMessages(t Thread, catalog []agents.Product, now time.Time) []Messag
 	var pending []int // indexes of the customer's messages since our last reply
 	for i, m := range t.Messages {
 		mi := MessageInsight{MessageID: m.ID, ThreadID: t.ID, In: m.In, SentAt: m.At, Intent: IntentNone, Items: []Item{}}
+		if m.In && (m.Closing || IsAck(m.Text)) {
+			mi.State = MsgClosing // asks nothing: not waiting, and the customer's earlier messages still are
+			out[i] = mi
+			continue
+		}
 		if m.In {
 			mi.Intent = agents.IntentOther
 			if !IsAck(m.Text) {

@@ -35,6 +35,9 @@ type Message struct {
 	// Holding: our message only says an answer will come ("tunggu sebentar", "saya konfirmasi dulu" — chat_messages.
 	// holding, ADR 0034): it does not answer the customer and the response time keeps running
 	Holding bool
+	// Closing: the customer's message asks nothing — a polite closing, emoji, a sticker, or their own auto-reply
+	// (chat_messages.closing / auto_reply, ADR 0035); it does not start a wait
+	Closing bool
 	Text    string
 	At      time.Time
 }
@@ -50,6 +53,8 @@ type Thread struct {
 	SalesID    *uuid.UUID
 	SalesName  string
 	Messages   []Message
+	// Hours: working hours response time is measured in (zero: wall-clock minutes, as before ADR 0035)
+	Hours WorkHours
 }
 
 // Item is a product asked for in a conversation.
@@ -60,30 +65,34 @@ type Item struct {
 
 // Insight is what one conversation says.
 type Insight struct {
-	ThreadID       uuid.UUID   `json:"thread_id"`
-	Kind           string      `json:"kind"`
-	Title          string      `json:"title"`
-	DealerID       *uuid.UUID  `json:"-"`
-	DealerSlug     string      `json:"dealer_id,omitempty"`
-	DealerName     string      `json:"dealer_name,omitempty"`
-	SalesID        *uuid.UUID  `json:"-"`
-	SalesName      string      `json:"sales"`
-	Intent         string      `json:"intent"`
-	Items          []Item      `json:"items"`
-	LastText       string      `json:"last_text"`
-	Inbound        int         `json:"inbound"`
-	Outbound       int         `json:"outbound"`
-	LastInAt       *time.Time  `json:"last_in_at"`
-	LastOutAt      *time.Time  `json:"last_out_at"`
-	WaitingSince   *time.Time  `json:"waiting_since"`
-	WaitMin        int         `json:"wait_min"` // minutes waiting at analysis time (0 when answered)
-	ReplyMedianMin *int        `json:"reply_median_min"`
-	NeedsReply     bool        `json:"needs_reply"`
-	Priority       int         `json:"priority"`
-	SignalIDs      []uuid.UUID `json:"signal_ids"`
-	ProposalIDs    []uuid.UUID `json:"proposal_ids"`
-	Summary        string      `json:"summary"`
-	Confidence     *int        `json:"confidence"`
+	ThreadID       uuid.UUID  `json:"thread_id"`
+	Kind           string     `json:"kind"`
+	Title          string     `json:"title"`
+	DealerID       *uuid.UUID `json:"-"`
+	DealerSlug     string     `json:"dealer_id,omitempty"`
+	DealerName     string     `json:"dealer_name,omitempty"`
+	SalesID        *uuid.UUID `json:"-"`
+	SalesName      string     `json:"sales"`
+	Intent         string     `json:"intent"`
+	Items          []Item     `json:"items"`
+	LastText       string     `json:"last_text"`
+	Inbound        int        `json:"inbound"`
+	Outbound       int        `json:"outbound"`
+	LastInAt       *time.Time `json:"last_in_at"`
+	LastOutAt      *time.Time `json:"last_out_at"`
+	WaitingSince   *time.Time `json:"waiting_since"`
+	WaitMin        int        `json:"wait_min"` // minutes waiting at analysis time (0 when answered)
+	ReplyMedianMin *int       `json:"reply_median_min"`
+	// ReplyWorkMin: each substantive response to a message written in working hours, in working minutes;
+	// ReplyOffMin: to a message written outside them, in minutes (ADR 0035)
+	ReplyWorkMin []int       `json:"reply_work_min"`
+	ReplyOffMin  []int       `json:"reply_off_min"`
+	NeedsReply   bool        `json:"needs_reply"`
+	Priority     int         `json:"priority"`
+	SignalIDs    []uuid.UUID `json:"signal_ids"`
+	ProposalIDs  []uuid.UUID `json:"proposal_ids"`
+	Summary      string      `json:"summary"`
+	Confidence   *int        `json:"confidence"`
 }
 
 // intentRank orders the intents of one conversation: the most consequential request names it.
@@ -137,6 +146,9 @@ func analyzeThread(t Thread, catalog []agents.Product, now time.Time) Insight {
 			if m.SignalID != nil {
 				in.SignalIDs = append(in.SignalIDs, *m.SignalID)
 			}
+			if m.Closing || IsAck(m.Text) {
+				continue // "Ok Bu", "siap", "terima kasih 👍", a sticker: nobody waits for a reply to it
+			}
 			if runStart == nil {
 				runStart = &at
 			}
@@ -149,17 +161,33 @@ func analyzeThread(t Thread, catalog []agents.Product, now time.Time) Insight {
 			continue // not an answer yet: the customer still waits
 		}
 		if runStart != nil {
-			delays = append(delays, int(at.Sub(*runStart).Minutes()+0.5))
+			switch {
+			case t.Hours.zero():
+				delays = append(delays, int(at.Sub(*runStart).Minutes()+0.5))
+			case t.Hours.In(*runStart):
+				d := t.Hours.Minutes(*runStart, at)
+				delays = append(delays, d)
+				in.ReplyWorkMin = append(in.ReplyWorkMin, d)
+			default:
+				in.ReplyOffMin = append(in.ReplyOffMin, int(at.Sub(*runStart).Minutes()+0.5))
+			}
 		}
 		runStart, pending = nil, nil
-	}
-	if runStart != nil && allAck(pending) {
-		runStart = nil // "Ok Bu", "siap", "terima kasih 👍": the conversation is closed, nobody waits for a reply
 	}
 	if runStart != nil {
 		in.WaitingSince = runStart
 		in.WaitMin = max(0, int(now.Sub(*runStart).Minutes()))
-		in.NeedsReply = now.Sub(*runStart) >= ReplyDue
+		if t.Hours.zero() {
+			in.NeedsReply = now.Sub(*runStart) >= ReplyDue
+		} else { // the wait counts in working hours: a message at 22.00 is due two working hours after 08.00
+			in.NeedsReply = t.Hours.Minutes(*runStart, now) >= int(ReplyDue.Minutes())
+		}
+	}
+	if in.ReplyWorkMin == nil {
+		in.ReplyWorkMin = []int{}
+	}
+	if in.ReplyOffMin == nil {
+		in.ReplyOffMin = []int{}
 	}
 	in.ReplyMedianMin = median(delays)
 	// the request: what the customer is waiting for, else the latest thing they asked
@@ -199,7 +227,8 @@ func analyzeThread(t Thread, catalog []agents.Product, now time.Time) Insight {
 var ackWords = map[string]bool{"ok": true, "oke": true, "okee": true, "okey": true, "okay": true, "okeh": true, "okwy": true, "okk": true, "okok": true, "siap": true,
 	"baik": true, "sip": true, "sipp": true, "mantap": true, "mantab": true, "terima": true, "kasih": true, "makasih": true, "trims": true, "tq": true,
 	"thx": true, "thanks": true, "thank": true, "you": true, "sama": true, "samaa": true, "noted": true, "iya": true, "ya": true, "yaa": true, "y": true,
-	"bu": true, "pak": true, "mba": true, "mbak": true, "mas": true, "kak": true, "ko": true, "ci": true, "gan": true, "bro": true, "sis": true, "banyak": true}
+	"bu": true, "pak": true, "mba": true, "mbak": true, "mas": true, "kak": true, "ko": true, "ci": true, "gan": true, "bro": true, "sis": true, "banyak": true,
+	"stiker": true, "gif": true} // a sticker or GIF alone ("[stiker]"); the same words as migration 0034 is_closing_message
 
 // IsAck: a short closing message ("Ok Bu", "siap pak", "terima kasih", "👍") that needs no reply.
 func IsAck(text string) bool {
@@ -267,7 +296,9 @@ type Totals struct {
 	Waiting        int            `json:"waiting"`     // a customer message without a reply
 	NeedsReply     int            `json:"needs_reply"` // waiting longer than ReplyDue
 	ReplyMedianMin *int           `json:"reply_median_min"`
-	ByIntent       map[string]int `json:"by_intent"` // conversations by their request
+	ReplyP90Min    *int           `json:"reply_p90_min"`        // working hours, substantive (ADR 0035)
+	ReplyOffMedian *int           `json:"reply_off_median_min"` // customers writing outside working hours
+	ByIntent       map[string]int `json:"by_intent"`            // conversations by their request
 }
 
 // SalesRow is one sales' conversations.
@@ -277,16 +308,20 @@ type SalesRow struct {
 	Inbound        int    `json:"inbound"`
 	Waiting        int    `json:"waiting"`
 	NeedsReply     int    `json:"needs_reply"`
-	ReplyMedianMin *int   `json:"reply_median_min"` // median of the conversations' reply medians
+	ReplyMedianMin *int   `json:"reply_median_min"` // median of the substantive responses in working hours
+	ReplyP90Min    *int   `json:"reply_p90_min"`
+	ReplyOffMedian *int   `json:"reply_off_median_min"`
 }
 
 // Summarize counts a set of conversations, overall and per sales (most conversations first).
 func Summarize(ins []Insight) (Totals, []SalesRow) {
 	t := Totals{ByIntent: map[string]int{}}
 	var all []int
+	var allWork, allOff []int
 	type acc struct {
-		row     SalesRow
-		medians []int
+		row       SalesRow
+		medians   []int
+		work, off []int
 	}
 	by := map[string]*acc{}
 	for _, i := range ins {
@@ -328,11 +363,21 @@ func Summarize(ins []Insight) (Totals, []SalesRow) {
 			all = append(all, *i.ReplyMedianMin)
 			a.medians = append(a.medians, *i.ReplyMedianMin)
 		}
+		allWork, allOff = append(allWork, i.ReplyWorkMin...), append(allOff, i.ReplyOffMin...)
+		a.work, a.off = append(a.work, i.ReplyWorkMin...), append(a.off, i.ReplyOffMin...)
 	}
-	t.ReplyMedianMin = median(all)
+	// every substantive response in working hours counts once (median and p90); without working-hours data (an
+	// older cycle) the median of the conversations' medians
+	t.ReplyMedianMin, t.ReplyP90Min, t.ReplyOffMedian = median(all), percentile(allWork, 0.9), median(allOff)
+	if len(allWork) > 0 {
+		t.ReplyMedianMin = median(allWork)
+	}
 	rows := make([]SalesRow, 0, len(by))
 	for _, a := range by {
-		a.row.ReplyMedianMin = median(a.medians)
+		a.row.ReplyMedianMin, a.row.ReplyP90Min, a.row.ReplyOffMedian = median(a.medians), percentile(a.work, 0.9), median(a.off)
+		if len(a.work) > 0 {
+			a.row.ReplyMedianMin = median(a.work)
+		}
 		rows = append(rows, a.row)
 	}
 	sort.Slice(rows, func(i, j int) bool {

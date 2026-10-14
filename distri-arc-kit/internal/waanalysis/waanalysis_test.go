@@ -190,3 +190,39 @@ func TestHoldingReplyDoesNotStopTheClock(t *testing.T) {
 		t.Errorf("held bubbles: %s %s", ws[0].State, ws[1].State)
 	}
 }
+
+// ADR 0035: response time in working hours (Mon–Sat 08–17 WIB) counts working minutes; a message written outside
+// them is reported apart; a closing ("ok bu", a sticker) starts no wait; p90 over every substantive response.
+func TestWorkHoursAndClosing(t *testing.T) {
+	h := DefaultWorkHours()
+	at := func(day, hh, mm int) time.Time { return time.Date(2026, 10, day, hh, mm, 0, 0, wib) } // 12 Oct 2026 = Monday
+	if !h.In(at(12, 9, 0)) || h.In(at(12, 20, 0)) || h.In(at(18, 10, 0)) {
+		t.Fatal("In: Monday 09.00 in, 20.00 out, Sunday out")
+	}
+	if m := h.Minutes(at(12, 16, 30), at(13, 8, 30)); m != 60 {
+		t.Fatalf("16.30 → next day 08.30 = %d working minutes, want 60", m)
+	}
+	if m := h.Minutes(at(17, 16, 0), at(19, 9, 0)); m != 120 {
+		t.Fatalf("Saturday 16.00 → Monday 09.00 = %d, want 120 (Sunday off)", m)
+	}
+	mk := func(in bool, text string, ts time.Time) Message {
+		return Message{ID: uuid.New(), In: in, Text: text, At: ts}
+	}
+	th := Thread{ID: uuid.New(), Kind: "dealer", SalesName: "Andi", Hours: h, Messages: []Message{
+		mk(true, "stok kamera ada?", at(12, 16, 30)), mk(false, "ready pak", at(13, 8, 30)), // work: 60 min
+		mk(true, "harga NVR?", at(13, 21, 0)), mk(false, "1.9jt pak", at(14, 7, 30)), // off hours: 630 min
+		mk(true, "ok pak siap", at(14, 7, 40)), mk(true, "[stiker]", at(14, 7, 41)), // closings: no wait
+	}}
+	got := Analyze([]Thread{th}, catalog, at(14, 12, 0))
+	if len(got) != 1 {
+		t.Fatal(got)
+	}
+	in := got[0]
+	if in.WaitingSince != nil || len(in.ReplyWorkMin) != 1 || in.ReplyWorkMin[0] != 60 || len(in.ReplyOffMin) != 1 || in.ReplyOffMin[0] != 630 {
+		t.Fatalf("insight %+v", in)
+	}
+	tot, rows := Summarize([]Insight{in, {Kind: "dealer", SalesName: "Andi", ReplyWorkMin: []int{5, 10, 15, 20, 25, 30, 35, 40, 45, 300}}})
+	if *tot.ReplyMedianMin != 30 || *tot.ReplyP90Min != 60 || *tot.ReplyOffMedian != 630 || *rows[0].ReplyP90Min != 60 {
+		t.Errorf("totals median %v p90 %v off %v", *tot.ReplyMedianMin, *tot.ReplyP90Min, *tot.ReplyOffMedian)
+	}
+}

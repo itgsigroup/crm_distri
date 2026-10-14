@@ -20,6 +20,7 @@ import (
 
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/jobs"
+	"distri-arc/internal/llm"
 	"distri-arc/internal/outbox"
 	"distri-arc/internal/policy"
 	"distri-arc/internal/store/gen"
@@ -36,6 +37,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Post("/chat/threads/{id}/messages", s.chatSend)
 	r.Patch("/chat/threads/{id}/messages/{mid}", s.chatEdit)
 	r.Delete("/chat/threads/{id}/messages/{mid}", s.chatDelete)
+	r.Put("/chat/threads/{id}/contact-type", s.setContactType)
 	r.Get("/chat/threads/{id}/messages/{mid}/media", s.chatMedia)
 	r.Get("/internal-numbers", s.internalNumbers)
 	r.Post("/internal-numbers", s.addInternalNumber)
@@ -76,7 +78,9 @@ type ThreadView struct {
 	Account       string          `json:"account"`       // the WhatsApp number holding the conversation
 	AccountLabel  string          `json:"account_label"` // its label (CS Kantor, Nomor Andi …)
 	AccountTeam   string          `json:"account_team"`  // its team: sales | admin | billing (ADR 0033)
-	LastDirection string          `json:"last_direction"`
+	// ContactType: supplier (pemasok) — not a customer lead, out of the reply queue (ADR 0035); empty: customer
+	ContactType   string `json:"contact_type,omitempty"`
+	LastDirection string `json:"last_direction"`
 	// WaitingSince: the oldest customer message not answered yet (null when the last word was ours)
 	WaitingSince *time.Time `json:"waiting_since"`
 }
@@ -174,8 +178,8 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		v := ThreadView{ID: t.ID, Kind: kind, Title: deref(t.Title), Subtitle: deref(t.Subtitle), DealerID: deref(t.DealerSlug), DealerName: deref(t.DealerName),
-			Sales: deref(t.SalesName), LastMessageAt: t.LastMessageAt, Unread: t.Unread, LastBody: deref(t.LastBody), Tag: t.Tag, GroupKind: deref(t.GroupKind),
-			Account: deref(t.Account), AccountLabel: t.AccountLabel, AccountTeam: t.AccountTeam, LastDirection: deref(t.LastDirection), WaitingSince: timeOrNil(t.WaitingSince)}
+			Sales: deref(t.SalesName), LastMessageAt: t.LastMessageAt, Unread: t.Unread, LastBody: llm.MaskCredentials(deref(t.LastBody)), Tag: t.Tag, GroupKind: deref(t.GroupKind),
+			Account: deref(t.Account), AccountLabel: t.AccountLabel, AccountTeam: t.AccountTeam, ContactType: t.ContactType, LastDirection: deref(t.LastDirection), WaitingSince: timeOrNil(t.WaitingSince)}
 		if t.LastFrom != nil && kind == "group" {
 			v.LastFrom = *t.LastFrom
 		}
@@ -216,7 +220,10 @@ type MessageView struct {
 	Status    string    `json:"status"`
 	Internal  bool      `json:"internal"`
 	// Holding: our message only says an answer will come — the response time keeps running (ADR 0034)
-	Holding    bool            `json:"holding,omitempty"`
+	Holding bool `json:"holding,omitempty"`
+	// AutoReply: an automatic WhatsApp Business message (greeting, away) — neither an answer nor a request (ADR 0035)
+	AutoReply  bool            `json:"auto_reply,omitempty"`
+	closing    bool            // the customer's message asks nothing (a polite closing, emoji, sticker)
 	Annotation json.RawMessage `json:"annotation"`
 	SignalID   *uuid.UUID      `json:"signal_id"`
 	Proposal   *MsgProposal    `json:"proposal,omitempty"`
@@ -282,7 +289,7 @@ func (s *Server) quotesFor(ctx context.Context, msgs []gen.ChatMessage) (map[str
 		if deleted != nil {
 			body, media = "Pesan ini dihapus", nil
 		}
-		q := &MsgQuote{ID: &id, Direction: dir, FromName: from, Body: body}
+		q := &MsgQuote{ID: &id, Direction: dir, FromName: from, Body: llm.MaskCredentials(body)}
 		if mv := mediaView(media); mv != nil {
 			q.MediaKind = mv.Kind
 		}
@@ -427,7 +434,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	out := make([]MessageView, 0, len(msgs))
 	now := s.clock.Now()
 	for _, m := range msgs {
-		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: deref(m.Body), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Holding: deref(m.Holding), Annotation: m.Annotation, SignalID: m.SignalID,
+		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: llm.MaskCredentials(deref(m.Body)), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Holding: deref(m.Holding), AutoReply: deref(m.AutoReply), closing: deref(m.Closing), Annotation: m.Annotation, SignalID: m.SignalID,
 			Media: mediaView(m.Media), EditedAt: m.EditedAt}
 		if label, ok := others[deref(m.ThreadID)]; ok && v.Direction == "out" {
 			v.Direction, v.FromName, v.Internal = "in", label, true
@@ -466,7 +473,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "dealer_id": deref(t.DealerSlug),
 		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
 		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
-		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),
+		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "contact_type": t.ContactType, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),
 	}, "messages": out, "has_more": hasMore, "history_from": historyFrom, "history_days": keepDays})
 }
 
@@ -483,7 +490,8 @@ func (s *Server) attachMsgAnalysis(ctx context.Context, thread uuid.UUID, msgs [
 		ids[i] = m.ID
 		if m.Status != "failed" {
 			// a GSI employee's message in a customer group is our side
-			th.Messages = append(th.Messages, waanalysis.Message{ID: m.ID, In: m.Direction == "in" && !m.Internal, Text: m.Body, At: m.SentAt, Holding: m.Holding})
+			th.Messages = append(th.Messages, waanalysis.Message{ID: m.ID, In: m.Direction == "in" && !m.Internal, Text: m.Body, At: m.SentAt,
+				Holding: m.Holding || m.AutoReply, Closing: m.closing || m.AutoReply})
 		}
 	}
 	rows, err := s.st.Q.WAMessageInsights(ctx, gen.WAMessageInsightsParams{ThreadID: thread, MessageIds: ids})
@@ -1170,6 +1178,52 @@ func (s *Server) deleteInternalNumber(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, "internal_number.delete", "internal_number", nil, map[string]any{"wa_number": n})
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// setContactType marks the number of a one-to-one chat (ADR 0035): customer (default), supplier — kept, but not a
+// lead and not in the reply queue — or personal: the chat leaves the CRM on every GSI number (messages and the signals
+// made of them) and later messages are not kept.
+func (s *Server) setContactType(w http.ResponseWriter, r *http.Request) {
+	t, ok := s.threadParam(w, r)
+	if !ok {
+		return
+	}
+	phone := phoneOfJID(t.WaJid)
+	if deref(t.Kind) == "group" || phone == "" {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Tipe kontak hanya untuk chat satu nomor")
+		return
+	}
+	var in struct {
+		Type string `json:"type"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&in); err != nil || (in.Type != "customer" && in.Type != "supplier" && in.Type != "personal") {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Tipe: customer, supplier, atau personal")
+		return
+	}
+	u, _ := CurrentUser(r.Context())
+	purged := 0
+	err := s.st.Tx(r.Context(), func(q *gen.Queries, _ pgx.Tx) error {
+		if in.Type == "customer" {
+			return q.ClearContactType(r.Context(), phone)
+		}
+		if err := q.SetContactType(r.Context(), gen.SetContactTypeParams{WaNumber: phone, Type: in.Type, SetBy: u.Email}); err != nil {
+			return err
+		}
+		if in.Type == "personal" {
+			n, err := q.PurgePersonalChat(r.Context(), deref(t.WaJid))
+			purged = int(n)
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	s.audit(r, "chat.contact_type", "chat_thread", &t.ID, map[string]any{"number": wa.MaskNumber(phone), "type": in.Type, "threads_removed": purged})
+	msg := map[string]string{"customer": "Ditandai pelanggan", "supplier": "Ditandai pemasok · tidak masuk antrean perlu dibalas",
+		"personal": "Obrolan pribadi dihapus dari CRM · pesan berikutnya tidak disimpan"}[in.Type]
+	httpx.JSON(w, http.StatusOK, map[string]any{"type": in.Type, "removed": purged > 0, "message": msg})
 }
 
 func (s *Server) waGroups(w http.ResponseWriter, r *http.Request) {

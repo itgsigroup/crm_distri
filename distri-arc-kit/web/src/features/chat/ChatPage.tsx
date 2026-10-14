@@ -98,6 +98,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
               <div className="ibr-top">
                 <b>{c.title}</b>
                 {c.kind === 'group' && <span className="ibr-tag grp">{c.group_kind === 'external' ? 'GRUP PELANGGAN' : 'GRUP'}</span>}
+                {c.contact_type === 'supplier' && <span className="ibr-tag grp">PEMASOK</span>}
                 <Waiting since={c.waiting_since} now={now} />
               </div>
               {c.kind !== 'group' && c.subtitle && <span className="ibr-src">≈ {c.subtitle}</span>}
@@ -273,7 +274,8 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
         {(m.can_reply || edit || del || caption) && <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} />}
         {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
       </div>
-      {m.holding && m.direction === 'out' && !(analysis && m.analysis) && (
+      {m.auto_reply && <span className="bub-hold" title="Pesan otomatis WhatsApp Business — bukan jawaban dan bukan permintaan">balasan otomatis · tidak dihitung</span>}
+      {m.holding && !m.auto_reply && m.direction === 'out' && !(analysis && m.analysis) && (
         <span className="bub-hold" title="Pesan ini hanya meminta pelanggan menunggu — waktu respon tetap dihitung sampai pelanggan mendapat jawaban">jawaban sementara · waktu respon tetap berjalan</span>
       )}
       {m.proposal && <span className="ann"><span className="ai" />Usulan Claude · <AnnProposal p={m.proposal} /></span>}
@@ -619,6 +621,38 @@ function GroupKind({ id, customer }: { id: string; customer: boolean }) {
   )
 }
 
+/** Who the number is (ADR 0035): a customer, a supplier (kept, but no lead and out of "Belum dibalas"), or a personal
+ * chat — removed from the CRM on every GSI number, later messages not kept. */
+function ContactKind({ id, supplier }: { id: string; supplier: boolean }) {
+  const qc = useQueryClient()
+  const nav = useNavigate()
+  const { toast } = useFeedback()
+  const set = useMutation({
+    mutationFn: (type: 'customer' | 'supplier' | 'personal') => api.put<{ message: string; removed: boolean }>(`/chat/threads/${id}/contact-type`, { type }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['chat'] })
+      toast(r.message)
+      if (r.removed) nav('/chat')
+    },
+    onError: (e: Error) => toast(e.message),
+  })
+  const personal = () => {
+    if (window.confirm('Tandai obrolan pribadi? Seluruh chat nomor ini dihapus dari CRM (WhatsApp di HP tidak berubah) dan pesan berikutnya tidak disimpan.')) set.mutate('personal')
+  }
+  return (
+    <div className="ibp-grp internal">
+      <b><Icon name="people" />{supplier ? 'Pemasok' : 'Tipe kontak'}</b>
+      <span>{supplier ? 'Bukan pelanggan: tidak masuk antrean "Belum dibalas" dan tidak dihitung sebagai lead.' : 'Bukan pelanggan? Tandai pemasok (tetap tersimpan) atau obrolan pribadi (dihapus dari CRM).'}</span>
+      <div className="ibp-row">
+        {supplier
+          ? <button type="button" className="btn quiet" disabled={set.isPending} onClick={() => set.mutate('customer')}>Ini pelanggan</button>
+          : <button type="button" className="btn quiet" disabled={set.isPending} onClick={() => set.mutate('supplier')}>Pemasok</button>}
+        <button type="button" className="btn quiet" disabled={set.isPending} onClick={personal}>Obrolan pribadi</button>
+      </div>
+    </div>
+  )
+}
+
 function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean; setMini: (v: boolean) => void; onAccurate: () => void }) {
   const { data: ctx } = useChatContext(id)
   const { data: th } = useThread(id)
@@ -738,6 +772,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
             </div>
             {!group && <button type="button" className="ibp-send" onClick={onAccurate}><Icon name="send" />Kirim ke Accurate</button>}
             {group && t.group_id && <GroupKind id={t.group_id} customer={customerGroup} />}
+            {!group && <ContactKind id={id} supplier={t.contact_type === 'supplier'} />}
           </>
         )}
         {tab === 'ai' && (

@@ -88,7 +88,7 @@ export function WAWheels({ data }: { data: WAAnalysis | undefined }) {
   const late = t?.needs_reply ?? 0
   const W: [string, string, string, number, string, string][] = [
     ['Chat terbalas', answeredPct + '%', '% percakapan yang sudah dibalas sales', answeredPct, 'target ≥ 90%', answeredPct >= 90 ? 'good' : 'warn'],
-    ['Waktu balas', replyText(med), 'median waktu balas per percakapan', med == null ? 0 : Math.round((1 - med / (2 * due)) * 100), `target ≤ ${waitLabel(due)}`, med == null ? 'text-3' : med <= due ? 'good' : 'warn'],
+    ['Waktu balas', replyText(med), `median jawaban substantif di jam kerja · p90 ${replyText(t?.reply_p90_min ?? null)}`, med == null ? 0 : Math.round((1 - med / (2 * due)) * 100), `target ≤ ${waitLabel(due)}`, med == null ? 'text-3' : med <= due ? 'good' : 'warn'],
     ['Menunggu', String(late), `chat menunggu lebih dari ${waitLabel(due)}`, late ? Math.max(5, 100 - late * 20) : 100, 'target 0', late ? 'bad' : 'good'],
   ]
   const c = 2 * Math.PI * 26
@@ -128,7 +128,7 @@ export function WAAgenda({ data }: { data: WAAnalysis | undefined }) {
           <div className="ag-row" key={s.name}>
             <div className="ag-who">
               <span className="avatar">{initials(s.name || '?')}</span>
-              <div><b>{s.name || 'Tanpa sales'}</b><span>{s.threads} chat · balas {replyText(s.reply_median_min)}</span></div>
+              <div><b>{s.name || 'Tanpa sales'}</b><span>{s.threads} chat · balas {replyText(s.reply_median_min)} · p90 {replyText(s.reply_p90_min ?? null)}</span></div>
               <span className="ag-n" title="chat belum dibalas">{s.waiting}</span>
             </div>
             <ul>
@@ -159,7 +159,7 @@ export function WASalesGrid({ rows }: { rows: WASalesRow[] }) {
       {rows.map((s) => (
         <div className="agent-card" key={s.name}>
           <div className="ac-h"><span className="ni"><Icon name="chat" /></span><div><b>{s.name || 'Tanpa sales'}</b><span>{s.threads} percakapan · {s.inbound} pesan masuk</span></div></div>
-          <div className="ac-kv"><span><small>Belum dibalas</small>{s.waiting}</span><span><small>Lewat 2 jam</small>{s.needs_reply}</span><span><small>Waktu balas</small>{replyText(s.reply_median_min)}</span></div>
+          <div className="ac-kv"><span><small>Belum dibalas</small>{s.waiting}</span><span><small>Lewat 2 jam</small>{s.needs_reply}</span><span><small>Waktu balas</small>{replyText(s.reply_median_min)}</span><span><small>p90</small>{replyText(s.reply_p90_min ?? null)}</span><span><small>Luar jam</small>{replyText(s.reply_off_median_min ?? null)}</span></div>
         </div>
       ))}
     </div>

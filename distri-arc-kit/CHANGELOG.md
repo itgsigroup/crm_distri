@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Laporan direktur 14 Okt — gelombang 1: antrean chat bersih, waktu respon jam kerja, privasi · 2026-10-14
+- **Antrean "Belum dibalas" hanya urusan niaga**: penutup sopan ("ok bu", "siap pak terima kasih"), emoji, dan stiker tidak lagi membuat chat menunggu; balasan otomatis WhatsApp Business (sapaan, "sedang tidak di tempat") bukan jawaban dan bukan permintaan.
+- **Tipe kontak** di panel Chat: *Pemasok* (chip sendiri, keluar dari antrean dan analisa lead) dan *Obrolan pribadi* (dihapus dari CRM, pesan berikutnya tidak disimpan).
+- **Waktu respon per jam kerja** (Senin–Sabtu 08.00–17.00 WIB): median dan **p90** jawaban substantif per sales; pesan di luar jam kerja dilaporkan terpisah; "lewat 2 jam" dihitung dalam jam kerja.
+- **Kredensial** (password, sandi, PIN, OTP) disamarkan di Chat, MCP, dan sebelum ke AI.
+- ADR 0035, migrasi 0034.
+
 ## Fix · Waktu respon dihitung sampai pelanggan dijawab · 2026-10-14
 - Di semua chat, jawaban sementara dari pihak GSI — "tunggu sebentar ya", "saya konfirmasi dulu", "saya tanyakan ke gudang", "nanti saya kabari", "sedang kami cek" — **tidak lagi dihitung sebagai balasan** (ADR 0034, migrasi 0033).
 - Chat tetap di "Belum dibalas" dan timer menunggu terus berjalan sampai ada jawaban sungguhan; waktu balas per sales di Analisa WhatsApp dan Pusat kendali dihitung sampai jawaban itu.

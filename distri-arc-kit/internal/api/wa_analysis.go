@@ -112,7 +112,7 @@ func (s *Server) waAnalysis(w http.ResponseWriter, r *http.Request) {
 		in := waanalysis.Insight{ThreadID: x.ThreadID, Kind: x.Kind, Title: x.Title, DealerID: x.DealerID, DealerSlug: deref(x.DealerSlug), DealerName: deref(x.DealerName),
 			SalesID: x.SalesID, SalesName: deref(x.SalesName), Intent: x.Intent, Items: []waanalysis.Item{}, LastText: deref(x.LastText), Inbound: int(x.Inbound),
 			Outbound: int(x.Outbound), LastInAt: x.LastInAt, LastOutAt: x.LastOutAt, WaitingSince: x.WaitingSince, NeedsReply: x.NeedsReply, Priority: int(x.Priority),
-			SignalIDs: x.SignalIds, ProposalIDs: x.ProposalIds, Summary: deref(x.Summary)}
+			SignalIDs: x.SignalIds, ProposalIDs: x.ProposalIds, Summary: deref(x.Summary), ReplyWorkMin: waanalysis.Ints(x.ReplyWorkMin), ReplyOffMin: waanalysis.Ints(x.ReplyOffMin)}
 		_ = json.Unmarshal(x.Items, &in.Items)
 		if x.ReplyMedianMin != nil {
 			v := int(*x.ReplyMedianMin)

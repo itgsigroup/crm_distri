@@ -55,6 +55,10 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 	}
 	var threads []waanalysis.Thread
 	at := map[uuid.UUID]int{}
+	hours := waanalysis.DefaultWorkHours()
+	if r.in != nil {
+		hours = waanalysis.HoursOf(r.in.Policies.Chat)
+	}
 	for _, m := range rows {
 		if (dealer != nil && (m.DealerID == nil || *m.DealerID != *dealer)) || (thread != nil && m.ThreadID != *thread) {
 			continue
@@ -64,11 +68,11 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 			i = len(threads)
 			at[m.ThreadID] = i
 			threads = append(threads, waanalysis.Thread{ID: m.ThreadID, Kind: deref(m.ThreadKind), Title: deref(m.ThreadTitle), DealerID: m.DealerID,
-				DealerSlug: deref(m.DealerSlug), DealerName: deref(m.DealerName), SalesID: m.SalesID, SalesName: deref(m.SalesName)})
+				DealerSlug: deref(m.DealerSlug), DealerName: deref(m.DealerName), SalesID: m.SalesID, SalesName: deref(m.SalesName), Hours: hours})
 		}
 		// in a customer group a GSI employee's message is our side: it answers the customers like a reply would
 		threads[i].Messages = append(threads[i].Messages, waanalysis.Message{ID: m.ID, SignalID: m.SignalID, In: deref(m.Direction) == "in" && !m.Internal,
-			Text: deref(m.Body), At: m.SentAt, Holding: deref(m.Holding)})
+			Text: deref(m.Body), At: m.SentAt, Holding: deref(m.Holding) || deref(m.AutoReply), Closing: deref(m.Closing) || deref(m.AutoReply)})
 	}
 	if err := o.saveWAMessages(ctx, r, threads, now); err != nil {
 		return err
@@ -190,7 +194,7 @@ func (o *Orchestrator) saveWA(ctx context.Context, r *stageRun) error {
 			if err := q.InsertWAInsight(ctx, gen.InsertWAInsightParams{CycleID: cyc, ThreadID: in.ThreadID, Kind: in.Kind, DealerID: in.DealerID, SalesID: in.SalesID,
 				Title: in.Title, Intent: in.Intent, Items: items, LastText: strp(in.LastText), Inbound: int32(in.Inbound), Outbound: int32(in.Outbound),
 				LastInAt: in.LastInAt, LastOutAt: in.LastOutAt, WaitingSince: in.WaitingSince, ReplyMedianMin: i32p(in.ReplyMedianMin), NeedsReply: in.NeedsReply,
-				Priority: int32(in.Priority), SignalIds: in.SignalIDs, ProposalIds: in.ProposalIDs}); err != nil {
+				Priority: int32(in.Priority), SignalIds: in.SignalIDs, ProposalIds: in.ProposalIDs, ReplyWorkMin: i32s(in.ReplyWorkMin), ReplyOffMin: i32s(in.ReplyOffMin)}); err != nil {
 				return err
 			}
 		}
@@ -349,7 +353,7 @@ func (o *Orchestrator) waReadingFor(ctx context.Context, cycleID uuid.UUID) (*wa
 	var ins []waanalysis.Insight
 	for _, x := range rows {
 		ins = append(ins, waanalysis.Insight{Kind: x.Kind, SalesName: deref(x.SalesName), Intent: x.Intent, Inbound: int(x.Inbound), Outbound: int(x.Outbound),
-			WaitingSince: x.WaitingSince, NeedsReply: x.NeedsReply, ReplyMedianMin: intp(x.ReplyMedianMin)})
+			WaitingSince: x.WaitingSince, NeedsReply: x.NeedsReply, ReplyMedianMin: intp(x.ReplyMedianMin), ReplyWorkMin: waanalysis.Ints(x.ReplyWorkMin), ReplyOffMin: waanalysis.Ints(x.ReplyOffMin)})
 	}
 	tot, _ := waanalysis.Summarize(ins)
 	rd := &waReading{Totals: tot, Threads: []waThreadIn{}, want: map[string]bool{}, msgWant: map[string]bool{}}
@@ -674,4 +678,13 @@ func clipText(s string, n int) string {
 		return s
 	}
 	return string([]rune(s)[:n-1]) + "…"
+}
+
+// i32s converts minutes for an int[] column (never null).
+func i32s(xs []int) []int32 {
+	out := make([]int32, len(xs))
+	for i, x := range xs {
+		out[i] = int32(x)
+	}
+	return out
 }

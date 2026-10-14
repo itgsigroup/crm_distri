@@ -3,22 +3,24 @@ import type { ThreadView } from '../../api/types'
 // Chat inbox helpers (pure, tested): conversation filters with counts, the "waiting for a reply" timer and the
 // lookup links shown next to a contact's number.
 
-export type Filter = 'all' | 'unread' | 'unreplied' | 'dealer' | 'group_internal' | 'group_external' | 'new'
+export type Filter = 'all' | 'unread' | 'unreplied' | 'dealer' | 'group_internal' | 'group_external' | 'new' | 'supplier'
 
 // "Belum dibaca" and "Belum dibalas" cut across the kinds, like WhatsApp's Unread chip.
 export const FILTERS: [Filter, string][] = [
-  ['all', 'Semua'], ['unread', 'Belum dibaca'], ['unreplied', 'Belum dibalas'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['group_external', 'Grup pelanggan'], ['new', 'Nomor baru'],
+  ['all', 'Semua'], ['unread', 'Belum dibaca'], ['unreplied', 'Belum dibalas'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['group_external', 'Grup pelanggan'], ['new', 'Nomor baru'], ['supplier', 'Pemasok'],
 ]
 
-type Filtered = Pick<ThreadView, 'kind' | 'group_kind' | 'unread' | 'waiting_since'>
+type Filtered = Pick<ThreadView, 'kind' | 'group_kind' | 'unread' | 'waiting_since' | 'contact_type'>
 
-/** A customer's message is still waiting for our answer (one-to-one chats; group chatter is not a request). */
-export function unreplied(t: Pick<ThreadView, 'kind' | 'waiting_since'>): boolean {
-  return t.kind !== 'group' && !!t.waiting_since
+/** A customer's message is still waiting for our answer (one-to-one chats; group chatter is not a request; a
+ * supplier is not a customer — ADR 0035). */
+export function unreplied(t: Pick<ThreadView, 'kind' | 'waiting_since' | 'contact_type'>): boolean {
+  return t.kind !== 'group' && t.contact_type !== 'supplier' && !!t.waiting_since
 }
 
-export function filterOf(t: Pick<ThreadView, 'kind' | 'group_kind'>): Exclude<Filter, 'all' | 'unread' | 'unreplied'> {
+export function filterOf(t: Pick<ThreadView, 'kind' | 'group_kind' | 'contact_type'>): Exclude<Filter, 'all' | 'unread' | 'unreplied'> {
   if (t.kind === 'group') return t.group_kind === 'external' ? 'group_external' : 'group_internal'
+  if (t.contact_type === 'supplier') return 'supplier'
   return t.kind
 }
 
@@ -31,7 +33,7 @@ export function inFilter(t: Filtered, f: Filter): boolean {
 }
 
 export function countFilters(list: Filtered[]): Record<Filter, number> {
-  const c: Record<Filter, number> = { all: list.length, unread: 0, unreplied: 0, dealer: 0, group_internal: 0, group_external: 0, new: 0 }
+  const c: Record<Filter, number> = { all: list.length, unread: 0, unreplied: 0, dealer: 0, group_internal: 0, group_external: 0, new: 0, supplier: 0 }
   for (const t of list) {
     c[filterOf(t)]++
     if (t.unread > 0) c.unread++

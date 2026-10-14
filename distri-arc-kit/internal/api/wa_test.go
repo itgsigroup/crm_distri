@@ -6,7 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 	"testing"
+	"time"
 
+	"distri-arc/internal/store"
 	"distri-arc/internal/wa"
 )
 
@@ -296,4 +298,85 @@ func TestHoldingReplyKeepsWaiting(t *testing.T) {
 	if w := waiting(); w != nil {
 		t.Fatalf("answered, still waiting since %v", w)
 	}
+}
+
+// ADR 0035: the "Belum dibalas" queue holds commerce only — a closing or an auto-reply asks nothing, our own
+// auto-reply answers nothing; a supplier is out of the queue and of the analysis; a personal chat leaves the CRM and
+// its later messages are not kept; credentials are hidden in Chat.
+func TestChatQueueCleanup(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	thread := func(jid, title string) string {
+		var id string
+		if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('new', $1, $2, '6281234504471', now()) returning id", jid, title).Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	add := func(id, wid, dir, body, ago string) {
+		if _, err := st.Pool.Exec(ctx, "insert into chat_messages (thread_id, wa_msg_id, direction, body, sent_at, status) values ($1, $2, $3, $4, now() - $5::interval, 'sent')", id, wid, dir, body, ago); err != nil {
+			t.Fatal(err)
+		}
+	}
+	list := func() map[string]map[string]any {
+		_, out := get(t, srv, "/api/chat/threads", "sam@gsi.co.id")
+		m := map[string]map[string]any{}
+		for _, it := range out["items"].([]any) {
+			r := it.(map[string]any)
+			m[r["id"].(string)] = r
+		}
+		return m
+	}
+	closing := thread("6281300000101@s.whatsapp.net", "Toko Tutup")
+	add(closing, "Q1", "in", "harga kamera?", "3 hours")
+	add(closing, "Q2", "out", "450rb pak", "2 hours")
+	add(closing, "Q3", "in", "ok pak siap 🙏", "1 hour")
+	auto := thread("6281300000102@s.whatsapp.net", "Toko Auto")
+	add(auto, "Q4", "in", "stok NVR ada?", "3 hours")
+	add(auto, "Q5", "out", "Terima kasih telah menghubungi CCTVmart, kami akan segera membalas", "3 hours")
+	sup := thread("6281300000103@s.whatsapp.net", "Distributor Lain")
+	add(sup, "Q6", "in", "barang inden 2 minggu ya", "3 hours")
+	priv := thread("6281300000104@s.whatsapp.net", "Mama")
+	add(priv, "Q7", "in", "password wifi: Rumah123", "3 hours")
+
+	l := list()
+	if l[closing]["waiting_since"] != nil {
+		t.Error("a polite closing put the chat back in the queue")
+	}
+	if l[auto]["waiting_since"] == nil {
+		t.Error("our auto-reply counted as an answer")
+	}
+	if code, out := put(t, srv.URL+"/api/chat/threads/"+sup+"/contact-type", "sam@gsi.co.id", map[string]any{"type": "supplier"}); code != 200 {
+		t.Fatalf("supplier: %d %v", code, out)
+	}
+	if l = list(); l[sup]["contact_type"] != "supplier" {
+		t.Errorf("supplier not marked: %v", l[sup])
+	}
+	_, detail := get(t, srv, "/api/chat/threads/"+priv, "sam@gsi.co.id")
+	if b := detail["messages"].([]any)[0].(map[string]any)["body"]; b != "password wifi: ••••••" {
+		t.Errorf("credential shown: %v", b)
+	}
+	if code, out := put(t, srv.URL+"/api/chat/threads/"+priv+"/contact-type", "sam@gsi.co.id", map[string]any{"type": "personal"}); code != 200 || out["removed"] != true {
+		t.Fatalf("personal: %d %v", code, out)
+	}
+	if _, ok := list()[priv]; ok {
+		t.Error("personal chat still listed")
+	}
+	if n := countRows(t, st, "select count(*) from chat_messages where wa_msg_id = 'Q7'"); n != 0 {
+		t.Error("personal messages kept")
+	}
+	in := wa.NewIngestor(st, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	r, err := in.Process(ctx, wa.Message{ID: "Q8", Account: "6281234504471", ChatJID: "6281300000104@s.whatsapp.net", FromNumber: "6281300000104", Text: "sudah makan?", Time: time.Now()})
+	if err != nil || r.Stored || r.Reason != wa.DropPersonal {
+		t.Errorf("later personal message: %+v %v", r, err)
+	}
+}
+
+func countRows(t *testing.T, st *store.Store, sql string) int {
+	t.Helper()
+	var n int
+	if err := st.Pool.QueryRow(context.Background(), sql).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	return n
 }

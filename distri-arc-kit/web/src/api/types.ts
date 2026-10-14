@@ -293,6 +293,8 @@ export interface ThreadView {
   account: string
   account_label: string
   account_team?: WATeam
+  /** supplier (pemasok): not a customer lead, out of the reply queue (ADR 0035) */
+  contact_type?: '' | 'supplier'
   last_direction?: 'in' | 'out' | ''
   /** oldest customer message not answered yet */
   waiting_since?: string | null
@@ -308,6 +310,8 @@ export interface MessageView {
   internal: boolean
   /** our message only says an answer will come ("tunggu sebentar"): the response time keeps running (ADR 0034) */
   holding?: boolean
+  /** an automatic WhatsApp Business message (greeting, away): neither an answer nor a request (ADR 0035) */
+  auto_reply?: boolean
   annotation: Annotation | null
   signal_id: string | null
   proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }
@@ -360,6 +364,7 @@ export interface ThreadDetail {
     /** when the bubbles were last analysed (null: never) */
     analyzed_at?: string | null
     account_team?: WATeam
+    contact_type?: '' | 'supplier'
     /** a group: its id and kind (external = a customer group, read by Analisa WhatsApp) */
     group_id?: string | null; group_kind?: string }
   messages: MessageView[]
@@ -580,8 +585,10 @@ export interface WAInsight {
   summary: string
   confidence: number | null
 }
-export interface WATotals { threads: number; dealers: number; new_numbers: number; inbound: number; outbound: number; waiting: number; needs_reply: number; reply_median_min: number | null; by_intent: Partial<Record<WAIntent, number>> }
-export interface WASalesRow { name: string; threads: number; inbound: number; waiting: number; needs_reply: number; reply_median_min: number | null }
+export interface WATotals { threads: number; dealers: number; new_numbers: number; inbound: number; outbound: number; waiting: number; needs_reply: number; reply_median_min: number | null
+  /** working hours, substantive responses (ADR 0035) */
+  reply_p90_min?: number | null; reply_off_median_min?: number | null; by_intent: Partial<Record<WAIntent, number>> }
+export interface WASalesRow { name: string; threads: number; inbound: number; waiting: number; needs_reply: number; reply_median_min: number | null; reply_p90_min?: number | null; reply_off_median_min?: number | null }
 export interface WAHistoryRow { cycle_number: number | null; at: string; status: string; via: string; threads: number; inbound: number; outbound: number; waiting: number; reply_median_min: number | null; source: 'rules' | 'ai' }
 export interface WAAnalysis {
   cycle_number: number | null

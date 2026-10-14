@@ -17,6 +17,7 @@ type PolicySet struct {
 	LLM       LLMRouting             `json:"llm.routing"`
 	Retention Retention              `json:"retention"`
 	Pilot     PilotPolicy            `json:"pilot"`
+	Chat      ChatPolicy             `json:"chat.rules"`
 }
 
 type OrbitPolicy struct {
@@ -128,6 +129,16 @@ type LLMRouting struct {
 // model nor rules write proposals, summaries, notes or page readings.
 func (l LLMRouting) MCPOnly() bool { return l.Mode == "mcp" }
 
+// ChatPolicy: working hours for response time (ADR 0035) — a customer writing inside them is answered in working
+// minutes; one writing outside is reported apart. ReplySLAMin / EscalateHours: a lead without an answer.
+type ChatPolicy struct {
+	WorkDays      []int  `json:"work_days"`  // time.Weekday: 0 Sunday … 6 Saturday
+	WorkStart     string `json:"work_start"` // "08:00" WIB
+	WorkEnd       string `json:"work_end"`   // "17:00" WIB
+	ReplySLAMin   int    `json:"reply_sla_min"`
+	EscalateHours int    `json:"escalate_hours"`
+}
+
 type Retention struct {
 	ChatDays      int `json:"chat_days"`
 	SignalsMonths int `json:"signals_months"`
@@ -187,6 +198,7 @@ func DefaultPolicies() PolicySet {
 	p.MCP = MCPPermissions{AllowReanalyze: true, AllowPlanUpdateProposal: true, MaskPIIInRead: true, MaxCyclesPerHour: 6}
 	p.LLM = LLMRouting{Mode: "mcp", Provider: "anthropic", Model: "claude-sonnet-5-5", Fallback: "openai:gpt-4.1", BatchHours: []int{6, 20}, Timezone: "Asia/Jakarta", RequireAI: true}
 	p.Retention = Retention{ChatDays: 365, SignalsMonths: 24, LLMCallsDays: 180}
+	p.Chat = ChatPolicy{WorkDays: []int{1, 2, 3, 4, 5, 6}, WorkStart: "08:00", WorkEnd: "17:00", ReplySLAMin: 30, EscalateHours: 24}
 	p.Pilot = PilotPolicy{Mode: "off", Branch: "Semarang", ShadowDays: 14, UnlockConfidence: 80, UnlockWeeks: 2, MinDecisionsPerWeek: 5, Unlocked: []string{}}
 	return p
 }

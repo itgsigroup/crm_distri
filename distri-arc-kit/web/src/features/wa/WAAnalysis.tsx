@@ -68,7 +68,7 @@ export function WAOverviewCard({ data, scoped }: { data: WAAnalysis | undefined;
             <div className="kpi-t"><small>Percakapan</small><b>{fmtNum(t?.threads ?? 0)}</b><span className="dl n">{t?.dealers ?? 0} dealer · {t?.new_numbers ?? 0} nomor baru</span></div>
             <div className="kpi-t"><small>Pesan</small><b>{fmtNum(t?.inbound ?? 0)}<em>masuk</em></b><span className="dl n">{fmtNum(t?.outbound ?? 0)} balasan sales</span></div>
             <div className="kpi-t"><small>Menunggu balasan</small><b style={t?.needs_reply ? { color: 'var(--bad)' } : undefined}>{t?.needs_reply ?? 0}</b><span className={`dl ${t?.needs_reply ? 'bad' : 'n'}`}>lebih dari {due} · {t?.waiting ?? 0} belum dibalas</span></div>
-            <div className="kpi-t"><small>Waktu balas</small><b>{replyText(t?.reply_median_min ?? null)}</b><span className="dl n">median per percakapan</span></div>
+            <div className="kpi-t"><small>Waktu balas · jam kerja</small><b>{replyText(t?.reply_median_min ?? null)}</b><span className="dl n">median · p90 {replyText(t?.reply_p90_min ?? null)} · luar jam {replyText(t?.reply_off_median_min ?? null)}</span></div>
           </div>
           {data.overview ? (
             <div className="wa-ai"><span className="ai">Ringkasan Claude (MCP)</span><p>{data.overview}</p></div>

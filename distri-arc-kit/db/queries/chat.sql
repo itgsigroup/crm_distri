@@ -169,13 +169,14 @@ where id = sqlc.arg(id)::uuid;
 -- name: ListThreads :many
 select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
   coalesce(n.label, s.name, t.account) as account_label, coalesce(n.team, 'sales')::text as account_team,
+  coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
   -- a group's last message may have been stored under another GSI number's thread of the same group
   lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
   -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply;
   -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
      and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
-                               and not o.holding and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
+                               and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -199,10 +200,11 @@ order by t.last_message_at desc nulls last, t.id;
 select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
   coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
+  coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
   -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
      and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
-                               and not o.holding and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
+                               and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -470,3 +472,20 @@ delete from chat_outgoing_files where created_at < $1;
 
 -- name: SetChatMessageMedia :exec
 update chat_messages set media = sqlc.arg(media)::jsonb where id = sqlc.arg(id)::uuid;
+
+-- name: GetContactType :one
+select type from contact_types where wa_number = $1;
+
+-- name: SetContactType :exec
+insert into contact_types (wa_number, type, set_by) values ($1, $2, $3)
+on conflict (wa_number) do update set type = excluded.type, set_by = excluded.set_by, set_at = now();
+
+-- name: ClearContactType :exec
+delete from contact_types where wa_number = $1;
+
+-- name: PurgePersonalChat :one
+-- A personal chat leaves the CRM: its conversations on every GSI number, their messages and the signals made of them.
+with th as (select id from chat_threads where wa_jid = sqlc.arg(wa_jid)::text and kind <> 'group'),
+sig as (delete from signals s using chat_messages m where m.thread_id in (select id from th) and s.id = m.signal_id returning s.id),
+gone as (delete from chat_threads where id in (select id from th) returning id)
+select (select count(*) from gone)::int;

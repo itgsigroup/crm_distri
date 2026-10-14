@@ -477,7 +477,7 @@ func (s *Server) registerRead() {
 			if in.Sales != "" && !strings.EqualFold(deref(x.SalesName), in.Sales) {
 				continue
 			}
-			i := waanalysis.Insight{Kind: x.Kind, SalesName: deref(x.SalesName), Intent: x.Intent, Inbound: int(x.Inbound), Outbound: int(x.Outbound), WaitingSince: x.WaitingSince, NeedsReply: x.NeedsReply}
+			i := waanalysis.Insight{Kind: x.Kind, SalesName: deref(x.SalesName), Intent: x.Intent, Inbound: int(x.Inbound), Outbound: int(x.Outbound), WaitingSince: x.WaitingSince, NeedsReply: x.NeedsReply, ReplyWorkMin: waanalysis.Ints(x.ReplyWorkMin), ReplyOffMin: waanalysis.Ints(x.ReplyOffMin)}
 			if x.ReplyMedianMin != nil {
 				v := int(*x.ReplyMedianMin)
 				i.ReplyMedianMin = &v

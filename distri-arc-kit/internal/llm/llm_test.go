@@ -57,3 +57,20 @@ func TestMaskKeepsRecordIDs(t *testing.T) {
 		t.Fatalf("account not masked or not restored: %s", out)
 	}
 }
+
+// ADR 0035: credentials typed in a chat are hidden; ordinary words are not.
+func TestMaskCredentials(t *testing.T) {
+	for in, want := range map[string]string{
+		"email admin@gsi.co.id password: Gsi2024!": "email admin@gsi.co.id password: ••••••",
+		"pwd=rahasia":                 "pwd=••••••",
+		"password wifi: Rumah123":     "password wifi: ••••••",
+		"kata sandi Gosyen123 ya":     "kata sandi •••••• ya",
+		"PIN 445566":                  "PIN ••••••",
+		"kode OTP 9911":               "kode OTP ••••••",
+		"pas kirim besok, pin lokasi": "pas kirim besok, pin lokasi",
+	} {
+		if got := MaskCredentials(in); got != want {
+			t.Errorf("%q → %q, want %q", in, got, want)
+		}
+	}
+}

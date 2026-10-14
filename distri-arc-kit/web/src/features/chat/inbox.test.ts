@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countFilters, filterOf, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel } from './inbox'
+import { countFilters, filterOf, fmtPhone, inFilter, lookupLinks, matchThread, unreplied, waitLabel } from './inbox'
 
 const W = '2026-10-09T10:00:00Z'
 
@@ -10,7 +10,7 @@ describe('chat inbox', () => {
     expect(filterOf({ kind: 'group' })).toBe('group_internal')
     expect(filterOf({ kind: 'new' })).toBe('new')
     expect(countFilters([{ kind: 'dealer', unread: 0, waiting_since: W }, { kind: 'dealer', unread: 2 }, { kind: 'group', group_kind: 'external', unread: 1, waiting_since: W }, { kind: 'new', unread: 0, waiting_since: W }]))
-      .toEqual({ all: 4, unread: 2, unreplied: 2, dealer: 2, group_internal: 0, group_external: 1, new: 1 })
+      .toEqual({ all: 4, unread: 2, unreplied: 2, dealer: 2, group_internal: 0, group_external: 1, new: 1, supplier: 0 })
   })
 
   it('filters unread conversations of every kind', () => {
@@ -50,5 +50,14 @@ describe('chat inbox', () => {
     expect(lookupLinks('Shinta', '6289536767').map((l) => l.key)).toEqual(['google', 'maps', 'truecaller', 'wa'])
     expect(lookupLinks('Grup Gudang', undefined).map((l) => l.key)).toEqual(['google', 'maps'])
     expect(lookupLinks('Shinta', '6289536767')[3].href).toBe('https://wa.me/6289536767')
+  })
+})
+
+describe('supplier chats (ADR 0035)', () => {
+  it('a supplier is not in "Belum dibalas" and has its own chip', () => {
+    const sup = { kind: 'new' as const, unread: 1, waiting_since: '2026-10-14T01:00:00Z', contact_type: 'supplier' as const }
+    expect(unreplied(sup)).toBe(false)
+    expect(filterOf(sup)).toBe('supplier')
+    expect(inFilter(sup, 'supplier')).toBe(true)
   })
 })

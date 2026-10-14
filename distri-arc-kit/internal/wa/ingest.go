@@ -22,6 +22,7 @@ import (
 const (
 	DropInternalDM    = "dm_internal"    // DM between two internal numbers: never stored
 	DropGroupDisabled = "group_disabled" // internal group with reading switched off
+	DropPersonal      = "personal"       // a number marked personal (pribadi): never kept in the CRM (ADR 0035)
 	DropDuplicate     = "duplicate"      // same WhatsApp message id seen before
 	DropEmpty         = "empty"
 	DropEditUnknown   = "edit_unknown" // an edit of a message GSI Orbit never stored (dropped by the rules above)
@@ -158,6 +159,10 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			remote := NumberOfJID(m.ChatJID)
 			if internal(remote) {
 				res.Reason = DropInternalDM
+				return nil
+			}
+			if ct, err := q.GetContactType(ctx, remote); err == nil && ct == "personal" {
+				res.Reason = DropPersonal
 				return nil
 			}
 			if c, err := q.FindContactByNumber(ctx, &remote); err == nil {

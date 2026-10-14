@@ -309,11 +309,12 @@ func TestCycleReadsCustomerGroups(t *testing.T) {
 	cg := group("1203630000001@g.us", "Proyek Toko Sinar", "external")
 	a := thread(cg, "1203630000001@g.us", "Proyek Toko Sinar", "6281234504471")
 	b := thread(cg, "1203630000001@g.us", "Proyek Toko Sinar", "6281534509032")
-	msg(a, "CG-1", "Bu Sinta", "Pak, kamera 4MP 10 unit bisa kirim Senin?", false, 5*time.Hour)
-	msg(b, "CG-2", "Admin GSI", "Bisa Bu, kami siapkan", true, 4*time.Hour) // an employee, stored under the other number
+	// Sunday daytime: due in working hours by Monday morning (the seed's working hours are 06.00–22.00 every day)
+	msg(a, "CG-1", "Bu Sinta", "Pak, kamera 4MP 10 unit bisa kirim Senin?", false, 20*time.Hour)
+	msg(b, "CG-2", "Admin GSI", "Bisa Bu, kami siapkan", true, 19*time.Hour) // an employee, stored under the other number
 	wg := group("1203630000002@g.us", "Grup Pelanggan Baru", "external")
 	w := thread(wg, "1203630000002@g.us", "Grup Pelanggan Baru", "6281234504471")
-	msg(w, "CG-3", "Pak Budi", "Order 5 HDD 2TB ya", false, 5*time.Hour)
+	msg(w, "CG-3", "Pak Budi", "Order 5 HDD 2TB ya", false, 20*time.Hour)
 	ig := group("1203630000003@g.us", "Gudang Yogya", "internal")
 	msg(thread(ig, "1203630000003@g.us", "Gudang Yogya", "6281234504471"), "CG-4", "Pak Joko", "stok HDD tinggal 3", false, 5*time.Hour)
 

@@ -60,7 +60,7 @@ func (s *Server) chatConversation(ctx context.Context, in threadIn) (any, result
 		if r.Internal {
 			dir = "out"
 		}
-		body, from, who := deref(r.Body), deref(r.FromNumber), deref(r.FromName)
+		body, from, who := llm.MaskCredentials(deref(r.Body)), deref(r.FromNumber), deref(r.FromName)
 		if mask {
 			body, from, who = m.Mask(body, names), m.Mask(from, nil), m.Mask(who, names)
 		}
