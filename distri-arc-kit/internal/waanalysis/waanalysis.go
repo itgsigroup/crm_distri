@@ -32,8 +32,11 @@ type Message struct {
 	ID       uuid.UUID
 	SignalID *uuid.UUID
 	In       bool // the customer wrote it
-	Text     string
-	At       time.Time
+	// Holding: our message only says an answer will come ("tunggu sebentar", "saya konfirmasi dulu" — chat_messages.
+	// holding, ADR 0034): it does not answer the customer and the response time keeps running
+	Holding bool
+	Text    string
+	At      time.Time
 }
 
 // Thread is one conversation with its messages of the window, oldest first.
@@ -142,6 +145,9 @@ func analyzeThread(t Thread, catalog []agents.Product, now time.Time) Insight {
 		}
 		in.Outbound++
 		in.LastOutAt = &at
+		if m.Holding && runStart != nil {
+			continue // not an answer yet: the customer still waits
+		}
 		if runStart != nil {
 			delays = append(delays, int(at.Sub(*runStart).Minutes()+0.5))
 		}

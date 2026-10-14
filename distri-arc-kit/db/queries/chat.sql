@@ -171,9 +171,11 @@ select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, 
   coalesce(n.label, s.name, t.account) as account_label, coalesce(n.team, 'sales')::text as account_team,
   -- a group's last message may have been stored under another GSI number's thread of the same group
   lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
-  -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
+  -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply;
+  -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal
+     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                               and not o.holding and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -197,8 +199,10 @@ order by t.last_message_at desc nulls last, t.id;
 select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
   coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
+  -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal
+     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                               and not o.holding and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id

@@ -397,8 +397,10 @@ const getThread = `-- name: GetThread :one
 select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
   coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
+  -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal
+     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                               and not o.holding and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -518,7 +520,7 @@ func (q *Queries) GetThreadByAccountJID(ctx context.Context, arg GetThreadByAcco
 }
 
 const getThreadMessage = `-- name: GetThreadMessage :one
-select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, x.account as holder_account from chat_messages m
+select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, x.account as holder_account from chat_messages m
 join chat_threads x on x.id = m.thread_id
 join chat_threads t on t.id = $1::uuid
 where m.id = $2::uuid and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
@@ -547,6 +549,7 @@ type GetThreadMessageRow struct {
 	EditedAt      *time.Time      `json:"edited_at"`
 	QuotedWaID    *string         `json:"quoted_wa_id"`
 	DeletedAt     *time.Time      `json:"deleted_at"`
+	Holding       *bool           `json:"holding"`
 	HolderAccount *string         `json:"holder_account"`
 }
 
@@ -573,6 +576,7 @@ func (q *Queries) GetThreadMessage(ctx context.Context, arg GetThreadMessagePara
 		&i.EditedAt,
 		&i.QuotedWaID,
 		&i.DeletedAt,
+		&i.Holding,
 		&i.HolderAccount,
 	)
 	return i, err
@@ -1367,8 +1371,8 @@ func (q *Queries) ListInternalNumbers(ctx context.Context) ([]InternalNumber, er
 }
 
 const listThreadMessages = `-- name: ListThreadMessages :many
-select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at, quoted_wa_id, deleted_at from (
-  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at from chat_messages m
+select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at, quoted_wa_id, deleted_at, holding from (
+  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding from chat_messages m
   where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
                         where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
     and m.sent_at < $2 order by m.sent_at desc limit $3
@@ -1410,6 +1414,7 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 			&i.EditedAt,
 			&i.QuotedWaID,
 			&i.DeletedAt,
+			&i.Holding,
 		); err != nil {
 			return nil, err
 		}
@@ -1426,9 +1431,11 @@ select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t
   coalesce(n.label, s.name, t.account) as account_label, coalesce(n.team, 'sales')::text as account_team,
   -- a group's last message may have been stored under another GSI number's thread of the same group
   lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
-  -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
+  -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply;
+  -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal
+     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                               and not o.holding and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id

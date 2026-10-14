@@ -406,8 +406,9 @@ func (q *Queries) SetWAOverview(ctx context.Context, arg SetWAOverviewParams) er
 
 const threadsWaitingSince = `-- name: ThreadsWaitingSince :many
 select t.id, t.dealer_id, s.name as sales_name,
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out' and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal
+     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                               and not o.holding and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t left join sales_users s on s.id = t.sales_id
 where t.id = any($1::uuid[])
 `
@@ -419,7 +420,8 @@ type ThreadsWaitingSinceRow struct {
 	WaitingSince interface{} `json:"waiting_since"`
 }
 
-// The current state of conversations: the oldest customer message not answered yet (null when the last word was ours).
+// The current state of conversations: the oldest customer message not answered yet (null when the last word was ours
+// and was an answer, not a holding reply — ADR 0034).
 func (q *Queries) ThreadsWaitingSince(ctx context.Context, ids []uuid.UUID) ([]ThreadsWaitingSinceRow, error) {
 	rows, err := q.db.Query(ctx, threadsWaitingSince, ids)
 	if err != nil {
@@ -580,7 +582,7 @@ func (q *Queries) WAMessageInsights(ctx context.Context, arg WAMessageInsightsPa
 
 const wAWindowMessages = `-- name: WAWindowMessages :many
 
-select m.id, coalesce(gt.id, m.thread_id)::uuid as thread_id, m.direction, m.body, m.sent_at, m.signal_id, m.internal, m.from_name,
+select m.id, coalesce(gt.id, m.thread_id)::uuid as thread_id, m.direction, m.body, m.sent_at, m.signal_id, m.internal, m.from_name, m.holding,
   t.kind as thread_kind, t.title as thread_title, t.dealer_id, t.sales_id,
   d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name
 from chat_messages m
@@ -608,6 +610,7 @@ type WAWindowMessagesRow struct {
 	SignalID    *uuid.UUID `json:"signal_id"`
 	Internal    bool       `json:"internal"`
 	FromName    *string    `json:"from_name"`
+	Holding     *bool      `json:"holding"`
 	ThreadKind  *string    `json:"thread_kind"`
 	ThreadTitle *string    `json:"thread_title"`
 	DealerID    *uuid.UUID `json:"dealer_id"`
@@ -641,6 +644,7 @@ func (q *Queries) WAWindowMessages(ctx context.Context, arg WAWindowMessagesPara
 			&i.SignalID,
 			&i.Internal,
 			&i.FromName,
+			&i.Holding,
 			&i.ThreadKind,
 			&i.ThreadTitle,
 			&i.DealerID,

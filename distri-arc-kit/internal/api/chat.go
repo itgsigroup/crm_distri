@@ -208,13 +208,15 @@ func (s *Server) threadParam(w http.ResponseWriter, r *http.Request) (gen.GetThr
 
 // MessageView is one chat bubble.
 type MessageView struct {
-	ID         uuid.UUID       `json:"id"`
-	Direction  string          `json:"direction"`
-	FromName   string          `json:"from_name"`
-	Body       string          `json:"body"`
-	SentAt     time.Time       `json:"sent_at"`
-	Status     string          `json:"status"`
-	Internal   bool            `json:"internal"`
+	ID        uuid.UUID `json:"id"`
+	Direction string    `json:"direction"`
+	FromName  string    `json:"from_name"`
+	Body      string    `json:"body"`
+	SentAt    time.Time `json:"sent_at"`
+	Status    string    `json:"status"`
+	Internal  bool      `json:"internal"`
+	// Holding: our message only says an answer will come — the response time keeps running (ADR 0034)
+	Holding    bool            `json:"holding,omitempty"`
 	Annotation json.RawMessage `json:"annotation"`
 	SignalID   *uuid.UUID      `json:"signal_id"`
 	Proposal   *MsgProposal    `json:"proposal,omitempty"`
@@ -425,7 +427,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	out := make([]MessageView, 0, len(msgs))
 	now := s.clock.Now()
 	for _, m := range msgs {
-		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: deref(m.Body), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Annotation: m.Annotation, SignalID: m.SignalID,
+		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: deref(m.Body), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Holding: deref(m.Holding), Annotation: m.Annotation, SignalID: m.SignalID,
 			Media: mediaView(m.Media), EditedAt: m.EditedAt}
 		if label, ok := others[deref(m.ThreadID)]; ok && v.Direction == "out" {
 			v.Direction, v.FromName, v.Internal = "in", label, true
@@ -481,7 +483,7 @@ func (s *Server) attachMsgAnalysis(ctx context.Context, thread uuid.UUID, msgs [
 		ids[i] = m.ID
 		if m.Status != "failed" {
 			// a GSI employee's message in a customer group is our side
-			th.Messages = append(th.Messages, waanalysis.Message{ID: m.ID, In: m.Direction == "in" && !m.Internal, Text: m.Body, At: m.SentAt})
+			th.Messages = append(th.Messages, waanalysis.Message{ID: m.ID, In: m.Direction == "in" && !m.Internal, Text: m.Body, At: m.SentAt, Holding: m.Holding})
 		}
 	}
 	rows, err := s.st.Q.WAMessageInsights(ctx, gen.WAMessageInsightsParams{ThreadID: thread, MessageIds: ids})

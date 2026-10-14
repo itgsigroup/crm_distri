@@ -772,6 +772,7 @@ body.map-maximized{overflow:hidden}
 .ibp-rec b{display:flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.06em;color:var(--kp-ai)}
 .ibp-rec.plain b{font-size:13px;letter-spacing:0;color:var(--text)}
 .ibp-row{display:flex;gap:8px;flex-wrap:wrap}
+.bub-hold{align-self:flex-end;margin-top:3px;font-size:11px;color:var(--warn);opacity:.9}
 .ibp-grp{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding:12px;border-radius:10px;font-size:12.5px;line-height:1.5;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent)}
 .ibp-grp.internal{background:var(--surface-2);border-color:var(--line)}
 .ibp-grp b{display:flex;align-items:center;gap:6px;font-size:12.5px}

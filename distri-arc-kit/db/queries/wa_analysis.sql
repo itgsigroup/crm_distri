@@ -6,7 +6,7 @@
 -- conversation for every GSI number in it (each message is stored under the number that got it first): its messages
 -- come under one thread of the group (the first by id). internal: a GSI employee wrote it in the group — our side.
 -- Failed sends do not count as a reply.
-select m.id, coalesce(gt.id, m.thread_id)::uuid as thread_id, m.direction, m.body, m.sent_at, m.signal_id, m.internal, m.from_name,
+select m.id, coalesce(gt.id, m.thread_id)::uuid as thread_id, m.direction, m.body, m.sent_at, m.signal_id, m.internal, m.from_name, m.holding,
   t.kind as thread_kind, t.title as thread_title, t.dealer_id, t.sales_id,
   d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name
 from chat_messages m
@@ -67,10 +67,12 @@ update wa_analyses set overview = $2, source = $3 where cycle_id = $1;
 update wa_insights set summary = $3, confidence = $4 where cycle_id = $1 and thread_id = $2;
 
 -- name: ThreadsWaitingSince :many
--- The current state of conversations: the oldest customer message not answered yet (null when the last word was ours).
+-- The current state of conversations: the oldest customer message not answered yet (null when the last word was ours
+-- and was an answer, not a holding reply — ADR 0034).
 select t.id, t.dealer_id, s.name as sales_name,
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out' and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
+  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal
+     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                               and not o.holding and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t left join sales_users s on s.id = t.sales_id
 where t.id = any(sqlc.arg(ids)::uuid[]);
 

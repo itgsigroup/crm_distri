@@ -13,6 +13,9 @@ describe('bubbleLine', () => {
     expect(bubbleLine({ state: 'reply', wait_min: 45, analyzed: true, intent: 'none' })).toEqual({ state: 'membalas setelah pelanggan menunggu 45 menit', tone: 'good' })
     expect(bubbleLine({ state: 'follow_up', wait_min: null, analyzed: true }).state).toBe('sales menyapa lebih dulu')
   })
+  it('a holding reply ("tunggu sebentar") is not an answer (ADR 0034)', () => {
+    expect(bubbleLine({ state: 'holding', wait_min: 10, analyzed: true })).toEqual({ state: 'jawaban sementara setelah 10 menit — belum menjawab, waktu respon tetap berjalan', tone: 'warn' })
+  })
   it('a closing message and a bubble not analysed yet carry no request', () => {
     expect(bubbleLine({ state: 'closing', wait_min: null, analyzed: true, intent: 'other' })).toEqual({ state: '', tone: 'neutral' })
     expect(bubbleLine({ state: 'waiting', wait_min: 10, analyzed: false }).request).toBeUndefined()

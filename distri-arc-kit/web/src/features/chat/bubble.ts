@@ -38,6 +38,10 @@ export function bubbleLine(a: MsgAnalysis): BubbleLine {
     case 'follow_up':
       line.state = 'sales menyapa lebih dulu'
       break
+    case 'holding':
+      line.state = `jawaban sementara setelah ${waitLabel(w ?? 0)} — belum menjawab, waktu respon tetap berjalan`
+      line.tone = 'warn'
+      break
   }
   return line // requests are not read by rules any more; Claude's note says what the customer wants (ADR 0032)
 }

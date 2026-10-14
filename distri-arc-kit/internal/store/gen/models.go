@@ -160,6 +160,7 @@ type ChatMessage struct {
 	EditedAt   *time.Time      `json:"edited_at"`
 	QuotedWaID *string         `json:"quoted_wa_id"`
 	DeletedAt  *time.Time      `json:"deleted_at"`
+	Holding    *bool           `json:"holding"`
 }
 
 type ChatMessageKey struct {

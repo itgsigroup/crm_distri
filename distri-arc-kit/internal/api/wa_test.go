@@ -248,3 +248,52 @@ func TestPenagihanSeesOnlyOwnNumber(t *testing.T) {
 		t.Error("admin does not see every number's chats")
 	}
 }
+
+// ADR 0034: in every chat a holding reply ("tunggu sebentar", "saya konfirmasi dulu") is not an answer — the
+// conversation stays "Belum dibalas" with its waiting time running until the customer gets one.
+func TestHoldingReplyKeepsWaiting(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	for text, want := range map[string]bool{
+		"Tunggu sebentar ya pak": true, "Baik bu, saya konfirmasi dulu ya": true, "Saya tanyakan ke gudang dulu nggih": true,
+		"Nanti saya kabari ya pak": true, "Sedang kami cek bu": true, "Boleh pak, nanti saya kirim pricelistnya": true,
+		"Ready pak 20 pcs": false, "Harga 450rb, saya cek ongkir dulu ya": false, "Bisa dikirim Senin pak": false,
+		"Ditunggu orderannya ya bu": false, "Sudah saya cek, stok ada pak": false, "[dokumen Pricelist.pdf] cek dulu ya": false,
+	} {
+		var got bool
+		if err := st.Pool.QueryRow(ctx, "select is_holding_reply($1)", text).Scan(&got); err != nil {
+			t.Fatal(err)
+		}
+		if got != want {
+			t.Errorf("%q holding = %v, want %v", text, got, want)
+		}
+	}
+	var id string
+	if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('new', '6281300000077@s.whatsapp.net', 'Toko Hold', '6281234504471', now()) returning id").Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	add := func(wid, dir, body string, ago string) {
+		if _, err := st.Pool.Exec(ctx, "insert into chat_messages (thread_id, wa_msg_id, direction, body, sent_at, status) values ($1, $2, $3, $4, now() - $5::interval, 'sent')", id, wid, dir, body, ago); err != nil {
+			t.Fatal(err)
+		}
+	}
+	waiting := func() any {
+		_, out := get(t, srv, "/api/chat/threads", "sam@gsi.co.id")
+		for _, it := range out["items"].([]any) {
+			if r := it.(map[string]any); r["id"] == id {
+				return r["waiting_since"]
+			}
+		}
+		t.Fatal("thread not listed")
+		return nil
+	}
+	add("H1", "in", "Pak, harga NVR 16ch berapa?", "3 hours")
+	add("H2", "out", "Baik pak, saya konfirmasi dulu ya", "2 hours")
+	if waiting() == nil {
+		t.Fatal("a holding reply cleared the waiting customer")
+	}
+	add("H3", "out", "NVR 16ch Rp 2.150.000 pak", "1 hour")
+	if w := waiting(); w != nil {
+		t.Fatalf("answered, still waiting since %v", w)
+	}
+}

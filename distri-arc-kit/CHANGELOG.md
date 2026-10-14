@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Waktu respon dihitung sampai pelanggan dijawab · 2026-10-14
+- Di semua chat, jawaban sementara dari pihak GSI — "tunggu sebentar ya", "saya konfirmasi dulu", "saya tanyakan ke gudang", "nanti saya kabari", "sedang kami cek" — **tidak lagi dihitung sebagai balasan** (ADR 0034, migrasi 0033).
+- Chat tetap di "Belum dibalas" dan timer menunggu terus berjalan sampai ada jawaban sungguhan; waktu balas per sales di Analisa WhatsApp dan Pusat kendali dihitung sampai jawaban itu.
+- Bubble jawaban sementara diberi tanda "jawaban sementara · waktu respon tetap berjalan"; Claude (MCP) juga diberi tahu bahwa pelanggan belum dijawab.
+
 ## Fix · Grup pelanggan masuk otomatis; Penagihan hanya melihat WhatsApp-nya · 2026-10-14
 - Grup kini dianggap **grup pelanggan kecuali semua anggotanya nomor GSI**. Sebelumnya hanya grup yang anggotanya cocok dengan kontak pelanggan master — padahal WhatsApp menyembunyikan nomor anggota grup (LID), jadi hampir tidak ada yang masuk. Grup bernama gudang/internal/karyawan/staff/HRD/absensi tetap internal; pilihan manual tetap. Grup yang sudah ada diperbarui (migrasi 0032).
 - Pesan karyawan GSI di grup (nomor internal, tertaut, pengguna, sales) dihitung sebagai balasan.

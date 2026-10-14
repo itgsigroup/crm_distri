@@ -306,6 +306,8 @@ export interface MessageView {
   sent_at: string
   status: 'received' | 'pending' | 'sent' | 'failed'
   internal: boolean
+  /** our message only says an answer will come ("tunggu sebentar"): the response time keeps running (ADR 0034) */
+  holding?: boolean
   annotation: Annotation | null
   signal_id: string | null
   proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }
@@ -337,7 +339,8 @@ export interface MediaView {
   /** false: stored before media was kept viewable — open it on the phone */
   viewable: boolean
 }
-export type MsgState = 'replied' | 'waiting' | 'needs_reply' | 'closing' | 'reply' | 'follow_up'
+/** holding: our "tunggu sebentar" / "saya konfirmasi dulu" — not an answer, the customer still waits (ADR 0034) */
+export type MsgState = 'replied' | 'waiting' | 'needs_reply' | 'closing' | 'reply' | 'follow_up' | 'holding'
 export interface MsgAnalysis {
   state: MsgState
   wait_min: number | null

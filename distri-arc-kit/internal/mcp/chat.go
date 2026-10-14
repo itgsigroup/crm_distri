@@ -64,7 +64,11 @@ func (s *Server) chatConversation(ctx context.Context, in threadIn) (any, result
 		if mask {
 			body, from, who = m.Mask(body, names), m.Mask(from, nil), m.Mask(who, names)
 		}
-		msgs = append(msgs, map[string]any{"at": r.SentAt, "direction": dir, "from": who, "from_number": from, "text": body})
+		mm := map[string]any{"at": r.SentAt, "direction": dir, "from": who, "from_number": from, "text": body}
+		if dir == "out" && deref(r.Holding) {
+			mm["jawaban_sementara"] = true // "tunggu sebentar": the customer is not answered yet (ADR 0034)
+		}
+		msgs = append(msgs, mm)
 	}
 	title := deref(t.Title)
 	if mask && !group {

@@ -273,6 +273,9 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
         {(m.can_reply || edit || del || caption) && <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} />}
         {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
       </div>
+      {m.holding && m.direction === 'out' && !(analysis && m.analysis) && (
+        <span className="bub-hold" title="Pesan ini hanya meminta pelanggan menunggu — waktu respon tetap dihitung sampai pelanggan mendapat jawaban">jawaban sementara · waktu respon tetap berjalan</span>
+      )}
       {m.proposal && <span className="ann"><span className="ai" />Usulan Claude · <AnnProposal p={m.proposal} /></span>}
       {analysis && m.analysis && <BubbleAnalysis a={m.analysis} dir={m.direction} />}
     </div>

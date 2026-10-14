@@ -151,3 +151,42 @@ func TestIsAck(t *testing.T) {
 		}
 	}
 }
+
+// ADR 0034: a holding reply ("tunggu sebentar ya", "saya konfirmasi dulu") does not answer the customer — the
+// response time runs until the real answer, and with no answer yet the customer is still waiting.
+func TestHoldingReplyDoesNotStopTheClock(t *testing.T) {
+	hold := func(text string, ago time.Duration) Message {
+		m := msg(false, text, ago)
+		m.Holding = true
+		return m
+	}
+	answered := thread("dealer", "Andi",
+		msg(true, "Pak, stok kamera 4mp ada?", 5*time.Hour),
+		hold("Tunggu sebentar ya pak, saya cek dulu", 299*time.Minute), // 1 min later: not an answer
+		msg(false, "Ready 20 pcs pak", 3*time.Hour),                    // the answer, 120 min after the question
+	)
+	waiting := thread("dealer", "Andi",
+		msg(true, "Harga NVR 16ch berapa?", 4*time.Hour),
+		hold("Baik bu, saya konfirmasi dulu ya", 239*time.Minute),
+	)
+	got := Analyze([]Thread{answered, waiting}, catalog, now)
+	by := map[uuid.UUID]Insight{}
+	for _, x := range got {
+		by[x.ThreadID] = x
+	}
+	a := by[answered.ID]
+	if a.ReplyMedianMin == nil || *a.ReplyMedianMin != 120 || a.WaitingSince != nil || a.Outbound != 2 {
+		t.Errorf("answered: reply %v min (want 120, not 1), waiting %v, outbound %d", a.ReplyMedianMin, a.WaitingSince, a.Outbound)
+	}
+	w := by[waiting.ID]
+	if w.WaitingSince == nil || !w.NeedsReply || w.WaitMin != 240 || w.ReplyMedianMin != nil {
+		t.Errorf("held only: %+v", w)
+	}
+	ms := AnalyzeMessages(answered, nil, now)
+	if ms[0].State != MsgReplied || *ms[0].WaitMin != 120 || ms[1].State != MsgHolding || *ms[1].WaitMin != 1 || ms[2].State != MsgReply || *ms[2].WaitMin != 120 {
+		t.Errorf("bubbles: %s %v · %s %v · %s %v", ms[0].State, *ms[0].WaitMin, ms[1].State, *ms[1].WaitMin, ms[2].State, *ms[2].WaitMin)
+	}
+	if ws := AnalyzeMessages(waiting, nil, now); ws[0].State != MsgNeedsReply || ws[1].State != MsgHolding {
+		t.Errorf("held bubbles: %s %s", ws[0].State, ws[1].State)
+	}
+}

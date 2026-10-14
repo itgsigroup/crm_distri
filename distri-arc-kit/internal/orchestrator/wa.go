@@ -68,7 +68,7 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 		}
 		// in a customer group a GSI employee's message is our side: it answers the customers like a reply would
 		threads[i].Messages = append(threads[i].Messages, waanalysis.Message{ID: m.ID, SignalID: m.SignalID, In: deref(m.Direction) == "in" && !m.Internal,
-			Text: deref(m.Body), At: m.SentAt})
+			Text: deref(m.Body), At: m.SentAt, Holding: deref(m.Holding)})
 	}
 	if err := o.saveWAMessages(ctx, r, threads, now); err != nil {
 		return err
@@ -279,7 +279,9 @@ type waMsg struct {
 	ID   string `json:"id,omitempty"` // customer messages of the window: the bubble a note may be written for
 	Dir  string `json:"dir"`
 	From string `json:"from,omitempty"` // who wrote it, in a customer group
-	Text string `json:"text"`
+	// Holding: our "tunggu sebentar" / "saya konfirmasi dulu" — the customer is not answered yet (ADR 0034)
+	Holding bool   `json:"holding,omitempty"`
+	Text    string `json:"text"`
 }
 
 // waNote is the AI note on one customer bubble.
@@ -299,6 +301,7 @@ func (rd *waReading) addMsg(t *waThreadIn, m gen.ChatMessage, window time.Time) 
 	if m.Internal {
 		wm.Dir = "out"
 	}
+	wm.Holding = wm.Dir == "out" && deref(m.Holding)
 	if t.Group && wm.Dir == "in" {
 		if wm.From = strings.TrimSpace(deref(m.FromName)); wm.From != "" {
 			rd.names = append(rd.names, wm.From)
