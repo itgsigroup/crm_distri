@@ -446,6 +446,9 @@ func intp(v *int32) *int {
 // ErrNoWA: the cycle has no Analisa WhatsApp (not a full cycle, or no conversation in the window).
 var ErrNoWA = errors.New("siklus ini tidak punya Analisa WhatsApp")
 
+// ErrStillReading: the cycle is still reading WhatsApp (Ingest) — call orchestrator_input_get again in a few seconds.
+var ErrStillReading = errors.New("siklus masih membaca WhatsApp (tahap Ingest) — panggil orchestrator_status lalu orchestrator_input_get lagi beberapa detik kemudian")
+
 // waAnswer is the reading's answer: an overview and one line per conversation.
 type waAnswer struct {
 	Overview string   `json:"overview"`
@@ -567,6 +570,12 @@ func (o *Orchestrator) WAInputFor(ctx context.Context, cycleID uuid.UUID) (json.
 	if row, err := o.St.Q.GetCycleInput(ctx, gen.GetCycleInputParams{CycleID: cycleID, Agent: AgentWA}); err == nil {
 		return row.Input, nil
 	}
+	// a cycle still reading WhatsApp has no reading yet: an early input would be the wrong set of conversations and
+	// would stay cached for the cycle — ask the client to wait instead
+	if cyc, err := o.St.Q.GetCycle(ctx, cycleID); err == nil && (cyc.Status == "queued" || cyc.Status == "running") &&
+		(cyc.Stage == nil || *cyc.Stage == "ingest") {
+		return nil, ErrStillReading
+	}
 	rd, err := o.waReadingFor(ctx, cycleID)
 	if err != nil {
 		return nil, err
@@ -593,10 +602,8 @@ func (o *Orchestrator) WASubmit(ctx context.Context, cycleID uuid.UUID, a waAnsw
 	if err != nil {
 		return SubmitResult{}, ErrNoInput
 	}
-	rd, err := o.waReadingFor(ctx, cycleID)
-	if err != nil {
-		return SubmitResult{}, err
-	}
+	// the answer is checked against the input Claude was given (what it read), not a reading made again now
+	rd := readingOfInput(row.Input)
 	var mapping map[string]string
 	_ = json.Unmarshal(row.Mapping, &mapping)
 	a.Overview = llm.UnmaskWith(a.Overview, mapping)
@@ -687,4 +694,27 @@ func i32s(xs []int) []int32 {
 		out[i] = int32(x)
 	}
 	return out
+}
+
+// readingOfInput is the conversations and customer messages an input offered (ids are never masked).
+func readingOfInput(raw json.RawMessage) *waReading {
+	var in struct {
+		Threads []struct {
+			ID   string `json:"id"`
+			Msgs []struct {
+				ID string `json:"id"`
+			} `json:"messages"`
+		} `json:"threads"`
+	}
+	_ = json.Unmarshal(raw, &in)
+	rd := &waReading{want: map[string]bool{}, msgWant: map[string]bool{}}
+	for _, t := range in.Threads {
+		rd.want[t.ID] = true
+		for _, m := range t.Msgs {
+			if m.ID != "" {
+				rd.msgWant[m.ID] = true
+			}
+		}
+	}
+	return rd
 }

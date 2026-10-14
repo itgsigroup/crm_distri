@@ -3,6 +3,7 @@ package orchestrator_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -387,5 +388,46 @@ func TestWAScreenCycle(t *testing.T) {
 	raw, err := o.InputFor(ctx, rep.Cycle.ID, orchestrator.AgentWA)
 	if err != nil || !strings.Contains(string(raw), `"threads"`) {
 		t.Fatalf("input for Claude: %v %s", err, raw)
+	}
+}
+
+// A routine's submit is checked against the input it was given, even if the cycle's reading changed after (the
+// routine read the input mid-cycle and every thread id was refused, 14 Oct); no input while the cycle still reads.
+func TestWASubmitAgainstGivenInput(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	sc, _ := domain.ParseScope("screen:wa")
+	rep, err := o.Run(ctx, sc, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := o.InputFor(ctx, rep.Cycle.ID, orchestrator.AgentWA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var in struct {
+		Threads []struct{ ID string } `json:"threads"`
+	}
+	_ = json.Unmarshal(raw, &in)
+	if len(in.Threads) == 0 {
+		t.Fatal("no threads in the input")
+	}
+	// the reading changes after the input was given
+	if _, err := st.Pool.Exec(ctx, "delete from wa_insights where cycle_id = $1", rep.Cycle.ID); err != nil {
+		t.Fatal(err)
+	}
+	ans := orchestrator.ParseWAAnswer("Dealer menunggu balasan.", []map[string]any{{"id": in.Threads[0].ID, "summary": "Menunggu konfirmasi stok.", "confidence": 0.8}})
+	if res, err := o.WASubmit(ctx, rep.Cycle.ID, ans, nil); err != nil || res.Accepted != 1 {
+		t.Fatalf("submit of a given thread: %+v %v", res, err)
+	}
+	// a cycle still reading WhatsApp gives no input yet
+	if _, err := st.Pool.Exec(ctx, "update cycles set status = 'running', stage = 'ingest' where id = $1", rep.Cycle.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, "delete from cycle_inputs where cycle_id = $1", rep.Cycle.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := o.InputFor(ctx, rep.Cycle.ID, orchestrator.AgentWA); !errors.Is(err, orchestrator.ErrStillReading) {
+		t.Fatalf("input during ingest: %v", err)
 	}
 }
