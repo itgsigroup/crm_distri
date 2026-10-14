@@ -23,6 +23,7 @@ import (
 	"distri-arc/internal/llm"
 	"distri-arc/internal/outbox"
 	"distri-arc/internal/policy"
+	"distri-arc/internal/replyrule"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
 	"distri-arc/internal/wa"
@@ -240,6 +241,8 @@ type MessageView struct {
 	Deleted bool `json:"deleted,omitempty"`
 	// CanDelete: a message this number sent (or still queued); a sent one within DeleteWindow
 	CanDelete bool `json:"can_delete,omitempty"`
+	// Suggest: Rekomendasi balasan from the data for a customer message (ADR 0038); the sales decides
+	Suggest *replyrule.Suggestion `json:"suggest,omitempty"`
 }
 
 // MsgQuote is the quoted bubble shown above a reply.
@@ -457,6 +460,9 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, v)
 	}
+	if err := s.attachSuggestions(r.Context(), out, t.ThreadBranch, now); err != nil {
+		s.log.Warn("reply suggestions", "err", err) // a suggestion never stops the chat from loading
+	}
 	var lastAnalysis *time.Time
 	if k := deref(t.Kind); k == "dealer" || k == "new" || (k == "group" && deref(t.GroupKind) == "external") {
 		conv := t.ID // a customer group is analysed under one of its threads (ConversationOf)
@@ -473,8 +479,8 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "dealer_id": deref(t.DealerSlug),
 		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
 		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
-		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "contact_type": t.ContactType, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),
-	}, "messages": out, "has_more": hasMore, "history_from": historyFrom, "history_days": keepDays})
+		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "branch": t.ThreadBranch, "contact_type": t.ContactType, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),
+	}, "messages": out, "stock_as_of": stockAsOf(r.Context(), s, out), "has_more": hasMore, "history_from": historyFrom, "history_days": keepDays})
 }
 
 // attachMsgAnalysis adds Analisa WhatsApp to each bubble of a one-to-one conversation. The newest page reads the

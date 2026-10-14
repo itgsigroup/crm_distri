@@ -37,6 +37,7 @@ sql:
       - db/migrations/0033_holding_replies.sql
       - db/migrations/0034_chat_queue_cleanup.sql
       - db/migrations/0035_wa_analysis_schedule.sql
+      - db/migrations/0036_reply_rules.sql
     queries: db/queries
     gen:
       go:

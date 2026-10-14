@@ -317,6 +317,8 @@ export interface MessageView {
   holding?: boolean
   /** an automatic WhatsApp Business message (greeting, away): neither an answer nor a request (ADR 0035) */
   auto_reply?: boolean
+  /** Rekomendasi balasan from the data (ADR 0038) */
+  suggest?: ReplySuggestion
   annotation: Annotation | null
   signal_id: string | null
   proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }
@@ -375,6 +377,8 @@ export interface ThreadDetail {
   messages: MessageView[]
   /** older messages exist before this page (only a very busy chat: the first page holds the whole retention window) */
   has_more?: boolean
+  /** when the stock behind the reply suggestions was synced */
+  stock_as_of?: string | null
   /** the oldest message kept for this chat, and the retention window in days (policy retention.chat_days) */
   history_from?: string | null
   history_days?: number
@@ -641,4 +645,14 @@ export interface ScreenAnalysis {
   overview: string
   /** per row: stock item id (Push stok) or dealer id (Kredit · kas) */
   lines: Record<string, { note: string; confidence: number }>
+}
+
+// ---------- Rekomendasi balasan (ADR 0038) ----------
+export interface ReplySuggestion {
+  rule_id: string; rule: string; keyword: string; product?: string; sku?: string; branch?: string; qty: number
+  others: { branch: string; qty: number }[]; ready: boolean; draft?: string; note?: string; candidates?: string[]
+}
+export interface ReplyRule {
+  id: string; name: string; action: 'stock'; keywords: string[]; template_ready: string; template_empty: string
+  show_qty: boolean; enabled: boolean; updated_by: string | null; updated_at: string
 }

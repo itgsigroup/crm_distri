@@ -219,6 +219,18 @@ func (q *Queries) DeleteOutgoingFile(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const deleteReplyRule = `-- name: DeleteReplyRule :execrows
+delete from reply_rules where id = $1
+`
+
+func (q *Queries) DeleteReplyRule(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteReplyRule, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteWANumber = `-- name: DeleteWANumber :exec
 delete from wa_numbers where wa_number = $1 and sales_id is null
 `
@@ -288,6 +300,42 @@ func (q *Queries) EditQueuedReply(ctx context.Context, arg EditQueuedReplyParams
 	var i EditQueuedReplyRow
 	err := row.Scan(&i.ID, &i.ProposalID)
 	return i, err
+}
+
+const enabledReplyRules = `-- name: EnabledReplyRules :many
+select id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at from reply_rules where enabled order by created_at
+`
+
+func (q *Queries) EnabledReplyRules(ctx context.Context) ([]ReplyRule, error) {
+	rows, err := q.db.Query(ctx, enabledReplyRules)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReplyRule{}
+	for rows.Next() {
+		var i ReplyRule
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Action,
+			&i.Keywords,
+			&i.TemplateReady,
+			&i.TemplateEmpty,
+			&i.ShowQty,
+			&i.Enabled,
+			&i.UpdatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const findContactByNumber = `-- name: FindContactByNumber :one
@@ -417,6 +465,7 @@ const getThread = `-- name: GetThread :one
 select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
   coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
+  coalesce(nullif(d.branch, ''), s.branch, '')::text as thread_branch,
   coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
   -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
   (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
@@ -460,6 +509,7 @@ type GetThreadRow struct {
 	DealerCity       *string         `json:"dealer_city"`
 	AccountTeam      string          `json:"account_team"`
 	GroupKind        *string         `json:"group_kind"`
+	ThreadBranch     string          `json:"thread_branch"`
 	ContactType      string          `json:"contact_type"`
 	WaitingSince     interface{}     `json:"waiting_since"`
 }
@@ -498,6 +548,7 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 		&i.DealerCity,
 		&i.AccountTeam,
 		&i.GroupKind,
+		&i.ThreadBranch,
 		&i.ContactType,
 		&i.WaitingSince,
 	)
@@ -1176,6 +1227,50 @@ func (q *Queries) InsertProposal(ctx context.Context, arg InsertProposalParams) 
 	return i, err
 }
 
+const insertReplyRule = `-- name: InsertReplyRule :one
+insert into reply_rules (name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by)
+values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at
+`
+
+type InsertReplyRuleParams struct {
+	Name          string   `json:"name"`
+	Action        string   `json:"action"`
+	Keywords      []string `json:"keywords"`
+	TemplateReady string   `json:"template_ready"`
+	TemplateEmpty string   `json:"template_empty"`
+	ShowQty       bool     `json:"show_qty"`
+	Enabled       bool     `json:"enabled"`
+	UpdatedBy     *string  `json:"updated_by"`
+}
+
+func (q *Queries) InsertReplyRule(ctx context.Context, arg InsertReplyRuleParams) (ReplyRule, error) {
+	row := q.db.QueryRow(ctx, insertReplyRule,
+		arg.Name,
+		arg.Action,
+		arg.Keywords,
+		arg.TemplateReady,
+		arg.TemplateEmpty,
+		arg.ShowQty,
+		arg.Enabled,
+		arg.UpdatedBy,
+	)
+	var i ReplyRule
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Action,
+		&i.Keywords,
+		&i.TemplateReady,
+		&i.TemplateEmpty,
+		&i.ShowQty,
+		&i.Enabled,
+		&i.UpdatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const insertThread = `-- name: InsertThread :one
 insert into chat_threads (kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account)
 values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
@@ -1386,6 +1481,42 @@ func (q *Queries) ListInternalNumbers(ctx context.Context) ([]InternalNumber, er
 			&i.IsSales,
 			&i.AddedBy,
 			&i.AddedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReplyRules = `-- name: ListReplyRules :many
+select id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at from reply_rules order by created_at
+`
+
+func (q *Queries) ListReplyRules(ctx context.Context) ([]ReplyRule, error) {
+	rows, err := q.db.Query(ctx, listReplyRules)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReplyRule{}
+	for rows.Next() {
+		var i ReplyRule
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Action,
+			&i.Keywords,
+			&i.TemplateReady,
+			&i.TemplateEmpty,
+			&i.ShowQty,
+			&i.Enabled,
+			&i.UpdatedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -2348,6 +2479,51 @@ func (q *Queries) UpdateChatMessageSent(ctx context.Context, arg UpdateChatMessa
 		arg.ID,
 	)
 	return err
+}
+
+const updateReplyRule = `-- name: UpdateReplyRule :one
+update reply_rules set name = $2, keywords = $3, template_ready = $4, template_empty = $5, show_qty = $6, enabled = $7,
+  updated_by = $8, updated_at = now()
+where id = $1 returning id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at
+`
+
+type UpdateReplyRuleParams struct {
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	Keywords      []string  `json:"keywords"`
+	TemplateReady string    `json:"template_ready"`
+	TemplateEmpty string    `json:"template_empty"`
+	ShowQty       bool      `json:"show_qty"`
+	Enabled       bool      `json:"enabled"`
+	UpdatedBy     *string   `json:"updated_by"`
+}
+
+func (q *Queries) UpdateReplyRule(ctx context.Context, arg UpdateReplyRuleParams) (ReplyRule, error) {
+	row := q.db.QueryRow(ctx, updateReplyRule,
+		arg.ID,
+		arg.Name,
+		arg.Keywords,
+		arg.TemplateReady,
+		arg.TemplateEmpty,
+		arg.ShowQty,
+		arg.Enabled,
+		arg.UpdatedBy,
+	)
+	var i ReplyRule
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Action,
+		&i.Keywords,
+		&i.TemplateReady,
+		&i.TemplateEmpty,
+		&i.ShowQty,
+		&i.Enabled,
+		&i.UpdatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateWAGroup = `-- name: UpdateWAGroup :one

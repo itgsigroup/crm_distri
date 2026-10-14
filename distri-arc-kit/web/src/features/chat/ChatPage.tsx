@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, 
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
-import type { MediaView, MessageView, ThreadDetail, ThreadView, WATeam } from '../../api/types'
+import type { MediaView, MessageView, ReplySuggestion, ThreadDetail, ThreadView, WATeam } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
@@ -248,9 +248,35 @@ function BubbleMedia({ md, url, pending, onZoom }: { md: MediaView; url: string;
   )
 }
 
-function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom }: {
+/** Rekomendasi balasan under a customer's bubble (ADR 0038): the stock of the product the message names and a draft
+ * the sales can use — it goes into the box to edit; the sales sends it. */
+function SuggestBox({ s, asOf, onUse }: { s: ReplySuggestion; asOf?: string | null; onUse: (text: string) => void }) {
+  const where = s.branch || 'semua cabang'
+  return (
+    <div className={`sug ${s.product ? (s.ready ? 'ready' : 'empty') : 'unknown'}`}>
+      <div className="sug-h">
+        <Icon name="box" />
+        <b>{s.product ? (s.ready ? `Ready · ${s.qty.toLocaleString('id-ID')} di ${where}` : `Kosong di ${where}`) : s.rule}</b>
+        {s.product && <span>{s.product}</span>}
+      </div>
+      {s.others.length > 0 && <div className="sug-o">Cabang lain: {s.others.slice(0, 4).map((o) => `${o.branch} ${o.qty.toLocaleString('id-ID')}`).join(' · ')}</div>}
+      {s.candidates && s.candidates.length > 0 && <div className="sug-o">Mungkin: {s.candidates.join(' · ')}</div>}
+      {s.note && <div className="sug-n">{s.note}</div>}
+      {s.draft && (
+        <div className="sug-d">
+          <span>“{s.draft}”</span>
+          <button type="button" className="btn ghost" onClick={() => onUse(s.draft!)}><Icon name="edit" />Pakai jawaban</button>
+        </div>
+      )}
+      <small>Rekomendasi sistem dari data stok{asOf ? ` · sinkron ${shortDate(asOf)} ${hhmm(asOf)}` : ''} · dikirim hanya bila Anda menekan kirim</small>
+    </div>
+  )
+}
+
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf }: {
   m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date
   onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
+  onUse?: (m: MessageView, text: string) => void; asOf?: string | null
 }) {
   const caption = mediaCaption(m.body, m.media)
   const edit = editableNow(m, now)
@@ -278,6 +304,7 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       {m.holding && !m.auto_reply && m.direction === 'out' && !(analysis && m.analysis) && (
         <span className="bub-hold" title="Pesan ini hanya meminta pelanggan menunggu — waktu respon tetap dihitung sampai pelanggan mendapat jawaban">jawaban sementara · waktu respon tetap berjalan</span>
       )}
+      {m.suggest && onUse && <SuggestBox s={m.suggest} asOf={asOf} onUse={(text) => onUse(m, text)} />}
       {m.proposal && <span className="ann"><span className="ai" />Usulan Claude · <AnnProposal p={m.proposal} /></span>}
       {analysis && m.analysis && <BubbleAnalysis a={m.analysis} dir={m.direction} />}
     </div>
@@ -431,6 +458,13 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     setReplying(m)
     requestAnimationFrame(() => input.current?.focus())
   }
+  // Rekomendasi balasan: the draft goes into the box as a reply to that message, for the sales to edit and send
+  const useSuggestion = (m: MessageView, draft: string) => {
+    setEditing(null)
+    if (m.can_reply) setReplying(m)
+    setText(draft)
+    requestAnimationFrame(() => input.current?.focus())
+  }
   const jumpTo = (mid: string) => {
     const el = body.current?.querySelector<HTMLElement>(`[data-mid="${mid}"]`)
     if (!el) return toast('Pesan yang dibalas ada di riwayat lebih lama — gulir ke atas')
@@ -540,7 +574,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           return (
             <div key={m.id} style={{ display: 'contents' }}>
               {sep}
-              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} />
+              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} onUse={useSuggestion} asOf={data?.stock_as_of} />
             </div>
           )
         })}

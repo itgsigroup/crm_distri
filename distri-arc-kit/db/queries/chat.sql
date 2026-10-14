@@ -200,6 +200,7 @@ order by t.last_message_at desc nulls last, t.id;
 select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
   coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
+  coalesce(nullif(d.branch, ''), s.branch, '')::text as thread_branch,
   coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
   -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
   (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
@@ -489,3 +490,21 @@ with th as (select id from chat_threads where wa_jid = sqlc.arg(wa_jid)::text an
 sig as (delete from signals s using chat_messages m where m.thread_id in (select id from th) and s.id = m.signal_id returning s.id),
 gone as (delete from chat_threads where id in (select id from th) returning id)
 select (select count(*) from gone)::int;
+
+-- name: ListReplyRules :many
+select * from reply_rules order by created_at;
+
+-- name: EnabledReplyRules :many
+select * from reply_rules where enabled order by created_at;
+
+-- name: InsertReplyRule :one
+insert into reply_rules (name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by)
+values ($1, $2, $3, $4, $5, $6, $7, $8) returning *;
+
+-- name: UpdateReplyRule :one
+update reply_rules set name = $2, keywords = $3, template_ready = $4, template_empty = $5, show_qty = $6, enabled = $7,
+  updated_by = $8, updated_at = now()
+where id = $1 returning *;
+
+-- name: DeleteReplyRule :execrows
+delete from reply_rules where id = $1;

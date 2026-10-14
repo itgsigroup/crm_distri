@@ -709,6 +709,20 @@ type Proposal struct {
 	DealerIds      []uuid.UUID     `json:"dealer_ids"`
 }
 
+type ReplyRule struct {
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	Action        string    `json:"action"`
+	Keywords      []string  `json:"keywords"`
+	TemplateReady string    `json:"template_ready"`
+	TemplateEmpty string    `json:"template_empty"`
+	ShowQty       bool      `json:"show_qty"`
+	Enabled       bool      `json:"enabled"`
+	UpdatedBy     *string   `json:"updated_by"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
 type RiverJob struct {
 	ID           int64             `json:"id"`
 	State        RiverJobState     `json:"state"`

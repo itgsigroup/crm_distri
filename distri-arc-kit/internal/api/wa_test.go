@@ -404,3 +404,44 @@ func TestWAClaudeLabel(t *testing.T) {
 		t.Error("the Pusat kendali schedule was deleted")
 	}
 }
+
+// ADR 0038: Rekomendasi balasan — the seeded stock rule suggests the stock of the product a customer names, under
+// that message in Chat; admins manage the rules; nothing is sent.
+func TestReplyRules(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	if _, err := st.Pool.Exec(ctx, "insert into stock_items (branch, sku, name, category, qty, unit_cost, value) values ('Semarang', 'TST-NVR', 'NVR Uji 32ch', 'Kamera & NVR', 9, 1000000, 9000000), ('Jakarta', 'TST-NVR', 'NVR Uji 32ch', 'Kamera & NVR', 4, 1000000, 4000000)"); err != nil {
+		t.Fatal(err)
+	}
+	code, out := get(t, srv, "/api/reply-rules", "sam@gsi.co.id")
+	if code != 200 || len(out["items"].([]any)) != 1 {
+		t.Fatalf("seeded rule: %d %v", code, out)
+	}
+	_, res := post(t, srv.URL+"/api/reply-rules/test", "sam@gsi.co.id", map[string]any{"text": "pak NVR uji 32ch ready?", "branch": "Semarang"})
+	sg, ok := res["suggestion"].(map[string]any)
+	if !ok || sg["ready"] != true || sg["qty"].(float64) != 9 || sg["draft"] != "Ready 9 pcs untuk NVR Uji 32ch di Semarang." {
+		t.Fatalf("test: %v", res)
+	}
+	if code, _ := post(t, srv.URL+"/api/reply-rules", "andi@gsi.co.id", map[string]any{"name": "x", "keywords": []string{"x"}, "template_ready": "a", "template_empty": "b"}); code != http.StatusForbidden {
+		t.Fatalf("sales made a rule: %d", code)
+	}
+	var tid string
+	if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('new', '6281300000201@s.whatsapp.net', 'Toko Uji', '6281234504471', now()) returning id").Scan(&tid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, "insert into chat_messages (thread_id, wa_msg_id, direction, body, sent_at, status) values ($1, 'RR1', 'in', 'stok NVR uji 32ch ada?', now() - interval '1 hour', 'received'), ($1, 'RR2', 'in', 'terima kasih', now() - interval '30 minutes', 'received')", tid); err != nil {
+		t.Fatal(err)
+	}
+	_, th := get(t, srv, "/api/chat/threads/"+tid, "sam@gsi.co.id")
+	msgs := th["messages"].([]any)
+	first, second := msgs[0].(map[string]any), msgs[1].(map[string]any)
+	if s, ok := first["suggest"].(map[string]any); !ok || s["product"] != "NVR Uji 32ch" || s["ready"] != true {
+		t.Fatalf("suggestion on the stock question: %v", first["suggest"])
+	}
+	if second["suggest"] != nil {
+		t.Errorf("suggestion on a thank-you: %v", second["suggest"])
+	}
+	if n := countRows(t, st, "select count(*) from outbox"); n != 0 {
+		t.Errorf("a suggestion queued %d messages", n)
+	}
+}

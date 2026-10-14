@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Rekomendasi balasan dari data stok · 2026-10-14
+- **Pengaturan → Rekomendasi balasan**: aturan kata kunci (bawaan "Tanya stok": stok, ready, ada barang, tersedia, …) dengan draf jawaban untuk stok ready dan kosong; bisa ditambah, diubah, dimatikan, dan dicoba dengan kalimat pelanggan.
+- **Di Chat**: pesan pelanggan yang memuat kata kunci mendapat kotak rekomendasi di bawah bubble — produk yang dikenali, stok di cabang chat, cabang lain yang ada stoknya, jam sinkron stok, dan draf jawaban. **Pakai jawaban** mengisi kolom ketik; sales mengedit dan mengirim sendiri. Tidak ada yang terkirim otomatis.
+- ADR 0038, migrasi 0036.
+
 ## Feat · Analisa WhatsApp otomatis oleh Claude (MCP) setiap 2 jam · 2026-10-14
 - Jadwal baru **"Analisa WhatsApp · tiap 2 jam"**: Claude membaca semua chat lewat MCP dan menulis ringkasan, baris per percakapan, dan catatan per pesan untuk Pusat kendali (siklus khusus `screen:wa`, tanpa agen lain). Tidak ada pesan yang dikirim ke pelanggan.
 - **Label di Pusat kendali**: "Analisa Claude berhasil · jam" / "gagal · alasan" / "sedang menganalisa", jadwal berikutnya, dan tautan Riwayat.
