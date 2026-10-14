@@ -67,6 +67,9 @@ var Contract = map[Entity][]Column{
 		{"date", true, "Tanggal faktur"},
 		{"due_date", false, "Jatuh tempo (default: tanggal + termin pelanggan)"},
 		{"total", true, "Total faktur (Rp)"},
+		{"dpp", false, "DPP / total sebelum PPN (Rp); bila diisi, omzet memakai DPP (piutang tetap memakai total)"},
+		{"status", false, "Status faktur; batal / void / cancel → tidak dihitung sebagai omzet"},
+		{"doc_type", false, "Jenis dokumen: kosong/faktur, atau retur (retur penjualan mengurangi omzet)"},
 		{"residual", false, "Sisa tagihan (Rp); 0 = lunas"},
 		{"paid_date", false, "Tanggal lunas / bayar terakhir"},
 		{"branch", false, "Cabang"},
@@ -81,7 +84,7 @@ var Contract = map[Entity][]Column{
 		{"qty", false, "Kuantitas"},
 		{"price", false, "Harga satuan (Rp)"},
 		{"amount", false, "Nilai baris (Rp); default qty × harga"},
-		{"cost", false, "HPP satuan saat jual (Rp); untuk margin & perputaran stok — default HPP dari data stok"},
+		{"cost", false, "HPP satuan saat jual (Rp, tanpa PPN); untuk margin & perputaran stok — default HPP stok cabang itu"},
 		{"warehouse", false, "Gudang"},
 	},
 	Stock: {

@@ -19,6 +19,7 @@ import (
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/metrics"
+	"distri-arc/internal/policy"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/wa"
@@ -421,10 +422,22 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 	if err != nil {
 		return err
 	}
-	stockCost := map[string]int64{} // HPP per SKU from the stock snapshot (margin when a line has no cost)
+	// HPP from the stock snapshot when a line has none: per SKU × branch, weighted by quantity, else the SKU's weighted
+	// average over every warehouse (before: the last warehouse row read won — 14 Oct review, task 13)
+	costAt := newStockCost()
 	for _, r := range stockRows {
 		if c := Rupiah(r.Get("unit_cost")); c > 0 {
-			stockCost[r.Get("sku")] = c
+			br, ok := m.get("warehouse", r.Get("warehouse"))
+			if !ok {
+				br = strings.TrimSpace(r.Get("warehouse"))
+			}
+			costAt.add(r.Get("sku"), br, c, Number(r.Get("qty")))
+		}
+	}
+	rebates := map[string]float64{}
+	if pol, err := policy.Load(ctx, im.St.Q); err == nil {
+		for b, v := range pol.Margin.Rebates {
+			rebates[strings.ToLower(strings.TrimSpace(b))] = v
 		}
 	}
 	sold90 := map[[2]string]float64{} // units sold in the last 90 days per SKU × branch (velocity when the stock has no sold_90d)
@@ -480,6 +493,7 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 					}
 					continue
 				}
+				isReturn := returnDoc(r.Get("doc_type")) // a sales return: its lines count negative
 				var ls []domain.OrderLine
 				var costed, costSum int64 // revenue and HPP of the lines whose HPP is known
 				recent := metrics.DaysBetween(*date, today) <= 90
@@ -495,14 +509,29 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 					if sku == "" {
 						sku = l.Get("product")
 					}
-					cost := Rupiah(l.Get("cost"))
-					if cost == 0 {
-						cost = stockCost[sku]
+					lineBr, ok := m.get("warehouse", l.Get("warehouse"))
+					if !ok {
+						lineBr = strings.TrimSpace(l.Get("warehouse"))
 					}
-					ls = append(ls, domain.OrderLine{Product: l.Get("product"), Category: k, Qty: qty, Price: price, Subtotal: amount, Cost: cost})
-					if cost > 0 && amount > 0 {
+					if lineBr == "" {
+						lineBr = branchOf(r.Get("branch"), custBranch[cust])
+					}
+					cost, costSrc := lineCost(Rupiah(l.Get("cost")), qty, price, amount), "invoice"
+					if cost == 0 {
+						cost, costSrc = costAt.get(sku, lineBr), "stock"
+					}
+					if cost == 0 {
+						costSrc = ""
+					}
+					brand := strings.TrimSpace(l.Get("brand"))
+					if isReturn {
+						qty, amount = -abs64(qty), -abs64(amount)
+					}
+					ls = append(ls, domain.OrderLine{Product: l.Get("product"), Category: k, Qty: qty, Price: price, Subtotal: amount, Cost: cost, Brand: brand, CostSource: costSrc})
+					if cost > 0 && amount > 0 && qty > 0 {
 						costed += amount
-						costSum += cost * qty
+						// a supplier rebate on the brand lowers the real HPP
+						costSum += int64(math.Round(float64(cost*qty) * (1 - rebates[strings.ToLower(brand)]/100)))
 					}
 					if recent && qty > 0 {
 						// same key as the stock snapshot: mapped warehouse, else the raw warehouse, else the sale's branch
@@ -523,6 +552,14 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 					continue // unchanged since the last apply
 				}
 				total := Rupiah(r.Get("total"))
+				omzet := total // what counts as revenue: DPP (without PPN) when the source gives it
+				if d := Rupiah(r.Get("dpp")); d != 0 {
+					omzet = d
+				}
+				cancelled := voided(r.Get("status"))
+				if isReturn { // a sales return lowers revenue; it is no receivable
+					total, omzet = -abs64(total), -abs64(omzet)
+				}
 				residual := Rupiah(r.Get("residual"))
 				if strings.TrimSpace(r.Get("residual")) == "" && Date(r.Get("paid_date")) == nil {
 					residual = total
@@ -542,6 +579,9 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 				if residual <= 0 && total > 0 {
 					state, istate, orderPaid = "bayar", "paid", paidAt
 				}
+				if cancelled {
+					state = "cancel" // a void invoice is no revenue (the cancel filters of every report skip it)
+				}
 				lj, _ := json.Marshal(ls)
 				osrc, isrc := "order:"+num, "inv:"+num
 				var margin *float64
@@ -550,9 +590,18 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 					margin = &v
 				}
 				oid, err := q.UpsertOrder(ctx, gen.UpsertOrderParams{DealerID: &did, Number: &num, State: state, OrderedAt: date, ConfirmedAt: date, InvoicedAt: date, PaidAt: orderPaid,
-					Total: total, MarginPct: margin, Lines: lj, CreatedBy: "import", SourceSystem: strp("import"), SourceID: &osrc, SourceWriteDate: &now})
+					Total: omzet, MarginPct: margin, Lines: lj, CreatedBy: "import", SourceSystem: strp("import"), SourceID: &osrc, SourceWriteDate: &now})
 				if err != nil {
 					return fmt.Errorf("order %s: %w", num, err)
+				}
+				if cancelled || isReturn {
+					// no receivable: a void invoice (or a return) is kept at zero, replacing what an earlier import stored
+					if _, err := q.UpsertInvoice(ctx, gen.UpsertInvoiceParams{DealerID: &did, OrderID: &oid, Number: &num, IssuedAt: date, DueAt: due,
+						State: "cancel", SourceSystem: strp("import"), SourceID: &isrc, SourceWriteDate: &now}); err != nil {
+						return fmt.Errorf("faktur %s: %w", num, err)
+					}
+					rep.Invoices++
+					continue
 				}
 				iid, err := q.UpsertInvoice(ctx, gen.UpsertInvoiceParams{DealerID: &did, OrderID: &oid, Number: &num, IssuedAt: date, DueAt: due, Total: total, Paid: paid, PaidAt: paidAt,
 					State: istate, SourceSystem: strp("import"), SourceID: &isrc, SourceWriteDate: &now})

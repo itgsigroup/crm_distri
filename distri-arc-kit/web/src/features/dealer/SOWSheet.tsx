@@ -35,7 +35,7 @@ export function SOWSheet() {
                 <tr key={d.id}>
                   <td><b>{shortName(d.name)}</b><div className="mono">{d.sales_name ?? '—'}</div></td>
                   <td className="num">{fmtRp(d.omzet_bln)}</td>
-                  <td className="num">{d.sow}% <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{d.confirmed_sow != null ? 'dikonfirmasi' : d.sow_source === 'estimated' ? 'estimasi' : 'default'}</span></td>
+                  <td className="num">{d.sow}% <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{d.confirmed_sow != null ? 'dikonfirmasi' : d.sow_source === 'estimated' ? 'estimasi' : d.sow_source === 'history' ? 'dari riwayat belanja' : 'belum diketahui'}</span></td>
                   <td><input style={input} type="number" min={0} max={100} aria-label={`Share of wallet ${d.name}`} placeholder={String(d.confirmed_sow ?? d.sow)} value={vals[d.id] ?? ''} onChange={(e) => setVals({ ...vals, [d.id]: e.target.value })} /></td>
                 </tr>
               ))}

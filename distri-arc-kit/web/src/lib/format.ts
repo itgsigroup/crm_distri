@@ -61,3 +61,8 @@ export const shortName = (n: string) => n.replace(/^(PT|CV|UD|Toko)\s/, '')
 
 /** Contact avatar like the mockup PIC list: first two letters without Pak/Bu/Mbak/Mas. */
 export const contactIni = (n: string) => n.replace(/^(Pak|Bu|Mbak|Mas)\s+/, '').slice(0, 2).toUpperCase()
+
+/** Share of wallet as shown: "—" while unknown (no confirmation and under 6 months of history, ADR 0036). */
+export function sowText(m: { sow: number; sow_source: string }): string {
+  return m.sow_source === 'default' ? '—' : `${m.sow}%`
+}

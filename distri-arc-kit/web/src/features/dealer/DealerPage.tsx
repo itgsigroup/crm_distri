@@ -4,7 +4,7 @@ import type { BoardItem, Commitment, DealerDetail } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
 import { Pill, Prov, ScoreRing } from '../../components/ui'
-import { contactIni, fmtRp, hb, hcol, hhmm, shortDate } from '../../lib/format'
+import { contactIni, fmtRp, hb, hcol, hhmm, shortDate, sowText } from '../../lib/format'
 import { KAT, KUAD } from '../../lib/i18n/id'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { MemoText } from './Memo'
@@ -163,7 +163,7 @@ function DealerBody({ d }: { d: DealerDetail }) {
               {m.rhythm_days ? (m.due_in! >= 0 ? 'jadwal order ' + (m.due_in === 0 ? 'hari ini' : m.due_in + ' hari lagi') : 'lewat ' + -m.due_in! + ' hari') : '1 order · belum terbentuk'}
             </span>
           </div>
-          <div className="kpi"><small>Share of wallet · product mix</small><b className="num">{m.sow}% · {m.mix}/6</b><span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>share of wallet · kategori dibeli</span></div>
+          <div className="kpi"><small>Share of wallet · product mix</small><b className="num">{sowText(m)} · {m.mix}/6</b><span style={{ fontSize: 11.5, color: 'var(--text-3)' }}>share of wallet · kategori dibeli</span></div>
           <div className="kpi">
             <small>Sisa limit</small>
             <b className="num" style={{ color: `var(--${tone === 'neutral' ? 'text' : tone})` }}>{room == null ? 'cash' : room < 0 ? 'over limit' : Math.round(room * 100) + '%'}</b>
@@ -229,7 +229,7 @@ function DealerBody({ d }: { d: DealerDetail }) {
           </div>
         </div>
         <div className="card" id="sec-porsi">
-          <div className="card-h"><h2>Share of wallet &amp; product mix</h2><span className="meta">Share of wallet {m.sow}% · {m.sow_source === 'confirmed' ? 'dikonfirmasi sales' : 'estimasi'}</span></div>
+          <div className="card-h"><h2>Share of wallet &amp; product mix</h2><span className="meta">{m.sow_source === 'default' ? 'Share of wallet belum diketahui · riwayat < 6 bulan, minta sales konfirmasi' : `Share of wallet ${m.sow}% · ${m.sow_source === 'confirmed' ? 'dikonfirmasi sales' : m.sow_source === 'history' ? 'estimasi dari riwayat belanja (3 bln terakhir ÷ 3 bln terbaik)' : 'estimasi'}`}</span></div>
           <div className="sow"><div className="pbar"><i style={{ width: m.sow + '%' }} /></div><div className="pl"><span>GSI {m.sow}%</span><span>distributor lain {100 - m.sow}%</span></div></div>
           <div className="kr">
             {KAT.map((k, i) => (

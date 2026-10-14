@@ -70,3 +70,9 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - ~~Scope Penagihan~~ — diputuskan 2026-10-14: hanya nomornya sendiri, admin semua.
 - Grup internal yang berisi nomor pribadi karyawan yang belum terdaftar ikut terbaca sebagai grup pelanggan. Setelah deploy: cek filter "Grup pelanggan" di Chat, tandai "Ini grup internal" bila salah, dan daftarkan nomor karyawan di Pengaturan → WhatsApp → Nomor internal.
 - Nomor anggota grup yang disembunyikan WhatsApp (LID) baru terbaca setelah nomor itu pernah chat langsung dengan nomor GSI atau tersimpan di kontak HP.
+
+## Omzet & margin (2026-10-14, ADR 0036)
+- Query BigQuery faktur perlu menambah kolom `dpp` (total tanpa PPN), `status` (batal/void), dan `doc_type` (retur penjualan) agar omzet setara Sales Arena; query baris faktur perlu `brand` dan `cost` = HPP satuan saat jual (tanpa PPN). Tanpa kolom itu omzet tetap memakai total faktur.
+- Rebate/bonus pemasok per merek belum diisi: Pengaturan → Kebijakan `margin.floor.rebates`, mis. `{"ezviz": 3}` — angka dari keuangan.
+- Rekonsiliasi 10 SKU uji: jalankan MCP `margin.cek` (mis. cari "Ezviz") dan bandingkan dengan hitungan keuangan.
+- Selisih omzet vs Sales Arena juga bisa dari entitas internal (INTERN, GOSYEN, GSI CCTV, CV Global Solusi) yang ikut terhitung — tugas 14.

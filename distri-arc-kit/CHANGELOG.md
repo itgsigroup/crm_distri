@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Share of wallet, omzet, dan margin (laporan direktur, tugas 11–13) · 2026-10-14
+- **Share of wallet** tidak lagi 50 untuk semua: tanpa konfirmasi sales, diestimasi dari riwayat belanja dealer (3 bulan terakhir ÷ 3 bulan terbaik setahun). Dealer dengan riwayat < 6 bulan tampil "belum diketahui" dan tidak lagi otomatis Key account.
+- **Omzet dashboard** kini omzet aktual bulan lalu + bulan berjalan dari faktur (bukan rata-rata 6 bulan); sumber data dan jam sinkron tampil di dashboard dan di KPI/MCP. Impor menerima DPP (tanpa PPN), faktur batal, dan retur penjualan.
+- **Margin**: HPP dari stok kini per cabang (rata-rata tertimbang), HPP total-baris dibaca per satuan, rebate per merek bisa diatur; tool MCP `margin.cek` untuk rekonsiliasi per SKU dengan keuangan.
+- ADR 0036.
+
 ## Feat · Laporan direktur 14 Okt — gelombang 1: antrean chat bersih, waktu respon jam kerja, privasi · 2026-10-14
 - **Antrean "Belum dibalas" hanya urusan niaga**: penutup sopan ("ok bu", "siap pak terima kasih"), emoji, dan stiker tidak lagi membuat chat menunggu; balasan otomatis WhatsApp Business (sapaan, "sedang tidak di tempat") bukan jawaban dan bukan permintaan.
 - **Tipe kontak** di panel Chat: *Pemasok* (chip sendiri, keluar dari antrean dan analisa lead) dan *Obrolan pribadi* (dihapus dari CRM, pesan berikutnya tidak disimpan).

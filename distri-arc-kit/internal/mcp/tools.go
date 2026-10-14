@@ -14,6 +14,7 @@ import (
 
 	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
+	"distri-arc/internal/importer"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/metrics"
@@ -258,7 +259,8 @@ func (s *Server) registerRead() {
 			months = 12
 		}
 		rows := monthly(b, min(months, 24), in.Branch)
-		return map[string]any{"months": rows, "branch": in.Branch}, result{Summary: fmt.Sprintf("%d bulan", len(rows))}, nil
+		// the source and last sync go with the numbers: two reports compare only on the same footing (14 Oct review)
+		return map[string]any{"months": rows, "branch": in.Branch, "data": importer.ProvenanceOf(ctx, s.St)}, result{Summary: fmt.Sprintf("%d bulan", len(rows))}, nil
 	})
 	tool(s, "produk.terlaris", ScopeRead, "Produk terlaris menurut nilai penjualan dalam N hari, dengan kategori dan margin.", func(ctx context.Context, _ *Client, in topIn) (any, result, error) {
 		b, err := s.views.Board(ctx)
@@ -274,6 +276,31 @@ func (s *Server) registerRead() {
 		}
 		items := b.SalesByProduct(days, min(limit, 100))
 		return map[string]any{"days": days, "items": items}, result{Summary: fmt.Sprintf("%d produk", len(items))}, nil
+	})
+	tool(s, "margin.cek", ScopeRead, "Cek margin per produk N hari terakhir dengan semua masukannya (harga rata-rata, HPP yang dipakai, porsi HPP dari stok hari ini, HPP stok, rebate merek) — margin terburuk dulu, untuk rekonsiliasi dengan keuangan. Saring dengan cari (nama produk atau merek, mis. Ezviz).", func(ctx context.Context, _ *Client, in struct {
+		Days  int    `json:"days,omitempty" jsonschema:"jendela hari (default 90)"`
+		Cari  string `json:"cari,omitempty" jsonschema:"nama produk atau merek"`
+		Limit int    `json:"limit,omitempty" jsonschema:"maks baris (default 30)"`
+	}) (any, result, error) {
+		b, err := s.views.Board(ctx)
+		if err != nil {
+			return nil, result{}, err
+		}
+		days, limit := in.Days, in.Limit
+		if days <= 0 {
+			days = 90
+		}
+		if limit <= 0 || limit > 200 {
+			limit = 30
+		}
+		st, _ := s.St.Q.ListStockItems(ctx)
+		rows := b.MarginCheck(days, in.Cari, views.StockItems(st))
+		if len(rows) > limit {
+			rows = rows[:limit]
+		}
+		return map[string]any{"days": days, "items": rows, "data": importer.ProvenanceOf(ctx, s.St),
+				"catatan": "margin = 1 − Σ(HPP×qty×(1−rebate)) ÷ Σ nilai baris, hanya baris ber-HPP; HPP dari faktur, bila kosong dari stok cabang (rata-rata tertimbang)."},
+			result{Summary: fmt.Sprintf("%d produk", len(rows))}, nil
 	})
 	tool(s, "piutang.ringkas", ScopeRead, "Piutang dan kas: DSO, total piutang, lewat tempo, prediksi kas masuk N hari, dealer dengan piutang terbesar / paling telat (halaman).", func(ctx context.Context, _ *Client, in struct {
 		Days int `json:"days,omitempty" jsonschema:"horizon prediksi kas (default 30)"`
@@ -510,7 +537,11 @@ func (s *Server) registerRead() {
 		}
 		st, _ := s.St.Q.ListStockItems(ctx)
 		k := b.KPI(in.Branch, views.StockItems(st))
-		return k, result{Summary: fmt.Sprintf("tepat jadwal %d%% · DSO %d hr", k.OnSchedulePct, k.DSODays)}, nil
+		out := map[string]any{}
+		raw, _ := json.Marshal(k)
+		_ = json.Unmarshal(raw, &out)
+		out["data"] = importer.ProvenanceOf(ctx, s.St)
+		return out, result{Summary: fmt.Sprintf("tepat jadwal %d%% · DSO %d hr", k.OnSchedulePct, k.DSODays)}, nil
 	})
 	tool(s, "cycles.recent", ScopeRead, "Riwayat siklus Orchestrator dengan counter.", func(ctx context.Context, _ *Client, in limitIn) (any, result, error) {
 		n := in.Limit

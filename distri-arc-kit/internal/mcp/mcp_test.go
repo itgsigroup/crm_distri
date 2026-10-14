@@ -548,3 +548,30 @@ func TestRoutingMCPEmptyAnswer(t *testing.T) {
 		t.Fatalf("agent run %q", status)
 	}
 }
+
+// 14 Oct review, task 13: margin.cek lists products worst margin first with the inputs behind each margin.
+func TestMarginCheck(t *testing.T) {
+	e := setup(t)
+	cs := e.connect(t, e.token(t, "Claude", "read"))
+	out, txt, ok := call(t, cs, "margin_cek", map[string]any{"days": 365})
+	if !ok {
+		t.Fatalf("margin.cek: %s", txt)
+	}
+	items := out["items"].([]any)
+	if len(items) == 0 || out["data"] == nil {
+		t.Fatalf("margin.cek: %v", out)
+	}
+	prev := -1e9
+	for _, it := range items {
+		r := it.(map[string]any)
+		if m, ok := r["margin_pct"].(float64); ok {
+			if m < prev {
+				t.Fatalf("not worst first: %v after %v", m, prev)
+			}
+			prev = m
+		}
+		if _, ok := r["avg_price"]; !ok {
+			t.Fatalf("inputs missing: %v", r)
+		}
+	}
+}

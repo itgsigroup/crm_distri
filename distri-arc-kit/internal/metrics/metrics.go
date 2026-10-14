@@ -167,9 +167,45 @@ func Omzet(avg int64, freq *float64) int64 {
 	return int64(math.Round(float64(avg) * *freq))
 }
 
-// SOW returns share of wallet and its source: the latest sales confirmation, else the competitor-based
-// estimate from WA extraction, else 50 marked "default".
-func SOW(estimates []domain.SOWEstimate, competitor *int) (int, string) {
+// HistorySOW estimates share of wallet from the dealer's own buying (ADR 0036): its last 3 months against its best 3
+// consecutive months of the last 12, × 100. A dealer buying less from GSI than it once did buys the rest elsewhere.
+// Nil with less than 6 months of history or no purchase in the year.
+func HistorySOW(orders []domain.Order, today time.Time) *int {
+	var months [12]int64
+	first := -1
+	for _, o := range orders {
+		t := orderTime(o)
+		if o.State == "cancel" || t == nil {
+			continue
+		}
+		age := DaysBetween(*t, today)
+		if age < 0 {
+			continue
+		}
+		first = max(first, age)
+		if age < 365 {
+			months[min(age/30, 11)] += o.Total
+		}
+	}
+	if first < window6m {
+		return nil
+	}
+	recent := months[0] + months[1] + months[2]
+	var peak int64
+	for k := 0; k+2 < len(months); k++ {
+		peak = max(peak, months[k]+months[k+1]+months[k+2])
+	}
+	if peak <= 0 {
+		return nil
+	}
+	v := clampInt(int(math.Round(float64(max(recent, 0))/float64(peak)*100)), 0, 100)
+	return &v
+}
+
+// SOW returns share of wallet and its source: the latest sales confirmation, else the competitor-based estimate from
+// WA extraction, else the estimate from the dealer's own buying (HistorySOW, "history"), else 50 marked "default"
+// (unknown: shown as "belum diketahui" and never enough for Key account).
+func SOW(estimates []domain.SOWEstimate, competitor *int, history ...*int) (int, string) {
 	if len(estimates) > 0 {
 		latest := estimates[0]
 		for _, e := range estimates[1:] {
@@ -181,6 +217,9 @@ func SOW(estimates []domain.SOWEstimate, competitor *int) (int, string) {
 	}
 	if competitor != nil {
 		return clampInt(*competitor, 0, 100), "estimated"
+	}
+	if len(history) > 0 && history[0] != nil {
+		return clampInt(*history[0], 0, 100), "history"
 	}
 	return 50, "default"
 }
@@ -412,11 +451,15 @@ func Compute(h domain.DealerHistory, p domain.PolicySet, today time.Time) domain
 	m.Freq = &freq
 	m.OmzetBln = int64(math.Round(float64(sum) / months))
 
-	m.SOW, m.SOWSource = SOW(h.SOWEstimates, h.CompetitorSOW)
+	m.SOW, m.SOWSource = SOW(h.SOWEstimates, h.CompetitorSOW, HistorySOW(h.Orders, today))
 	m.Mix, m.MixCats = Mix(h.Orders, today)
 	m.Credit = CreditOf(CreditInput{Limit: h.CreditLimit, Invoices: h.Invoices}, today, p)
 	m.PICActive = PICActive(h.Contacts, today)
-	m.Status = Status(m.Rhythm, m.Cyc, m.SOW, m.Credit.OnTime, p)
+	sowKnown := m.SOW
+	if m.SOWSource == "default" {
+		sowKnown = 0 // an unknown share of wallet never makes a Key account (ADR 0036)
+	}
+	m.Status = Status(m.Rhythm, m.Cyc, sowKnown, m.Credit.OnTime, p)
 	m.Activity = Activity(m.Rhythm, m.Cyc)
 	newDays := p.Orbit.NewDays
 	if newDays == 0 {

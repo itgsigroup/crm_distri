@@ -6,7 +6,7 @@ import type { MediaView, MessageView, ThreadDetail, ThreadView, WATeam } from '.
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
-import { fmtRp, hhmm, shortDate, wib } from '../../lib/format'
+import { fmtRp, hhmm, shortDate, wib, sowText } from '../../lib/format'
 import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
 import { useOrch } from '../../app/orch'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf, teamName } from './Connect'
@@ -842,7 +842,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
                 ['Omzet / bulan', fmtRp(d.metrics.omzet_bln)],
                 ['Rata-rata order', fmtRp(d.metrics.avg_order)],
                 ['Ritme order', d.metrics.rhythm_days ? `${d.metrics.rhythm_days} hari` : null],
-                ['Share of wallet', `${d.metrics.sow}%`],
+                ['Share of wallet', sowText(d.metrics)],
               ] as [string, ReactNode][]) : []),
             ]} />
             {d && d.composition.length > 0 && (

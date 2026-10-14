@@ -30,7 +30,8 @@ export interface DealerMetrics {
   omzet_bln: number
   segment: Segment
   sow: number
-  sow_source: 'confirmed' | 'estimated' | 'default'
+  /** history: from the dealer's own buying (ADR 0036); default: unknown */
+  sow_source: 'confirmed' | 'estimated' | 'history' | 'default'
   mix: number
   mix_cats: boolean[]
   credit: Credit
@@ -191,7 +192,11 @@ export interface KPI {
   overdue_amount: number
   tight_count: number
   stock_value: number
+  /** where the numbers come from and when they were synced (14 Oct review, task 12) */
+  data?: DataProvenance
 }
+
+export interface DataProvenance { source: string; label: string; synced_at: string | null; basis: string }
 
 export interface AgendaItem { kind: 'due' | 'drift' | 'collect'; dealer_id: string; short_name: string; due_in?: number; late_days?: number }
 export interface AgendaRow { sales: Owner; dealers: number; count: number; items: AgendaItem[] | null }

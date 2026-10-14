@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/httpx"
+	"distri-arc/internal/importer"
 	"distri-arc/internal/policy"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
@@ -363,7 +365,16 @@ func (s *Server) kpi(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	httpx.JSON(w, http.StatusOK, b.KPI(r.URL.Query().Get("branch"), st))
+	httpx.JSON(w, http.StatusOK, withProvenance(r.Context(), s, b.KPI(r.URL.Query().Get("branch"), st)))
+}
+
+// withProvenance adds where the numbers come from and when they were synced ("data") to a response object.
+func withProvenance(ctx context.Context, s *Server, v any) map[string]any {
+	out := map[string]any{}
+	raw, _ := json.Marshal(v)
+	_ = json.Unmarshal(raw, &out)
+	out["data"] = importer.ProvenanceOf(ctx, s.st)
+	return out
 }
 
 func (s *Server) agenda(w http.ResponseWriter, r *http.Request) {

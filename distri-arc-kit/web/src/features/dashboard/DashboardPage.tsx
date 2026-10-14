@@ -107,6 +107,15 @@ export function DashboardPage() {
   const [trendMonth, setTrendMonth] = useState('')
   const trend = useTrend(trendMode, trendMode === 'days' ? trendMonth || undefined : undefined)
   const trendMonths = trend.data?.months ?? []
+  // actual omzet by month (invoices of the month), not the dealers' 6-month average — the same footing as Sales Arena
+  const monthly = useTrend('months')
+  const om = monthly.data?.series.omzet ?? []
+  const lastIdx = om.reduce<number>((acc, v, i) => (v != null ? i : acc), -1)
+  const thisMonth = lastIdx >= 0 ? om[lastIdx] : null
+  const prevMonth = lastIdx >= 1 ? om[lastIdx - 1] : null
+  const prevLabel = lastIdx >= 1 ? monthly.data!.labels[lastIdx - 1] : ''
+  const src = kpi?.data
+  const srcText = src ? `${src.label}${src.synced_at ? ` · sinkron ${shortDate(src.synced_at)} ${hhmm(src.synced_at)} WIB` : ''}` : ''
   const can = (screen: string) => me?.screens.includes(screen) ?? false
   const dealers = board ?? []
   const active = dealers.filter((d) => d.metrics.segment !== 'Prospek')
@@ -138,7 +147,7 @@ export function DashboardPage() {
   return <div className="db-page">
     <div className="db-hero">
       <div><span className="db-eyebrow">GSI ORBIT · RINGKASAN BISNIS</span><h2>Kondisi bisnis dalam satu layar</h2><p>Angka terbaru dari dealer, order, kredit, dan stok. Buka setiap bagian untuk melihat detailnya.</p></div>
-      <div className="db-hero-meta"><span>Dealer dalam cakupan Anda</span><b>{board?.[0]?.metrics.as_of ? `Data dealer ${shortDate(board[0].metrics.as_of)}` : 'Data terbaru'}</b>{brief?.generated_at && <small>Ringkasan AI diperbarui {hhmm(brief.generated_at)} WIB</small>}</div>
+      <div className="db-hero-meta"><span>Dealer dalam cakupan Anda</span><b>{board?.[0]?.metrics.as_of ? `Data dealer ${shortDate(board[0].metrics.as_of)}` : 'Data terbaru'}</b>{srcText && <small title={src?.basis}>Sumber {srcText}</small>}{brief?.generated_at && <small>Ringkasan AI diperbarui {hhmm(brief.generated_at)} WIB</small>}</div>
     </div>
 
     <DashboardTown board={dealers} kpi={kpi} can={can} />
@@ -149,7 +158,9 @@ export function DashboardPage() {
     <TrendCtx.Provider value={{ data: trend.data, pending: trend.isPending }}>
     <div className="db-metrics">
       <Metric label="Dealer di Orbit" value={boardPending || boardError ? '—' : fmtNum(active.length)} detail={boardPending ? 'Memuat data dealer…' : `${fmtNum(orbitSummary?.prospects ?? 0)} prospek di luar orbit`} to={can('dealer') ? '/dealer' : undefined} trend="dealers" />
-      <Metric label="Omzet dealer · per bulan" value={boardPending || boardError ? '—' : fmtRp(omzet)} detail="Total estimasi omzet bulanan dealer" to={can('kuad') ? '/orbit/segmen' : undefined} trend="omzet" trendNote={trendMode === 'months' ? 'Grafik: omzet aktual per bulan' : 'Grafik: omzet aktual per hari'} />
+      <Metric label={`Omzet aktual · ${prevLabel || 'bulan lalu'}`} value={monthly.isPending || prevMonth == null ? '—' : fmtRp(prevMonth)}
+        detail={`Bulan ini s.d. hari ini ${thisMonth == null ? '—' : fmtRp(thisMonth)} · rata-rata dealer 6 bln ${boardPending || boardError ? '—' : fmtRp(omzet)}/bln${srcText ? ` · ${srcText}` : ''}`}
+        to={can('kuad') ? '/orbit/segmen' : undefined} trend="omzet" trendNote={trendMode === 'months' ? 'Grafik: omzet aktual per bulan' : 'Grafik: omzet aktual per hari'} />
       <Metric label="Order tepat jadwal" value={kpiPending || kpiError ? '—' : `${kpi?.on_schedule_pct ?? 0}%`} detail={kpi ? `Target ${kpi.targets.on_schedule_pct}%` : 'Dari KPI order'} tone={kpi && kpi.on_schedule_pct < kpi.targets.on_schedule_pct ? 'warn' : undefined} to={can('today') ? '/' : undefined} trend="on_schedule" />
       <Metric label="Dealer At risk / Churn" value={boardPending || boardError ? '—' : fmtNum(atRisk)} detail="Perlu tindak lanjut" tone="bad" to={can('orbit') ? '/orbit' : undefined} trend="at_risk" />
       <Metric label="Jadwal order · 14 hari" value={boardPending || boardError ? '—' : fmtNum(due)} detail="Dealer mendekati jadwal order" to={can('orbit') ? '/orbit?jadwal=minggu' : undefined} trend="due" />

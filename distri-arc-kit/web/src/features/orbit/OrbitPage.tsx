@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router'
 import type { BoardItem, Mover } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { layoutStep, useMapViewport } from '../../components/MapViewport'
-import { fmtRp } from '../../lib/format'
+import { fmtRp, sowText } from '../../lib/format'
 import { KUAD, RING_DESC } from '../../lib/i18n/id'
 import { useOrch, useOrchStatus } from '../../app/orch'
 import { useOrbit, useOrbitMovers, useOrbitSummary, useSales } from '../../app/queries'
@@ -154,7 +154,7 @@ export function OrbitBoard({ list, onOpen, dense = false, focus: focusRing = nul
               <div className="r"><span>Status</span><span>{m.status === 'Baru' ? 'Aktif' : m.status}</span></div>
               <div className="r"><span>Siklus order</span><span>{m.rhythm_days ? `${m.rhythm_days} hr · terakhir ${m.last_order_days} hr` : 'baru'}</span></div>
               <div className="r"><span>Jadwal order</span><span>{m.rhythm_days && m.due_in != null ? (m.due_in >= 0 ? `${m.due_in} hr lagi` : `lewat ${-m.due_in} hr`) : '—'}</span></div>
-              <div className="r"><span>Share of wallet</span><span>{m.sow}%</span></div>
+              <div className="r"><span>Share of wallet</span><span>{sowText(m)}</span></div>
               <div className="r"><span>Sisa limit</span><span>{creditText(hover.d)}</span></div>
               <div className="r"><span>Segmen</span><span>{KUAD[m.segment].n}</span></div>
               <div className="r"><span>Skor dealer</span><span>{m.score}</span></div>
@@ -226,7 +226,8 @@ export function OrbitPage() {
   const { data: osum } = useOrbitSummary(sales)
   const summary = osum?.items ?? []
   const { data: movers = [] } = useOrbitMovers(sales)
-  const avgSow = filtered.length ? Math.round(filtered.reduce((a, d) => a + d.metrics.sow, 0) / filtered.length) : 0
+  const known = filtered.filter((d) => d.metrics.sow_source !== 'default') // unknown shares do not pull the average to 50
+  const avgSow = known.length ? Math.round(known.reduce((a, d) => a + d.metrics.sow, 0) / known.length) : 0
   return (
     <div className="net">
       <div className="stack">

@@ -69,6 +69,9 @@ type OrderLine struct {
 	Price    int64  `json:"price"`
 	Subtotal int64  `json:"subtotal"`
 	Cost     int64  `json:"cost,omitempty"` // HPP per unit when the source has it (margin per product)
+	Brand    string `json:"brand,omitempty"`
+	// CostSource: invoice (HPP at sale) | stock (today's stock HPP, the line had none) — margin provenance
+	CostSource string `json:"cost_source,omitempty"`
 }
 
 // Value returns the line value (subtotal, or qty × price when subtotal is missing).
@@ -177,7 +180,7 @@ type DealerMetrics struct {
 	OmzetBln   int64      `json:"omzet_bln"`
 	Segment    string     `json:"segment"`
 	SOW        int        `json:"sow"`
-	SOWSource  string     `json:"sow_source"` // confirmed | estimated | default
+	SOWSource  string     `json:"sow_source"` // confirmed | estimated | history | default (unknown)
 	Mix        int        `json:"mix"`
 	MixCats    [6]bool    `json:"mix_cats"`
 	Credit     Credit     `json:"credit"`

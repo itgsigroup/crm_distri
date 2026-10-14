@@ -67,6 +67,8 @@ type FollowupPolicy struct {
 
 type MarginPolicy struct {
 	Pct float64 `json:"pct"`
+	// Rebates: supplier rebate/bonus per brand (lower-case) in % of HPP, credited to margin (task 13, ADR 0036)
+	Rebates map[string]float64 `json:"rebates,omitempty"`
 }
 
 type StockPolicy struct {

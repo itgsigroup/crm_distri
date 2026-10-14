@@ -231,3 +231,56 @@ func TestStageReplacesSnapshotsAndLines(t *testing.T) {
 		t.Fatalf("unchanged line touched: %v → %v", before, after)
 	}
 }
+
+// 14 Oct review, tasks 12–13: revenue is DPP when the source gives it; a void invoice and a sales return change
+// revenue and leave no receivable; HPP from stock is per branch (weighted), a line-total HPP is read per unit, and a
+// brand's rebate is credited to the margin.
+func TestRevenueAndMarginInputs(t *testing.T) {
+	im, st := newImporter(t)
+	ctx := context.Background()
+	if _, err := st.Pool.Exec(ctx, `insert into policies (key, value) values ('margin.floor', '{"pct": 9, "rebates": {"ezviz": 10}}')`); err != nil {
+		t.Fatal(err)
+	}
+	stage := func(e importer.Entity, csv string) {
+		t.Helper()
+		if _, err := im.Stage(ctx, e, parse(t, csv), "bigquery", "test"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	stage(importer.Customers, "code,name,branch\nC1,Toko Satu,Semarang\n")
+	stage(importer.Invoices, "number,customer_code,date,total,dpp,residual,status,doc_type\n"+
+		"F1,C1,2026-09-20,1110000,1000000,1110000,,\n"+ // DPP 1.000.000 (PPN 11 %)
+		"F2,C1,2026-09-21,500000,,500000,Batal,\n"+ // void
+		"R1,C1,2026-09-22,200000,,0,,Retur Penjualan\n") // a return
+	// F1: Ezviz line HPP sent as the line total (2 × 300.000 = 600.000); Kamera B HPP from the Semarang stock (60.000,
+	// not Jakarta's 90.000)
+	stage(importer.InvoiceLines, "invoice_number,product,sku,brand,qty,price,amount,cost,warehouse\n"+
+		"F1,Ezviz H8c,E1,Ezviz,2,350000,700000,600000,Semarang\n"+
+		"F1,Kamera B,B1,Hilook,3,100000,300000,,Semarang\n"+
+		"R1,Kamera B,B1,Hilook,2,100000,200000,,Semarang\n")
+	stage(importer.Stock, "sku,product,warehouse,qty,unit_cost\nB1,Kamera B,Jakarta,10,90000\nB1,Kamera B,Semarang,30,60000\n")
+	if _, err := im.Apply(ctx, true, "test"); err != nil {
+		t.Fatal(err)
+	}
+	var total int64
+	var margin float64
+	if err := st.Pool.QueryRow(ctx, "select total, margin_pct from orders where number = 'F1'").Scan(&total, &margin); err != nil {
+		t.Fatal(err)
+	}
+	// revenue 700.000 + 300.000; HPP 2×300.000×0,9 (rebate) + 3×60.000 = 720.000 → margin 28 %
+	if total != 1000000 || margin != 28 {
+		t.Fatalf("F1 omzet %d (want DPP 1.000.000), margin %v (want 28)", total, margin)
+	}
+	if n := count(t, st, "select count(*) from orders where number = 'F2' and state = 'cancel'"); n != 1 {
+		t.Error("void invoice still counted")
+	}
+	if n := count(t, st, "select count(*) from orders where number = 'R1' and total = -200000"); n != 1 {
+		t.Error("return does not lower revenue")
+	}
+	if n := count(t, st, "select count(*) from invoices where number in ('F2','R1') and total = 0 and state = 'cancel'"); n != 2 {
+		t.Error("void invoice or return left a receivable")
+	}
+	if n := count(t, st, "select count(*) from invoices where number = 'F1' and total = 1110000"); n != 1 {
+		t.Error("receivable must keep the invoice total with PPN")
+	}
+}

@@ -340,7 +340,7 @@ func TestReclassifyRealData(t *testing.T) {
 		}
 	})
 	t.Run("Key account needs omzet when the policy sets it", func(t *testing.T) {
-		h := domain.DealerHistory{Orders: orders(14, 6, 10e6)}
+		h := domain.DealerHistory{Orders: orders(14, 6, 10e6), SOWEstimates: []domain.SOWEstimate{{SOW: 70, ConfirmedAt: today}}}
 		if m := Compute(h, p, today); m.Status != domain.StatusKeyAccount {
 			t.Fatalf("without minimum: %s", m.Status)
 		}
@@ -350,4 +350,40 @@ func TestReclassifyRealData(t *testing.T) {
 			t.Fatalf("omzet %d below minimum: %s", m.OmzetBln, m.Status)
 		}
 	})
+}
+
+// ADR 0036: without a sales confirmation, share of wallet is estimated from the dealer's own buying — its last 3
+// months against its best 3 of the year; under 6 months of history it is unknown and never makes a Key account.
+func TestHistorySOW(t *testing.T) {
+	at := func(days int, total int64) domain.Order {
+		tm := ago(days)
+		return domain.Order{State: "bayar", ConfirmedAt: &tm, Total: total}
+	}
+	monthly := func(amounts ...int64) []domain.Order { // amounts[i]: bought i months ago
+		var out []domain.Order
+		for i, a := range amounts {
+			if a > 0 {
+				out = append(out, at(i*30+5, a))
+			}
+		}
+		return out
+	}
+	steady := monthly(10e6, 10e6, 10e6, 10e6, 10e6, 10e6, 10e6, 10e6)
+	if v := HistorySOW(steady, today); v == nil || *v != 100 {
+		t.Fatalf("steady buyer: %v, want 100", v)
+	}
+	dropped := monthly(2e6, 2e6, 2e6, 10e6, 10e6, 10e6, 10e6)
+	if v := HistorySOW(dropped, today); v == nil || *v != 20 {
+		t.Fatalf("dropped to a fifth: %v, want 20", v)
+	}
+	if v := HistorySOW(monthly(10e6, 10e6, 10e6), today); v != nil {
+		t.Fatalf("3 months of history: %v, want unknown", *v)
+	}
+	sow, src := SOW(nil, nil, HistorySOW(dropped, today))
+	if sow != 20 || src != "history" {
+		t.Fatalf("SOW %d %s", sow, src)
+	}
+	if m := Compute(domain.DealerHistory{Orders: orders(14, 6, 10e6)}, domain.DefaultPolicies(), today); m.SOWSource != "default" || m.Status == domain.StatusKeyAccount {
+		t.Fatalf("unknown share made a Key account: %s %s", m.SOWSource, m.Status)
+	}
 }

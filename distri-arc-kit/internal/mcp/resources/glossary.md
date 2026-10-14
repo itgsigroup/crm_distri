@@ -39,7 +39,7 @@ Label UI: **Key account · Aktif · At risk · Churn**.
 Cara melayani (teks UI, jangan diubah): A *Prioritas: jaga & layani terbaik*; B *Upsell: naikkan nilai order*; C *Project-based: ikuti proyeknya*; D *Low-touch: layani otomatis*.
 
 ## Share of wallet (SOW)
-`sow = belanja_ke_GSI / estimasi_total_belanja_kategori_GSI × 100`, integer 0–100. Estimasi total dari (a) nilai yang dikonfirmasi sales per kuartal (`dealer_sow_estimates`), (b) bila tidak ada, dari kategori kompetitor yang disebut di WA (ekstraksi AI Order, `confidence ≥ 0.7`), (c) bila tidak ada, default 50 dengan `sow_source = "default"` dan ditampilkan sebagai "estimasi".
+`sow = belanja_ke_GSI / estimasi_total_belanja_kategori_GSI × 100`, integer 0–100. Estimasi total dari (a) nilai yang dikonfirmasi sales per kuartal (`dealer_sow_estimates`), (b) bila tidak ada, dari kategori kompetitor yang disebut di WA (ekstraksi AI Order, `confidence ≥ 0.7`), (c) bila tidak ada, dari riwayat belanja dealer sendiri: omzet 3 bulan terakhir ÷ omzet 3 bulan berturut-turut terbaik dalam 12 bulan × 100 (`sow_source = "history"`, perlu riwayat ≥ 6 bulan; ADR 0036), (d) bila tidak ada, 50 dengan `sow_source = "default"`, ditampilkan "belum diketahui" dan tidak pernah memenuhi syarat Key account.
 
 ## Product mix
 6 kategori tetap: `Kamera & NVR · HDD & storage · Kabel & PoE · Modul LED · Fire alarm · Aksesoris` (mapping dari `product_category_id` Odoo di tabel `category_map`). `mix = jumlah kategori dengan ≥ 1 order 6 bulan / 6`. Kategori kosong = **peluang** untuk AI Stok.
