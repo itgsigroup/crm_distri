@@ -308,6 +308,42 @@ func TestChatThreadMasked(t *testing.T) {
 	}
 }
 
+// ADR 0033: chat.thread by thread_id reads a customer group (an employee's message is our side, the customers'
+// names masked) and refuses an internal group.
+func TestChatThreadCustomerGroup(t *testing.T) {
+	e := setup(t)
+	ctx := context.Background()
+	cs := e.connect(t, e.token(t, "Claude", "read"))
+	ids := map[string]string{}
+	for _, g := range []struct{ jid, name, kind string }{{"1203630000011@g.us", "Proyek Toko Sinar", "external"}, {"1203630000012@g.us", "Gudang Yogya", "internal"}} {
+		var tid string
+		if err := e.st.Pool.QueryRow(ctx, `with g as (insert into wa_groups (jid, name, kind, read_enabled) values ($1, $2, $3, true) returning id)
+			insert into chat_threads (kind, group_id, wa_jid, title, account, last_message_at) select 'group', g.id, $1, $2, '6281234504471', now() from g returning id`, g.jid, g.name, g.kind).Scan(&tid); err != nil {
+			t.Fatal(err)
+		}
+		ids[g.kind] = tid
+		if _, err := e.st.Pool.Exec(ctx, `insert into chat_messages (thread_id, wa_msg_id, direction, from_name, body, sent_at, status, internal) values
+			($1, $2, 'in', 'Bu Sinta', 'kamera 4MP 10 unit ready?', '2026-10-04 09:00+07', 'received', false),
+			($1, $3, 'in', 'Admin GSI', 'ready Bu', '2026-10-04 10:00+07', 'received', true)`, tid, g.kind+"-1", g.kind+"-2"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	out, txt, ok := call(t, cs, "chat_thread", map[string]any{"thread_id": ids["external"]})
+	if !ok || out["jenis"] != "grup pelanggan" {
+		t.Fatalf("customer group: %v %s", out, txt)
+	}
+	msgs := out["messages"].([]any)
+	if len(msgs) != 2 || msgs[0].(map[string]any)["direction"] != "in" || msgs[1].(map[string]any)["direction"] != "out" {
+		t.Errorf("messages %v", msgs)
+	}
+	if b, _ := json.Marshal(out); strings.Contains(string(b), "Sinta") {
+		t.Errorf("customer name not masked: %s", b)
+	}
+	if _, txt, ok := call(t, cs, "chat_thread", map[string]any{"thread_id": ids["internal"]}); ok || !strings.Contains(txt, "grup internal") {
+		t.Errorf("internal group read: %s", txt)
+	}
+}
+
 // 60 calls per minute per client.
 func TestRateLimit(t *testing.T) {
 	e := setup(t)

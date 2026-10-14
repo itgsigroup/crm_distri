@@ -1,17 +1,28 @@
 -- Analisa WhatsApp (ADR 0026)
 
 -- name: WAWindowMessages :many
--- The messages of one-to-one conversations (dealers and new numbers) in [$1, $2]; groups are never read here and
--- DMs between employees are never stored. Failed sends do not count as a reply.
-select m.id, m.thread_id, m.direction, m.body, m.sent_at, m.signal_id,
+-- The messages of the conversations with customers in [$1, $2]: one-to-one (dealers and new numbers) and customer
+-- groups (ADR 0033). Internal groups are never read here and DMs between employees are never stored. A group is one
+-- conversation for every GSI number in it (each message is stored under the number that got it first): its messages
+-- come under one thread of the group (the first by id). internal: a GSI employee wrote it in the group — our side.
+-- Failed sends do not count as a reply.
+select m.id, coalesce(gt.id, m.thread_id)::uuid as thread_id, m.direction, m.body, m.sent_at, m.signal_id, m.internal, m.from_name,
   t.kind as thread_kind, t.title as thread_title, t.dealer_id, t.sales_id,
   d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name
 from chat_messages m
 join chat_threads t on t.id = m.thread_id
+left join wa_groups g on g.id = t.group_id
+left join lateral (select x.id from chat_threads x where t.kind = 'group' and x.kind = 'group' and x.wa_jid = t.wa_jid order by x.id limit 1) gt on true
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
-where t.kind in ('dealer','new') and m.sent_at >= sqlc.arg(since) and m.sent_at <= sqlc.arg(until) and m.status <> 'failed'
-order by m.thread_id, m.sent_at, m.id;
+where (t.kind in ('dealer','new') or (t.kind = 'group' and g.kind = 'external' and g.read_enabled))
+  and m.sent_at >= sqlc.arg(since) and m.sent_at <= sqlc.arg(until) and m.status <> 'failed'
+order by 2, m.sent_at, m.id;
+
+-- name: ConversationOf :one
+-- The thread a conversation is analysed under: a group's first thread by id (see WAWindowMessages), else itself.
+select coalesce((select x.id from chat_threads x where t.kind = 'group' and x.kind = 'group' and x.wa_jid = t.wa_jid order by x.id limit 1), t.id)::uuid
+from chat_threads t where t.id = $1;
 
 -- name: SaveWAAnalysis :exec
 insert into wa_analyses (cycle_id, window_days, threads, inbound, outbound, waiting, reply_median_min, overview, source, created_at)
@@ -39,10 +50,13 @@ from wa_analyses a join cycles c on c.id = a.cycle_id
 order by c.number desc limit $1;
 
 -- name: ListWAInsights :many
-select i.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name
+-- team: the team of the number holding the conversation (sales, admin, billing — ADR 0033).
+select i.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(n.team, 'sales')::text as team
 from wa_insights i
 left join dealers d on d.id = i.dealer_id
 left join sales_users s on s.id = i.sales_id
+left join chat_threads t on t.id = i.thread_id
+left join wa_numbers n on n.wa_number = t.account
 where i.cycle_id = $1
 order by i.priority desc, i.last_in_at desc nulls last;
 

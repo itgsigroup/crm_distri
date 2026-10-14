@@ -64,6 +64,7 @@ export function useNow(): Date {
 
 // ---------- Chat & WhatsApp (stage 03) ----------
 
+/** The conversations of a tab; account is one number's digits, or "team:<sales|admin|billing>" for a team's numbers. */
 export const useThreads = (tab = 'all', account = '', enabled = true) =>
   useQuery({
     queryKey: ['chat', 'threads', tab, account],
@@ -71,7 +72,8 @@ export const useThreads = (tab = 'all', account = '', enabled = true) =>
     queryFn: () => {
       const q = new URLSearchParams()
       if (tab !== 'all') q.set('tab', tab)
-      if (account) q.set('account', account)
+      if (account.startsWith('team:')) q.set('team', account.slice(5))
+      else if (account) q.set('account', account)
       const qs = q.toString()
       return api.get<Items<ThreadView>>('/chat/threads' + (qs ? '?' + qs : '')).then((r) => r.items)
     },

@@ -5,7 +5,7 @@ import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { useInternalNumbers, useWAGroups, useWAStatus } from '../../app/queries'
-import { LinkSheet } from '../chat/Connect'
+import { LinkSheet, teamName } from '../chat/Connect'
 
 const STATE: Record<string, [string, 'good' | 'warn' | 'bad' | 'neutral']> = {
   connected: ['Terhubung', 'good'], pairing: ['Menunggu scan QR', 'warn'], disconnected: ['Terputus', 'bad'], logged_out: ['Keluar dari perangkat', 'bad'], unpaired: ['Belum dipasangkan', 'neutral'],
@@ -62,7 +62,7 @@ export function WhatsAppPanel() {
                 <span className="av">{name.replace(/^Nomor\s+/, '').slice(0, 2).toUpperCase()}</span>
                 <div>
                   <b>{name}{n.sales && !name.includes(n.sales) ? ` · ${n.sales}` : ''}</b>
-                  <span className="no">{n.masked}{n.sales ? ` · ${n.branch}` : ' · nomor tim'}</span>
+                  <span className="no">{n.masked} · Tim {teamName(n.team)}{n.sales && n.branch ? ` · ${n.branch}` : ''}</span>
                   {lim && <span className="no" style={{ display: 'block' }}>hari ini {lim.today}/{lim.per_day}{lim.warmup ? ' · pemanasan nomor baru' : ''} · jam ini {lim.last_hour}/{lim.per_hour}</span>}
                 </div>
                 <div className="st">
@@ -120,7 +120,7 @@ export function WhatsAppPanel() {
         <ul className="rules">
           {groups.map((g) => (
             <li key={g.id}>
-              <div><b>{g.name}</b><span>{g.kind === 'internal' ? 'Internal · hanya stok, surat jalan, jadwal, tugas' : 'Eksternal'} · {g.members ?? 0} anggota</span></div>
+              <div><b>{g.name}</b><span>{g.kind === 'internal' ? 'Internal · hanya stok, surat jalan, jadwal, tugas' : 'Grup pelanggan · dibaca Analisa WhatsApp'} · {g.members ?? 0} anggota</span></div>
               <button className={`sw ${g.read_enabled ? 'on' : ''}`} aria-label="Baca grup" onClick={() => patchGroup.mutate({ id: g.id, kind: g.kind, read_enabled: !g.read_enabled })} />
             </li>
           ))}

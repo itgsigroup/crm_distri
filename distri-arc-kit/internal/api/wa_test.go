@@ -112,3 +112,91 @@ func TestWANumbersAndChatScope(t *testing.T) {
 		}
 	}
 }
+
+// ADR 0033: every number belongs to a team (Sales, Admin, Penagihan): a link carries the team chosen when it was
+// started, a CEO/admin moves a number to another team, and Chat lists one team's conversations.
+func TestWATeams(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	in := wa.NewIngestor(st, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	link := func(session, number, team string) {
+		if _, err := st.Pool.Exec(ctx, "insert into wa_links (session_id, created_by, team) values ($1, 'sam@gsi.co.id', $2)", session, team); err != nil {
+			t.Fatal(err)
+		}
+		if err := in.ProcessStatus(ctx, wa.Status{Session: session, Account: number, State: "connected"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	link("link-admin", "6281211110000", "admin")
+	link("link-billing", "6281222220000", "billing")
+	team := func(n string) string {
+		var v string
+		if err := st.Pool.QueryRow(ctx, "select team from wa_numbers where wa_number = $1", n).Scan(&v); err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+	if team("6281211110000") != "admin" || team("6281222220000") != "billing" {
+		t.Fatal("a linked number did not take its link's team")
+	}
+	// a re-link of the same number keeps its team
+	link("link-admin-2", "6281211110000", "sales")
+	if team("6281211110000") != "admin" {
+		t.Error("re-link changed the team")
+	}
+	if code, _ := put(t, srv.URL+"/api/wa/numbers/6281222220000/team", "andi@gsi.co.id", map[string]any{"team": "sales"}); code != http.StatusForbidden {
+		t.Fatalf("sales moved a number: %d", code)
+	}
+	if code, _ := put(t, srv.URL+"/api/wa/numbers/6281222220000/team", "sam@gsi.co.id", map[string]any{"team": "gudang"}); code != http.StatusBadRequest {
+		t.Fatalf("unknown team: %d", code)
+	}
+	if code, _ := put(t, srv.URL+"/api/wa/numbers/6281299999999/team", "sam@gsi.co.id", map[string]any{"team": "admin"}); code != http.StatusNotFound {
+		t.Fatalf("unknown number: %d", code)
+	}
+	// conversations of each team
+	for _, x := range []struct{ jid, title, account string }{
+		{"6281300000001@s.whatsapp.net", "Tagihan Toko A", "6281222220000"},
+		{"6281300000002@s.whatsapp.net", "Admin Toko B", "6281211110000"},
+	} {
+		if _, err := st.Pool.Exec(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('new', $1, $2, $3, now())", x.jid, x.title, x.account); err != nil {
+			t.Fatal(err)
+		}
+	}
+	titles := func(q string) map[string]string {
+		code, out := get(t, srv, "/api/chat/threads?"+q, "sam@gsi.co.id")
+		if code != 200 {
+			t.Fatalf("threads %s: %d", q, code)
+		}
+		m := map[string]string{}
+		for _, it := range out["items"].([]any) {
+			r := it.(map[string]any)
+			m[r["title"].(string)] = r["account_team"].(string)
+		}
+		return m
+	}
+	if b := titles("team=billing"); len(b) != 1 || b["Tagihan Toko A"] != "billing" {
+		t.Errorf("billing team chats %v", b)
+	}
+	if a := titles("team=admin"); len(a) != 1 || a["Admin Toko B"] != "admin" {
+		t.Errorf("admin team chats %v", a)
+	}
+	if s := titles("team=sales"); s["Tagihan Toko A"] != "" || s["Admin Toko B"] != "" || len(s) == 0 {
+		t.Errorf("sales team chats %v", s)
+	}
+	// moving the number moves its chats to the other team
+	if code, out := put(t, srv.URL+"/api/wa/numbers/6281222220000/team", "sam@gsi.co.id", map[string]any{"team": "admin"}); code != 200 || out["team"] != "admin" {
+		t.Fatalf("move team: %d %v", code, out)
+	}
+	if a := titles("team=admin"); len(a) != 2 {
+		t.Errorf("admin team after move %v", a)
+	}
+	code, status := get(t, srv, "/api/wa/status", "sam@gsi.co.id")
+	if code != 200 {
+		t.Fatal(code)
+	}
+	for _, it := range status["items"].([]any) {
+		if n := it.(map[string]any); n["wa_number"] == "6281211110000" && n["team"] != "admin" {
+			t.Errorf("status team %v", n["team"])
+		}
+	}
+}

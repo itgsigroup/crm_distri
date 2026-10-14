@@ -292,6 +292,7 @@ export interface ThreadView {
   group_kind?: string
   account: string
   account_label: string
+  account_team?: WATeam
   last_direction?: 'in' | 'out' | ''
   /** oldest customer message not answered yet */
   waiting_since?: string | null
@@ -354,7 +355,10 @@ export interface ThreadDetail {
     /** the contact's number of a one-to-one chat */
     phone?: string; dealer_code?: string; dealer_city?: string; waiting_since?: string | null
     /** when the bubbles were last analysed (null: never) */
-    analyzed_at?: string | null }
+    analyzed_at?: string | null
+    account_team?: WATeam
+    /** a group: its id and kind (external = a customer group, read by Analisa WhatsApp) */
+    group_id?: string | null; group_kind?: string }
   messages: MessageView[]
   /** older messages exist before this page (only a very busy chat: the first page holds the whole retention window) */
   has_more?: boolean
@@ -376,6 +380,8 @@ export interface ChatContext {
   identification: Identification | null
   proposals?: Record<string, NextAction>
 }
+/** The team of a WhatsApp number: sales, admin or billing (Penagihan). */
+export type WATeam = 'sales' | 'admin' | 'billing'
 export interface WANumber {
   wa_number: string
   masked: string
@@ -404,6 +410,8 @@ export interface WANumber {
   mine?: boolean
   label: string
   sales_id: string | null
+  /** the team the number works for (ADR 0033) */
+  team: WATeam
   limits?: { last_hour: number; per_hour: number; today: number; per_day: number; warmup: boolean }
 }
 export interface InternalNumber { wa_number: string; label: string | null; department: string | null; is_sales: boolean }

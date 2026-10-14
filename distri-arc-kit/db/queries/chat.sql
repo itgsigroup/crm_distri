@@ -25,7 +25,19 @@ on conflict (jid) do update set name = coalesce(excluded.name, wa_groups.name), 
 returning *;
 
 -- name: UpdateWAGroup :one
-update wa_groups set kind = $2, read_enabled = $3 where id = $1 returning *;
+-- A person chose the kind: the automatic customer-group rule no longer changes it.
+update wa_groups set kind = $2, read_enabled = $3, kind_manual = true where id = $1 returning *;
+
+-- name: GetWAGroup :one
+select * from wa_groups where id = $1;
+
+-- name: MarkCustomerGroup :exec
+-- The automatic rule: a customer of the master is in the group — it becomes a customer group, unless a person chose.
+update wa_groups set kind = 'external' where id = $1 and kind = 'internal' and not kind_manual;
+
+-- name: AnyCustomerNumber :one
+-- Whether one of the numbers is a customer contact of the master (a group with them is a customer group).
+select exists(select 1 from contacts where wa_number = any(sqlc.arg(numbers)::text[]))::bool;
 
 -- name: ListWANumbers :many
 -- Every number with who holds it (user, role, branch) and its chats (count, unread, last activity).
@@ -44,9 +56,10 @@ select * from wa_numbers where user_id = $1;
 select * from wa_numbers where session_id = $1;
 
 -- name: LinkWANumber :exec
--- A linked device reported its number: the number is registered (or re-linked) under the link's session.
-insert into wa_numbers (wa_number, session_id, label, transport, state, jid, paired_at, last_seen_at)
-values ($1, $2, $3, $4, 'connected', $5, now(), now())
+-- A linked device reported its number: the number is registered (or re-linked) under the link's session, in the
+-- team chosen for the link (a re-linked number keeps its team).
+insert into wa_numbers (wa_number, session_id, label, transport, state, jid, paired_at, last_seen_at, team)
+values ($1, $2, $3, $4, 'connected', $5, now(), now(), coalesce((select l.team from wa_links l where l.session_id = $2), 'sales'))
 on conflict (wa_number) do update set session_id = excluded.session_id, transport = excluded.transport, state = 'connected',
   jid = coalesce(excluded.jid, wa_numbers.jid), qr = null, paired_at = coalesce(wa_numbers.paired_at, now()), last_seen_at = now(), updated_at = now();
 
@@ -60,7 +73,10 @@ where wa_number = sqlc.arg(wa_number);
 update chat_threads set sales_id = sqlc.narg(sales_id) where account = sqlc.arg(account);
 
 -- name: InsertWALink :exec
-insert into wa_links (session_id, method, phone, created_by) values ($1, $2, $3, $4);
+insert into wa_links (session_id, method, phone, created_by, team) values ($1, $2, $3, $4, $5);
+
+-- name: SetWANumberTeam :exec
+update wa_numbers set team = $2, updated_at = now() where wa_number = $1;
 
 -- name: GetWALink :one
 select * from wa_links where session_id = $1;
@@ -147,7 +163,7 @@ where id = sqlc.arg(id)::uuid;
 
 -- name: ListThreads :many
 select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
-  coalesce(n.label, s.name, t.account) as account_label,
+  coalesce(n.label, s.name, t.account) as account_label, coalesce(n.team, 'sales')::text as account_team,
   -- a group's last message may have been stored under another GSI number's thread of the same group
   lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
   -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply
@@ -175,12 +191,14 @@ order by t.last_message_at desc nulls last, t.id;
 -- sales_wa is the number replies go out from: the thread's own number, else its sales' main number.
 select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
+  coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
   (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
      and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
 left join wa_numbers n on n.wa_number = t.account
+left join wa_groups g on g.id = t.group_id
 where t.id = $1;
 
 -- name: ListThreadMessages :many

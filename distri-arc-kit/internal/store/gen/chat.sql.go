@@ -44,6 +44,18 @@ func (q *Queries) AdoptKamiCommitment(ctx context.Context, arg AdoptKamiCommitme
 	return id, err
 }
 
+const anyCustomerNumber = `-- name: AnyCustomerNumber :one
+select exists(select 1 from contacts where wa_number = any($1::text[]))::bool
+`
+
+// Whether one of the numbers is a customer contact of the master (a group with them is a customer group).
+func (q *Queries) AnyCustomerNumber(ctx context.Context, numbers []string) (bool, error) {
+	row := q.db.QueryRow(ctx, anyCustomerNumber, numbers)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const assignThreadsSales = `-- name: AssignThreadsSales :exec
 update chat_threads set sales_id = $1 where account = $2
 `
@@ -379,12 +391,14 @@ func (q *Queries) GetSalesByNumber(ctx context.Context, waNumber *string) (Sales
 const getThread = `-- name: GetThread :one
 select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
+  coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
   (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in'
      and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'), '-infinity'::timestamptz)) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
 left join wa_numbers n on n.wa_number = t.account
+left join wa_groups g on g.id = t.group_id
 where t.id = $1
 `
 
@@ -416,6 +430,8 @@ type GetThreadRow struct {
 	AccountLabel     string          `json:"account_label"`
 	DealerCode       *string         `json:"dealer_code"`
 	DealerCity       *string         `json:"dealer_city"`
+	AccountTeam      string          `json:"account_team"`
+	GroupKind        *string         `json:"group_kind"`
 	WaitingSince     interface{}     `json:"waiting_since"`
 }
 
@@ -451,6 +467,8 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 		&i.AccountLabel,
 		&i.DealerCode,
 		&i.DealerCity,
+		&i.AccountTeam,
+		&i.GroupKind,
 		&i.WaitingSince,
 	)
 	return i, err
@@ -555,8 +573,28 @@ func (q *Queries) GetThreadMessage(ctx context.Context, arg GetThreadMessagePara
 	return i, err
 }
 
+const getWAGroup = `-- name: GetWAGroup :one
+select id, jid, name, kind, branch, members, read_enabled, kind_manual from wa_groups where id = $1
+`
+
+func (q *Queries) GetWAGroup(ctx context.Context, id uuid.UUID) (WaGroup, error) {
+	row := q.db.QueryRow(ctx, getWAGroup, id)
+	var i WaGroup
+	err := row.Scan(
+		&i.ID,
+		&i.Jid,
+		&i.Name,
+		&i.Kind,
+		&i.Branch,
+		&i.Members,
+		&i.ReadEnabled,
+		&i.KindManual,
+	)
+	return i, err
+}
+
 const getWAGroupByJID = `-- name: GetWAGroupByJID :one
-select id, jid, name, kind, branch, members, read_enabled from wa_groups where jid = $1
+select id, jid, name, kind, branch, members, read_enabled, kind_manual from wa_groups where jid = $1
 `
 
 func (q *Queries) GetWAGroupByJID(ctx context.Context, jid *string) (WaGroup, error) {
@@ -570,12 +608,13 @@ func (q *Queries) GetWAGroupByJID(ctx context.Context, jid *string) (WaGroup, er
 		&i.Branch,
 		&i.Members,
 		&i.ReadEnabled,
+		&i.KindManual,
 	)
 	return i, err
 }
 
 const getWALink = `-- name: GetWALink :one
-select session_id, method, phone, state, qr, wa_number, error, created_by, created_at, updated_at from wa_links where session_id = $1
+select session_id, method, phone, state, qr, wa_number, error, created_by, created_at, updated_at, team from wa_links where session_id = $1
 `
 
 func (q *Queries) GetWALink(ctx context.Context, sessionID string) (WaLink, error) {
@@ -592,12 +631,13 @@ func (q *Queries) GetWALink(ctx context.Context, sessionID string) (WaLink, erro
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Team,
 	)
 	return i, err
 }
 
 const getWANumber = `-- name: GetWANumber :one
-select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id, state_since from wa_numbers where wa_number = $1
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id, state_since, team from wa_numbers where wa_number = $1
 `
 
 func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, error) {
@@ -620,12 +660,13 @@ func (q *Queries) GetWANumber(ctx context.Context, waNumber string) (WaNumber, e
 		&i.UserID,
 		&i.SessionID,
 		&i.StateSince,
+		&i.Team,
 	)
 	return i, err
 }
 
 const getWANumberBySession = `-- name: GetWANumberBySession :one
-select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id, state_since from wa_numbers where session_id = $1
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id, state_since, team from wa_numbers where session_id = $1
 `
 
 func (q *Queries) GetWANumberBySession(ctx context.Context, sessionID string) (WaNumber, error) {
@@ -648,12 +689,13 @@ func (q *Queries) GetWANumberBySession(ctx context.Context, sessionID string) (W
 		&i.UserID,
 		&i.SessionID,
 		&i.StateSince,
+		&i.Team,
 	)
 	return i, err
 }
 
 const getWANumberByUser = `-- name: GetWANumberByUser :one
-select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id, state_since from wa_numbers where user_id = $1
+select wa_number, sales_id, label, transport, jid, state, qr, qr_expires_at, last_seen_at, paired_at, backfill_days, updated_at, created_at, user_id, session_id, state_since, team from wa_numbers where user_id = $1
 `
 
 func (q *Queries) GetWANumberByUser(ctx context.Context, userID *uuid.UUID) (WaNumber, error) {
@@ -676,6 +718,7 @@ func (q *Queries) GetWANumberByUser(ctx context.Context, userID *uuid.UUID) (WaN
 		&i.UserID,
 		&i.SessionID,
 		&i.StateSince,
+		&i.Team,
 	)
 	return i, err
 }
@@ -1169,7 +1212,7 @@ func (q *Queries) InsertThread(ctx context.Context, arg InsertThreadParams) (Cha
 }
 
 const insertWALink = `-- name: InsertWALink :exec
-insert into wa_links (session_id, method, phone, created_by) values ($1, $2, $3, $4)
+insert into wa_links (session_id, method, phone, created_by, team) values ($1, $2, $3, $4, $5)
 `
 
 type InsertWALinkParams struct {
@@ -1177,6 +1220,7 @@ type InsertWALinkParams struct {
 	Method    string  `json:"method"`
 	Phone     *string `json:"phone"`
 	CreatedBy *string `json:"created_by"`
+	Team      string  `json:"team"`
 }
 
 func (q *Queries) InsertWALink(ctx context.Context, arg InsertWALinkParams) error {
@@ -1185,6 +1229,7 @@ func (q *Queries) InsertWALink(ctx context.Context, arg InsertWALinkParams) erro
 		arg.Method,
 		arg.Phone,
 		arg.CreatedBy,
+		arg.Team,
 	)
 	return err
 }
@@ -1258,8 +1303,8 @@ func (q *Queries) LatestThreadSignal(ctx context.Context, threadID *uuid.UUID) (
 }
 
 const linkWANumber = `-- name: LinkWANumber :exec
-insert into wa_numbers (wa_number, session_id, label, transport, state, jid, paired_at, last_seen_at)
-values ($1, $2, $3, $4, 'connected', $5, now(), now())
+insert into wa_numbers (wa_number, session_id, label, transport, state, jid, paired_at, last_seen_at, team)
+values ($1, $2, $3, $4, 'connected', $5, now(), now(), coalesce((select l.team from wa_links l where l.session_id = $2), 'sales'))
 on conflict (wa_number) do update set session_id = excluded.session_id, transport = excluded.transport, state = 'connected',
   jid = coalesce(excluded.jid, wa_numbers.jid), qr = null, paired_at = coalesce(wa_numbers.paired_at, now()), last_seen_at = now(), updated_at = now()
 `
@@ -1272,7 +1317,8 @@ type LinkWANumberParams struct {
 	Jid       *string `json:"jid"`
 }
 
-// A linked device reported its number: the number is registered (or re-linked) under the link's session.
+// A linked device reported its number: the number is registered (or re-linked) under the link's session, in the
+// team chosen for the link (a re-linked number keeps its team).
 func (q *Queries) LinkWANumber(ctx context.Context, arg LinkWANumberParams) error {
 	_, err := q.db.Exec(ctx, linkWANumber,
 		arg.WaNumber,
@@ -1372,7 +1418,7 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 
 const listThreads = `-- name: ListThreads :many
 select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
-  coalesce(n.label, s.name, t.account) as account_label,
+  coalesce(n.label, s.name, t.account) as account_label, coalesce(n.team, 'sales')::text as account_team,
   -- a group's last message may have been stored under another GSI number's thread of the same group
   lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
   -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply
@@ -1422,6 +1468,7 @@ type ListThreadsRow struct {
 	SalesName        *string         `json:"sales_name"`
 	GroupKind        *string         `json:"group_kind"`
 	AccountLabel     string          `json:"account_label"`
+	AccountTeam      string          `json:"account_team"`
 	LastBody         *string         `json:"last_body"`
 	LastFrom         *string         `json:"last_from"`
 	LastDirection    *string         `json:"last_direction"`
@@ -1464,6 +1511,7 @@ func (q *Queries) ListThreads(ctx context.Context) ([]ListThreadsRow, error) {
 			&i.SalesName,
 			&i.GroupKind,
 			&i.AccountLabel,
+			&i.AccountTeam,
 			&i.LastBody,
 			&i.LastFrom,
 			&i.LastDirection,
@@ -1480,7 +1528,7 @@ func (q *Queries) ListThreads(ctx context.Context) ([]ListThreadsRow, error) {
 }
 
 const listWAGroups = `-- name: ListWAGroups :many
-select id, jid, name, kind, branch, members, read_enabled from wa_groups order by name
+select id, jid, name, kind, branch, members, read_enabled, kind_manual from wa_groups order by name
 `
 
 func (q *Queries) ListWAGroups(ctx context.Context) ([]WaGroup, error) {
@@ -1500,6 +1548,7 @@ func (q *Queries) ListWAGroups(ctx context.Context) ([]WaGroup, error) {
 			&i.Branch,
 			&i.Members,
 			&i.ReadEnabled,
+			&i.KindManual,
 		); err != nil {
 			return nil, err
 		}
@@ -1512,7 +1561,7 @@ func (q *Queries) ListWAGroups(ctx context.Context) ([]WaGroup, error) {
 }
 
 const listWANumbers = `-- name: ListWANumbers :many
-select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, n.user_id, n.session_id, n.state_since, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email,
+select n.wa_number, n.sales_id, n.label, n.transport, n.jid, n.state, n.qr, n.qr_expires_at, n.last_seen_at, n.paired_at, n.backfill_days, n.updated_at, n.created_at, n.user_id, n.session_id, n.state_since, n.team, s.name as sales_name, s.branch as sales_branch, u.name as user_name, u.email as user_email,
   r.name as user_role, us.branch as user_branch, c.thread_count, c.unread_count, c.last_message_at
 from wa_numbers n left join sales_users s on s.id = n.sales_id left join users u on u.id = n.user_id
   left join roles r on r.key = coalesce(u.role_key, u.role) left join sales_users us on us.id = u.sales_user_id
@@ -1538,6 +1587,7 @@ type ListWANumbersRow struct {
 	UserID        *uuid.UUID  `json:"user_id"`
 	SessionID     string      `json:"session_id"`
 	StateSince    time.Time   `json:"state_since"`
+	Team          string      `json:"team"`
 	SalesName     *string     `json:"sales_name"`
 	SalesBranch   *string     `json:"sales_branch"`
 	UserName      *string     `json:"user_name"`
@@ -1576,6 +1626,7 @@ func (q *Queries) ListWANumbers(ctx context.Context) ([]ListWANumbersRow, error)
 			&i.UserID,
 			&i.SessionID,
 			&i.StateSince,
+			&i.Team,
 			&i.SalesName,
 			&i.SalesBranch,
 			&i.UserName,
@@ -1594,6 +1645,16 @@ func (q *Queries) ListWANumbers(ctx context.Context) ([]ListWANumbersRow, error)
 		return nil, err
 	}
 	return items, nil
+}
+
+const markCustomerGroup = `-- name: MarkCustomerGroup :exec
+update wa_groups set kind = 'external' where id = $1 and kind = 'internal' and not kind_manual
+`
+
+// The automatic rule: a customer of the master is in the group — it becomes a customer group, unless a person chose.
+func (q *Queries) MarkCustomerGroup(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markCustomerGroup, id)
+	return err
 }
 
 const markLateCommitments = `-- name: MarkLateCommitments :many
@@ -2085,6 +2146,20 @@ func (q *Queries) SetWANumberState(ctx context.Context, arg SetWANumberStatePara
 	return err
 }
 
+const setWANumberTeam = `-- name: SetWANumberTeam :exec
+update wa_numbers set team = $2, updated_at = now() where wa_number = $1
+`
+
+type SetWANumberTeamParams struct {
+	WaNumber string `json:"wa_number"`
+	Team     string `json:"team"`
+}
+
+func (q *Queries) SetWANumberTeam(ctx context.Context, arg SetWANumberTeamParams) error {
+	_, err := q.db.Exec(ctx, setWANumberTeam, arg.WaNumber, arg.Team)
+	return err
+}
+
 const setWANumberUnpaired = `-- name: SetWANumberUnpaired :exec
 update wa_numbers set state = 'unpaired', qr = null, qr_expires_at = null, jid = null, paired_at = null, updated_at = now() where wa_number = $1
 `
@@ -2201,7 +2276,7 @@ func (q *Queries) UpdateChatMessageSent(ctx context.Context, arg UpdateChatMessa
 }
 
 const updateWAGroup = `-- name: UpdateWAGroup :one
-update wa_groups set kind = $2, read_enabled = $3 where id = $1 returning id, jid, name, kind, branch, members, read_enabled
+update wa_groups set kind = $2, read_enabled = $3, kind_manual = true where id = $1 returning id, jid, name, kind, branch, members, read_enabled, kind_manual
 `
 
 type UpdateWAGroupParams struct {
@@ -2210,6 +2285,7 @@ type UpdateWAGroupParams struct {
 	ReadEnabled bool      `json:"read_enabled"`
 }
 
+// A person chose the kind: the automatic customer-group rule no longer changes it.
 func (q *Queries) UpdateWAGroup(ctx context.Context, arg UpdateWAGroupParams) (WaGroup, error) {
 	row := q.db.QueryRow(ctx, updateWAGroup, arg.ID, arg.Kind, arg.ReadEnabled)
 	var i WaGroup
@@ -2221,6 +2297,7 @@ func (q *Queries) UpdateWAGroup(ctx context.Context, arg UpdateWAGroupParams) (W
 		&i.Branch,
 		&i.Members,
 		&i.ReadEnabled,
+		&i.KindManual,
 	)
 	return i, err
 }
@@ -2278,7 +2355,7 @@ const upsertWAGroup = `-- name: UpsertWAGroup :one
 insert into wa_groups (jid, name, kind, branch, members, read_enabled)
 values ($1, $2, $3, $4, $5, $6)
 on conflict (jid) do update set name = coalesce(excluded.name, wa_groups.name), members = coalesce(excluded.members, wa_groups.members)
-returning id, jid, name, kind, branch, members, read_enabled
+returning id, jid, name, kind, branch, members, read_enabled, kind_manual
 `
 
 type UpsertWAGroupParams struct {
@@ -2308,6 +2385,7 @@ func (q *Queries) UpsertWAGroup(ctx context.Context, arg UpsertWAGroupParams) (W
 		&i.Branch,
 		&i.Members,
 		&i.ReadEnabled,
+		&i.KindManual,
 	)
 	return i, err
 }

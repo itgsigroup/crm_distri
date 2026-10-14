@@ -98,8 +98,29 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			kind = "wa_group"
 			g, err := q.GetWAGroupByJID(ctx, &m.ChatJID)
 			if errors.Is(err, pgx.ErrNoRows) {
+				// a new group is internal unless a customer of the master is in it (a customer group, ADR 0033)
 				name, gk := m.GroupName, "internal"
-				g, err = q.UpsertWAGroup(ctx, gen.UpsertWAGroupParams{Jid: &m.ChatJID, Name: &name, Kind: &gk, ReadEnabled: true})
+				if customer, err := q.AnyCustomerNumber(ctx, append([]string{Digits(m.FromNumber)}, m.GroupMembers...)); err != nil {
+					return err
+				} else if customer {
+					gk = "external"
+				}
+				var members *int32
+				if len(m.GroupMembers) > 0 {
+					n := int32(len(m.GroupMembers))
+					members = &n
+				}
+				g, err = q.UpsertWAGroup(ctx, gen.UpsertWAGroupParams{Jid: &m.ChatJID, Name: &name, Kind: &gk, Members: members, ReadEnabled: true})
+			} else if err == nil && deref(g.Kind) == "internal" && !g.KindManual && !m.FromMe && !fromInternal {
+				// a customer of the master writes in a group that started internal: it is a customer group
+				if customer, err := q.AnyCustomerNumber(ctx, []string{Digits(m.FromNumber)}); err != nil {
+					return err
+				} else if customer {
+					if err := q.MarkCustomerGroup(ctx, g.ID); err != nil {
+						return err
+					}
+					g.Kind = strp("external")
+				}
 			}
 			if err != nil {
 				return err
@@ -111,7 +132,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			groupID, threadKind, title = &g.ID, "group", deref(g.Name)
 			subtitle = "Grup internal"
 			if deref(g.Kind) == "external" {
-				subtitle = "Grup eksternal"
+				subtitle = "Grup pelanggan"
 			}
 		} else {
 			remote := NumberOfJID(m.ChatJID)

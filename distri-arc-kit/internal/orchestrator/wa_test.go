@@ -40,8 +40,8 @@ func TestCycleReadsWhatsApp(t *testing.T) {
 	}
 	var graha *gen.ListWAInsightsRow
 	for i := range ins {
-		if ins[i].Kind != "dealer" && ins[i].Kind != "new" {
-			t.Errorf("group read: %s", ins[i].Title)
+		if ins[i].Kind == "group" && ins[i].Title == "Gudang Semarang" {
+			t.Errorf("internal group read: %s", ins[i].Title)
 		}
 		if deref(ins[i].DealerSlug) == "graha" {
 			graha = &ins[i]
@@ -244,8 +244,8 @@ func TestCycleReadsEveryBubble(t *testing.T) {
 		t.Fatal(err)
 	}
 	n := count("where i.cycle_id = $1", rep.Cycle.ID)
-	if n == 0 || count("where t.kind = 'group'") != 0 {
-		t.Fatalf("%d bubbles, groups read", n)
+	if n == 0 || count("join wa_groups g on g.id = t.group_id where g.kind = 'internal'") != 0 {
+		t.Fatalf("%d bubbles, internal groups read", n)
 	}
 	// seed: Graha's PO waits for a reply; Mitra's sales wrote first (a follow-up), the dealer's answer waits
 	if count("join dealers d on d.id = t.dealer_id where d.slug = 'graha' and i.direction = 'in' and i.state = 'needs_reply' and i.wait_min > 120") != 1 {
@@ -276,5 +276,87 @@ func TestCycleReadsEveryBubble(t *testing.T) {
 	}
 	if count("where i.cycle_id = $1", c.Cycle.ID) != n {
 		t.Error("chat screen cycle did not read every bubble")
+	}
+}
+
+// ADR 0033: a customer group is read once though two GSI numbers are in it (each message stored under the number
+// that got it first); an employee's message there answers the customer; an internal group is never read; "Analisa
+// lanjut" from either number's thread reads the whole group.
+func TestCycleReadsCustomerGroups(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	at := now.Now()
+	group := func(jid, name, kind string) uuid.UUID {
+		var id uuid.UUID
+		if err := st.Pool.QueryRow(ctx, "insert into wa_groups (jid, name, kind, read_enabled) values ($1, $2, $3, true) returning id", jid, name, kind).Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	thread := func(g uuid.UUID, jid, name, account string) uuid.UUID {
+		var id uuid.UUID
+		if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, group_id, wa_jid, title, account, last_message_at) values ('group', $1, $2, $3, $4, $5) returning id", g, jid, name, account, at).Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	msg := func(th uuid.UUID, id, from, body string, internal bool, ago time.Duration) {
+		if _, err := st.Pool.Exec(ctx, "insert into chat_messages (thread_id, wa_msg_id, direction, from_name, body, sent_at, status, internal) values ($1, $2, 'in', $3, $4, $5, 'received', $6)",
+			th, id, from, body, at.Add(-ago), internal); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cg := group("1203630000001@g.us", "Proyek Toko Sinar", "external")
+	a := thread(cg, "1203630000001@g.us", "Proyek Toko Sinar", "6281234504471")
+	b := thread(cg, "1203630000001@g.us", "Proyek Toko Sinar", "6281534509032")
+	msg(a, "CG-1", "Bu Sinta", "Pak, kamera 4MP 10 unit bisa kirim Senin?", false, 5*time.Hour)
+	msg(b, "CG-2", "Admin GSI", "Bisa Bu, kami siapkan", true, 4*time.Hour) // an employee, stored under the other number
+	wg := group("1203630000002@g.us", "Grup Pelanggan Baru", "external")
+	w := thread(wg, "1203630000002@g.us", "Grup Pelanggan Baru", "6281234504471")
+	msg(w, "CG-3", "Pak Budi", "Order 5 HDD 2TB ya", false, 5*time.Hour)
+	ig := group("1203630000003@g.us", "Gudang Yogya", "internal")
+	msg(thread(ig, "1203630000003@g.us", "Gudang Yogya", "6281234504471"), "CG-4", "Pak Joko", "stok HDD tinggal 3", false, 5*time.Hour)
+
+	rep, err := o.Run(ctx, all, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ins, err := st.Q.ListWAInsights(ctx, rep.Cycle.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]int{}
+	for _, x := range ins {
+		if x.Kind != "group" {
+			continue
+		}
+		seen[x.Title]++
+		switch x.Title {
+		case "Proyek Toko Sinar":
+			if x.NeedsReply || x.Inbound != 1 || x.Outbound != 1 {
+				t.Errorf("answered customer group %+v", x)
+			}
+		case "Grup Pelanggan Baru":
+			if !x.NeedsReply {
+				t.Errorf("waiting customer group not marked: %+v", x)
+			}
+		}
+	}
+	if seen["Proyek Toko Sinar"] != 1 || seen["Grup Pelanggan Baru"] != 1 || seen["Gudang Yogya"] != 0 {
+		t.Fatalf("groups read %v (each customer group once, never the internal one)", seen)
+	}
+	// Analisa lanjut from the other number's thread of the group reads the customer's bubble
+	sc, err := domain.ParseScope("thread:" + b.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := o.Run(ctx, sc, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var n int
+	_ = st.Pool.QueryRow(ctx, "select count(*) from wa_message_insights i join chat_messages m on m.id = i.message_id where i.cycle_id = $1 and m.wa_msg_id = 'CG-1'", c.Cycle.ID).Scan(&n)
+	if n != 1 {
+		t.Errorf("thread scope on the group's other thread read %d of the customer's bubble", n)
 	}
 }

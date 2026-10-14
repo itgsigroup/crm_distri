@@ -95,7 +95,10 @@ type bridgeEvent struct {
 	Quoted     string `json:"quoted"`
 	RevokeOf   string `json:"revoke_of"`
 	GroupMeta  *struct {
-		Name string `json:"name"`
+		Name    string `json:"name"`
+		Members []struct {
+			Phone string `json:"phone"`
+		} `json:"members"`
 	} `json:"group_meta"`
 	MediaMeta *Media `json:"media_meta"`
 }
@@ -147,6 +150,11 @@ func (e bridgeEvent) message() Message {
 		Media: e.MediaMeta, EditOf: e.EditOf, QuotedID: e.Quoted, RevokeOf: e.RevokeOf}
 	if e.GroupMeta != nil {
 		m.GroupName = e.GroupMeta.Name
+		for _, x := range e.GroupMeta.Members {
+			if d := Digits(x.Phone); d != "" {
+				m.GroupMembers = append(m.GroupMembers, d)
+			}
+		}
 	}
 	return m
 }

@@ -1,5 +1,5 @@
-// Package waanalysis is Analisa WhatsApp (ADR 0026): what the conversations with dealers and new numbers of the last
-// days say — the request in each conversation (the extractor AI Order uses), the items asked for, who is still
+// Package waanalysis is Analisa WhatsApp (ADR 0026): what the conversations with dealers, new numbers and customer
+// groups (ADR 0033) of the last days say — the request in each conversation (the extractor AI Order uses), the items asked for, who is still
 // waiting for a reply and how fast each sales answers. Pure Go: the numbers come from here; the LLM only writes the
 // overview and one line per conversation. Internal groups and DMs between employees are never read (09-policies).
 package waanalysis
@@ -39,7 +39,7 @@ type Message struct {
 // Thread is one conversation with its messages of the window, oldest first.
 type Thread struct {
 	ID         uuid.UUID
-	Kind       string // dealer | new
+	Kind       string // dealer | new | group (a customer group; In is a customer's message, not a GSI employee's)
 	Title      string
 	DealerID   *uuid.UUID
 	DealerSlug string
@@ -93,7 +93,7 @@ var intentWeight = map[string]int{agents.IntentOrder: 50, agents.IntentRelease: 
 func Analyze(threads []Thread, catalog []agents.Product, now time.Time) []Insight {
 	out := make([]Insight, 0, len(threads))
 	for _, t := range threads {
-		if len(t.Messages) == 0 || (t.Kind != "dealer" && t.Kind != "new") {
+		if len(t.Messages) == 0 || (t.Kind != "dealer" && t.Kind != "new" && t.Kind != "group") {
 			continue
 		}
 		out = append(out, analyzeThread(t, catalog, now))

@@ -82,10 +82,25 @@ func TestAnalyzeAnsweredAndRecent(t *testing.T) {
 	}
 }
 
-func TestAnalyzeSkipsGroups(t *testing.T) {
-	g := thread("group", "", msg(true, "stok habis", time.Hour))
-	if got := Analyze([]Thread{g}, catalog, now); len(got) != 0 {
-		t.Fatalf("group analysed: %+v", got)
+// ADR 0033: a customer group is read like a one-to-one chat (internal groups never reach Analyze: the query leaves
+// them out); a GSI employee's message in it (In false) answers the customer.
+func TestAnalyzeReadsCustomerGroups(t *testing.T) {
+	waiting := thread("group", "", msg(true, "stok kamera 4mp ada?", 5*time.Hour))
+	answered := thread("group", "", msg(true, "stok habis?", 5*time.Hour), msg(false, "ready 20 pcs", 4*time.Hour))
+	other := thread("broadcast", "", msg(true, "promo", time.Hour))
+	got := Analyze([]Thread{waiting, answered, other}, catalog, now)
+	if len(got) != 2 {
+		t.Fatalf("%d insights, want the two customer groups: %+v", len(got), got)
+	}
+	by := map[uuid.UUID]Insight{}
+	for _, x := range got {
+		by[x.ThreadID] = x
+	}
+	if w := by[waiting.ID]; !w.NeedsReply || w.Kind != "group" {
+		t.Errorf("waiting group %+v", w)
+	}
+	if a := by[answered.ID]; a.NeedsReply || a.WaitingSince != nil || a.Outbound != 1 {
+		t.Errorf("answered group %+v", a)
 	}
 }
 

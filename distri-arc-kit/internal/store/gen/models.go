@@ -902,6 +902,7 @@ type WaGroup struct {
 	Branch      *string   `json:"branch"`
 	Members     *int32    `json:"members"`
 	ReadEnabled bool      `json:"read_enabled"`
+	KindManual  bool      `json:"kind_manual"`
 }
 
 type WaInsight struct {
@@ -939,6 +940,7 @@ type WaLink struct {
 	CreatedBy *string   `json:"created_by"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	Team      string    `json:"team"`
 }
 
 type WaMessageInsight struct {
@@ -974,4 +976,5 @@ type WaNumber struct {
 	UserID       *uuid.UUID `json:"user_id"`
 	SessionID    string     `json:"session_id"`
 	StateSince   time.Time  `json:"state_since"`
+	Team         string     `json:"team"`
 }

@@ -7,7 +7,7 @@ export type Filter = 'all' | 'unread' | 'unreplied' | 'dealer' | 'group_internal
 
 // "Belum dibaca" and "Belum dibalas" cut across the kinds, like WhatsApp's Unread chip.
 export const FILTERS: [Filter, string][] = [
-  ['all', 'Semua'], ['unread', 'Belum dibaca'], ['unreplied', 'Belum dibalas'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['group_external', 'Grup eksternal'], ['new', 'Nomor baru'],
+  ['all', 'Semua'], ['unread', 'Belum dibaca'], ['unreplied', 'Belum dibalas'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['group_external', 'Grup pelanggan'], ['new', 'Nomor baru'],
 ]
 
 type Filtered = Pick<ThreadView, 'kind' | 'group_kind' | 'unread' | 'waiting_since'>

@@ -2,13 +2,28 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { ApiError, api } from '../../api/client'
-import type { WANumber } from '../../api/types'
+import type { WANumber, WATeam } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { hhmm, shortDate } from '../../lib/format'
 import { useMe, useSales, useWAStatus } from '../../app/queries'
 import { useUsers } from '../master/api'
+
+/** The teams of the WhatsApp numbers (ADR 0033), in the order the number rail shows them. */
+export const TEAMS: [WATeam, string][] = [['sales', 'Sales'], ['admin', 'Admin'], ['billing', 'Penagihan']]
+export const teamName = (t: WATeam | undefined) => TEAMS.find(([k]) => k === (t ?? 'sales'))?.[1] ?? 'Sales'
+
+/** Picks a number's team: Sales, Admin or Penagihan. */
+export function TeamPicker({ value, onChange, disabled }: { value: WATeam; onChange: (t: WATeam) => void; disabled?: boolean }) {
+  return (
+    <div className="seg team-seg" role="radiogroup" aria-label="Tim nomor">
+      {TEAMS.map(([k, label]) => (
+        <button key={k} type="button" role="radio" aria-checked={value === k} className={value === k ? 'is-active' : ''} disabled={disabled} onClick={() => onChange(k)}>{label}</button>
+      ))}
+    </div>
+  )
+}
 
 /** How a number is called: the user who holds it, else its label or sales, else the masked number. */
 export const labelOf = (n: WANumber) => (n.user_name || n.label || n.sales || n.masked).replace(/^Nomor\s+/, '')
@@ -171,7 +186,10 @@ export function LinkSheet() {
   const { closeSheet, toast } = useFeedback()
   const qc = useQueryClient()
   const { data: wa } = useWAStatus()
+  const { data: me } = useMe()
+  const manager = !!me && (me.screens.includes('users') || me.screens.includes('conn'))
   const [method, setMethod] = useState<'qr' | 'code'>('qr')
+  const [team, setTeam] = useState<WATeam>('sales')
   const [phone, setPhone] = useState('')
   const [session, setSession] = useState('')
   const [busy, setBusy] = useState(false)
@@ -185,7 +203,7 @@ export function LinkSheet() {
   }, [link?.state, qc])
   const start = (m: 'qr' | 'code') => {
     setBusy(true)
-    api.post<{ session_id: string }>('/wa/links', { method: m, phone }).then((r) => setSession(r.session_id), (e: Error) => toast(e.message)).finally(() => setBusy(false))
+    api.post<{ session_id: string }>('/wa/links', { method: m, phone, team }).then((r) => setSession(r.session_id), (e: Error) => toast(e.message)).finally(() => setBusy(false))
   }
   const codeOK = wa?.transport === 'baileys' || wa?.transport === 'fake'
   return (
@@ -193,6 +211,13 @@ export function LinkSheet() {
       <SheetHead icon="qr" title={link?.state === 'connected' ? `Terhubung · ${link.masked}` : 'Hubungkan nomor WhatsApp'} sub={link?.state === 'connected' ? 'Langkah 2 dari 2 · pilih pengguna yang memegang nomor ini' : 'Langkah 1 dari 2 · tautkan HP sebagai perangkat (seperti WhatsApp Web) · penjaga anti-blokir aktif'} onClose={closeSheet} />
       {!session && (
         <div className="sec">
+          {manager && (
+            <div className="link-team">
+              <span>Tim nomor ini</span>
+              <TeamPicker value={team} onChange={setTeam} />
+              <small>Chat dikelompokkan per tim: Sales, Admin, dan Penagihan terpisah.</small>
+            </div>
+          )}
           <div className="seg" style={{ marginBottom: 10 }}>
             <button className={method === 'qr' ? 'is-active' : ''} onClick={() => setMethod('qr')}><Icon name="qr" />Pindai QR</button>
             <button className={method === 'code' ? 'is-active' : ''} disabled={!codeOK} onClick={() => setMethod('code')}><Icon name="phone" />Pakai kode di HP</button>
@@ -305,6 +330,8 @@ export function NumberRail({ account, setAccount, unread }: { account: string; s
     if (n.state !== 'connected' && data?.transport !== 'fake') openSheet(<PairSheet wa={n.wa_number} />)
     else setAccount(account === n.wa_number ? '' : n.wa_number)
   }
+  // the numbers grouped by team (Sales, Admin, Penagihan); a team's heading shows the chats of all its numbers
+  const teams = TEAMS.map(([k, label]) => ({ k, label, nums: items.filter((n) => (n.team ?? 'sales') === k) })).filter((t) => t.nums.length > 0)
   return (
     <nav className="wa-rail" aria-label="Nomor WhatsApp">
       <button className={`wr-i all ${account === '' ? 'is-active' : ''}`} onClick={() => setAccount('')} title={`Semua nomor · ${items.length} nomor`}>
@@ -312,16 +339,28 @@ export function NumberRail({ account, setAccount, unread }: { account: string; s
         {total > 0 && <span className="wr-un">{total > 99 ? '99+' : total}</span>}
         <span className="wr-l">Semua</span>
       </button>
-      {items.length > 0 && <span className="wr-sep" />}
-      {items.map((n) => (
-        <button key={n.wa_number} className={`wr-i ${account === n.wa_number ? 'is-active' : ''} ${n.state !== 'connected' ? 'off' : ''}`} onClick={() => pick(n)}
-          title={`${labelOf(n)}${holderOf(n) ? ` · ${holderOf(n)}` : ''} · ${phoneOf(n)} · ${STATE[n.state]?.[0] ?? n.state}${n.state !== 'connected' ? ' — klik untuk menautkan' : ''}`}>
-          <span className="wr-av" style={{ background: `hsl(${hueOf(n.wa_number)} 62% 46%)` }}>{initialsOf(n)}</span>
-          <span className={`dot ${STATE_DOT[n.state] ?? 'neutral'}`} />
-          {(unread[n.wa_number] ?? 0) > 0 && <span className="wr-un">{unread[n.wa_number] > 99 ? '99+' : unread[n.wa_number]}</span>}
-          <span className="wr-l">{railName(n)}</span>
-        </button>
-      ))}
+      {teams.map((t) => {
+        const un = t.nums.reduce((a, n) => a + (unread[n.wa_number] ?? 0), 0)
+        const key = 'team:' + t.k
+        return (
+          <div key={t.k} className={`wr-team team-${t.k}`} role="group" aria-label={`Tim ${t.label}`}>
+            <span className="wr-sep" />
+            <button className={`wr-th ${account === key ? 'is-active' : ''}`} onClick={() => setAccount(account === key ? '' : key)}
+              title={`Semua chat tim ${t.label} · ${t.nums.length} nomor${un ? ` · ${un} belum dibaca` : ''}`}>
+              {t.label}{un > 0 && <span className="wr-tun">{un > 99 ? '99+' : un}</span>}
+            </button>
+            {t.nums.map((n) => (
+              <button key={n.wa_number} className={`wr-i ${account === n.wa_number ? 'is-active' : ''} ${n.state !== 'connected' ? 'off' : ''}`} onClick={() => pick(n)}
+                title={`${labelOf(n)} · Tim ${t.label}${holderOf(n) ? ` · ${holderOf(n)}` : ''} · ${phoneOf(n)} · ${STATE[n.state]?.[0] ?? n.state}${n.state !== 'connected' ? ' — klik untuk menautkan' : ''}`}>
+                <span className="wr-av" style={{ background: `hsl(${hueOf(n.wa_number)} 62% 46%)` }}>{initialsOf(n)}</span>
+                <span className={`dot ${STATE_DOT[n.state] ?? 'neutral'}`} />
+                {(unread[n.wa_number] ?? 0) > 0 && <span className="wr-un">{unread[n.wa_number] > 99 ? '99+' : unread[n.wa_number]}</span>}
+                <span className="wr-l">{railName(n)}</span>
+              </button>
+            ))}
+          </div>
+        )
+      })}
       {canAdd && (
         <button className="wr-i add" onClick={() => openSheet(<LinkSheet />)} title="Hubungkan nomor WhatsApp baru (scan)">
           <span className="wr-av">+</span><span className="wr-l">Nomor</span>
@@ -339,8 +378,10 @@ export function NumberSheet({ wa, onShowChats }: { wa: string; onShowChats?: () 
   const n = data?.items.find((x) => x.wa_number === wa)
   if (!n) return <SheetHead icon="phone" title="Nomor tidak ditemukan" onClose={closeSheet} />
   const manager = !!me?.screens.includes('users')
+  const admin = manager || !!me?.screens.includes('conn')
   const when = (d: string | null | undefined) => (d ? `${shortDate(d)} · ${hhmm(d)} WIB` : '—')
   const rows: [string, ReactNode][] = [
+    ['Tim', admin ? <TeamSelect key="t" n={n} /> : teamName(n.team)],
     ['Pemegang', n.user_name || n.sales ? <span key="p">{n.user_name || n.sales}<small> · {n.user_role || 'Sales'}{n.user_name ? '' : ' (tanpa akun)'}</small></span> : <span key="p" className="muted">Belum ada pengguna</span>],
     ['Cabang', n.user_branch || n.branch || '—'],
     ['Email', n.user_email || '—'],
@@ -368,4 +409,21 @@ export function NumberSheet({ wa, onShowChats }: { wa: string; onShowChats?: () 
       </div>
     </>
   )
+}
+
+/** Moves a number to another team (CEO/admin): its chats move to that team's group in Chat. */
+function TeamSelect({ n }: { n: WANumber }) {
+  const qc = useQueryClient()
+  const { toast } = useFeedback()
+  const [busy, setBusy] = useState(false)
+  const change = (team: WATeam) => {
+    if (team === (n.team ?? 'sales')) return
+    setBusy(true)
+    api.put(`/wa/numbers/${n.wa_number}/team`, { team }).then(() => {
+      toast(`${labelOf(n)} kini di tim ${teamName(team)}`)
+      qc.invalidateQueries({ queryKey: ['wa'] })
+      qc.invalidateQueries({ queryKey: ['chat'] })
+    }, (e: Error) => toast(e.message)).finally(() => setBusy(false))
+  }
+  return <TeamPicker value={n.team ?? 'sales'} onChange={change} disabled={busy} />
 }

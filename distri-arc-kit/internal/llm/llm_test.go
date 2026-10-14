@@ -44,3 +44,16 @@ func TestFakeReturnsFallbackAndRouterValidates(t *testing.T) {
 		t.Fatalf("cost %d", Cost("claude-sonnet-5-5", 1_000_000, 100_000))
 	}
 }
+
+// A record id whose last group is all digits stays as it is (it is not a bank account); a real one is still masked.
+func TestMaskKeepsRecordIDs(t *testing.T) {
+	m := NewMasker()
+	in := `{"id": "ff6d958c-b149-4c7f-b989-123456789012", "text": "transfer ke 1234567890 ya, id 0b1e2c3d-0000-4000-8000-081234567890"}`
+	out := m.Mask(in, nil)
+	if !strings.Contains(out, "ff6d958c-b149-4c7f-b989-123456789012") || !strings.Contains(out, "0b1e2c3d-0000-4000-8000-081234567890") {
+		t.Fatalf("record id masked: %s", out)
+	}
+	if strings.Contains(out, "1234567890 ya") || m.Unmask(out) != in {
+		t.Fatalf("account not masked or not restored: %s", out)
+	}
+}

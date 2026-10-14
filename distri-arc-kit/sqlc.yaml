@@ -32,6 +32,7 @@ sql:
       - db/migrations/0028_chat_delete.sql
       - db/migrations/0029_chat_outgoing_files.sql
       - db/migrations/0030_analysis_mcp_only.sql
+      - db/migrations/0031_wa_teams_customer_groups.sql
     queries: db/queries
     gen:
       go:

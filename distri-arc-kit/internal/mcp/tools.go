@@ -107,7 +107,8 @@ type topIn struct {
 }
 
 type threadIn struct {
-	DealerID string `json:"dealer_id"`
+	DealerID string `json:"dealer_id,omitempty" jsonschema:"slug/kode dealer: semua chat dealer itu"`
+	ThreadID string `json:"thread_id,omitempty" jsonschema:"id percakapan (mis. dari wa.analisis): satu chat, termasuk grup pelanggan"`
 	Limit    int    `json:"limit,omitempty"`
 }
 
@@ -410,7 +411,10 @@ func (s *Server) registerRead() {
 		}
 		return page(out, in.pageIn), result{Summary: fmt.Sprintf("%d SKU", len(out))}, nil
 	})
-	tool(s, "chat.thread", ScopeRead, "Pesan WhatsApp dengan dealer (PII dimasking bila mask_pii_in_read).", func(ctx context.Context, _ *Client, in threadIn) (any, result, error) {
+	tool(s, "chat.thread", ScopeRead, "Pesan WhatsApp dengan dealer (dealer_id), atau satu percakapan termasuk grup pelanggan (thread_id); grup internal tidak dibaca. PII dimasking bila mask_pii_in_read.", func(ctx context.Context, _ *Client, in threadIn) (any, result, error) {
+		if in.ThreadID != "" {
+			return s.chatConversation(ctx, in)
+		}
 		b, err := s.views.Board(ctx)
 		if err != nil {
 			return nil, result{}, err
@@ -452,7 +456,7 @@ func (s *Server) registerRead() {
 		}
 		return map[string]any{"dealer": it.Name, "masked": mask, "messages": msgs}, result{Summary: fmt.Sprintf("%d pesan", len(msgs))}, nil
 	})
-	tool(s, "wa.analisis", ScopeRead, "Analisa WhatsApp siklus terakhir: permintaan per percakapan dealer/nomor baru (order, harga, stok, rilis, retur), chat yang menunggu balasan, waktu balas per sales (PII dimasking bila mask_pii_in_read).", func(ctx context.Context, _ *Client, in waIn) (any, result, error) {
+	tool(s, "wa.analisis", ScopeRead, "Analisa WhatsApp siklus terakhir: permintaan per percakapan dealer/nomor baru/grup pelanggan (order, harga, stok, rilis, retur), chat yang menunggu balasan, waktu balas per sales (PII dimasking bila mask_pii_in_read).", func(ctx context.Context, _ *Client, in waIn) (any, result, error) {
 		a, err := s.St.Q.LatestWAAnalysis(ctx)
 		if err != nil {
 			return map[string]any{"catatan": "Belum ada siklus yang membaca WhatsApp."}, result{Summary: "belum ada analisa"}, nil
@@ -491,12 +495,12 @@ func (s *Server) registerRead() {
 			_ = json.Unmarshal(x.Items, &its)
 			items = append(items, map[string]any{"thread_id": x.ThreadID, "dealer_id": deref(x.DealerSlug), "judul": title, "sales": deref(x.SalesName),
 				"permintaan": waanalysis.IntentLabel(x.Intent), "barang": waanalysis.ItemsText(its), "pesan_terakhir": text, "menunggu_sejak": x.WaitingSince,
-				"perlu_dibalas": x.NeedsReply, "ringkasan_ai": deref(x.Summary), "proposal_ids": x.ProposalIds})
+				"perlu_dibalas": x.NeedsReply, "ringkasan_ai": deref(x.Summary), "proposal_ids": x.ProposalIds, "jenis": x.Kind, "tim": teamLabel[x.Team]})
 		}
 		tot, sales := waanalysis.Summarize(ins)
 		return map[string]any{"siklus": a.CycleNumber, "waktu": a.CreatedAt, "jendela_hari": a.WindowDays, "sumber": a.Source, "ringkasan_ai": deref(a.Overview),
 				"total": tot, "per_sales": sales, "percakapan": items, "masked": mask,
-				"catatan": "Analisa kedua di samping data BigQuery: dihitung GSI Orbit dari chat WhatsApp dealer dan nomor baru; grup internal tidak dibaca."},
+				"catatan": "Analisa kedua di samping data BigQuery: dihitung GSI Orbit dari chat WhatsApp dealer, nomor baru, dan grup pelanggan; grup internal tidak dibaca. tim = tim nomor GSI yang memegang chat (Sales, Admin, Penagihan)."},
 			result{Summary: fmt.Sprintf("%d chat · %d perlu dibalas", tot.Threads, tot.NeedsReply)}, nil
 	})
 	tool(s, "kpi.utama", ScopeRead, "KPI utama: order tepat jadwal, DSO (order → bayar), perputaran stok.", func(ctx context.Context, _ *Client, in branchIn) (any, result, error) {

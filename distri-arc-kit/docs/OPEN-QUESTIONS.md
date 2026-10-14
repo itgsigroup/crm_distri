@@ -64,3 +64,8 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 ## Kirim file, VN, polling dari Chat (2026-10-13, ADR 0031)
 - Hasil vote polling belum dihitung di GSI Orbit (vote WhatsApp terenkripsi per pemilih; perlu menyimpan `messageSecret` polling dan mendekripsi `pollUpdateMessage`). Sementara hasil dilihat di HP.
 - Kirim stiker, lokasi, dan kontak belum dibuat. File > 25 MB lewat HP.
+
+## Tim WhatsApp & grup pelanggan (2026-10-14, ADR 0033)
+- Usulan penagihan (`collect`, `installment`) masih dikirim dari nomor yang memegang percakapan, bukan otomatis dari nomor tim Penagihan. Bila tagihan harus selalu keluar dari nomor Penagihan, perlu aturan pilih-nomor di outbox (dan pelanggan harus pernah menyapa nomor itu — penjaga anti-blokir).
+- Grup pelanggan dikenali otomatis hanya bila ada kontak pelanggan master di dalamnya. Grup dengan pelanggan yang belum ada di master perlu ditandai manual sekali di Chat. Setelah deploy: cek Chat → filter "Grup pelanggan" dan tandai grup yang belum terdeteksi.
+- Peran pengguna tim Admin/Penagihan tetap melihat semua chat (scope "all"); bila Penagihan hanya boleh melihat chat timnya, perlu scope baru di Peran & akses.

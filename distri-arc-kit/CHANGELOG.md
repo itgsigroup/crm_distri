@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · WhatsApp Admin & Penagihan terpisah dari Sales, grup pelanggan dibaca · 2026-10-14
+- Setiap nomor WhatsApp punya **tim**: Sales, Admin, atau Penagihan. Dipilih saat menautkan (Chat → + Nomor), bisa dipindah di detail nomor; nomor lama mengikuti peran pemegangnya (migrasi 0031, ADR 0033).
+- Rail nomor di Chat dikelompokkan **SALES · ADMIN · PENAGIHAN**; klik judul tim untuk melihat semua chat tim itu.
+- **Grup pelanggan**: grup berisi kontak pelanggan dikenali otomatis; grup lain bisa ditandai dari panel Chat ("Tandai grup pelanggan"). Analisa WhatsApp dan *Analisa lanjut* (Claude lewat MCP) kini membaca grup pelanggan — satu percakapan per grup, pesan karyawan GSI dihitung sebagai balasan, nama pelanggan dimasking. Grup internal tetap tidak dibaca.
+- MCP `chat.thread` menerima `thread_id` (grup pelanggan bisa dibaca); `wa.analisis` menyertakan jenis dan tim.
+- Perbaikan: masker PII tidak lagi mengira id percakapan (UUID berakhiran 12 angka) sebagai nomor rekening.
+
 ## Change · Pusat kendali kembali ke kartu semula, tanpa ruang kosong · 2026-10-13
 - Tata letak bertab dibatalkan (permintaan Sam): Pusat kendali kembali ke kartu semula (sapaan + Orchestrator, Keputusan, Ringkasan Claude, Menunggu balasan, KPI WhatsApp, Agenda sales).
 - Ruang kosong dirapikan: kartu sapaan setinggi kartu Orchestrator (isi di tengah), kartu Orchestrator dan KPI WhatsApp dibuat lebih padat (chip pipeline terlipat, roda lebih kecil), kedua kolom berakhir sejajar, kotak "Tidak ada keputusan" lebih kecil.

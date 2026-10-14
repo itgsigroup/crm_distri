@@ -2,14 +2,14 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, 
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
-import type { MediaView, MessageView, ThreadDetail, ThreadView } from '../../api/types'
+import type { MediaView, MessageView, ThreadDetail, ThreadView, WATeam } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { fmtRp, hhmm, shortDate, wib } from '../../lib/format'
 import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
 import { useOrch } from '../../app/orch'
-import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf } from './Connect'
+import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf, teamName } from './Connect'
 import { countFilters, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
 import { AttachMenu, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
 import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, mediaCaption, mediaName } from './bubble'
@@ -59,6 +59,8 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
   const { openSheet, toast } = useFeedback()
   const [q, setQ] = useState('')
   const n = wa?.items.find((x) => x.wa_number === account)
+  const team = account.startsWith('team:') ? (account.slice(5) as WATeam) : undefined
+  const nums = (wa?.items ?? []).filter((x) => !team || (x.team ?? 'sales') === team)
   const counts = useMemo(() => countFilters(list), [list])
   // the open conversation stays in "Belum dibaca" / "Belum dibalas" after reading or answering it, as in WhatsApp
   const shown = list.filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && matchThread(t, q))
@@ -74,8 +76,8 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
           <span className="ibl-ic"><Icon name="chat" /></span>
           <span className="ibl-who">
             <small>WHATSAPP {wa?.transport === 'cloudapi' ? 'CLOUD API' : 'BAILEYS'}</small>
-            <b>{n ? `${labelOf(n)}${n.user_role || n.sales_id ? ` - ${n.user_role || 'Sales'}` : ''}` : 'Semua nomor'}</b>
-            <span>{n ? phoneOf(n) : `${wa?.items.length ?? 0} nomor · ${wa?.items.filter((x) => x.state === 'connected').length ?? 0} terhubung`}</span>
+            <b>{n ? `${labelOf(n)}${n.user_role || n.sales_id ? ` - ${n.user_role || 'Sales'}` : ''}` : team ? `Tim ${teamName(team)}` : 'Semua nomor'}</b>
+            <span>{n ? `${phoneOf(n)} · Tim ${teamName(n.team)}` : `${nums.length} nomor · ${nums.filter((x) => x.state === 'connected').length} terhubung`}</span>
           </span>
           {n && <Icon name="chev" className="i ibl-chev" />}
         </button>
@@ -95,7 +97,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
             <div className="ibr-m">
               <div className="ibr-top">
                 <b>{c.title}</b>
-                {c.kind === 'group' && <span className="ibr-tag grp">{c.group_kind === 'external' ? 'GRUP EKS' : 'GRUP'}</span>}
+                {c.kind === 'group' && <span className="ibr-tag grp">{c.group_kind === 'external' ? 'GRUP PELANGGAN' : 'GRUP'}</span>}
                 <Waiting since={c.waiting_since} now={now} />
               </div>
               {c.kind !== 'group' && c.subtitle && <span className="ibr-src">≈ {c.subtitle}</span>}
@@ -494,6 +496,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     setReplying(null)
   }
   const links = t.kind === 'group' ? [] : lookupLinks(t.title, t.phone, t.dealer_city)
+  // an internal group is never read by Analisa WhatsApp; a customer group is, like a one-to-one chat
+  const readable = t.kind !== 'group' || t.group_kind === 'external'
   return (
     <div className="pane th-pane ibc">
       <div className="ibc-h">
@@ -509,13 +513,13 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         </div>
         <div className="ibc-acts">
           <Waiting since={t.waiting_since} now={now} />
-          {t.kind !== 'group' && (
+          {readable && (
             <button type="button" className={`ibc-an-tg${perMsg ? ' on' : ''}`} aria-pressed={perMsg} aria-label="Analisa per pesan" onClick={() => setPerMsg(!perMsg)}
               title={t.analyzed_at ? `Analisa per pesan · terakhir dianalisa ${shortDate(t.analyzed_at)} ${hhmm(t.analyzed_at)}` : 'Analisa per pesan · belum pernah dianalisa — tekan Analisa lanjut'}>
               <Icon name="spark" /><span className="ibc-an-l">Per pesan</span>
             </button>
           )}
-          <button className="btn ibc-ai" disabled={orch.running} onClick={() => reanalyze(t.dealer_id ? `dealer:${t.dealer_id}` : `thread:${t.id}`, 'mcp')} title="Claude (MCP) menganalisa percakapan ini — catatan per pesan muncul di bawah tiap bubble"><span className="ai" style={{ fontSize: 0 }} />{orch.running ? 'Menganalisis…' : 'Analisa lanjut'}</button>
+          {readable && <button className="btn ibc-ai" disabled={orch.running} onClick={() => reanalyze(t.dealer_id ? `dealer:${t.dealer_id}` : `thread:${t.id}`, 'mcp')} title="Claude (MCP) menganalisa percakapan ini — catatan per pesan muncul di bawah tiap bubble"><span className="ai" style={{ fontSize: 0 }} />{orch.running ? 'Menganalisis…' : 'Analisa lanjut'}</button>}
           {t.kind !== 'group' && <button className="btn ibc-acc" onClick={onAccurate}><Icon name="send" />Accurate</button>}
           {!lead && <button className="ibl-btn ibc-lead-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
         </div>
@@ -583,6 +587,35 @@ function Kv({ rows }: { rows: [string, ReactNode][] }) {
 /** The tabs the slim (ringkas) lead panel offers as icons; a click opens the panel on that tab. */
 const MINI_TABS: [LeadTab, string, string][] = [['ai', 'spark', 'Analisa Claude'], ['src', 'net', 'Sumber'], ['accurate', 'doc', 'Data Accurate'], ['stats', 'chart', 'Statistik']]
 
+/** A group with customers is read by Analisa WhatsApp and Claude; an internal group (stock, schedules, tasks) never
+ * is. GSI Orbit marks a group with a customer of the master by itself; a person marks the others here. */
+function GroupKind({ id, customer }: { id: string; customer: boolean }) {
+  const qc = useQueryClient()
+  const { toast } = useFeedback()
+  const set = useMutation({
+    mutationFn: (kind: 'internal' | 'external') => api.patch(`/wa/groups/${id}`, { kind, read_enabled: true }),
+    onSuccess: (_, kind) => {
+      qc.invalidateQueries({ queryKey: ['chat'] })
+      qc.invalidateQueries({ queryKey: ['wa', 'groups'] })
+      toast(kind === 'external' ? 'Ditandai grup pelanggan · ikut dibaca Analisa WhatsApp' : 'Ditandai grup internal · tidak dibaca analisa')
+    },
+    onError: (e: Error) => toast(e.message),
+  })
+  return customer ? (
+    <div className="ibp-grp">
+      <b><Icon name="people" />Grup pelanggan</b>
+      <span>Dibaca Analisa WhatsApp dan Claude (Analisa lanjut) seperti chat pelanggan; pesan karyawan GSI di grup ini dihitung sebagai balasan.</span>
+      <button type="button" className="btn quiet" disabled={set.isPending} onClick={() => set.mutate('internal')}>Ini grup internal</button>
+    </div>
+  ) : (
+    <div className="ibp-grp internal">
+      <b><Icon name="lock" />Grup internal</b>
+      <span>Tidak dibaca analisa (hanya stok, jadwal, tugas). Ada pelanggan di grup ini? Tandai agar Claude ikut membacanya.</span>
+      <button type="button" className="btn primary" disabled={set.isPending} onClick={() => set.mutate('external')}><Icon name="check" />Tandai grup pelanggan</button>
+    </div>
+  )
+}
+
 function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean; setMini: (v: boolean) => void; onAccurate: () => void }) {
   const { data: ctx } = useChatContext(id)
   const { data: th } = useThread(id)
@@ -598,7 +631,8 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
   const d = ctx.dealer
   const idf = ctx.identification
   const group = t.kind === 'group'
-  const groupLabel = tv?.group_kind === 'external' ? 'Grup eksternal' : 'Grup internal'
+  const customerGroup = (t.group_kind ?? tv?.group_kind) === 'external'
+  const groupLabel = customerGroup ? 'Grup pelanggan' : 'Grup internal'
   const kindLabel = t.kind === 'dealer' ? 'Dealer' : group ? groupLabel : 'Lead'
   const stage = d ? d.metrics.status : t.kind === 'new' ? (idf ? 'Teridentifikasi' : 'Lead baru') : groupLabel
   const tone = d ? STATUS_TONE[d.metrics.status] ?? 'accent' : t.kind === 'new' ? 'accent' : 'neutral'
@@ -700,6 +734,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
               {d && <button type="button" onClick={() => nav('/dealer/' + d.id)}>Halaman dealer <Icon name="arrow" /></button>}
             </div>
             {!group && <button type="button" className="ibp-send" onClick={onAccurate}><Icon name="send" />Kirim ke Accurate</button>}
+            {group && t.group_id && <GroupKind id={t.group_id} customer={customerGroup} />}
           </>
         )}
         {tab === 'ai' && (

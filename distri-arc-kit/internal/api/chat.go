@@ -47,6 +47,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Post("/wa/links", s.createWALink)
 	r.Get("/wa/links/{id}", s.getWALink)
 	r.Put("/wa/numbers/{wa}/user", s.assignWANumber)
+	r.Put("/wa/numbers/{wa}/team", s.setWANumberTeam)
 	r.Delete("/wa/numbers/{wa}", s.deleteWANumber)
 }
 
@@ -74,6 +75,7 @@ type ThreadView struct {
 	GroupKind     string          `json:"group_kind,omitempty"`
 	Account       string          `json:"account"`       // the WhatsApp number holding the conversation
 	AccountLabel  string          `json:"account_label"` // its label (CS Kantor, Nomor Andi …)
+	AccountTeam   string          `json:"account_team"`  // its team: sales | admin | billing (ADR 0033)
 	LastDirection string          `json:"last_direction"`
 	// WaitingSince: the oldest customer message not answered yet (null when the last word was ours)
 	WaitingSince *time.Time `json:"waiting_since"`
@@ -103,6 +105,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 	}
 	tab := r.URL.Query().Get("tab")
 	account := wa.Digits(r.URL.Query().Get("account"))
+	team := r.URL.Query().Get("team") // the conversations of one team's numbers
 	term := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
 	u, _ := CurrentUser(r.Context())
 	salesOnly := deref(u.Role) == "sales"
@@ -114,7 +117,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 			(tab == "group_external" && !external) || (tab == "new" && kind != "new") {
 			continue
 		}
-		if account != "" && deref(t.Account) != account {
+		if (account != "" && deref(t.Account) != account) || (team != "" && t.AccountTeam != team) {
 			continue
 		}
 		// a sales user reads only the conversations of their own numbers
@@ -123,7 +126,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		}
 		v := ThreadView{ID: t.ID, Kind: kind, Title: deref(t.Title), Subtitle: deref(t.Subtitle), DealerID: deref(t.DealerSlug), DealerName: deref(t.DealerName),
 			Sales: deref(t.SalesName), LastMessageAt: t.LastMessageAt, Unread: t.Unread, LastBody: deref(t.LastBody), Tag: t.Tag, GroupKind: deref(t.GroupKind),
-			Account: deref(t.Account), AccountLabel: t.AccountLabel, LastDirection: deref(t.LastDirection), WaitingSince: timeOrNil(t.WaitingSince)}
+			Account: deref(t.Account), AccountLabel: t.AccountLabel, AccountTeam: t.AccountTeam, LastDirection: deref(t.LastDirection), WaitingSince: timeOrNil(t.WaitingSince)}
 		if t.LastFrom != nil && kind == "group" {
 			v.LastFrom = *t.LastFrom
 		}
@@ -396,9 +399,13 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		out = append(out, v)
 	}
 	var lastAnalysis *time.Time
-	if k := deref(t.Kind); k == "dealer" || k == "new" {
+	if k := deref(t.Kind); k == "dealer" || k == "new" || (k == "group" && deref(t.GroupKind) == "external") {
+		conv := t.ID // a customer group is analysed under one of its threads (ConversationOf)
+		if c, err := s.st.Q.ConversationOf(r.Context(), t.ID); err == nil {
+			conv = c
+		}
 		var err error
-		if lastAnalysis, err = s.attachMsgAnalysis(r.Context(), t.ID, out, r.URL.Query().Get("before") == ""); err != nil {
+		if lastAnalysis, err = s.attachMsgAnalysis(r.Context(), conv, out, r.URL.Query().Get("before") == ""); err != nil {
 			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 			return
 		}
@@ -407,7 +414,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "dealer_id": deref(t.DealerSlug),
 		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
 		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
-		"analyzed_at": lastAnalysis,
+		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),
 	}, "messages": out, "has_more": hasMore, "history_from": historyFrom, "history_days": keepDays})
 }
 
@@ -423,7 +430,8 @@ func (s *Server) attachMsgAnalysis(ctx context.Context, thread uuid.UUID, msgs [
 	for i, m := range msgs {
 		ids[i] = m.ID
 		if m.Status != "failed" {
-			th.Messages = append(th.Messages, waanalysis.Message{ID: m.ID, In: m.Direction == "in", Text: m.Body, At: m.SentAt})
+			// a GSI employee's message in a customer group is our side
+			th.Messages = append(th.Messages, waanalysis.Message{ID: m.ID, In: m.Direction == "in" && !m.Internal, Text: m.Body, At: m.SentAt})
 		}
 	}
 	rows, err := s.st.Q.WAMessageInsights(ctx, gen.WAMessageInsightsParams{ThreadID: thread, MessageIds: ids})
@@ -1135,11 +1143,24 @@ func (s *Server) patchWAGroup(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "kind (internal|external) dan read_enabled wajib")
 		return
 	}
+	// from Chat a sales marks only a group one of their own numbers is in (a customer group is read by Analisa WhatsApp)
+	if u, _ := CurrentUser(r.Context()); deref(u.Role) == "sales" && !isAdmin(u) {
+		var mine bool
+		if u.SalesUserID != nil {
+			_ = s.st.Pool.QueryRow(r.Context(), "select exists(select 1 from chat_threads where group_id = $1 and sales_id = $2)", id, *u.SalesUserID).Scan(&mine)
+		}
+		if !mine {
+			httpx.Fail(w, http.StatusNotFound, "not_found", "Grup tidak ditemukan")
+			return
+		}
+	}
 	g, err := s.st.Q.UpdateWAGroup(r.Context(), gen.UpdateWAGroupParams{ID: id, Kind: &in.Kind, ReadEnabled: *in.ReadEnabled})
 	if err != nil {
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Grup tidak ditemukan")
 		return
 	}
+	sub := map[string]string{"internal": "Grup internal", "external": "Grup pelanggan"}[in.Kind]
+	_, _ = s.st.Pool.Exec(r.Context(), "update chat_threads set subtitle = $2 where group_id = $1", id, sub)
 	s.audit(r, "wa_group.update", "wa_group", &id, map[string]any{"kind": in.Kind, "read_enabled": *in.ReadEnabled})
 	httpx.JSON(w, http.StatusOK, g)
 }
@@ -1174,7 +1195,7 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 			"state": n.State, "last_seen_at": n.LastSeenAt, "paired_at": n.PairedAt, "backfill_days": n.BackfillDays, "label": deref(n.Label), "sales_id": n.SalesID,
 			"user_id": n.UserID, "user_name": deref(n.UserName), "user_email": deref(n.UserEmail), "mine": mine,
 			"user_role": deref(n.UserRole), "user_branch": deref(n.UserBranch), "session_id": n.SessionID,
-			"thread_count": n.ThreadCount, "unread_count": n.UnreadCount, "last_message_at": n.LastMessageAt}
+			"thread_count": n.ThreadCount, "unread_count": n.UnreadCount, "last_message_at": n.LastMessageAt, "team": n.Team}
 		if isAdmin(u) || mine {
 			v["phone"] = "+" + n.WaNumber // the full number only for managers and the holder; others see it masked
 		}

@@ -31,6 +31,48 @@ func canManageNumber(u User, n gen.WaNumber) bool {
 	return deref(u.Role) == "sales" && u.SalesUserID != nil && n.SalesID != nil && *n.SalesID == *u.SalesUserID
 }
 
+// Teams of WhatsApp numbers (ADR 0033): Chat groups the numbers by team.
+var waTeams = map[string]bool{"sales": true, "admin": true, "billing": true}
+
+// teamOfRole is the team of a number its holder links for themselves: finance collects (penagihan), a sales sells,
+// every other role is admin.
+func teamOfRole(role string) string {
+	switch role {
+	case "sales":
+		return "sales"
+	case "finance":
+		return "billing"
+	}
+	return "admin"
+}
+
+// setWANumberTeam moves a number to another team (sales, admin, billing): CEO/admin only.
+func (s *Server) setWANumberTeam(w http.ResponseWriter, r *http.Request) {
+	me, _ := CurrentUser(r.Context())
+	if !isAdmin(me) {
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO atau admin yang mengatur tim nomor")
+		return
+	}
+	n := wa.Digits(chi.URLParam(r, "wa"))
+	var in struct {
+		Team string `json:"team"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&in); err != nil || !waTeams[in.Team] {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Tim: sales, admin, atau billing")
+		return
+	}
+	if _, err := s.st.Q.GetWANumber(r.Context(), n); errors.Is(err, pgx.ErrNoRows) {
+		httpx.Fail(w, http.StatusNotFound, "unknown_number", "Nomor tidak terdaftar")
+		return
+	}
+	if err := s.st.Q.SetWANumberTeam(r.Context(), gen.SetWANumberTeamParams{WaNumber: n, Team: in.Team}); err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	s.audit(r, "wa.number_team", "wa_number", nil, map[string]any{"wa_number": n, "team": in.Team})
+	httpx.JSON(w, http.StatusOK, map[string]any{"wa_number": n, "team": in.Team})
+}
+
 // createWALink starts linking a new WhatsApp number (Chat → + Nomor): the phone scans a QR — or types a code, which
 // needs the number — and WhatsApp reports the number; then a person gives it to a user (assignWANumber).
 func (s *Server) createWALink(w http.ResponseWriter, r *http.Request) {
@@ -38,6 +80,7 @@ func (s *Server) createWALink(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Method string `json:"method"` // qr | code
 		Phone  string `json:"phone"`
+		Team   string `json:"team"` // sales | admin | billing; someone linking their own number gets their role's team
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&in); err != nil {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Body tidak valid")
@@ -50,6 +93,10 @@ func (s *Server) createWALink(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin(me) && me.WaNumber != nil {
 		httpx.Fail(w, http.StatusConflict, "has_number", "Anda sudah memegang "+wa.MaskNumber(*me.WaNumber)+" — satu pengguna satu nomor")
 		return
+	}
+	team := in.Team
+	if !isAdmin(me) || !waTeams[team] {
+		team = map[bool]string{true: "sales", false: teamOfRole(deref(me.Role))}[isAdmin(me)]
 	}
 	method, phone := "qr", ""
 	if in.Method == "code" {
@@ -75,7 +122,7 @@ func (s *Server) createWALink(w http.ResponseWriter, r *http.Request) {
 	if phone != "" {
 		ph = &phone
 	}
-	if err := s.st.Q.InsertWALink(r.Context(), gen.InsertWALinkParams{SessionID: session, Method: method, Phone: ph, CreatedBy: me.Email}); err != nil {
+	if err := s.st.Q.InsertWALink(r.Context(), gen.InsertWALinkParams{SessionID: session, Method: method, Phone: ph, CreatedBy: me.Email, Team: team}); err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
@@ -83,7 +130,7 @@ func (s *Server) createWALink(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	s.audit(r, "wa.link_started", "wa_link", nil, map[string]any{"session": session, "method": method})
+	s.audit(r, "wa.link_started", "wa_link", nil, map[string]any{"session": session, "method": method, "team": team})
 	httpx.JSON(w, http.StatusAccepted, map[string]any{"session_id": session, "state": "pairing"})
 }
 

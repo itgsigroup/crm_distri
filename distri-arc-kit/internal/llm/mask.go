@@ -12,6 +12,9 @@ var (
 	reEmail = regexp.MustCompile(`[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}`)
 	reNIK   = regexp.MustCompile(`\b\d{16}\b`)
 	reAcct  = regexp.MustCompile(`\b\d{10,15}\b`)
+	// reUUID: record ids (a conversation, a message) are not PII — the last group of a UUID can be 12 digits, which
+	// reAcct would take for a bank account and the answer could no longer name the record
+	reUUID = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
 )
 
 // Masker replaces PII with placeholders before a request leaves the server and restores them in the answer.
@@ -39,6 +42,11 @@ func (m *Masker) ph(kind, v string) string {
 
 // Mask replaces phone numbers, e-mails, NIK, bank accounts and the given person names.
 func (m *Masker) Mask(s string, names []string) string {
+	var ids []string
+	s = reUUID.ReplaceAllStringFunc(s, func(v string) string {
+		ids = append(ids, v)
+		return fmt.Sprintf("\x00%d\x00", len(ids)-1)
+	})
 	// longest names first so "Pak Budi Santoso" wins over "Budi"
 	sort.Slice(names, func(i, j int) bool { return len(names[i]) > len(names[j]) })
 	for _, n := range names {
@@ -51,6 +59,9 @@ func (m *Masker) Mask(s string, names []string) string {
 	s = rePhone.ReplaceAllStringFunc(s, func(v string) string { return m.ph("NO", v) })
 	s = reNIK.ReplaceAllStringFunc(s, func(v string) string { return m.ph("NIK", v) })
 	s = reAcct.ReplaceAllStringFunc(s, func(v string) string { return m.ph("REK", v) })
+	for i, v := range ids {
+		s = strings.Replace(s, fmt.Sprintf("\x00%d\x00", i), v, 1)
+	}
 	return s
 }
 

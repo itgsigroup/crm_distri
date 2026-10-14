@@ -13,6 +13,19 @@ import (
 	"github.com/google/uuid"
 )
 
+const conversationOf = `-- name: ConversationOf :one
+select coalesce((select x.id from chat_threads x where t.kind = 'group' and x.kind = 'group' and x.wa_jid = t.wa_jid order by x.id limit 1), t.id)::uuid
+from chat_threads t where t.id = $1
+`
+
+// The thread a conversation is analysed under: a group's first thread by id (see WAWindowMessages), else itself.
+func (q *Queries) ConversationOf(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, conversationOf, id)
+	var column_1 uuid.UUID
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const deleteChatPlanItems = `-- name: DeleteChatPlanItems :exec
 delete from plan_items where plan_date = $1 and link like 'chat:%'
 `
@@ -198,10 +211,12 @@ func (q *Queries) ListWAAnalyses(ctx context.Context, limit int32) ([]ListWAAnal
 }
 
 const listWAInsights = `-- name: ListWAInsights :many
-select i.cycle_id, i.thread_id, i.kind, i.dealer_id, i.sales_id, i.title, i.intent, i.items, i.last_text, i.inbound, i.outbound, i.last_in_at, i.last_out_at, i.waiting_since, i.reply_median_min, i.needs_reply, i.priority, i.signal_ids, i.proposal_ids, i.summary, i.confidence, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name
+select i.cycle_id, i.thread_id, i.kind, i.dealer_id, i.sales_id, i.title, i.intent, i.items, i.last_text, i.inbound, i.outbound, i.last_in_at, i.last_out_at, i.waiting_since, i.reply_median_min, i.needs_reply, i.priority, i.signal_ids, i.proposal_ids, i.summary, i.confidence, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(n.team, 'sales')::text as team
 from wa_insights i
 left join dealers d on d.id = i.dealer_id
 left join sales_users s on s.id = i.sales_id
+left join chat_threads t on t.id = i.thread_id
+left join wa_numbers n on n.wa_number = t.account
 where i.cycle_id = $1
 order by i.priority desc, i.last_in_at desc nulls last
 `
@@ -231,8 +246,10 @@ type ListWAInsightsRow struct {
 	DealerSlug     *string         `json:"dealer_slug"`
 	DealerName     *string         `json:"dealer_name"`
 	SalesName      *string         `json:"sales_name"`
+	Team           string          `json:"team"`
 }
 
+// team: the team of the number holding the conversation (sales, admin, billing — ADR 0033).
 func (q *Queries) ListWAInsights(ctx context.Context, cycleID uuid.UUID) ([]ListWAInsightsRow, error) {
 	rows, err := q.db.Query(ctx, listWAInsights, cycleID)
 	if err != nil {
@@ -267,6 +284,7 @@ func (q *Queries) ListWAInsights(ctx context.Context, cycleID uuid.UUID) ([]List
 			&i.DealerSlug,
 			&i.DealerName,
 			&i.SalesName,
+			&i.Team,
 		); err != nil {
 			return nil, err
 		}
@@ -560,15 +578,18 @@ func (q *Queries) WAMessageInsights(ctx context.Context, arg WAMessageInsightsPa
 
 const wAWindowMessages = `-- name: WAWindowMessages :many
 
-select m.id, m.thread_id, m.direction, m.body, m.sent_at, m.signal_id,
+select m.id, coalesce(gt.id, m.thread_id)::uuid as thread_id, m.direction, m.body, m.sent_at, m.signal_id, m.internal, m.from_name,
   t.kind as thread_kind, t.title as thread_title, t.dealer_id, t.sales_id,
   d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name
 from chat_messages m
 join chat_threads t on t.id = m.thread_id
+left join wa_groups g on g.id = t.group_id
+left join lateral (select x.id from chat_threads x where t.kind = 'group' and x.kind = 'group' and x.wa_jid = t.wa_jid order by x.id limit 1) gt on true
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
-where t.kind in ('dealer','new') and m.sent_at >= $1 and m.sent_at <= $2 and m.status <> 'failed'
-order by m.thread_id, m.sent_at, m.id
+where (t.kind in ('dealer','new') or (t.kind = 'group' and g.kind = 'external' and g.read_enabled))
+  and m.sent_at >= $1 and m.sent_at <= $2 and m.status <> 'failed'
+order by 2, m.sent_at, m.id
 `
 
 type WAWindowMessagesParams struct {
@@ -578,11 +599,13 @@ type WAWindowMessagesParams struct {
 
 type WAWindowMessagesRow struct {
 	ID          uuid.UUID  `json:"id"`
-	ThreadID    *uuid.UUID `json:"thread_id"`
+	ThreadID    uuid.UUID  `json:"thread_id"`
 	Direction   *string    `json:"direction"`
 	Body        *string    `json:"body"`
 	SentAt      time.Time  `json:"sent_at"`
 	SignalID    *uuid.UUID `json:"signal_id"`
+	Internal    bool       `json:"internal"`
+	FromName    *string    `json:"from_name"`
 	ThreadKind  *string    `json:"thread_kind"`
 	ThreadTitle *string    `json:"thread_title"`
 	DealerID    *uuid.UUID `json:"dealer_id"`
@@ -593,8 +616,11 @@ type WAWindowMessagesRow struct {
 }
 
 // Analisa WhatsApp (ADR 0026)
-// The messages of one-to-one conversations (dealers and new numbers) in [$1, $2]; groups are never read here and
-// DMs between employees are never stored. Failed sends do not count as a reply.
+// The messages of the conversations with customers in [$1, $2]: one-to-one (dealers and new numbers) and customer
+// groups (ADR 0033). Internal groups are never read here and DMs between employees are never stored. A group is one
+// conversation for every GSI number in it (each message is stored under the number that got it first): its messages
+// come under one thread of the group (the first by id). internal: a GSI employee wrote it in the group — our side.
+// Failed sends do not count as a reply.
 func (q *Queries) WAWindowMessages(ctx context.Context, arg WAWindowMessagesParams) ([]WAWindowMessagesRow, error) {
 	rows, err := q.db.Query(ctx, wAWindowMessages, arg.Since, arg.Until)
 	if err != nil {
@@ -611,6 +637,8 @@ func (q *Queries) WAWindowMessages(ctx context.Context, arg WAWindowMessagesPara
 			&i.Body,
 			&i.SentAt,
 			&i.SignalID,
+			&i.Internal,
+			&i.FromName,
 			&i.ThreadKind,
 			&i.ThreadTitle,
 			&i.DealerID,

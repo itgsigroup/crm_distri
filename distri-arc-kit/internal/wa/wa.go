@@ -14,19 +14,21 @@ import (
 
 // Message is one WhatsApp message seen by a paired sales number (Account).
 type Message struct {
-	ID         string    `json:"id"`
-	Account    string    `json:"account"`     // sales number that saw the message (E.164 digits)
-	ChatJID    string    `json:"chat_jid"`    // remote chat: a person or a group
-	FromNumber string    `json:"from_number"` // sender digits
-	FromName   string    `json:"from_name"`   // push name / profile
-	IsGroup    bool      `json:"is_group"`
-	GroupName  string    `json:"group_name"`
-	FromMe     bool      `json:"from_me"`
-	Text       string    `json:"text"`
-	Time       time.Time `json:"time"`
-	ChatName   string    `json:"chat_name,omitempty"` // contact name on the linked phone (address book / push / business)
-	History    bool      `json:"history,omitempty"`   // synced history after linking, not a live message
-	Media      *Media    `json:"media,omitempty"`
+	ID         string `json:"id"`
+	Account    string `json:"account"`     // sales number that saw the message (E.164 digits)
+	ChatJID    string `json:"chat_jid"`    // remote chat: a person or a group
+	FromNumber string `json:"from_number"` // sender digits
+	FromName   string `json:"from_name"`   // push name / profile
+	IsGroup    bool   `json:"is_group"`
+	GroupName  string `json:"group_name"`
+	// GroupMembers: the group's members' numbers (digits) when the transport knows them
+	GroupMembers []string  `json:"group_members,omitempty"`
+	FromMe       bool      `json:"from_me"`
+	Text         string    `json:"text"`
+	Time         time.Time `json:"time"`
+	ChatName     string    `json:"chat_name,omitempty"` // contact name on the linked phone (address book / push / business)
+	History      bool      `json:"history,omitempty"`   // synced history after linking, not a live message
+	Media        *Media    `json:"media,omitempty"`
 	// EditOf: this message is a WhatsApp edit of the message with that id; Text replaces its text.
 	EditOf string `json:"edit_of,omitempty"`
 	// QuotedID: the message this one replies to (WhatsApp "Balas").

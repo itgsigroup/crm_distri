@@ -40,6 +40,10 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 		if err != nil {
 			return err
 		}
+		// a customer group is read under one of its threads, whichever GSI number's thread was opened
+		if c, err := o.St.Q.ConversationOf(ctx, id); err == nil {
+			id = c
+		}
 		thread = &id
 	}
 	if r.scope.Kind == "dealer" {
@@ -52,17 +56,19 @@ func (o *Orchestrator) readWA(ctx context.Context, r *stageRun) error {
 	var threads []waanalysis.Thread
 	at := map[uuid.UUID]int{}
 	for _, m := range rows {
-		if m.ThreadID == nil || (dealer != nil && (m.DealerID == nil || *m.DealerID != *dealer)) || (thread != nil && *m.ThreadID != *thread) {
+		if (dealer != nil && (m.DealerID == nil || *m.DealerID != *dealer)) || (thread != nil && m.ThreadID != *thread) {
 			continue
 		}
-		i, ok := at[*m.ThreadID]
+		i, ok := at[m.ThreadID]
 		if !ok {
 			i = len(threads)
-			at[*m.ThreadID] = i
-			threads = append(threads, waanalysis.Thread{ID: *m.ThreadID, Kind: deref(m.ThreadKind), Title: deref(m.ThreadTitle), DealerID: m.DealerID,
+			at[m.ThreadID] = i
+			threads = append(threads, waanalysis.Thread{ID: m.ThreadID, Kind: deref(m.ThreadKind), Title: deref(m.ThreadTitle), DealerID: m.DealerID,
 				DealerSlug: deref(m.DealerSlug), DealerName: deref(m.DealerName), SalesID: m.SalesID, SalesName: deref(m.SalesName)})
 		}
-		threads[i].Messages = append(threads[i].Messages, waanalysis.Message{ID: m.ID, SignalID: m.SignalID, In: deref(m.Direction) == "in", Text: deref(m.Body), At: m.SentAt})
+		// in a customer group a GSI employee's message is our side: it answers the customers like a reply would
+		threads[i].Messages = append(threads[i].Messages, waanalysis.Message{ID: m.ID, SignalID: m.SignalID, In: deref(m.Direction) == "in" && !m.Internal,
+			Text: deref(m.Body), At: m.SentAt})
 	}
 	if err := o.saveWAMessages(ctx, r, threads, now); err != nil {
 		return err
@@ -272,6 +278,7 @@ type waLine struct {
 type waMsg struct {
 	ID   string `json:"id,omitempty"` // customer messages of the window: the bubble a note may be written for
 	Dir  string `json:"dir"`
+	From string `json:"from,omitempty"` // who wrote it, in a customer group
 	Text string `json:"text"`
 }
 
@@ -282,6 +289,28 @@ type waNote struct {
 	Confidence float64 `json:"confidence"`
 }
 
+// addMsg adds one bubble to a conversation of the reading. In a customer group a GSI employee's message is our side
+// (out) and a customer's names who wrote it — a name masked like the others before leaving the server.
+func (rd *waReading) addMsg(t *waThreadIn, m gen.ChatMessage, window time.Time) {
+	if m.Status == "failed" || strings.TrimSpace(deref(m.Body)) == "" {
+		return
+	}
+	wm := waMsg{Dir: deref(m.Direction), Text: clipText(deref(m.Body), 300)}
+	if m.Internal {
+		wm.Dir = "out"
+	}
+	if t.Group && wm.Dir == "in" {
+		if wm.From = strings.TrimSpace(deref(m.FromName)); wm.From != "" {
+			rd.names = append(rd.names, wm.From)
+		}
+	}
+	if wm.Dir == "in" && !m.SentAt.Before(window) {
+		wm.ID = m.ID.String()
+		rd.msgWant[wm.ID] = true
+	}
+	t.Msgs = append(t.Msgs, wm)
+}
+
 type waThreadIn struct {
 	ID      string            `json:"id"`
 	Title   string            `json:"title"`
@@ -290,6 +319,7 @@ type waThreadIn struct {
 	Intent  string            `json:"intent"`
 	Items   []waanalysis.Item `json:"items,omitempty"`
 	Waiting string            `json:"waiting,omitempty"`
+	Group   bool              `json:"group,omitempty"` // a customer group: several customers and GSI employees write
 	Msgs    []waMsg           `json:"messages"`
 }
 
@@ -330,7 +360,7 @@ func (o *Orchestrator) waReadingFor(ctx context.Context, cycleID uuid.UUID) (*wa
 		}
 		var items []waanalysis.Item
 		_ = json.Unmarshal(x.Items, &items)
-		t := waThreadIn{ID: x.ThreadID.String(), Title: x.Title, Dealer: deref(x.DealerName), Sales: deref(x.SalesName), Intent: waanalysis.IntentLabel(x.Intent), Items: items}
+		t := waThreadIn{ID: x.ThreadID.String(), Title: x.Title, Dealer: deref(x.DealerName), Sales: deref(x.SalesName), Intent: waanalysis.IntentLabel(x.Intent), Items: items, Group: x.Kind == "group"}
 		if x.WaitingSince != nil {
 			t.Waiting = waanalysis.WaitLabel(int(now.Sub(*x.WaitingSince).Minutes()))
 		}
@@ -340,15 +370,7 @@ func (o *Orchestrator) waReadingFor(ctx context.Context, cycleID uuid.UUID) (*wa
 			return nil, err
 		}
 		for _, m := range msgs {
-			if m.Status == "failed" || strings.TrimSpace(deref(m.Body)) == "" {
-				continue
-			}
-			wm := waMsg{Dir: deref(m.Direction), Text: clipText(deref(m.Body), 300)}
-			if wm.Dir == "in" && !m.SentAt.Before(window) {
-				wm.ID = m.ID.String()
-				rd.msgWant[wm.ID] = true
-			}
-			t.Msgs = append(t.Msgs, wm)
+			rd.addMsg(&t, m, window)
 		}
 		// the person in the title ("Mbak Rina · Toko Sinar") and the sales are masked before leaving the server
 		if p, _, ok := strings.Cut(x.Title, " · "); ok || x.Kind == "new" {
@@ -381,7 +403,7 @@ func (o *Orchestrator) bubbleReadingFor(ctx context.Context, cycleID uuid.UUID) 
 		if len(rd.Threads) >= maxWASummaries {
 			break
 		}
-		t := waThreadIn{ID: x.ThreadID.String(), Title: deref(x.Title), Dealer: deref(x.DealerName), Sales: deref(x.SalesName), Intent: waanalysis.IntentLabel(x.Intent)}
+		t := waThreadIn{ID: x.ThreadID.String(), Title: deref(x.Title), Dealer: deref(x.DealerName), Sales: deref(x.SalesName), Intent: waanalysis.IntentLabel(x.Intent), Group: deref(x.Kind) == "group"}
 		if since, ok := x.WaitingSince.(time.Time); ok {
 			t.Waiting = waanalysis.WaitLabel(int(now.Sub(since).Minutes()))
 		}
@@ -391,15 +413,7 @@ func (o *Orchestrator) bubbleReadingFor(ctx context.Context, cycleID uuid.UUID) 
 			return nil, err
 		}
 		for _, m := range msgs {
-			if m.Status == "failed" || strings.TrimSpace(deref(m.Body)) == "" {
-				continue
-			}
-			wm := waMsg{Dir: deref(m.Direction), Text: clipText(deref(m.Body), 300)}
-			if wm.Dir == "in" && !m.SentAt.Before(window) {
-				wm.ID = m.ID.String()
-				rd.msgWant[wm.ID] = true
-			}
-			t.Msgs = append(t.Msgs, wm)
+			rd.addMsg(&t, m, window)
 		}
 		if p, _, ok := strings.Cut(deref(x.Title), " · "); ok || deref(x.Kind) == "new" {
 			rd.names = append(rd.names, strings.TrimSpace(p))
