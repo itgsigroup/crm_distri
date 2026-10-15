@@ -14,6 +14,8 @@ import { countFilters, displayTitle, FILTERS, fmtPhone, inFilter, lookupLinks, m
 import { AttachMenu, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
 import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 import { ForwardSheet } from './Forward'
+import { ChatSearch, Marked } from './ChatSearch'
+import type { ChatHit } from './findInChat'
 
 
 function initials(t: ThreadView | ThreadDetail['thread']) {
@@ -302,8 +304,8 @@ function SuggestBox({ s, asOf, onUse }: { s: ReplySuggestion; asOf?: string | nu
   )
 }
 
-function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf }: {
-  m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark }: {
+  m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date; mark?: string
   onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
   onUse?: (m: MessageView, text: string) => void; asOf?: string | null
 }) {
@@ -326,7 +328,7 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       <div className="bb">
         {m.quote && <QuoteBlock q={m.quote} mine={via} onJump={onJump} />}
         {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
-        {m.media?.kind === 'poll' ? <PollBody text={caption} /> : caption}
+        {m.media?.kind === 'poll' ? <PollBody text={caption} /> : mark ? <Marked text={caption} q={mark} /> : caption}
         <span className="tm">{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
         {(m.can_reply || edit || del || caption || forward) && <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined} />}
         {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
@@ -417,6 +419,9 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const [file, setFile] = useState<File | null>(null)
   const { openSheet } = useFeedback()
   const [zoom, setZoom] = useState<string | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [mark, setMark] = useState('')
+  const pendingJump = useRef<string | null>(null)
   const body = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
   const from = (data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
@@ -496,13 +501,30 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     setText(draft)
     requestAnimationFrame(() => input.current?.focus())
   }
-  const jumpTo = (mid: string) => {
+  const flash = (mid: string) => {
     const el = body.current?.querySelector<HTMLElement>(`[data-mid="${mid}"]`)
-    if (!el) return toast('Pesan yang dibalas ada di riwayat lebih lama — gulir ke atas')
+    if (!el) return false
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     el.classList.remove('flash')
     void el.offsetWidth
     el.classList.add('flash')
+    return true
+  }
+  const jumpTo = (mid: string) => {
+    if (!flash(mid)) toast('Pesan yang dibalas ada di riwayat lebih lama — gulir ke atas')
+  }
+  // a search result older than the loaded messages: load every message from it up to them (the chat stays
+  // continuous), then go to it once the bubbles are on the page
+  const jumpToHit = (h: ChatHit) => {
+    if (flash(h.id)) return
+    const first = [...older, ...(data?.messages ?? [])][0]
+    if (!first) return
+    setLoading(true)
+    api.get<ThreadDetail>(`/chat/threads/${id}?from=${encodeURIComponent(h.sent_at)}&before=${encodeURIComponent(first.sent_at)}`).then((r) => {
+      pendingJump.current = h.id
+      setOlder((o) => [...r.messages, ...o])
+      setOlderMore(!!r.has_more)
+    }, (e: Error) => toast(e.message)).finally(() => setLoading(false))
   }
   const startEdit = (m: MessageView) => {
     setReplying(null)
@@ -519,13 +541,19 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   }, [data, older.length])
   const keepOffset = useRef<number | null>(null)
   useLayoutEffect(() => {
-    // after older bubbles are prepended, keep the bubble the user was reading in place
+    // after older bubbles are prepended, keep the bubble the user was reading in place — or go to the search result
     const el = body.current
+    if (pendingJump.current) {
+      const mid = pendingJump.current
+      pendingJump.current = null
+      if (!flash(mid)) toast('Pesan ini di luar riwayat yang bisa dimuat sekaligus — persempit pencarian')
+      return
+    }
     if (el && keepOffset.current != null) {
       el.scrollTop = el.scrollHeight - keepOffset.current
       keepOffset.current = null
     }
-  }, [older])
+  }, [older, toast])
   useEffect(() => {
     if (!(picked && data && data.thread.unread > 0)) return
     // opened = read: the count and the "Belum dibaca" tag drop at once, then the lists, the numbers' badges and
@@ -623,6 +651,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         </div>
         <div className="ibc-acts">
           <Waiting since={t.waiting_since} now={now} />
+          <button type="button" className={`ibl-btn ibc-find${searching ? ' on' : ''}`} onClick={() => { setSearching(!searching); if (searching) setMark('') }} title="Cari di chat ini" aria-label="Cari di chat ini" aria-pressed={searching}><Icon name="search" /></button>
           {readable && (
             <button type="button" className={`ibc-an-tg${perMsg ? ' on' : ''}`} aria-pressed={perMsg} aria-label="Analisa per pesan" onClick={() => setPerMsg(!perMsg)}
               title={t.analyzed_at ? `Analisa per pesan · terakhir dianalisa ${shortDate(t.analyzed_at)} ${hhmm(t.analyzed_at)}` : 'Analisa per pesan · belum pernah dianalisa — tekan Analisa lanjut'}>
@@ -634,6 +663,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           {!lead && <button className="ibl-btn ibc-lead-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
         </div>
       </div>
+      {searching && <ChatSearch thread={id} onJump={jumpToHit} onQuery={setMark} onClose={() => { setSearching(false); setMark('') }} />}
       <div className="th-body ibc-body" ref={body} onScroll={onScroll}>
         <div className="ibc-start">
           {more
@@ -645,7 +675,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           return (
             <div key={m.id} style={{ display: 'contents' }}>
               {sep}
-              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} onUse={useSuggestion} asOf={data?.stock_as_of} />
+              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} onUse={useSuggestion} asOf={data?.stock_as_of} mark={mark} />
             </div>
           )
         })}

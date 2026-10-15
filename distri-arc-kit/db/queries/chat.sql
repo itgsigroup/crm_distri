@@ -568,3 +568,13 @@ with gone as (
   returning m.id
 )
 delete from chat_message_keys k using gone where k.message_id = gone.id;
+
+-- name: SearchThreadMessages :many
+-- Cari di dalam chat: the stored messages of a conversation (a group: of every GSI number's thread of it) whose text
+-- holds the words, newest first. pattern is an ILIKE pattern with %, _ and \ escaped by the caller.
+select m.id, m.sent_at, coalesce(m.direction, '')::text as direction, coalesce(m.from_name, '')::text as from_name, coalesce(m.body, '')::text as body
+from chat_messages m
+where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
+                      where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+  and m.deleted_at is null and m.body ilike sqlc.arg(pattern)::text escape '\'
+order by m.sent_at desc limit sqlc.arg(lim);

@@ -2231,6 +2231,57 @@ func (q *Queries) PurgePersonalChat(ctx context.Context, waJid string) (int32, e
 	return column_1, err
 }
 
+const searchThreadMessages = `-- name: SearchThreadMessages :many
+select m.id, m.sent_at, coalesce(m.direction, '')::text as direction, coalesce(m.from_name, '')::text as from_name, coalesce(m.body, '')::text as body
+from chat_messages m
+where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
+                      where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+  and m.deleted_at is null and m.body ilike $2::text escape '\'
+order by m.sent_at desc limit $3
+`
+
+type SearchThreadMessagesParams struct {
+	ThreadID uuid.UUID `json:"thread_id"`
+	Pattern  string    `json:"pattern"`
+	Lim      int32     `json:"lim"`
+}
+
+type SearchThreadMessagesRow struct {
+	ID        uuid.UUID `json:"id"`
+	SentAt    time.Time `json:"sent_at"`
+	Direction string    `json:"direction"`
+	FromName  string    `json:"from_name"`
+	Body      string    `json:"body"`
+}
+
+// Cari di dalam chat: the stored messages of a conversation (a group: of every GSI number's thread of it) whose text
+// holds the words, newest first. pattern is an ILIKE pattern with %, _ and \ escaped by the caller.
+func (q *Queries) SearchThreadMessages(ctx context.Context, arg SearchThreadMessagesParams) ([]SearchThreadMessagesRow, error) {
+	rows, err := q.db.Query(ctx, searchThreadMessages, arg.ThreadID, arg.Pattern, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchThreadMessagesRow{}
+	for rows.Next() {
+		var i SearchThreadMessagesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.SentAt,
+			&i.Direction,
+			&i.FromName,
+			&i.Body,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setChatMessageBody = `-- name: SetChatMessageBody :exec
 update chat_messages set body = $1::text, edited_at = $2::timestamptz where id = $3::uuid
 `

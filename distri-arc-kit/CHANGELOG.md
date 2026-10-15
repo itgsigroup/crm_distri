@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Cari di dalam chat · 2026-10-15
+- Tombol 🔍 di kepala percakapan membuka **Cari di chat ini** seperti WhatsApp: ketik kata atau kalimat, hasil tampil terbaru dulu dengan tanggal, pengirim, dan potongan teks yang ditandai kuning.
+- Klik hasil, atau **Enter** (lebih lama) / **Shift+Enter** (lebih baru) / tombol ▲▼, untuk melompat ke bubble-nya; kata yang dicari ikut ditandai di bubble. **Esc** menutup.
+- Mencari di semua pesan yang tersimpan (365 hari), bukan hanya 14 hari yang sedang dimuat; grup ikut mencari pesan yang disimpan nomor GSI lain. Melompat ke pesan lama memuat semua pesan dari situ sampai yang sudah tampil, jadi percakapan tetap bersambung. Pesan yang dihapus tidak ikut dicari.
+
 ## Change · API & model AI ringkas, semua model, dalam dolar · 2026-10-15
 - Halaman diringkas: satu kartu **Model API** (opsi kedua, satu baris per API: kunci + model, anggaran harian) dan satu kartu **Biaya token**; riwayat hanya tampil bila API pernah mengambil alih.
 - **Semua model** terdaftar dengan harga per 1 juta token: 12 model Claude (Fable 5.1 … Haiku 4.5) dan 10 model ChatGPT (GPT-5, GPT-5 mini/nano, GPT-4.1 + mini/nano, GPT-4o + mini, o3, o4-mini). Begitu kunci tersimpan, daftar ditambah semua model yang tersedia untuk kunci itu dari Anthropic / OpenAI (model chat saja; harga "?" bila belum diketahui).

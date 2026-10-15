@@ -37,6 +37,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Get("/chat/threads/{id}", s.chatThread)
 	r.Post("/chat/threads/{id}/read", s.chatRead)
 	r.Get("/chat/threads/{id}/context", s.chatContext)
+	r.Get("/chat/threads/{id}/search", s.chatSearch)
 	r.Post("/chat/threads/{id}/messages", s.chatSend)
 	r.Patch("/chat/threads/{id}/messages/{mid}", s.chatEdit)
 	r.Delete("/chat/threads/{id}/messages/{mid}", s.chatDelete)
@@ -63,6 +64,7 @@ const (
 	threadPageSize = 3000
 	olderPageSize  = 500
 	quietChatPage  = 30
+	jumpPageSize   = 5000 // a jump to a search result loads at most this many messages
 )
 
 // ThreadView is one row of the chat list.
@@ -484,6 +486,12 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	if b := r.URL.Query().Get("before"); b != "" {
 		if x, err := time.Parse(time.RFC3339, b); err == nil {
 			before, lim, since = x, olderPageSize, time.Time{}
+		}
+	}
+	if f := r.URL.Query().Get("from"); f != "" {
+		// a jump to a search result: every message from it up to `before`, so the chat stays continuous
+		if x, err := time.Parse(time.RFC3339Nano, f); err == nil {
+			lim, since = jumpPageSize, x
 		}
 	}
 	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Since: since, Lim: lim})

@@ -1328,3 +1328,20 @@ body.map-maximized{overflow:hidden}
 .aa-bar i{display:block;width:100%}
 .aa-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:4px}
 @media (max-width:900px){.aa-all-grid{grid-template-columns:1fr}.aa-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.aa-lbl{min-width:0;width:100%}.aa-model{max-width:100%;width:100%}}
+
+/* Chat → Cari di dalam chat (like WhatsApp) */
+.ibc-find.on{background:var(--accent-soft);color:var(--accent)}
+.cs{position:relative;flex:none;border-bottom:1px solid var(--line);background:var(--surface)}
+.cs-bar{display:flex;align-items:center;gap:6px;padding:8px 12px}
+.cs-bar>.i{width:15px;height:15px;color:var(--text-3);flex:none}
+.cs-bar input{flex:1;min-width:0;height:34px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:0 10px;font:inherit;font-size:13px;color:var(--text);outline:none}
+.cs-bar input:focus{border-color:var(--accent)}
+.cs-count{flex:none;font-size:12px;color:var(--text-3);white-space:nowrap}
+.cs-bar .ibl-btn:disabled{opacity:.35}
+.cs-list{position:absolute;left:0;right:0;top:100%;z-index:6;list-style:none;margin:0;padding:4px 0;max-height:min(340px,50vh);overflow:auto;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 10px 24px rgba(0,0,0,.12)}
+.cs-list button{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:8px 14px;background:none;border:0;font:inherit;color:var(--text);cursor:pointer}
+.cs-list button:hover,.cs-list button.on{background:var(--surface-2)}
+.cs-when{display:flex;gap:8px;font-size:11.5px;color:var(--text-3)}
+.cs-when b{font-weight:600;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-snip{font-size:13px;line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cs-mark{background:#ffe066;color:#111;border-radius:2px;padding:0 1px}
