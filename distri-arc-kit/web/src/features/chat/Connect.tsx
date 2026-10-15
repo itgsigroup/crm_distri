@@ -79,7 +79,7 @@ export function PairSheet({ wa, method: initial = 'qr' }: { wa: string; method?:
       <div className="sec">
         <div className="seg" style={{ marginBottom: 4 }}>
           <button className={method === 'qr' ? 'is-active' : ''} onClick={() => start('qr')}><Icon name="qr" />Pindai QR</button>
-          <button className={method === 'code' ? 'is-active' : ''} disabled={!codeOK} onClick={() => start('code')} title={codeOK ? '' : 'Hanya untuk transport Baileys'}><Icon name="phone" />Pakai kode di HP</button>
+          <button className={method === 'code' ? 'is-active' : ''} disabled={!codeOK} onClick={() => start('code')} title={codeOK ? '' : 'Hanya untuk perangkat tertaut'}><Icon name="phone" />Pakai kode di HP</button>
         </div>
       </div>
       <div className="sec qr">

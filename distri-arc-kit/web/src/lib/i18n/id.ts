@@ -8,7 +8,7 @@ export const TITLES: Record<ScreenKey, [string, string]> = {
   today: ['Pusat kendali', ''],
   dashboard: ['Dashboard', 'Ringkasan kondisi dealer, order, kas, stok, dan aktivitas'],
   orch: ['Orchestrator', 'Mengatur enam agen AI: sinyal → analisis → konflik → keputusan → eksekusi → belajar'],
-  chat: ['Chat', 'WhatsApp banyak nomor (Baileys) + grup gudang · order masuk dari sini'],
+  chat: ['Chat', 'WhatsApp banyak nomor + grup gudang · order masuk dari sini'],
   orbit: ['Orbit', 'Semua dealer menurut siklus ordernya · atas = jadwal order · keluar = lewat jadwal'],
   net: ['Orbit', 'Peta relasi: kedekatan nomor sales ↔ dealer dalam 3D'],
   kuad: ['Orbit', 'Segmen: dealer dikelompokkan menurut seberapa sering dan seberapa besar ordernya'],

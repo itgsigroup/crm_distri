@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Filter chat lebih ringkas · 2026-10-15
+- Chip filter di daftar chat kini berupa ikon + jumlah; chip yang aktif juga menampilkan namanya, nama lengkap muncul saat kursor diarahkan.
+- Label "WHATSAPP BAILEYS" di kepala daftar chat dihapus, begitu juga sebutan Baileys di subjudul menu Chat.
+
 ## Change · Analisa WhatsApp tiap 2 jam lewat routine Claude di claude.ai (tanpa kunci API) · 2026-10-14
 - Jadwal "Analisa WhatsApp · tiap 2 jam" kini dijalankan routine Claude di claude.ai memakai konektor CRM DISTRI dan langganan Claude — server tidak lagi butuh kunci Claude API untuk ini.
 - Setiap analisa yang dikirim Claude tercatat sebagai riwayat di MCP Claude; label Pusat kendali hijau saat masuk, merah "terlambat" bila lebih dari 2½ jam tidak ada analisa, merah "gagal" bila kiriman ditolak.

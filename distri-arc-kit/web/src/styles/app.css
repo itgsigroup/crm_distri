@@ -705,7 +705,9 @@ body.map-maximized{overflow:hidden}
 .ibl-search input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:13px;color:var(--text);outline:none}
 .ibl-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px;border-bottom:1px solid var(--line)}
 .ibl-chips::-webkit-scrollbar{display:none}
-.ibl-chips button{flex:none;display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--line-strong);font-size:12px;font-weight:600;color:var(--text-2);background:var(--surface)}
+.ibl-chips button{flex:none;display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 8px;border-radius:8px;border:1px solid var(--line-strong);font-size:12px;font-weight:600;color:var(--text-2);background:var(--surface)}
+.ibl-chips button .i{width:14px;height:14px}
+.ibl-chips button em{font-style:normal}
 .ibl-chips button span{font-weight:500;color:var(--text-3);font-size:11px}
 .ibl-chips button.is-active{background:var(--text);border-color:var(--text);color:var(--surface)}
 .ibl-chips button.is-active span{color:inherit;opacity:.75}

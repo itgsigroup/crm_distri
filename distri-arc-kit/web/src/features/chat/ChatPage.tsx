@@ -50,6 +50,11 @@ function Waiting({ since, now }: { since?: string | null; now: Date }) {
   return <span className={`ibw ${w.tone}`} title="Menunggu balasan sejak pesan pelanggan yang belum dijawab"><Clock />{w.text}</span>
 }
 
+// Compact filter chips: an icon and the count; the active chip also shows its name, every chip names itself on hover.
+const FILTER_ICONS: Record<Filter, string> = {
+  all: 'chat', unread: 'bell', unreplied: 'send', dealer: 'building', group_internal: 'people', group_external: 'net', new: 'spark', supplier: 'box',
+}
+
 function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }: {
   list: ThreadView[]; loaded: boolean; filter: Filter; setFilter: (f: Filter) => void; account: string; active?: string; onPick: (id: string) => void
 }) {
@@ -75,7 +80,6 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
         <button type="button" className="ibl-acc" onClick={() => n && openSheet(<NumberSheet wa={n.wa_number} />)} disabled={!n} title={n ? 'Detail nomor' : undefined}>
           <span className="ibl-ic"><Icon name="chat" /></span>
           <span className="ibl-who">
-            <small>WHATSAPP {wa?.transport === 'cloudapi' ? 'CLOUD API' : 'BAILEYS'}</small>
             <b>{n ? `${labelOf(n)}${n.user_role || n.sales_id ? ` - ${n.user_role || 'Sales'}` : ''}` : team ? `Tim ${teamName(team)}` : 'Semua nomor'}</b>
             <span>{n ? `${phoneOf(n)} · Tim ${teamName(n.team)}` : `${nums.length} nomor · ${nums.filter((x) => x.state === 'connected').length} terhubung`}</span>
           </span>
@@ -86,7 +90,9 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
       <div className="ibl-search"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari chat" aria-label="Cari chat" /></div>
       <div className="ibl-chips" role="tablist">
         {FILTERS.map(([k, l]) => (
-          <button key={k} role="tab" aria-selected={filter === k} className={filter === k ? 'is-active' : ''} onClick={() => setFilter(k)}>{l}<span>{counts[k].toLocaleString('id-ID')}</span></button>
+          <button key={k} role="tab" aria-selected={filter === k} aria-label={l} title={l} className={filter === k ? 'is-active' : ''} onClick={() => setFilter(k)}>
+            <Icon name={FILTER_ICONS[k]} />{filter === k && <em>{l}</em>}<span>{counts[k].toLocaleString('id-ID')}</span>
+          </button>
         ))}
       </div>
       <div className="chat-list ibl-list">
