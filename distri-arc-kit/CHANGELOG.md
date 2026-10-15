@@ -4,6 +4,8 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 ## Fix · Cari chat · 2026-10-15
 - Pencarian memaafkan ejaan nama: J/Y, huruf dobel, oe/u — "yohanes" menemukan "JOHANNES YUDHAYANTO", "yusuf" menemukan "Joesoef".
 - Mulai 3 huruf, pencarian menjangkau semua chat yang tersimpan (bukan hanya 14 hari terakhir), dan bisa mencari nomor ("0819…", "62819…", 4 digit terakhir).
+- Sapaan di depan diabaikan: "pak yo" menemukan "JOHANNES YUDHAYANTO" (Pak Yohanes di HP Granike).
+- Nama kontak yang disimpan di HP ("Pak Yohanes") kini disimpan per chat (migrasi 0038) dan ikut dicari; terisi saat ada pesan baru di chat itu.
 - Bila tetap tidak ketemu, Chat menjelaskan bahwa chat lama di HP yang tidak ikut tersinkron saat nomor ditautkan belum ada di Orbit.
 
 ## Fix · Status dibaca di Chat · 2026-10-15

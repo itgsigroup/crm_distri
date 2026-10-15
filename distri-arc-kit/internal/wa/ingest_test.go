@@ -379,3 +379,17 @@ func TestUnreadClearsOnReadAndPhoneReply(t *testing.T) {
 		t.Fatalf("group read under one number, %d copies still unread", n)
 	}
 }
+
+// The name the phone saved for a contact is kept for search, also on a dealer's conversation whose title stays the
+// master name (15 Oct: "Pak Yohanes" on the phone is the dealer "JOHANNES YUDHAYANTO").
+func TestPhoneNameKeptForSearch(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	r, err := in.Process(ctx, wa.Message{ID: "PN1", Account: andi, ChatJID: wa.UserJID("6285700007777"), FromNumber: andi, FromMe: true, ChatName: "Pak Yohanes", Text: "dengan senang hati pak", Time: time.Now()})
+	if err != nil || !r.Stored {
+		t.Fatalf("%+v %v", r, err)
+	}
+	if count(t, st, "select count(*) from chat_threads where id = $1 and phone_name = 'Pak Yohanes'", r.ThreadID) != 1 {
+		t.Fatal("phone name not kept")
+	}
+}

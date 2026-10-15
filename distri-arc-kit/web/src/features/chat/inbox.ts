@@ -49,8 +49,17 @@ export function searchKey(s: string): string {
   return s.trim().toLocaleLowerCase('id-ID').replace(/oe/g, 'u').replace(/j/g, 'y').replace(/(\p{L})\1+/gu, '$1')
 }
 
+const HONORIFICS = new Set(['pak', 'bapak', 'bp', 'bu', 'ibu', 'mas', 'mbak', 'mba', 'kak', 'ko', 'koh', 'ci', 'cik', 'bang', 'om', 'tante', 'sdr'])
+
+/** "Pak Yohanes" → "Yohanes": how a person is addressed is not part of the stored name (as the server's dropHonorific). */
+export function dropHonorific(q: string): string {
+  const f = q.trim().split(/\s+/)
+  while (f.length > 1 && HONORIFICS.has(f[0].toLocaleLowerCase('id-ID').replace(/\.$/, ''))) f.shift()
+  return f.join(' ')
+}
+
 export function matchThread(t: Pick<ThreadView, 'title' | 'subtitle' | 'last_body'>, q: string): boolean {
-  const s = searchKey(q)
+  const s = searchKey(dropHonorific(q))
   return !s || searchKey(`${t.title} ${t.subtitle} ${t.last_body}`).includes(s)
 }
 

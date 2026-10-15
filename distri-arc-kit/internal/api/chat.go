@@ -205,7 +205,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		if t.LastFrom != nil && kind == "group" {
 			v.LastFrom = *t.LastFrom
 		}
-		if match != nil && !match(v.Title+" "+v.Subtitle+" "+v.LastBody, wa.NumberOfJID(deref(t.WaJid))) {
+		if match != nil && !match(v.Title+" "+v.Subtitle+" "+v.LastBody+" "+deref(t.PhoneName), wa.NumberOfJID(deref(t.WaJid))) {
 			continue
 		}
 		out = append(out, v)
@@ -216,7 +216,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 // threadMatcher matches a search against a conversation's names and text, forgiving Indonesian spellings of one name
 // (Yohanes / Johannes, Yusuf / Joesoef), and against its number ("0812…", "62812…", the last digits). nil: no search.
 func threadMatcher(term string) func(text, number string) bool {
-	t := searchKey(term)
+	t := searchKey(dropHonorific(term))
 	if t == "" {
 		return nil
 	}
@@ -230,6 +230,18 @@ func threadMatcher(term string) func(text, number string) bool {
 		}
 		return len(digits) >= 4 && number != "" && strings.Contains(number, digits)
 	}
+}
+
+// honorifics are how people are addressed, not part of the name the master or the chat title holds ("Pak Yohanes" is
+// "JOHANNES YUDHAYANTO"): a search drops them in front, unless that is all it is.
+var honorifics = map[string]bool{"pak": true, "bapak": true, "bp": true, "bu": true, "ibu": true, "mas": true, "mbak": true, "mba": true, "kak": true, "ko": true, "koh": true, "ci": true, "cik": true, "bang": true, "om": true, "tante": true, "sdr": true}
+
+func dropHonorific(term string) string {
+	f := strings.Fields(term)
+	for len(f) > 1 && honorifics[strings.ToLower(strings.TrimSuffix(f[0], "."))] {
+		f = f[1:]
+	}
+	return strings.Join(f, " ")
 }
 
 // searchKey folds spelling variants: case, "oe" → "u", "j" → "y", doubled letters (the same rules as web inbox.ts).

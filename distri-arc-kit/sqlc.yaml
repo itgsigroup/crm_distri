@@ -39,6 +39,7 @@ sql:
       - db/migrations/0035_wa_analysis_schedule.sql
       - db/migrations/0036_reply_rules.sql
       - db/migrations/0037_wa_analysis_external.sql
+      - db/migrations/0038_thread_phone_name.sql
     queries: db/queries
     gen:
       go:

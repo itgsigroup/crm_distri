@@ -462,7 +462,7 @@ func (q *Queries) GetSalesByNumber(ctx context.Context, waNumber *string) (Sales
 }
 
 const getThread = `-- name: GetThread :one
-select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
+select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
   coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
   coalesce(nullif(d.branch, ''), s.branch, '')::text as thread_branch,
@@ -500,6 +500,7 @@ type GetThreadRow struct {
 	HistoryReqAt     *time.Time      `json:"history_req_at"`
 	HistoryTries     int32           `json:"history_tries"`
 	HistoryDoneAt    *time.Time      `json:"history_done_at"`
+	PhoneName        *string         `json:"phone_name"`
 	DealerSlug       *string         `json:"dealer_slug"`
 	DealerName       *string         `json:"dealer_name"`
 	SalesName        *string         `json:"sales_name"`
@@ -539,6 +540,7 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 		&i.HistoryReqAt,
 		&i.HistoryTries,
 		&i.HistoryDoneAt,
+		&i.PhoneName,
 		&i.DealerSlug,
 		&i.DealerName,
 		&i.SalesName,
@@ -556,7 +558,7 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 }
 
 const getThreadByAccountJID = `-- name: GetThreadByAccountJID :one
-select id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at from chat_threads where wa_jid = $1 and account is not distinct from $2
+select id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at, phone_name from chat_threads where wa_jid = $1 and account is not distinct from $2
 `
 
 type GetThreadByAccountJIDParams struct {
@@ -589,6 +591,7 @@ func (q *Queries) GetThreadByAccountJID(ctx context.Context, arg GetThreadByAcco
 		&i.HistoryReqAt,
 		&i.HistoryTries,
 		&i.HistoryDoneAt,
+		&i.PhoneName,
 	)
 	return i, err
 }
@@ -1277,7 +1280,7 @@ values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 on conflict (seed_key) do update set title = excluded.title, subtitle = excluded.subtitle, tag = excluded.tag,
   suggestions = excluded.suggestions, identification = excluded.identification, unread = excluded.unread,
   dealer_id = excluded.dealer_id, contact_id = excluded.contact_id, group_id = excluded.group_id
-returning id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at
+returning id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at, phone_name
 `
 
 type InsertThreadParams struct {
@@ -1338,6 +1341,7 @@ func (q *Queries) InsertThread(ctx context.Context, arg InsertThreadParams) (Cha
 		&i.HistoryReqAt,
 		&i.HistoryTries,
 		&i.HistoryDoneAt,
+		&i.PhoneName,
 	)
 	return i, err
 }
@@ -1593,7 +1597,7 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 }
 
 const listThreads = `-- name: ListThreads :many
-select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
+select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
   coalesce(n.label, s.name, t.account) as account_label, coalesce(n.team, 'sales')::text as account_team,
   coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
   -- a group's last message may have been stored under another GSI number's thread of the same group
@@ -1643,6 +1647,7 @@ type ListThreadsRow struct {
 	HistoryReqAt     *time.Time      `json:"history_req_at"`
 	HistoryTries     int32           `json:"history_tries"`
 	HistoryDoneAt    *time.Time      `json:"history_done_at"`
+	PhoneName        *string         `json:"phone_name"`
 	DealerSlug       *string         `json:"dealer_slug"`
 	DealerName       *string         `json:"dealer_name"`
 	SalesName        *string         `json:"sales_name"`
@@ -1688,6 +1693,7 @@ func (q *Queries) ListThreads(ctx context.Context, since time.Time) ([]ListThrea
 			&i.HistoryReqAt,
 			&i.HistoryTries,
 			&i.HistoryDoneAt,
+			&i.PhoneName,
 			&i.DealerSlug,
 			&i.DealerName,
 			&i.SalesName,
@@ -2288,6 +2294,20 @@ type SetSignalReplyParams struct {
 
 func (q *Queries) SetSignalReply(ctx context.Context, arg SetSignalReplyParams) error {
 	_, err := q.db.Exec(ctx, setSignalReply, arg.ID, arg.Column2)
+	return err
+}
+
+const setThreadPhoneName = `-- name: SetThreadPhoneName :exec
+update chat_threads set phone_name = $1::text where id = $2 and phone_name is distinct from $1::text
+`
+
+type SetThreadPhoneNameParams struct {
+	Name string    `json:"name"`
+	ID   uuid.UUID `json:"id"`
+}
+
+func (q *Queries) SetThreadPhoneName(ctx context.Context, arg SetThreadPhoneNameParams) error {
+	_, err := q.db.Exec(ctx, setThreadPhoneName, arg.Name, arg.ID)
 	return err
 }
 

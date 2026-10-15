@@ -138,6 +138,9 @@ returning *;
 update chat_threads set last_message_at = greatest(coalesce(last_message_at, $2), $2),
   unread = unread + $3 where id = $1;
 
+-- name: SetThreadPhoneName :exec
+update chat_threads set phone_name = sqlc.arg(name)::text where id = sqlc.arg(id) and phone_name is distinct from sqlc.arg(name)::text;
+
 -- name: MarkThreadRead :exec
 -- A group is one conversation for every GSI number in it: reading it reads it under each number.
 update chat_threads x set unread = 0

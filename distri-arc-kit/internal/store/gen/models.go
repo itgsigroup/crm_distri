@@ -219,6 +219,7 @@ type ChatThread struct {
 	HistoryReqAt     *time.Time      `json:"history_req_at"`
 	HistoryTries     int32           `json:"history_tries"`
 	HistoryDoneAt    *time.Time      `json:"history_done_at"`
+	PhoneName        *string         `json:"phone_name"`
 }
 
 type Commitment struct {

@@ -17,6 +17,9 @@ func TestThreadMatcher(t *testing.T) {
 		{"0819-0133", "Toko Lain", true},
 		{"7568", "+62 819-••••-7568", true},
 		{"62811", "Toko Lain", false},
+		{"pak yo", "JOHANNES YUDHAYANTO", true},
+		{"Bu Sinta", "SINTA DEWI · Toko Sinar", true},
+		{"pak", "Pak Priyo", true},
 	} {
 		if got := threadMatcher(c.term)(c.text, number); got != c.want {
 			t.Errorf("%q in %q: %v, want %v", c.term, c.text, got, c.want)
