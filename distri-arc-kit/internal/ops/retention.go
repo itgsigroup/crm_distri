@@ -20,6 +20,10 @@ var Partitioned = [][2]string{{"signals", "occurred_at"}, {"chat_messages", "sen
 const MonthsAhead = 3
 
 // EnsurePartitions creates the partitions of this month through MonthsAhead (job partitions.ensure, daily).
+
+// OutgoingKeepDays: how long a file sent from Chat is kept to show it as it was sent.
+const OutgoingKeepDays = 30
+
 func EnsurePartitions(ctx context.Context, st *store.Store, now time.Time) (int, error) {
 	n := 0
 	for _, t := range Partitioned {
@@ -84,7 +88,8 @@ func Purge(ctx context.Context, st *store.Store, now time.Time) (PurgeReport, er
 		if _, err := q.PurgeWAMessageInsights(ctx, chatCut); err != nil { // the analysis of the purged bubbles
 			return err
 		}
-		if _, err := q.PurgeOutgoingFiles(ctx, now.AddDate(0, 0, -7)); err != nil { // files of replies that never went out
+		// files sent from Chat: shown from here for OutgoingKeepDays, then from WhatsApp; unsent ones go too
+		if _, err := q.PurgeOutgoingFiles(ctx, now.AddDate(0, 0, -OutgoingKeepDays)); err != nil {
 			return err
 		}
 		sigCut := now.AddDate(0, -ret.SignalsMonths, 0)

@@ -504,6 +504,13 @@ select * from chat_outgoing_files where id = $1;
 -- name: DeleteOutgoingFile :exec
 delete from chat_outgoing_files where id = $1;
 
+-- name: OutgoingFileOf :one
+-- The file a message sent from Chat carried (kept OutgoingKeepDays): shown as it was sent, before and after sending.
+select id, mime, file_name, data from chat_outgoing_files where message_id = $1 order by created_at desc limit 1;
+
+-- name: MessagesWithOutgoingFile :many
+select distinct message_id from chat_outgoing_files where message_id = any(sqlc.arg(ids)::uuid[]);
+
 -- name: PurgeOutgoingFiles :execrows
 delete from chat_outgoing_files where created_at < $1;
 

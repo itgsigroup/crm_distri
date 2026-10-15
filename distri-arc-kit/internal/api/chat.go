@@ -1,11 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"mime"
 	"net/http"
 	"slices"
@@ -598,6 +600,10 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 			v.Proposal = bySig[*m.SignalID]
 		}
 		out = append(out, v)
+	}
+	if err := s.attachSentFiles(r.Context(), out); err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
 	}
 	// pins and labels of the conversation (a group: the same for every GSI number in it)
 	conv := convKey(t.Kind, t.WaJid, t.ID)
@@ -1367,8 +1373,17 @@ func (s *Server) chatMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m, err := s.st.Q.GetThreadMessage(r.Context(), gen.GetThreadMessageParams{ThreadID: t.ID, ID: mid})
+	if err != nil {
+		httpx.Fail(w, http.StatusNotFound, "no_media", "Media pesan ini tidak tersimpan — buka di WhatsApp ponsel")
+		return
+	}
+	// a file sent from Chat: the copy kept with it, as it was sent (also while it waits in the send queue)
+	if f, err := s.st.Q.OutgoingFileOf(r.Context(), m.ID); err == nil {
+		writeMedia(w, f.Mime, f.FileName, bytes.NewReader(f.Data), s.log)
+		return
+	}
 	var md wa.Media
-	if err != nil || json.Unmarshal(m.Media, &md) != nil || !md.Viewable() {
+	if json.Unmarshal(m.Media, &md) != nil || !md.Viewable() {
 		httpx.Fail(w, http.StatusNotFound, "no_media", "Media pesan ini tidak tersimpan — buka di WhatsApp ponsel")
 		return
 	}
@@ -1391,7 +1406,12 @@ func (s *Server) chatMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer body.Close()
-	ct, _, _ := strings.Cut(md.Mime, ";")
+	writeMedia(w, md.Mime, md.FileName, body, s.log)
+}
+
+// writeMedia streams a chat file: images, video and audio inline, anything else as a download; never run.
+func writeMedia(w http.ResponseWriter, mimeType, fileName string, body io.Reader, log *slog.Logger) {
+	ct, _, _ := strings.Cut(mimeType, ";")
 	ct = strings.ToLower(strings.TrimSpace(ct))
 	h := w.Header()
 	h.Set("X-Content-Type-Options", "nosniff")
@@ -1401,7 +1421,7 @@ func (s *Server) chatMedia(w http.ResponseWriter, r *http.Request) {
 		h.Set("Content-Type", ct)
 		h.Set("Content-Disposition", "inline")
 	} else {
-		name := md.FileName
+		name := fileName
 		if name == "" {
 			name = "lampiran"
 		}
@@ -1409,7 +1429,7 @@ func (s *Server) chatMedia(w http.ResponseWriter, r *http.Request) {
 		h.Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": name}))
 	}
 	if _, err := io.Copy(w, body); err != nil {
-		s.log.Debug("chat media copy", "err", err)
+		log.Debug("chat media copy", "err", err)
 	}
 }
 
@@ -1658,4 +1678,31 @@ func deref[T any](p *T) T {
 		return z
 	}
 	return *p
+}
+
+// attachSentFiles: a file sent from Chat is shown from the copy kept with it — while it waits to be sent and after.
+func (s *Server) attachSentFiles(ctx context.Context, msgs []MessageView) error {
+	var ids []uuid.UUID
+	for _, m := range msgs {
+		if m.Media != nil && !m.Media.Viewable && m.Direction == "out" {
+			ids = append(ids, m.ID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	have, err := s.st.Q.MessagesWithOutgoingFile(ctx, ids)
+	if err != nil {
+		return err
+	}
+	kept := map[uuid.UUID]bool{}
+	for _, id := range have {
+		kept[id] = true
+	}
+	for i := range msgs {
+		if msgs[i].Media != nil && kept[msgs[i].ID] {
+			msgs[i].Media.Viewable = true
+		}
+	}
+	return nil
 }

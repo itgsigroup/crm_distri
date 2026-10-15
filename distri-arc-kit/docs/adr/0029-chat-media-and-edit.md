@@ -46,3 +46,10 @@ seperti di WhatsApp; di daftar chat ada filter **Belum dibalas**. Sebelumnya bri
   saat WhatsApp mengirim pesan itu lagi (sinkron riwayat / `wa.backfill`).
 - Transport Cloud API dan fake belum bisa mengambil media (API menjawab 409). Lihat OPEN-QUESTIONS.
 - Media hanya bisa dibuka selama nomor penerima terhubung ke bridge.
+
+## Revisi 2026-10-15 — file yang dikirim dari Chat disimpan 30 hari
+- Bug: gambar yang dikirim dari Chat tidak bisa dilihat pengirimnya — selama di antrean kirim bubble hanya "mengirim…",
+  dan setelah terkirim file salinan langsung dihapus sehingga tampilan bergantung pada referensi WhatsApp.
+- File yang dikirim dari Chat (`chat_outgoing_files`) kini **tetap disimpan 30 hari** (`ops.OutgoingKeepDays`) dan
+  ditampilkan apa adanya — sejak masuk antrean sampai sesudah terkirim. Setelah 30 hari (job retensi harian) bubble
+  kembali diambil dari WhatsApp lewat referensinya. Media yang **diterima** tetap tidak disimpan (keputusan awal ADR ini).

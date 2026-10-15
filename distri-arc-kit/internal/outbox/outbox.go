@@ -219,11 +219,8 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 			}
 		}
 	}
-	if p.Content != nil && p.Content.FileID != "" {
-		if fid, err := uuid.Parse(p.Content.FileID); err == nil {
-			_ = s.st.Q.DeleteOutgoingFile(ctx, fid) // sent: WhatsApp keeps the file, the message its reference
-		}
-	}
+	// the sent file stays OutgoingKeepDays so Chat shows it as it was sent (retention purges it); after that the
+	// bubble is fetched from WhatsApp through its reference
 	if err := s.st.Q.SetProposalExecuted(ctx, pidOf(ob)); err != nil {
 		return 0, err
 	}

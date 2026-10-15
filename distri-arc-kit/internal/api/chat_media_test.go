@@ -378,13 +378,37 @@ func TestChatSendsFilesVoiceNotesAndPolls(t *testing.T) {
 		count(t, st, "select count(*) from chat_messages where id = $1 and body = '[gambar] Stok kamera di gudang' and media->>'kind' = 'image'", out["message_id"]) != 1 {
 		t.Fatal("photo not queued")
 	}
+	// the photo shows as it was sent while it waits in the queue (no WhatsApp fetch: this server has none)
+	mid := out["message_id"].(string)
+	photo := func(when string) {
+		t.Helper()
+		req, _ := http.NewRequest(http.MethodGet, url+"/"+mid+"/media", nil)
+		req.Header.Set("X-Dev-User", "andi@gsi.co.id")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		b, _ := io.ReadAll(res.Body)
+		if res.StatusCode != 200 || res.Header.Get("Content-Type") != "image/jpeg" || string(b) != "\xff\xd8\xff\xe0JPEGDATA" {
+			t.Fatalf("photo %s: %d %q %q", when, res.StatusCode, res.Header.Get("Content-Type"), b)
+		}
+		_, page := get(t, srv, "/api/chat/threads/"+th.String(), "andi@gsi.co.id")
+		for _, m := range page["messages"].([]any) {
+			if mm := m.(map[string]any); mm["id"] == mid && mm["media"].(map[string]any)["viewable"] != true {
+				t.Fatalf("photo %s: bubble not viewable", when)
+			}
+		}
+	}
+	photo("queued")
 	send(out["outbox_id"].(string), 0)
 	if s := fake.Sent(); len(s) != 1 || s[0].Media == nil || s[0].Media.Kind != "image" || s[0].Text != "Stok kamera di gudang" {
 		t.Fatalf("transport got %+v", s)
 	}
-	if count(t, st, "select count(*) from chat_outgoing_files") != 0 ||
+	photo("sent")
+	if count(t, st, "select count(*) from chat_outgoing_files") != 1 ||
 		count(t, st, "select count(*) from chat_messages where id = $1 and status = 'sent' and media->>'ref' like 'FAKEREF-%' and body = '[gambar] Stok kamera di gudang'", out["message_id"]) != 1 {
-		t.Fatal("sent photo: file kept or reference missing")
+		t.Fatal("sent photo: file not kept or reference missing")
 	}
 
 	code, out = sendFile(t, url, "andi@gsi.co.id", "vn.webm", "audio/webm;codecs=opus", []byte("WEBMOPUS"), map[string]string{"voice": "1", "seconds": "7"})

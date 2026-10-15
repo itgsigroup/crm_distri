@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Gambar yang dikirim dari Chat bisa dilihat · 2026-10-15
+- Gejala: gambar (dan file lain) yang dikirim dari Chat tidak bisa dilihat di bubble — selama antre kirim hanya tertulis "mengirim…", dan sesudah terkirim bergantung pada unduhan ulang dari WhatsApp.
+- Kini file yang dikirim ditampilkan apa adanya dari salinan di server sejak masuk antrean sampai sesudah terkirim (disimpan 30 hari, lalu kembali diambil dari WhatsApp). Media yang diterima tetap tidak disimpan (ADR 0029, revisi).
+
 ## Feat · Menu di daftar chat: sematkan chat, label, tandai belum dibaca / belum dibalas · 2026-10-15
 - Setiap kartu chat di daftar punya menu ⌄ (muncul saat kursor di atas kartu, atau klik kanan), seperti WhatsApp:
   - **Sematkan chat** / Lepas sematan: chat naik ke paling atas daftar Anda dengan ikon 📌 (per pengguna, maksimal 3 seperti WhatsApp).

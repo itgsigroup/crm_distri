@@ -2161,6 +2161,30 @@ func (q *Queries) MessagesByWAIDs(ctx context.Context, ids []string) ([]Messages
 	return items, nil
 }
 
+const messagesWithOutgoingFile = `-- name: MessagesWithOutgoingFile :many
+select distinct message_id from chat_outgoing_files where message_id = any($1::uuid[])
+`
+
+func (q *Queries) MessagesWithOutgoingFile(ctx context.Context, ids []uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, messagesWithOutgoingFile, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var message_id uuid.UUID
+		if err := rows.Scan(&message_id); err != nil {
+			return nil, err
+		}
+		items = append(items, message_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const nameNewThread = `-- name: NameNewThread :exec
 update chat_threads set title = $2 where id = $1 and kind = 'new' and title is distinct from $2
 `
@@ -2248,6 +2272,30 @@ func (q *Queries) OutboxApprovedForSend(ctx context.Context, id uuid.UUID) (bool
 	var approved bool
 	err := row.Scan(&approved)
 	return approved, err
+}
+
+const outgoingFileOf = `-- name: OutgoingFileOf :one
+select id, mime, file_name, data from chat_outgoing_files where message_id = $1 order by created_at desc limit 1
+`
+
+type OutgoingFileOfRow struct {
+	ID       uuid.UUID `json:"id"`
+	Mime     string    `json:"mime"`
+	FileName string    `json:"file_name"`
+	Data     []byte    `json:"data"`
+}
+
+// The file a message sent from Chat carried (kept OutgoingKeepDays): shown as it was sent, before and after sending.
+func (q *Queries) OutgoingFileOf(ctx context.Context, messageID uuid.UUID) (OutgoingFileOfRow, error) {
+	row := q.db.QueryRow(ctx, outgoingFileOf, messageID)
+	var i OutgoingFileOfRow
+	err := row.Scan(
+		&i.ID,
+		&i.Mime,
+		&i.FileName,
+		&i.Data,
+	)
+	return i, err
 }
 
 const pendingOutboxIDs = `-- name: PendingOutboxIDs :many
