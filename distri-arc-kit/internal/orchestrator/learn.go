@@ -52,7 +52,15 @@ func (o *Orchestrator) refreshMemos(ctx context.Context, r *stageRun) (int, erro
 			allowed = append(allowed, s.ID)
 		}
 		m = memory.Polish(ctx, o.Router, &cid, d, m, allowed)
-		if err := memory.Validate(m, allowed); err != nil || len(m) == 0 {
+		if len(m) == 0 {
+			// nothing with a source to say yet (no signals): checked, and not read again until a new signal comes —
+			// before, every cycle re-read these dealers and logged ~17,000 warnings a day
+			if err := o.St.Q.MarkDealerMemoChecked(ctx, gen.MarkDealerMemoCheckedParams{ID: st.ID, At: now}); err != nil {
+				return n, err
+			}
+			continue
+		}
+		if err := memory.Validate(m, allowed); err != nil {
 			o.log().Warn("memo not stored", "dealer", st.Slug, "err", err)
 			continue
 		}

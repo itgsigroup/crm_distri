@@ -215,6 +215,23 @@ func (q *Queries) ListPolicyHistory(ctx context.Context, arg ListPolicyHistoryPa
 	return items, nil
 }
 
+const markDealerMemoChecked = `-- name: MarkDealerMemoChecked :exec
+update dealers set memo_sentences = coalesce(nullif(memo_sentences, 'null'::jsonb), '[]'::jsonb), memo_updated_at = $1::timestamptz
+where id = $2::uuid
+`
+
+type MarkDealerMemoCheckedParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+// Belajar found nothing to say about the dealer: it is not read again until a new signal arrives (the memo it has,
+// if any, stays).
+func (q *Queries) MarkDealerMemoChecked(ctx context.Context, arg MarkDealerMemoCheckedParams) error {
+	_, err := q.db.Exec(ctx, markDealerMemoChecked, arg.At, arg.ID)
+	return err
+}
+
 const policiesChangedSince = `-- name: PoliciesChangedSince :one
 select exists (select 1 from policies where key in ('orbit.thresholds','segment.thresholds','credit.rules','stock.rules','margin.floor')
   and updated_at > $1::timestamptz) as changed

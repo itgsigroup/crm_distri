@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Unduhan media yang gagal & peringatan memo · 2026-10-15
+- Media yang tidak bisa dibuka ("Gagal mengambil media dari WhatsApp", `fetch failed`): bila host media yang tersimpan tidak bisa dijangkau, bridge kini mencoba host media bawaan WhatsApp (`mmg.whatsapp.net`), lalu meminta salinan baru ke WhatsApp; penyebab jaringannya tercatat di log bridge.
+- "memo not stored" (±17.000 per hari): dealer tanpa sinyal tidak lagi dibaca ulang setiap siklus — ditandai sudah diperiksa dan baru dibaca lagi bila ada sinyal baru. Memo yang sudah ada tidak berubah; peringatan hanya untuk memo yang benar-benar gagal validasi.
+
 ## Fix · Hasil review perubahan 15 Okt · 2026-10-15
 - Opsi kedua (API): job API pada siklus tidak lagi dihentikan river setelah 1 menit, dan siklus kini menunggu `MCP_WAIT` + 10 menit + jeda (sebelumnya dipotong di menit ke-15) — API benar-benar sempat menjawab.
 - Form lama MCP Claude → Analisis terjadwal (model + anggaran) tidak lagi diam-diam mematikan opsi kedua dan model ChatGPT.

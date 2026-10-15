@@ -7,6 +7,7 @@ import type { Policy } from './config.js'
 import { ffmpegToOgg, toMessage, type AudioConverter, type Content } from './content.js'
 import { decodeMediaRef, isConversation, mediaRef, toGroupMeta, toWaEvent, type GroupMeta, type Resolver, type WaEvent } from './events.js'
 import type { Forwarder } from './forward.js'
+import { downloadWithFallback } from './media.js'
 import { isOptOut, reconnectDelayMs } from './guard.js'
 import type { PgStore } from './pgstore.js'
 import type { Quote, SendTarget } from './sender.js'
@@ -365,7 +366,9 @@ export class Session implements SendTarget {
     if (this.downloads >= MEDIA_PARALLEL) throw new MediaBusy('terlalu banyak media dibuka bersamaan', 429)
     this.downloads++
     try {
-      return await downloadMediaMessage(decodeMediaRef(ref), 'stream', {}, { logger: this.log, reuploadRequest: sock.updateMediaMessage })
+      const ctx = { logger: this.log, reuploadRequest: sock.updateMediaMessage }
+      return await downloadWithFallback(decodeMediaRef(ref), (m, opts) => downloadMediaMessage(m, 'stream', opts, ctx) as Promise<NodeJS.ReadableStream>,
+        sock.updateMediaMessage, (o, msg) => this.log.warn(o, msg))
     } finally {
       this.downloads--
     }

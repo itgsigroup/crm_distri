@@ -45,3 +45,9 @@ where h.key = $1 order by h.version desc limit $2;
 -- Whether a threshold that feeds metrics changed after a moment (the next cycle recomputes every dealer).
 select exists (select 1 from policies where key in ('orbit.thresholds','segment.thresholds','credit.rules','stock.rules','margin.floor')
   and updated_at > sqlc.arg(since)::timestamptz) as changed;
+
+-- name: MarkDealerMemoChecked :exec
+-- Belajar found nothing to say about the dealer: it is not read again until a new signal arrives (the memo it has,
+-- if any, stays).
+update dealers set memo_sentences = coalesce(nullif(memo_sentences, 'null'::jsonb), '[]'::jsonb), memo_updated_at = sqlc.arg(at)::timestamptz
+where id = sqlc.arg(id)::uuid;
