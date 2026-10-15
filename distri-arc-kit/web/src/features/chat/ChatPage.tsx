@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Items } from '../../api/client'
@@ -418,7 +418,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const { openSheet } = useFeedback()
   const [zoom, setZoom] = useState<string | null>(null)
   const body = useRef<HTMLDivElement>(null)
-  const input = useRef<HTMLInputElement>(null)
+  const input = useRef<HTMLTextAreaElement>(null)
   const from = (data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
   const send = useMutation({
     mutationFn: (v: { body: string; reply_to?: string }) => api.post(`/chat/threads/${id}/messages`, v),
@@ -554,6 +554,25 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const onScroll = () => {
     if (body.current && body.current.scrollTop < 200) loadOlder()
   }
+  // Enter sends, Shift+Enter starts a new line (WhatsApp Web); Enter while an IME is composing a word does neither
+  const composerKey = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Escape') {
+      if (editing) cancelEdit()
+      setReplying(null)
+      setFile(null)
+      return
+    }
+    if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return
+    e.preventDefault()
+    if (text.trim() || file || editing) e.currentTarget.form?.requestSubmit()
+  }
+  // the box grows with the text, up to about six lines, and shrinks back after sending
+  useLayoutEffect(() => {
+    const el = input.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 140) + 'px'
+  }, [text])
   const submit = (e: FormEvent) => {
     e.preventDefault()
     const v = text.trim()
@@ -652,8 +671,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         ) : (
           <form onSubmit={submit}>
             {!editing && <AttachMenu onFile={pickFile} onPoll={openPoll} disabled={upload.isPending} />}
-            <input ref={input} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key !== 'Escape') return; if (editing) cancelEdit(); setReplying(null); setFile(null) }}
-              placeholder={editing ? 'Ubah pesan…' : file ? 'Tambahkan keterangan…' : 'Tulis balasan…'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : file ? 'Keterangan file' : 'Tulis balasan'} />
+            <textarea ref={input} rows={1} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={composerKey}
+              placeholder={editing ? 'Ubah pesan…' : file ? 'Tambahkan keterangan…' : 'Tulis balasan… (Shift+Enter: baris baru)'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : file ? 'Keterangan file' : 'Tulis balasan'} />
             {text.trim() || file || editing
               ? <button type="submit" className="send" aria-label={editing ? 'Simpan edit' : 'Kirim'} disabled={send.isPending || edit.isPending || upload.isPending}><Icon name={editing ? 'check' : 'send'} /></button>
               : <button type="button" className="send" onClick={voice.start} aria-label="Rekam pesan suara" title="Rekam pesan suara"><Mic /></button>}

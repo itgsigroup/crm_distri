@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Enter kirim, Shift+Enter baris baru · 2026-10-15
+- Kolom ketik di Chat kini bisa beberapa baris: **Enter** mengirim, **Shift+Enter** baris baru (seperti WhatsApp Web); kotak membesar sampai ±6 baris. Esc tetap membatalkan balas/edit/lampiran.
+
 ## Fix · Cari chat · 2026-10-15
 - Pencarian memaafkan ejaan nama: J/Y, huruf dobel, oe/u — "yohanes" menemukan "JOHANNES YUDHAYANTO", "yusuf" menemukan "Joesoef".
 - Mulai 3 huruf, pencarian menjangkau semua chat yang tersimpan (bukan hanya 14 hari terakhir), dan bisa mencari nomor ("0819…", "62819…", 4 digit terakhir).
