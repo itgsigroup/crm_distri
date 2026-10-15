@@ -537,6 +537,13 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       qc.invalidateQueries({ queryKey: ['wa'] })
     })
   }, [data, id, qc, picked])
+  // the box grows with the text, up to about six lines, and shrinks back after sending
+  useLayoutEffect(() => {
+    const el = input.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 140) + 'px'
+  }, [text, data])
   if (!data) return <div className="pane th-pane ibc" />
   const t = data.thread
   const messages = [...older, ...data.messages]
@@ -566,13 +573,6 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     e.preventDefault()
     if (text.trim() || file || editing) e.currentTarget.form?.requestSubmit()
   }
-  // the box grows with the text, up to about six lines, and shrinks back after sending
-  useLayoutEffect(() => {
-    const el = input.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 140) + 'px'
-  }, [text])
   const submit = (e: FormEvent) => {
     e.preventDefault()
     const v = text.trim()

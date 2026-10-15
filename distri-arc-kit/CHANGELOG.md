@@ -2,6 +2,7 @@
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
 ## Feat · Enter kirim, Shift+Enter baris baru · 2026-10-15
+- Perbaikan: membuka Chat sempat error "React error #310" — hook ukuran kotak ketik terpanggil setelah return awal saat percakapan masih dimuat.
 - Kolom ketik di Chat kini bisa beberapa baris: **Enter** mengirim, **Shift+Enter** baris baru (seperti WhatsApp Web); kotak membesar sampai ±6 baris. Esc tetap membatalkan balas/edit/lampiran.
 
 ## Fix · Cari chat · 2026-10-15
