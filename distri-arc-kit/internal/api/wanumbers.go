@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -134,6 +135,9 @@ func (s *Server) createWALink(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusAccepted, map[string]any{"session_id": session, "state": "pairing"})
 }
 
+// linkStale: a pairing link not refreshed this long is dead.
+const linkStale = 3 * time.Minute
+
 // getWALink is the state of a new link: its QR (as a PNG) or code while pairing, then the linked number.
 func (s *Server) getWALink(w http.ResponseWriter, r *http.Request) {
 	l, err := s.st.Q.GetWALink(r.Context(), chi.URLParam(r, "id"))
@@ -144,6 +148,14 @@ func (s *Server) getWALink(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
+	}
+	linking := l.Qr != nil && strings.HasPrefix(*l.Qr, wa.LinkingPrefix)
+	if l.State == "pairing" && !linking && time.Since(l.UpdatedAt) > linkStale {
+		// the bridge refreshes the QR every ~20 s: one not refreshed for minutes will never be scanned (a bridge
+		// restart, 14 Oct) — the page says so instead of showing a dead QR
+		l.State, l.Qr = "failed", nil
+		msg := "Waktu menautkan habis — mulai lagi"
+		l.Error = &msg
 	}
 	out := map[string]any{"session_id": l.SessionID, "method": l.Method, "state": l.State, "error": l.Error}
 	if l.State == "pairing" && l.Qr != nil {

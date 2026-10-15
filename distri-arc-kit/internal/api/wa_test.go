@@ -33,6 +33,11 @@ func TestWANumbersAndChatScope(t *testing.T) {
 	if code, l := get(t, srv, "/api/wa/links/link-t1", "sam@gsi.co.id"); code != 200 || l["state"] != "pairing" || l["qr_png"] == nil {
 		t.Fatalf("pending link %d %v", code, l)
 	}
+	// a QR the bridge stopped refreshing (it restarted) is reported as expired, not as a QR to scan
+	_, _ = st.Pool.Exec(ctx, "update wa_links set updated_at = now() - interval '10 minutes' where session_id = 'link-t1'")
+	if code, l := get(t, srv, "/api/wa/links/link-t1", "sam@gsi.co.id"); code != 200 || l["state"] != "failed" || l["qr_png"] != nil {
+		t.Fatalf("stale link %d %v", code, l)
+	}
 	if err := in.ProcessStatus(ctx, wa.Status{Session: "link-t1", Account: "6281299990000", State: "connected"}); err != nil {
 		t.Fatal(err)
 	}
