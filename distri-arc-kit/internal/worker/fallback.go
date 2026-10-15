@@ -139,5 +139,9 @@ func (w *WAFallbackWorker) Work(ctx context.Context, _ *river.Job[jobs.WAFallbac
 	return nil
 }
 
+// Timeout: the API second option on a cycle is a multi-turn tool loop over several agents (river's default of one
+// minute would cut it off).
+func (w *CycleMCPWorker) Timeout(*river.Job[jobs.CycleMCPArgs]) time.Duration { return runTimeout }
+
 // Timeout gives the run room (as a scheduled analysis).
 func (w *WAFallbackWorker) Timeout(*river.Job[jobs.WAFallbackArgs]) time.Duration { return runTimeout }

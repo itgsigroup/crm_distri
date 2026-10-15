@@ -102,6 +102,13 @@ func TestAIAPIPage(t *testing.T) {
 	if j := strings.Join(ids, ","); !strings.HasPrefix(j, "gpt-5,") || !strings.HasSuffix(j, ",gpt-5.1") || strings.Contains(j, "2025") || unknown != "ok" {
 		t.Fatalf("openai models %s (unknown price %q)", j, unknown)
 	}
+	// the older form on MCP Claude (model + budget only) keeps the second option and the ChatGPT model
+	if code, out := sendJSON(t, "PUT", srv.URL+"/api/mcp/analyst", ceo, map[string]any{"model": "claude-sonnet-5-5", "daily_budget_idr": 99000}); code != 200 || out["model"] != "claude-sonnet-5-5" {
+		t.Fatalf("analyst form %d %v", code, out)
+	}
+	if _, out := sendJSON(t, "GET", base, ceo, nil); out["fallback"] != "openai" || out["daily_budget_idr"] != float64(99000) {
+		t.Fatalf("second option reset by the analyst form: %v %v", out["fallback"], out["daily_budget_idr"])
+	}
 	if code, _ := sendJSON(t, "PUT", base, ceo, map[string]any{"openai_model": "llama-3; drop"}); code != 400 {
 		t.Fatalf("unknown model accepted: %d", code)
 	}

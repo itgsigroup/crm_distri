@@ -213,8 +213,13 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 					_ = s.st.Q.SetChatMessageMedia(ctx, gen.SetChatMessageMediaParams{ID: mid, Media: media})
 				}
 			}
-			_ = s.st.Q.DropOtherCopies(ctx, gen.DropOtherCopiesParams{ID: mid, WaMsgID: msgID})
-			if err := s.st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &msgID, Status: "sent", SentAt: sent, Body: body}); err == nil && s.onSent != nil {
+			// the phone's echo (or another GSI number's copy) may arrive before, or between, these two steps: the
+			// copies are dropped before and after the bubble takes the id, so the queued bubble stays the only one
+			drop := gen.DropOtherCopiesParams{ID: mid, WaMsgID: msgID}
+			_ = s.st.Q.DropOtherCopies(ctx, drop)
+			err := s.st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &msgID, Status: "sent", SentAt: sent, Body: body})
+			_ = s.st.Q.DropOtherCopies(ctx, drop)
+			if err == nil && s.onSent != nil {
 				s.onSent(ctx, mid)
 			}
 		}

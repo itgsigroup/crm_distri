@@ -289,6 +289,10 @@ func (s *Server) pinMessage(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pesan yang dihapus tidak bisa disematkan")
 		return
 	}
+	if b.Pinned && (m.Status == "pending" || m.Status == "failed") { // its time changes when it goes out
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pesan yang belum terkirim tidak bisa disematkan")
+		return
+	}
 	u, _ := CurrentUser(r.Context())
 	conv := convKey(t.Kind, t.WaJid, t.ID)
 	err := s.st.Tx(r.Context(), func(q *gen.Queries, _ pgx.Tx) error {

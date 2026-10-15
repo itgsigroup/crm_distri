@@ -265,10 +265,13 @@ func (q *Queries) DeleteWANumber(ctx context.Context, waNumber string) error {
 }
 
 const dropOtherCopies = `-- name: DropOtherCopies :exec
-with gone as (
+with me as (
+  select m.id, m.thread_id, t.kind, t.wa_jid from chat_messages m join chat_threads t on t.id = m.thread_id where m.id = $1::uuid
+), gone as (
   delete from chat_messages m
-  using chat_messages me
-  where me.id = $1::uuid and m.thread_id = me.thread_id and m.id <> me.id and m.wa_msg_id = $2::text
+  using me
+  where m.id <> me.id and m.wa_msg_id = $2::text
+    and (m.thread_id = me.thread_id or (me.kind = 'group' and m.thread_id in (select x.id from chat_threads x where x.wa_jid = me.wa_jid)))
   returning m.id
 )
 delete from chat_message_keys k using gone where k.message_id = gone.id
@@ -279,8 +282,9 @@ type DropOtherCopiesParams struct {
 	WaMsgID string    `json:"wa_msg_id"`
 }
 
-// A reply sent from Chat whose WhatsApp id reached its thread first (the phone's echo, or the copy made from the
-// other linked GSI number): the queued bubble is the message; the earlier copy in the same thread goes.
+// A reply sent from Chat whose WhatsApp id reached its conversation first (the phone's echo, the copy made from the
+// other linked GSI number, or — in a group — another GSI number's copy): the queued bubble is the message; the
+// earlier copy in the same thread, or in another thread of the same group, goes.
 func (q *Queries) DropOtherCopies(ctx context.Context, arg DropOtherCopiesParams) error {
 	_, err := q.db.Exec(ctx, dropOtherCopies, arg.ID, arg.WaMsgID)
 	return err
@@ -2370,7 +2374,7 @@ select m.id, m.sent_at, coalesce(m.direction, '')::text as direction, coalesce(m
 from chat_messages m
 where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
                       where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
-  and m.deleted_at is null and m.body ilike $2::text escape '\'
+  and m.deleted_at is null and m.body ~* $2::text
 order by m.sent_at desc limit $3
 `
 
@@ -2389,7 +2393,8 @@ type SearchThreadMessagesRow struct {
 }
 
 // Cari di dalam chat: the stored messages of a conversation (a group: of every GSI number's thread of it) whose text
-// holds the words, newest first. pattern is an ILIKE pattern with %, _ and \ escaped by the caller.
+// holds the words, newest first. pattern is a case-insensitive regular expression: the typed words, escaped, with
+// any whitespace between them (a line break or a double space in the message still matches).
 func (q *Queries) SearchThreadMessages(ctx context.Context, arg SearchThreadMessagesParams) ([]SearchThreadMessagesRow, error) {
 	rows, err := q.db.Query(ctx, searchThreadMessages, arg.ThreadID, arg.Pattern, arg.Lim)
 	if err != nil {

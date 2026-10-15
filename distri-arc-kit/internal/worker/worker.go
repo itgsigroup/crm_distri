@@ -212,7 +212,8 @@ func (w *OdooSyncWorker) Timeout(*river.Job[jobs.OdooSyncArgs]) time.Duration {
 // CycleWorker runs Orchestrator cycles (cycle.run).
 type CycleWorker struct {
 	river.WorkerDefaults[jobs.CycleRunArgs]
-	o *orchestrator.Orchestrator
+	o       *orchestrator.Orchestrator
+	mcpWait time.Duration // MCP_WAIT: how long Analisis waits for Claude through MCP
 }
 
 // Work executes a queued cycle, or queues and runs the scheduled one; a running cycle makes the scheduled run a no-op.
@@ -241,8 +242,15 @@ func (w *CycleWorker) Work(ctx context.Context, job *river.Job[jobs.CycleRunArgs
 	return nil
 }
 
-// Timeout gives a full cycle with a real LLM room.
-func (w *CycleWorker) Timeout(*river.Job[jobs.CycleRunArgs]) time.Duration { return 15 * time.Minute }
+// Timeout gives a full cycle room: the MCP wait for Claude, the API second option's window after it (ADR 0040),
+// and the stages around Analisis.
+func (w *CycleWorker) Timeout(*river.Job[jobs.CycleRunArgs]) time.Duration {
+	wait := w.mcpWait
+	if wait <= 0 {
+		wait = 10 * time.Minute
+	}
+	return max(15*time.Minute, wait+FallbackWindow+5*time.Minute)
+}
 
 // Hourly fires on the hour between From and To (WIB), e.g. 06.00–20.00 (policy llm.routing.batch_hours).
 type Hourly struct{ From, To int }
@@ -328,7 +336,7 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 		river.AddWorker(workers, &IdentifyWorker{svc: deps.Identify})
 	}
 	if deps.Orchestrator != nil {
-		river.AddWorker(workers, &CycleWorker{o: deps.Orchestrator})
+		river.AddWorker(workers, &CycleWorker{o: deps.Orchestrator, mcpWait: deps.MCPWait})
 		periodic = append(periodic, river.NewPeriodicJob(Hourly{From: 6, To: 20}, func() (river.JobArgs, *river.InsertOpts) {
 			return jobs.CycleRunArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: time.Hour}}
 		}, nil))

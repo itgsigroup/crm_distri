@@ -1,6 +1,15 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Hasil review perubahan 15 Okt · 2026-10-15
+- Opsi kedua (API): job API pada siklus tidak lagi dihentikan river setelah 1 menit, dan siklus kini menunggu `MCP_WAIT` + 10 menit + jeda (sebelumnya dipotong di menit ke-15) — API benar-benar sempat menjawab.
+- Form lama MCP Claude → Analisis terjadwal (model + anggaran) tidak lagi diam-diam mematikan opsi kedua dan model ChatGPT.
+- "Tandai sudah/belum dibalas" kini juga berlaku di Pusat kendali (Analisa WhatsApp) dan langkah "Balas chat" di Rencana.
+- Balasan dari Chat ke grup yang lebih dulu diterima nomor GSI lain tampil sekali (bukan dua); echo HP yang datang di tengah penandaan terkirim tidak lagi membuat bubble ganda.
+- Pesan yang belum terkirim tidak bisa disematkan (sematannya akan hilang saat terkirim).
+- Cari di chat menemukan kata yang dipisah baris baru atau spasi ganda.
+- Halaman API & model AI tidak lambat saat Anthropic/OpenAI tidak bisa dihubungi (kegagalan disimpan 5 menit).
+
 ## Fix · Gambar yang dikirim dari Chat bisa dilihat · 2026-10-15
 - Gejala: gambar (dan file lain) yang dikirim dari Chat tidak bisa dilihat di bubble — selama antre kirim hanya tertulis "mengirim…", dan sesudah terkirim bergantung pada unduhan ulang dari WhatsApp.
 - Kini file yang dikirim ditampilkan apa adanya dari salinan di server sejak masuk antrean sampai sesudah terkirim (disimpan 30 hari, lalu kembali diambil dari WhatsApp). Media yang diterima tetap tidak disimpan (ADR 0029, revisi).

@@ -576,24 +576,29 @@ where m.sent_at >= sqlc.arg(since)::timestamptz and t.kind <> 'group' and m.dele
 order by m.sent_at;
 
 -- name: DropOtherCopies :exec
--- A reply sent from Chat whose WhatsApp id reached its thread first (the phone's echo, or the copy made from the
--- other linked GSI number): the queued bubble is the message; the earlier copy in the same thread goes.
-with gone as (
+-- A reply sent from Chat whose WhatsApp id reached its conversation first (the phone's echo, the copy made from the
+-- other linked GSI number, or — in a group — another GSI number's copy): the queued bubble is the message; the
+-- earlier copy in the same thread, or in another thread of the same group, goes.
+with me as (
+  select m.id, m.thread_id, t.kind, t.wa_jid from chat_messages m join chat_threads t on t.id = m.thread_id where m.id = sqlc.arg(id)::uuid
+), gone as (
   delete from chat_messages m
-  using chat_messages me
-  where me.id = sqlc.arg(id)::uuid and m.thread_id = me.thread_id and m.id <> me.id and m.wa_msg_id = sqlc.arg(wa_msg_id)::text
+  using me
+  where m.id <> me.id and m.wa_msg_id = sqlc.arg(wa_msg_id)::text
+    and (m.thread_id = me.thread_id or (me.kind = 'group' and m.thread_id in (select x.id from chat_threads x where x.wa_jid = me.wa_jid)))
   returning m.id
 )
 delete from chat_message_keys k using gone where k.message_id = gone.id;
 
 -- name: SearchThreadMessages :many
 -- Cari di dalam chat: the stored messages of a conversation (a group: of every GSI number's thread of it) whose text
--- holds the words, newest first. pattern is an ILIKE pattern with %, _ and \ escaped by the caller.
+-- holds the words, newest first. pattern is a case-insensitive regular expression: the typed words, escaped, with
+-- any whitespace between them (a line break or a double space in the message still matches).
 select m.id, m.sent_at, coalesce(m.direction, '')::text as direction, coalesce(m.from_name, '')::text as from_name, coalesce(m.body, '')::text as body
 from chat_messages m
 where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
                       where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
-  and m.deleted_at is null and m.body ilike sqlc.arg(pattern)::text escape '\'
+  and m.deleted_at is null and m.body ~* sqlc.arg(pattern)::text
 order by m.sent_at desc limit sqlc.arg(lim);
 
 -- name: MarkThreadUnread :exec

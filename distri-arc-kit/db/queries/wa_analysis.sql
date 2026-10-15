@@ -74,9 +74,14 @@ update wa_insights set summary = $3, confidence = $4 where cycle_id = $1 and thr
 -- The current state of conversations: the oldest customer message not answered yet (null when the last word was ours
 -- and was an answer, not a holding reply — ADR 0034).
 select t.id, t.dealer_id, s.name as sales_name,
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
-                               and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
+  -- the marks made by hand in Chat (migration 0040) count here too, as in the chat list
+  coalesce(
+    (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
+       and m.sent_at > greatest(coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                                 and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz), coalesce(t.replied_mark, '-infinity'::timestamptz))),
+    case when t.unreplied_mark is not null and t.unreplied_mark > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'
+                                 and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz) then t.unreplied_mark end
+  ) as waiting_since
 from chat_threads t left join sales_users s on s.id = t.sales_id
 where t.id = any(sqlc.arg(ids)::uuid[]);
 

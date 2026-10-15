@@ -31,8 +31,12 @@ type ModelEntry struct {
 	Live   bool     `json:"live"`    // returned by the provider for this key
 }
 
-// liveTTL: how long a provider's model list is reused (the page refreshes every 30 s).
-const liveTTL = time.Hour
+// liveTTL: how long a provider's model list is reused (the page refreshes every 30 s); liveRetry: how long a failed
+// fetch waits before the next try.
+const (
+	liveTTL   = time.Hour
+	liveRetry = 5 * time.Minute
+)
 
 type liveEntry struct {
 	at     time.Time
@@ -110,7 +114,11 @@ func cachedLive(ctx context.Context, provider, key string) []ModelInfo {
 	}
 	models, err := list(ctx, provider, key)
 	if err != nil {
-		return nil // the known models still show; the next page load tries again
+		// the known models still show; an unreachable provider is asked again after liveRetry, not on every refresh
+		liveMu.Lock()
+		liveCache[k] = liveEntry{at: time.Now().Add(liveRetry - liveTTL)}
+		liveMu.Unlock()
+		return nil
 	}
 	liveMu.Lock()
 	liveCache[k] = liveEntry{at: time.Now(), models: models}

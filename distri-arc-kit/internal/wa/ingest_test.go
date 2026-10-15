@@ -297,6 +297,48 @@ func TestSentFromChatAfterOtherNumberStoredIt(t *testing.T) {
 	}
 }
 
+// A reply sent from Chat into a group that another GSI number in it stored first: the group shows it once — the
+// queued bubble — not the bubble plus the other number's copy.
+func TestGroupReplyFromChatShownOnce(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	g := "120363041100000099@g.us"
+	t0 := time.Now().Add(-time.Hour)
+	if _, err := in.Process(ctx, wa.Message{ID: "G0", Account: andi, ChatJID: g, IsGroup: true, GroupName: "Proyek Y", FromNumber: "6281100009001", Text: "halo", Time: t0}); err != nil {
+		t.Fatal(err)
+	}
+	var thread uuid.UUID
+	if err := st.Pool.QueryRow(ctx, "select id from chat_threads where account = $1 and wa_jid = $2", andi, g).Scan(&thread); err != nil {
+		t.Fatal(err)
+	}
+	// dewi's phone hands the group message over before the outbox marks andi's bubble sent
+	if _, err := in.Process(ctx, wa.Message{ID: "G1", Account: dewi, ChatJID: g, IsGroup: true, GroupName: "Proyek Y", FromNumber: andi, Text: "siap", Time: t0.Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	pending, dir := "pending:G1", "out"
+	mid, err := st.Q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &thread, WaMsgID: &pending, Direction: &dir, Body: strp("siap"), SentAt: t0.Add(time.Minute), Status: "pending"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sent := "G1"
+	drop := gen.DropOtherCopiesParams{ID: mid, WaMsgID: sent}
+	if err := st.Q.DropOtherCopies(ctx, drop); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &sent, Status: "sent", SentAt: t0.Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Q.DropOtherCopies(ctx, drop); err != nil {
+		t.Fatal(err)
+	}
+	if n := count(t, st, "select count(*) from chat_messages where wa_msg_id = 'G1'"); n != 1 {
+		t.Fatalf("%d copies in the group, want 1", n)
+	}
+	if n := count(t, st, "select count(*) from chat_message_keys where wa_msg_id = 'G1' and message_id = $1", mid); n != 1 {
+		t.Fatal("the queued bubble does not hold the WhatsApp id")
+	}
+}
+
 // Messages kept on one linked number only (before the copy was made in real time) are caught up from the stored
 // copy, read, without the other phone; a second run adds nothing.
 func TestMirrorLinkedCatchUp(t *testing.T) {

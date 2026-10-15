@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -37,7 +38,7 @@ func (s *Server) chatSearch(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusOK, map[string]any{"items": []ChatHit{}, "q": q})
 		return
 	}
-	rows, err := s.st.Q.SearchThreadMessages(r.Context(), gen.SearchThreadMessagesParams{ThreadID: t.ID, Pattern: "%" + likeEscape(q) + "%", Lim: maxChatHits})
+	rows, err := s.st.Q.SearchThreadMessages(r.Context(), gen.SearchThreadMessagesParams{ThreadID: t.ID, Pattern: searchPattern(q), Lim: maxChatHits})
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
@@ -49,9 +50,13 @@ func (s *Server) chatSearch(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": out, "q": q, "capped": len(rows) == maxChatHits})
 }
 
-// likeEscape escapes the ILIKE wildcards of a typed text (escape '\\').
-func likeEscape(s string) string {
-	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
+// searchPattern: the typed words as a case-insensitive regular expression, each word literal, any whitespace between.
+func searchPattern(q string) string {
+	words := strings.Fields(q)
+	for i, w := range words {
+		words[i] = regexp.QuoteMeta(w)
+	}
+	return strings.Join(words, `\s+`)
 }
 
 // snippet is the text around the first match of q (case-insensitive), about `around` characters on each side, on

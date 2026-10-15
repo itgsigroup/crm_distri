@@ -43,6 +43,7 @@ func TestSearchInChat(t *testing.T) {
 	add("S2", "diskon 10% bisa?", "60 days")
 	add("S3", "ok kamera ip sudah sampai", "1 day")
 	add("S4", "terima kasih", "2 hours")
+	add("S5", "kabel\ncoaxial  (300m) ya", "3 hours")
 
 	search := func(q string) []map[string]any {
 		_, out := get(t, srv, "/api/chat/threads/"+id+"/search?q="+url.QueryEscape(q), "sam@gsi.co.id")
@@ -61,6 +62,9 @@ func TestSearchInChat(t *testing.T) {
 	}
 	if hits := search("%"); len(hits) != 0 {
 		t.Fatalf("one character searched: %v", hits)
+	}
+	if hits := search("kabel coaxial (300m)"); len(hits) != 1 || hits[0]["snippet"] != "kabel coaxial (300m) ya" {
+		t.Fatalf("words across a line break: %v", hits)
 	}
 	if hits := search("ongkir   ke magelang"); len(hits) != 1 {
 		t.Fatalf("spaces: %v", hits)

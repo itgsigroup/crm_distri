@@ -65,7 +65,9 @@ func (s *Server) analystConfig(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var c analyst.Config
+	// the posted fields over the saved policy: this form never resets the second option or the ChatGPT model
+	// chosen on API & model AI (ADR 0040)
+	c := analyst.LoadConfig(r.Context(), s.st.Q)
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&c); err != nil {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Format tidak valid")
 		return
