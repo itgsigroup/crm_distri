@@ -25,6 +25,8 @@ type Event struct {
 type Hub struct {
 	mu   sync.Mutex
 	subs map[chan Event]struct{}
+	// OnPublish, when set, sees every event before the subscribers do (set it before Listen starts).
+	OnPublish func(Event)
 }
 
 // NewHub returns an empty hub.
@@ -45,6 +47,9 @@ func (h *Hub) Subscribe() (<-chan Event, func()) {
 
 // Publish delivers an event to every subscriber (dropping it for slow ones).
 func (h *Hub) Publish(e Event) {
+	if h.OnPublish != nil {
+		h.OnPublish(e)
+	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for ch := range h.subs {

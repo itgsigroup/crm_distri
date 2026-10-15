@@ -7,6 +7,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Isi antrean lama sudah tersimpan di DB (sampel 38/40; 2 sisanya sengaja dibuang: DM antar nomor internal dan pesan > 365 hari); file backlog dihapus atas persetujuan.
 - Akar masalah: API menyimpan pesan semua nomor dalam satu jalur, sehingga batch riwayat menunggu > 30 dtk saat beberapa nomor sinkron bersamaan; bridge mengirim ulang batch yang sebenarnya tetap diproses (tiap batch tercatat 3×). Kini pesan disimpan paralel dalam 4 jalur per chat (urutan per chat tetap), API berhenti memproses batch yang sudah ditinggal bridge, dan batch riwayat diperkecil 200 → 50 pesan.
 - Tautkan nomor baru: 5 percobaan scan pada 14 Okt sore macet karena crash-loop di atas (QR mati sebelum discan). QR yang tidak diperbarui bridge lebih dari 3 menit kini tampil "Waktu menautkan habis — mulai lagi" dengan tombol **Mulai lagi**, bukan QR mati.
+- Daftar chat lambat (10–18 dtk sejak sinkron riwayat 14 Okt): satu query daftar ±1,7 dtk dijalankan ulang oleh setiap tab Chat pada setiap pesan baru. Kini permintaan yang datang bersamaan berbagi satu query; permintaan setelah pesan baru selalu memakai query baru, jadi daftar tidak pernah basi.
 - `deploy.sh` kini menyebut alasan restart wa-bridge (berubah, atau sedang tidak berjalan).
 
 ## Change · Filter chat lebih ringkas · 2026-10-15

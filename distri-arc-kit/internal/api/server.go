@@ -37,20 +37,21 @@ import (
 
 // Server wires handlers to the store.
 type Server struct {
-	cfg   config.Config
-	st    *store.Store
-	clock clock.Clock
-	log   *slog.Logger
-	views *views.Builder
-	hub   *events.Hub
-	jobs  *river.Client[pgx.Tx]
-	cloud *wa.CloudAPI
-	media wa.MediaFetcher // chat media from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
-	odoo  odoo.Source
-	mcp   *mcp.Server
-	idf   *identify.Service
-	ask   *ask.Service
-	http  *ops.HTTPMetrics
+	cfg     config.Config
+	st      *store.Store
+	clock   clock.Clock
+	log     *slog.Logger
+	views   *views.Builder
+	hub     *events.Hub
+	threads threadList
+	jobs    *river.Client[pgx.Tx]
+	cloud   *wa.CloudAPI
+	media   wa.MediaFetcher // chat media from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
+	odoo    odoo.Source
+	mcp     *mcp.Server
+	idf     *identify.Service
+	ask     *ask.Service
+	http    *ops.HTTPMetrics
 	// scheduled analysis seams (tests): the Claude client of inline runs and the API-key check
 	analystModel func(key string) analyst.Model
 	verifyKey    func(ctx context.Context, key string) error
@@ -76,7 +77,9 @@ func (s *Server) WithCloudWebhook(c *wa.CloudAPI) *Server { s.cloud = c; return 
 
 // New builds the API server.
 func New(cfg config.Config, st *store.Store, c clock.Clock, log *slog.Logger) *Server {
-	return &Server{cfg: cfg, st: st, clock: c, log: log, views: views.NewBuilder(st, c), hub: events.NewHub(), http: ops.NewHTTPMetrics()}
+	srv := &Server{cfg: cfg, st: st, clock: c, log: log, views: views.NewBuilder(st, c), hub: events.NewHub(), http: ops.NewHTTPMetrics()}
+	srv.hub.OnPublish = srv.threads.changed
+	return srv
 }
 
 // Hub returns the SSE hub (fed by events.Listen).

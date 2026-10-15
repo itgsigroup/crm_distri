@@ -148,7 +148,7 @@ func (v chatViewer) sees(salesID *uuid.UUID, account *string) bool {
 }
 
 func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.st.Q.ListThreads(r.Context())
+	rows, err := s.threads.get(r.Context(), s.st.Q.ListThreads)
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
