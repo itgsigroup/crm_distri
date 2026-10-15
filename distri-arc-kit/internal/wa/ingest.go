@@ -241,6 +241,12 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if err := q.TouchThread(ctx, gen.TouchThreadParams{ID: thread.ID, LastMessageAt: &m.Time, Unread: unread}); err != nil {
 			return err
 		}
+		if m.FromMe && !m.History && !m.IsGroup {
+			// answered from the phone: the chat was read there, as WhatsApp shows it
+			if err := q.MarkThreadRead(ctx, thread.ID); err != nil {
+				return err
+			}
+		}
 		if contactID != nil && !m.FromMe {
 			if err := q.TouchContact(ctx, gen.TouchContactParams{ID: *contactID, LastInteractionAt: &m.Time}); err != nil {
 				return err

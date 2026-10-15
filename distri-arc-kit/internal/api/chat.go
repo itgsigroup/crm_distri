@@ -31,6 +31,7 @@ import (
 )
 
 func (s *Server) chatRoutes(r chi.Router) {
+	r = r.With(s.threads.afterWrite)
 	r.Get("/chat/threads", s.chatThreads)
 	r.Get("/chat/threads/{id}", s.chatThread)
 	r.Post("/chat/threads/{id}/read", s.chatRead)

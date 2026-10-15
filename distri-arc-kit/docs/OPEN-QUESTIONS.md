@@ -79,3 +79,6 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 
 ## Label "Diteruskan" pada pesan yang diteruskan (15 Okt 2026)
 Teruskan dari Chat mengirim pesan biasa: di HP penerima belum muncul label "Diteruskan". Untuk menampilkannya, wa-bridge perlu mengirim `contextInfo.isForwarded` bila payload outbox bertanda `forwarded`. Perubahan ini me-restart wa-bridge, jadi dijadwalkan pada deploy bridge berikutnya.
+
+## Dibaca di HP tanpa membalas (15 Okt 2026)
+Chat yang dibuka di HP tanpa dibalas masih terhitung belum dibaca di Orbit. Untuk menyelaraskannya, wa-bridge perlu meneruskan event baca Baileys (`chats.update` dengan `unreadCount: 0`, atau `messages.update` dengan status READ dari perangkat sendiri) ke API sebagai `read`, lalu API memanggil `MarkThreadRead`. Arah sebaliknya juga butuh bridge: membuka chat di Orbit belum mengirim centang biru ke pelanggan (Baileys `readMessages`). Kedua perubahan ini me-restart wa-bridge, jadi dijadwalkan bersama label "Diteruskan".

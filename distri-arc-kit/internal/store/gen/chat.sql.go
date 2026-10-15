@@ -1878,9 +1878,12 @@ func (q *Queries) MarkLateCommitments(ctx context.Context, dueAt *time.Time) ([]
 }
 
 const markThreadRead = `-- name: MarkThreadRead :exec
-update chat_threads set unread = 0 where id = $1
+update chat_threads x set unread = 0
+from chat_threads t
+where t.id = $1 and x.unread <> 0 and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
 `
 
+// A group is one conversation for every GSI number in it: reading it reads it under each number.
 func (q *Queries) MarkThreadRead(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, markThreadRead, id)
 	return err

@@ -139,7 +139,10 @@ update chat_threads set last_message_at = greatest(coalesce(last_message_at, $2)
   unread = unread + $3 where id = $1;
 
 -- name: MarkThreadRead :exec
-update chat_threads set unread = 0 where id = $1;
+-- A group is one conversation for every GSI number in it: reading it reads it under each number.
+update chat_threads x set unread = 0
+from chat_threads t
+where t.id = $1 and x.unread <> 0 and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid));
 
 -- name: InsertChatMessage :one
 -- chat_message_keys keeps wa_msg_id unique across monthly partitions; a known id inserts nothing (no rows).

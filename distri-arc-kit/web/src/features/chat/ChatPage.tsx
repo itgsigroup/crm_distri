@@ -506,7 +506,15 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     }
   }, [older])
   useEffect(() => {
-    if (picked && data && data.thread.unread > 0) api.post(`/chat/threads/${id}/read`).then(() => qc.invalidateQueries({ queryKey: ['chat', 'threads'] }))
+    if (!(picked && data && data.thread.unread > 0)) return
+    // opened = read: the count and the "Belum dibaca" tag drop at once, then the lists, the numbers' badges and
+    // the other numbers' copies of a group come back from the server
+    qc.setQueriesData<ThreadView[]>({ queryKey: ['chat', 'threads'] }, (list) => list?.map((t) => (t.id === id ? { ...t, unread: 0 } : t)))
+    qc.setQueryData<ThreadDetail>(['chat', 'thread', id], (d) => (d ? { ...d, thread: { ...d.thread, unread: 0 } } : d))
+    api.post(`/chat/threads/${id}/read`).finally(() => {
+      qc.invalidateQueries({ queryKey: ['chat', 'threads'] })
+      qc.invalidateQueries({ queryKey: ['wa'] })
+    })
   }, [data, id, qc, picked])
   if (!data) return <div className="pane th-pane ibc" />
   const t = data.thread

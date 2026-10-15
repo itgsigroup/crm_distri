@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -42,7 +44,7 @@ func TestThreadListSharesOnlyCurrentQuery(t *testing.T) {
 			}
 		}()
 	}
-	for l.waiting() < 3 {
+	for l.waiting() < 3 || calls.Load() < 1 {
 		runtime.Gosched()
 	}
 	cancel() // the first tab closes while the query runs
@@ -68,4 +70,49 @@ func TestThreadListSharesOnlyCurrentQuery(t *testing.T) {
 	if rows, _ := l.get(context.Background(), func(context.Context) ([]gen.ListThreadsRow, error) { calls.Add(1); return nil, nil }); rows != nil || calls.Load() != 3 {
 		t.Fatalf("finished query was reused: calls %d", calls.Load())
 	}
+}
+
+// A change made through the API (here: reading a chat) ends sharing once it is stored, like a relayed chat event.
+func TestThreadListEndsSharingAfterWrite(t *testing.T) {
+	var l threadList
+	release := make(chan struct{})
+	var calls atomic.Int32
+	q := func(context.Context) ([]gen.ListThreadsRow, error) {
+		n := calls.Add(1)
+		if n == 1 {
+			<-release
+		}
+		return make([]gen.ListThreadsRow, n), nil
+	}
+	done := make(chan int)
+	go func() { rows, _ := l.get(context.Background(), q); done <- len(rows) }()
+	for l.waiting() < 1 || calls.Load() < 1 {
+		runtime.Gosched()
+	}
+	h := l.afterWrite(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/chat/threads", nil))
+	if rows, _ := func() ([]gen.ListThreadsRow, error) {
+		ch := make(chan []gen.ListThreadsRow)
+		go func() { r, _ := l.get(context.Background(), q); ch <- r }()
+		for l.waiting() < 2 {
+			runtime.Gosched()
+		}
+		close(release)
+		return <-ch, nil
+	}(); len(rows) != 1 {
+		t.Fatalf("a GET must keep sharing: got the result of call %d", len(rows))
+	}
+	<-done
+	release = make(chan struct{})
+	calls.Store(0)
+	go func() { rows, _ := l.get(context.Background(), q); done <- len(rows) }()
+	for l.waiting() < 1 || calls.Load() < 1 {
+		runtime.Gosched()
+	}
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodPost, "/chat/threads/x/read", nil))
+	if rows, _ := l.get(context.Background(), q); len(rows) != 2 {
+		t.Fatalf("after a read the list reused the older query (%d)", len(rows))
+	}
+	close(release)
+	<-done
 }

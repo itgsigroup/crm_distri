@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"net/http"
 	"sync"
 	"time"
 
@@ -33,9 +34,7 @@ func (l *threadList) changed(e events.Event) {
 	if e.Name != "chat_message" && e.Name != "proposal_changed" && e.Name != "wa_status" {
 		return
 	}
-	l.mu.Lock()
-	l.gen++
-	l.mu.Unlock()
+	l.bump()
 }
 
 // waiting is how many requests share the running query (0 when none runs).
@@ -46,6 +45,23 @@ func (l *threadList) waiting() int {
 		return 0
 	}
 	return l.call.waiters
+}
+
+// afterWrite: a change made through the API (read, send, contact type, …) also ends sharing, once it is stored —
+// the list asked for right after it must show it (a read chat still counted as unread, 15 Oct).
+func (l *threadList) afterWrite(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+		if r.Method != http.MethodGet {
+			l.bump()
+		}
+	})
+}
+
+func (l *threadList) bump() {
+	l.mu.Lock()
+	l.gen++
+	l.mu.Unlock()
 }
 
 func (l *threadList) get(ctx context.Context, q func(context.Context) ([]gen.ListThreadsRow, error)) ([]gen.ListThreadsRow, error) {

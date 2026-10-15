@@ -337,3 +337,45 @@ func TestCustomerGroupIsRecognised(t *testing.T) {
 		t.Fatalf("manual kind changed to %s", k)
 	}
 }
+
+// Read like WhatsApp: customer messages count as unread until the chat is opened; an answer from the phone means
+// the chat was read there; opening a group under one GSI number reads it under every number.
+func TestUnreadClearsOnReadAndPhoneReply(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	cust, t0 := wa.UserJID("6285700004321"), time.Now().Add(-time.Hour)
+	for i, txt := range []string{"pagi", "stok IPC ada?"} {
+		if _, err := in.Process(ctx, wa.Message{ID: "U" + string(rune('1'+i)), Account: andi, ChatJID: cust, FromNumber: "6285700004321", Text: txt, Time: t0.Add(time.Duration(i) * time.Minute)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := count(t, st, "select unread from chat_threads where wa_jid = $1 and account = $2", cust, andi); n != 2 {
+		t.Fatalf("unread %d, want 2", n)
+	}
+	if _, err := in.Process(ctx, wa.Message{ID: "U3", Account: andi, ChatJID: cust, FromNumber: andi, FromMe: true, Text: "ada pak", Time: t0.Add(3 * time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	if n := count(t, st, "select unread from chat_threads where wa_jid = $1 and account = $2", cust, andi); n != 0 {
+		t.Fatalf("answered from the phone, still %d unread", n)
+	}
+
+	g := "120363041100000077@g.us"
+	for _, acc := range []string{andi, dewi} {
+		if _, err := in.Process(ctx, wa.Message{ID: "G1", Account: acc, ChatJID: g, IsGroup: true, FromNumber: "6281100001001", FromName: "Donny", Text: "PO masuk", Time: t0}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := count(t, st, "select count(*) from chat_threads where wa_jid = $1 and unread > 0", g); n != 2 {
+		t.Fatalf("%d group threads unread, want 2", n)
+	}
+	var id uuid.UUID
+	if err := st.Pool.QueryRow(ctx, "select id from chat_threads where wa_jid = $1 and account = $2", g, andi).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Q.MarkThreadRead(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	if n := count(t, st, "select count(*) from chat_threads where wa_jid = $1 and unread > 0", g); n != 0 {
+		t.Fatalf("group read under one number, %d copies still unread", n)
+	}
+}

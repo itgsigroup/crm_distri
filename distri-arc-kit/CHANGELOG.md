@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Status dibaca di Chat · 2026-10-15
+- Membuka chat langsung menghapus jumlah pesan belum dibaca di daftar, chip "Belum dibaca", badge menu Chat, dan badge per nomor.
+- Sebelumnya hitungan bisa kembali/tertahan: daftar chat memakai ulang query yang dimulai sebelum status baca tersimpan (perbaikan performa pagi ini). Kini setiap perubahan lewat API memaksa query baru.
+- Grup yang dipegang beberapa nomor GSI: dibaca di satu nomor = terbaca di semua nomor.
+- Membalas dari HP (chat pribadi) menandai chat sudah dibaca, seperti WhatsApp.
+- Belum: membaca di HP *tanpa* membalas belum menghapus hitungan di Orbit (butuh event baca dari wa-bridge — `docs/OPEN-QUESTIONS.md`).
+
 ## Feat · Teruskan pesan · 2026-10-15
 - Menu bubble di Chat → **Teruskan**: pilih hingga 5 chat tujuan (bisa dicari). Pesan dikirim dari nomor masing-masing chat tujuan.
 - Teks diteruskan apa adanya. Foto, video, audio, dan dokumen diambil dari WhatsApp lalu dikirim ulang beserta keterangannya. Polling, lokasi, kontak, dan stiker diteruskan dari HP.
