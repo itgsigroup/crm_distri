@@ -5,7 +5,7 @@ import type { MessageView } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { useThreads } from '../../app/queries'
-import { matchThread } from './inbox'
+import { displayTitle, matchThread } from './inbox'
 import { mediaCaption, mediaName } from './bubble'
 
 /** At most this many conversations per forward, like WhatsApp's limit on forwarding. */
@@ -61,7 +61,7 @@ export function ForwardSheet({ m, from }: { m: MessageView; from: string }) {
             return (
               <button key={t.id} type="button" role="option" aria-selected={on} className={`fwd-row${on ? ' is-on' : ''}`} disabled={!on && picked.length >= MAX_FORWARD} onClick={() => toggle(t.id)}>
                 <span className="fwd-check">{on && <Icon name="check" />}</span>
-                <span className="fwd-who"><b>{t.title}</b><small>{[t.subtitle, t.account_label && `via ${t.account_label}`].filter(Boolean).join(' · ')}</small></span>
+                <span className="fwd-who"><b>{displayTitle(t)}</b><small>{[t.subtitle, t.account_label && `via ${t.account_label}`].filter(Boolean).join(' · ')}</small></span>
               </button>
             )
           })}

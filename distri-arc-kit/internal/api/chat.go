@@ -70,6 +70,7 @@ type ThreadView struct {
 	Kind          string          `json:"kind"`
 	Title         string          `json:"title"`
 	Subtitle      string          `json:"subtitle"`
+	PhoneName     string          `json:"phone_name,omitempty"` // what the phone saved for this number ("Pak Yohanes")
 	DealerID      string          `json:"dealer_id,omitempty"`
 	DealerName    string          `json:"dealer_name,omitempty"`
 	Sales         string          `json:"sales"`
@@ -202,6 +203,9 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		v := ThreadView{ID: t.ID, Kind: kind, Title: deref(t.Title), Subtitle: deref(t.Subtitle), DealerID: deref(t.DealerSlug), DealerName: deref(t.DealerName),
 			Sales: deref(t.SalesName), LastMessageAt: t.LastMessageAt, Unread: t.Unread, LastBody: llm.MaskCredentials(deref(t.LastBody)), Tag: t.Tag, GroupKind: deref(t.GroupKind),
 			Account: deref(t.Account), AccountLabel: t.AccountLabel, AccountTeam: t.AccountTeam, ContactType: t.ContactType, LastDirection: deref(t.LastDirection), WaitingSince: timeOrNil(t.WaitingSince)}
+		if kind != "group" {
+			v.PhoneName = deref(t.PhoneName)
+		}
 		if t.LastFrom != nil && kind == "group" {
 			v.LastFrom = *t.LastFrom
 		}
@@ -555,7 +559,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"thread": map[string]any{
-		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "dealer_id": deref(t.DealerSlug),
+		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "phone_name": deref(t.PhoneName), "dealer_id": deref(t.DealerSlug),
 		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
 		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
 		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "branch": t.ThreadBranch, "contact_type": t.ContactType, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),

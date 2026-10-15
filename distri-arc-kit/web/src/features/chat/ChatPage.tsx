@@ -10,7 +10,7 @@ import { fmtRp, hhmm, shortDate, wib, sowText } from '../../lib/format'
 import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
 import { useOrch } from '../../app/orch'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf, teamName } from './Connect'
-import { countFilters, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
+import { countFilters, displayTitle, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
 import { AttachMenu, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
 import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 import { ForwardSheet } from './Forward'
@@ -124,7 +124,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
             <span className={`av ${c.kind === 'group' ? 'grp' : ''}`}>{c.kind === 'group' ? <Icon name="people" /> : initials(c)}</span>
             <div className="ibr-m">
               <div className="ibr-top">
-                <b>{c.title}</b>
+                <b>{displayTitle(c)}</b>
                 {c.kind === 'group' && <span className="ibr-tag grp">{c.group_kind === 'external' ? 'GRUP PELANGGAN' : 'GRUP'}</span>}
                 {c.contact_type === 'supplier' && <span className="ibr-tag grp">PEMASOK</span>}
                 <Waiting since={c.waiting_since} now={now} />
@@ -582,7 +582,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         <button className="back" onClick={onBack} aria-label="Kembali"><Icon name="arrow" /></button>
         <span className={`av ${t.kind === 'group' ? 'grp' : ''}`}>{t.kind === 'group' ? <Icon name="people" /> : initials(t)}</span>
         <div className="ibc-who">
-          <div className="ibc-name"><b>{t.title}</b>{t.subtitle && <span className="ibr-src">≈ {t.subtitle}</span>}</div>
+          <div className="ibc-name"><b>{displayTitle(t)}</b>{t.subtitle && <span className="ibr-src">≈ {t.subtitle}</span>}</div>
           <div className="ibc-sub">
             {t.phone && <span className="ibc-phone">{fmtPhone(t.phone)}</span>}
             {links.map((l) => <a key={l.key} className="ibc-link" href={l.href} target="_blank" rel="noreferrer noopener">{l.label}</a>)}
@@ -820,7 +820,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
           <>
             <div className="ibp-who">
               <span className={`av ${group ? 'grp' : ''}`}>{group ? <Icon name="people" /> : initials(t)}</span>
-              <div><b>{t.title}</b><span>{d ? `Dealer tier ${d.tier} · ${d.city}` : group ? groupLabel : 'Pelanggan WhatsApp'}</span></div>
+              <div><b>{displayTitle(t)}</b><span>{d ? `Dealer tier ${d.tier} · ${d.city}` : group ? groupLabel : 'Pelanggan WhatsApp'}</span></div>
             </div>
             <Kv rows={[
               ['Telepon', t.phone ? fmtPhone(t.phone) : null],

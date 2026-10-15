@@ -286,6 +286,8 @@ export interface ThreadView {
   kind: 'dealer' | 'group' | 'new'
   title: string
   subtitle: string
+  /** the name the linked phone saved for this number ("Pak Yohanes"), shown with the master name */
+  phone_name?: string
   dealer_id?: string
   dealer_name?: string
   sales: string
@@ -365,7 +367,7 @@ export interface MsgAnalysis {
   cycle_number?: number
 }
 export interface ThreadDetail {
-  thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; dealer_id: string; sales: string; sales_wa: string; account_label: string; account_masked: string; suggestions: string[] | null; tag: Tag | null; unread: number
+  thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; phone_name?: string; dealer_id: string; sales: string; sales_wa: string; account_label: string; account_masked: string; suggestions: string[] | null; tag: Tag | null; unread: number
     /** the contact's number of a one-to-one chat */
     phone?: string; dealer_code?: string; dealer_city?: string; waiting_since?: string | null
     /** when the bubbles were last analysed (null: never) */

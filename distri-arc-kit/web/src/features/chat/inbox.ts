@@ -58,9 +58,18 @@ export function dropHonorific(q: string): string {
   return f.join(' ')
 }
 
-export function matchThread(t: Pick<ThreadView, 'title' | 'subtitle' | 'last_body'>, q: string): boolean {
+export function matchThread(t: Pick<ThreadView, 'title' | 'subtitle' | 'last_body' | 'phone_name'>, q: string): boolean {
   const s = searchKey(dropHonorific(q))
-  return !s || searchKey(`${t.title} ${t.subtitle} ${t.last_body}`).includes(s)
+  return !s || searchKey(`${t.phone_name ?? ''} ${t.title} ${t.subtitle} ${t.last_body}`).includes(s)
+}
+
+/** The conversation's name as the phone knows it, then the master name, matched on the number: "Pak Yohanes -
+ * JOHANNES YUDHAYANTO". Only the master name when the phone saved none, or the same name. */
+export function displayTitle(t: { title: string; phone_name?: string }): string {
+  const p = t.phone_name?.trim()
+  if (!p) return t.title
+  if (t.title.toLocaleLowerCase('id-ID').includes(p.toLocaleLowerCase('id-ID'))) return t.title // the same name
+  return `${p} - ${t.title}`
 }
 
 /** "12 mnt", "21 jam 44 mnt", "3 hr 2 jam" since the customer's unanswered message; tone grows with the wait. */
