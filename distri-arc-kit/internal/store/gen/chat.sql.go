@@ -176,10 +176,9 @@ func (q *Queries) DealerOpenInvoiceList(ctx context.Context, dealerID *uuid.UUID
 	return items, nil
 }
 
-const deleteChatMessageByWAID = `-- name: DeleteChatMessageByWAID :one
+const deleteChatMessageByWAID = `-- name: DeleteChatMessageByWAID :many
 update chat_messages m set deleted_at = $1::timestamptz
-from chat_message_keys k
-where k.wa_msg_id = $2::text and m.id = k.message_id and m.sent_at = k.sent_at and m.deleted_at is null
+where m.wa_msg_id = $2::text and m.deleted_at is null
 returning m.id, m.thread_id
 `
 
@@ -193,12 +192,25 @@ type DeleteChatMessageByWAIDRow struct {
 	ThreadID *uuid.UUID `json:"thread_id"`
 }
 
-// A WhatsApp delete-for-everyone of a stored message (customer, phone or Chat).
-func (q *Queries) DeleteChatMessageByWAID(ctx context.Context, arg DeleteChatMessageByWAIDParams) (DeleteChatMessageByWAIDRow, error) {
-	row := q.db.QueryRow(ctx, deleteChatMessageByWAID, arg.DeletedAt, arg.WaMsgID)
-	var i DeleteChatMessageByWAIDRow
-	err := row.Scan(&i.ID, &i.ThreadID)
-	return i, err
+// A WhatsApp delete-for-everyone of a stored message (customer, phone or Chat), in every copy.
+func (q *Queries) DeleteChatMessageByWAID(ctx context.Context, arg DeleteChatMessageByWAIDParams) ([]DeleteChatMessageByWAIDRow, error) {
+	rows, err := q.db.Query(ctx, deleteChatMessageByWAID, arg.DeletedAt, arg.WaMsgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DeleteChatMessageByWAIDRow{}
+	for rows.Next() {
+		var i DeleteChatMessageByWAIDRow
+		if err := rows.Scan(&i.ID, &i.ThreadID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const deleteInternalNumber = `-- name: DeleteInternalNumber :exec
@@ -252,10 +264,9 @@ func (q *Queries) DropPendingBubble(ctx context.Context, proposalID *uuid.UUID) 
 	return err
 }
 
-const editChatMessageByWAID = `-- name: EditChatMessageByWAID :one
+const editChatMessageByWAID = `-- name: EditChatMessageByWAID :many
 update chat_messages m set body = $1::text, edited_at = $2::timestamptz
-from chat_message_keys k
-where k.wa_msg_id = $3::text and m.id = k.message_id and m.sent_at = k.sent_at
+where m.wa_msg_id = $3::text
 returning m.id, m.thread_id
 `
 
@@ -270,12 +281,25 @@ type EditChatMessageByWAIDRow struct {
 	ThreadID *uuid.UUID `json:"thread_id"`
 }
 
-// A WhatsApp edit of a stored message (customer, phone or Chat): the new text replaces the old one.
-func (q *Queries) EditChatMessageByWAID(ctx context.Context, arg EditChatMessageByWAIDParams) (EditChatMessageByWAIDRow, error) {
-	row := q.db.QueryRow(ctx, editChatMessageByWAID, arg.Body, arg.EditedAt, arg.WaMsgID)
-	var i EditChatMessageByWAIDRow
-	err := row.Scan(&i.ID, &i.ThreadID)
-	return i, err
+// A WhatsApp edit of a stored message (customer, phone or Chat): the new text replaces the old one in every copy.
+func (q *Queries) EditChatMessageByWAID(ctx context.Context, arg EditChatMessageByWAIDParams) ([]EditChatMessageByWAIDRow, error) {
+	rows, err := q.db.Query(ctx, editChatMessageByWAID, arg.Body, arg.EditedAt, arg.WaMsgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []EditChatMessageByWAIDRow{}
+	for rows.Next() {
+		var i EditChatMessageByWAIDRow
+		if err := rows.Scan(&i.ID, &i.ThreadID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const editQueuedReply = `-- name: EditQueuedReply :one
@@ -945,7 +969,7 @@ func (q *Queries) InsertAIDraftOrder(ctx context.Context, arg InsertAIDraftOrder
 const insertChatMessage = `-- name: InsertChatMessage :one
 with k as (
   insert into chat_message_keys (wa_msg_id, message_id, sent_at)
-  values (coalesce($2::text, 'local:' || gen_random_uuid()), gen_random_uuid(), $14::timestamptz)
+  values (coalesce($14::text, $2::text, 'local:' || gen_random_uuid()), gen_random_uuid(), $15::timestamptz)
   on conflict (wa_msg_id) do nothing
   returning message_id, sent_at
 )
@@ -971,10 +995,12 @@ type InsertChatMessageParams struct {
 	ProposalID *uuid.UUID      `json:"proposal_id"`
 	Internal   bool            `json:"internal"`
 	QuotedWaID *string         `json:"quoted_wa_id"`
+	MsgKey     *string         `json:"msg_key"`
 	SentAt     time.Time       `json:"sent_at"`
 }
 
 // chat_message_keys keeps wa_msg_id unique across monthly partitions; a known id inserts nothing (no rows).
+// msg_key overrides the key: a 1:1 chat between two linked GSI numbers holds one copy per number ("<id>@<account>").
 func (q *Queries) InsertChatMessage(ctx context.Context, arg InsertChatMessageParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, insertChatMessage,
 		arg.ThreadID,
@@ -990,6 +1016,7 @@ func (q *Queries) InsertChatMessage(ctx context.Context, arg InsertChatMessagePa
 		arg.ProposalID,
 		arg.Internal,
 		arg.QuotedWaID,
+		arg.MsgKey,
 		arg.SentAt,
 	)
 	var id uuid.UUID
@@ -1895,6 +1922,21 @@ func (q *Queries) MarkThreadRead(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const messageHolderAccount = `-- name: MessageHolderAccount :one
+select coalesce(t.account, '')::text from chat_message_keys k
+join chat_messages m on m.id = k.message_id and m.sent_at = k.sent_at
+join chat_threads t on t.id = m.thread_id
+where k.wa_msg_id = $1::text
+`
+
+// The linked GSI number whose thread holds the message stored under this WhatsApp id.
+func (q *Queries) MessageHolderAccount(ctx context.Context, waMsgID string) (string, error) {
+	row := q.db.QueryRow(ctx, messageHolderAccount, waMsgID)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const messagesByWAIDs = `-- name: MessagesByWAIDs :many
 select m.id, k.wa_msg_id, m.thread_id, m.direction, m.from_name, m.body, m.media, m.deleted_at
 from chat_message_keys k join chat_messages m on m.id = k.message_id and m.sent_at = k.sent_at
@@ -2128,9 +2170,7 @@ func (q *Queries) SetChatMessageMedia(ctx context.Context, arg SetChatMessageMed
 
 const setChatMessageMediaRef = `-- name: SetChatMessageMediaRef :exec
 update chat_messages m set media = $1::jsonb
-from chat_message_keys k
-where k.wa_msg_id = $2::text and m.id = k.message_id and m.sent_at = k.sent_at
-  and (m.media is null or m.media->>'ref' is null)
+where m.wa_msg_id = $2::text and (m.media is null or m.media->>'ref' is null)
 `
 
 type SetChatMessageMediaRefParams struct {
@@ -2139,6 +2179,7 @@ type SetChatMessageMediaRefParams struct {
 }
 
 // A message stored before media references were kept gets one when WhatsApp delivers it again (history sync).
+// By chat_messages.wa_msg_id: every copy of the message (one per linked GSI number in a 1:1 chat).
 func (q *Queries) SetChatMessageMediaRef(ctx context.Context, arg SetChatMessageMediaRefParams) error {
 	_, err := q.db.Exec(ctx, setChatMessageMediaRef, arg.Media, arg.WaMsgID)
 	return err
@@ -2505,7 +2546,11 @@ func (q *Queries) TouchThread(ctx context.Context, arg TouchThreadParams) error 
 
 const updateChatMessageSent = `-- name: UpdateChatMessageSent :exec
 with k as (
-  update chat_message_keys set wa_msg_id = $1::text, sent_at = $3::timestamptz
+  update chat_message_keys set wa_msg_id = case
+      when exists (select 1 from chat_message_keys o where o.wa_msg_id = $1::text and o.message_id <> $5::uuid)
+      then $1::text || '@' || coalesce((select t.account from chat_messages m join chat_threads t on t.id = m.thread_id where m.id = $5::uuid limit 1), '')
+      else $1::text end,
+    sent_at = $3::timestamptz
   where message_id = $5::uuid
 )
 update chat_messages set wa_msg_id = $1::text, status = $2::text, sent_at = $3::timestamptz,
@@ -2522,6 +2567,8 @@ type UpdateChatMessageSentParams struct {
 	ID      uuid.UUID `json:"id"`
 }
 
+// The other linked GSI number may have stored the message already (a 1:1 chat between two of them): this copy is
+// then keyed "<id>@<account>", as ingest keys it.
 func (q *Queries) UpdateChatMessageSent(ctx context.Context, arg UpdateChatMessageSentParams) error {
 	_, err := q.db.Exec(ctx, updateChatMessageSent,
 		arg.WaMsgID,

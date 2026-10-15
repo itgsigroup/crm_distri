@@ -204,7 +204,21 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			dir = "out"
 		}
 		id := m.ID
-		msgID, err := q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, QuotedWaID: strp(m.QuotedID), SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && m.IsGroup})
+		mp := gen.InsertChatMessageParams{ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, QuotedWaID: strp(m.QuotedID), SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && m.IsGroup}
+		msgID, err := q.InsertChatMessage(ctx, mp)
+		if errors.Is(err, pgx.ErrNoRows) && !m.IsGroup {
+			// a 1:1 chat between two linked GSI numbers: both phones carry the same WhatsApp id (one sent it, the
+			// other received it). The number that stored it first must not hide it from the other one's Chat
+			// (15 Oct: Catharina → Granike stood only in Catharina's thread); this number keeps its own copy.
+			holder, herr := q.MessageHolderAccount(ctx, id)
+			if herr != nil && !errors.Is(herr, pgx.ErrNoRows) {
+				return herr
+			}
+			if herr == nil && holder != account {
+				mp.MsgKey = strp(id + "@" + account)
+				msgID, err = q.InsertChatMessage(ctx, mp)
+			}
+		}
 		if errors.Is(err, pgx.ErrNoRows) {
 			res.Reason = DropDuplicate
 			if m.Media.Viewable() {
@@ -287,37 +301,49 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 // edit applies a WhatsApp edit (the customer's, one made on the phone, or one sent from Chat) to the stored message.
 // Idempotent: the same edit twice leaves the same text.
 func (in *Ingestor) edit(ctx context.Context, m Message) (Result, error) {
-	row, err := in.st.Q.EditChatMessageByWAID(ctx, gen.EditChatMessageByWAIDParams{Body: strings.TrimSpace(m.Text), EditedAt: m.Time, WaMsgID: m.EditOf})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Result{Reason: DropEditUnknown}, nil
-	}
+	rows, err := in.st.Q.EditChatMessageByWAID(ctx, gen.EditChatMessageByWAIDParams{Body: strings.TrimSpace(m.Text), EditedAt: m.Time, WaMsgID: m.EditOf})
 	if err != nil {
 		return Result{}, err
 	}
-	res := Result{Stored: true}
-	if row.ThreadID != nil {
-		res.ThreadID = *row.ThreadID
-		err = events.Notify(ctx, in.st.Pool, "chat_message", map[string]string{"thread_id": row.ThreadID.String()})
+	threads := make([]*uuid.UUID, len(rows))
+	for i, r := range rows {
+		threads[i] = r.ThreadID
 	}
-	return res, err
+	return in.touched(ctx, threads)
+}
+
+// touched tells the browsers about every thread an edit or delete changed (each copy of a message).
+func (in *Ingestor) touched(ctx context.Context, threads []*uuid.UUID) (Result, error) {
+	if len(threads) == 0 {
+		return Result{Reason: DropEditUnknown}, nil
+	}
+	res := Result{Stored: true}
+	for _, t := range threads {
+		if t == nil {
+			continue
+		}
+		if res.ThreadID == uuid.Nil {
+			res.ThreadID = *t
+		}
+		if err := events.Notify(ctx, in.st.Pool, "chat_message", map[string]string{"thread_id": t.String()}); err != nil {
+			return res, err
+		}
+	}
+	return res, nil
 }
 
 // revoke applies a WhatsApp delete-for-everyone to the stored message ("Pesan ini dihapus"); the text stays for the
 // audit trail. Idempotent.
 func (in *Ingestor) revoke(ctx context.Context, m Message) (Result, error) {
-	row, err := in.st.Q.DeleteChatMessageByWAID(ctx, gen.DeleteChatMessageByWAIDParams{DeletedAt: m.Time, WaMsgID: m.RevokeOf})
-	if errors.Is(err, pgx.ErrNoRows) {
-		return Result{Reason: DropEditUnknown}, nil
-	}
+	rows, err := in.st.Q.DeleteChatMessageByWAID(ctx, gen.DeleteChatMessageByWAIDParams{DeletedAt: m.Time, WaMsgID: m.RevokeOf})
 	if err != nil {
 		return Result{}, err
 	}
-	res := Result{Stored: true}
-	if row.ThreadID != nil {
-		res.ThreadID = *row.ThreadID
-		err = events.Notify(ctx, in.st.Pool, "chat_message", map[string]string{"thread_id": row.ThreadID.String()})
+	threads := make([]*uuid.UUID, len(rows))
+	for i, r := range rows {
+		threads[i] = r.ThreadID
 	}
-	return res, err
+	return in.touched(ctx, threads)
 }
 
 // ProcessStatus records a number's connection state and tells the browsers. A new link (Chat → + Nomor) is pending

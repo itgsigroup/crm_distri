@@ -156,9 +156,10 @@ where t.id = $1 and x.unread <> 0 and (x.id = t.id or (t.kind = 'group' and x.wa
 
 -- name: InsertChatMessage :one
 -- chat_message_keys keeps wa_msg_id unique across monthly partitions; a known id inserts nothing (no rows).
+-- msg_key overrides the key: a 1:1 chat between two linked GSI numbers holds one copy per number ("<id>@<account>").
 with k as (
   insert into chat_message_keys (wa_msg_id, message_id, sent_at)
-  values (coalesce(sqlc.narg(wa_msg_id)::text, 'local:' || gen_random_uuid()), gen_random_uuid(), sqlc.arg(sent_at)::timestamptz)
+  values (coalesce(sqlc.narg(msg_key)::text, sqlc.narg(wa_msg_id)::text, 'local:' || gen_random_uuid()), gen_random_uuid(), sqlc.arg(sent_at)::timestamptz)
   on conflict (wa_msg_id) do nothing
   returning message_id, sent_at
 )
@@ -170,8 +171,14 @@ from k
 returning id;
 
 -- name: UpdateChatMessageSent :exec
+-- The other linked GSI number may have stored the message already (a 1:1 chat between two of them): this copy is
+-- then keyed "<id>@<account>", as ingest keys it.
 with k as (
-  update chat_message_keys set wa_msg_id = sqlc.narg(wa_msg_id)::text, sent_at = sqlc.arg(sent_at)::timestamptz
+  update chat_message_keys set wa_msg_id = case
+      when exists (select 1 from chat_message_keys o where o.wa_msg_id = sqlc.narg(wa_msg_id)::text and o.message_id <> sqlc.arg(id)::uuid)
+      then sqlc.narg(wa_msg_id)::text || '@' || coalesce((select t.account from chat_messages m join chat_threads t on t.id = m.thread_id where m.id = sqlc.arg(id)::uuid limit 1), '')
+      else sqlc.narg(wa_msg_id)::text end,
+    sent_at = sqlc.arg(sent_at)::timestamptz
   where message_id = sqlc.arg(id)::uuid
 )
 update chat_messages set wa_msg_id = sqlc.narg(wa_msg_id)::text, status = sqlc.arg(status)::text, sent_at = sqlc.arg(sent_at)::timestamptz,
@@ -423,16 +430,14 @@ update chat_threads set history_done_at = sqlc.arg(at)::timestamptz where id = s
 
 -- name: SetChatMessageMediaRef :exec
 -- A message stored before media references were kept gets one when WhatsApp delivers it again (history sync).
+-- By chat_messages.wa_msg_id: every copy of the message (one per linked GSI number in a 1:1 chat).
 update chat_messages m set media = sqlc.arg(media)::jsonb
-from chat_message_keys k
-where k.wa_msg_id = sqlc.arg(wa_msg_id)::text and m.id = k.message_id and m.sent_at = k.sent_at
-  and (m.media is null or m.media->>'ref' is null);
+where m.wa_msg_id = sqlc.arg(wa_msg_id)::text and (m.media is null or m.media->>'ref' is null);
 
--- name: EditChatMessageByWAID :one
--- A WhatsApp edit of a stored message (customer, phone or Chat): the new text replaces the old one.
+-- name: EditChatMessageByWAID :many
+-- A WhatsApp edit of a stored message (customer, phone or Chat): the new text replaces the old one in every copy.
 update chat_messages m set body = sqlc.arg(body)::text, edited_at = sqlc.arg(edited_at)::timestamptz
-from chat_message_keys k
-where k.wa_msg_id = sqlc.arg(wa_msg_id)::text and m.id = k.message_id and m.sent_at = k.sent_at
+where m.wa_msg_id = sqlc.arg(wa_msg_id)::text
 returning m.id, m.thread_id;
 
 -- name: GetThreadMessage :one
@@ -458,12 +463,18 @@ select m.id, k.wa_msg_id, m.thread_id, m.direction, m.from_name, m.body, m.media
 from chat_message_keys k join chat_messages m on m.id = k.message_id and m.sent_at = k.sent_at
 where k.wa_msg_id = any(sqlc.arg(ids)::text[]);
 
--- name: DeleteChatMessageByWAID :one
--- A WhatsApp delete-for-everyone of a stored message (customer, phone or Chat).
+-- name: DeleteChatMessageByWAID :many
+-- A WhatsApp delete-for-everyone of a stored message (customer, phone or Chat), in every copy.
 update chat_messages m set deleted_at = sqlc.arg(deleted_at)::timestamptz
-from chat_message_keys k
-where k.wa_msg_id = sqlc.arg(wa_msg_id)::text and m.id = k.message_id and m.sent_at = k.sent_at and m.deleted_at is null
+where m.wa_msg_id = sqlc.arg(wa_msg_id)::text and m.deleted_at is null
 returning m.id, m.thread_id;
+
+-- name: MessageHolderAccount :one
+-- The linked GSI number whose thread holds the message stored under this WhatsApp id.
+select coalesce(t.account, '')::text from chat_message_keys k
+join chat_messages m on m.id = k.message_id and m.sent_at = k.sent_at
+join chat_threads t on t.id = m.thread_id
+where k.wa_msg_id = sqlc.arg(wa_msg_id)::text;
 
 -- name: SetChatMessageDeleted :exec
 update chat_messages set deleted_at = sqlc.arg(deleted_at)::timestamptz where id = sqlc.arg(id)::uuid;

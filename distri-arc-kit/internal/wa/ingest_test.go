@@ -195,6 +195,95 @@ func TestGroupMessagesShownOnEveryNumber(t *testing.T) {
 	}
 }
 
+// A 1:1 chat between two linked GSI numbers that are not internal numbers: the sender's phone and the receiver's phone
+// carry the same WhatsApp id, and each number's Chat shows the message (15 Oct: Catharina → Granike reached only
+// Catharina's thread). Re-delivery stores nothing new; an edit and a delete reach both copies.
+func TestDMBetweenLinkedNumbersShownOnBoth(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	if _, err := st.Pool.Exec(ctx, "delete from internal_numbers where wa_number in ($1, $2)", andi, dewi); err != nil {
+		t.Fatal(err)
+	}
+	t0 := time.Now().Add(-time.Hour)
+	out := wa.Message{ID: "LD1", Account: andi, ChatJID: wa.UserJID(dewi), FromMe: true, FromNumber: andi, FromName: "Andi", Text: "stok 4MP masih?", Time: t0}
+	in1 := wa.Message{ID: "LD1", Account: dewi, ChatJID: wa.UserJID(andi), FromNumber: andi, FromName: "Andi", Text: "stok 4MP masih?", Time: t0}
+	for i, m := range []wa.Message{out, in1, out, in1} {
+		r, err := in.Process(ctx, m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := i < 2; r.Stored != want {
+			t.Fatalf("message %d: stored=%v want %v (%s)", i, r.Stored, want, r.Reason)
+		}
+	}
+	for acc, dir := range map[string]string{andi: "out", dewi: "in"} {
+		if n := count(t, st, `select count(*) from chat_messages m join chat_threads t on t.id = m.thread_id
+			where m.wa_msg_id = 'LD1' and t.account = $1 and m.direction = $2`, acc, dir); n != 1 {
+			t.Errorf("number %s: %d copies, want 1", acc, n)
+		}
+	}
+	if n := count(t, st, "select count(*) from chat_threads where account = $1 and wa_jid = $2 and unread = 1", dewi, wa.UserJID(andi)); n != 1 {
+		t.Error("receiver's thread did not count the message as unread")
+	}
+
+	// the edit and the delete arrive on both phones; every copy follows
+	edit := wa.Message{ID: "LD1E", Account: dewi, ChatJID: wa.UserJID(andi), FromNumber: andi, Text: "stok 5MP masih?", EditOf: "LD1", Time: t0.Add(time.Minute)}
+	if r, err := in.Process(ctx, edit); err != nil || !r.Stored {
+		t.Fatalf("edit: %+v %v", r, err)
+	}
+	if n := count(t, st, "select count(*) from chat_messages where wa_msg_id = 'LD1' and body = 'stok 5MP masih?'"); n != 2 {
+		t.Errorf("edit reached %d copies, want 2", n)
+	}
+	if r, err := in.Process(ctx, wa.Message{ID: "LD1R", Account: andi, ChatJID: wa.UserJID(dewi), FromMe: true, RevokeOf: "LD1", Time: t0.Add(2 * time.Minute)}); err != nil || !r.Stored {
+		t.Fatalf("revoke: %+v %v", r, err)
+	}
+	if n := count(t, st, "select count(*) from chat_messages where wa_msg_id = 'LD1' and deleted_at is not null"); n != 2 {
+		t.Errorf("delete reached %d copies, want 2", n)
+	}
+}
+
+// A reply sent from Chat to another linked GSI number whose phone delivered it first: the queued bubble still becomes
+// "sent" under its own key, and the sender phone's echo adds nothing.
+func TestSentFromChatAfterOtherNumberStoredIt(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	if _, err := st.Pool.Exec(ctx, "delete from internal_numbers where wa_number in ($1, $2)", andi, dewi); err != nil {
+		t.Fatal(err)
+	}
+	t0 := time.Now().Add(-time.Hour)
+	if _, err := in.Process(ctx, wa.Message{ID: "LD0", Account: andi, ChatJID: wa.UserJID(dewi), FromNumber: dewi, Text: "halo", Time: t0}); err != nil {
+		t.Fatal(err)
+	}
+	var thread uuid.UUID
+	if err := st.Pool.QueryRow(ctx, "select id from chat_threads where account = $1 and wa_jid = $2", andi, wa.UserJID(dewi)).Scan(&thread); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := in.Process(ctx, wa.Message{ID: "LD2", Account: dewi, ChatJID: wa.UserJID(andi), FromNumber: andi, Text: "siap", Time: t0.Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	pending, dir := "pending:LD2", "out"
+	mid, err := st.Q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &thread, WaMsgID: &pending, Direction: &dir, Body: strp("siap"), SentAt: t0.Add(time.Minute), Status: "pending"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sent := "LD2"
+	if err := st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &sent, Status: "sent", SentAt: t0.Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	if n := count(t, st, "select count(*) from chat_messages where id = $1 and status = 'sent' and wa_msg_id = 'LD2'", mid); n != 1 {
+		t.Fatal("queued bubble did not become sent")
+	}
+	r, err := in.Process(ctx, wa.Message{ID: "LD2", Account: andi, ChatJID: wa.UserJID(dewi), FromMe: true, FromNumber: andi, Text: "siap", Time: t0.Add(time.Minute)})
+	if err != nil || r.Stored {
+		t.Fatalf("echo: %+v %v", r, err)
+	}
+	if n := count(t, st, "select count(*) from chat_messages where wa_msg_id = 'LD2'"); n != 2 {
+		t.Errorf("%d copies, want one per number", n)
+	}
+}
+
+func strp(s string) *string { return &s }
+
 // ADR 0029: a media message keeps its download reference (never the file); a message stored before that gets it when
 // history delivers it again; a WhatsApp edit replaces the stored text.
 func TestMediaReferenceAndEdits(t *testing.T) {
