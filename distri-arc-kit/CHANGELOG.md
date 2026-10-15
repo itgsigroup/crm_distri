@@ -1,6 +1,14 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Menu di daftar chat: sematkan chat, label, tandai belum dibaca / belum dibalas · 2026-10-15
+- Setiap kartu chat di daftar punya menu ⌄ (muncul saat kursor di atas kartu, atau klik kanan), seperti WhatsApp:
+  - **Sematkan chat** / Lepas sematan: chat naik ke paling atas daftar Anda dengan ikon 📌 (per pengguna, maksimal 3 seperti WhatsApp).
+  - **Label chat**: pilih atau buat label langsung dari daftar.
+  - **Tandai belum dibaca** (badge muncul lagi sampai chat dibuka; chat yang sedang terbuka ditutup) / Tandai sudah dibaca.
+  - **Tandai belum dibalas** (masuk filter "Belum dibalas" dan menunggu sampai ada balasan terkirim) / **Tandai sudah dibalas** (pesan pelanggan sampai saat itu dianggap terjawab). Hanya untuk chat pribadi.
+- Migrasi 0040; setiap tanda tercatat di audit.
+
 ## Feat · Sematkan pesan & Label chat · 2026-10-15
 - **Sematkan pesan** (menu bubble → Sematkan): maksimal 3 per chat, sematan ke-4 menggantikan yang paling lama, seperti WhatsApp. Bilah di atas percakapan menampilkan pesan yang disematkan; klik untuk melompat ke pesannya (juga yang lama), × untuk melepas. Bubble yang disematkan bertanda 📌. Sematan hanya untuk tim di GSI Orbit — tidak dikirim ke WhatsApp/HP pelanggan.
 - **Label** seperti WhatsApp Business: label bawaan Pelanggan baru, Pesanan baru, Menunggu pembayaran, Sudah dibayar, Pesanan selesai (migrasi 0039). Pasang di **chat** (tombol label di kepala chat → tampil di daftar chat dan bisa difilter lewat "Label") dan di **pesan** (menu bubble → Label → tampil di bawah bubble). Label baru bisa dibuat siapa pun di Chat; menghapus label hanya admin.

@@ -253,6 +253,14 @@ type ChatThread struct {
 	HistoryTries     int32           `json:"history_tries"`
 	HistoryDoneAt    *time.Time      `json:"history_done_at"`
 	PhoneName        *string         `json:"phone_name"`
+	UnrepliedMark    *time.Time      `json:"unreplied_mark"`
+	RepliedMark      *time.Time      `json:"replied_mark"`
+}
+
+type ChatThreadPin struct {
+	UserID   uuid.UUID `json:"user_id"`
+	Conv     string    `json:"conv"`
+	PinnedAt time.Time `json:"pinned_at"`
 }
 
 type Commitment struct {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hasLabel, labelsOf, nextPin, pinLine } from './chatLabels'
+import { hasLabel, labelsOf, nextPin, pinLine, pinnedFirst } from './chatLabels'
 
 const all = [
   { id: 'a', name: 'Pelanggan baru', color: '#34B7F1', chats: 2 },
@@ -22,5 +22,9 @@ describe('pins and labels', () => {
     expect(nextPin(0, 0)).toBe(0)
     expect(pinLine({ body: 'Harga\n\nkamera  4MP', from_name: '', direction: 'in' })).toBe('Harga kamera 4MP')
     expect(pinLine({ body: '', media: { kind: 'image', viewable: true }, from_name: '', direction: 'in' })).toBe('[image]')
+  })
+  it('puts pinned chats on top, last pinned first', () => {
+    const l = [{ id: 'a' }, { id: 'b', pinned_at: '2026-10-15T08:00:00Z' }, { id: 'c' }, { id: 'd', pinned_at: '2026-10-15T09:00:00Z' }]
+    expect(pinnedFirst(l).map((t) => t.id)).toEqual(['d', 'b', 'a', 'c'])
   })
 })

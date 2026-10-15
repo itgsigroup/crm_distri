@@ -194,9 +194,14 @@ select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, 
   lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
   -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply;
   -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
-                               and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
+  -- marked by hand (migration 0040): "sudah dibalas" answers what came before it; "belum dibalas" waits until a reply
+  coalesce(
+    (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
+       and m.sent_at > greatest(coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                                 and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz), coalesce(t.replied_mark, '-infinity'::timestamptz))),
+    case when t.unreplied_mark is not null and t.unreplied_mark > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'
+                                 and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz) then t.unreplied_mark end
+  ) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -225,9 +230,14 @@ select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, 
   coalesce(nullif(d.branch, ''), s.branch, '')::text as thread_branch,
   coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
   -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
-                               and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
+  -- marked by hand (migration 0040): "sudah dibalas" answers what came before it; "belum dibalas" waits until a reply
+  coalesce(
+    (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
+       and m.sent_at > greatest(coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                                 and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz), coalesce(t.replied_mark, '-infinity'::timestamptz))),
+    case when t.unreplied_mark is not null and t.unreplied_mark > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'
+                                 and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz) then t.unreplied_mark end
+  ) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -578,3 +588,27 @@ where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.i
                       where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
   and m.deleted_at is null and m.body ilike sqlc.arg(pattern)::text escape '\'
 order by m.sent_at desc limit sqlc.arg(lim);
+
+-- name: MarkThreadUnread :exec
+-- "Tandai belum dibaca": the chat shows a count again until it is opened.
+update chat_threads set unread = greatest(unread, 1) where id = $1;
+
+-- name: MarkThreadUnreplied :exec
+update chat_threads set unreplied_mark = sqlc.arg(at)::timestamptz, replied_mark = null where id = sqlc.arg(id)::uuid;
+
+-- name: MarkThreadReplied :exec
+update chat_threads set replied_mark = sqlc.arg(at)::timestamptz, unreplied_mark = null where id = sqlc.arg(id)::uuid;
+
+-- name: UserThreadPins :many
+-- The chats a person pinned to the top of their list, last pinned first.
+select conv, pinned_at from chat_thread_pins where user_id = $1 order by pinned_at desc;
+
+-- name: PinThread :exec
+insert into chat_thread_pins (user_id, conv) values (sqlc.arg(user_id)::uuid, sqlc.arg(conv)::text)
+on conflict (user_id, conv) do update set pinned_at = now();
+
+-- name: UnpinThread :exec
+delete from chat_thread_pins where user_id = $1 and conv = $2;
+
+-- name: CountThreadPins :one
+select count(*)::int from chat_thread_pins where user_id = $1;

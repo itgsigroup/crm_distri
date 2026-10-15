@@ -139,6 +139,17 @@ func (q *Queries) CountSentToday(ctx context.Context, arg CountSentTodayParams) 
 	return column_1, err
 }
 
+const countThreadPins = `-- name: CountThreadPins :one
+select count(*)::int from chat_thread_pins where user_id = $1
+`
+
+func (q *Queries) CountThreadPins(ctx context.Context, userID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, countThreadPins, userID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const dealerOpenInvoiceList = `-- name: DealerOpenInvoiceList :many
 select id, number, due_at, (total - coalesce(paid, 0))::bigint as residual from invoices
 where dealer_id = $1 and total > coalesce(paid, 0) and state <> 'cancel' order by due_at
@@ -508,15 +519,20 @@ func (q *Queries) GetSalesByNumber(ctx context.Context, waNumber *string) (Sales
 }
 
 const getThread = `-- name: GetThread :one
-select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
+select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, t.unreplied_mark, t.replied_mark, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
   coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
   coalesce(nullif(d.branch, ''), s.branch, '')::text as thread_branch,
   coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
   -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
-                               and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
+  -- marked by hand (migration 0040): "sudah dibalas" answers what came before it; "belum dibalas" waits until a reply
+  coalesce(
+    (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
+       and m.sent_at > greatest(coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                                 and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz), coalesce(t.replied_mark, '-infinity'::timestamptz))),
+    case when t.unreplied_mark is not null and t.unreplied_mark > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'
+                                 and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz) then t.unreplied_mark end
+  ) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -547,6 +563,8 @@ type GetThreadRow struct {
 	HistoryTries     int32           `json:"history_tries"`
 	HistoryDoneAt    *time.Time      `json:"history_done_at"`
 	PhoneName        *string         `json:"phone_name"`
+	UnrepliedMark    *time.Time      `json:"unreplied_mark"`
+	RepliedMark      *time.Time      `json:"replied_mark"`
 	DealerSlug       *string         `json:"dealer_slug"`
 	DealerName       *string         `json:"dealer_name"`
 	SalesName        *string         `json:"sales_name"`
@@ -587,6 +605,8 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 		&i.HistoryTries,
 		&i.HistoryDoneAt,
 		&i.PhoneName,
+		&i.UnrepliedMark,
+		&i.RepliedMark,
 		&i.DealerSlug,
 		&i.DealerName,
 		&i.SalesName,
@@ -604,7 +624,7 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 }
 
 const getThreadByAccountJID = `-- name: GetThreadByAccountJID :one
-select id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at, phone_name from chat_threads where wa_jid = $1 and account is not distinct from $2
+select id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at, phone_name, unreplied_mark, replied_mark from chat_threads where wa_jid = $1 and account is not distinct from $2
 `
 
 type GetThreadByAccountJIDParams struct {
@@ -638,6 +658,8 @@ func (q *Queries) GetThreadByAccountJID(ctx context.Context, arg GetThreadByAcco
 		&i.HistoryTries,
 		&i.HistoryDoneAt,
 		&i.PhoneName,
+		&i.UnrepliedMark,
+		&i.RepliedMark,
 	)
 	return i, err
 }
@@ -1329,7 +1351,7 @@ values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 on conflict (seed_key) do update set title = excluded.title, subtitle = excluded.subtitle, tag = excluded.tag,
   suggestions = excluded.suggestions, identification = excluded.identification, unread = excluded.unread,
   dealer_id = excluded.dealer_id, contact_id = excluded.contact_id, group_id = excluded.group_id
-returning id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at, phone_name
+returning id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at, phone_name, unreplied_mark, replied_mark
 `
 
 type InsertThreadParams struct {
@@ -1391,6 +1413,8 @@ func (q *Queries) InsertThread(ctx context.Context, arg InsertThreadParams) (Cha
 		&i.HistoryTries,
 		&i.HistoryDoneAt,
 		&i.PhoneName,
+		&i.UnrepliedMark,
+		&i.RepliedMark,
 	)
 	return i, err
 }
@@ -1690,16 +1714,21 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 }
 
 const listThreads = `-- name: ListThreads :many
-select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
+select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, t.unreplied_mark, t.replied_mark, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
   coalesce(n.label, s.name, t.account) as account_label, coalesce(n.team, 'sales')::text as account_team,
   coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
   -- a group's last message may have been stored under another GSI number's thread of the same group
   lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
   -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply;
   -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
-  (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
-     and m.sent_at > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
-                               and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz)) as waiting_since
+  -- marked by hand (migration 0040): "sudah dibalas" answers what came before it; "belum dibalas" waits until a reply
+  coalesce(
+    (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
+       and m.sent_at > greatest(coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
+                                 and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz), coalesce(t.replied_mark, '-infinity'::timestamptz))),
+    case when t.unreplied_mark is not null and t.unreplied_mark > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'
+                                 and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz) then t.unreplied_mark end
+  ) as waiting_since
 from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
@@ -1741,6 +1770,8 @@ type ListThreadsRow struct {
 	HistoryTries     int32           `json:"history_tries"`
 	HistoryDoneAt    *time.Time      `json:"history_done_at"`
 	PhoneName        *string         `json:"phone_name"`
+	UnrepliedMark    *time.Time      `json:"unreplied_mark"`
+	RepliedMark      *time.Time      `json:"replied_mark"`
 	DealerSlug       *string         `json:"dealer_slug"`
 	DealerName       *string         `json:"dealer_name"`
 	SalesName        *string         `json:"sales_name"`
@@ -1787,6 +1818,8 @@ func (q *Queries) ListThreads(ctx context.Context, since time.Time) ([]ListThrea
 			&i.HistoryTries,
 			&i.HistoryDoneAt,
 			&i.PhoneName,
+			&i.UnrepliedMark,
+			&i.RepliedMark,
 			&i.DealerSlug,
 			&i.DealerName,
 			&i.SalesName,
@@ -1985,6 +2018,44 @@ where t.id = $1 and x.unread <> 0 and (x.id = t.id or (t.kind = 'group' and x.wa
 // A group is one conversation for every GSI number in it: reading it reads it under each number.
 func (q *Queries) MarkThreadRead(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, markThreadRead, id)
+	return err
+}
+
+const markThreadReplied = `-- name: MarkThreadReplied :exec
+update chat_threads set replied_mark = $1::timestamptz, unreplied_mark = null where id = $2::uuid
+`
+
+type MarkThreadRepliedParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+func (q *Queries) MarkThreadReplied(ctx context.Context, arg MarkThreadRepliedParams) error {
+	_, err := q.db.Exec(ctx, markThreadReplied, arg.At, arg.ID)
+	return err
+}
+
+const markThreadUnread = `-- name: MarkThreadUnread :exec
+update chat_threads set unread = greatest(unread, 1) where id = $1
+`
+
+// "Tandai belum dibaca": the chat shows a count again until it is opened.
+func (q *Queries) MarkThreadUnread(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markThreadUnread, id)
+	return err
+}
+
+const markThreadUnreplied = `-- name: MarkThreadUnreplied :exec
+update chat_threads set unreplied_mark = $1::timestamptz, replied_mark = null where id = $2::uuid
+`
+
+type MarkThreadUnrepliedParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+func (q *Queries) MarkThreadUnreplied(ctx context.Context, arg MarkThreadUnrepliedParams) error {
+	_, err := q.db.Exec(ctx, markThreadUnreplied, arg.At, arg.ID)
 	return err
 }
 
@@ -2202,6 +2273,21 @@ func (q *Queries) PendingOutboxIDs(ctx context.Context) ([]uuid.UUID, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const pinThread = `-- name: PinThread :exec
+insert into chat_thread_pins (user_id, conv) values ($1::uuid, $2::text)
+on conflict (user_id, conv) do update set pinned_at = now()
+`
+
+type PinThreadParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Conv   string    `json:"conv"`
+}
+
+func (q *Queries) PinThread(ctx context.Context, arg PinThreadParams) error {
+	_, err := q.db.Exec(ctx, pinThread, arg.UserID, arg.Conv)
+	return err
 }
 
 const purgeOutgoingFiles = `-- name: PurgeOutgoingFiles :execrows
@@ -2701,6 +2787,20 @@ func (q *Queries) TouchThread(ctx context.Context, arg TouchThreadParams) error 
 	return err
 }
 
+const unpinThread = `-- name: UnpinThread :exec
+delete from chat_thread_pins where user_id = $1 and conv = $2
+`
+
+type UnpinThreadParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Conv   string    `json:"conv"`
+}
+
+func (q *Queries) UnpinThread(ctx context.Context, arg UnpinThreadParams) error {
+	_, err := q.db.Exec(ctx, unpinThread, arg.UserID, arg.Conv)
+	return err
+}
+
 const updateChatMessageSent = `-- name: UpdateChatMessageSent :exec
 with k as (
   update chat_message_keys set wa_msg_id = case
@@ -2923,4 +3023,34 @@ func (q *Queries) UpsertWANumber(ctx context.Context, arg UpsertWANumberParams) 
 		arg.UserID,
 	)
 	return err
+}
+
+const userThreadPins = `-- name: UserThreadPins :many
+select conv, pinned_at from chat_thread_pins where user_id = $1 order by pinned_at desc
+`
+
+type UserThreadPinsRow struct {
+	Conv     string    `json:"conv"`
+	PinnedAt time.Time `json:"pinned_at"`
+}
+
+// The chats a person pinned to the top of their list, last pinned first.
+func (q *Queries) UserThreadPins(ctx context.Context, userID uuid.UUID) ([]UserThreadPinsRow, error) {
+	rows, err := q.db.Query(ctx, userThreadPins, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []UserThreadPinsRow{}
+	for rows.Next() {
+		var i UserThreadPinsRow
+		if err := rows.Scan(&i.Conv, &i.PinnedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

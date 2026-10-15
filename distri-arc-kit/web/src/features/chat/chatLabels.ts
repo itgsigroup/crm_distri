@@ -27,3 +27,9 @@ export function pinLine(p: Pick<ChatPin, 'body' | 'media' | 'from_name' | 'direc
   const text = p.body.replace(/\s+/g, ' ').trim() || (p.media ? `[${p.media.kind}]` : '')
   return text.length > 90 ? text.slice(0, 89) + '…' : text
 }
+
+/** The chat list with the chats this person pinned on top (last pinned first), the rest in their order. */
+export function pinnedFirst<T extends { pinned_at?: string }>(list: T[]): T[] {
+  const pinned = list.filter((t) => t.pinned_at).sort((a, b) => (b.pinned_at ?? '').localeCompare(a.pinned_at ?? ''))
+  return pinned.length ? [...pinned, ...list.filter((t) => !t.pinned_at)] : list
+}

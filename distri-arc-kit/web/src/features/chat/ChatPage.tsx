@@ -16,7 +16,8 @@ import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, forwardabl
 import { ForwardSheet } from './Forward'
 import { ChatSearch, Marked } from './ChatSearch'
 import { LabelChips, LabelSheet, PinnedBar, useChatLabels } from './Labels'
-import { hasLabel } from './chatLabels'
+import { hasLabel, pinnedFirst } from './chatLabels'
+import { ChatRowMenu } from './ChatRowMenu'
 import type { ChatHit } from './findInChat'
 
 
@@ -60,9 +61,11 @@ const FILTER_ICONS: Record<Filter, string> = {
   all: 'chat', unread: 'bell', unreplied: 'send', dealer: 'building', group_internal: 'people', group_external: 'net', new: 'spark', supplier: 'box',
 }
 
-function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }: {
+function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, onLeave }: {
   list: ThreadView[]; loaded: boolean; filter: Filter; setFilter: (f: Filter) => void; account: string; active?: string; onPick: (id: string) => void
+  onLeave: () => void
 }) {
+  const [menu, setMenu] = useState<string | null>(null)
   const { data: wa } = useWAStatus()
   const now = useNow()
   const qc = useQueryClient()
@@ -95,7 +98,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
   })
   const base = deep && found ? found : list
   // the open conversation stays in "Belum dibaca" / "Belum dibalas" after reading or answering it, as in WhatsApp
-  const shown = base.filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && (deep && found ? true : matchThread(t, q)) && hasLabel(t, label))
+  const shown = pinnedFirst(base).filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && (deep && found ? true : matchThread(t, q)) && hasLabel(t, label))
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['chat'] })
     qc.invalidateQueries({ queryKey: ['wa'] })
@@ -132,7 +135,8 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
         {deep && searching && <div className="chat-none">Mencari di semua chat…</div>}
         {loaded && shown.length === 0 && !(deep && searching) && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"${deep ? ' di semua chat Orbit — chat lama di HP yang belum pernah berbalas pesan sejak nomor ditautkan belum ada di sini' : ''}` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
         {shown.map((c) => (
-          <button key={c.id} className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
+          <div key={c.id} className={`ibr-w${menu === c.id ? ' menu-open' : ''}`} onContextMenu={(e) => { e.preventDefault(); setMenu(c.id) }}>
+          <button className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
             <span className={`av ${c.kind === 'group' ? 'grp' : ''}`}>{c.kind === 'group' ? <Icon name="people" /> : initials(c)}</span>
             <div className="ibr-m">
               <div className="ibr-top">
@@ -147,10 +151,15 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
             </div>
             <div className="ibr-rt">
               <span>{timeLabel(c.last_message_at, now)}</span>
-              {c.unread > 0 && <span className="un">{c.unread > 99 ? '99+' : c.unread}</span>}
+              <span className="ibr-marks">
+                {c.pinned_at && <Icon name="pin" className="i ibr-pin" />}
+                {c.unread > 0 && <span className="un">{c.unread > 99 ? '99+' : c.unread}</span>}
+              </span>
               {!account && <span className="via">via {(c.account_label || c.sales).replace(/^Nomor\s+/, '')}</span>}
             </div>
           </button>
+          <ChatRowMenu t={c} open={menu === c.id} setOpen={(v) => setMenu(v ? c.id : null)} onLeave={() => { if (c.id === active) onLeave() }} />
+          </div>
         ))}
       </div>
     </div>
@@ -1125,7 +1134,7 @@ export function ChatPage() {
   return (
     <div className={`chat multi komo ${threadId ? 'show-thread' : ''} ${active ? 'with-lead' : ''} ${active && !lead ? 'lead-mini' : ''}`}>
       {rail}
-      <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)} />
+      <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)} onLeave={() => nav('/chat')} />
       {active && <LeadPane key={'l' + active} id={active} mini={!lead} setMini={(v) => setLead(!v)} onAccurate={accurate} />}
       {active ? <ThreadPane key={active} id={active} picked={!!threadId} onBack={() => nav('/chat')} lead={lead} setLead={setLead} onAccurate={accurate} /> : <div className="pane th-pane" />}
     </div>

@@ -48,6 +48,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Post("/internal-numbers", s.addInternalNumber)
 	r.Delete("/internal-numbers/{wa}", s.deleteInternalNumber)
 	s.chatLabelRoutes(r)
+	s.chatListRoutes(r)
 	r.Get("/wa/groups", s.waGroups)
 	r.Patch("/wa/groups/{id}", s.patchWAGroup)
 	r.Get("/wa/status", s.waStatus)
@@ -94,6 +95,8 @@ type ThreadView struct {
 	WaitingSince *time.Time `json:"waiting_since"`
 	// Labels: the conversation's labels (WhatsApp Business), shown on the row and filterable
 	Labels []uuid.UUID `json:"labels,omitempty"`
+	// PinnedAt: the person pinned this chat to the top of their list
+	PinnedAt *time.Time `json:"pinned_at,omitempty"`
 }
 
 // timeOrNil reads a nullable timestamp sqlc could not type (min/max over a subquery).
@@ -191,7 +194,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	labels := s.labelsByConv(r)
+	labels, pins := s.labelsByConv(r), s.threadPins(r)
 	out := []ThreadView{}
 	for _, t := range rows {
 		kind := deref(t.Kind)
@@ -213,7 +216,11 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		if kind != "group" {
 			v.PhoneName = deref(t.PhoneName)
 		}
-		v.Labels = labels[convKey(t.Kind, t.WaJid, t.ID)]
+		conv := convKey(t.Kind, t.WaJid, t.ID)
+		v.Labels = labels[conv]
+		if at, ok := pins[conv]; ok {
+			v.PinnedAt = &at
+		}
 		if t.LastFrom != nil && kind == "group" {
 			v.LastFrom = *t.LastFrom
 		}

@@ -1379,3 +1379,14 @@ body.map-maximized{overflow:hidden}
 .lbl-colors{display:flex;gap:5px}
 .lbl-colors button{width:20px;height:20px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer}
 .lbl-colors button.on{border-color:var(--text);box-shadow:0 0 0 2px var(--surface) inset}
+
+/* Chat list → row menu (⌄ / right click): sematkan chat, label, tandai belum dibaca / belum dibalas */
+.ibr-w{position:relative}
+.ibr-marks{display:flex;align-items:center;gap:4px;justify-content:flex-end}
+.ibr-pin{width:13px;height:13px;color:var(--text-3)}
+.ibr-menu{position:absolute;right:10px;bottom:8px;z-index:4}
+.ibr-menu-btn{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;border:0;background:var(--surface);color:var(--text-2);box-shadow:0 1px 3px rgba(0,0,0,.12);opacity:0;transition:opacity .12s;cursor:pointer}
+.ibr-menu-btn .i{width:14px;height:14px}
+.ibr-w:hover .ibr-menu-btn,.ibr-menu.open .ibr-menu-btn,.ibr-menu-btn:focus-visible{opacity:1}
+@media (hover:none){.ibr-menu-btn{opacity:.85}}
+.ibr-menu-list{right:0;left:auto;top:28px;min-width:210px}

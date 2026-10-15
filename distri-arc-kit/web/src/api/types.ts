@@ -307,6 +307,8 @@ export interface ThreadView {
   waiting_since?: string | null
   /** the conversation's labels (ChatLabel ids) */
   labels?: string[]
+  /** pinned to the top of this person's list */
+  pinned_at?: string
 }
 export interface Annotation { k: string; t: string; act?: string }
 export interface MessageView {

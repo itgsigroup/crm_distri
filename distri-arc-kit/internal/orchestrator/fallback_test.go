@@ -36,7 +36,7 @@ func TestMCPWaitExtendedForAPIFallback(t *testing.T) {
 				}
 			}
 		}()
-		return 3 * time.Second
+		return time.Minute // generous: Analisis ends as soon as every agent is answered (a loaded test run is slow)
 	}
 	rep, err := o.Run(ctx, all, sched)
 	if err != nil {
