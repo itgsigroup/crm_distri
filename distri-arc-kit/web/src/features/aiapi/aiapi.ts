@@ -5,7 +5,9 @@ import type { UsageTotals } from '../claude/usage'
 export type ProviderID = 'claude' | 'openai'
 export type Fallback = 'off' | ProviderID
 
-export interface AIProvider { id: ProviderID; label: string; key_source: '' | 'ui' | 'env'; key_hint: string; model: string; models: { id: string; label: string }[] }
+/** in_usd / out_usd: price per million tokens; null when unknown. live: the provider lists it for the saved key. */
+export interface ModelEntry { id: string; label: string; in_usd: number | null; out_usd: number | null; live: boolean }
+export interface AIProvider { id: ProviderID; label: string; key_source: '' | 'ui' | 'env'; key_hint: string; model: string; models: ModelEntry[] }
 export interface UsageDay { day: string; provider: string; calls: number; tokens_in: number; tokens_out: number; cost_idr: number }
 export interface UsageModel extends UsageTotals { provider: string; model: string; last_at: string }
 export interface FallbackRun { id: string; schedule: string; status: string; engine: string; model: string; tokens_in: number; tokens_out: number; cost_idr: number; error: string | null; started_at: string; finished_at: string | null }
@@ -21,7 +23,7 @@ export interface AIAPIInfo {
   can_configure: boolean
   usage: { totals: Record<'today' | 'd7' | 'd30' | 'month', UsageTotals>; by_model: UsageModel[]; daily: UsageDay[] }
   runs: FallbackRun[]
-  prices: Record<string, { in_usd_per_mtok: number; out_usd_per_mtok: number }>
+  /** costs are stored in rupiah (llm_calls.cost_idr); the page shows dollars at this rate */
   idr_per_usd: number
 }
 
@@ -85,3 +87,27 @@ export function fallbackText(info: Pick<AIAPIInfo, 'fallback' | 'ready' | 'provi
   if (!info.ready && info.daily_budget_idr > 0 && info.spent_today_idr >= info.daily_budget_idr) return `${name} berhenti hari ini: anggaran harian sudah terpakai.`
   return `Aktif — bila Claude lewat MCP belum menjawab dalam ${waitLabel(info.mcp_wait_sec)}, ${name} di server mengerjakan sisanya.`
 }
+
+/** A cost in dollars from rupiah: "$0", "<$0.01", "$0.42", "$12.30", "$1,250". */
+export function usd(idr: number, rate: number): string {
+  const v = rate > 0 ? idr / rate : 0
+  if (v === 0) return '$0'
+  if (v < 0.01) return '<$0.01'
+  if (v >= 1000) return '$' + Math.round(v).toLocaleString('en-US')
+  return '$' + v.toFixed(2)
+}
+
+/** A price per million tokens: "$4", "$0.10", "$1.25". */
+export function price(v: number | null): string {
+  if (v == null) return '?'
+  return '$' + (Number.isInteger(v) ? String(v) : v.toFixed(2))
+}
+
+/** "Claude Opus 5.5 · $4 / $20" — a model with its input / output price per million tokens. */
+export function modelOption(m: ModelEntry): string {
+  const label = m.label || m.id
+  return m.in_usd == null ? `${label} · harga ?` : `${label} · ${price(m.in_usd)} / ${price(m.out_usd)}`
+}
+
+/** Daily budget choices in dollars (stored in rupiah at the rate). */
+export const BUDGET_USD = [1, 2, 3, 5, 10, 20, 50, 0]

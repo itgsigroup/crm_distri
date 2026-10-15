@@ -27,6 +27,13 @@ func TestAIAPIPage(t *testing.T) {
 	if _, err := seed.Run(ctx, st, db.Seed); err != nil {
 		t.Fatal(err)
 	}
+	analyst.ListLive = func(_ context.Context, provider, _ string) ([]analyst.ModelInfo, error) {
+		if provider == analyst.FallbackOpenAI {
+			return []analyst.ModelInfo{{ID: "gpt-5"}, {ID: "gpt-5.1", Label: "GPT-5.1"}, {ID: "gpt-4.1-2025-04-14"}}, nil
+		}
+		return nil, nil
+	}
+	t.Cleanup(func() { analyst.ListLive = nil })
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	c := clock.Fixed(time.Date(2026, 10, 15, 9, 0, 0, 0, clock.WIB))
 	reject := func(err error) func(context.Context, string) error {
@@ -71,10 +78,31 @@ func TestAIAPIPage(t *testing.T) {
 	if code, out := sendJSON(t, "PUT", base+"/key/openai", ceo, map[string]any{"api_key": "sk-proj-good-000000000000000wxyz"}); code != 200 || out["key_hint"] != "sk-proj…wxyz" {
 		t.Fatalf("key %d %v", code, out)
 	}
-	if code, out := sendJSON(t, "PUT", base, ceo, map[string]any{"fallback": "openai", "openai_model": "gpt-5-mini"}); code != 200 || out["fallback"] != "openai" || out["ready"] != true {
+	if code, out := sendJSON(t, "PUT", base, ceo, map[string]any{"fallback": "openai", "openai_model": "gpt-5.1"}); code != 200 || out["fallback"] != "openai" || out["ready"] != true {
 		t.Fatalf("config %d %v", code, out)
 	}
-	if code, _ := sendJSON(t, "PUT", base, ceo, map[string]any{"openai_model": "gpt-9"}); code != 400 {
+	// with a key the list holds every chat model OpenAI returns, after the known ones; a dated copy of a listed model
+	// is left out; an unknown price stays unknown
+	_, info = sendJSON(t, "GET", base, ceo, nil)
+	var ids []string
+	var unknown string
+	for _, p := range info["providers"].([]any) {
+		pm := p.(map[string]any)
+		if pm["id"] != "openai" {
+			continue
+		}
+		for _, m := range pm["models"].([]any) {
+			mm := m.(map[string]any)
+			ids = append(ids, mm["id"].(string))
+			if mm["id"] == "gpt-5.1" && mm["in_usd"] == nil {
+				unknown = "ok"
+			}
+		}
+	}
+	if j := strings.Join(ids, ","); !strings.HasPrefix(j, "gpt-5,") || !strings.HasSuffix(j, ",gpt-5.1") || strings.Contains(j, "2025") || unknown != "ok" {
+		t.Fatalf("openai models %s (unknown price %q)", j, unknown)
+	}
+	if code, _ := sendJSON(t, "PUT", base, ceo, map[string]any{"openai_model": "llama-3; drop"}); code != 400 {
 		t.Fatalf("unknown model accepted: %d", code)
 	}
 	if code, _ := sendJSON(t, "DELETE", base+"/key/openai", ceo, nil); code != http.StatusNoContent {

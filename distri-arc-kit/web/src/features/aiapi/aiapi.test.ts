@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { modelLabel } from '../claude/usage'
-import { byProvider, dailyBars, fallbackText, providerOf, type AIProvider } from './aiapi'
+import { byProvider, dailyBars, fallbackText, modelOption, providerOf, usd, type AIProvider } from './aiapi'
 
 const providers: AIProvider[] = [
   { id: 'claude', label: 'Claude API', key_source: '', key_hint: '', model: 'claude-opus-5-5', models: [] },
@@ -35,6 +35,19 @@ describe('API & model AI', () => {
     expect(bars.map((b) => b.day)).toEqual(['2026-10-13', '2026-10-14', '2026-10-15'])
     expect(bars[2]).toEqual({ day: '2026-10-15', claude: 200, openai: 50, other: 0, total: 250 })
     expect(bars[0].total).toBe(0)
+  })
+
+  it('shows costs in dollars', () => {
+    expect(usd(0, 16500)).toBe('$0')
+    expect(usd(50, 16500)).toBe('<$0.01')
+    expect(usd(16500 * 12.3, 16500)).toBe('$12.30')
+    expect(usd(16500 * 1250, 16500)).toBe('$1,250')
+  })
+
+  it('lists a model with its price per million tokens', () => {
+    expect(modelOption({ id: 'claude-opus-5-5', label: 'Claude Opus 5.5', in_usd: 4, out_usd: 20, live: false })).toBe('Claude Opus 5.5 · $4 / $20')
+    expect(modelOption({ id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5', in_usd: 0.1, out_usd: 0.5, live: true })).toBe('Claude Haiku 5.5 · $0.10 / $0.50')
+    expect(modelOption({ id: 'gpt-5.1', label: '', in_usd: null, out_usd: null, live: true })).toBe('gpt-5.1 · harga ?')
   })
 
   it('names ChatGPT models', () => {

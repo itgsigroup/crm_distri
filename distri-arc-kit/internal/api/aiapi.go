@@ -35,12 +35,12 @@ func (s *Server) aiAPIRoutes(r chi.Router) {
 }
 
 type aiProvider struct {
-	ID        string              `json:"id"` // claude | openai
-	Label     string              `json:"label"`
-	KeySource string              `json:"key_source"` // ui | env | ""
-	KeyHint   string              `json:"key_hint"`
-	Model     string              `json:"model"`
-	Models    []analyst.ModelInfo `json:"models"`
+	ID        string               `json:"id"` // claude | openai
+	Label     string               `json:"label"`
+	KeySource string               `json:"key_source"` // ui | env | ""
+	KeyHint   string               `json:"key_hint"`
+	Model     string               `json:"model"`
+	Models    []analyst.ModelEntry `json:"models"`
 }
 
 type aiUsageDay struct {
@@ -71,8 +71,8 @@ func (s *Server) aiAPIInfo(w http.ResponseWriter, r *http.Request) {
 		return analyst.KeyHint(k)
 	}
 	providers := []aiProvider{
-		{ID: analyst.FallbackClaude, Label: "Claude API", KeySource: csrc, KeyHint: hint(ck), Model: cfg.Model, Models: analyst.Models},
-		{ID: analyst.FallbackOpenAI, Label: "ChatGPT API", KeySource: okSrc, KeyHint: hint(ok), Model: cfg.OpenAIModel, Models: analyst.OpenAIModels},
+		{ID: analyst.FallbackClaude, Label: "Claude API", KeySource: csrc, KeyHint: hint(ck), Model: cfg.Model, Models: analyst.ModelList(ctx, analyst.FallbackClaude, ck)},
+		{ID: analyst.FallbackOpenAI, Label: "ChatGPT API", KeySource: okSrc, KeyHint: hint(ok), Model: cfg.OpenAIModel, Models: analyst.ModelList(ctx, analyst.FallbackOpenAI, ok)},
 	}
 	ready, _, _ := analyst.FallbackReady(ctx, s.st.Q, now, s.secret(), s.cfg.AnthropicKey, s.cfg.OpenAIKey)
 	spent, _ := s.st.Q.AnalystCostSince(ctx, today)
@@ -113,16 +113,12 @@ func (s *Server) aiAPIInfo(w http.ResponseWriter, r *http.Request) {
 		fail(err)
 		return
 	}
-	prices := map[string]map[string]float64{}
-	for m, p := range llm.Prices {
-		prices[m] = map[string]float64{"in_usd_per_mtok": p.In, "out_usd_per_mtok": p.Out}
-	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"fallback": cfg.Fallback, "daily_budget_idr": cfg.DailyBudgetIDR, "spent_today_idr": spent.Cost, "ready": ready,
 		"providers": providers, "mcp_wait_sec": int(s.mcpWait().Seconds()), "fallback_window_sec": int((10 * time.Minute).Seconds()),
 		"can_configure": deref(u.Role) == "ceo",
 		"usage":         map[string]any{"totals": totals, "by_model": models, "daily": daily},
-		"runs":          runs, "prices": prices, "idr_per_usd": llm.IDRPerUSD,
+		"runs":          runs, "idr_per_usd": llm.IDRPerUSD,
 	})
 }
 

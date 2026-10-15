@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -81,23 +82,46 @@ type ModelInfo struct {
 	Label string `json:"label"`
 }
 
-// Models the schedule form offers (prices in llm.Prices).
+// Models: the Claude models GSI Orbit knows, newest tier first (prices in llm.Prices). With a key the page also lists
+// what Anthropic's Models API returns (LiveModels).
 var Models = []ModelInfo{
-	{"claude-opus-5-5", "Claude Opus 5.5 — paling tajam"},
-	{"claude-sonnet-5-5", "Claude Sonnet 5.5 — seimbang"},
-	{"claude-haiku-4-5", "Claude Haiku 4.5 — paling hemat"},
+	{"claude-fable-5-1", "Claude Fable 5.1"},
+	{"claude-fable-5", "Claude Fable 5"},
+	{"claude-opus-5-5", "Claude Opus 5.5"},
+	{"claude-opus-5", "Claude Opus 5"},
+	{"claude-opus-4-8", "Claude Opus 4.8"},
+	{"claude-opus-4-7", "Claude Opus 4.7"},
+	{"claude-opus-4-6", "Claude Opus 4.6"},
+	{"claude-sonnet-5-5", "Claude Sonnet 5.5"},
+	{"claude-sonnet-5", "Claude Sonnet 5"},
+	{"claude-sonnet-4-6", "Claude Sonnet 4.6"},
+	{"claude-haiku-5-5", "Claude Haiku 5.5"},
+	{"claude-haiku-4-5", "Claude Haiku 4.5"},
 }
 
-// OpenAIModels the ChatGPT API may use (prices in llm.Prices).
+// OpenAIModels: the ChatGPT models GSI Orbit knows (prices in llm.Prices). With a key the page lists every chat
+// model OpenAI's Models API returns (LiveModels).
 var OpenAIModels = []ModelInfo{
-	{"gpt-5", "GPT-5 — paling tajam"},
-	{"gpt-5-mini", "GPT-5 mini — hemat"},
+	{"gpt-5", "GPT-5"},
+	{"gpt-5-mini", "GPT-5 mini"},
+	{"gpt-5-nano", "GPT-5 nano"},
 	{"gpt-4.1", "GPT-4.1"},
-	{"gpt-4.1-mini", "GPT-4.1 mini — paling hemat"},
+	{"gpt-4.1-mini", "GPT-4.1 mini"},
+	{"gpt-4.1-nano", "GPT-4.1 nano"},
+	{"gpt-4o", "GPT-4o"},
+	{"gpt-4o-mini", "GPT-4o mini"},
+	{"o3", "o3"},
+	{"o4-mini", "o4-mini"},
 }
+
+// Model ids the provider may name (any model it lists, not only the ones above).
+var (
+	claudeID = regexp.MustCompile(`^claude-[a-z0-9.-]{2,60}$`)
+	openaiID = regexp.MustCompile(`^(gpt-|chatgpt-|o[1-9])[a-z0-9.-]{0,60}$`)
+)
 
 // DefaultConfig applies when the policy row is missing.
-var DefaultConfig = Config{Model: "claude-opus-5-5", OpenAIModel: "gpt-5", Fallback: FallbackOff, DailyBudgetIDR: 50000}
+var DefaultConfig = Config{Model: "claude-opus-5-5", OpenAIModel: "gpt-5", Fallback: FallbackOff, DailyBudgetIDR: 49500} // $3 at Rp16.500
 
 // LoadConfig reads policy mcp.analyst.
 func LoadConfig(ctx context.Context, q *gen.Queries) Config {
@@ -117,18 +141,38 @@ func LoadConfig(ctx context.Context, q *gen.Queries) Config {
 	return c
 }
 
-// ValidOpenAIModel reports whether id is one of OpenAIModels.
-func ValidOpenAIModel(id string) bool {
-	return slices.ContainsFunc(OpenAIModels, func(m ModelInfo) bool { return m.ID == id })
-}
+// ValidOpenAIModel reports whether id is a ChatGPT model id.
+func ValidOpenAIModel(id string) bool { return openaiID.MatchString(id) }
 
 func validFallback(f string) bool {
 	return f == FallbackOff || f == FallbackClaude || f == FallbackOpenAI
 }
 
-// ValidModel reports whether id is one of Models.
-func ValidModel(id string) bool {
-	return slices.ContainsFunc(Models, func(m ModelInfo) bool { return m.ID == id })
+// ValidModel reports whether id is a Claude model id.
+func ValidModel(id string) bool { return claudeID.MatchString(id) }
+
+// adaptiveModel: Claude 4.6 and later think adaptively; older models (Haiku 4.5, Sonnet 4.5, 3.x) take no adaptive
+// thinking parameter and get none.
+var adaptiveModel = regexp.MustCompile(`^claude-(?:opus|sonnet|haiku|fable|mythos)-(\d+)(?:-(\d+))?`)
+
+func adaptiveThinking(id string) bool {
+	m := adaptiveModel.FindStringSubmatch(id)
+	if m == nil {
+		return false
+	}
+	major, minor := atoi(m[1]), atoi(m[2])
+	if minor > 99 { // a date suffix, not a minor version (claude-opus-4-20250514)
+		minor = 0
+	}
+	return major >= 5 || (major == 4 && minor >= 6)
+}
+
+func atoi(s string) int {
+	n := 0
+	for _, c := range s {
+		n = n*10 + int(c-'0')
+	}
+	return n
 }
 
 // SaveConfig writes policy mcp.analyst.
@@ -401,8 +445,10 @@ func (r *Runner) claude(ctx context.Context, cs *sdk.ClientSession, m Model, mod
 		MaxTokens: maxTokens,
 		System:    []anthropic.BetaTextBlockParam{{Text: system, CacheControl: anthropic.NewBetaCacheControlEphemeralParam()}},
 		Tools:     tools,
-		Thinking:  anthropic.BetaThinkingConfigParamUnion{OfAdaptive: &anthropic.BetaThinkingConfigAdaptiveParam{}},
 		Messages:  []anthropic.BetaMessageParam{anthropic.NewBetaUserMessage(anthropic.NewBetaTextBlock(sch.Prompt))},
+	}
+	if adaptiveThinking(model) {
+		p.Thinking = anthropic.BetaThinkingConfigParamUnion{OfAdaptive: &anthropic.BetaThinkingConfigAdaptiveParam{}}
 	}
 	calls := 0
 	for turn := 0; turn < int(sch.MaxSteps)+stepBuffer; turn++ {
@@ -584,7 +630,7 @@ func inputSchema(s any) anthropic.BetaToolInputSchemaParam {
 
 func (r *Runner) record(ctx context.Context, model string, in, out int64, d time.Duration, failed bool) {
 	agent, provider, purpose := AgentName, "anthropic", Purpose
-	if strings.HasPrefix(model, "gpt-") {
+	if !strings.HasPrefix(model, "claude-") {
 		provider = "openai"
 	}
 	if failed {

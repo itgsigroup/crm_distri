@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · API & model AI ringkas, semua model, dalam dolar · 2026-10-15
+- Halaman diringkas: satu kartu **Model API** (opsi kedua, satu baris per API: kunci + model, anggaran harian) dan satu kartu **Biaya token**; riwayat hanya tampil bila API pernah mengambil alih.
+- **Semua model** terdaftar dengan harga per 1 juta token: 12 model Claude (Fable 5.1 … Haiku 4.5) dan 10 model ChatGPT (GPT-5, GPT-5 mini/nano, GPT-4.1 + mini/nano, GPT-4o + mini, o3, o4-mini). Begitu kunci tersimpan, daftar ditambah semua model yang tersedia untuk kunci itu dari Anthropic / OpenAI (model chat saja; harga "?" bila belum diketahui).
+- Biaya, harga, dan anggaran harian ditampilkan dalam **USD** (anggaran bawaan $3/hari).
+- Model Claude sebelum 4.6 (mis. Haiku 4.5) dipanggil tanpa adaptive thinking, yang tidak didukungnya.
+
 ## Feat · API & model AI — Claude API / ChatGPT API sebagai opsi kedua · 2026-10-15
 - Halaman baru **Pengaturan → API & model AI** (menu di bawah MCP Claude): kunci Claude API dan ChatGPT API (diperiksa, disimpan terenkripsi), model masing-masing, pilihan **opsi kedua** (Mati / Claude API / ChatGPT API), anggaran harian, dan **total pembayaran token** — hari ini, 7 hari, bulan ini, 30 hari, per provider, grafik harian, per model — serta riwayat saat API mengambil alih.
 - Urutan analisis: **Claude lewat MCP tetap utama**. Bila Claude belum menjawab siklus Orchestrator dalam `MCP_WAIT` (10 menit), API pilihan di server mengerjakan agen yang tersisa lewat tool MCP yang sama (validasi, masking, provenance sama). Analisa WhatsApp juga dikerjakan API bila routine claude.ai terlambat > 2½ jam.
