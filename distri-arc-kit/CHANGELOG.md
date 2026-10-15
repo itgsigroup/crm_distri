@@ -4,7 +4,9 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 ## Fix · wa-bridge berhenti crash-loop karena antrean riwayat 513 MB · 2026-10-15
 - Sejak 14 Okt 04:48 wa-bridge crash tiap ±27 detik (2.923 kali/24 jam): antrean batch riwayat yang timeout di API membengkak melewati batas string Node dan dibaca sekaligus saat start. Setiap crash = semua HP tertaut reconnect (risiko anti-ban, ADR 0004).
 - Antrean kini dibaca baris per baris; batch riwayat besar mendapat timeout lebih panjang (30 dtk + 20 dtk/MB, maks 3 menit) sehingga tidak masuk antrean berulang-ulang.
-- Isi antrean lama sudah tersimpan di DB (sampel 38/40; 2 sisanya sengaja dibuang: DM antar nomor internal dan pesan > 365 hari); file dipindah ke `/var/lib/distri-arc/wa-bridge-backlog/`, tidak dihapus.
+- Isi antrean lama sudah tersimpan di DB (sampel 38/40; 2 sisanya sengaja dibuang: DM antar nomor internal dan pesan > 365 hari); file backlog dihapus atas persetujuan.
+- Akar masalah: API menyimpan pesan semua nomor dalam satu jalur, sehingga batch riwayat menunggu > 30 dtk saat beberapa nomor sinkron bersamaan; bridge mengirim ulang batch yang sebenarnya tetap diproses (tiap batch tercatat 3×). Kini pesan disimpan paralel dalam 4 jalur per chat (urutan per chat tetap), API berhenti memproses batch yang sudah ditinggal bridge, dan batch riwayat diperkecil 200 → 50 pesan.
+- `deploy.sh` kini menyebut alasan restart wa-bridge (berubah, atau sedang tidak berjalan).
 
 ## Change · Filter chat lebih ringkas · 2026-10-15
 - Chip filter di daftar chat kini berupa ikon + jumlah; chip yang aktif juga menampilkan namanya, nama lengkap muncul saat kursor diarahkan.

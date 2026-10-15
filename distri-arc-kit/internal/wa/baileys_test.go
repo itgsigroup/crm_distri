@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -159,6 +160,42 @@ func TestBaileysEventsAndStatus(t *testing.T) {
 	_ = post(ev, sign(secret, []byte(ev)))
 	if m := (<-b.Events()).Message; m == nil || m.Account != "6281277770000" {
 		t.Fatalf("link message %+v", m)
+	}
+}
+
+// A bridge that gave up waiting (post timeout) queues the batch and posts it again later: the API stops pushing
+// the rest of it, so a slow moment does not store every history batch twice over (14 Oct: 513 MB of re-queued
+// batches).
+func TestWebhookStopsWhenBridgeGivesUp(t *testing.T) {
+	b := startBaileys(t, nil, nil)
+	for range 2 { // statuses announced on start
+		<-b.Events()
+	}
+	var evs []string
+	for i := range 300 { // more than the events buffer, which nobody reads yet
+		evs = append(evs, fmt.Sprintf(`{"wamid":"H%d","session":"6281234504471","from":"6281900300102","chat_id":"6281900300102@s.whatsapp.net","text":"riwayat","timestamp":"2026-10-05T07:00:00Z","is_history":true}`, i))
+	}
+	body := `{"events":[` + strings.Join(evs, ",") + `]}`
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, "POST", "http://"+b.Addr()+"/webhooks/wa", bytes.NewBufferString(body))
+	req.Header.Set("X-ARC-Signature", sign(secret, []byte(body)))
+	if _, err := http.DefaultClient.Do(req); err == nil {
+		t.Fatal("expected the post to time out while the events buffer is full")
+	}
+	time.Sleep(100 * time.Millisecond) // the handler sees the bridge has gone
+	got := 0
+	for {
+		select {
+		case <-b.Events():
+			got++
+			continue
+		case <-time.After(200 * time.Millisecond):
+		}
+		break
+	}
+	if got >= 300 {
+		t.Fatalf("all %d events pushed after the bridge gave up", got)
 	}
 }
 

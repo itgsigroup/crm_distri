@@ -76,8 +76,9 @@ systemctl enable distri-arc-api distri-arc-worker >/dev/null
 if grep -qE '^WA_TRANSPORT=baileys' $ENV_FILE; then
   systemctl enable distri-arc-wa-bridge >/dev/null
   if [[ $BRIDGE_CHANGED == 1 ]] || ! systemctl is-active --quiet distri-arc-wa-bridge; then
+    why=changed; [[ $BRIDGE_CHANGED == 1 ]] || why="was not running — journalctl -u distri-arc-wa-bridge"
     systemctl restart distri-arc-wa-bridge   # sessions are restored from Postgres; phones stay linked
-    echo "deploy: wa-bridge restarted (changed)"
+    echo "deploy: wa-bridge restarted ($why)"
   else
     echo "deploy: wa-bridge unchanged — not restarted, phones stay connected"
   fi

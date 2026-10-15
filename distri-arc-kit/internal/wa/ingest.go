@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"regexp"
 	"strings"
@@ -379,13 +380,48 @@ func (in *Ingestor) ProcessStatus(ctx context.Context, s Status) error {
 	return events.Notify(ctx, in.st.Pool, "wa_status", map[string]string{"account": acc, "session": sess, "state": s.State})
 }
 
+// ingestLanes: messages are stored in parallel, one lane per chat (FNV of the chat JID), so a chat's messages keep
+// their order — an edit or a deletion after its message — while six numbers syncing history do not wait on one
+// another (a single lane made history batches time out at the bridge, 14 Oct).
+const ingestLanes = 4
+
 // Run consumes a transport's events until ctx ends.
 func (in *Ingestor) Run(ctx context.Context, t Transport) {
+	var lanes [ingestLanes]chan Event
+	for i := range lanes {
+		lanes[i] = make(chan Event, 64)
+		go in.lane(ctx, lanes[i])
+	}
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case e := <-t.Events():
+			l := lanes[0] // statuses keep their order on one lane
+			if e.Message != nil {
+				l = lanes[laneOf(e.Message.ChatJID)]
+			}
+			select {
+			case l <- e:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+}
+
+func laneOf(chat string) int {
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(chat))
+	return int(h.Sum32() % ingestLanes)
+}
+
+func (in *Ingestor) lane(ctx context.Context, ch <-chan Event) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case e := <-ch:
 			switch {
 			case e.Message != nil:
 				if r, err := in.Process(ctx, *e.Message); err != nil {

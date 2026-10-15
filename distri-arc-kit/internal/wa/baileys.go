@@ -231,17 +231,32 @@ func (b *Baileys) webhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"json"}`, http.StatusBadRequest)
 		return
 	}
+	// a bridge that gave up waiting queues the batch and posts it again: stop here so it is not stored twice over
+	push := func(e Event) bool {
+		select {
+		case b.events <- e:
+			return true
+		case <-r.Context().Done():
+			return false
+		}
+	}
+	var evs []Event
 	if in.Event != nil {
 		m := in.Event.message()
-		b.events <- Event{Message: &m}
+		evs = append(evs, Event{Message: &m})
 	}
 	for _, e := range in.Events {
 		m := e.message()
-		b.events <- Event{Message: &m}
+		evs = append(evs, Event{Message: &m})
 	}
 	if in.Status != nil {
 		s := in.Status.status()
-		b.events <- Event{Status: &s}
+		evs = append(evs, Event{Status: &s})
+	}
+	for _, e := range evs {
+		if !push(e) {
+			return
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{"ok":true}`))

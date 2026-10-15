@@ -52,6 +52,10 @@ export function historyAllowed(sent: number[], now: number): boolean {
 }
 
 /** "ABCD1234" → "ABCD-1234", as WhatsApp shows it. */
+// History goes to the API in batches small enough to be stored well within the post timeout while several numbers
+// sync at once (200 timed out on 14 Oct, was retried and stored again and again).
+export const HISTORY_BATCH = 50
+
 export const formatPairCode = (c: string) => (c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c)
 
 /** How the phone knows a contact: saved name, verified business name, then their own push name. */
@@ -267,7 +271,7 @@ export class Session implements SendTarget {
       if (history && ts < cutoff) continue // older than history_days: not forwarded to Distri ARC
       if (history) {
         batch.push(ev)
-        if (batch.length === 200) await this.fwd.send({ events: batch.splice(0) })
+        if (batch.length === HISTORY_BATCH) await this.fwd.send({ events: batch.splice(0) })
       } else {
         await this.fwd.send({ event: ev })
       }
