@@ -534,3 +534,37 @@ where id = $1 returning *;
 
 -- name: DeleteReplyRule :execrows
 delete from reply_rules where id = $1;
+
+-- name: LinkedNumberName :one
+-- A number linked to GSI Orbit (no row: not linked) and the name its holder goes by.
+select coalesce(nullif(u.name, ''), nullif(w.label, ''), s.name, '')::text from wa_numbers w
+left join users u on u.id = w.user_id
+left join sales_users s on s.id = w.sales_id
+where w.wa_number = sqlc.arg(wa_number)::text;
+
+-- name: MessageForMirror :one
+-- A stored 1:1 message with the linked GSI number that holds it and the chat it is in.
+select m.wa_msg_id::text as wa_msg_id, coalesce(m.direction, '')::text as direction, coalesce(m.from_number, '')::text as from_number,
+  coalesce(m.from_name, '')::text as from_name, coalesce(m.body, '')::text as body, m.media, coalesce(m.quoted_wa_id, '')::text as quoted_wa_id,
+  m.sent_at, coalesce(t.account, '')::text as account, coalesce(t.wa_jid, '')::text as wa_jid
+from chat_messages m join chat_threads t on t.id = m.thread_id
+where m.id = sqlc.arg(id)::uuid and t.kind <> 'group' and m.wa_msg_id is not null and m.status in ('sent', 'received') and m.deleted_at is null;
+
+-- name: LinkedDMMessages :many
+-- 1:1 messages between two linked GSI numbers since a time (the other number may not hold its copy yet).
+select m.id from chat_messages m join chat_threads t on t.id = m.thread_id
+where m.sent_at >= sqlc.arg(since)::timestamptz and t.kind <> 'group' and m.deleted_at is null
+  and m.wa_msg_id is not null and m.status in ('sent', 'received')
+  and split_part(t.wa_jid, '@', 1) in (select wa_number from wa_numbers)
+order by m.sent_at;
+
+-- name: DropOtherCopies :exec
+-- A reply sent from Chat whose WhatsApp id reached its thread first (the phone's echo, or the copy made from the
+-- other linked GSI number): the queued bubble is the message; the earlier copy in the same thread goes.
+with gone as (
+  delete from chat_messages m
+  using chat_messages me
+  where me.id = sqlc.arg(id)::uuid and m.thread_id = me.thread_id and m.id <> me.id and m.wa_msg_id = sqlc.arg(wa_msg_id)::text
+  returning m.id
+)
+delete from chat_message_keys k using gone where k.message_id = gone.id;

@@ -253,6 +253,28 @@ func (q *Queries) DeleteWANumber(ctx context.Context, waNumber string) error {
 	return err
 }
 
+const dropOtherCopies = `-- name: DropOtherCopies :exec
+with gone as (
+  delete from chat_messages m
+  using chat_messages me
+  where me.id = $1::uuid and m.thread_id = me.thread_id and m.id <> me.id and m.wa_msg_id = $2::text
+  returning m.id
+)
+delete from chat_message_keys k using gone where k.message_id = gone.id
+`
+
+type DropOtherCopiesParams struct {
+	ID      uuid.UUID `json:"id"`
+	WaMsgID string    `json:"wa_msg_id"`
+}
+
+// A reply sent from Chat whose WhatsApp id reached its thread first (the phone's echo, or the copy made from the
+// other linked GSI number): the queued bubble is the message; the earlier copy in the same thread goes.
+func (q *Queries) DropOtherCopies(ctx context.Context, arg DropOtherCopiesParams) error {
+	_, err := q.db.Exec(ctx, dropOtherCopies, arg.ID, arg.WaMsgID)
+	return err
+}
+
 const dropPendingBubble = `-- name: DropPendingBubble :exec
 with gone as (delete from chat_messages where proposal_id = $1 and status = 'pending' and direction = 'out' returning id)
 delete from chat_message_keys k using gone where k.message_id = gone.id
@@ -1492,6 +1514,50 @@ func (q *Queries) LinkWANumber(ctx context.Context, arg LinkWANumberParams) erro
 	return err
 }
 
+const linkedDMMessages = `-- name: LinkedDMMessages :many
+select m.id from chat_messages m join chat_threads t on t.id = m.thread_id
+where m.sent_at >= $1::timestamptz and t.kind <> 'group' and m.deleted_at is null
+  and m.wa_msg_id is not null and m.status in ('sent', 'received')
+  and split_part(t.wa_jid, '@', 1) in (select wa_number from wa_numbers)
+order by m.sent_at
+`
+
+// 1:1 messages between two linked GSI numbers since a time (the other number may not hold its copy yet).
+func (q *Queries) LinkedDMMessages(ctx context.Context, since time.Time) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, linkedDMMessages, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const linkedNumberName = `-- name: LinkedNumberName :one
+select coalesce(nullif(u.name, ''), nullif(w.label, ''), s.name, '')::text from wa_numbers w
+left join users u on u.id = w.user_id
+left join sales_users s on s.id = w.sales_id
+where w.wa_number = $1::text
+`
+
+// A number linked to GSI Orbit (no row: not linked) and the name its holder goes by.
+func (q *Queries) LinkedNumberName(ctx context.Context, waNumber string) (string, error) {
+	row := q.db.QueryRow(ctx, linkedNumberName, waNumber)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const listInternalNumbers = `-- name: ListInternalNumbers :many
 select wa_number, label, department, is_sales, added_by, added_at from internal_numbers order by label, wa_number
 `
@@ -1920,6 +1986,46 @@ where t.id = $1 and x.unread <> 0 and (x.id = t.id or (t.kind = 'group' and x.wa
 func (q *Queries) MarkThreadRead(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, markThreadRead, id)
 	return err
+}
+
+const messageForMirror = `-- name: MessageForMirror :one
+select m.wa_msg_id::text as wa_msg_id, coalesce(m.direction, '')::text as direction, coalesce(m.from_number, '')::text as from_number,
+  coalesce(m.from_name, '')::text as from_name, coalesce(m.body, '')::text as body, m.media, coalesce(m.quoted_wa_id, '')::text as quoted_wa_id,
+  m.sent_at, coalesce(t.account, '')::text as account, coalesce(t.wa_jid, '')::text as wa_jid
+from chat_messages m join chat_threads t on t.id = m.thread_id
+where m.id = $1::uuid and t.kind <> 'group' and m.wa_msg_id is not null and m.status in ('sent', 'received') and m.deleted_at is null
+`
+
+type MessageForMirrorRow struct {
+	WaMsgID    string          `json:"wa_msg_id"`
+	Direction  string          `json:"direction"`
+	FromNumber string          `json:"from_number"`
+	FromName   string          `json:"from_name"`
+	Body       string          `json:"body"`
+	Media      json.RawMessage `json:"media"`
+	QuotedWaID string          `json:"quoted_wa_id"`
+	SentAt     time.Time       `json:"sent_at"`
+	Account    string          `json:"account"`
+	WaJid      string          `json:"wa_jid"`
+}
+
+// A stored 1:1 message with the linked GSI number that holds it and the chat it is in.
+func (q *Queries) MessageForMirror(ctx context.Context, id uuid.UUID) (MessageForMirrorRow, error) {
+	row := q.db.QueryRow(ctx, messageForMirror, id)
+	var i MessageForMirrorRow
+	err := row.Scan(
+		&i.WaMsgID,
+		&i.Direction,
+		&i.FromNumber,
+		&i.FromName,
+		&i.Body,
+		&i.Media,
+		&i.QuotedWaID,
+		&i.SentAt,
+		&i.Account,
+		&i.WaJid,
+	)
+	return i, err
 }
 
 const messageHolderAccount = `-- name: MessageHolderAccount :one

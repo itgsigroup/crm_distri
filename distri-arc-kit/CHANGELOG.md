@@ -5,7 +5,8 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 - Gejala: Catharina chat ke Granike, pesan ada di HP Granike tapi tidak muncul di Chat web Granike. Kedua HP membawa id WhatsApp yang sama; pesan tersimpan sekali di thread Catharina dan salinan di nomor Granike dibuang sebagai duplikat.
 - Chat 1:1 antara dua nomor GSI yang tersambung kini tersimpan **satu salinan per nomor** (kunci `<id>@<nomor>`), jadi muncul di Chat kedua nomor dan menambah unread di penerima. Pengiriman ulang/riwayat tetap tidak menggandakan; edit dan hapus untuk semua orang mengenai setiap salinan. Grup tidak berubah (tetap satu salinan, dibaca dari semua nomor).
 - Balasan dari Chat ke nomor GSI lain tetap menjadi "terkirim" walau HP penerima lebih dulu menyerahkan pesan itu.
-- Pesan yang sudah terbuang sebelum perbaikan ini tidak muncul sendiri; masuk kembali bila riwayat chat itu diambil ulang dari HP.
+- **Realtime**: begitu pesan antar dua nomor GSI tersimpan dari satu sisi (dikirim dari HP atau dari Chat), salinan untuk nomor lawan langsung dibuat di server — tidak menunggu HP penerima meneruskannya. Aturan privasi tetap berlaku (nomor internal, kontak pribadi).
+- Pesan lama yang hanya tersimpan di satu sisi dipulihkan otomatis dari salinan yang ada saat worker menyala (365 hari terakhir, dianggap sudah dibaca); tidak perlu ambil ulang riwayat dari HP.
 
 ## Feat · Enter kirim, Shift+Enter baris baru · 2026-10-15
 - Perbaikan: membuka Chat sempat error "React error #310" — hook ukuran kotak ketik terpanggil setelah return awal saat percakapan masih dimuat.

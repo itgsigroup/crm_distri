@@ -326,7 +326,15 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 		}, nil))
 	}
 	if deps.Transport != nil {
-		river.AddWorker(workers, &OutboxWorker{sender: outbox.NewSender(st, deps.Transport, c, deps.Rules).WithOdoo(deps.Odoo)})
+		sender := outbox.NewSender(st, deps.Transport, c, deps.Rules).WithOdoo(deps.Odoo)
+		if deps.Ingest != nil {
+			sender.WithOnSent(func(ctx context.Context, id uuid.UUID) {
+				if err := deps.Ingest.MirrorStored(ctx, id, false); err != nil {
+					log.Error("wa mirror sent message", "message", id, "err", err)
+				}
+			})
+		}
+		river.AddWorker(workers, &OutboxWorker{sender: sender})
 		river.AddWorker(workers, &WAPairWorker{t: deps.Transport, ingest: deps.Ingest})
 		river.AddWorker(workers, &WAUnpairWorker{t: deps.Transport, st: st})
 		if f, ok := deps.Transport.(wa.HistoryFetcher); ok && deps.BackfillDays > 0 {

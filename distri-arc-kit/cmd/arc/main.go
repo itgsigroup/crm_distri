@@ -210,6 +210,11 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		log.Error("wa transport start", "transport", t.Name(), "err", err)
 	}
 	go ingest.Run(ctx, t)
+	go func() {
+		// 1:1 chats between linked GSI numbers kept on one side only (before 15 Oct) get their other copy
+		n, err := ingest.MirrorLinkedSince(ctx, time.Now().AddDate(-1, 0, 0))
+		log.Info("wa mirror linked chats", "messages", n, "err", err)
+	}()
 	if err := client.Start(ctx); err != nil {
 		return err
 	}

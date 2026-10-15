@@ -197,7 +197,8 @@ func TestGroupMessagesShownOnEveryNumber(t *testing.T) {
 
 // A 1:1 chat between two linked GSI numbers that are not internal numbers: the sender's phone and the receiver's phone
 // carry the same WhatsApp id, and each number's Chat shows the message (15 Oct: Catharina → Granike reached only
-// Catharina's thread). Re-delivery stores nothing new; an edit and a delete reach both copies.
+// Catharina's thread). The receiver's copy is made as soon as the sender's is stored, in real time; the receiver's
+// phone delivering it later, or any re-delivery, stores nothing new; an edit and a delete reach both copies.
 func TestDMBetweenLinkedNumbersShownOnBoth(t *testing.T) {
 	st, in := setup(t)
 	ctx := context.Background()
@@ -212,7 +213,11 @@ func TestDMBetweenLinkedNumbersShownOnBoth(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if want := i < 2; r.Stored != want {
+		if i == 0 && count(t, st, `select count(*) from chat_messages m join chat_threads t on t.id = m.thread_id
+			where m.wa_msg_id = 'LD1' and t.account = $1`, dewi) != 1 {
+			t.Fatal("the receiving number has no copy right after the sender's phone stored it")
+		}
+		if want := i == 0; r.Stored != want {
 			t.Fatalf("message %d: stored=%v want %v (%s)", i, r.Stored, want, r.Reason)
 		}
 	}
@@ -267,6 +272,10 @@ func TestSentFromChatAfterOtherNumberStoredIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	sent := "LD2"
+	// as outbox.Sender does once WhatsApp accepted it
+	if err := st.Q.DropOtherCopies(ctx, gen.DropOtherCopiesParams{ID: mid, WaMsgID: sent}); err != nil {
+		t.Fatal(err)
+	}
 	if err := st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &sent, Status: "sent", SentAt: t0.Add(time.Minute)}); err != nil {
 		t.Fatal(err)
 	}
@@ -277,8 +286,44 @@ func TestSentFromChatAfterOtherNumberStoredIt(t *testing.T) {
 	if err != nil || r.Stored {
 		t.Fatalf("echo: %+v %v", r, err)
 	}
-	if n := count(t, st, "select count(*) from chat_messages where wa_msg_id = 'LD2'"); n != 2 {
-		t.Errorf("%d copies, want one per number", n)
+	for _, acc := range []string{andi, dewi} {
+		if n := count(t, st, `select count(*) from chat_messages m join chat_threads t on t.id = m.thread_id
+			where m.wa_msg_id = 'LD2' and t.account = $1`, acc); n != 1 {
+			t.Errorf("number %s: %d copies, want 1", acc, n)
+		}
+	}
+	if n := count(t, st, "select count(*) from chat_messages where id = $1", mid); n != 1 {
+		t.Error("the queued bubble was dropped instead of the earlier copy")
+	}
+}
+
+// Messages kept on one linked number only (before the copy was made in real time) are caught up from the stored
+// copy, read, without the other phone; a second run adds nothing.
+func TestMirrorLinkedCatchUp(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	if _, err := st.Pool.Exec(ctx, "delete from internal_numbers where wa_number in ($1, $2)", andi, dewi); err != nil {
+		t.Fatal(err)
+	}
+	t0 := time.Now().Add(-48 * time.Hour)
+	// dewi not linked yet: andi's message stays on andi's side
+	if _, err := st.Pool.Exec(ctx, "update wa_numbers set wa_number = '0' where wa_number = $1", dewi); err != nil {
+		t.Fatal(err)
+	}
+	if r, err := in.Process(ctx, wa.Message{ID: "LD3", Account: andi, ChatJID: wa.UserJID(dewi), FromMe: true, FromNumber: andi, Text: "besok kirim", Time: t0}); err != nil || !r.Stored {
+		t.Fatalf("%+v %v", r, err)
+	}
+	if _, err := st.Pool.Exec(ctx, "update wa_numbers set wa_number = $1 where wa_number = '0'", dewi); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if _, err := in.MirrorLinkedSince(ctx, t0.Add(-time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := count(t, st, `select count(*) from chat_messages m join chat_threads t on t.id = m.thread_id
+		where m.wa_msg_id = 'LD3' and t.account = $1 and m.direction = 'in' and t.unread = 0`, dewi); n != 1 {
+		t.Errorf("dewi holds %d read copies, want 1", n)
 	}
 }
 

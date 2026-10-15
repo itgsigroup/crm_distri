@@ -37,6 +37,8 @@ type Message struct {
 	QuotedID string `json:"quoted_id,omitempty"`
 	// RevokeOf: this message deletes the message with that id for everyone ("Pesan ini dihapus").
 	RevokeOf string `json:"revoke_of,omitempty"`
+	// mirror: the other linked GSI number's copy of a 1:1 message, made by GSI Orbit (never mirrored again)
+	mirror bool
 }
 
 // Quote is the message a reply sent from Chat quotes: its WhatsApp key and text.

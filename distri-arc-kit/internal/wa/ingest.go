@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -289,6 +290,11 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		}
 		return nil
 	})
+	if err == nil && (res.Stored || res.Reason == DropDuplicate) {
+		if merr := in.mirrorLinked(ctx, m); merr != nil {
+			in.log.Error("wa mirror to linked number", "id", m.ID, "err", merr)
+		}
+	}
 	if err == nil && res.NewNumber != "" && in.OnNewNumber != nil {
 		in.OnNewNumber(ctx, res.NewNumber)
 	}
@@ -296,6 +302,75 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		in.OnDealer(ctx, *res.DealerID)
 	}
 	return res, err
+}
+
+// mirrorLinked: a 1:1 chat with another linked GSI number is one conversation seen from two numbers. The other number
+// gets its copy as soon as this one stores the message — sent from a phone or from Chat — in real time, without
+// waiting for its own phone to hand it over (15 Oct: Catharina → Granike). The copy goes through Process, so the
+// privacy rules (internal numbers, personal contacts) apply to it as to any message; it is keyed "<id>@<number>",
+// so the phone's own delivery later, or a second run, adds nothing.
+func (in *Ingestor) mirrorLinked(ctx context.Context, m Message) error {
+	account, remote := Digits(m.Account), NumberOfJID(m.ChatJID)
+	if m.mirror || m.IsGroup || remote == "" || remote == account {
+		return nil
+	}
+	if _, err := in.st.Q.LinkedNumberName(ctx, remote); errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	name, err := in.st.Q.LinkedNumberName(ctx, account)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	mm := Message{ID: m.ID, Account: remote, ChatJID: UserJID(account), FromMe: !m.FromMe, Text: m.Text, Time: m.Time,
+		ChatName: name, History: m.History, Media: m.Media, QuotedID: m.QuotedID, mirror: true}
+	if m.FromMe {
+		mm.FromNumber, mm.FromName = account, name
+		if mm.FromName == "" {
+			mm.FromName = m.FromName
+		}
+	} else {
+		mm.FromNumber, mm.FromName = remote, m.FromName
+	}
+	_, err = in.Process(ctx, mm)
+	return err
+}
+
+// MirrorStored gives the other linked GSI number its copy of a stored 1:1 message (a reply sent from Chat once
+// WhatsApp accepted it; history marks a catch-up copy as already read).
+func (in *Ingestor) MirrorStored(ctx context.Context, id uuid.UUID, history bool) error {
+	r, err := in.st.Q.MessageForMirror(ctx, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	m := Message{ID: r.WaMsgID, Account: r.Account, ChatJID: r.WaJid, FromMe: r.Direction == "out", FromNumber: r.FromNumber,
+		FromName: r.FromName, Text: r.Body, Time: r.SentAt, QuotedID: r.QuotedWaID, History: history}
+	if len(r.Media) > 0 && string(r.Media) != "null" {
+		var md Media
+		if json.Unmarshal(r.Media, &md) == nil {
+			m.Media = &md
+		}
+	}
+	return in.mirrorLinked(ctx, m)
+}
+
+// MirrorLinkedSince catches up the 1:1 chats between linked GSI numbers stored since a time: each number gets the
+// copies it is missing (messages kept on one side only before 15 Oct). Idempotent; returns the messages looked at.
+func (in *Ingestor) MirrorLinkedSince(ctx context.Context, since time.Time) (int, error) {
+	ids, err := in.st.Q.LinkedDMMessages(ctx, since)
+	if err != nil {
+		return 0, err
+	}
+	for _, id := range ids {
+		if err := in.MirrorStored(ctx, id, true); err != nil {
+			return 0, err
+		}
+	}
+	return len(ids), nil
 }
 
 // edit applies a WhatsApp edit (the customer's, one made on the phone, or one sent from Chat) to the stored message.

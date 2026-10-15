@@ -72,10 +72,18 @@ type Sender struct {
 	rules Rules
 	sleep func(time.Duration)
 	odoo  odoo.Source
+	// onSent: a chat message went out with its WhatsApp id (another linked GSI number gets its copy)
+	onSent func(ctx context.Context, messageID uuid.UUID)
 }
 
 // WithOdoo lets the sender carry out Odoo rows (SO drafts, notes); nil keeps them pending.
 func (s *Sender) WithOdoo(src odoo.Source) *Sender { s.odoo = src; return s }
+
+// WithOnSent runs f for each chat message once WhatsApp accepted it.
+func (s *Sender) WithOnSent(f func(ctx context.Context, messageID uuid.UUID)) *Sender {
+	s.onSent = f
+	return s
+}
 
 // windowWait is how long a proactive message waits for the send window (08–18 WIB by default).
 func (r Rules) windowWait(now time.Time) time.Duration {
@@ -205,7 +213,10 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 					_ = s.st.Q.SetChatMessageMedia(ctx, gen.SetChatMessageMediaParams{ID: mid, Media: media})
 				}
 			}
-			_ = s.st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &msgID, Status: "sent", SentAt: sent, Body: body})
+			_ = s.st.Q.DropOtherCopies(ctx, gen.DropOtherCopiesParams{ID: mid, WaMsgID: msgID})
+			if err := s.st.Q.UpdateChatMessageSent(ctx, gen.UpdateChatMessageSentParams{ID: mid, WaMsgID: &msgID, Status: "sent", SentAt: sent, Body: body}); err == nil && s.onSent != nil {
+				s.onSent(ctx, mid)
+			}
 		}
 	}
 	if p.Content != nil && p.Content.FileID != "" {
