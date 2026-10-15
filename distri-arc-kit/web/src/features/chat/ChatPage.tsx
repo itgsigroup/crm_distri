@@ -12,7 +12,8 @@ import { useOrch } from '../../app/orch'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf, teamName } from './Connect'
 import { countFilters, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
 import { AttachMenu, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
-import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, mediaCaption, mediaName } from './bubble'
+import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
+import { ForwardSheet } from './Forward'
 
 
 function initials(t: ThreadView | ThreadDetail['thread']) {
@@ -159,8 +160,8 @@ function ReplyIcon() {
 }
 
 /** WhatsApp-style menu of one bubble (⌄ in its corner): Balas, Salin, Edit, Hapus untuk semua orang. */
-function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete }: {
-  m: MessageView; edit: boolean; del: boolean; onReply: () => void; onEdit: () => void; onDelete: () => void
+function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward }: {
+  m: MessageView; edit: boolean; del: boolean; onReply: () => void; onEdit: () => void; onDelete: () => void; onForward?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
@@ -183,6 +184,7 @@ function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete }: {
         <span className="bub-menu-list" role="menu">
           {m.can_reply && <button type="button" role="menuitem" onClick={pick(onReply)}><ReplyIcon />Balas</button>}
           {text && <button type="button" role="menuitem" onClick={pick(copy)}><Icon name="doc" />Salin</button>}
+          {onForward && <button type="button" role="menuitem" onClick={pick(onForward)}><Icon name="send" />Teruskan</button>}
           {edit && <button type="button" role="menuitem" onClick={pick(onEdit)}><Icon name="edit" />Edit</button>}
           {del && <button type="button" role="menuitem" className="bad" onClick={pick(onDelete)}><Icon name="x" />Hapus untuk semua orang</button>}
         </span>
@@ -284,9 +286,11 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
   onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
   onUse?: (m: MessageView, text: string) => void; asOf?: string | null
 }) {
+  const { openSheet } = useFeedback()
   const caption = mediaCaption(m.body, m.media)
   const edit = editableNow(m, now)
   const del = deletableNow(m, now)
+  const forward = forwardable(m)
   if (m.deleted) {
     return (
       <div className={`m ${m.direction}`} data-mid={m.id}>
@@ -303,7 +307,7 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
         {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
         {m.media?.kind === 'poll' ? <PollBody text={caption} /> : caption}
         <span className="tm">{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
-        {(m.can_reply || edit || del || caption) && <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} />}
+        {(m.can_reply || edit || del || caption || forward) && <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined} />}
         {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
       </div>
       {m.auto_reply && <span className="bub-hold" title="Pesan otomatis WhatsApp Business — bukan jawaban dan bukan permintaan">balasan otomatis · tidak dihitung</span>}

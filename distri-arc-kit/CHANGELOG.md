@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Teruskan pesan · 2026-10-15
+- Menu bubble di Chat → **Teruskan**: pilih hingga 5 chat tujuan (bisa dicari). Pesan dikirim dari nomor masing-masing chat tujuan.
+- Teks diteruskan apa adanya. Foto, video, audio, dan dokumen diambil dari WhatsApp lalu dikirim ulang beserta keterangannya. Polling, lokasi, kontak, dan stiker diteruskan dari HP.
+- Setiap penerusan adalah keputusan manusia (proposal disetujui pengirim → outbox), tercatat di audit sebagai `chat.forward` dengan asal pesan. Chat yang tidak boleh dilihat pengguna tidak bisa diteruskan.
+- Pesan di HP penerima belum berlabel "Diteruskan" (butuh perubahan wa-bridge; ditunda agar bridge tidak di-restart lagi hari ini).
+
 ## Change · Chat memuat 14 hari terakhir · 2026-10-15
 - Daftar chat hanya memuat percakapan yang aktif 14 hari terakhir.
 - Percakapan dibuka dengan pesan 14 hari terakhir; pesan yang lebih lama dimuat saat menggulir ke atas.

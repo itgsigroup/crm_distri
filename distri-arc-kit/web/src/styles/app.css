@@ -1265,3 +1265,23 @@ body.map-maximized{overflow:hidden}
 .rr-form .chk{flex-direction:row;align-items:center;gap:8px;font-weight:500}
 .rr-intro{margin:0 0 10px;font-size:12.5px;color:var(--text-3);line-height:1.5}
 .rr-name{display:flex;align-items:center;gap:8px}
+
+/* Teruskan pesan: the bubble, a search and the conversations to pick */
+.fwd{display:flex;flex-direction:column;gap:10px}
+.fwd-msg{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--surface-2);font-size:13px;color:var(--text-2)}
+.fwd-msg .i{width:15px;height:15px;flex:none;margin-top:2px}
+.fwd-msg span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+.fwd-search{margin:0}
+.fwd-list{display:flex;flex-direction:column;max-height:min(46vh,380px);overflow:auto;border:1px solid var(--line);border-radius:10px}
+.fwd-row{display:flex;align-items:center;gap:10px;padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);background:var(--surface);color:var(--text)}
+.fwd-row:last-child{border-bottom:0}
+.fwd-row:hover:not(:disabled){background:var(--surface-2)}
+.fwd-row:disabled{opacity:.45}
+.fwd-row.is-on{background:var(--accent-soft)}
+.fwd-check{flex:none;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line-strong);display:grid;place-items:center}
+.fwd-row.is-on .fwd-check{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.fwd-check .i{width:12px;height:12px}
+.fwd-who{display:flex;flex-direction:column;min-width:0}
+.fwd-who b{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fwd-who small{font-size:11.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fwd-err{color:var(--bad)}

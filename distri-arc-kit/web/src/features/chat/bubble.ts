@@ -90,6 +90,16 @@ export function editableNow(m: Pick<MessageView, 'can_edit' | 'status' | 'sent_a
 export const DELETE_WINDOW_MS = 48 * 3600_000
 
 /** Whether "Hapus untuk semua orang" shows now: queued replies always, sent messages for 48 hours. */
+const FORWARD_KINDS = new Set(['image', 'video', 'gif', 'audio', 'document'])
+
+/** Teruskan: a stored message with text, or a file WhatsApp still holds; not one still sending, nor a poll, location,
+ * contact or sticker (the server refuses those — forward them from the phone). */
+export function forwardable(m: Pick<MessageView, 'body' | 'media' | 'status' | 'deleted'>): boolean {
+  if (m.deleted || m.status === 'pending' || m.status === 'failed') return false
+  if (m.media) return FORWARD_KINDS.has(m.media.kind) && m.media.viewable
+  return m.body.trim() !== ''
+}
+
 export function deletableNow(m: Pick<MessageView, 'can_delete' | 'status' | 'sent_at'>, now: Date): boolean {
   if (!m.can_delete) return false
   return m.status === 'pending' || now.getTime() - new Date(m.sent_at).getTime() < DELETE_WINDOW_MS

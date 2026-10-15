@@ -412,3 +412,60 @@ func TestChatSendsFilesVoiceNotesAndPolls(t *testing.T) {
 		t.Fatalf("file over 25 MB: %d", code)
 	}
 }
+
+// Forwarding a bubble from one conversation to another is a reply in the target: a human decision through the
+// outbox (audited as chat.forward). A photo is fetched from WhatsApp and sent on as a file with its caption; a
+// conversation the person cannot see cannot be forwarded from.
+func TestChatForward(t *testing.T) {
+	srv, st := mediaServer(t, &fakeMedia{})
+	ctx := context.Background()
+	src := sinarThread(t, st)
+	var dst uuid.UUID
+	if err := st.Pool.QueryRow(ctx, `insert into chat_threads (kind, wa_jid, title, sales_id, account, last_message_at)
+		select 'new', '6281300000301@s.whatsapp.net', 'Toko Tujuan', sales_id, account, now() from chat_threads where id = $1 returning id`, src).Scan(&dst); err != nil {
+		t.Fatal(err)
+	}
+	text := addMessage(t, st, src, "FW1", "in", "received", "Mohon kirim 10 unit IPC ke gudang Bekasi", chatNow.Add(-time.Hour), nil)
+	photo := addMessage(t, st, src, "FW2", "in", "received", "[gambar] Lokasi pasang", chatNow.Add(-2*time.Hour), &wa.Media{Kind: "image", Mime: "image/jpeg", Size: 8, Ref: "REF1"})
+	url := srv.URL + "/api/chat/threads/" + dst.String() + "/messages"
+	fake := wa.NewFake()
+	send := func(ob any, at time.Duration) wa.Message {
+		t.Helper()
+		if _, err := outbox.NewSender(st, fake, clock.Fixed(chatNow.Add(at)), outbox.Rules{}).Send(ctx, uuid.MustParse(ob.(string))); err != nil {
+			t.Fatal(err)
+		}
+		s := fake.Sent()
+		return s[len(s)-1]
+	}
+	fw := func(id uuid.UUID, user string) (int, map[string]any) {
+		return sendJSON(t, http.MethodPost, url, user, map[string]any{"forward": map[string]string{"thread_id": src.String(), "message_id": id.String()}})
+	}
+
+	code, out := fw(text, "andi@gsi.co.id")
+	if code != http.StatusAccepted {
+		t.Fatalf("forward text: %d %v", code, out)
+	}
+	if m := send(out["outbox_id"], 0); m.Text != "Mohon kirim 10 unit IPC ke gudang Bekasi" || m.Media != nil {
+		t.Fatalf("forwarded text sent as %+v", m)
+	}
+	if count(t, st, "select count(*) from audit_log where action = 'chat.forward' and after->'forwarded_from'->>'message_id' = $1", text.String()) != 1 ||
+		count(t, st, "select count(*) from proposals where id = $1 and decided_by is not null and title like 'Teruskan ke %'", out["proposal_id"]) != 1 {
+		t.Fatal("forward not recorded as a human decision")
+	}
+
+	code, out = fw(photo, "andi@gsi.co.id")
+	if code != http.StatusAccepted {
+		t.Fatalf("forward photo: %d %v", code, out)
+	}
+	if m := send(out["outbox_id"], time.Minute); m.Media == nil || m.Media.Kind != "image" || m.Text != "Lokasi pasang" {
+		t.Fatalf("forwarded photo sent as %+v", m)
+	}
+	if count(t, st, "select count(*) from chat_messages where id = $1 and body = '[gambar] Lokasi pasang'", out["message_id"]) != 1 {
+		t.Fatal("forwarded photo bubble")
+	}
+
+	// another sales user sees neither conversation
+	if code, _ := fw(text, "dewi@gsi.co.id"); code != http.StatusNotFound {
+		t.Fatalf("other sales forwarded: %d", code)
+	}
+}

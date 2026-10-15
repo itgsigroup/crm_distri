@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, mediaCaption, mediaName } from './bubble'
+import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 
 describe('bubbleLine', () => {
   it('a customer order waiting too long', () => {
@@ -53,5 +53,16 @@ describe('bubble delete', () => {
     expect(deletableNow({ can_delete: true, status: 'sent', sent_at: '2026-10-11T04:00:00Z' }, now)).toBe(false)
     expect(deletableNow({ can_delete: true, status: 'pending', sent_at: '2026-10-01T00:00:00Z' }, now)).toBe(true)
     expect(deletableNow({ can_delete: false, status: 'sent', sent_at: '2026-10-13T04:59:00Z' }, now)).toBe(false)
+  })
+})
+
+describe('bubble forward', () => {
+  it('forwards text and files WhatsApp still holds, not a sending message, a poll or a lost file', () => {
+    expect(forwardable({ body: 'Stok IPC ready', status: 'received' })).toBe(true)
+    expect(forwardable({ body: '[gambar] Lokasi', status: 'received', media: { kind: 'image', viewable: true } })).toBe(true)
+    expect(forwardable({ body: '[gambar]', status: 'received', media: { kind: 'image', viewable: false } })).toBe(false)
+    expect(forwardable({ body: '[polling] Kirim kapan?', status: 'sent', media: { kind: 'poll', viewable: true } })).toBe(false)
+    expect(forwardable({ body: 'halo', status: 'pending' })).toBe(false)
+    expect(forwardable({ body: 'halo', status: 'received', deleted: true })).toBe(false)
   })
 })

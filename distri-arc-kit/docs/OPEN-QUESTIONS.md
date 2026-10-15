@@ -76,3 +76,6 @@ Diisi Claude Code saat ada hal yang butuh keputusan/kredensial dari Sam. Format:
 - Rebate/bonus pemasok per merek belum diisi: Pengaturan → Kebijakan `margin.floor.rebates`, mis. `{"ezviz": 3}` — angka dari keuangan.
 - Rekonsiliasi 10 SKU uji: jalankan MCP `margin.cek` (mis. cari "Ezviz") dan bandingkan dengan hitungan keuangan.
 - Selisih omzet vs Sales Arena juga bisa dari entitas internal (INTERN, GOSYEN, GSI CCTV, CV Global Solusi) yang ikut terhitung — tugas 14.
+
+## Label "Diteruskan" pada pesan yang diteruskan (15 Okt 2026)
+Teruskan dari Chat mengirim pesan biasa: di HP penerima belum muncul label "Diteruskan". Untuk menampilkannya, wa-bridge perlu mengirim `contextInfo.isForwarded` bila payload outbox bertanda `forwarded`. Perubahan ini me-restart wa-bridge, jadi dijadwalkan pada deploy bridge berikutnya.

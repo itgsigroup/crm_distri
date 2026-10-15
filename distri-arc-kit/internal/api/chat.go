@@ -683,6 +683,27 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	var forwarded *gen.GetThreadMessageRow
+	if in.Forward != nil {
+		m, data, code, why := s.forwardSource(r, *in.Forward)
+		if why != "" {
+			httpx.Fail(w, code, "not_forwardable", why)
+			return
+		}
+		forwarded, file = &m, data
+		in.Body, in.ReplyTo, in.Content = forwardText(m), "", nil
+		var md wa.Media
+		if data != nil && json.Unmarshal(m.Media, &md) == nil {
+			in.Content = &outbox.OutContent{Kind: md.Kind, Mime: md.Mime, FileName: md.FileName, Size: int64(len(data)), PTT: md.PTT, Seconds: md.Seconds}
+			if in.Content.Kind == "gif" {
+				in.Content.Kind = "video"
+			}
+		}
+		if in.Content == nil && strings.TrimSpace(in.Body) == "" {
+			httpx.Fail(w, http.StatusConflict, "not_forwardable", "Pesan ini tidak berisi teks atau file yang bisa diteruskan")
+			return
+		}
+	}
 	var quote *wa.Quote
 	if in.ReplyTo != "" {
 		q, why := s.replyQuote(r.Context(), t, in.ReplyTo)
@@ -711,7 +732,11 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 	}
 	var res map[string]any
 	err := s.st.Tx(r.Context(), func(q *gen.Queries, tx pgx.Tx) error {
-		p, err := s.humanDecision(r.Context(), q, t, u, "Balasan ke "+deref(t.Title), body, now)
+		title := "Balasan ke " + deref(t.Title)
+		if forwarded != nil {
+			title = "Teruskan ke " + deref(t.Title)
+		}
+		p, err := s.humanDecision(r.Context(), q, t, u, title, body, now)
 		if err != nil {
 			return err
 		}
@@ -747,7 +772,12 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		actor, kind, action, entity := deref(u.Email), "user", "chat.reply", "proposal"
-		after, _ := json.Marshal(map[string]any{"thread_id": t.ID, "outbox_id": ob.ID, "body": body})
+		audit := map[string]any{"thread_id": t.ID, "outbox_id": ob.ID, "body": body}
+		if forwarded != nil {
+			action = "chat.forward"
+			audit["forwarded_from"] = map[string]any{"thread_id": forwarded.ThreadID, "message_id": forwarded.ID}
+		}
+		after, _ := json.Marshal(audit)
 		if err := q.InsertAudit(r.Context(), gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &p.ID, After: after}); err != nil {
 			return err
 		}
@@ -768,6 +798,75 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusAccepted, res)
+}
+
+// forwardSource is the bubble a forward sends on, with its file when it has one (fetched from WhatsApp as Chat
+// shows it). The person must see that conversation too. code and why are the refusal for the person.
+func (s *Server) forwardSource(r *http.Request, f chatForward) (m gen.GetThreadMessageRow, file []byte, code int, why string) {
+	tid, err1 := uuid.Parse(f.ThreadID)
+	mid, err2 := uuid.Parse(f.MessageID)
+	if err1 != nil || err2 != nil {
+		return m, nil, http.StatusNotFound, "Pesan yang diteruskan tidak ditemukan"
+	}
+	src, err := s.st.Q.GetThread(r.Context(), tid)
+	if err != nil {
+		return m, nil, http.StatusNotFound, "Pesan yang diteruskan tidak ditemukan"
+	}
+	u, _ := CurrentUser(r.Context())
+	if v, err := s.chatViewerOf(r.Context(), u); err != nil || !v.sees(src.SalesID, src.Account) {
+		return m, nil, http.StatusNotFound, "Pesan yang diteruskan tidak ditemukan" // another number's conversation
+	}
+	m, err = s.st.Q.GetThreadMessage(r.Context(), gen.GetThreadMessageParams{ThreadID: src.ID, ID: mid})
+	if err != nil {
+		return m, nil, http.StatusNotFound, "Pesan yang diteruskan tidak ditemukan"
+	}
+	if m.DeletedAt != nil {
+		return m, nil, http.StatusConflict, "Pesan ini sudah dihapus"
+	}
+	var md wa.Media
+	if len(m.Media) == 0 || json.Unmarshal(m.Media, &md) != nil || md.Kind == "" {
+		return m, nil, 0, ""
+	}
+	if md.Kind == "poll" || md.Kind == "location" || md.Kind == "contact" || md.Kind == "sticker" {
+		return m, nil, http.StatusConflict, "Polling, lokasi, kontak dan stiker belum bisa diteruskan dari GSI Orbit — teruskan dari HP"
+	}
+	f2 := s.mediaFetcher()
+	if !md.Viewable() || f2 == nil {
+		return m, nil, http.StatusConflict, "File pesan ini tidak tersimpan — teruskan dari HP"
+	}
+	body, err := f2.Media(r.Context(), deref(m.HolderAccount), md)
+	switch {
+	case errors.Is(err, wa.ErrMediaGone):
+		return m, nil, http.StatusGone, "File sudah tidak tersedia di WhatsApp"
+	case errors.Is(err, wa.ErrMediaUnavailable):
+		return m, nil, http.StatusServiceUnavailable, "Nomor pemegang file belum terhubung atau sedang sibuk — coba lagi sebentar"
+	case err != nil:
+		s.log.Warn("chat forward media", "err", err, "message", mid)
+		return m, nil, http.StatusBadGateway, "Gagal mengambil file dari WhatsApp"
+	}
+	defer body.Close()
+	data, err := io.ReadAll(io.LimitReader(body, maxChatFile+1))
+	if err != nil || len(data) == 0 {
+		return m, nil, http.StatusBadGateway, "Gagal mengambil file dari WhatsApp"
+	}
+	if len(data) > maxChatFile {
+		return m, nil, http.StatusRequestEntityTooLarge, "File lebih dari 25 MB — teruskan dari HP"
+	}
+	return m, data, 0, ""
+}
+
+// forwardText is the text a forward carries: the bubble's caption without its media label ("[gambar] …").
+func forwardText(m gen.GetThreadMessageRow) string {
+	body := deref(m.Body)
+	var md wa.Media
+	if len(m.Media) > 0 && json.Unmarshal(m.Media, &md) == nil && md.Kind != "" {
+		if label := wa.MediaLabel(md.Kind, map[bool]string{true: md.FileName}[md.Kind == "document"]); strings.HasPrefix(body, label) {
+			body = strings.TrimPrefix(body, label)
+		} else if i := strings.Index(body, "]"); strings.HasPrefix(body, "[") && i > 0 {
+			body = body[i+1:]
+		}
+	}
+	return strings.TrimSpace(body)
 }
 
 // replyQuote is the WhatsApp key and text of a bubble a reply quotes. The bubble must belong to the conversation and
@@ -799,7 +898,14 @@ type chatSendInput struct {
 	Body    string             `json:"body"`
 	ReplyTo string             `json:"reply_to"` // a bubble of this conversation to quote (WhatsApp "Balas")
 	Poll    *wa.Poll           `json:"poll"`
+	Forward *chatForward       `json:"forward"` // a bubble of another conversation sent on to this one
 	Content *outbox.OutContent `json:"-"`
+}
+
+// chatForward names the bubble to forward: its conversation and message.
+type chatForward struct {
+	ThreadID  string `json:"thread_id"`
+	MessageID string `json:"message_id"`
 }
 
 // maxChatFile is the largest file Chat sends (WhatsApp takes more for documents; uploads stay small).
@@ -866,6 +972,9 @@ func readChatSend(r *http.Request) (in chatSendInput, file []byte, why string) {
 		}
 		in.Content = &outbox.OutContent{Kind: "poll", Poll: p}
 		return in, nil, ""
+	}
+	if in.Forward != nil {
+		return in, nil, "" // the text and file come from the forwarded bubble
 	}
 	if strings.TrimSpace(in.Body) == "" {
 		return in, nil, "Pesan kosong"
