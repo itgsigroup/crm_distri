@@ -524,6 +524,15 @@ func (q *Queries) PurgeChatMessageKeys(ctx context.Context, cutoff time.Time) (i
 	return result.RowsAffected(), nil
 }
 
+const purgeChatMessageLabels = `-- name: PurgeChatMessageLabels :exec
+delete from chat_message_labels where sent_at < $1::timestamptz
+`
+
+func (q *Queries) PurgeChatMessageLabels(ctx context.Context, cutoff time.Time) error {
+	_, err := q.db.Exec(ctx, purgeChatMessageLabels, cutoff)
+	return err
+}
+
 const purgeChatMessages = `-- name: PurgeChatMessages :execrows
 delete from chat_messages where sent_at < $1::timestamptz
 `
@@ -534,6 +543,15 @@ func (q *Queries) PurgeChatMessages(ctx context.Context, cutoff time.Time) (int6
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const purgeChatPins = `-- name: PurgeChatPins :exec
+delete from chat_pins where sent_at < $1::timestamptz
+`
+
+func (q *Queries) PurgeChatPins(ctx context.Context, cutoff time.Time) error {
+	_, err := q.db.Exec(ctx, purgeChatPins, cutoff)
+	return err
 }
 
 const purgeIdentifications = `-- name: PurgeIdentifications :execrows

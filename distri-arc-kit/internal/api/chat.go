@@ -47,6 +47,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Get("/internal-numbers", s.internalNumbers)
 	r.Post("/internal-numbers", s.addInternalNumber)
 	r.Delete("/internal-numbers/{wa}", s.deleteInternalNumber)
+	s.chatLabelRoutes(r)
 	r.Get("/wa/groups", s.waGroups)
 	r.Patch("/wa/groups/{id}", s.patchWAGroup)
 	r.Get("/wa/status", s.waStatus)
@@ -91,6 +92,8 @@ type ThreadView struct {
 	LastDirection string `json:"last_direction"`
 	// WaitingSince: the oldest customer message not answered yet (null when the last word was ours)
 	WaitingSince *time.Time `json:"waiting_since"`
+	// Labels: the conversation's labels (WhatsApp Business), shown on the row and filterable
+	Labels []uuid.UUID `json:"labels,omitempty"`
 }
 
 // timeOrNil reads a nullable timestamp sqlc could not type (min/max over a subquery).
@@ -188,6 +191,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	labels := s.labelsByConv(r)
 	out := []ThreadView{}
 	for _, t := range rows {
 		kind := deref(t.Kind)
@@ -209,6 +213,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		if kind != "group" {
 			v.PhoneName = deref(t.PhoneName)
 		}
+		v.Labels = labels[convKey(t.Kind, t.WaJid, t.ID)]
 		if t.LastFrom != nil && kind == "group" {
 			v.LastFrom = *t.LastFrom
 		}
@@ -352,6 +357,8 @@ type MessageView struct {
 	CanDelete bool `json:"can_delete,omitempty"`
 	// Suggest: Rekomendasi balasan from the data for a customer message (ADR 0038); the sales decides
 	Suggest *replyrule.Suggestion `json:"suggest,omitempty"`
+	Labels  []uuid.UUID           `json:"labels,omitempty"`
+	Pinned  bool                  `json:"pinned,omitempty"`
 }
 
 // MsgQuote is the quoted bubble shown above a reply.
@@ -585,6 +592,22 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, v)
 	}
+	// pins and labels of the conversation (a group: the same for every GSI number in it)
+	conv := convKey(t.Kind, t.WaJid, t.ID)
+	pins, err := s.pinsOf(r, conv)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	convLabels, err := s.st.Q.ConvLabels(r.Context(), conv)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	if err := s.attachLabelsPins(r.Context(), out, pins); err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
 	if err := s.attachSuggestions(r.Context(), out, t.ThreadBranch, now); err != nil {
 		s.log.Warn("reply suggestions", "err", err) // a suggestion never stops the chat from loading
 	}
@@ -605,7 +628,8 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
 		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
 		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "branch": t.ThreadBranch, "contact_type": t.ContactType, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),
-	}, "messages": out, "stock_as_of": stockAsOf(r.Context(), s, out), "has_more": hasMore, "history_from": historyFrom, "history_days": keepDays})
+		"labels": convLabels,
+	}, "messages": out, "pins": pins, "stock_as_of": stockAsOf(r.Context(), s, out), "has_more": hasMore, "history_from": historyFrom, "history_days": keepDays})
 }
 
 // attachMsgAnalysis adds Analisa WhatsApp to each bubble of a one-to-one conversation. The newest page reads the

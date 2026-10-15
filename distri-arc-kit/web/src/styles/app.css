@@ -805,7 +805,7 @@ body.map-maximized{overflow:hidden}
 .ibc-phone{margin-right:4px}
 .ibc-link{padding:1px 7px;border-radius:5px;border:1px solid var(--line-strong);font-size:10.5px;color:var(--text-2);text-decoration:none}
 .ibc-link:hover{color:var(--accent);border-color:var(--accent)}
-.ibc-acts{display:flex;align-items:center;gap:8px;flex:none;margin-left:auto}
+.ibc-acts{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;flex:0 1 auto;min-width:0;margin-left:auto}
 .ibc-acts .btn{height:34px;font-size:12.5px;border-radius:9px;padding:0 12px;gap:6px}
 .ibc-ai{background:var(--kp-ai);color:#fff}
 .ibc-ai:disabled{opacity:.6}
@@ -1345,3 +1345,37 @@ body.map-maximized{overflow:hidden}
 .cs-when b{font-weight:600;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cs-snip{font-size:13px;line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cs-mark{background:#ffe066;color:#111;border-radius:2px;padding:0 1px}
+
+/* Chat → Sematkan pesan & Label (WhatsApp Business) */
+.lbl-chips{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.lbl-chip{display:inline-flex;align-items:center;gap:4px;max-width:160px;height:18px;padding:0 7px 0 5px;border-radius:9px;font-size:10.5px;font-weight:600;line-height:1;
+  color:var(--text-2);background:color-mix(in srgb,var(--lbl) 16%,transparent);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.lbl-chip i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--lbl)}
+.ibr-lbls{margin:2px 0 1px}
+.ibc-lbls{margin-left:2px}
+.bub-lbls{margin-top:3px}
+.m.out .bub-lbls{justify-content:flex-end}
+.tm .tm-pin{width:11px;height:11px;vertical-align:-1px;margin-right:3px;opacity:.75}
+.ibl-lbl{height:28px;max-width:150px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text-2);font:inherit;font-size:12px;padding:0 8px}
+.ibl-lbl.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.pin-bar{display:flex;align-items:center;gap:8px;flex:none;padding:6px 10px 6px 12px;border-bottom:1px solid var(--line);background:var(--surface)}
+.pin-ticks{display:flex;flex-direction:column;gap:2px;flex:none}
+.pin-ticks i{display:block;width:3px;height:9px;border-radius:2px;background:var(--line)}
+.pin-ticks i.on{background:var(--accent)}
+.pin-main{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:none;border:0;padding:2px 0;font:inherit;color:var(--text);text-align:left;cursor:pointer}
+.pin-main>.i{flex:none;width:15px;height:15px;color:var(--text-3)}
+.pin-main span{min-width:0;display:flex;flex-direction:column;font-size:12.5px;line-height:1.35}
+.pin-main span b{font-size:11.5px;color:var(--accent);font-weight:600}
+.pin-main span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.lbl-sheet{display:flex;flex-direction:column;gap:12px}
+.lbl-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.lbl-list li{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--line)}
+.lbl-list label{flex:1;display:flex;align-items:center;gap:10px;padding:9px 2px;cursor:pointer;font-size:13.5px;min-width:0}
+.lbl-list label small{margin-left:auto;color:var(--text-3);font-size:11.5px}
+.lbl-dot{flex:none;width:12px;height:12px;border-radius:50%}
+.lbl-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lbl-new{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lbl-new input{flex:1;min-width:160px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);padding:0 10px;font:inherit;font-size:13px;color:var(--text)}
+.lbl-colors{display:flex;gap:5px}
+.lbl-colors button{width:20px;height:20px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer}
+.lbl-colors button.on{border-color:var(--text);box-shadow:0 0 0 2px var(--surface) inset}

@@ -75,6 +75,12 @@ func Purge(ctx context.Context, st *store.Store, now time.Time) (PurgeReport, er
 		if _, err := q.PurgeChatMessageKeys(ctx, chatCut); err != nil {
 			return err
 		}
+		if err := q.PurgeChatPins(ctx, chatCut); err != nil { // pins and labels of the purged bubbles
+			return err
+		}
+		if err := q.PurgeChatMessageLabels(ctx, chatCut); err != nil {
+			return err
+		}
 		if _, err := q.PurgeWAMessageInsights(ctx, chatCut); err != nil { // the analysis of the purged bubbles
 			return err
 		}

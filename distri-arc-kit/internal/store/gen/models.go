@@ -142,6 +142,22 @@ type CategoryMap struct {
 	Kat            string `json:"kat"`
 }
 
+type ChatConvLabel struct {
+	Conv    string    `json:"conv"`
+	LabelID uuid.UUID `json:"label_id"`
+	AddedBy *string   `json:"added_by"`
+	AddedAt time.Time `json:"added_at"`
+}
+
+type ChatLabel struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Color     string    `json:"color"`
+	Position  int32     `json:"position"`
+	CreatedBy *string   `json:"created_by"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type ChatMessage struct {
 	ID         uuid.UUID       `json:"id"`
 	ThreadID   *uuid.UUID      `json:"thread_id"`
@@ -171,6 +187,15 @@ type ChatMessageKey struct {
 	SentAt    time.Time `json:"sent_at"`
 }
 
+type ChatMessageLabel struct {
+	MessageID uuid.UUID `json:"message_id"`
+	SentAt    time.Time `json:"sent_at"`
+	Conv      string    `json:"conv"`
+	LabelID   uuid.UUID `json:"label_id"`
+	AddedBy   *string   `json:"added_by"`
+	AddedAt   time.Time `json:"added_at"`
+}
+
 type ChatMessagesDefault struct {
 	ID         uuid.UUID       `json:"id"`
 	ThreadID   *uuid.UUID      `json:"thread_id"`
@@ -196,6 +221,14 @@ type ChatOutgoingFile struct {
 	Size      int32     `json:"size"`
 	Data      []byte    `json:"data"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type ChatPin struct {
+	Conv      string    `json:"conv"`
+	MessageID uuid.UUID `json:"message_id"`
+	SentAt    time.Time `json:"sent_at"`
+	PinnedBy  *string   `json:"pinned_by"`
+	PinnedAt  time.Time `json:"pinned_at"`
 }
 
 type ChatThread struct {

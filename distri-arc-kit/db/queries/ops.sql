@@ -9,6 +9,12 @@ select arc_drop_partitions_before(sqlc.arg(tbl)::text, sqlc.arg(cutoff)::timesta
 -- name: PurgeChatMessages :execrows
 delete from chat_messages where sent_at < sqlc.arg(cutoff)::timestamptz;
 
+-- name: PurgeChatPins :exec
+delete from chat_pins where sent_at < sqlc.arg(cutoff)::timestamptz;
+
+-- name: PurgeChatMessageLabels :exec
+delete from chat_message_labels where sent_at < sqlc.arg(cutoff)::timestamptz;
+
 -- name: PurgeChatMessageKeys :execrows
 delete from chat_message_keys where sent_at < sqlc.arg(cutoff)::timestamptz;
 

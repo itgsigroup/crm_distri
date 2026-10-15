@@ -305,6 +305,8 @@ export interface ThreadView {
   last_direction?: 'in' | 'out' | ''
   /** oldest customer message not answered yet */
   waiting_since?: string | null
+  /** the conversation's labels (ChatLabel ids) */
+  labels?: string[]
 }
 export interface Annotation { k: string; t: string; act?: string }
 export interface MessageView {
@@ -340,7 +342,15 @@ export interface MessageView {
   deleted?: boolean
   /** a message this number sent or still queued; a sent one within 48 hours */
   can_delete?: boolean
+  labels?: string[]
+  pinned?: boolean
 }
+
+/** A label of the team (WhatsApp Business), on chats and on messages. */
+export interface ChatLabel { id: string; name: string; color: string; chats: number }
+
+/** A pinned message (the bar above the chat; kept in GSI Orbit, not sent to WhatsApp). */
+export interface ChatPin { message_id: string; sent_at: string; direction: 'in' | 'out' | ''; from_name: string; body: string; media?: MediaView; pinned_by: string; pinned_at: string }
 export interface MediaView {
   kind: 'image' | 'video' | 'gif' | 'audio' | 'document' | 'sticker' | 'location' | 'contact' | string
   mime?: string
@@ -375,8 +385,10 @@ export interface ThreadDetail {
     account_team?: WATeam
     contact_type?: '' | 'supplier'
     /** a group: its id and kind (external = a customer group, read by Analisa WhatsApp) */
-    group_id?: string | null; group_kind?: string }
+    group_id?: string | null; group_kind?: string
+    labels?: string[] }
   messages: MessageView[]
+  pins?: ChatPin[]
   /** older messages exist before this page (only a very busy chat: the first page holds the whole retention window) */
   has_more?: boolean
   /** when the stock behind the reply suggestions was synced */

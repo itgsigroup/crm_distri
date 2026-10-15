@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Sematkan pesan & Label chat · 2026-10-15
+- **Sematkan pesan** (menu bubble → Sematkan): maksimal 3 per chat, sematan ke-4 menggantikan yang paling lama, seperti WhatsApp. Bilah di atas percakapan menampilkan pesan yang disematkan; klik untuk melompat ke pesannya (juga yang lama), × untuk melepas. Bubble yang disematkan bertanda 📌. Sematan hanya untuk tim di GSI Orbit — tidak dikirim ke WhatsApp/HP pelanggan.
+- **Label** seperti WhatsApp Business: label bawaan Pelanggan baru, Pesanan baru, Menunggu pembayaran, Sudah dibayar, Pesanan selesai (migrasi 0039). Pasang di **chat** (tombol label di kepala chat → tampil di daftar chat dan bisa difilter lewat "Label") dan di **pesan** (menu bubble → Label → tampil di bawah bubble). Label baru bisa dibuat siapa pun di Chat; menghapus label hanya admin.
+- Di grup, sematan dan label sama untuk setiap nomor GSI di grup itu. Semua perubahan tercatat di audit; sematan dan label pesan ikut terhapus saat pesan lewat masa simpan.
+
 ## Feat · Cari di dalam chat · 2026-10-15
 - Tombol 🔍 di kepala percakapan membuka **Cari di chat ini** seperti WhatsApp: ketik kata atau kalimat, hasil tampil terbaru dulu dengan tanggal, pengirim, dan potongan teks yang ditandai kuning.
 - Klik hasil, atau **Enter** (lebih lama) / **Shift+Enter** (lebih baru) / tombol ▲▼, untuk melompat ke bubble-nya; kata yang dicari ikut ditandai di bubble. **Esc** menutup.

@@ -15,6 +15,8 @@ import { AttachMenu, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoi
 import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 import { ForwardSheet } from './Forward'
 import { ChatSearch, Marked } from './ChatSearch'
+import { LabelChips, LabelSheet, PinnedBar, useChatLabels } from './Labels'
+import { hasLabel } from './chatLabels'
 import type { ChatHit } from './findInChat'
 
 
@@ -66,6 +68,8 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
   const qc = useQueryClient()
   const { openSheet, toast } = useFeedback()
   const [q, setQ] = useState('')
+  const [label, setLabel] = useState('')
+  const { data: labels } = useChatLabels()
   const n = wa?.items.find((x) => x.wa_number === account)
   const team = account.startsWith('team:') ? (account.slice(5) as WATeam) : undefined
   const nums = (wa?.items ?? []).filter((x) => !team || (x.team ?? 'sales') === team)
@@ -91,7 +95,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
   })
   const base = deep && found ? found : list
   // the open conversation stays in "Belum dibaca" / "Belum dibalas" after reading or answering it, as in WhatsApp
-  const shown = base.filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && (deep && found ? true : matchThread(t, q)))
+  const shown = base.filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && (deep && found ? true : matchThread(t, q)) && hasLabel(t, label))
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['chat'] })
     qc.invalidateQueries({ queryKey: ['wa'] })
@@ -117,6 +121,12 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
             <Icon name={FILTER_ICONS[k]} />{filter === k && <em>{l}</em>}<span>{counts[k].toLocaleString('id-ID')}</span>
           </button>
         ))}
+        {!!labels?.items.length && (
+          <select className={`ibl-lbl${label ? ' on' : ''}`} value={label} onChange={(e) => setLabel(e.target.value)} aria-label="Filter label" title="Filter label">
+            <option value="">Label: semua</option>
+            {labels.items.map((l) => <option key={l.id} value={l.id}>{l.name} ({l.chats})</option>)}
+          </select>
+        )}
       </div>
       <div className="chat-list ibl-list">
         {deep && searching && <div className="chat-none">Mencari di semua chat…</div>}
@@ -132,6 +142,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
                 <Waiting since={c.waiting_since} now={now} />
               </div>
               {c.kind !== 'group' && c.subtitle && <span className="ibr-src">≈ {c.subtitle}</span>}
+              <LabelChips ids={c.labels} className="ibr-lbls" />
               <span className="ibr-lm">{c.last_direction === 'out' ? 'Anda: ' : c.last_from ? c.last_from + ': ' : ''}{c.last_body}</span>
             </div>
             <div className="ibr-rt">
@@ -183,8 +194,9 @@ function ReplyIcon() {
 }
 
 /** WhatsApp-style menu of one bubble (⌄ in its corner): Balas, Salin, Edit, Hapus untuk semua orang. */
-function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward }: {
+function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward, onPin, onLabel }: {
   m: MessageView; edit: boolean; del: boolean; onReply: () => void; onEdit: () => void; onDelete: () => void; onForward?: () => void
+  onPin?: () => void; onLabel?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
@@ -208,6 +220,8 @@ function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward }: {
           {m.can_reply && <button type="button" role="menuitem" onClick={pick(onReply)}><ReplyIcon />Balas</button>}
           {text && <button type="button" role="menuitem" onClick={pick(copy)}><Icon name="doc" />Salin</button>}
           {onForward && <button type="button" role="menuitem" onClick={pick(onForward)}><Icon name="send" />Teruskan</button>}
+          {onPin && <button type="button" role="menuitem" onClick={pick(onPin)}><Icon name="pin" />{m.pinned ? 'Lepas sematan' : 'Sematkan'}</button>}
+          {onLabel && <button type="button" role="menuitem" onClick={pick(onLabel)}><Icon name="tag" />Label</button>}
           {edit && <button type="button" role="menuitem" onClick={pick(onEdit)}><Icon name="edit" />Edit</button>}
           {del && <button type="button" role="menuitem" className="bad" onClick={pick(onDelete)}><Icon name="x" />Hapus untuk semua orang</button>}
         </span>
@@ -304,8 +318,9 @@ function SuggestBox({ s, asOf, onUse }: { s: ReplySuggestion; asOf?: string | nu
   )
 }
 
-function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark }: {
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark, onPin, onLabel }: {
   m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date; mark?: string
+  onPin?: (m: MessageView) => void; onLabel?: (m: MessageView) => void
   onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
   onUse?: (m: MessageView, text: string) => void; asOf?: string | null
 }) {
@@ -329,10 +344,12 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
         {m.quote && <QuoteBlock q={m.quote} mine={via} onJump={onJump} />}
         {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
         {m.media?.kind === 'poll' ? <PollBody text={caption} /> : mark ? <Marked text={caption} q={mark} /> : caption}
-        <span className="tm">{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
-        {(m.can_reply || edit || del || caption || forward) && <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined} />}
+        <span className="tm">{m.pinned && <Icon name="pin" className="i tm-pin" />}{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
+        <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined}
+          onPin={onPin && m.status !== 'pending' && m.status !== 'failed' ? () => onPin(m) : undefined} onLabel={onLabel ? () => onLabel(m) : undefined} />
         {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
       </div>
+      <LabelChips ids={m.labels} className="bub-lbls" />
       {m.auto_reply && <span className="bub-hold" title="Pesan otomatis WhatsApp Business — bukan jawaban dan bukan permintaan">balasan otomatis · tidak dihitung</span>}
       {m.holding && !m.auto_reply && m.direction === 'out' && !(analysis && m.analysis) && (
         <span className="bub-hold" title="Pesan ini hanya meminta pelanggan menunggu — waktu respon tetap dihitung sampai pelanggan mendapat jawaban">jawaban sementara · waktu respon tetap berjalan</span>
@@ -515,7 +532,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   }
   // a search result older than the loaded messages: load every message from it up to them (the chat stays
   // continuous), then go to it once the bubbles are on the page
-  const jumpToHit = (h: ChatHit) => {
+  const jumpToHit = (h: Pick<ChatHit, 'id' | 'sent_at'>) => {
     if (flash(h.id)) return
     const first = [...older, ...(data?.messages ?? [])][0]
     if (!first) return
@@ -526,6 +543,23 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       setOlderMore(!!r.has_more)
     }, (e: Error) => toast(e.message)).finally(() => setLoading(false))
   }
+  // Sematkan: kept in GSI Orbit for the team (three per chat, the oldest replaced) — nothing goes to WhatsApp
+  const pin = useMutation({
+    mutationFn: (m: MessageView) => api.put(`/chat/threads/${id}/messages/${m.id}/pin`, { pinned: !m.pinned }),
+    onSuccess: (_, m) => {
+      setOlder((o) => o.map((x) => (x.id === m.id ? { ...x, pinned: !m.pinned } : x)))
+      qc.invalidateQueries({ queryKey: ['chat', 'thread', id] })
+      toast(m.pinned ? 'Sematan dilepas' : 'Pesan disematkan untuk tim — tidak terkirim ke WhatsApp')
+    },
+    onError: (e: Error) => toast(e.message),
+  })
+  const unpin = (mid: string) => api.put(`/chat/threads/${id}/messages/${mid}/pin`, { pinned: false }).then(() => {
+    setOlder((o) => o.map((x) => (x.id === mid ? { ...x, pinned: false } : x)))
+    qc.invalidateQueries({ queryKey: ['chat', 'thread', id] })
+    toast('Sematan dilepas')
+  }, (e: Error) => toast(e.message))
+  const labelMsg = (m: MessageView) => openSheet(<LabelSheet title="Label pesan" sub={mediaCaption(m.body, m.media).slice(0, 80) || 'Pesan'} selected={m.labels ?? []}
+    save={(ids) => api.put(`/chat/threads/${id}/messages/${m.id}/labels`, { label_ids: ids }).then((r) => { setOlder((o) => o.map((x) => (x.id === m.id ? { ...x, labels: ids } : x))); return r })} />)
   const startEdit = (m: MessageView) => {
     setReplying(null)
     setEditing(m)
@@ -647,10 +681,13 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
             {t.phone && <span className="ibc-phone">{fmtPhone(t.phone)}</span>}
             {links.map((l) => <a key={l.key} className="ibc-link" href={l.href} target="_blank" rel="noreferrer noopener">{l.label}</a>)}
             {t.kind === 'group' && <span className="ibc-phone">{from} · {t.account_masked}</span>}
+            <LabelChips ids={t.labels} className="ibc-lbls" />
           </div>
         </div>
         <div className="ibc-acts">
           <Waiting since={t.waiting_since} now={now} />
+          <button type="button" className="ibl-btn ibc-find" onClick={() => openSheet(<LabelSheet title="Label chat" sub={displayTitle(t)} selected={t.labels ?? []}
+            save={(ids) => api.put(`/chat/threads/${id}/labels`, { label_ids: ids })} />)} title="Label chat" aria-label="Label chat"><Icon name="tag" /></button>
           <button type="button" className={`ibl-btn ibc-find${searching ? ' on' : ''}`} onClick={() => { setSearching(!searching); if (searching) setMark('') }} title="Cari di chat ini" aria-label="Cari di chat ini" aria-pressed={searching}><Icon name="search" /></button>
           {readable && (
             <button type="button" className={`ibc-an-tg${perMsg ? ' on' : ''}`} aria-pressed={perMsg} aria-label="Analisa per pesan" onClick={() => setPerMsg(!perMsg)}
@@ -663,6 +700,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           {!lead && <button className="ibl-btn ibc-lead-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
         </div>
       </div>
+      <PinnedBar pins={data.pins ?? []} who={displayTitle(t)} onJump={(p) => jumpToHit({ id: p.message_id, sent_at: p.sent_at })} onUnpin={(p) => unpin(p.message_id)} />
       {searching && <ChatSearch thread={id} onJump={jumpToHit} onQuery={setMark} onClose={() => { setSearching(false); setMark('') }} />}
       <div className="th-body ibc-body" ref={body} onScroll={onScroll}>
         <div className="ibc-start">
@@ -675,7 +713,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           return (
             <div key={m.id} style={{ display: 'contents' }}>
               {sep}
-              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} onUse={useSuggestion} asOf={data?.stock_as_of} mark={mark} />
+              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} onUse={useSuggestion} asOf={data?.stock_as_of} mark={mark} onPin={(x) => pin.mutate(x)} onLabel={labelMsg} />
             </div>
           )
         })}
