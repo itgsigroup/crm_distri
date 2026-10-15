@@ -1,3 +1,4 @@
+import { AIAPIPage } from '../features/aiapi/AIAPIPage'
 import { createBrowserRouter } from 'react-router'
 import { Shell } from './Shell'
 import { LoginPage } from '../features/login/LoginPage'
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
       { path: 'pengaturan', element: <SettingsPage /> },
       { path: 'pengaturan/pilot', element: <PilotPage /> },
       { path: 'pengaturan/data', element: <DataPage /> },
+      { path: 'pengaturan/api-ai', element: <AIAPIPage /> },
       { path: 'panduan', element: <GuidePage /> },
     ],
   },

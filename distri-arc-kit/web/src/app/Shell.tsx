@@ -29,6 +29,7 @@ export const ROUTES: Record<ScreenKey, string> = {
   branches: '/cabang',
   salesmap: '/mapping-sales',
   mcp: '/claude',
+  aiapi: '/pengaturan/api-ai',
   conn: '/pengaturan',
   konsep: '/panduan',
 }
@@ -49,6 +50,7 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/cabang')) return 'branches'
   if (path.startsWith('/mapping-sales')) return 'salesmap'
   if (path.startsWith('/claude')) return 'mcp'
+  if (path.startsWith('/pengaturan/api-ai')) return 'aiapi'
   if (path.startsWith('/pengaturan')) return 'conn'
   if (path.startsWith('/panduan')) return 'konsep'
   return 'today'
@@ -57,6 +59,7 @@ export function screenOf(path: string): ScreenKey {
 /** A screen the user may open: Mapping sales goes with the Pengguna or Pengaturan menu (no role setting of its own). */
 export function canSee(screens: string[], key: ScreenKey): boolean {
   if (key === 'salesmap') return screens.includes('users') || screens.includes('conn')
+  if (key === 'aiapi') return screens.includes('conn') || screens.includes('mcp')
   return screens.includes(key === 'dashboard' ? 'today' : key)
 }
 
@@ -174,6 +177,7 @@ export function Shell() {
           <div className="rail-sec">
             <nav className="nav" aria-label="Pengaturan">
               <NavBtn to="mcp" cur={cur} icon="spark">MCP Claude</NavBtn>
+              <NavBtn to="aiapi" cur={cur} icon="plug">API &amp; model AI</NavBtn>
               <NavBtn to="konsep" cur={cur} icon="doc">Panduan</NavBtn>
               <NavBtn to="conn" cur={cur} icon="gear">Pengaturan</NavBtn>
             </nav>

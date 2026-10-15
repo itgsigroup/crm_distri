@@ -238,7 +238,7 @@ func TestWAAnalysisSchedule(t *testing.T) {
 		t.Fatal(err)
 	}
 	run, err := rn.Run(ctx, sch.ID, nil, "manual", "Sam")
-	if err != nil || run.Status != "error" || !strings.Contains(deref(run.Error), "butuh Claude") {
+	if err != nil || run.Status != "error" || !strings.Contains(deref(run.Error), "butuh AI") {
 		t.Fatalf("without a key: %s %v %v", run.Status, deref(run.Error), err)
 	}
 	rn.EnvKey = "sk-ant-test-key-000000000000"

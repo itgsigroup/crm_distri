@@ -46,3 +46,18 @@ select r.id, r.schedule_id, s.name, r.trigger, coalesce(r.triggered_by, '') as t
   jsonb_array_length(r.steps)::int as steps
 from mcp_schedule_runs r join mcp_schedules s on s.id = r.schedule_id
 order by r.started_at desc limit sqlc.arg(lim);
+
+-- name: LLMUsageDailyByProvider :many
+-- Cost and tokens per WIB day and provider (API & model AI: the payment chart).
+select (created_at at time zone 'Asia/Jakarta')::date as day, coalesce(provider, '')::text as provider, count(*)::bigint as calls,
+  coalesce(sum(tokens_in), 0)::bigint as tokens_in, coalesce(sum(tokens_out), 0)::bigint as tokens_out, coalesce(sum(cost_idr), 0)::bigint as cost_idr
+from llm_calls where created_at >= sqlc.arg(since)::timestamptz and coalesce(provider, '') not in ('fake', 'template')
+group by 1, 2 order by 1, 2;
+
+-- name: FallbackRuns :many
+-- The runs of the API second option (ADR 0040), newest first.
+select r.id, s.name as schedule, r.status, coalesce(r.engine, '')::text as engine, coalesce(r.model, '')::text as model,
+  r.tokens_in, r.tokens_out, r.cost_idr, r.error, r.started_at, r.finished_at
+from mcp_schedule_runs r join mcp_schedules s on s.id = r.schedule_id
+where s.name = any(sqlc.arg(names)::text[])
+order by r.started_at desc limit 30;

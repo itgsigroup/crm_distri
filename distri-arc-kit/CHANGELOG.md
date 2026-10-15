@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · API & model AI — Claude API / ChatGPT API sebagai opsi kedua · 2026-10-15
+- Halaman baru **Pengaturan → API & model AI** (menu di bawah MCP Claude): kunci Claude API dan ChatGPT API (diperiksa, disimpan terenkripsi), model masing-masing, pilihan **opsi kedua** (Mati / Claude API / ChatGPT API), anggaran harian, dan **total pembayaran token** — hari ini, 7 hari, bulan ini, 30 hari, per provider, grafik harian, per model — serta riwayat saat API mengambil alih.
+- Urutan analisis: **Claude lewat MCP tetap utama**. Bila Claude belum menjawab siklus Orchestrator dalam `MCP_WAIT` (10 menit), API pilihan di server mengerjakan agen yang tersisa lewat tool MCP yang sama (validasi, masking, provenance sama). Analisa WhatsApp juga dikerjakan API bila routine claude.ai terlambat > 2½ jam.
+- ChatGPT (gpt-5, gpt-5-mini, gpt-4.1, gpt-4.1-mini) lewat Chat Completions + function calling; setiap panggilan tercatat di `llm_calls` dengan token dan biaya.
+- Tombol Analisis ulang tidak lagi langsung memakai Claude API; API hanya bekerja sebagai opsi kedua (ADR 0040).
+
 ## Fix · Chat antar dua nomor GSI · 2026-10-15
 - Gejala: Catharina chat ke Granike, pesan ada di HP Granike tapi tidak muncul di Chat web Granike. Kedua HP membawa id WhatsApp yang sama; pesan tersimpan sekali di thread Catharina dan salinan di nomor Granike dibuang sebagai duplikat.
 - Chat 1:1 antara dua nomor GSI yang tersambung kini tersimpan **satu salinan per nomor** (kunci `<id>@<nomor>`), jadi muncul di Chat kedua nomor dan menambah unread di penerima. Pengiriman ulang/riwayat tetap tidak menggandakan; edit dan hapus untuk semua orang mengenai setiap salinan. Grup tidak berubah (tetap satu salinan, dibaca dari semua nomor).

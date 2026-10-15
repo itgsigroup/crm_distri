@@ -75,6 +75,9 @@ var Prices = map[string]Price{
 	"claude-haiku-4-5":  {1, 5},
 	"claude-fable-5-1":  {10, 50},
 	"gpt-4.1":           {2, 8},
+	"gpt-5":             {1.25, 10},
+	"gpt-5-mini":        {0.25, 2},
+	"gpt-4.1-mini":      {0.4, 1.6},
 }
 
 // IDRPerUSD converts cost estimates (LLM_IDR_PER_USD overrides).

@@ -288,6 +288,8 @@ type Deps struct {
 	SessionKey   []byte        // opens sealed secrets (BigQuery key, Claude API key)
 	AlertGroup   string        // ALERT_WA_GROUP
 	AnalystKey   string        // ANTHROPIC_API_KEY for scheduled analysis when no key was saved in the app
+	OpenAIKey    string        // OPENAI_API_KEY for the ChatGPT API when no key was saved in the app
+	Fallback     *Fallback     // the API second option (ADR 0040); nil: off
 	MCPWait      time.Duration // how long a cycle waits for Claude through MCP (prompt text)
 	BackfillDays int           // WA_BACKFILL_DAYS: chat history asked from the phones (capped by retention.chat_days)
 }
@@ -306,10 +308,16 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	river.AddWorker(workers, &DataApplyWorker{st: st, clock: c, log: log})
 	river.AddWorker(workers, &AlertsWorker{st: st, clock: c, log: log, env: deps.Ops})
 	river.AddWorker(workers, &AnalystTickWorker{st: st, clock: c})
-	anRunner := &analyst.Runner{St: st, Clock: c, Log: log, Orch: deps.Orchestrator, SessionKey: deps.SessionKey, EnvKey: deps.AnalystKey}
+	anRunner := &analyst.Runner{St: st, Clock: c, Log: log, Orch: deps.Orchestrator, SessionKey: deps.SessionKey, EnvKey: deps.AnalystKey, EnvOpenAI: deps.OpenAIKey}
 	river.AddWorker(workers, &AnalystRunWorker{runner: anRunner})
 	river.AddWorker(workers, &CycleMCPWorker{runner: anRunner, wait: deps.MCPWait})
 	var periodic []*river.PeriodicJob
+	if deps.Fallback != nil {
+		river.AddWorker(workers, &WAFallbackWorker{runner: anRunner, fb: deps.Fallback})
+		periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(30*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
+			return jobs.WAFallbackArgs{}, &river.InsertOpts{MaxAttempts: 1, UniqueOpts: river.UniqueOpts{ByPeriod: 30 * time.Minute}}
+		}, nil))
+	}
 	if deps.Odoo != nil {
 		river.AddWorker(workers, &OdooSyncWorker{syncer: odoo.NewSyncer(st, deps.Odoo, c, log), svc: svc})
 		periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(10*time.Minute), func() (river.JobArgs, *river.InsertOpts) {

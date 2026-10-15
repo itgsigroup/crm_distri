@@ -55,6 +55,7 @@ type Server struct {
 	// scheduled analysis seams (tests): the Claude client of inline runs and the API-key check
 	analystModel func(key string) analyst.Model
 	verifyKey    func(ctx context.Context, key string) error
+	verifyOpenAI func(ctx context.Context, key string) error
 }
 
 // WithMedia sets where chat media is fetched from (tests; production uses the Baileys bridge).
@@ -122,6 +123,7 @@ func (s *Server) Handler() http.Handler {
 			s.cycleRoutes(r)
 			s.mcpRoutes(r)
 			s.analystRoutes(r)
+			s.aiAPIRoutes(r)
 			s.relasiRoutes(r)
 			s.identifyRoutes(r)
 			s.pilotRoutes(r)

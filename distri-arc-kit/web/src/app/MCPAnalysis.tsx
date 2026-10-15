@@ -8,7 +8,7 @@ import { hhmm } from '../lib/format'
 import { useOrchStatus } from './orch'
 
 /** How a cycle asked from the "Analisis ulang" button is analysed by Claude through MCP (POST /cycles → mcp). */
-export interface CycleMCP { engine: 'claude_api' | 'claude_ai'; prompt: string; claude_url: string; wait_sec: number; agents: string[] }
+export interface CycleMCP { engine: 'claude_api' | 'claude_ai'; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string }
 export type QueuedCycle = Cycle & { mcp?: CycleMCP }
 
 interface InputState { agent: string; submitted_at: string | null }
@@ -42,7 +42,9 @@ export function MCPAnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
             <li><b>Tekan Enter.</b> Claude mengambil data tiap agen (<code>orchestrator_input_get</code>), menganalisis, lalu mengirim usulannya (<code>orchestrator_submit</code>).</li>
             <li><b>Hasilnya tersimpan di GSI Orbit</b> — Keputusan, Rencana, Orchestrator, dan catatan per bubble chat ter-update sendiri. Halaman ini boleh ditutup.</li>
           </ol>
-          <p className="mcpa-note"><Icon name="lock" />Claude Desktop / claude.ai hanya bekerja bila ada perintah yang dikirim di sana — aplikasi tidak bisa menjalankannya sendiri. Agar analisis langsung jalan tanpa membuka Claude, simpan kunci Claude API di <b>MCP Claude → Analisis terjadwal</b>: Claude di server memakai tool MCP yang sama.</p>
+          {m.fallback
+            ? <p className="mcpa-note"><Icon name="check" />Opsi kedua aktif: bila Claude belum menjawab dalam {waitText(m.wait_sec)}, <b>{m.fallback}</b> di server mengerjakan agen yang tersisa lewat tool MCP yang sama. Biayanya tercatat di <b>Pengaturan → API &amp; model AI</b>.</p>
+            : <p className="mcpa-note"><Icon name="lock" />Claude Desktop / claude.ai hanya bekerja bila ada perintah yang dikirim di sana — aplikasi tidak bisa menjalankannya sendiri. Agar analisis tetap jalan saat Claude tidak menjawab, aktifkan opsi kedua (Claude API atau ChatGPT API) di <b>API &amp; model AI</b>.</p>}
         </>) : (
           <p className="mcpa-note"><Icon name="check" />Kunci Claude API tersimpan: Claude di server menjalankan analisis lewat tool MCP yang sama (tercatat di Riwayat MCP dan Analisis terjadwal). Tidak perlu membuka apa pun.</p>
         )}

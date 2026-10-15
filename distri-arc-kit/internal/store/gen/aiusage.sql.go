@@ -90,6 +90,61 @@ func (q *Queries) CycleAIUsage(ctx context.Context, lim int32) ([]CycleAIUsageRo
 	return items, nil
 }
 
+const fallbackRuns = `-- name: FallbackRuns :many
+select r.id, s.name as schedule, r.status, coalesce(r.engine, '')::text as engine, coalesce(r.model, '')::text as model,
+  r.tokens_in, r.tokens_out, r.cost_idr, r.error, r.started_at, r.finished_at
+from mcp_schedule_runs r join mcp_schedules s on s.id = r.schedule_id
+where s.name = any($1::text[])
+order by r.started_at desc limit 30
+`
+
+type FallbackRunsRow struct {
+	ID         uuid.UUID  `json:"id"`
+	Schedule   string     `json:"schedule"`
+	Status     string     `json:"status"`
+	Engine     string     `json:"engine"`
+	Model      string     `json:"model"`
+	TokensIn   int32      `json:"tokens_in"`
+	TokensOut  int32      `json:"tokens_out"`
+	CostIdr    int64      `json:"cost_idr"`
+	Error      *string    `json:"error"`
+	StartedAt  time.Time  `json:"started_at"`
+	FinishedAt *time.Time `json:"finished_at"`
+}
+
+// The runs of the API second option (ADR 0040), newest first.
+func (q *Queries) FallbackRuns(ctx context.Context, names []string) ([]FallbackRunsRow, error) {
+	rows, err := q.db.Query(ctx, fallbackRuns, names)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []FallbackRunsRow{}
+	for rows.Next() {
+		var i FallbackRunsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Schedule,
+			&i.Status,
+			&i.Engine,
+			&i.Model,
+			&i.TokensIn,
+			&i.TokensOut,
+			&i.CostIdr,
+			&i.Error,
+			&i.StartedAt,
+			&i.FinishedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lLMUsageByModel = `-- name: LLMUsageByModel :many
 select coalesce(provider, '') as provider, coalesce(model, '') as model, count(*)::bigint as calls,
   coalesce(sum(tokens_in), 0)::bigint as tokens_in, coalesce(sum(tokens_out), 0)::bigint as tokens_out, coalesce(sum(cost_idr), 0)::bigint as cost_idr,
@@ -159,6 +214,50 @@ func (q *Queries) LLMUsageDaily(ctx context.Context, since time.Time) ([]LLMUsag
 	for rows.Next() {
 		var i LLMUsageDailyRow
 		if err := rows.Scan(&i.Day, &i.Calls, &i.CostIdr); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const lLMUsageDailyByProvider = `-- name: LLMUsageDailyByProvider :many
+select (created_at at time zone 'Asia/Jakarta')::date as day, coalesce(provider, '')::text as provider, count(*)::bigint as calls,
+  coalesce(sum(tokens_in), 0)::bigint as tokens_in, coalesce(sum(tokens_out), 0)::bigint as tokens_out, coalesce(sum(cost_idr), 0)::bigint as cost_idr
+from llm_calls where created_at >= $1::timestamptz and coalesce(provider, '') not in ('fake', 'template')
+group by 1, 2 order by 1, 2
+`
+
+type LLMUsageDailyByProviderRow struct {
+	Day       time.Time `json:"day"`
+	Provider  string    `json:"provider"`
+	Calls     int64     `json:"calls"`
+	TokensIn  int64     `json:"tokens_in"`
+	TokensOut int64     `json:"tokens_out"`
+	CostIdr   int64     `json:"cost_idr"`
+}
+
+// Cost and tokens per WIB day and provider (API & model AI: the payment chart).
+func (q *Queries) LLMUsageDailyByProvider(ctx context.Context, since time.Time) ([]LLMUsageDailyByProviderRow, error) {
+	rows, err := q.db.Query(ctx, lLMUsageDailyByProvider, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LLMUsageDailyByProviderRow{}
+	for rows.Next() {
+		var i LLMUsageDailyByProviderRow
+		if err := rows.Scan(
+			&i.Day,
+			&i.Provider,
+			&i.Calls,
+			&i.TokensIn,
+			&i.TokensOut,
+			&i.CostIdr,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -188,12 +188,15 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	if pr, ok := t.(wa.ProfileReader); ok {
 		idf.Profiles = pr
 	}
+	fb := &worker.Fallback{St: st, Clock: c, Secret: cfg.SessionKey(), EnvClaude: cfg.AnthropicKey, EnvOpenAI: cfg.OpenAIKey}
 	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch, Identify: idf,
-		Ops: ops.EnvFrom(cfg), AlertFrom: cfg.AlertWAFrom, AlertGroup: cfg.AlertWAGroup, SessionKey: cfg.SessionKey(), AnalystKey: cfg.AnthropicKey, MCPWait: cfg.MCPWait, BackfillDays: cfg.WABackfillDays})
+		Ops: ops.EnvFrom(cfg), AlertFrom: cfg.AlertWAFrom, AlertGroup: cfg.AlertWAGroup, SessionKey: cfg.SessionKey(), AnalystKey: cfg.AnthropicKey,
+		OpenAIKey: cfg.OpenAIKey, Fallback: fb, MCPWait: cfg.MCPWait, BackfillDays: cfg.WABackfillDays})
 	if err != nil {
 		return err
 	}
 	orch.Jobs = client
+	orch.OnMCPWait = fb.Hook(client, log) // Claude through MCP first, the chosen API when it has not answered (ADR 0040)
 	// one recompute job per burst of messages, not per message (a freshly linked number's history is thousands)
 	recompute := worker.NewDealerBatcher(20*time.Second, func(ctx context.Context, ids []uuid.UUID) {
 		args := jobs.RecomputeArgs{DealerIDs: make([]string, len(ids))}

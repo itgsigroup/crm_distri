@@ -143,8 +143,8 @@ export function AIConnectionsCard() {
         <ModeSeg />
       </div>
       <div className="conn-grid" style={{ gridTemplateColumns: '1fr' }}>
-        <button className="cc" onClick={() => toast(apiOK ? `Model ${llm?.model} · cadangan ${llm?.fallback}` : 'Isi ANTHROPIC_API_KEY dan LLM_PROVIDER=anthropic di server; sementara alasan & draft dari template agen')}>
-          <div className="ch"><span className="lg" style={{ background: '#D97706' }}>API</span><div><b>API AI langsung</b><small>Claude API ({llm?.model ?? 'claude-sonnet-5-5'}) · cadangan OpenAI · batch analisis tiap jam dari server GSI</small></div></div>
+        <button className="cc" onClick={() => nav('/pengaturan/api-ai')}>
+          <div className="ch"><span className="lg" style={{ background: '#D97706' }}>API</span><div><b>API &amp; model AI</b><small>Claude API atau ChatGPT API sebagai opsi kedua bila Claude lewat MCP tidak menjawab · kunci, model, total pembayaran token</small></div></div>
           <div className="cs"><span className={`dot ${apiOK ? 'good' : 'warn'}`} />{apiOK ? 'Terhubung · API key tersimpan di server' : 'Mode template · API key belum diisi'}</div>
         </button>
         <button className="cc" onClick={() => nav('/claude')}>

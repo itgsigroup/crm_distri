@@ -126,7 +126,6 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 	if pol.LLM.RequireAI && !serverModel {
 		via = "mcp"
 	}
-	anKey, _ := analyst.LoadKey(r.Context(), s.st.Q, s.secret(), s.cfg.AnthropicKey)
 	u, _ := CurrentUser(r.Context())
 	o := &orchestrator.Orchestrator{St: s.st, Clock: s.clock}
 	var cyc gen.Cycle
@@ -137,10 +136,8 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 		}
 		cyc = c
 		if s.jobs != nil {
+			// Claude through MCP first; the API second option joins after the wait (ADR 0040, worker)
 			_, err = s.jobs.InsertTx(r.Context(), tx, jobs.CycleRunArgs{CycleID: c.ID.String()}, nil)
-			if err == nil && via == "mcp" && anKey != "" { // the server's Claude analyses it through the MCP tools
-				_, err = s.jobs.InsertTx(r.Context(), tx, jobs.CycleMCPArgs{CycleID: c.ID.String(), By: deref(u.Email)}, nil)
-			}
 		}
 		return err
 	})
@@ -160,8 +157,8 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 			}
 			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cyc.ID.String(), names, s.mcpWait())
 			m := &cycleMCP{Engine: "claude_ai", Prompt: prompt, ClaudeURL: "https://claude.ai/new?q=" + url.QueryEscape(prompt), WaitSec: int(s.mcpWait().Seconds()), Agents: names}
-			if anKey != "" {
-				m.Engine = "claude_api" // Claude on the server (Analisis terjadwal engine) does it; nothing to open
+			if ok, prov, model := analyst.FallbackReady(r.Context(), s.st.Q, s.clock.Now(), s.secret(), s.cfg.AnthropicKey, s.cfg.OpenAIKey); ok {
+				m.Fallback = analyst.ProviderLabel(prov) + " · " + model
 			}
 			out.MCP = m
 		}
@@ -176,7 +173,9 @@ type cycleQueued struct {
 }
 
 type cycleMCP struct {
-	Engine    string   `json:"engine"` // claude_api: the server's Claude does it · claude_ai: the person opens Claude
+	Engine string `json:"engine"` // claude_ai: Claude through MCP (claude.ai, Desktop, a routine)
+	// Fallback: the API that takes the agents Claude did not answer after WaitSec ("ChatGPT API · gpt-5"); "" off
+	Fallback  string   `json:"fallback"`
 	Prompt    string   `json:"prompt"`
 	ClaudeURL string   `json:"claude_url"`
 	WaitSec   int      `json:"wait_sec"`

@@ -75,7 +75,9 @@ export function modelLabel(m: string): string {
     if (x === 'fake' || x === 'template') return 'Template (tanpa AI)'
     if (x === 'claude.ai') return 'Claude (akun claude.ai)'
     const c = /^claude-([a-z]+)-(\d+)-(\d+)$/.exec(x)
-    return c ? `Claude ${c[1][0].toUpperCase()}${c[1].slice(1)} ${c[2]}.${c[3]}` : x
+    if (c) return `Claude ${c[1][0].toUpperCase()}${c[1].slice(1)} ${c[2]}.${c[3]}`
+    const g = /^gpt-([\d.]+)(?:-(mini|nano))?$/.exec(x)
+    return g ? `GPT-${g[1]}${g[2] ? ' ' + g[2] : ''}` : x
   }).join(', ')
 }
 

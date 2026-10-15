@@ -2,7 +2,7 @@
 // Terms follow docs/design/01-glossary.md exactly.
 import type { RootCause, Segment } from '../../api/types'
 
-export type ScreenKey = 'today' | 'dashboard' | 'orch' | 'chat' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'ar' | 'users' | 'roles' | 'branches' | 'salesmap' | 'mcp' | 'conn' | 'konsep'
+export type ScreenKey = 'today' | 'dashboard' | 'orch' | 'chat' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'ar' | 'users' | 'roles' | 'branches' | 'salesmap' | 'mcp' | 'aiapi' | 'conn' | 'konsep'
 
 export const TITLES: Record<ScreenKey, [string, string]> = {
   today: ['Pusat kendali', ''],
@@ -20,6 +20,7 @@ export const TITLES: Record<ScreenKey, [string, string]> = {
   branches: ['Cabang', 'Master cabang: dipakai pengguna, dealer, dan mapping data'],
   salesmap: ['Mapping sales', 'Hubungkan Pengguna dengan nama sales di BigQuery (Accurate) · satu pengguna, banyak nama'],
   mcp: ['MCP Claude', 'Hubungkan Claude untuk menganalisis semua data GSI Orbit — Claude membaca dan mengusulkan, keputusan tetap di aplikasi'],
+  aiapi: ['API & model AI', 'Claude lewat MCP utama; Claude API atau ChatGPT API sebagai opsi kedua untuk analisis, dengan total pembayaran token'],
   conn: ['Pengaturan', 'Kebijakan orbit, sumber sinyal, koneksi AI (API & MCP), kalibrasi agen'],
   konsep: ['Konsep orbit', 'Panduan Orbit: satu gambar, 14 istilah, cara baca papan'],
 }

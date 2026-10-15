@@ -45,8 +45,34 @@ const (
 
 // Config is policy mcp.analyst.
 type Config struct {
-	Model          string `json:"model"`
-	DailyBudgetIDR int64  `json:"daily_budget_idr"` // 0 = no limit
+	Model       string `json:"model"`        // Claude API model
+	OpenAIModel string `json:"openai_model"` // ChatGPT API model
+	// Fallback: the API that analyses when Claude through MCP did not answer in time (ADR 0040) — off | claude | openai
+	Fallback       string `json:"fallback"`
+	DailyBudgetIDR int64  `json:"daily_budget_idr"` // 0 = no limit (both APIs together)
+}
+
+// Fallback values.
+const (
+	FallbackOff    = "off"
+	FallbackClaude = "claude"
+	FallbackOpenAI = "openai"
+)
+
+// Provider is the API the server's runs use: ChatGPT when it is the chosen second option, Claude otherwise.
+func (c Config) Provider() string {
+	if c.Fallback == FallbackOpenAI {
+		return FallbackOpenAI
+	}
+	return FallbackClaude
+}
+
+// ProviderModel is the model of Provider.
+func (c Config) ProviderModel() string {
+	if c.Provider() == FallbackOpenAI {
+		return c.OpenAIModel
+	}
+	return c.Model
 }
 
 // ModelInfo is a model the analyst may use.
@@ -62,8 +88,16 @@ var Models = []ModelInfo{
 	{"claude-haiku-4-5", "Claude Haiku 4.5 — paling hemat"},
 }
 
+// OpenAIModels the ChatGPT API may use (prices in llm.Prices).
+var OpenAIModels = []ModelInfo{
+	{"gpt-5", "GPT-5 — paling tajam"},
+	{"gpt-5-mini", "GPT-5 mini — hemat"},
+	{"gpt-4.1", "GPT-4.1"},
+	{"gpt-4.1-mini", "GPT-4.1 mini — paling hemat"},
+}
+
 // DefaultConfig applies when the policy row is missing.
-var DefaultConfig = Config{Model: "claude-opus-5-5", DailyBudgetIDR: 50000}
+var DefaultConfig = Config{Model: "claude-opus-5-5", OpenAIModel: "gpt-5", Fallback: FallbackOff, DailyBudgetIDR: 50000}
 
 // LoadConfig reads policy mcp.analyst.
 func LoadConfig(ctx context.Context, q *gen.Queries) Config {
@@ -74,7 +108,22 @@ func LoadConfig(ctx context.Context, q *gen.Queries) Config {
 	if !ValidModel(c.Model) {
 		c.Model = DefaultConfig.Model
 	}
+	if !ValidOpenAIModel(c.OpenAIModel) {
+		c.OpenAIModel = DefaultConfig.OpenAIModel
+	}
+	if !validFallback(c.Fallback) {
+		c.Fallback = FallbackOff
+	}
 	return c
+}
+
+// ValidOpenAIModel reports whether id is one of OpenAIModels.
+func ValidOpenAIModel(id string) bool {
+	return slices.ContainsFunc(OpenAIModels, func(m ModelInfo) bool { return m.ID == id })
+}
+
+func validFallback(f string) bool {
+	return f == FallbackOff || f == FallbackClaude || f == FallbackOpenAI
 }
 
 // ValidModel reports whether id is one of Models.
@@ -86,6 +135,18 @@ func ValidModel(id string) bool {
 func SaveConfig(ctx context.Context, q *gen.Queries, c Config, by *uuid.UUID, now time.Time) error {
 	if !ValidModel(c.Model) {
 		return fmt.Errorf("model %q tidak dikenal", c.Model)
+	}
+	if c.OpenAIModel == "" {
+		c.OpenAIModel = DefaultConfig.OpenAIModel
+	}
+	if !ValidOpenAIModel(c.OpenAIModel) {
+		return fmt.Errorf("model %q tidak dikenal", c.OpenAIModel)
+	}
+	if c.Fallback == "" {
+		c.Fallback = FallbackOff
+	}
+	if !validFallback(c.Fallback) {
+		return fmt.Errorf("opsi kedua %q tidak dikenal", c.Fallback)
 	}
 	if c.DailyBudgetIDR < 0 {
 		return errors.New("anggaran tidak boleh negatif")
@@ -140,7 +201,9 @@ type Runner struct {
 	Orch       *orchestrator.Orchestrator // analisis_* tools run Orchestrator cycles
 	SessionKey []byte                     // opens the sealed API key
 	EnvKey     string                     // ANTHROPIC_API_KEY (when LLM_PROVIDER=anthropic)
+	EnvOpenAI  string                     // OPENAI_API_KEY
 	NewModel   func(key string) Model     // default NewAnthropic
+	NewChat    func(key string) ChatModel // default NewOpenAIChat
 }
 
 // Step is one tool call of a run (shown under the report).
@@ -226,7 +289,14 @@ func (r *Runner) execute(ctx context.Context, sch gen.McpSchedule) outcome {
 	defer func() { _ = cs.Close() }()
 
 	cfg := LoadConfig(ctx, r.St.Q)
-	key, _ := LoadKey(ctx, r.St.Q, r.SessionKey, r.EnvKey)
+	prov := cfg.Provider()
+	var key string
+	if prov == FallbackOpenAI {
+		key, _ = LoadOpenAIKey(ctx, r.St.Q, r.SessionKey, r.EnvOpenAI)
+	} else {
+		key, _ = LoadKey(ctx, r.St.Q, r.SessionKey, r.EnvKey)
+	}
+	label := ProviderLabel(prov)
 	spent, _ := r.St.Q.AnalystCostSince(ctx, clock.Today(r.Clock.Now()))
 	strict := true
 	if pol, err := policy.Load(ctx, r.St.Q); err == nil {
@@ -235,26 +305,35 @@ func (r *Runner) execute(ctx context.Context, sch gen.McpSchedule) outcome {
 	if strict { // require_ai: no AI, no report — the run fails instead of writing a template
 		switch {
 		case key == "":
-			return outcome{engine: "none", err: errors.New("wajib AI: kunci Claude API belum diisi (MCP Claude → Analisis terjadwal → Atur mesin) — analisis gagal, tanpa laporan template")}
+			return outcome{engine: "none", err: fmt.Errorf("wajib AI: kunci %s belum diisi (Pengaturan → API & model AI) — analisis gagal, tanpa laporan template", label)}
 		case cfg.DailyBudgetIDR > 0 && spent.Cost >= cfg.DailyBudgetIDR:
 			return outcome{engine: "none", err: fmt.Errorf("wajib AI: anggaran harian %s sudah terpakai (%s) — analisis gagal, tanpa laporan template", rp(cfg.DailyBudgetIDR), rp(spent.Cost))}
 		}
 	}
 	switch {
 	case key == "":
-		return r.template(ctx, cs, "Mode template — kunci Claude API belum diisi (MCP Claude → Analisis terjadwal). Angka dari tool MCP; analisis dan rekomendasi Claude aktif setelah kunci diisi.")
+		return r.template(ctx, cs, "Mode template — kunci "+label+" belum diisi (Pengaturan → API & model AI). Angka dari tool MCP; analisis dan rekomendasi AI aktif setelah kunci diisi.")
 	case cfg.DailyBudgetIDR > 0 && spent.Cost >= cfg.DailyBudgetIDR:
-		return r.template(ctx, cs, fmt.Sprintf("Mode template — anggaran harian analisis %s sudah terpakai (%s). Claude dipakai lagi besok atau setelah anggaran dinaikkan.", rp(cfg.DailyBudgetIDR), rp(spent.Cost)))
-	}
-	newModel := r.NewModel
-	if newModel == nil {
-		newModel = NewAnthropic
+		return r.template(ctx, cs, fmt.Sprintf("Mode template — anggaran harian analisis %s sudah terpakai (%s). AI dipakai lagi besok atau setelah anggaran dinaikkan.", rp(cfg.DailyBudgetIDR), rp(spent.Cost)))
 	}
 	tools := toolset(srv.Tools(), sch.Scopes)
-	o := r.claude(ctx, cs, newModel(key), cfg.Model, sch, tools)
+	var o outcome
+	if prov == FallbackOpenAI {
+		newChat := r.NewChat
+		if newChat == nil {
+			newChat = NewOpenAIChat
+		}
+		o = r.openai(ctx, cs, newChat(key), cfg.OpenAIModel, sch, tools)
+	} else {
+		newModel := r.NewModel
+		if newModel == nil {
+			newModel = NewAnthropic
+		}
+		o = r.claude(ctx, cs, newModel(key), cfg.Model, sch, tools)
+	}
 	if o.err != nil && o.report == "" && !strict {
 		// keep the numbers coming even when the model fails; the run stays marked as an error
-		t := r.template(ctx, cs, "Claude gagal ("+o.err.Error()+") — laporan template dari tool MCP.")
+		t := r.template(ctx, cs, label+" gagal ("+o.err.Error()+") — laporan template dari tool MCP.")
 		o.report, o.steps = t.report, append(o.steps, t.steps...)
 	}
 	return o
@@ -505,6 +584,9 @@ func inputSchema(s any) anthropic.BetaToolInputSchemaParam {
 
 func (r *Runner) record(ctx context.Context, model string, in, out int64, d time.Duration, failed bool) {
 	agent, provider, purpose := AgentName, "anthropic", Purpose
+	if strings.HasPrefix(model, "gpt-") {
+		provider = "openai"
+	}
 	if failed {
 		purpose += " (error)"
 	}
@@ -549,8 +631,8 @@ func requiredOutcome(sch gen.McpSchedule, o outcome) error {
 	if sch.Key == nil || *sch.Key != KeyWAAnalysis {
 		return nil
 	}
-	if o.engine != "claude" {
-		return errors.New("analisa WhatsApp butuh Claude: kunci Claude API belum diisi atau anggaran habis (MCP Claude → Analisis terjadwal → Atur mesin)")
+	if o.engine != "claude" && o.engine != "openai" {
+		return errors.New("analisa WhatsApp butuh AI: kunci API belum diisi atau anggaran habis (Pengaturan → API & model AI)")
 	}
 	for _, st := range o.steps {
 		if st.Tool == "orchestrator_submit" && st.Status == "ok" {

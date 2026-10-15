@@ -49,6 +49,9 @@ type Orchestrator struct {
 	OdooWrite bool
 	Jobs      *river.Client[pgx.Tx] // inserts outbox.send for auto sends (nil in tests)
 	MCPWait   time.Duration         // routing = mcp: how long Analisis waits for submissions (default 10 min)
+	// OnMCPWait: Analisis starts waiting for Claude through MCP on these agents; it returns the extra time the
+	// API second option needs after the wait (0: none) — ADR 0040
+	OnMCPWait func(ctx context.Context, cycleID uuid.UUID, number int64, agents []string, wait time.Duration) time.Duration
 }
 
 // Report is what a finished cycle returns.

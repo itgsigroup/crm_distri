@@ -150,6 +150,13 @@ func (AnalystRunArgs) Kind() string { return "analyst.run" }
 type CycleMCPArgs struct {
 	CycleID string `json:"cycle_id"`
 	By      string `json:"by,omitempty"`
+	// Fallback: the API second option (ADR 0040) — runs after the MCP wait, for the agents Claude did not answer
+	Fallback bool `json:"fallback,omitempty"`
 }
 
 func (CycleMCPArgs) Kind() string { return "cycle.mcp_analyst" }
+
+// WAFallbackArgs: Analisa WhatsApp by the API second option when the claude.ai routine is late (ADR 0040).
+type WAFallbackArgs struct{}
+
+func (WAFallbackArgs) Kind() string { return "wa.analysis_fallback" }

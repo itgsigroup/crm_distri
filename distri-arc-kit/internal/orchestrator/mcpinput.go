@@ -385,6 +385,13 @@ func (o *Orchestrator) analyzeViaMCP(ctx context.Context, r *stageRun, list []ag
 	if wait == 0 {
 		wait = 10 * time.Minute
 	}
+	if o.OnMCPWait != nil && len(waiting) > 0 {
+		var number int64
+		if r.cyc.Number != nil {
+			number = *r.cyc.Number
+		}
+		wait += o.OnMCPWait(ctx, cid, number, waiting, wait)
+	}
 	deadline := time.Now().Add(wait)
 	submitted := map[string]json.RawMessage{}
 	for time.Now().Before(deadline) && len(submitted) < len(waiting) {

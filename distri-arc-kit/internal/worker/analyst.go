@@ -89,6 +89,9 @@ func (w *CycleMCPWorker) Work(ctx context.Context, job *river.Job[jobs.CycleMCPA
 	if err != nil {
 		return river.JobCancel(err)
 	}
+	if job.Args.Fallback {
+		return w.fallbackCycle(ctx, cid)
+	}
 	st := w.runner.St
 	var names []string
 	for i := 0; i < 180; i++ { // the cycle publishes its Input at the start of Analisis
@@ -108,7 +111,7 @@ func (w *CycleMCPWorker) Work(ctx context.Context, job *river.Job[jobs.CycleMCPA
 				names = append(names, x.Agent)
 			}
 			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cid.String(), names, w.wait)
-			id, err := ensureButtonSchedule(ctx, st, prompt)
+			id, err := ensureSchedule(ctx, st, ButtonSchedule, prompt)
 			if err != nil {
 				return err
 			}
@@ -126,13 +129,14 @@ func (w *CycleMCPWorker) Work(ctx context.Context, job *river.Job[jobs.CycleMCPA
 	return river.JobCancel(errors.New("siklus tidak menerbitkan Input dalam 90 detik"))
 }
 
-// ensureButtonSchedule keeps one disabled schedule for the button and sets its task to this cycle's prompt.
-func ensureButtonSchedule(ctx context.Context, st *store.Store, prompt string) (uuid.UUID, error) {
+// ensureSchedule keeps one disabled schedule row by name (the button's, the API second option's) and sets its task
+// to this run's prompt.
+func ensureSchedule(ctx context.Context, st *store.Store, name, prompt string) (uuid.UUID, error) {
 	var id uuid.UUID
-	err := st.Pool.QueryRow(ctx, `update mcp_schedules set prompt = $2, updated_at = now() where name = $1 returning id`, ButtonSchedule, prompt).Scan(&id)
+	err := st.Pool.QueryRow(ctx, `update mcp_schedules set prompt = $2, updated_at = now() where name = $1 returning id`, name, prompt).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = st.Pool.QueryRow(ctx, `insert into mcp_schedules (name, prompt, cron, enabled, scopes, max_steps) values ($1, $2, '0 0 1 1 *', false, '{read,analyze,orchestrate}', 30) returning id`,
-			ButtonSchedule, prompt).Scan(&id)
+			name, prompt).Scan(&id)
 	}
 	return id, err
 }

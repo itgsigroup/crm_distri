@@ -18,7 +18,7 @@ describe('pemakaian AI', () => {
 
   it('names models for people', () => {
     expect(modelLabel('claude-sonnet-5-5')).toBe('Claude Sonnet 5.5')
-    expect(modelLabel('claude-opus-5-5, gpt-4.1')).toBe('Claude Opus 5.5, gpt-4.1')
+    expect(modelLabel('claude-opus-5-5, gpt-4.1')).toBe('Claude Opus 5.5, GPT-4.1')
     expect(modelLabel('template')).toBe('Template (tanpa AI)')
     expect(modelLabel('fake')).toBe('Template (tanpa AI)')
     expect(modelLabel('claude.ai')).toBe('Claude (akun claude.ai)')
