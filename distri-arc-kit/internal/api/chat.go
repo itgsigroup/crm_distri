@@ -41,6 +41,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Patch("/chat/threads/{id}/messages/{mid}", s.chatEdit)
 	r.Delete("/chat/threads/{id}/messages/{mid}", s.chatDelete)
 	r.Put("/chat/threads/{id}/contact-type", s.setContactType)
+	r.Put("/chat/threads/{id}/alias", s.setThreadAlias)
 	r.Get("/chat/threads/{id}/messages/{mid}/media", s.chatMedia)
 	r.Get("/internal-numbers", s.internalNumbers)
 	r.Post("/internal-numbers", s.addInternalNumber)
@@ -215,6 +216,39 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		out = append(out, v)
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": out})
+}
+
+// setThreadAlias names the number of a one-to-one conversation as the team knows it ("Pak Yohanes"), shown with the
+// master name and found by search; it applies to every conversation with that number.
+func (s *Server) setThreadAlias(w http.ResponseWriter, r *http.Request) {
+	t, ok := s.threadParam(w, r)
+	if !ok {
+		return
+	}
+	var in struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&in); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Body tidak valid")
+		return
+	}
+	name := strings.Join(strings.Fields(in.Name), " ")
+	if len([]rune(name)) > 80 {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Nama terlalu panjang (maks. 80 huruf)")
+		return
+	}
+	number := wa.NumberOfJID(deref(t.WaJid))
+	if deref(t.Kind) == "group" || number == "" {
+		httpx.Fail(w, http.StatusConflict, "not_a_contact", "Nama panggilan hanya untuk chat pribadi")
+		return
+	}
+	n, err := s.st.Q.SetNumberAlias(r.Context(), gen.SetNumberAliasParams{Name: name, Number: number})
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	s.audit(r, "chat.alias", "chat_thread", &t.ID, map[string]any{"number": wa.MaskNumber(number), "name": name, "threads": n})
+	httpx.JSON(w, http.StatusOK, map[string]any{"name": name, "threads": n})
 }
 
 // threadMatcher matches a search against a conversation's names and text, forgiving Indonesian spellings of one name

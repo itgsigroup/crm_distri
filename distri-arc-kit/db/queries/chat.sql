@@ -139,7 +139,14 @@ update chat_threads set last_message_at = greatest(coalesce(last_message_at, $2)
   unread = unread + $3 where id = $1;
 
 -- name: SetThreadPhoneName :exec
-update chat_threads set phone_name = sqlc.arg(name)::text where id = sqlc.arg(id) and phone_name is distinct from sqlc.arg(name)::text;
+-- From the phone: fills an empty name only — a name a person gave in Chat is not overwritten.
+update chat_threads set phone_name = sqlc.arg(name)::text where id = sqlc.arg(id) and phone_name is null;
+
+-- name: SetNumberAlias :execrows
+-- A name given in Chat ("Pak Yohanes") belongs to the number: every one-to-one conversation with it, under any GSI
+-- number, carries it. An empty name clears it.
+update chat_threads set phone_name = nullif(sqlc.arg(name)::text, '')
+where wa_jid in (sqlc.arg(number)::text || '@s.whatsapp.net') or split_part(split_part(wa_jid, '@', 1), ':', 1) = sqlc.arg(number)::text and wa_jid like '%@s.whatsapp.net';
 
 -- name: MarkThreadRead :exec
 -- A group is one conversation for every GSI number in it: reading it reads it under each number.

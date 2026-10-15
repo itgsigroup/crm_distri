@@ -2238,6 +2238,26 @@ func (q *Queries) SetMessageSignal(ctx context.Context, arg SetMessageSignalPara
 	return err
 }
 
+const setNumberAlias = `-- name: SetNumberAlias :execrows
+update chat_threads set phone_name = nullif($1::text, '')
+where wa_jid in ($2::text || '@s.whatsapp.net') or split_part(split_part(wa_jid, '@', 1), ':', 1) = $2::text and wa_jid like '%@s.whatsapp.net'
+`
+
+type SetNumberAliasParams struct {
+	Name   string `json:"name"`
+	Number string `json:"number"`
+}
+
+// A name given in Chat ("Pak Yohanes") belongs to the number: every one-to-one conversation with it, under any GSI
+// number, carries it. An empty name clears it.
+func (q *Queries) SetNumberAlias(ctx context.Context, arg SetNumberAliasParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setNumberAlias, arg.Name, arg.Number)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const setOutboxError = `-- name: SetOutboxError :exec
 update outbox set status = $2, attempts = attempts + 1, error = $3 where id = $1
 `
@@ -2298,7 +2318,7 @@ func (q *Queries) SetSignalReply(ctx context.Context, arg SetSignalReplyParams) 
 }
 
 const setThreadPhoneName = `-- name: SetThreadPhoneName :exec
-update chat_threads set phone_name = $1::text where id = $2 and phone_name is distinct from $1::text
+update chat_threads set phone_name = $1::text where id = $2 and phone_name is null
 `
 
 type SetThreadPhoneNameParams struct {
@@ -2306,6 +2326,7 @@ type SetThreadPhoneNameParams struct {
 	ID   uuid.UUID `json:"id"`
 }
 
+// From the phone: fills an empty name only — a name a person gave in Chat is not overwritten.
 func (q *Queries) SetThreadPhoneName(ctx context.Context, arg SetThreadPhoneNameParams) error {
 	_, err := q.db.Exec(ctx, setThreadPhoneName, arg.Name, arg.ID)
 	return err

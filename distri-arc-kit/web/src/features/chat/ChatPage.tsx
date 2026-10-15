@@ -573,6 +573,15 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     send.mutate(replying ? { body: v, reply_to: replying.id } : { body: v })
     setReplying(null)
   }
+  // Nama panggilan: what the team calls this number ("Pak Yohanes"), kept with the number and shown with the master name
+  const rename = () => {
+    const v = window.prompt(`Nama panggilan untuk ${t.phone ? fmtPhone(t.phone) : t.title} — tampil sebagai "Nama - ${t.title}" dan bisa dicari. Kosongkan untuk menghapus.`, t.phone_name ?? '')
+    if (v === null) return
+    api.put<{ name: string }>(`/chat/threads/${id}/alias`, { name: v }).then(
+      (r) => { toast(r.name ? `Nama panggilan: ${r.name}` : 'Nama panggilan dihapus'); qc.invalidateQueries({ queryKey: ['chat'] }) },
+      (e) => toast(e instanceof Error ? e.message : 'Gagal menyimpan nama'),
+    )
+  }
   const links = t.kind === 'group' ? [] : lookupLinks(t.title, t.phone, t.dealer_city)
   // an internal group is never read by Analisa WhatsApp; a customer group is, like a one-to-one chat
   const readable = t.kind !== 'group' || t.group_kind === 'external'
@@ -582,7 +591,11 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         <button className="back" onClick={onBack} aria-label="Kembali"><Icon name="arrow" /></button>
         <span className={`av ${t.kind === 'group' ? 'grp' : ''}`}>{t.kind === 'group' ? <Icon name="people" /> : initials(t)}</span>
         <div className="ibc-who">
-          <div className="ibc-name"><b>{displayTitle(t)}</b>{t.subtitle && <span className="ibr-src">≈ {t.subtitle}</span>}</div>
+          <div className="ibc-name">
+            <b>{displayTitle(t)}</b>
+            {t.kind !== 'group' && <button type="button" className="ibc-alias" onClick={rename} title={t.phone_name ? 'Ubah nama panggilan' : 'Beri nama panggilan (seperti di HP)'} aria-label="Nama panggilan"><Icon name="edit" /></button>}
+            {t.subtitle && <span className="ibr-src">≈ {t.subtitle}</span>}
+          </div>
           <div className="ibc-sub">
             {t.phone && <span className="ibc-phone">{fmtPhone(t.phone)}</span>}
             {links.map((l) => <a key={l.key} className="ibc-link" href={l.href} target="_blank" rel="noreferrer noopener">{l.label}</a>)}

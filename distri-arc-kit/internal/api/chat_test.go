@@ -246,3 +246,41 @@ func TestChatWindow(t *testing.T) {
 		t.Fatalf("a quiet chat opened empty: %v", bodies(q))
 	}
 }
+
+// A name given in Chat belongs to the number: every one-to-one conversation with it shows and finds it, and a name
+// the phone reports later does not overwrite it.
+func TestThreadAliasByNumber(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	var a, b string
+	for i, acc := range []string{"6281234504471", "6281534509032"} {
+		var id string
+		if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('dealer', '6281901337568@s.whatsapp.net', 'JOHANNES YUDHAYANTO', $1, now()) returning id", acc).Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		if i == 0 {
+			a = id
+		} else {
+			b = id
+		}
+	}
+	if code, out := put(t, srv.URL+"/api/chat/threads/"+a+"/alias", "sam@gsi.co.id", map[string]any{"name": "  Pak   Yohanes "}); code != 200 || out["threads"] != float64(2) {
+		t.Fatalf("alias: %d %v", code, out)
+	}
+	_, list := get(t, srv, "/api/chat/threads?q="+url.QueryEscape("pak yohanes"), "sam@gsi.co.id")
+	found := map[string]string{}
+	for _, it := range list["items"].([]any) {
+		m := it.(map[string]any)
+		found[m["id"].(string)], _ = m["phone_name"].(string)
+	}
+	if found[a] != "Pak Yohanes" || found[b] != "Pak Yohanes" {
+		t.Fatalf("alias not on every conversation of the number: %v", found)
+	}
+	in := wa.NewIngestor(st, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if _, err := in.Process(ctx, wa.Message{ID: "AL1", Account: "6281234504471", ChatJID: "6281901337568@s.whatsapp.net", FromNumber: "6281901337568", ChatName: "Johannes Y", Text: "siap", Time: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	if count(t, st, "select count(*) from chat_threads where id = $1 and phone_name = 'Pak Yohanes'", a) != 1 {
+		t.Fatal("the phone's name overwrote the name given in Chat")
+	}
+}

@@ -187,7 +187,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if err != nil {
 			return fmt.Errorf("thread: %w", err)
 		}
-		if name := strings.TrimSpace(m.ChatName); name != "" && !m.IsGroup && deref(thread.PhoneName) != name {
+		if name := strings.TrimSpace(m.ChatName); name != "" && !m.IsGroup && thread.PhoneName == nil {
 			// what the phone calls this contact, for search (a dealer's title stays its master name)
 			if err := q.SetThreadPhoneName(ctx, gen.SetThreadPhoneNameParams{ID: thread.ID, Name: name}); err != nil {
 				return err

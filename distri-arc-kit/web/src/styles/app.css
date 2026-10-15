@@ -1285,3 +1285,8 @@ body.map-maximized{overflow:hidden}
 .fwd-who b{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fwd-who small{font-size:11.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fwd-err{color:var(--bad)}
+
+/* Nama panggilan: a small pencil next to the conversation's name */
+.ibc-alias{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;margin-left:4px;border-radius:7px;color:var(--text-3);vertical-align:middle}
+.ibc-alias:hover{background:var(--surface-2);color:var(--text)}
+.ibc-alias .i{width:13px;height:13px}
