@@ -3,6 +3,7 @@ Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...
 
 ## Change · Filter chat lebih ringkas · 2026-10-15
 - Chip filter di daftar chat kini berupa ikon + jumlah; chip yang aktif juga menampilkan namanya, nama lengkap muncul saat kursor diarahkan.
+- Panel lead kembali di kolom tengah (antara daftar chat dan percakapan) pada layar laptop 1100–1280px; hanya di bawah 1100px ia melayang di atas percakapan.
 - Label "WHATSAPP BAILEYS" di kepala daftar chat dihapus, begitu juga sebutan Baileys di subjudul menu Chat.
 
 ## Change · Analisa WhatsApp tiap 2 jam lewat routine Claude di claude.ai (tanpa kunci API) · 2026-10-14
