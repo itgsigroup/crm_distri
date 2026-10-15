@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Nama grup WhatsApp kosong · Feat · Tempel gambar di kolom chat · 2026-10-15
+- Gejala: beberapa grup tampil tanpa nama. Penyebab: saat pesan pertama grup masuk, bridge kadang belum bisa membaca info grup (mis. dibatasi WhatsApp saat sinkron riwayat), nama kosong tersimpan dan tidak pernah diperbarui.
+- Kini nama kosong tidak menimpa nama yang ada; pesan berikutnya yang membawa nama (atau nama baru setelah grup diganti nama) memperbarui grup dan judul chat-nya di semua nomor GSI. Grup lama tanpa nama diberi nama dari daftar grup tiap nomor (job worker tiap jam, juga saat start). Yang belum terbaca tampil "Grup (nama belum terbaca)", bukan kosong.
+- **Tempel (Ctrl/⌘+V) di kolom chat** seperti WhatsApp Web: screenshot atau gambar yang di-copy langsung jadi lampiran (pratinjau + kolom keterangan), lalu kirim. Teks yang di-copy tetap tertempel sebagai teks. Pratinjau lampiran tidak lagi rusak di mode pengembangan.
+
 ## Fix · Unduhan media yang gagal & peringatan memo · 2026-10-15
 - Media yang tidak bisa dibuka ("Gagal mengambil media dari WhatsApp", `fetch failed`): bila host media yang tersimpan tidak bisa dijangkau, bridge kini mencoba host media bawaan WhatsApp (`mmg.whatsapp.net`), lalu meminta salinan baru ke WhatsApp; penyebab jaringannya tercatat di log bridge.
 - "memo not stored" (±17.000 per hari): dealer tanpa sinyal tidak lagi dibaca ulang setiap siklus — ditandai sudah diperiksa dan baru dibaca lagi bila ada sinyal baru. Memo yang sudah ada tidak berubah; peringatan hanya untuk memo yang benar-benar gagal validasi.

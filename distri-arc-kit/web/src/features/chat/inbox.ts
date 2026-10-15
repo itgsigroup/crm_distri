@@ -65,11 +65,13 @@ export function matchThread(t: Pick<ThreadView, 'title' | 'subtitle' | 'last_bod
 
 /** The conversation's name as the phone knows it, then the master name, matched on the number: "Pak Yohanes -
  * JOHANNES YUDHAYANTO". Only the master name when the phone saved none, or the same name. */
-export function displayTitle(t: { title: string; phone_name?: string }): string {
+export function displayTitle(t: { title: string; phone_name?: string; kind?: string }): string {
+  // a group whose name WhatsApp did not give yet (it is asked again every hour): never a blank row
+  const title = t.title?.trim() || (t.kind === 'group' ? 'Grup (nama belum terbaca)' : 'Tanpa nama')
   const p = t.phone_name?.trim()
-  if (!p) return t.title
-  if (t.title.toLocaleLowerCase('id-ID').includes(p.toLocaleLowerCase('id-ID'))) return t.title // the same name
-  return `${p} - ${t.title}`
+  if (!p) return title
+  if (title.toLocaleLowerCase('id-ID').includes(p.toLocaleLowerCase('id-ID'))) return title // the same name
+  return `${p} - ${title}`
 }
 
 /** "12 mnt", "21 jam 44 mnt", "3 hr 2 jam" since the customer's unanswered message; tone grows with the wait. */

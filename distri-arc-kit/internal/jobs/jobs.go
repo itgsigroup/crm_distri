@@ -160,3 +160,8 @@ func (CycleMCPArgs) Kind() string { return "cycle.mcp_analyst" }
 type WAFallbackArgs struct{}
 
 func (WAFallbackArgs) Kind() string { return "wa.analysis_fallback" }
+
+// GroupNamesArgs: groups whose name never came through get it from the linked numbers' group lists.
+type GroupNamesArgs struct{}
+
+func (GroupNamesArgs) Kind() string { return "wa.group_names" }

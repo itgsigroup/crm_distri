@@ -18,6 +18,7 @@ import { ChatSearch, Marked } from './ChatSearch'
 import { LabelChips, LabelSheet, PinnedBar, useChatLabels } from './Labels'
 import { hasLabel, pinnedFirst } from './chatLabels'
 import { ChatRowMenu } from './ChatRowMenu'
+import { pastedImage } from './paste'
 import type { ChatHit } from './findInChat'
 
 
@@ -749,6 +750,11 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           <form onSubmit={submit}>
             {!editing && <AttachMenu onFile={pickFile} onPoll={openPoll} disabled={upload.isPending} />}
             <textarea ref={input} rows={1} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={composerKey}
+              onPaste={(e) => {
+                // a copied screenshot or picture: it becomes the file to send, the box takes its caption (WhatsApp Web)
+                const img = !editing && pastedImage(e.clipboardData.files, e.clipboardData.getData('text/plain'))
+                if (img) { e.preventDefault(); pickFile(img) }
+              }}
               placeholder={editing ? 'Ubah pesan…' : file ? 'Tambahkan keterangan…' : 'Tulis balasan… (Shift+Enter: baris baru)'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : file ? 'Keterangan file' : 'Tulis balasan'} />
             {text.trim() || file || editing
               ? <button type="submit" className="send" aria-label={editing ? 'Simpan edit' : 'Kirim'} disabled={send.isPending || edit.isPending || upload.isPending}><Icon name={editing ? 'check' : 'send'} /></button>
@@ -916,7 +922,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
           <button type="button" className="ibp-shrink" onClick={() => setMini(true)} title="Ringkas panel" aria-label="Ringkas panel"><Icon name="chev" /></button>
         </div>
         <div className="ibp-id">
-          <div><b>{d?.name ?? idf?.best_name ?? t.title}</b><span>{t.phone ? fmtPhone(t.phone) : group ? `${from(t)} · ${t.account_masked}` : t.subtitle}</span></div>
+          <div><b>{d?.name ?? idf?.best_name ?? displayTitle(t)}</b><span>{t.phone ? fmtPhone(t.phone) : group ? `${from(t)} · ${t.account_masked}` : t.subtitle}</span></div>
           <em className={tone}>{stage}</em>
         </div>
         {filled > 0 && <div className="ibp-prog" aria-label={`Tahap ${stage}`}>{Array.from({ length: 7 }, (_, i) => <i key={i} className={i < filled ? `on ${tone}` : ''} />)}</div>}

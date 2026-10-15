@@ -68,6 +68,7 @@ describe('supplier chats (ADR 0035)', () => {
 describe('displayTitle', () => {
   it('shows the phone name with the master name, once', () => {
     expect(displayTitle({ title: 'JOHANNES YUDHAYANTO', phone_name: 'Pak Yohanes' })).toBe('Pak Yohanes - JOHANNES YUDHAYANTO')
+    expect(displayTitle({ title: '', kind: 'group' })).toBe('Grup (nama belum terbaca)')
     expect(displayTitle({ title: 'Purchasing A&W', phone_name: 'Purchasing A&W' })).toBe('Purchasing A&W')
     expect(displayTitle({ title: 'Toko Sinar', phone_name: '' })).toBe('Toko Sinar')
     expect(matchThread({ title: 'MAKIN JAYA', subtitle: '', last_body: '', phone_name: 'albert prasetyawan' }, 'albert')).toBe(true)

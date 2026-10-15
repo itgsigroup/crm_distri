@@ -320,6 +320,13 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	river.AddWorker(workers, &AnalystRunWorker{runner: anRunner})
 	river.AddWorker(workers, &CycleMCPWorker{runner: anRunner, wait: deps.MCPWait})
 	var periodic []*river.PeriodicJob
+	if gn, ok := deps.Transport.(wa.GroupNames); ok && deps.Ingest != nil {
+		river.AddWorker(workers, &GroupNamesWorker{ingest: deps.Ingest, src: gn, log: log})
+		// hourly: a number still linking at start is asked again soon; nothing runs once every group is named
+		periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(time.Hour), func() (river.JobArgs, *river.InsertOpts) {
+			return jobs.GroupNamesArgs{}, &river.InsertOpts{MaxAttempts: 1, UniqueOpts: river.UniqueOpts{ByPeriod: time.Hour}}
+		}, &river.PeriodicJobOpts{RunOnStart: true}))
+	}
 	if deps.Fallback != nil {
 		river.AddWorker(workers, &WAFallbackWorker{runner: anRunner, fb: deps.Fallback})
 		periodic = append(periodic, river.NewPeriodicJob(river.PeriodicInterval(30*time.Minute), func() (river.JobArgs, *river.InsertOpts) {

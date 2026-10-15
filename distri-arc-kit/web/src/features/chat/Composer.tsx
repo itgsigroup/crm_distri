@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { fmtDuration, fmtSize } from './bubble'
@@ -52,11 +52,18 @@ export function AttachMenu({ onFile, onPoll, disabled }: { onFile: (f: File) => 
 
 /** The file chosen, above the input (the input becomes its caption). */
 export function FilePreview({ file, onRemove }: { file: File; onRemove: () => void }) {
-  const url = useMemo(() => (file.type.startsWith('image/') || file.type.startsWith('video/') ? URL.createObjectURL(file) : null), [file])
-  useEffect(() => () => { if (url) URL.revokeObjectURL(url) }, [url])
+  const kind = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : ''
+  const media = useRef<HTMLImageElement & HTMLVideoElement>(null)
+  // the preview URL lives exactly as long as this effect run (React may run it twice: each run makes its own)
+  useEffect(() => {
+    if (!kind || !media.current) return
+    const url = URL.createObjectURL(file)
+    media.current.src = url
+    return () => URL.revokeObjectURL(url)
+  }, [file, kind])
   return (
     <div className="cmp-file">
-      {url && file.type.startsWith('image/') ? <img src={url} alt="" /> : url ? <video src={url} muted /> : <span className="cmp-file-ic"><Icon name="doc" /></span>}
+      {kind === 'image' ? <img ref={media} alt="" /> : kind === 'video' ? <video ref={media} muted /> : <span className="cmp-file-ic"><Icon name="doc" /></span>}
       <span><b>{file.name}</b><small>{fmtSize(file.size)}{file.size > MAX_FILE ? ' · lebih dari 25 MB' : ' · tulis keterangan di bawah (opsional)'}</small></span>
       <button type="button" onClick={onRemove} aria-label="Batalkan lampiran"><Icon name="x" /></button>
     </div>

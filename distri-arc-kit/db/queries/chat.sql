@@ -21,7 +21,7 @@ select * from wa_groups where jid = $1;
 -- name: UpsertWAGroup :one
 insert into wa_groups (jid, name, kind, branch, members, read_enabled)
 values ($1, $2, $3, $4, $5, $6)
-on conflict (jid) do update set name = coalesce(excluded.name, wa_groups.name), members = coalesce(excluded.members, wa_groups.members)
+on conflict (jid) do update set name = coalesce(nullif(excluded.name, ''), wa_groups.name), members = coalesce(excluded.members, wa_groups.members)
 returning *;
 
 -- name: UpdateWAGroup :one
@@ -624,3 +624,16 @@ delete from chat_thread_pins where user_id = $1 and conv = $2;
 
 -- name: CountThreadPins :one
 select count(*)::int from chat_thread_pins where user_id = $1;
+
+-- name: RenameWAGroup :exec
+-- The group's name as WhatsApp has it now (a first message came without it, or the group was renamed): the group and
+-- every GSI number's thread of it take it.
+with g as (update wa_groups set name = sqlc.arg(name)::text where jid = sqlc.arg(jid)::text returning jid)
+update chat_threads t set title = sqlc.arg(name)::text from g where t.wa_jid = g.jid and t.kind = 'group';
+
+-- name: UnnamedGroups :many
+-- Groups whose name never came through (the bridge could not read it when their first message arrived).
+select g.jid, coalesce(array_agg(distinct t.account) filter (where t.account is not null), '{}')::text[] as accounts
+from wa_groups g left join chat_threads t on t.wa_jid = g.jid
+where coalesce(g.name, '') = '' or exists (select 1 from chat_threads x where x.wa_jid = g.jid and x.kind = 'group' and coalesce(x.title, '') = '')
+group by g.jid;

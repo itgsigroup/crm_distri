@@ -148,6 +148,13 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			if err != nil {
 				return err
 			}
+			if name := strings.TrimSpace(m.GroupName); name != "" && name != deref(g.Name) {
+				// the name a first message came without, or the group's new name: the group and its threads take it
+				if err := q.RenameWAGroup(ctx, gen.RenameWAGroupParams{Jid: m.ChatJID, Name: name}); err != nil {
+					return err
+				}
+				g.Name = &name
+			}
 			if deref(g.Kind) == "internal" && !g.ReadEnabled {
 				res.Reason = DropGroupDisabled
 				return nil
@@ -302,6 +309,42 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		in.OnDealer(ctx, *res.DealerID)
 	}
 	return res, err
+}
+
+// GroupNames lists the joined groups of a linked number with their names (the bridge's group list).
+type GroupNames interface {
+	GroupNames(ctx context.Context, account string) (map[string]string, error)
+}
+
+// NameGroups gives the groups whose name never came through the name WhatsApp has for them, asking the numbers
+// that hold their threads. Returns how many groups were named.
+func (in *Ingestor) NameGroups(ctx context.Context, src GroupNames) (int, error) {
+	rows, err := in.st.Q.UnnamedGroups(ctx)
+	if err != nil || len(rows) == 0 {
+		return 0, err
+	}
+	lists := map[string]map[string]string{}
+	n := 0
+	for _, g := range rows {
+		for _, acc := range g.Accounts {
+			names, ok := lists[acc]
+			if !ok {
+				if names, err = src.GroupNames(ctx, acc); err != nil {
+					in.log.Warn("group names", "account", acc, "err", err)
+					names = nil
+				}
+				lists[acc] = names
+			}
+			if name := strings.TrimSpace(names[deref(g.Jid)]); name != "" {
+				if err := in.st.Q.RenameWAGroup(ctx, gen.RenameWAGroupParams{Jid: deref(g.Jid), Name: name}); err != nil {
+					return n, err
+				}
+				n++
+				break
+			}
+		}
+	}
+	return n, nil
 }
 
 // mirrorLinked: a 1:1 chat with another linked GSI number is one conversation seen from two numbers. The other number

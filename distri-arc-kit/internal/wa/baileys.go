@@ -518,6 +518,24 @@ func (b *Baileys) Delete(ctx context.Context, account, chatJID, waMsgID string) 
 	return err
 }
 
+// GroupNames lists the groups the number has joined with their names (GET /sessions/{id}/groups).
+func (b *Baileys) GroupNames(ctx context.Context, account string) (map[string]string, error) {
+	var out []struct {
+		JID  string `json:"jid"`
+		Meta struct {
+			Name string `json:"name"`
+		} `json:"meta"`
+	}
+	if _, _, err := b.call(ctx, http.MethodGet, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/groups", nil, &out); err != nil {
+		return nil, err
+	}
+	names := make(map[string]string, len(out))
+	for _, g := range out {
+		names[g.JID] = g.Meta.Name
+	}
+	return names, nil
+}
+
 // mediaClient fetches files: no overall timeout (a video may take a while), the request context bounds it.
 var mediaClient = &http.Client{}
 

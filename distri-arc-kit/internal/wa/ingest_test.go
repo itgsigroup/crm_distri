@@ -339,6 +339,64 @@ func TestGroupReplyFromChatShownOnce(t *testing.T) {
 	}
 }
 
+type fakeGroupNames map[string]map[string]string
+
+func (f fakeGroupNames) GroupNames(_ context.Context, account string) (map[string]string, error) {
+	return f[account], nil
+}
+
+// A group whose first message came without a name (the bridge could not read it) takes the name the next message
+// carries, on every GSI number's thread, and a renamed group follows; a group still unnamed is named from the
+// numbers' group lists.
+func TestGroupNamesComeLater(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	g, g2 := "120363041100000555@g.us", "120363041100000556@g.us"
+	t0 := time.Now().Add(-time.Hour)
+	for _, m := range []wa.Message{
+		{ID: "N1", Account: andi, ChatJID: g, IsGroup: true, FromNumber: "6281100005001", Text: "halo", Time: t0},
+		{ID: "N1", Account: dewi, ChatJID: g, IsGroup: true, FromNumber: "6281100005001", Text: "halo", Time: t0},
+		{ID: "N2", Account: andi, ChatJID: g2, IsGroup: true, FromNumber: "6281100005001", Text: "pagi", Time: t0},
+	} {
+		if _, err := in.Process(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+	}
+	titles := func(jid string) string {
+		var s string
+		if err := st.Pool.QueryRow(ctx, "select coalesce(string_agg(distinct coalesce(title, ''), '|'), '') from chat_threads where wa_jid = $1", jid).Scan(&s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	if titles(g) != "" {
+		t.Fatalf("unnamed group titled %q", titles(g))
+	}
+	if _, err := in.Process(ctx, wa.Message{ID: "N3", Account: andi, ChatJID: g, IsGroup: true, GroupName: "Proyek Bandara", FromNumber: "6281100005001", Text: "lanjut", Time: t0.Add(time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	if got := titles(g); got != "Proyek Bandara" {
+		t.Fatalf("after a named message: %q (want it on both numbers' threads)", got)
+	}
+	if _, err := in.Process(ctx, wa.Message{ID: "N4", Account: dewi, ChatJID: g, IsGroup: true, GroupName: "Proyek Bandara 2", FromNumber: "6281100005001", Text: "ok", Time: t0.Add(2 * time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	if got := titles(g); got != "Proyek Bandara 2" {
+		t.Fatalf("renamed group: %q", got)
+	}
+	// an empty name never overwrites a known one
+	if _, err := in.Process(ctx, wa.Message{ID: "N5", Account: andi, ChatJID: g, IsGroup: true, FromNumber: "6281100005001", Text: "x", Time: t0.Add(3 * time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	if got := titles(g); got != "Proyek Bandara 2" {
+		t.Fatalf("name lost: %q", got)
+	}
+	n, err := in.NameGroups(ctx, fakeGroupNames{andi: {g2: "Gudang Solo"}})
+	if err != nil || n != 1 || titles(g2) != "Gudang Solo" {
+		t.Fatalf("named %d (%v), title %q", n, err, titles(g2))
+	}
+}
+
 // Messages kept on one linked number only (before the copy was made in real time) are caught up from the stored
 // copy, read, without the other phone; a second run adds nothing.
 func TestMirrorLinkedCatchUp(t *testing.T) {

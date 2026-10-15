@@ -2369,6 +2369,23 @@ func (q *Queries) PurgePersonalChat(ctx context.Context, waJid string) (int32, e
 	return column_1, err
 }
 
+const renameWAGroup = `-- name: RenameWAGroup :exec
+with g as (update wa_groups set name = $1::text where jid = $2::text returning jid)
+update chat_threads t set title = $1::text from g where t.wa_jid = g.jid and t.kind = 'group'
+`
+
+type RenameWAGroupParams struct {
+	Name string `json:"name"`
+	Jid  string `json:"jid"`
+}
+
+// The group's name as WhatsApp has it now (a first message came without it, or the group was renamed): the group and
+// every GSI number's thread of it take it.
+func (q *Queries) RenameWAGroup(ctx context.Context, arg RenameWAGroupParams) error {
+	_, err := q.db.Exec(ctx, renameWAGroup, arg.Name, arg.Jid)
+	return err
+}
+
 const searchThreadMessages = `-- name: SearchThreadMessages :many
 select m.id, m.sent_at, coalesce(m.direction, '')::text as direction, coalesce(m.from_name, '')::text as from_name, coalesce(m.body, '')::text as body
 from chat_messages m
@@ -2840,6 +2857,39 @@ func (q *Queries) TouchThread(ctx context.Context, arg TouchThreadParams) error 
 	return err
 }
 
+const unnamedGroups = `-- name: UnnamedGroups :many
+select g.jid, coalesce(array_agg(distinct t.account) filter (where t.account is not null), '{}')::text[] as accounts
+from wa_groups g left join chat_threads t on t.wa_jid = g.jid
+where coalesce(g.name, '') = '' or exists (select 1 from chat_threads x where x.wa_jid = g.jid and x.kind = 'group' and coalesce(x.title, '') = '')
+group by g.jid
+`
+
+type UnnamedGroupsRow struct {
+	Jid      *string  `json:"jid"`
+	Accounts []string `json:"accounts"`
+}
+
+// Groups whose name never came through (the bridge could not read it when their first message arrived).
+func (q *Queries) UnnamedGroups(ctx context.Context) ([]UnnamedGroupsRow, error) {
+	rows, err := q.db.Query(ctx, unnamedGroups)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []UnnamedGroupsRow{}
+	for rows.Next() {
+		var i UnnamedGroupsRow
+		if err := rows.Scan(&i.Jid, &i.Accounts); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const unpinThread = `-- name: UnpinThread :exec
 delete from chat_thread_pins where user_id = $1 and conv = $2
 `
@@ -3014,7 +3064,7 @@ func (q *Queries) UpsertInternalNumber(ctx context.Context, arg UpsertInternalNu
 const upsertWAGroup = `-- name: UpsertWAGroup :one
 insert into wa_groups (jid, name, kind, branch, members, read_enabled)
 values ($1, $2, $3, $4, $5, $6)
-on conflict (jid) do update set name = coalesce(excluded.name, wa_groups.name), members = coalesce(excluded.members, wa_groups.members)
+on conflict (jid) do update set name = coalesce(nullif(excluded.name, ''), wa_groups.name), members = coalesce(excluded.members, wa_groups.members)
 returning id, jid, name, kind, branch, members, read_enabled, kind_manual
 `
 

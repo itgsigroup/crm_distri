@@ -15,6 +15,7 @@ import (
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/store"
+	"distri-arc/internal/wa"
 )
 
 // API as the second option for analysis (ADR 0040): Claude through MCP (claude.ai, paid by the subscription) answers
@@ -145,3 +146,20 @@ func (w *CycleMCPWorker) Timeout(*river.Job[jobs.CycleMCPArgs]) time.Duration { 
 
 // Timeout gives the run room (as a scheduled analysis).
 func (w *WAFallbackWorker) Timeout(*river.Job[jobs.WAFallbackArgs]) time.Duration { return runTimeout }
+
+// GroupNamesWorker names the groups whose first message came without a name (the bridge could not read it then).
+type GroupNamesWorker struct {
+	river.WorkerDefaults[jobs.GroupNamesArgs]
+	ingest *wa.Ingestor
+	src    wa.GroupNames
+	log    *slog.Logger
+}
+
+// Work asks each number holding such a group for its group list once.
+func (w *GroupNamesWorker) Work(ctx context.Context, _ *river.Job[jobs.GroupNamesArgs]) error {
+	n, err := w.ingest.NameGroups(ctx, w.src)
+	if n > 0 {
+		w.log.Info("wa groups named", "groups", n)
+	}
+	return err
+}
