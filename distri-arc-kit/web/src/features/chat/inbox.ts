@@ -43,9 +43,15 @@ export function countFilters(list: Filtered[]): Record<Filter, number> {
 }
 
 /** Search over the name, the subtitle and the last message (lower-cased, Indonesian locale). */
+/** Folds the spellings of one Indonesian name: case, "oe" → "u", "j" → "y", doubled letters — Yohanes finds
+ * Johannes, Yusuf finds Joesoef (the same rules as the server's searchKey). */
+export function searchKey(s: string): string {
+  return s.trim().toLocaleLowerCase('id-ID').replace(/oe/g, 'u').replace(/j/g, 'y').replace(/(\p{L})\1+/gu, '$1')
+}
+
 export function matchThread(t: Pick<ThreadView, 'title' | 'subtitle' | 'last_body'>, q: string): boolean {
-  const s = q.trim().toLocaleLowerCase('id-ID')
-  return !s || `${t.title} ${t.subtitle} ${t.last_body}`.toLocaleLowerCase('id-ID').includes(s)
+  const s = searchKey(q)
+  return !s || searchKey(`${t.title} ${t.subtitle} ${t.last_body}`).includes(s)
 }
 
 /** "12 mnt", "21 jam 44 mnt", "3 hr 2 jam" since the customer's unanswered message; tone grows with the wait. */

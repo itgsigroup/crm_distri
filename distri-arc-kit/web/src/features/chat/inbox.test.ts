@@ -31,6 +31,8 @@ describe('chat inbox', () => {
     const t = { title: 'Toko Sinar', subtitle: 'Semarang', last_body: 'minta harga DVR' }
     expect(matchThread(t, 'dvr')).toBe(true)
     expect(matchThread(t, 'SINAR')).toBe(true)
+    expect(matchThread({ title: 'JOHANNES YUDHAYANTO', subtitle: '', last_body: '' }, 'yohanes')).toBe(true)
+    expect(matchThread({ title: 'Toko Joesoef', subtitle: '', last_body: '' }, 'yusuf')).toBe(true)
     expect(matchThread(t, 'jakarta')).toBe(false)
     expect(matchThread(t, '  ')).toBe(true)
   })

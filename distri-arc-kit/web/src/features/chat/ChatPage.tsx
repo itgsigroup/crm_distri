@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '../../api/client'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api, type Items } from '../../api/client'
 import type { MediaView, MessageView, ReplySuggestion, ThreadDetail, ThreadView, WATeam } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
@@ -68,8 +68,28 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
   const team = account.startsWith('team:') ? (account.slice(5) as WATeam) : undefined
   const nums = (wa?.items ?? []).filter((x) => !team || (x.team ?? 'sales') === team)
   const counts = useMemo(() => countFilters(list), [list])
+  // the list holds the chat window (14 days); a search of 3+ letters asks the server across every stored
+  // conversation, by name (spellings forgiven) or number
+  const [dq, setDq] = useState('')
+  useEffect(() => {
+    const h = setTimeout(() => setDq(q.trim()), 350)
+    return () => clearTimeout(h)
+  }, [q])
+  const deep = dq.length >= 3
+  const { data: found, isFetching: searching } = useQuery({
+    queryKey: ['chat', 'search', dq, account],
+    enabled: deep,
+    staleTime: 30_000,
+    queryFn: () => {
+      const p = new URLSearchParams({ all: '1', q: dq })
+      if (team) p.set('team', team)
+      else if (account) p.set('account', account)
+      return api.get<Items<ThreadView>>('/chat/threads?' + p.toString()).then((r) => r.items)
+    },
+  })
+  const base = deep && found ? found : list
   // the open conversation stays in "Belum dibaca" / "Belum dibalas" after reading or answering it, as in WhatsApp
-  const shown = list.filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && matchThread(t, q))
+  const shown = base.filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && (deep && found ? true : matchThread(t, q)))
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['chat'] })
     qc.invalidateQueries({ queryKey: ['wa'] })
@@ -97,7 +117,8 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick }
         ))}
       </div>
       <div className="chat-list ibl-list">
-        {loaded && shown.length === 0 && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
+        {deep && searching && <div className="chat-none">Mencari di semua chat…</div>}
+        {loaded && shown.length === 0 && !(deep && searching) && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"${deep ? ' di semua chat Orbit — chat lama di HP yang belum pernah berbalas pesan sejak nomor ditautkan belum ada di sini' : ''}` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
         {shown.map((c) => (
           <button key={c.id} className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
             <span className={`av ${c.kind === 'group' ? 'grp' : ''}`}>{c.kind === 'group' ? <Icon name="people" /> : initials(c)}</span>

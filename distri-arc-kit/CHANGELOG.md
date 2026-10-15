@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Cari chat · 2026-10-15
+- Pencarian memaafkan ejaan nama: J/Y, huruf dobel, oe/u — "yohanes" menemukan "JOHANNES YUDHAYANTO", "yusuf" menemukan "Joesoef".
+- Mulai 3 huruf, pencarian menjangkau semua chat yang tersimpan (bukan hanya 14 hari terakhir), dan bisa mencari nomor ("0819…", "62819…", 4 digit terakhir).
+- Bila tetap tidak ketemu, Chat menjelaskan bahwa chat lama di HP yang tidak ikut tersinkron saat nomor ditautkan belum ada di Orbit.
+
 ## Fix · Status dibaca di Chat · 2026-10-15
 - Membuka chat langsung menghapus jumlah pesan belum dibaca di daftar, chip "Belum dibaca", badge menu Chat, dan badge per nomor.
 - Sebelumnya hitungan bisa kembali/tertahan: daftar chat memakai ulang query yang dimulai sebelum status baca tersimpan (perbaikan performa pagi ini). Kini setiap perubahan lewat API memaksa query baru.

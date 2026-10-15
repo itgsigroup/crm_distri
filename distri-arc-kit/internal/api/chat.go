@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -158,9 +159,17 @@ func (s *Server) chatSince() time.Time {
 }
 
 func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.threads.get(r.Context(), func(ctx context.Context) ([]gen.ListThreadsRow, error) {
-		return s.st.Q.ListThreads(ctx, s.chatSince())
-	})
+	term := strings.TrimSpace(r.URL.Query().Get("q"))
+	var rows []gen.ListThreadsRow
+	var err error
+	if r.URL.Query().Get("all") == "1" && len([]rune(term)) >= 2 {
+		// a search reaches every stored conversation, not only the chat window: an older customer is still found
+		rows, err = s.st.Q.ListThreads(r.Context(), time.Time{})
+	} else {
+		rows, err = s.threads.get(r.Context(), func(ctx context.Context) ([]gen.ListThreadsRow, error) {
+			return s.st.Q.ListThreads(ctx, s.chatSince())
+		})
+	}
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
@@ -168,7 +177,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 	tab := r.URL.Query().Get("tab")
 	account := wa.Digits(r.URL.Query().Get("account"))
 	team := r.URL.Query().Get("team") // the conversations of one team's numbers
-	term := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	match := threadMatcher(term)
 	u, _ := CurrentUser(r.Context())
 	viewer, err := s.chatViewerOf(r.Context(), u)
 	if err != nil {
@@ -196,12 +205,48 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		if t.LastFrom != nil && kind == "group" {
 			v.LastFrom = *t.LastFrom
 		}
-		if term != "" && !strings.Contains(strings.ToLower(v.Title+" "+v.Subtitle+" "+v.LastBody), term) {
+		if match != nil && !match(v.Title+" "+v.Subtitle+" "+v.LastBody, wa.NumberOfJID(deref(t.WaJid))) {
 			continue
 		}
 		out = append(out, v)
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": out})
+}
+
+// threadMatcher matches a search against a conversation's names and text, forgiving Indonesian spellings of one name
+// (Yohanes / Johannes, Yusuf / Joesoef), and against its number ("0812…", "62812…", the last digits). nil: no search.
+func threadMatcher(term string) func(text, number string) bool {
+	t := searchKey(term)
+	if t == "" {
+		return nil
+	}
+	digits := wa.Digits(term)
+	if strings.HasPrefix(digits, "0") {
+		digits = "62" + digits[1:]
+	}
+	return func(text, number string) bool {
+		if strings.Contains(searchKey(text), t) {
+			return true
+		}
+		return len(digits) >= 4 && number != "" && strings.Contains(number, digits)
+	}
+}
+
+// searchKey folds spelling variants: case, "oe" → "u", "j" → "y", doubled letters (the same rules as web inbox.ts).
+func searchKey(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.ReplaceAll(s, "oe", "u")
+	s = strings.ReplaceAll(s, "j", "y")
+	var b strings.Builder
+	var prev rune
+	for _, r := range s {
+		if r == prev && unicode.IsLetter(r) {
+			continue
+		}
+		b.WriteRune(r)
+		prev = r
+	}
+	return b.String()
 }
 
 func (s *Server) threadParam(w http.ResponseWriter, r *http.Request) (gen.GetThreadRow, bool) {
