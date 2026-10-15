@@ -54,11 +54,12 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Delete("/wa/numbers/{wa}", s.deleteWANumber)
 }
 
-// threadPageSize caps the first page of a conversation: far above a year of an ordinary chat, so the whole
-// retention window arrives at once; olderPageSize is each further page of a busier one.
+// threadPageSize caps the first page of a conversation (the chat window); olderPageSize is each page loaded by
+// scrolling up; quietChatPage is what a chat with nothing in the window opens with.
 const (
 	threadPageSize = 3000
 	olderPageSize  = 500
+	quietChatPage  = 30
 )
 
 // ThreadView is one row of the chat list.
@@ -147,8 +148,18 @@ func (v chatViewer) sees(salesID *uuid.UUID, account *string) bool {
 	return v.sales != nil && salesID != nil && *salesID == *v.sales
 }
 
+// chatSince is where the chat window starts: Chat lists and opens conversations of the last CHAT_WINDOW_DAYS.
+func (s *Server) chatSince() time.Time {
+	if s.cfg.ChatWindowDays <= 0 {
+		return time.Time{}
+	}
+	return s.clock.Now().AddDate(0, 0, -s.cfg.ChatWindowDays)
+}
+
 func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.threads.get(r.Context(), s.st.Q.ListThreads)
+	rows, err := s.threads.get(r.Context(), func(ctx context.Context) ([]gen.ListThreadsRow, error) {
+		return s.st.Q.ListThreads(ctx, s.chatSince())
+	})
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
@@ -371,20 +382,30 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	// The first page is the whole conversation kept (retention.chat_days, a year): no "load more" per chat. Only
-	// a very busy chat goes past it and pages on (older pages of olderPageSize).
-	before, lim := s.clock.Now().Add(24*365*time.Hour), int32(threadPageSize)
+	// The first page is the chat window (CHAT_WINDOW_DAYS, 14): opening a chat loads two weeks, not a year of it.
+	// Older messages stay stored and come in pages of olderPageSize when the user scrolls up.
+	before, lim, since := s.clock.Now().Add(24*365*time.Hour), int32(threadPageSize), s.chatSince()
 	if b := r.URL.Query().Get("before"); b != "" {
 		if x, err := time.Parse(time.RFC3339, b); err == nil {
-			before, lim = x, olderPageSize
+			before, lim, since = x, olderPageSize, time.Time{}
 		}
 	}
-	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Lim: lim})
+	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Since: since, Lim: lim})
+	if err == nil && len(msgs) == 0 && !since.IsZero() {
+		// nothing in the window (a chat opened from a link): its last messages, not an empty page
+		since, lim = time.Time{}, quietChatPage
+		msgs, err = s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Lim: lim})
+	}
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
 	hasMore := len(msgs) == int(lim)
+	if !hasMore && !since.IsZero() && len(msgs) > 0 {
+		// the window ended the page: say whether anything older is stored, so scrolling up can load it
+		older, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: msgs[0].SentAt, Lim: 1})
+		hasMore = err == nil && len(older) > 0
+	}
 	keepDays := 0
 	if pol, err := policy.Load(r.Context(), s.st.Q); err == nil {
 		keepDays = pol.Retention.ChatDays

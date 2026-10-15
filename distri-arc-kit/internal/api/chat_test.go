@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -185,5 +186,63 @@ func TestThreadBubbleAnalysis(t *testing.T) {
 	}
 	if items := po["items"].([]any); len(items) != 1 {
 		t.Errorf("items %v", items)
+	}
+}
+
+// Chat loads the chat window (CHAT_WINDOW_DAYS): the list holds conversations active in it, a conversation opens
+// with its messages in it and loads older ones on scroll; a chat quiet for longer still opens with its last messages.
+func TestChatWindow(t *testing.T) {
+	st := testdb.New(t)
+	ctx := context.Background()
+	h := api.New(config.Config{Env: "dev", ChatWindowDays: 14}, st, clock.Fixed(time.Now()), slog.New(slog.NewTextHandler(io.Discard, nil))).Handler()
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	if _, err := seed.Run(ctx, st, db.Seed); err != nil {
+		t.Fatal(err)
+	}
+	thread := func(jid, ago string) string {
+		var id string
+		if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('new', $1, $1, '6281234504471', now() - $2::interval) returning id", jid, ago).Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	add := func(id, wid, ago string) {
+		if _, err := st.Pool.Exec(ctx, "insert into chat_messages (thread_id, wa_msg_id, direction, body, sent_at, status) values ($1, $2, 'in', $2, now() - $3::interval, 'received')", id, wid, ago); err != nil {
+			t.Fatal(err)
+		}
+	}
+	recent := thread("6281300000201@s.whatsapp.net", "2 days")
+	add(recent, "OLD1", "40 days")
+	add(recent, "NEW1", "2 days")
+	quiet := thread("6281300000202@s.whatsapp.net", "40 days")
+	add(quiet, "QUIET1", "40 days")
+
+	_, list := get(t, srv, "/api/chat/threads", "sam@gsi.co.id")
+	ids := map[string]bool{}
+	for _, it := range list["items"].([]any) {
+		ids[it.(map[string]any)["id"].(string)] = true
+	}
+	if !ids[recent] || ids[quiet] {
+		t.Fatalf("list: recent %v, quiet %v", ids[recent], ids[quiet])
+	}
+	bodies := func(out map[string]any) []string {
+		var b []string
+		for _, m := range out["messages"].([]any) {
+			b = append(b, m.(map[string]any)["body"].(string))
+		}
+		return b
+	}
+	_, page := get(t, srv, "/api/chat/threads/"+recent, "sam@gsi.co.id")
+	if b := bodies(page); len(b) != 1 || b[0] != "NEW1" || page["has_more"] != true {
+		t.Fatalf("first page %v has_more %v", b, page["has_more"])
+	}
+	first := page["messages"].([]any)[0].(map[string]any)["sent_at"].(string)
+	_, older := get(t, srv, "/api/chat/threads/"+recent+"?before="+url.QueryEscape(first), "sam@gsi.co.id")
+	if b := bodies(older); len(b) != 1 || b[0] != "OLD1" {
+		t.Fatalf("older page %v", b)
+	}
+	if _, q := get(t, srv, "/api/chat/threads/"+quiet, "sam@gsi.co.id"); len(bodies(q)) != 1 {
+		t.Fatalf("a quiet chat opened empty: %v", bodies(q))
 	}
 }

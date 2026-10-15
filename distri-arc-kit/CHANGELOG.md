@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Chat memuat 14 hari terakhir · 2026-10-15
+- Daftar chat hanya memuat percakapan yang aktif 14 hari terakhir.
+- Percakapan dibuka dengan pesan 14 hari terakhir; pesan yang lebih lama dimuat saat menggulir ke atas.
+- Riwayat yang diunduh dari HP dibatasi 14 hari. Backfill setahun penuh (±1.200 permintaan/jam) yang membebani server dihentikan.
+- Data lama tetap tersimpan (retensi 365 hari). Jendela bisa diubah lewat `CHAT_WINDOW_DAYS`.
+- ADR 0039.
+
 ## Fix · wa-bridge berhenti crash-loop karena antrean riwayat 513 MB · 2026-10-15
 - Sejak 14 Okt 04:48 wa-bridge crash tiap ±27 detik (2.923 kali/24 jam): antrean batch riwayat yang timeout di API membengkak melewati batas string Node dan dibaca sekaligus saat start. Setiap crash = semua HP tertaut reconnect (risiko anti-ban, ADR 0004).
 - Antrean kini dibaca baris per baris; batch riwayat besar mendapat timeout lebih panjang (30 dtk + 20 dtk/MB, maks 3 menit) sehingga tidak masuk antrean berulang-ulang.

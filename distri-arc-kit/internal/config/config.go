@@ -29,6 +29,7 @@ type Config struct {
 	WASendGap      string // "20s-90s"
 	WAReplyDelay   string // "2s-6s"
 	WABackfillDays int
+	ChatWindowDays int // what Chat loads and what is downloaded from the phones; older chats stay stored
 	WACloudNumber  string
 	WACloudPhoneID string
 	WACloudToken   string
@@ -63,7 +64,7 @@ type Config struct {
 // Load reads .env (if present, without overriding real env vars) and returns the configuration.
 func Load() Config {
 	loadDotEnv(".env")
-	return Config{
+	c := Config{
 		Env:             get("APP_ENV", "dev"),
 		DatabaseURL:     get("DATABASE_URL", "postgres://localhost:5432/distri_arc?sslmode=disable"),
 		DatabaseURLTest: get("DATABASE_URL_TEST", ""),
@@ -102,7 +103,13 @@ func Load() Config {
 		AlertWAGroup:    get("ALERT_WA_GROUP", ""),
 		AlertWAFrom:     get("ALERT_WA_FROM", ""),
 		BackupDir:       get("BACKUP_DIR", "/var/backups/distri-arc"),
+		ChatWindowDays:  atoi(get("CHAT_WINDOW_DAYS", "14")),
 	}
+	// the phones are asked for no more history than Chat shows (a year of backfill kept the server busy, 15 Oct)
+	if c.ChatWindowDays > 0 && (c.WABackfillDays <= 0 || c.WABackfillDays > c.ChatWindowDays) {
+		c.WABackfillDays = c.ChatWindowDays
+	}
+	return c
 }
 
 // IsDev reports whether development-only shortcuts (X-Dev-User auth, pinned clock) are allowed.

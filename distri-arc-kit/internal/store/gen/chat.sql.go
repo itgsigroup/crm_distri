@@ -1533,20 +1533,26 @@ select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media,
   select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, m.closing, m.auto_reply from chat_messages m
   where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
                         where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
-    and m.sent_at < $2 order by m.sent_at desc limit $3
+    and m.sent_at < $2 and m.sent_at >= $3::timestamptz order by m.sent_at desc limit $4
 ) x order by sent_at
 `
 
 type ListThreadMessagesParams struct {
 	ThreadID *uuid.UUID `json:"thread_id"`
 	SentAt   time.Time  `json:"sent_at"`
+	Since    time.Time  `json:"since"`
 	Lim      int32      `json:"lim"`
 }
 
 // A group is one conversation for every GSI number in it: each message is stored once (under the number that
 // received it first), so a group thread shows the messages of all threads of that group.
 func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessagesParams) ([]ChatMessage, error) {
-	rows, err := q.db.Query(ctx, listThreadMessages, arg.ThreadID, arg.SentAt, arg.Lim)
+	rows, err := q.db.Query(ctx, listThreadMessages,
+		arg.ThreadID,
+		arg.SentAt,
+		arg.Since,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1612,6 +1618,7 @@ left join lateral (
      where t.kind = 'group' and x.wa_jid = t.wa_jid and x.id <> t.id)
   ) u order by u.sent_at desc limit 1
 ) lm on true
+where t.last_message_at >= $1::timestamptz
 order by t.last_message_at desc nulls last, t.id
 `
 
@@ -1649,9 +1656,10 @@ type ListThreadsRow struct {
 	WaitingSince     interface{}     `json:"waiting_since"`
 }
 
+// only conversations active in the chat window (CHAT_WINDOW_DAYS, 14): older ones stay stored, not listed
 // newest conversation first, like WhatsApp (the kind tabs filter; ordering by kind buried today's chats)
-func (q *Queries) ListThreads(ctx context.Context) ([]ListThreadsRow, error) {
-	rows, err := q.db.Query(ctx, listThreads)
+func (q *Queries) ListThreads(ctx context.Context, since time.Time) ([]ListThreadsRow, error) {
+	rows, err := q.db.Query(ctx, listThreads, since)
 	if err != nil {
 		return nil, err
 	}
