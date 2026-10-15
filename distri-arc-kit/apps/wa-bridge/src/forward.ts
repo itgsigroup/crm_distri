@@ -1,5 +1,7 @@
-import { access, appendFile, mkdir, readFile, rename, unlink } from 'node:fs/promises'
+import { createReadStream } from 'node:fs'
+import { access, appendFile, mkdir, rename, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
+import { createInterface } from 'node:readline'
 import type { Logger } from 'pino'
 import { sign } from './sign.js'
 
@@ -7,7 +9,24 @@ import { sign } from './sign.js'
  * Delivers payloads to POST {API}/webhooks/wa. When the API is unreachable the
  * payload is appended to a JSONL queue and retried every 15 s, so no event is
  * lost; the API deduplicates by wamid, so retries are idempotent.
+ *
+ * The queue is read line by line, never whole: a backlog of history batches grew past V8's string limit (513 MB,
+ * 14 Oct) and every start crashed on reading it — a reconnect of every linked phone each 27 s (ADR 0004 anti-ban).
  */
+
+/** Lines of a JSONL file, streamed; a missing file has none. */
+async function* lines(path: string): AsyncGenerator<string> {
+  const rl = createInterface({ input: createReadStream(path, 'utf8'), crlfDelay: Infinity })
+  try {
+    for await (const l of rl) if (l) yield l
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
+  }
+}
+
+/** A history batch (up to 200 messages, several MB) takes the API longer to store than one live message. */
+export const postTimeout = (bytes: number) => Math.min(180_000, 30_000 + Math.floor(bytes / 1_000_000) * 20_000)
+
 export class Forwarder {
   lastEvent: Date | null = null
   private readonly queuePath: string
@@ -24,7 +43,7 @@ export class Forwarder {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-ARC-Signature': sign(this.secret, body) },
       body,
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(postTimeout(Buffer.byteLength(body))),
     })
     if (!res.ok) throw new Error(`api HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`)
   }
@@ -62,14 +81,9 @@ export class Forwarder {
 
   /** Payloads not delivered yet: the queue plus a batch being flushed (or left by a restart mid-flush). */
   async queueLength(): Promise<number> {
-    const count = async (path: string) => {
-      try {
-        return (await readFile(path, 'utf8')).split('\n').filter(Boolean).length
-      } catch {
-        return 0
-      }
-    }
-    return (await count(this.queuePath)) + (await count(this.queuePath + '.flushing'))
+    let n = 0
+    for (const path of [this.queuePath, this.queuePath + '.flushing']) for await (const _ of lines(path)) n++
+    return n
   }
 
   /** Retries queued payloads in order; anything still failing stays queued. */
@@ -88,20 +102,25 @@ export class Forwarder {
           return
         }
       }
-      const lines = (await readFile(work, 'utf8')).split('\n').filter(Boolean)
-      let failedAt = -1
-      for (let i = 0; i < lines.length; i++) {
-        if (this.stale(lines[i])) continue
+      let n = 0
+      let failed = false
+      for await (const l of lines(work)) {
+        // after a failure the rest goes back to the queue, in order, for the next round
+        if (failed) {
+          await this.enqueue(l)
+          continue
+        }
+        n++
+        if (this.stale(l)) continue
         try {
-          await this.post(lines[i])
-          this.noteStatus(lines[i])
+          await this.post(l)
+          this.noteStatus(l)
         } catch {
-          failedAt = i
-          break
+          failed = true
+          await this.enqueue(l)
         }
       }
-      if (failedAt >= 0) for (const l of lines.slice(failedAt)) await this.enqueue(l)
-      else this.log.info({ n: lines.length, leftover }, 'queue flushed')
+      if (!failed) this.log.info({ n, leftover }, 'queue flushed')
       await unlink(work).catch(() => {})
     } finally {
       this.flushing = false

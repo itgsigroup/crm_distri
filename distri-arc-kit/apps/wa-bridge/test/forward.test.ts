@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import pino from 'pino'
 import { describe, expect, it } from 'vitest'
-import { Forwarder } from '../src/forward.js'
+import { Forwarder, postTimeout } from '../src/forward.js'
 
 describe('Forwarder', () => {
   it('drops a queued status older than one already delivered (no stale "unlinked" after re-pairing)', async () => {
@@ -45,5 +45,30 @@ describe('Forwarder', () => {
     expect(got).toEqual(['A', 'B', 'C'])
     expect(await f.queueLength()).toBe(0)
     await expect(readFile(join(dir, 'queue.jsonl.flushing'))).rejects.toThrow()
+  })
+
+  it('a failed post keeps it and the rest of the batch queued in order', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'fwd-'))
+    const got: string[] = []
+    let calls = 0
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      if (++calls === 2) throw new Error('timeout')
+      got.push((JSON.parse(String(init?.body)) as { event: { wamid: string } }).event.wamid)
+      return new Response('{"ok":true}', { status: 200 })
+    }) as typeof fetch
+    await writeFile(join(dir, 'queue.jsonl.flushing'), ['A', 'B', 'C'].map((w) => JSON.stringify({ event: { wamid: w } })).join('\n') + '\n')
+    const f = new Forwarder('http://worker', 'secret-1234567890', dir, pino({ level: 'silent' }), fetchImpl)
+    await f.flush()
+    expect(got).toEqual(['A'])
+    expect(await f.queueLength()).toBe(2)
+    await f.flush()
+    expect(got).toEqual(['A', 'B', 'C'])
+    expect(await f.queueLength()).toBe(0)
+  })
+
+  it('gives a large history batch more time than a live message, capped', () => {
+    expect(postTimeout(2_000)).toBe(30_000)
+    expect(postTimeout(5_700_000)).toBe(130_000)
+    expect(postTimeout(50_000_000)).toBe(180_000)
   })
 })
