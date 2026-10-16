@@ -1520,3 +1520,58 @@ body.map-maximized{overflow:hidden}
 .cmp-fmt .fmt-i{font-style:italic;font-family:Georgia,serif}
 .cmp-fmt .fmt-s{text-decoration:line-through}
 .cmp-fmt .fmt-m{font-family:var(--font-mono);font-size:11.5px}
+
+/* Pusat kendali: the analysis panel (what the AI reads, the game, berhasil / gagal) */
+.an-panel{margin:0 0 16px;padding:16px 18px}
+.an-panel.running{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-soft)}
+.an-grid{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start}
+@media (max-width:760px){.an-grid{grid-template-columns:1fr}}
+.an-head{display:flex;gap:12px;align-items:flex-start}
+.an-head h2{margin:0;font-size:16px}
+.an-head p{margin:2px 0 0;font-size:13px;color:var(--text-2)}
+.an-pulse{flex:none;width:12px;height:12px;margin-top:5px;border-radius:50%;background:var(--accent);animation:an-pulse 1.4s ease-out infinite}
+@keyframes an-pulse{0%{box-shadow:0 0 0 0 var(--accent-soft)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.an-dots i{font-style:normal;animation:an-dot 1.2s infinite}
+.an-dots i:nth-child(2){animation-delay:.2s}
+.an-dots i:nth-child(3){animation-delay:.4s}
+@keyframes an-dot{0%,60%,100%{opacity:.2}30%{opacity:1}}
+.an-steps{list-style:none;margin:12px 0 10px;padding:0;display:flex;flex-direction:column;gap:6px}
+.an-steps li{display:flex;gap:10px;align-items:flex-start;color:var(--text-3);font-size:12.5px}
+.an-steps li b{display:block;font-weight:600;font-size:13px}
+.an-steps li small{display:block;font-size:11.5px}
+.an-steps li.run{color:var(--text)}
+.an-steps li.done{color:var(--text-2)}
+.an-st{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--surface-3);color:var(--text-3)}
+.an-steps li.done .an-st{background:var(--good-soft);color:var(--good)}
+.an-steps li.run .an-st{background:var(--accent-soft);color:var(--accent)}
+.an-st .i{width:13px;height:13px}
+.an-spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent);border-right-color:transparent;animation:an-spin .8s linear infinite}
+@keyframes an-spin{to{transform:rotate(360deg)}}
+.an-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text-3)}
+.an-meta b{color:var(--text)}
+.an-note{flex-basis:100%}
+.an-game{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;user-select:none;touch-action:manipulation;outline:none}
+.an-game:focus-visible,.an-game:focus{border-color:var(--accent)}
+.an-game svg{width:150px;height:150px}
+.an-ring{fill:none;stroke:var(--line-strong);stroke-width:6}
+.an-target{fill:none;stroke:var(--good);stroke-width:8;stroke-linecap:round}
+.an-ball{fill:var(--accent);transition:fill .15s}
+.an-ball.hit{fill:var(--good)}
+.an-ball.miss{fill:var(--bad)}
+.an-score{text-anchor:middle;font-size:24px;font-weight:800;fill:var(--text)}
+.an-best{text-anchor:middle;font-size:9px;fill:var(--text-3)}
+.an-game-t{text-align:center}
+.an-game-t b{display:block;font-size:13px}
+.an-game-t small{font-size:11px;color:var(--text-3)}
+.an-game kbd{font-family:var(--font-mono);font-size:10px;padding:0 4px;border:1px solid var(--line-strong);border-radius:4px;background:var(--surface)}
+.an-res{display:flex;gap:12px;align-items:flex-start}
+.an-res>div{flex:1;min-width:0}
+.an-res h2{margin:0;font-size:16px}
+.an-res p{margin:3px 0 8px;font-size:13px;color:var(--text-2)}
+.an-res-ic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center}
+.an-panel.good{border-color:var(--good)}
+.an-panel.good .an-res-ic{background:var(--good-soft);color:var(--good)}
+.an-panel.warn{border-color:var(--warn)}
+.an-panel.warn .an-res-ic{background:var(--warn-soft);color:var(--warn)}
+.an-panel.bad{border-color:var(--bad)}
+.an-panel.bad .an-res-ic{background:var(--bad-soft);color:var(--bad)}

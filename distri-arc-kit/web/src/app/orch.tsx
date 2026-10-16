@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client'
@@ -25,8 +25,10 @@ interface OrchCtx {
   s: CycleUI
   /** engine: who analyses ('mcp' Claude through MCP, 'model' the API & model AI choice); label names it in the result */
   reanalyze: (scope: string, via?: Via, label?: string) => void
+  /** an analysis panel is on screen and announces the result itself (no pop-up); returns the unregister */
+  showPanel: () => () => void
 }
-const Ctx = createContext<OrchCtx>({ s: initialCycle, reanalyze: () => {} })
+const Ctx = createContext<OrchCtx>({ s: initialCycle, reanalyze: () => {}, showPanel: () => () => {} })
 
 /** Everything a finished cycle can change, so the open page shows the new analysis (proposals, page readings,
  * metrics, Analisa WhatsApp, brief) — also when SSE is down and the poll ends the cycle. */
@@ -39,6 +41,11 @@ export function refreshPages(qc: ReturnType<typeof useQueryClient>) {
 /** Owns the live cycle state of the tab: POST /cycles, SSE events, a polling fallback and the finishing toast. */
 export function OrchProvider({ children }: { children: ReactNode }) {
   const [s, dispatch] = useReducer(cycleReducer, initialCycle)
+  const panels = useRef(0) // analysis panels on screen (they announce the result instead of the pop-up)
+  const showPanel = useCallback(() => {
+    panels.current++
+    return () => { panels.current-- }
+  }, [])
   const { subscribe } = useSse()
   const { toast, alert, openSheet } = useFeedback()
   const qc = useQueryClient()
@@ -48,7 +55,7 @@ export function OrchProvider({ children }: { children: ReactNode }) {
       subscribe((name, data) => {
         const d = (data ?? {}) as Record<string, unknown>
         if (name === 'cycle_stage') {
-          dispatch({ type: 'stage', cycleId: String(d.cycle_id), stage: d.stage as StageName, status: String(d.status), label: scopeLabel(String(d.scope ?? 'all')) })
+          dispatch({ type: 'stage', cycleId: String(d.cycle_id), stage: d.stage as StageName, status: String(d.status), label: scopeLabel(String(d.scope ?? 'all')), at: Date.now() })
         } else if (name === 'cycle_done') {
           // a page reading or Analisa WhatsApp sent through MCP (source mcp, agent set) is not the end of the cycle
           if (d.agent) return
@@ -87,7 +94,7 @@ export function OrchProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (s.running || !s.result) return
     const r = s.result
-    if (s.mine) {
+    if (s.mine && panels.current === 0) { // the Pusat kendali panel shows the result itself
       const at = `${hhmm(new Date())} WIB`
       const cycle = r.number ? `#${r.number.toLocaleString('id-ID')}` : '—'
       if (r.status === 'failed') {
@@ -101,7 +108,7 @@ export function OrchProvider({ children }: { children: ReactNode }) {
         })
       }
     }
-    dispatch({ type: 'ack' })
+    dispatch({ type: 'ack', at: Date.now() })
     refreshPages(qc)
   }, [s.running, s.result, s.mine, s.via, alert, qc])
 
@@ -116,7 +123,7 @@ export function OrchProvider({ children }: { children: ReactNode }) {
         .post<QueuedCycle>('/cycles', { scope, via: v })
         .then((c) => {
           const by = c.mcp?.engine === 'claude_api' ? c.mcp.model || label || 'API' : c.mcp ? 'Claude lewat MCP' : label || 'API'
-          dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by })
+          dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by, at: Date.now() })
           if (c.mcp) openSheet(<MCPAnalysisSheet cycle={c} />) // Claude or the chosen API analyses it through MCP; results stay in GSI Orbit
         })
         .catch((e: unknown) =>
@@ -130,7 +137,7 @@ export function OrchProvider({ children }: { children: ReactNode }) {
     [s.running, toast, alert, openSheet],
   )
 
-  return <Ctx.Provider value={{ s, reanalyze }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ s, reanalyze, showPanel }}>{children}</Ctx.Provider>
 }
 
 export const useOrch = () => useContext(Ctx)

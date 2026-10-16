@@ -23,8 +23,12 @@ describe('useCycle reducer', () => {
     expect(s.running).toBe(false)
     expect(s.result?.updated).toBe(1)
     expect(chipState(s, 5, true)).toBe('done')
-    s = cycleReducer(s, { type: 'ack' })
+    s = cycleReducer(s, { type: 'ack', at: 99 })
     expect(s.result).toBeNull()
+    expect(s.last).toMatchObject({ status: 'done', number: 2, mine: true, endedAt: 99 }) // kept for the Pusat kendali panel
+    s = cycleReducer(s, { type: 'start', cycleId: 'c3', label: 'semua', via: 'api', at: 100 })
+    expect(s.startedAt).toBe(100)
+    expect(s.last?.number).toBe(2) // the previous result stays until this one finishes
   })
 
   it('never shows a stage the server has not reached', () => {

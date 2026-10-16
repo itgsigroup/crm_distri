@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Pusat kendali: AI sedang membaca data, hasil berhasil/gagal, dan game sambil menunggu · 2026-10-16
+- Saat analisis berjalan, Pusat kendali menampilkan panel **AI sedang membaca data…**: tahap yang sedang dikerjakan dengan penjelasan (membaca chat, order, invoice, pembayaran dan stok → agen AI menganalisa → menggabungkan temuan → menyusun usulan → menyimpan hasil → mencatat pelajaran), lingkup, mesin AI, dan lama berjalan.
+- Setelah selesai, panel yang sama menampilkan **Analisis berhasil**, **selesai sebagian**, atau **gagal** beserta siklus, jam selesai, durasi, jumlah saran diperbarui, dan penyebab bila gagal. Di halaman ini pop-up hasil tidak muncul lagi (tidak dobel).
+- Sambil menunggu: game **Tap tap Enter**. Titik berputar di lingkaran; tekan Enter/Spasi atau ketuk saat titik di busur hijau. Tiap kena makin cepat; skor terbaik disimpan di browser. Langsung siap dimainkan saat analisis dimulai (kecuali lewat MCP Claude, yang membuka petunjuknya sendiri).
+
 ## Feat · Format teks WhatsApp: tebal, miring, coret, monospace · 2026-10-16
 - Bubble kini menampilkan format WhatsApp: `*tebal*`, `_miring_`, `~coret~`, ```` ```monospace``` ````, `` `kode` `` dan baris kutipan `> …`. Aturannya sama dengan WhatsApp (penanda harus menempel pada kata; `2*3*4` atau `file_nama_baru.pdf` tidak berubah). Tag @ dan link tetap jalan di dalam teks yang diformat.
 - Kotak pesan: pilih teks lalu klik **B / I / S / </>** yang muncul, atau pintasan Ctrl/⌘+B (tebal), Ctrl/⌘+I (miring), Ctrl/⌘+Shift+X (coret), Ctrl/⌘+Shift+M (monospace). Menekan lagi melepas formatnya. Pesan terkirim dengan penanda, jadi HP penerima menampilkan formatnya.
