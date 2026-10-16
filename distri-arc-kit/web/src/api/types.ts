@@ -323,8 +323,8 @@ export interface MessageView {
   holding?: boolean
   /** an automatic WhatsApp Business message (greeting, away): neither an answer nor a request (ADR 0035) */
   auto_reply?: boolean
-  /** Rekomendasi balasan from the data (ADR 0038) */
-  suggest?: ReplySuggestion
+  /** AI Trigger cards from the data (ADR 0038, 0041) */
+  suggest?: ReplySuggestion[]
   annotation: Annotation | null
   signal_id: string | null
   proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }
@@ -666,12 +666,17 @@ export interface ScreenAnalysis {
   lines: Record<string, { note: string; confidence: number }>
 }
 
-// ---------- Rekomendasi balasan (ADR 0038) ----------
+// ---------- AI Trigger (ADR 0038, ADR 0041) ----------
+export type ReplyAction = 'stock' | 'price' | 'credit' | 'order'
 export interface ReplySuggestion {
-  rule_id: string; rule: string; keyword: string; product?: string; sku?: string; branch?: string; qty: number
+  rule_id: string; rule: string; action: ReplyAction; keyword: string; headline: string; tone: 'good' | 'warn' | 'bad' | 'neutral'
+  facts: { label: string; value: string }[]; product?: string; sku?: string; branch?: string; qty: number
   others: { branch: string; qty: number }[]; ready: boolean; draft?: string; note?: string; candidates?: string[]
+  /** the draft was written by an AI from the same facts; ai_pending: it is still being written */
+  ai?: boolean; ai_model?: string; ai_pending?: boolean; ai_phrase?: boolean
 }
 export interface ReplyRule {
-  id: string; name: string; action: 'stock'; keywords: string[]; template_ready: string; template_empty: string
-  show_qty: boolean; enabled: boolean; updated_by: string | null; updated_at: string
+  id: string; name: string; action: ReplyAction; keywords: string[]; template_ready: string; template_empty: string
+  show_qty: boolean; enabled: boolean; ai_phrase: boolean; ai_instruction: string; updated_by: string | null; updated_at: string
 }
+export interface ReplyRules { items: ReplyRule[]; placeholders: Record<ReplyAction, string[]>; ai_ready: boolean }

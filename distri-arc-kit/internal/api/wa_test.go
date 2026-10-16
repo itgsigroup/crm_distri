@@ -419,11 +419,15 @@ func TestReplyRules(t *testing.T) {
 		t.Fatal(err)
 	}
 	code, out := get(t, srv, "/api/reply-rules", "sam@gsi.co.id")
-	if code != 200 || len(out["items"].([]any)) != 1 {
-		t.Fatalf("seeded rule: %d %v", code, out)
+	if code != 200 || len(out["items"].([]any)) != 4 {
+		t.Fatalf("seeded rules (stock, price, credit, order): %d %v", code, out)
 	}
 	_, res := post(t, srv.URL+"/api/reply-rules/test", "sam@gsi.co.id", map[string]any{"text": "pak NVR uji 32ch ready?", "branch": "Semarang"})
-	sg, ok := res["suggestion"].(map[string]any)
+	cards, _ := res["suggestions"].([]any)
+	if len(cards) != 1 {
+		t.Fatalf("test: %v", res)
+	}
+	sg, ok := cards[0].(map[string]any)
 	if !ok || sg["ready"] != true || sg["qty"].(float64) != 9 || sg["draft"] != "Ready 9 pcs untuk NVR Uji 32ch di Semarang." {
 		t.Fatalf("test: %v", res)
 	}
@@ -440,7 +444,7 @@ func TestReplyRules(t *testing.T) {
 	_, th := get(t, srv, "/api/chat/threads/"+tid, "sam@gsi.co.id")
 	msgs := th["messages"].([]any)
 	first, second := msgs[0].(map[string]any), msgs[1].(map[string]any)
-	if s, ok := first["suggest"].(map[string]any); !ok || s["product"] != "NVR Uji 32ch" || s["ready"] != true {
+	if cs, ok := first["suggest"].([]any); !ok || len(cs) != 1 || cs[0].(map[string]any)["product"] != "NVR Uji 32ch" || cs[0].(map[string]any)["ready"] != true {
 		t.Fatalf("suggestion on the stock question: %v", first["suggest"])
 	}
 	if second["suggest"] != nil {

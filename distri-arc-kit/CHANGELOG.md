@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Halaman AI Trigger · 2026-10-16
+- Menu baru **Pengaturan → AI Trigger** (halaman sendiri, menggantikan kartu Rekomendasi balasan di Pengaturan): daftar trigger dengan kata kunci, aktif/mati langsung dari daftar, dan kotak *Coba kalimat pelanggan* (bisa memilih dealer dan cabang).
+- Empat jenis data: **stok** per cabang, **harga** sesuai tier dealer, **limit & tagihan** (sisa limit, tagihan terbuka, tagihan tertua), **status order** terakhir. Trigger bawaan: Tanya stok, Tanya harga, Tanya limit & tagihan, Status order — kata kunci dan draf bisa diubah.
+- Satu pesan bisa mendapat beberapa kartu (mis. "stok dan harga kamera 4MP?" → kartu stok + kartu harga).
+- **Jawaban ditulis AI** (opsional per trigger, plus instruksi gaya): AI merangkai draf dari angka yang sama; draf yang mengubah atau menambah angka ditolak dan draf template tetap dipakai. AI otomatis menulis untuk pesan baru, atau lewat tombol **Tulis dengan AI** di kartu. Model dan kunci dari halaman API & model AI.
+- Tetap tidak ada yang terkirim otomatis: sales menekan *Pakai jawaban*, mengedit, lalu mengirim sendiri. ADR 0041.
+
 ## Fix · Nama grup WhatsApp kosong · Feat · Tempel gambar di kolom chat · 2026-10-15
 - Gejala: beberapa grup tampil tanpa nama. Penyebab: saat pesan pertama grup masuk, bridge kadang belum bisa membaca info grup (mis. dibatasi WhatsApp saat sinkron riwayat), nama kosong tersimpan dan tidak pernah diperbarui.
 - Kini nama kosong tidak menimpa nama yang ada; pesan berikutnya yang membawa nama (atau nama baru setelah grup diganti nama) memperbarui grup dan judul chat-nya di semua nomor GSI. Grup lama tanpa nama diberi nama dari daftar grup tiap nomor (job worker tiap jam, juga saat start). Yang belum terbaca tampil "Grup (nama belum terbaca)", bukan kosong.

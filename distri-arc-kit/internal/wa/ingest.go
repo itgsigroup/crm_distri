@@ -38,6 +38,9 @@ type Result struct {
 	SignalID  uuid.UUID
 	DealerID  *uuid.UUID
 	NewNumber string // an unknown inbound number (identification)
+	// Inbound is a new customer message with text (not history, not a GSI employee in a group): AI Trigger reads it
+	Inbound     uuid.UUID
+	InboundText string
 }
 
 // Ingestor turns WhatsApp events into chat threads, messages and signals, idempotently.
@@ -48,6 +51,8 @@ type Ingestor struct {
 	OnDealer func(ctx context.Context, dealerID uuid.UUID)
 	// OnNewNumber is called after an unknown number wrote to a sales number (the worker enqueues identify.number).
 	OnNewNumber func(ctx context.Context, number string)
+	// OnInbound is called after a new customer message with text is stored (the worker enqueues reply.ai, ADR 0041).
+	OnInbound func(ctx context.Context, messageID uuid.UUID, text string)
 	// Transport names numbers registered when a new link connects (fake | baileys).
 	Transport string
 }
@@ -292,6 +297,9 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if threadKind == "dealer" {
 			res.DealerID = dealerID
 		}
+		if dir == "in" && !m.History && !mp.Internal && msgID != uuid.Nil && strings.TrimSpace(m.Text) != "" {
+			res.Inbound, res.InboundText = msgID, m.Text
+		}
 		if threadKind == "new" && dir == "in" && !m.History { // no profile lookups for old chats right after linking
 			res.NewNumber = Digits(strings.SplitN(m.ChatJID, "@", 2)[0])
 		}
@@ -307,6 +315,9 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 	}
 	if err == nil && res.DealerID != nil && in.OnDealer != nil {
 		in.OnDealer(ctx, *res.DealerID)
+	}
+	if err == nil && res.Inbound != uuid.Nil && in.OnInbound != nil {
+		in.OnInbound(ctx, res.Inbound, res.InboundText)
 	}
 	return res, err
 }

@@ -541,13 +541,33 @@ select * from reply_rules order by created_at;
 select * from reply_rules where enabled order by created_at;
 
 -- name: InsertReplyRule :one
-insert into reply_rules (name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by)
-values ($1, $2, $3, $4, $5, $6, $7, $8) returning *;
+insert into reply_rules (name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, ai_phrase, ai_instruction)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *;
 
 -- name: UpdateReplyRule :one
-update reply_rules set name = $2, keywords = $3, template_ready = $4, template_empty = $5, show_qty = $6, enabled = $7,
-  updated_by = $8, updated_at = now()
+update reply_rules set name = $2, action = $3, keywords = $4, template_ready = $5, template_empty = $6, show_qty = $7, enabled = $8,
+  updated_by = $9, ai_phrase = $10, ai_instruction = $11, updated_at = now()
 where id = $1 returning *;
+
+-- name: ReplyAIDrafts :many
+-- The AI's drafts for these customer messages (AI Trigger, ADR 0041).
+select * from reply_ai_drafts where message_id = any(sqlc.arg(ids)::uuid[]);
+
+-- name: UpsertReplyAIDraft :exec
+insert into reply_ai_drafts (message_id, rule_id, draft, provider, model, facts_hash)
+values ($1, $2, $3, $4, $5, $6)
+on conflict (message_id, rule_id) do update set draft = excluded.draft, provider = excluded.provider, model = excluded.model,
+  facts_hash = excluded.facts_hash, created_at = now();
+
+-- name: PurgeReplyAIDrafts :execrows
+delete from reply_ai_drafts where created_at < $1;
+
+-- name: ReplyTriggerMessage :one
+-- A customer message and its conversation, for the AI Trigger job.
+select m.id, m.thread_id, coalesce(m.body, '')::text as body, coalesce(m.direction, '')::text as direction, m.internal, m.deleted_at, m.sent_at,
+  t.dealer_id, coalesce(t.kind, '')::text as kind
+from chat_messages m join chat_threads t on t.id = m.thread_id
+where m.id = $1;
 
 -- name: DeleteReplyRule :execrows
 delete from reply_rules where id = $1;

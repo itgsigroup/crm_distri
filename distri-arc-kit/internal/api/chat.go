@@ -364,10 +364,10 @@ type MessageView struct {
 	Deleted bool `json:"deleted,omitempty"`
 	// CanDelete: a message this number sent (or still queued); a sent one within DeleteWindow
 	CanDelete bool `json:"can_delete,omitempty"`
-	// Suggest: Rekomendasi balasan from the data for a customer message (ADR 0038); the sales decides
-	Suggest *replyrule.Suggestion `json:"suggest,omitempty"`
-	Labels  []uuid.UUID           `json:"labels,omitempty"`
-	Pinned  bool                  `json:"pinned,omitempty"`
+	// Suggest: the AI Trigger cards from the data for a customer message (ADR 0038, 0041); the sales decides
+	Suggest []*replyrule.Suggestion `json:"suggest,omitempty"`
+	Labels  []uuid.UUID             `json:"labels,omitempty"`
+	Pinned  bool                    `json:"pinned,omitempty"`
 }
 
 // MsgQuote is the quoted bubble shown above a reply.
@@ -621,7 +621,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	if err := s.attachSuggestions(r.Context(), out, t.ThreadBranch, now); err != nil {
+	if err := s.attachSuggestions(r.Context(), out, t.ThreadBranch, t.DealerID, now); err != nil {
 		s.log.Warn("reply suggestions", "err", err) // a suggestion never stops the chat from loading
 	}
 	var lastAnalysis *time.Time

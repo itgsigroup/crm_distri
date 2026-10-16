@@ -88,6 +88,9 @@ func Purge(ctx context.Context, st *store.Store, now time.Time) (PurgeReport, er
 		if _, err := q.PurgeWAMessageInsights(ctx, chatCut); err != nil { // the analysis of the purged bubbles
 			return err
 		}
+		if _, err := q.PurgeReplyAIDrafts(ctx, now.AddDate(0, 0, -30)); err != nil { // AI Trigger drafts: shown for 7 days
+			return err
+		}
 		// files sent from Chat: shown from here for OutgoingKeepDays, then from WhatsApp; unsent ones go too
 		if _, err := q.PurgeOutgoingFiles(ctx, now.AddDate(0, 0, -OutgoingKeepDays)); err != nil {
 			return err

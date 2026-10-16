@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, 
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Items } from '../../api/client'
-import type { MediaView, MessageView, ReplySuggestion, ThreadDetail, ThreadView, WATeam } from '../../api/types'
+import type { MediaView, MessageView, ThreadDetail, ThreadView, WATeam } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
@@ -19,6 +19,7 @@ import { LabelChips, LabelSheet, PinnedBar, useChatLabels } from './Labels'
 import { hasLabel, pinnedFirst } from './chatLabels'
 import { ChatRowMenu } from './ChatRowMenu'
 import { pastedImage } from './paste'
+import { TriggerCard } from '../aitrigger/TriggerCard'
 import type { ChatHit } from './findInChat'
 
 
@@ -303,29 +304,18 @@ function BubbleMedia({ md, url, pending, onZoom }: { md: MediaView; url: string;
   )
 }
 
-/** Rekomendasi balasan under a customer's bubble (ADR 0038): the stock of the product the message names and a draft
- * the sales can use — it goes into the box to edit; the sales sends it. */
-function SuggestBox({ s, asOf, onUse }: { s: ReplySuggestion; asOf?: string | null; onUse: (text: string) => void }) {
-  const where = s.branch || 'semua cabang'
-  return (
-    <div className={`sug ${s.product ? (s.ready ? 'ready' : 'empty') : 'unknown'}`}>
-      <div className="sug-h">
-        <Icon name="box" />
-        <b>{s.product ? (s.ready ? `Ready · ${s.qty.toLocaleString('id-ID')} di ${where}` : `Kosong di ${where}`) : s.rule}</b>
-        {s.product && <span>{s.product}</span>}
-      </div>
-      {s.others.length > 0 && <div className="sug-o">Cabang lain: {s.others.slice(0, 4).map((o) => `${o.branch} ${o.qty.toLocaleString('id-ID')}`).join(' · ')}</div>}
-      {s.candidates && s.candidates.length > 0 && <div className="sug-o">Mungkin: {s.candidates.join(' · ')}</div>}
-      {s.note && <div className="sug-n">{s.note}</div>}
-      {s.draft && (
-        <div className="sug-d">
-          <span>“{s.draft}”</span>
-          <button type="button" className="btn ghost" onClick={() => onUse(s.draft!)}><Icon name="edit" />Pakai jawaban</button>
-        </div>
-      )}
-      <small>Rekomendasi sistem dari data stok{asOf ? ` · sinkron ${shortDate(asOf)} ${hhmm(asOf)}` : ''} · dikirim hanya bila Anda menekan kirim</small>
-    </div>
-  )
+/** The AI Trigger cards under a customer's bubble (ADR 0038, 0041), with "Tulis dengan AI" for a card's draft. */
+function TriggerCards({ m, thread, asOf, onUse }: { m: MessageView; thread: string; asOf?: string | null; onUse: (m: MessageView, text: string) => void }) {
+  const qc = useQueryClient()
+  const { toast } = useFeedback()
+  const write = useMutation({
+    mutationFn: (rule: string) => api.post(`/chat/threads/${thread}/messages/${m.id}/ai-draft`, { rule_id: rule }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['chat', 'thread', thread] }),
+    onError: (e: Error) => toast(e.message),
+  })
+  return <>{m.suggest!.map((s) => (
+    <TriggerCard key={s.rule_id} s={s} asOf={asOf} onUse={(text) => onUse(m, text)} onAI={() => write.mutate(s.rule_id)} aiBusy={write.isPending && write.variables === s.rule_id} />
+  ))}</>
 }
 
 function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark, onPin, onLabel }: {
@@ -364,7 +354,7 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       {m.holding && !m.auto_reply && m.direction === 'out' && !(analysis && m.analysis) && (
         <span className="bub-hold" title="Pesan ini hanya meminta pelanggan menunggu — waktu respon tetap dihitung sampai pelanggan mendapat jawaban">jawaban sementara · waktu respon tetap berjalan</span>
       )}
-      {m.suggest && onUse && <SuggestBox s={m.suggest} asOf={asOf} onUse={(text) => onUse(m, text)} />}
+      {m.suggest && m.suggest.length > 0 && onUse && <TriggerCards m={m} thread={thread} asOf={asOf} onUse={onUse} />}
       {m.proposal && <span className="ann"><span className="ai" />Usulan Claude · <AnnProposal p={m.proposal} /></span>}
       {analysis && m.analysis && <BubbleAnalysis a={m.analysis} dir={m.direction} />}
     </div>

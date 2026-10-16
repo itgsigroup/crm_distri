@@ -24,11 +24,13 @@ import (
 	"distri-arc/internal/events"
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/identify"
+	"distri-arc/internal/llm"
 	"distri-arc/internal/mcp"
 	"distri-arc/internal/odoo"
 	"distri-arc/internal/ops"
 	"distri-arc/internal/policy"
 	"distri-arc/internal/proposals"
+	"distri-arc/internal/replyai"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
@@ -51,6 +53,7 @@ type Server struct {
 	mcp     *mcp.Server
 	idf     *identify.Service
 	ask     *ask.Service
+	replyAI *replyai.Service
 	http    *ops.HTTPMetrics
 	// scheduled analysis seams (tests): the Claude client of inline runs and the API-key check
 	analystModel func(key string) analyst.Model
@@ -62,7 +65,16 @@ type Server struct {
 func (s *Server) WithMedia(f wa.MediaFetcher) *Server { s.media = f; return s }
 
 // WithAsk enables POST /ask (the command bar).
-func (s *Server) WithAsk(a *ask.Service) *Server { s.ask = a; return s }
+func (s *Server) WithAsk(a *ask.Service) *Server {
+	s.ask = a
+	if a != nil {
+		s.replyAI.Env = a.Router // AI Trigger drafts: LLM_PROVIDER when no key is saved in the app
+	}
+	return s
+}
+
+// WithReplyModel sets the model AI Trigger drafts are written with (tests).
+func (s *Server) WithReplyModel(p llm.Provider) *Server { s.replyAI.Provider = p; return s }
 
 // WithIdentify enables POST /chat/identify (sources the API can read; the worker adds the WA Business profile).
 func (s *Server) WithIdentify(i *identify.Service) *Server { s.idf = i; return s }
@@ -80,6 +92,7 @@ func (s *Server) WithCloudWebhook(c *wa.CloudAPI) *Server { s.cloud = c; return 
 func New(cfg config.Config, st *store.Store, c clock.Clock, log *slog.Logger) *Server {
 	srv := &Server{cfg: cfg, st: st, clock: c, log: log, views: views.NewBuilder(st, c), hub: events.NewHub(), http: ops.NewHTTPMetrics()}
 	srv.hub.OnPublish = srv.threads.changed
+	srv.replyAI = &replyai.Service{St: st, Views: srv.views, Log: log, SessionKey: cfg.SessionKey(), EnvClaude: cfg.AnthropicKey, EnvOpenAI: cfg.OpenAIKey}
 	return srv
 }
 

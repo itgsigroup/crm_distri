@@ -24,6 +24,7 @@ import (
 	"distri-arc/internal/ops"
 	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/outbox"
+	"distri-arc/internal/replyai"
 	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/wa"
@@ -292,14 +293,15 @@ type Deps struct {
 	Orchestrator *orchestrator.Orchestrator
 	Identify     *identify.Service
 	Ops          ops.Env
-	AlertFrom    string        // ALERT_WA_FROM
-	SessionKey   []byte        // opens sealed secrets (BigQuery key, Claude API key)
-	AlertGroup   string        // ALERT_WA_GROUP
-	AnalystKey   string        // ANTHROPIC_API_KEY for scheduled analysis when no key was saved in the app
-	OpenAIKey    string        // OPENAI_API_KEY for the ChatGPT API when no key was saved in the app
-	Fallback     *Fallback     // the API second option (ADR 0040); nil: off
-	MCPWait      time.Duration // how long a cycle waits for Claude through MCP (prompt text)
-	BackfillDays int           // WA_BACKFILL_DAYS: chat history asked from the phones (capped by retention.chat_days)
+	AlertFrom    string           // ALERT_WA_FROM
+	SessionKey   []byte           // opens sealed secrets (BigQuery key, Claude API key)
+	AlertGroup   string           // ALERT_WA_GROUP
+	AnalystKey   string           // ANTHROPIC_API_KEY for scheduled analysis when no key was saved in the app
+	OpenAIKey    string           // OPENAI_API_KEY for the ChatGPT API when no key was saved in the app
+	Fallback     *Fallback        // the API second option (ADR 0040); nil: off
+	MCPWait      time.Duration    // how long a cycle waits for Claude through MCP (prompt text)
+	BackfillDays int              // WA_BACKFILL_DAYS: chat history asked from the phones (capped by retention.chat_days)
+	ReplyAI      *replyai.Service // AI Trigger drafts (ADR 0041); nil: off
 }
 
 // New builds the river client with all workers and periodic jobs registered.
@@ -319,6 +321,9 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	anRunner := &analyst.Runner{St: st, Clock: c, Log: log, Orch: deps.Orchestrator, SessionKey: deps.SessionKey, EnvKey: deps.AnalystKey, EnvOpenAI: deps.OpenAIKey}
 	river.AddWorker(workers, &AnalystRunWorker{runner: anRunner})
 	river.AddWorker(workers, &CycleMCPWorker{runner: anRunner, wait: deps.MCPWait})
+	if deps.ReplyAI != nil {
+		river.AddWorker(workers, &ReplyAIWorker{svc: deps.ReplyAI, log: log})
+	}
 	var periodic []*river.PeriodicJob
 	if gn, ok := deps.Transport.(wa.GroupNames); ok && deps.Ingest != nil {
 		river.AddWorker(workers, &GroupNamesWorker{ingest: deps.Ingest, src: gn, log: log})

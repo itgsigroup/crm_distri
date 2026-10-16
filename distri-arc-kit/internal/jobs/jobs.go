@@ -70,6 +70,19 @@ type CycleRunArgs struct {
 
 func (CycleRunArgs) Kind() string { return "cycle.run" }
 
+// ReplyAIArgs: an AI writes the AI Trigger drafts of one customer message (ADR 0041).
+type ReplyAIArgs struct {
+	MessageID string `json:"message_id"`
+}
+
+func (ReplyAIArgs) Kind() string { return "reply.ai" }
+
+// InsertOpts: one job per message (a re-delivered message does not write again), one attempt (a late draft is
+// worthless; the sales can ask again from the card).
+func (ReplyAIArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{MaxAttempts: 1, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+}
+
 // IdentifyArgs identifies an inbound unknown number (AI Prospek): the worker can read its WhatsApp Business profile.
 type IdentifyArgs struct {
 	WANumber string `json:"wa_number"`

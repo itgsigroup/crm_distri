@@ -174,6 +174,21 @@ func (b *Builder) Board(ctx context.Context) (*Board, error) {
 	return &board, nil
 }
 
+// Metrics is the cached board without next actions (read-only: callers must not change it), for a lookup of one
+// dealer's metrics and history.
+func (b *Builder) Metrics(ctx context.Context) (*Board, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.cached == nil || time.Since(b.at) > BoardTTL || !clock.Today(b.cached.Today).Equal(clock.Today(b.clock.Now())) {
+		base, err := b.build(ctx)
+		if err != nil {
+			return nil, err
+		}
+		b.cached, b.at = base, time.Now()
+	}
+	return b.cached, nil
+}
+
 // build computes every dealer's metrics (the heavy part, cached by Board).
 func (b *Builder) build(ctx context.Context) (*Board, error) {
 	ds, err := b.svc.Load(ctx)

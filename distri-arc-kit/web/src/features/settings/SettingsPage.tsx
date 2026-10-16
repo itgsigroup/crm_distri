@@ -10,7 +10,6 @@ import { WhatsAppPanel } from './WhatsAppPanel'
 import { AIConnectionsCard } from './AIConnections'
 import { IdentifyPanel } from './IdentifyPanel'
 import { OdooPanel } from './OdooPanel'
-import { ReplyRulesCard } from './ReplyRules'
 import { SecurityCard, SystemCard } from './SystemCard'
 import { PilotCard } from '../pilot/PilotPage'
 import { BigQueryCard } from '../data/BigQueryCard'
@@ -106,7 +105,6 @@ export function SettingsPage() {
             <button className="cc" onClick={() => openSheet(<IdentifyPanel />)}><div className="ch"><span className="lg" style={{ background: '#1E88E5' }}>ID</span><div><b>Identifikasi nomor</b><small>Profil WA Business · Truecaller · Getcontact (manual)</small></div></div><div className="cs"><span className="dot good" />Hanya nomor inbound</div></button>
           </div>
         </div>
-        <ReplyRulesCard />
         <AIConnectionsCard />
         {me?.manage_users && <PilotCard />}
         {me?.manage_users && <SystemCard />}

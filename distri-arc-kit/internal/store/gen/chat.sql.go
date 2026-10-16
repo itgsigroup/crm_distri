@@ -364,7 +364,7 @@ func (q *Queries) EditQueuedReply(ctx context.Context, arg EditQueuedReplyParams
 }
 
 const enabledReplyRules = `-- name: EnabledReplyRules :many
-select id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at from reply_rules where enabled order by created_at
+select id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at, ai_phrase, ai_instruction from reply_rules where enabled order by created_at
 `
 
 func (q *Queries) EnabledReplyRules(ctx context.Context) ([]ReplyRule, error) {
@@ -388,6 +388,8 @@ func (q *Queries) EnabledReplyRules(ctx context.Context) ([]ReplyRule, error) {
 			&i.UpdatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AiPhrase,
+			&i.AiInstruction,
 		); err != nil {
 			return nil, err
 		}
@@ -1306,8 +1308,8 @@ func (q *Queries) InsertProposal(ctx context.Context, arg InsertProposalParams) 
 }
 
 const insertReplyRule = `-- name: InsertReplyRule :one
-insert into reply_rules (name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by)
-values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at
+insert into reply_rules (name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, ai_phrase, ai_instruction)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at, ai_phrase, ai_instruction
 `
 
 type InsertReplyRuleParams struct {
@@ -1319,6 +1321,8 @@ type InsertReplyRuleParams struct {
 	ShowQty       bool     `json:"show_qty"`
 	Enabled       bool     `json:"enabled"`
 	UpdatedBy     *string  `json:"updated_by"`
+	AiPhrase      bool     `json:"ai_phrase"`
+	AiInstruction string   `json:"ai_instruction"`
 }
 
 func (q *Queries) InsertReplyRule(ctx context.Context, arg InsertReplyRuleParams) (ReplyRule, error) {
@@ -1331,6 +1335,8 @@ func (q *Queries) InsertReplyRule(ctx context.Context, arg InsertReplyRuleParams
 		arg.ShowQty,
 		arg.Enabled,
 		arg.UpdatedBy,
+		arg.AiPhrase,
+		arg.AiInstruction,
 	)
 	var i ReplyRule
 	err := row.Scan(
@@ -1345,6 +1351,8 @@ func (q *Queries) InsertReplyRule(ctx context.Context, arg InsertReplyRuleParams
 		&i.UpdatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AiPhrase,
+		&i.AiInstruction,
 	)
 	return i, err
 }
@@ -1618,7 +1626,7 @@ func (q *Queries) ListInternalNumbers(ctx context.Context) ([]InternalNumber, er
 }
 
 const listReplyRules = `-- name: ListReplyRules :many
-select id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at from reply_rules order by created_at
+select id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at, ai_phrase, ai_instruction from reply_rules order by created_at
 `
 
 func (q *Queries) ListReplyRules(ctx context.Context) ([]ReplyRule, error) {
@@ -1642,6 +1650,8 @@ func (q *Queries) ListReplyRules(ctx context.Context) ([]ReplyRule, error) {
 			&i.UpdatedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AiPhrase,
+			&i.AiInstruction,
 		); err != nil {
 			return nil, err
 		}
@@ -2369,6 +2379,18 @@ func (q *Queries) PurgePersonalChat(ctx context.Context, waJid string) (int32, e
 	return column_1, err
 }
 
+const purgeReplyAIDrafts = `-- name: PurgeReplyAIDrafts :execrows
+delete from reply_ai_drafts where created_at < $1
+`
+
+func (q *Queries) PurgeReplyAIDrafts(ctx context.Context, createdAt time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeReplyAIDrafts, createdAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const renameWAGroup = `-- name: RenameWAGroup :exec
 with g as (update wa_groups set name = $1::text where jid = $2::text returning jid)
 update chat_threads t set title = $1::text from g where t.wa_jid = g.jid and t.kind = 'group'
@@ -2384,6 +2406,76 @@ type RenameWAGroupParams struct {
 func (q *Queries) RenameWAGroup(ctx context.Context, arg RenameWAGroupParams) error {
 	_, err := q.db.Exec(ctx, renameWAGroup, arg.Name, arg.Jid)
 	return err
+}
+
+const replyAIDrafts = `-- name: ReplyAIDrafts :many
+select message_id, rule_id, draft, provider, model, facts_hash, created_at from reply_ai_drafts where message_id = any($1::uuid[])
+`
+
+// The AI's drafts for these customer messages (AI Trigger, ADR 0041).
+func (q *Queries) ReplyAIDrafts(ctx context.Context, ids []uuid.UUID) ([]ReplyAiDraft, error) {
+	rows, err := q.db.Query(ctx, replyAIDrafts, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReplyAiDraft{}
+	for rows.Next() {
+		var i ReplyAiDraft
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.RuleID,
+			&i.Draft,
+			&i.Provider,
+			&i.Model,
+			&i.FactsHash,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const replyTriggerMessage = `-- name: ReplyTriggerMessage :one
+select m.id, m.thread_id, coalesce(m.body, '')::text as body, coalesce(m.direction, '')::text as direction, m.internal, m.deleted_at, m.sent_at,
+  t.dealer_id, coalesce(t.kind, '')::text as kind
+from chat_messages m join chat_threads t on t.id = m.thread_id
+where m.id = $1
+`
+
+type ReplyTriggerMessageRow struct {
+	ID        uuid.UUID  `json:"id"`
+	ThreadID  *uuid.UUID `json:"thread_id"`
+	Body      string     `json:"body"`
+	Direction string     `json:"direction"`
+	Internal  bool       `json:"internal"`
+	DeletedAt *time.Time `json:"deleted_at"`
+	SentAt    time.Time  `json:"sent_at"`
+	DealerID  *uuid.UUID `json:"dealer_id"`
+	Kind      string     `json:"kind"`
+}
+
+// A customer message and its conversation, for the AI Trigger job.
+func (q *Queries) ReplyTriggerMessage(ctx context.Context, id uuid.UUID) (ReplyTriggerMessageRow, error) {
+	row := q.db.QueryRow(ctx, replyTriggerMessage, id)
+	var i ReplyTriggerMessageRow
+	err := row.Scan(
+		&i.ID,
+		&i.ThreadID,
+		&i.Body,
+		&i.Direction,
+		&i.Internal,
+		&i.DeletedAt,
+		&i.SentAt,
+		&i.DealerID,
+		&i.Kind,
+	)
+	return i, err
 }
 
 const searchThreadMessages = `-- name: SearchThreadMessages :many
@@ -2941,32 +3033,38 @@ func (q *Queries) UpdateChatMessageSent(ctx context.Context, arg UpdateChatMessa
 }
 
 const updateReplyRule = `-- name: UpdateReplyRule :one
-update reply_rules set name = $2, keywords = $3, template_ready = $4, template_empty = $5, show_qty = $6, enabled = $7,
-  updated_by = $8, updated_at = now()
-where id = $1 returning id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at
+update reply_rules set name = $2, action = $3, keywords = $4, template_ready = $5, template_empty = $6, show_qty = $7, enabled = $8,
+  updated_by = $9, ai_phrase = $10, ai_instruction = $11, updated_at = now()
+where id = $1 returning id, name, action, keywords, template_ready, template_empty, show_qty, enabled, updated_by, created_at, updated_at, ai_phrase, ai_instruction
 `
 
 type UpdateReplyRuleParams struct {
 	ID            uuid.UUID `json:"id"`
 	Name          string    `json:"name"`
+	Action        string    `json:"action"`
 	Keywords      []string  `json:"keywords"`
 	TemplateReady string    `json:"template_ready"`
 	TemplateEmpty string    `json:"template_empty"`
 	ShowQty       bool      `json:"show_qty"`
 	Enabled       bool      `json:"enabled"`
 	UpdatedBy     *string   `json:"updated_by"`
+	AiPhrase      bool      `json:"ai_phrase"`
+	AiInstruction string    `json:"ai_instruction"`
 }
 
 func (q *Queries) UpdateReplyRule(ctx context.Context, arg UpdateReplyRuleParams) (ReplyRule, error) {
 	row := q.db.QueryRow(ctx, updateReplyRule,
 		arg.ID,
 		arg.Name,
+		arg.Action,
 		arg.Keywords,
 		arg.TemplateReady,
 		arg.TemplateEmpty,
 		arg.ShowQty,
 		arg.Enabled,
 		arg.UpdatedBy,
+		arg.AiPhrase,
+		arg.AiInstruction,
 	)
 	var i ReplyRule
 	err := row.Scan(
@@ -2981,6 +3079,8 @@ func (q *Queries) UpdateReplyRule(ctx context.Context, arg UpdateReplyRuleParams
 		&i.UpdatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AiPhrase,
+		&i.AiInstruction,
 	)
 	return i, err
 }
@@ -3057,6 +3157,34 @@ func (q *Queries) UpsertInternalNumber(ctx context.Context, arg UpsertInternalNu
 		arg.Department,
 		arg.IsSales,
 		arg.AddedBy,
+	)
+	return err
+}
+
+const upsertReplyAIDraft = `-- name: UpsertReplyAIDraft :exec
+insert into reply_ai_drafts (message_id, rule_id, draft, provider, model, facts_hash)
+values ($1, $2, $3, $4, $5, $6)
+on conflict (message_id, rule_id) do update set draft = excluded.draft, provider = excluded.provider, model = excluded.model,
+  facts_hash = excluded.facts_hash, created_at = now()
+`
+
+type UpsertReplyAIDraftParams struct {
+	MessageID uuid.UUID `json:"message_id"`
+	RuleID    uuid.UUID `json:"rule_id"`
+	Draft     string    `json:"draft"`
+	Provider  string    `json:"provider"`
+	Model     string    `json:"model"`
+	FactsHash string    `json:"facts_hash"`
+}
+
+func (q *Queries) UpsertReplyAIDraft(ctx context.Context, arg UpsertReplyAIDraftParams) error {
+	_, err := q.db.Exec(ctx, upsertReplyAIDraft,
+		arg.MessageID,
+		arg.RuleID,
+		arg.Draft,
+		arg.Provider,
+		arg.Model,
+		arg.FactsHash,
 	)
 	return err
 }

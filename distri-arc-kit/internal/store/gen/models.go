@@ -752,6 +752,16 @@ type Proposal struct {
 	DealerIds      []uuid.UUID     `json:"dealer_ids"`
 }
 
+type ReplyAiDraft struct {
+	MessageID uuid.UUID `json:"message_id"`
+	RuleID    uuid.UUID `json:"rule_id"`
+	Draft     string    `json:"draft"`
+	Provider  string    `json:"provider"`
+	Model     string    `json:"model"`
+	FactsHash string    `json:"facts_hash"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type ReplyRule struct {
 	ID            uuid.UUID `json:"id"`
 	Name          string    `json:"name"`
@@ -764,6 +774,8 @@ type ReplyRule struct {
 	UpdatedBy     *string   `json:"updated_by"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
+	AiPhrase      bool      `json:"ai_phrase"`
+	AiInstruction string    `json:"ai_instruction"`
 }
 
 type RiverJob struct {

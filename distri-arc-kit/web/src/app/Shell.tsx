@@ -30,6 +30,7 @@ export const ROUTES: Record<ScreenKey, string> = {
   salesmap: '/mapping-sales',
   mcp: '/claude',
   aiapi: '/pengaturan/api-ai',
+  aitrigger: '/pengaturan/ai-trigger',
   conn: '/pengaturan',
   konsep: '/panduan',
 }
@@ -51,6 +52,7 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/mapping-sales')) return 'salesmap'
   if (path.startsWith('/claude')) return 'mcp'
   if (path.startsWith('/pengaturan/api-ai')) return 'aiapi'
+  if (path.startsWith('/pengaturan/ai-trigger')) return 'aitrigger'
   if (path.startsWith('/pengaturan')) return 'conn'
   if (path.startsWith('/panduan')) return 'konsep'
   return 'today'
@@ -60,6 +62,7 @@ export function screenOf(path: string): ScreenKey {
 export function canSee(screens: string[], key: ScreenKey): boolean {
   if (key === 'salesmap') return screens.includes('users') || screens.includes('conn')
   if (key === 'aiapi') return screens.includes('conn') || screens.includes('mcp')
+  if (key === 'aitrigger') return screens.includes('conn') || screens.includes('chat')
   return screens.includes(key === 'dashboard' ? 'today' : key)
 }
 
@@ -178,6 +181,7 @@ export function Shell() {
             <nav className="nav" aria-label="Pengaturan">
               <NavBtn to="mcp" cur={cur} icon="spark">MCP Claude</NavBtn>
               <NavBtn to="aiapi" cur={cur} icon="plug">API &amp; model AI</NavBtn>
+              <NavBtn to="aitrigger" cur={cur} icon="spark">AI Trigger</NavBtn>
               <NavBtn to="konsep" cur={cur} icon="doc">Panduan</NavBtn>
               <NavBtn to="conn" cur={cur} icon="gear">Pengaturan</NavBtn>
             </nav>

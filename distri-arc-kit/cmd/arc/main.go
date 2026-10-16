@@ -29,6 +29,7 @@ import (
 	"distri-arc/internal/odoo"
 	"distri-arc/internal/ops"
 	"distri-arc/internal/orchestrator"
+	"distri-arc/internal/replyai"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
 	"distri-arc/internal/views"
@@ -189,9 +190,11 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		idf.Profiles = pr
 	}
 	fb := &worker.Fallback{St: st, Clock: c, Secret: cfg.SessionKey(), EnvClaude: cfg.AnthropicKey, EnvOpenAI: cfg.OpenAIKey}
+	replyAI := &replyai.Service{St: st, Views: views.NewBuilder(st, c), Log: log, SessionKey: cfg.SessionKey(), EnvClaude: cfg.AnthropicKey,
+		EnvOpenAI: cfg.OpenAIKey, Env: orch.Router}
 	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch, Identify: idf,
 		Ops: ops.EnvFrom(cfg), AlertFrom: cfg.AlertWAFrom, AlertGroup: cfg.AlertWAGroup, SessionKey: cfg.SessionKey(), AnalystKey: cfg.AnthropicKey,
-		OpenAIKey: cfg.OpenAIKey, Fallback: fb, MCPWait: cfg.MCPWait, BackfillDays: cfg.WABackfillDays})
+		OpenAIKey: cfg.OpenAIKey, Fallback: fb, MCPWait: cfg.MCPWait, BackfillDays: cfg.WABackfillDays, ReplyAI: replyAI})
 	if err != nil {
 		return err
 	}
@@ -208,6 +211,12 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	ingest.OnDealer = func(_ context.Context, id uuid.UUID) { recompute.Add(id) }
 	ingest.OnNewNumber = func(ctx context.Context, number string) {
 		_, _ = client.Insert(ctx, jobs.IdentifyArgs{WANumber: number}, nil)
+	}
+	// AI Trigger (ADR 0041): a customer message matching a rule that asks the AI gets its draft written
+	ingest.OnInbound = func(ctx context.Context, id uuid.UUID, text string) {
+		if replyAI.Wants(ctx, text) {
+			_, _ = client.Insert(ctx, jobs.ReplyAIArgs{MessageID: id.String()}, nil)
+		}
 	}
 	if err := t.Start(ctx); err != nil {
 		log.Error("wa transport start", "transport", t.Name(), "err", err)
