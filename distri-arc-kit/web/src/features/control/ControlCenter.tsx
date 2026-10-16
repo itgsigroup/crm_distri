@@ -85,7 +85,7 @@ export function ControlCenter() {
           </div>
 
           <div className="card brief">
-            <div className="card-h"> <span className="ai">Ringkasan Claude (MCP) · {wa?.generated_at ? `${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : '—'}</span><span className="meta">{wa?.cycle_number ? `${wa.window_days} hari terakhir · siklus #${wa.cycle_number.toLocaleString('id-ID')}` : ''}</span></div>
+            <div className="card-h"> <span className="ai">Ringkasan Claude (MCP) · {wa?.generated_at ? `${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : '—'}</span><span className="meta" title="AI hanya membaca pesan pelanggan baru hari ini; yang sudah dibaca tetap tampil. Angka dihitung dari 7 hari terakhir tanpa AI.">{wa?.cycle_number ? `AI membaca pesan baru hari ini · angka ${wa.window_days} hari terakhir · siklus #${wa.cycle_number.toLocaleString('id-ID')}` : ''}</span></div>
             <WAClaudeStatus data={wa} />
             <WABrief data={wa} scoped={scoped} />
           </div>

@@ -1011,6 +1011,7 @@ type WaInsight struct {
 	Confidence     *int16          `json:"confidence"`
 	ReplyWorkMin   []int32         `json:"reply_work_min"`
 	ReplyOffMin    []int32         `json:"reply_off_min"`
+	SummaryAt      *time.Time      `json:"summary_at"`
 }
 
 type WaLink struct {

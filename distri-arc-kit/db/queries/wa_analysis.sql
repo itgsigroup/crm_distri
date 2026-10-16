@@ -68,7 +68,21 @@ order by i.priority desc, i.last_in_at desc nulls last;
 update wa_analyses set overview = $2, source = $3 where cycle_id = $1;
 
 -- name: SetWAInsightSummary :exec
-update wa_insights set summary = $3, confidence = $4 where cycle_id = $1 and thread_id = $2;
+update wa_insights set summary = $3, confidence = $4, summary_at = now() where cycle_id = $1 and thread_id = $2;
+
+-- name: CarryWASummaries :exec
+-- What the AI already read stays: a conversation of this cycle without a line takes its latest line from an earlier
+-- cycle (with when it was written, so only newer customer messages are read again).
+update wa_insights i set summary = p.summary, confidence = p.confidence, summary_at = p.summary_at
+from (select distinct on (x.thread_id) x.thread_id, x.summary, x.confidence, x.summary_at from wa_insights x
+      where x.summary is not null and x.cycle_id <> sqlc.arg(cycle_id)::uuid order by x.thread_id, x.summary_at desc nulls last) p
+where i.cycle_id = sqlc.arg(cycle_id)::uuid and i.thread_id = p.thread_id and i.summary is null;
+
+-- name: CarryWAOverview :exec
+-- The overview stays until the AI writes a new one: a cycle without one takes the latest.
+update wa_analyses a set overview = p.overview, source = p.source
+from (select overview, source from wa_analyses where cycle_id <> sqlc.arg(cycle_id)::uuid and overview is not null order by created_at desc limit 1) p
+where a.cycle_id = sqlc.arg(cycle_id)::uuid and a.overview is null;
 
 -- name: ThreadsWaitingSince :many
 -- The current state of conversations: the oldest customer message not answered yet (null when the last word was ours
@@ -130,3 +144,8 @@ group by i.thread_id, t.kind, t.title, d.name, s.name
 having count(*) filter (where i.direction = 'in') > 0
 order by (min(i.sent_at) filter (where i.state in ('waiting', 'needs_reply'))) is null, max(i.sent_at) desc
 limit 50;
+
+-- name: LatestWAOverview :one
+-- The overview the AI wrote last, before this cycle (the reading brings it up to date).
+select overview from wa_analyses where cycle_id <> sqlc.arg(cycle_id)::uuid and overview is not null and source = 'ai'
+order by created_at desc limit 1;

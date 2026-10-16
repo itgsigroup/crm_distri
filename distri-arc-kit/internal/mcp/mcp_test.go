@@ -479,6 +479,7 @@ func TestWAAnalisisMasked(t *testing.T) {
 // Claude (MCP, no API key) reads the chats of a cycle and sends the Analisa WhatsApp lines back (ADR 0026).
 func TestWAThroughMCP(t *testing.T) {
 	e := setup(t)
+	inboundToday(t, e.st)
 	rep, err := e.o.Run(context.Background(), domain.Scope{Kind: "all"}, domain.Trigger{Source: "schedule"})
 	if err != nil {
 		t.Fatal(err)
@@ -580,6 +581,7 @@ func TestMarginCheck(t *testing.T) {
 // schedule — succeeded, or failed with the reason; Analisa lanjut on one chat is not a run.
 func TestWARoutineRecordsRun(t *testing.T) {
 	e := setup(t)
+	inboundToday(t, e.st)
 	ctx := context.Background()
 	cs := e.connect(t, e.token(t, "Claude routine", "read", "orchestrate"))
 	out, txt, ok := call(t, cs, "orchestrator_reanalyze", map[string]any{"scope": "screen:wa"})
@@ -616,5 +618,22 @@ func TestWARoutineRecordsRun(t *testing.T) {
 	_ = e.st.Pool.QueryRow(ctx, "select count(*) from mcp_schedule_runs r join mcp_schedules s on s.id = r.schedule_id where s.key = 'wa_analysis'").Scan(&n)
 	if n != 1 {
 		t.Fatalf("%d runs", n)
+	}
+}
+
+// inboundToday adds a customer message this morning to every one-to-one conversation with customer messages: the AI
+// reads only today's new messages, and the seed's are from earlier days.
+func inboundToday(t *testing.T, st *store.Store) {
+	t.Helper()
+	ctx := context.Background()
+	if _, err := st.Pool.Exec(ctx, `insert into chat_message_keys (wa_msg_id, message_id, sent_at)
+		select 'today-' || x.thread_id, gen_random_uuid(), $1::timestamptz from (select distinct m.thread_id from chat_messages m
+		join chat_threads t on t.id = m.thread_id where m.direction = 'in' and t.kind <> 'group') x`, now.Now().Add(-30*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into chat_messages (id, thread_id, wa_msg_id, direction, body, sent_at, status)
+		select k.message_id, substr(k.wa_msg_id, 7)::uuid, k.wa_msg_id, 'in', 'Pak, bagaimana kelanjutannya?', k.sent_at, 'received'
+		from chat_message_keys k where k.wa_msg_id like 'today-%'`); err != nil {
+		t.Fatal(err)
 	}
 }

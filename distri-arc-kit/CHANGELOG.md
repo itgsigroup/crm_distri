@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Analisa WhatsApp hanya membaca pesan baru hari ini (hemat token); game Lompat! · 2026-10-16
+- AI (Claude lewat MCP atau model di server) kini hanya membaca percakapan yang punya **pesan pelanggan baru hari ini yang belum dibaca**, dan hanya pesan hari ini. Isi sebelumnya ikut sebagai ringkasan lama untuk diperbarui, bukan dibaca ulang. Siklus tanpa pesan baru tidak memanggil AI sama sekali (0 token), dan jadwal Analisa WhatsApp dianggap berhasil.
+- Yang sudah dibaca tetap tampil di Pusat kendali: ringkasan per percakapan dan ringkasan umum dibawa ke siklus berikutnya sampai ada pesan baru; catatan per bubble memang sudah tersimpan. Angka (chat, pesan masuk, menunggu balasan, KPI) tetap dihitung sistem dari 7 hari terakhir tanpa AI. Migrasi 0044 (`wa_insights.summary_at`).
+- Game diganti **Lompat!**: kurir berlari, tekan Spasi (atau Enter/↑/ketuk) untuk melompati pipa, dua kali untuk lompat lebih tinggi, ambil koin untuk skor tambahan; makin lama makin cepat, skor terbaik disimpan di browser.
+
 ## Change · Pop-up analisis: "AI sedang membaca data" + game, pengganti langkah MCP · 2026-10-16
 - Pop-up "Claude menganalisis lewat MCP" (langkah 1–3, daftar agen, perintah) dihapus. Setiap **Analisis ulang** kini membuka pop-up **AI sedang membaca data…** dengan tahap yang sedang dibaca dan game **Tap tap Enter**, lalu di pop-up yang sama **Analisis berhasil / sebagian / gagal**.
 - Lewat Claude (claude.ai) tetap ada satu tombol **Buka Claude**, karena Claude hanya bekerja bila perintahnya dikirim di sana; setelah Claude mulai mengirim, tampil jumlah agen yang sudah dikirim. Lewat API di server tidak perlu membuka apa pun.

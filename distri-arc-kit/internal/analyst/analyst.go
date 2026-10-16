@@ -684,6 +684,10 @@ func requiredOutcome(sch gen.McpSchedule, o outcome) error {
 		if st.Tool == "orchestrator_submit" && st.Status == "ok" {
 			return nil
 		}
+		// nothing new today to read: no tokens spent, Pusat kendali keeps what was read (Sam 16 Oct)
+		if st.Tool == "orchestrator_input_get" && strings.Contains(st.Summary, orchestrator.WAUpToDate) {
+			return nil
+		}
 	}
 	for _, st := range o.steps {
 		if st.Tool == "orchestrator_submit" {

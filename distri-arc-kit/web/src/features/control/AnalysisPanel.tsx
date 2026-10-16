@@ -3,13 +3,13 @@ import { Icon } from '../../components/Icon'
 import { hhmm } from '../../lib/format'
 import { STAGES, chipState, type CycleUI } from '../../app/cycle'
 import { duration, useOrch } from '../../app/orch'
-import { START_SPEED, advance, arcPath, newGame, point, press, type Game } from './tapgame'
+import { GROUND, PH, PX, W, jump, newRun, score, step, type Run } from './jumpgame'
 
 // While an analysis runs: what the AI is reading, stage by stage, and at the end whether it worked — with a small game
 // to play while waiting (Sam 16 Oct). Used by the analysis pop-up and by Pusat kendali.
 
 const READING: Record<string, [string, string]> = {
-  ingest: ['Membaca data', 'chat WhatsApp, order, invoice, pembayaran dan stok'],
+  ingest: ['Membaca data', 'chat WhatsApp baru hari ini, order, invoice, pembayaran dan stok'],
   analyze: ['Agen AI menganalisa', 'jadwal order, limit kredit, stok, prospek dan penagihan per dealer'],
   synthesize: ['Menggabungkan temuan', 'hasil keenam agen dan konflik di antaranya'],
   decide: ['Menyusun usulan', 'keputusan yang menunggu persetujuan Anda'],
@@ -17,7 +17,7 @@ const READING: Record<string, [string, string]> = {
   learn: ['Mencatat pelajaran', 'keputusan sebelumnya untuk siklus berikutnya'],
 }
 
-const BEST_KEY = 'tapgame-best'
+const BEST_KEY = 'jumpgame-best'
 function savedBest(): number {
   try { return Number(localStorage.getItem(BEST_KEY)) || 0 } catch { return 0 }
 }
@@ -75,7 +75,7 @@ export function AnalysisRunning({ extra, focusGame = false }: { extra?: ReactNod
           {s.startedAt && <span>Berjalan <b>{duration(now - s.startedAt)}</b></span>}
         </div>
       </div>
-      <TapGame autoFocus={focusGame} />
+      <JumpGame autoFocus={focusGame} />
     </div>
   )
 }
@@ -109,44 +109,78 @@ export function AnalysisResult({ last }: { last: Last }) {
   )
 }
 
-/** Tap tap Enter: press Enter or Space (or tap) when the dot is inside the green arc. */
-export function TapGame({ autoFocus }: { autoFocus: boolean }) {
-  const [g, setG] = useState<Game>(() => newGame(savedBest()))
+const JUMP_KEYS = new Set([' ', 'Enter', 'ArrowUp', 'w', 'W'])
+
+/** Lompat!: Space (or Enter, ↑, a tap) jumps over the pipes — twice in the air at most — and coins score extra. */
+export function JumpGame({ autoFocus }: { autoFocus: boolean }) {
+  const [r, setR] = useState<Run>(() => newRun(savedBest()))
   const box = useRef<HTMLDivElement>(null)
   const prev = useRef<number | null>(null)
   useEffect(() => {
     let raf = 0
-    const step = (t: number) => {
-      const dt = prev.current == null ? 0 : Math.min(64, t - prev.current)
+    const tick = (t: number) => {
+      const dt = prev.current == null ? 0 : Math.min(40, t - prev.current)
       prev.current = t
-      setG((x) => advance(x, dt))
-      raf = requestAnimationFrame(step)
+      setR((x) => step(x, dt, Math.random()))
+      raf = requestAnimationFrame(tick)
     }
-    raf = requestAnimationFrame(step)
+    raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
   }, [])
   useEffect(() => {
     if (autoFocus) box.current?.focus({ preventScroll: true })
   }, [autoFocus])
   useEffect(() => {
-    try { localStorage.setItem(BEST_KEY, String(g.best)) } catch { /* private mode */ }
-  }, [g.best])
-  const hit = () => setG((x) => press(x, Math.random()))
-  const [dx, dy] = point(g.angle, 52, 64, 64)
+    try { localStorage.setItem(BEST_KEY, String(r.best)) } catch { /* private mode */ }
+  }, [r.best])
+  const press = () => setR((x) => jump(x))
+  const top = GROUND - r.y - PH // the runner's top
+  const legs = r.y > 0 ? 0 : Math.floor(r.dist / 10) % 2 // the stride while on the ground
   return (
-    <div className="an-game" ref={box} tabIndex={0} role="application" aria-label="Permainan tap tap Enter: tekan Enter atau Spasi saat titik di busur hijau"
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!e.repeat) hit() } }}
-      onPointerDown={(e) => { e.preventDefault(); box.current?.focus({ preventScroll: true }); hit() }}>
-      <svg viewBox="0 0 128 128" aria-hidden>
-        <circle cx="64" cy="64" r="52" className="an-ring" />
-        <path d={arcPath(g.target, g.width, 52, 64, 64)} className="an-target" />
-        <circle cx={dx} cy={dy} r="7" className={`an-ball ${g.last ?? ''}`} />
-        <text x="64" y="60" className="an-score">{g.score}</text>
-        <text x="64" y="78" className="an-best">terbaik {g.best}</text>
+    <div className="an-game" ref={box} tabIndex={0} role="application" aria-label="Game Lompat: tekan Spasi untuk melompati pipa"
+      onKeyDown={(e) => { if (JUMP_KEYS.has(e.key)) { e.preventDefault(); if (!e.repeat) press() } }}
+      onPointerDown={(e) => { e.preventDefault(); box.current?.focus({ preventScroll: true }); press() }}>
+      <svg viewBox={`0 0 ${W} 120`} aria-hidden className="jg">
+        <rect x="0" y="0" width={W} height={GROUND} className="jg-sky" />
+        {[40, 150, 250].map((cx, i) => {
+          const x = ((cx - r.dist * 0.15) % (W + 60) + W + 60) % (W + 60) - 30
+          return <g key={i} className="jg-cloud"><ellipse cx={x} cy={18 + i * 9} rx="16" ry="6" /><ellipse cx={x + 10} cy={14 + i * 9} rx="10" ry="6" /></g>
+        })}
+        {r.coins.filter((c) => !c.got).map((c) => <ellipse key={c.id} cx={c.x} cy={GROUND - c.y} rx="4" ry="5" className="jg-coin" />)}
+        {r.pipes.map((p) => (
+          <g key={p.id} className="jg-pipe">
+            <rect x={p.x + 2} y={GROUND - p.h + 6} width={p.w - 4} height={p.h - 6} />
+            <rect x={p.x} y={GROUND - p.h} width={p.w} height="7" rx="1" />
+          </g>
+        ))}
+        <rect x="0" y={GROUND} width={W} height={120 - GROUND} className="jg-ground" />
+        {Array.from({ length: 12 }, (_, i) => {
+          const x = ((i * 30 - r.dist) % W + W) % W
+          return <rect key={i} x={x} y={GROUND + 2} width="14" height="4" className="jg-brick" />
+        })}
+        {/* the courier: cap, face, shirt, overalls, two legs */}
+        <g className={`jg-hero${r.over ? ' hurt' : ''}`}>
+          <rect x={PX + 2} y={top} width="12" height="4" rx="1" className="jg-cap" />
+          <rect x={PX + 11} y={top + 2} width="5" height="2" className="jg-cap" />
+          <rect x={PX + 3} y={top + 4} width="10" height="5" className="jg-face" />
+          <rect x={PX + 10} y={top + 5} width="2" height="2" className="jg-eye" />
+          <rect x={PX + 2} y={top + 9} width="12" height="6" className="jg-shirt" />
+          <rect x={PX + 4} y={top + 10} width="8" height="6" className="jg-overall" />
+          <rect x={PX + (legs ? 3 : 4)} y={top + 16} width="4" height="4" className="jg-shoe" />
+          <rect x={PX + (legs ? 10 : 9)} y={top + 16} width="4" height="4" className="jg-shoe" />
+        </g>
+        <text x={W - 8} y="14" className="jg-score">{String(score(r)).padStart(4, '0')}</text>
+        <text x={W - 8} y="25" className="jg-best">terbaik {r.best}</text>
+        {(!r.started || r.over) && (
+          <g className="jg-msg">
+            <rect x={W / 2 - 92} y="34" width="184" height="34" rx="8" />
+            <text x={W / 2} y="49">{r.over ? `Kena pipa! Skor ${score(r)}` : 'Lompat!'}</text>
+            <text x={W / 2} y="61" className="jg-sub">{r.over ? 'Spasi untuk main lagi' : 'Tekan Spasi untuk mulai'}</text>
+          </g>
+        )}
       </svg>
       <div className="an-game-t">
-        <b>{g.last === 'hit' ? 'Tepat!' : g.last === 'miss' ? 'Meleset — coba lagi' : 'Tap tap Enter'}</b>
-        <small>Tekan <kbd>Enter</kbd> / <kbd>Spasi</kbd> atau ketuk saat titik di busur hijau{g.speed > START_SPEED ? ' · makin cepat' : ''}</small>
+        <small>Tekan <kbd>Spasi</kbd> untuk melompat (dua kali = lompat lebih tinggi) · ambil koin · hindari pipa</small>
       </div>
     </div>
   )

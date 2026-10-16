@@ -1511,7 +1511,7 @@ body.map-maximized{overflow:hidden}
 /* Pusat kendali: the analysis panel (what the AI reads, the game, berhasil / gagal) */
 .an-panel{margin:0 0 16px;padding:16px 18px}
 .an-panel.running{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-soft)}
-.an-grid{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px;align-items:start}
+.an-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
 @media (max-width:760px){.an-grid{grid-template-columns:1fr}}
 .an-head{display:flex;gap:12px;align-items:flex-start}
 .an-head h2{margin:0;font-size:16px}
@@ -1539,14 +1539,6 @@ body.map-maximized{overflow:hidden}
 .an-note{flex-basis:100%}
 .an-game{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;user-select:none;touch-action:manipulation;outline:none}
 .an-game:focus-visible,.an-game:focus{border-color:var(--accent)}
-.an-game svg{width:150px;height:150px}
-.an-ring{fill:none;stroke:var(--line-strong);stroke-width:6}
-.an-target{fill:none;stroke:var(--good);stroke-width:8;stroke-linecap:round}
-.an-ball{fill:var(--accent);transition:fill .15s}
-.an-ball.hit{fill:var(--good)}
-.an-ball.miss{fill:var(--bad)}
-.an-score{text-anchor:middle;font-size:24px;font-weight:800;fill:var(--text)}
-.an-best{text-anchor:middle;font-size:9px;fill:var(--text-3)}
 .an-game-t{text-align:center}
 .an-game-t b{display:block;font-size:13px}
 .an-game-t small{font-size:11px;color:var(--text-3)}
@@ -1564,3 +1556,23 @@ body.map-maximized{overflow:hidden}
 .sheet:has(.an-sheet){width:min(760px,calc(100vw - 32px))}
 .an-mcp{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:9px 12px;border-radius:10px;background:var(--accent-soft);font-size:12.5px;color:var(--text-2)}
 .an-mcp span{flex:1;min-width:200px}
+
+/* Lompat!: the runner game while the AI reads (its own classic colours in both themes) */
+.an-game .jg{width:100%;height:auto;display:block;border-radius:10px;overflow:hidden}
+.jg-sky{fill:#8fd3ff}
+.jg-cloud ellipse{fill:#fff;opacity:.9}
+.jg-ground{fill:#c8742c}
+.jg-brick{fill:#9a5420}
+.jg-pipe rect{fill:#2fb344;stroke:#0f6b22;stroke-width:1.2}
+.jg-coin{fill:#ffd23f;stroke:#c79400;stroke-width:1}
+.jg-cap,.jg-shirt{fill:#e5342a}
+.jg-face{fill:#ffcf9e}
+.jg-eye{fill:#222}
+.jg-overall{fill:#2f5bd8}
+.jg-shoe{fill:#5b3416}
+.jg-hero.hurt{opacity:.55}
+.jg-score{text-anchor:end;font:700 11px var(--font-mono);fill:#123}
+.jg-best{text-anchor:end;font:600 7.5px var(--font-mono);fill:#234}
+.jg-msg rect{fill:rgba(0,0,0,.62)}
+.jg-msg text{text-anchor:middle;font:800 11px var(--font-body, sans-serif);fill:#fff}
+.jg-msg .jg-sub{font-weight:600;font-size:8px;fill:#ffd23f}

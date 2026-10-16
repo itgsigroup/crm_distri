@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"distri-arc/internal/domain"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/orchestrator"
+	"distri-arc/internal/store"
 	"distri-arc/internal/store/gen"
 )
 
@@ -90,6 +92,117 @@ func TestCycleReadsWhatsApp(t *testing.T) {
 	}
 }
 
+// inboundToday adds a customer message this morning to every conversation with customer messages (the seed's are
+// from earlier days, which the AI no longer reads).
+func inboundToday(t *testing.T, st *store.Store) {
+	t.Helper()
+	ctx := context.Background()
+	rows, err := st.Pool.Query(ctx, `select distinct m.thread_id from chat_messages m join chat_threads t on t.id = m.thread_id
+		where m.direction = 'in' and t.kind <> 'group'`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range ids {
+		dir, body, wid := "in", "Pak, bagaimana kelanjutannya?", "today-"+uuid.NewString()
+		if _, err := st.Q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &id, WaMsgID: &wid, Direction: &dir, Body: &body, SentAt: now.Now().Add(-30 * time.Minute), Status: "received"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// Token saving (Sam 16 Oct): the AI reads only conversations with a customer message today it has not read, only
+// today's messages, with its earlier line and overview to bring up to date; a cycle with nothing new asks the model
+// nothing, and what was read stays on Pusat kendali.
+func TestWAReadsOnlyTodaysNewMessages(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	stub := &modelStub{}
+	o.Router = &llm.Router{Primary: stub, St: st, Log: o.Log}
+	// nothing today yet: no reading at all
+	rep0, err := o.Run(ctx, all, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stub.masked) != 0 {
+		t.Fatalf("read without a customer message today: %s", stub.masked[0])
+	}
+	if _, err := o.WAInputFor(ctx, rep0.Cycle.ID); !errors.Is(err, orchestrator.ErrWAUpToDate) {
+		t.Fatalf("MCP input with nothing new: %v", err)
+	}
+
+	inboundToday(t, st)
+	rep1, err := o.Run(ctx, all, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stub.masked) != 1 || strings.Contains(stub.masked[0], "previous_summary") {
+		t.Fatalf("first reading %d calls", len(stub.masked))
+	}
+	var in struct {
+		Threads []struct {
+			ID       string
+			Messages []struct{ Text string } `json:"messages"`
+		} `json:"threads"`
+	}
+	_ = json.Unmarshal([]byte(stub.masked[0]), &in)
+	if len(in.Threads) == 0 {
+		t.Fatal("no conversation read")
+	}
+	for _, th := range in.Threads {
+		if len(th.Messages) != 1 || th.Messages[0].Text != "Pak, bagaimana kelanjutannya?" {
+			t.Fatalf("conversation %s read with %v — only today's message", th.ID, th.Messages)
+		}
+	}
+	read := len(in.Threads)
+
+	// a second cycle with nothing new: no tokens, the lines and the overview stay
+	rep2, err := o.Run(ctx, all, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stub.masked) != 1 {
+		t.Fatalf("read again with nothing new: %d calls", len(stub.masked))
+	}
+	var kept int
+	_ = st.Pool.QueryRow(ctx, "select count(*) from wa_insights where cycle_id = $1 and summary is not null and summary_at is not null", rep2.Cycle.ID).Scan(&kept)
+	a, _ := st.Q.LatestWAAnalysis(ctx)
+	if kept != read || a.CycleID != rep2.Cycle.ID || deref(a.Overview) == "" {
+		t.Fatalf("kept %d lines of %d, overview %q", kept, read, deref(a.Overview))
+	}
+	_ = rep1
+
+	// one customer writes again: only that conversation is read, with the line written before
+	tid := uuid.MustParse(in.Threads[0].ID)
+	dir, body, wid := "in", "Jadi kirim besok ya", "again-"+uuid.NewString()
+	if _, err := st.Q.InsertChatMessage(ctx, gen.InsertChatMessageParams{ThreadID: &tid, WaMsgID: &wid, Direction: &dir, Body: &body, SentAt: now.Now().Add(-time.Minute), Status: "received"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, "update wa_insights set summary_at = $1 where summary_at is not null", now.Now().Add(-10*time.Minute)); err != nil {
+		t.Fatal(err) // the fixed clock: the earlier reading was before the new message
+	}
+	if _, err := o.Run(ctx, all, sched); err != nil {
+		t.Fatal(err)
+	}
+	if len(stub.masked) != 2 {
+		t.Fatalf("%d readings, want 2", len(stub.masked))
+	}
+	var in2 struct {
+		Previous string `json:"previous_overview"`
+		Threads  []struct {
+			ID       string
+			Previous string `json:"previous_summary"`
+		} `json:"threads"`
+	}
+	_ = json.Unmarshal([]byte(stub.masked[1]), &in2)
+	if len(in2.Threads) != 1 || in2.Threads[0].ID != tid.String() || in2.Threads[0].Previous == "" || in2.Previous == "" {
+		t.Fatalf("second reading %s", stub.masked[1])
+	}
+}
+
 // modelStub answers like a real model: the WhatsApp reading gets a line per conversation, the rest its fallback.
 type modelStub struct{ masked []string }
 
@@ -125,6 +238,7 @@ func (m *modelStub) Complete(_ context.Context, r llm.Request) (llm.Response, er
 func TestWhatsAppSummaryByModel(t *testing.T) {
 	st, o := setup(t)
 	ctx := context.Background()
+	inboundToday(t, st) // the AI reads only today's new customer messages
 	stub := &modelStub{}
 	o.Router = &llm.Router{Primary: stub, St: st, Log: o.Log}
 	rep, err := o.Run(ctx, all, sched)
@@ -171,6 +285,7 @@ func TestWhatsAppSummaryByModel(t *testing.T) {
 func TestFailedCycleStillPlansChats(t *testing.T) {
 	st, o := setup(t)
 	ctx := context.Background()
+	inboundToday(t, st) // the AI reads only today's new customer messages
 	if _, err := st.Pool.Exec(ctx, `update policies set value = jsonb_set(value, '{require_ai}', 'true') where key = 'llm.routing'`); err != nil {
 		t.Fatal(err)
 	}
@@ -368,6 +483,7 @@ func TestCycleReadsCustomerGroups(t *testing.T) {
 func TestWAScreenCycle(t *testing.T) {
 	st, o := setup(t)
 	ctx := context.Background()
+	inboundToday(t, st) // the AI reads only today's new customer messages
 	sc, err := domain.ParseScope("screen:wa")
 	if err != nil || sc.Agents() == nil || len(sc.Agents()) != 0 || !sc.WAFull() {
 		t.Fatalf("scope %+v %v", sc, err)
@@ -396,6 +512,7 @@ func TestWAScreenCycle(t *testing.T) {
 func TestWASubmitAgainstGivenInput(t *testing.T) {
 	st, o := setup(t)
 	ctx := context.Background()
+	inboundToday(t, st) // the AI reads only today's new customer messages
 	sc, _ := domain.ParseScope("screen:wa")
 	rep, err := o.Run(ctx, sc, sched)
 	if err != nil {

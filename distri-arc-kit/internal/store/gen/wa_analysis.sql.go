@@ -13,6 +13,32 @@ import (
 	"github.com/google/uuid"
 )
 
+const carryWAOverview = `-- name: CarryWAOverview :exec
+update wa_analyses a set overview = p.overview, source = p.source
+from (select overview, source from wa_analyses where cycle_id <> $1::uuid and overview is not null order by created_at desc limit 1) p
+where a.cycle_id = $1::uuid and a.overview is null
+`
+
+// The overview stays until the AI writes a new one: a cycle without one takes the latest.
+func (q *Queries) CarryWAOverview(ctx context.Context, cycleID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, carryWAOverview, cycleID)
+	return err
+}
+
+const carryWASummaries = `-- name: CarryWASummaries :exec
+update wa_insights i set summary = p.summary, confidence = p.confidence, summary_at = p.summary_at
+from (select distinct on (x.thread_id) x.thread_id, x.summary, x.confidence, x.summary_at from wa_insights x
+      where x.summary is not null and x.cycle_id <> $1::uuid order by x.thread_id, x.summary_at desc nulls last) p
+where i.cycle_id = $1::uuid and i.thread_id = p.thread_id and i.summary is null
+`
+
+// What the AI already read stays: a conversation of this cycle without a line takes its latest line from an earlier
+// cycle (with when it was written, so only newer customer messages are read again).
+func (q *Queries) CarryWASummaries(ctx context.Context, cycleID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, carryWASummaries, cycleID)
+	return err
+}
+
 const conversationOf = `-- name: ConversationOf :one
 select coalesce((select x.id from chat_threads x where t.kind = 'group' and x.kind = 'group' and x.wa_jid = t.wa_jid order by x.id limit 1), t.id)::uuid
 from chat_threads t where t.id = $1
@@ -159,6 +185,19 @@ func (q *Queries) LatestWAAnalysis(ctx context.Context) (LatestWAAnalysisRow, er
 	return i, err
 }
 
+const latestWAOverview = `-- name: LatestWAOverview :one
+select overview from wa_analyses where cycle_id <> $1::uuid and overview is not null and source = 'ai'
+order by created_at desc limit 1
+`
+
+// The overview the AI wrote last, before this cycle (the reading brings it up to date).
+func (q *Queries) LatestWAOverview(ctx context.Context, cycleID uuid.UUID) (*string, error) {
+	row := q.db.QueryRow(ctx, latestWAOverview, cycleID)
+	var overview *string
+	err := row.Scan(&overview)
+	return overview, err
+}
+
 const listWAAnalyses = `-- name: ListWAAnalyses :many
 select a.cycle_id, a.window_days, a.threads, a.inbound, a.outbound, a.waiting, a.reply_median_min, a.overview, a.source, a.created_at, c.number as cycle_number, c.status as cycle_status, c.via as cycle_via
 from wa_analyses a join cycles c on c.id = a.cycle_id
@@ -216,7 +255,7 @@ func (q *Queries) ListWAAnalyses(ctx context.Context, limit int32) ([]ListWAAnal
 }
 
 const listWAInsights = `-- name: ListWAInsights :many
-select i.cycle_id, i.thread_id, i.kind, i.dealer_id, i.sales_id, i.title, i.intent, i.items, i.last_text, i.inbound, i.outbound, i.last_in_at, i.last_out_at, i.waiting_since, i.reply_median_min, i.needs_reply, i.priority, i.signal_ids, i.proposal_ids, i.summary, i.confidence, i.reply_work_min, i.reply_off_min, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(n.team, 'sales')::text as team, t.account
+select i.cycle_id, i.thread_id, i.kind, i.dealer_id, i.sales_id, i.title, i.intent, i.items, i.last_text, i.inbound, i.outbound, i.last_in_at, i.last_out_at, i.waiting_since, i.reply_median_min, i.needs_reply, i.priority, i.signal_ids, i.proposal_ids, i.summary, i.confidence, i.reply_work_min, i.reply_off_min, i.summary_at, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(n.team, 'sales')::text as team, t.account
 from wa_insights i
 left join dealers d on d.id = i.dealer_id
 left join sales_users s on s.id = i.sales_id
@@ -250,6 +289,7 @@ type ListWAInsightsRow struct {
 	Confidence     *int16          `json:"confidence"`
 	ReplyWorkMin   []int32         `json:"reply_work_min"`
 	ReplyOffMin    []int32         `json:"reply_off_min"`
+	SummaryAt      *time.Time      `json:"summary_at"`
 	DealerSlug     *string         `json:"dealer_slug"`
 	DealerName     *string         `json:"dealer_name"`
 	SalesName      *string         `json:"sales_name"`
@@ -291,6 +331,7 @@ func (q *Queries) ListWAInsights(ctx context.Context, cycleID uuid.UUID) ([]List
 			&i.Confidence,
 			&i.ReplyWorkMin,
 			&i.ReplyOffMin,
+			&i.SummaryAt,
 			&i.DealerSlug,
 			&i.DealerName,
 			&i.SalesName,
@@ -356,7 +397,7 @@ func (q *Queries) SaveWAAnalysis(ctx context.Context, arg SaveWAAnalysisParams) 
 }
 
 const setWAInsightSummary = `-- name: SetWAInsightSummary :exec
-update wa_insights set summary = $3, confidence = $4 where cycle_id = $1 and thread_id = $2
+update wa_insights set summary = $3, confidence = $4, summary_at = now() where cycle_id = $1 and thread_id = $2
 `
 
 type SetWAInsightSummaryParams struct {

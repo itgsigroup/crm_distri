@@ -45,6 +45,7 @@ sql:
       - db/migrations/0041_ai_triggers.sql
       - db/migrations/0042_internal_dm_threads.sql
       - db/migrations/0043_chat_mentions.sql
+      - db/migrations/0044_wa_reading_today.sql
     queries: db/queries
     gen:
       go:

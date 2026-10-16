@@ -246,8 +246,20 @@ func TestWAAnalysisSchedule(t *testing.T) {
 	if run, _ = rn.Run(ctx, sch.ID, nil, "manual", "Sam"); run.Status != "error" || !strings.Contains(deref(run.Error), "tanpa mengirim") {
 		t.Fatalf("no submit: %s %v", run.Status, deref(run.Error))
 	}
-	// the cycle Claude reads (screen:wa), then the submit with its id
+	// nothing new today: Claude finds nothing to read and sends nothing — a success that spent no tokens on chats
 	sc, _ := domain.ParseScope("screen:wa")
+	rep0, err := rn.Orch.Run(ctx, sc, domain.Trigger{Source: "mcp", Via: "mcp"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rn.NewModel = func(string) analyst.Model {
+		return &script{turns: []string{toolTurn("1", "orchestrator_input_get", `{"cycle_id":"`+rep0.Cycle.ID.String()+`","agent":"Analisa WhatsApp"}`), finalTurn}}
+	}
+	if run, err = rn.Run(ctx, sch.ID, nil, "manual", "Sam"); err != nil || run.Status != "ok" {
+		t.Fatalf("nothing new: %s %v %v", run.Status, deref(run.Error), err)
+	}
+	// a customer writes today: the cycle Claude reads (screen:wa), then the submit with its id
+	inboundToday(t, st)
 	rep, err := rn.Orch.Run(ctx, sc, domain.Trigger{Source: "mcp", Via: "mcp"})
 	if err != nil {
 		t.Fatal(err)
@@ -273,4 +285,21 @@ func must[T any](v T, err error) T {
 		panic(err)
 	}
 	return v
+}
+
+// inboundToday adds a customer message this morning to every one-to-one conversation with customer messages: the AI
+// reads only today's new messages, and the seed's are from earlier days.
+func inboundToday(t *testing.T, st *store.Store) {
+	t.Helper()
+	ctx := context.Background()
+	if _, err := st.Pool.Exec(ctx, `insert into chat_message_keys (wa_msg_id, message_id, sent_at)
+		select 'today-' || x.thread_id, gen_random_uuid(), $1::timestamptz from (select distinct m.thread_id from chat_messages m
+		join chat_threads t on t.id = m.thread_id where m.direction = 'in' and t.kind <> 'group') x`, now.Now().Add(-30*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into chat_messages (id, thread_id, wa_msg_id, direction, body, sent_at, status)
+		select k.message_id, substr(k.wa_msg_id, 7)::uuid, k.wa_msg_id, 'in', 'Pak, bagaimana kelanjutannya?', k.sent_at, 'received'
+		from chat_message_keys k where k.wa_msg_id like 'today-%'`); err != nil {
+		t.Fatal(err)
+	}
 }

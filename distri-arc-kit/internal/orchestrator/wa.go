@@ -24,7 +24,9 @@ import (
 // Analisa WhatsApp (ADR 0026). A full cycle reads two sources: the BigQuery data (SO, payments, stock — the signals
 // the agents work on) and the WhatsApp conversations of the last WindowDays. Ingest reads the conversations, Keputusan
 // links them to the proposals the agents made and puts the conversations waiting too long for a reply into Rencana
-// hari ini, Belajar asks the model for the overview and one line per conversation.
+// hari ini, Belajar asks the model for the overview and one line per conversation. The rules count the whole window
+// (no tokens); the AI reads only today's customer messages it has not read yet, and what it read before stays (Sam
+// 16 Oct: save tokens).
 
 // readWA loads and analyses the conversations of the window. Every analysis reads each bubble of the conversations
 // in its scope (one dealer's, or all); only a full cycle writes the conversation analysis, the totals and the plan.
@@ -198,7 +200,11 @@ func (o *Orchestrator) saveWA(ctx context.Context, r *stageRun) error {
 				return err
 			}
 		}
-		return nil
+		// what the AI read in earlier cycles stays on Pusat kendali until it reads newer messages
+		if err := q.CarryWASummaries(ctx, cyc); err != nil {
+			return err
+		}
+		return q.CarryWAOverview(ctx, cyc)
 	})
 }
 
@@ -327,17 +333,21 @@ type waThreadIn struct {
 	Items   []waanalysis.Item `json:"items,omitempty"`
 	Waiting string            `json:"waiting,omitempty"`
 	Group   bool              `json:"group,omitempty"` // a customer group: several customers and GSI employees write
-	Msgs    []waMsg           `json:"messages"`
+	// PreviousSummary: the line the AI wrote before (it read the older messages); today's messages bring it up to date
+	PreviousSummary string  `json:"previous_summary,omitempty"`
+	Msgs            []waMsg `json:"messages"`
 }
 
 // waReading is what is read for a cycle's Analisa WhatsApp: the totals and the most urgent conversations with
-// customer messages (≤ maxWASummaries), their last 8 messages; names are the people to mask.
+// customer messages today the AI has not read (≤ maxWASummaries), today's messages only; names are the people to mask.
+// PreviousOverview: the overview so far, for the AI to bring up to date rather than start again.
 type waReading struct {
-	Totals  waanalysis.Totals `json:"totals"`
-	Threads []waThreadIn      `json:"threads"`
-	names   []string
-	want    map[string]bool
-	msgWant map[string]bool
+	Totals           waanalysis.Totals `json:"totals"`
+	PreviousOverview string            `json:"previous_overview,omitempty"`
+	Threads          []waThreadIn      `json:"threads"`
+	names            []string
+	want             map[string]bool
+	msgWant          map[string]bool
 }
 
 // waReadingFor builds the reading of a cycle from what Ingest stored (the same for the API model and for MCP).
@@ -357,27 +367,38 @@ func (o *Orchestrator) waReadingFor(ctx context.Context, cycleID uuid.UUID) (*wa
 	}
 	tot, _ := waanalysis.Summarize(ins)
 	rd := &waReading{Totals: tot, Threads: []waThreadIn{}, want: map[string]bool{}, msgWant: map[string]bool{}}
-	window := now.AddDate(0, 0, -waanalysis.WindowDays)
+	if ov, err := o.St.Q.LatestWAOverview(ctx, cycleID); err == nil && ov != nil {
+		rd.PreviousOverview = *ov
+	}
+	today := clock.Today(now)
 	for _, x := range rows { // ListWAInsights: most urgent first
 		if len(rd.Threads) >= maxWASummaries {
 			break
 		}
-		if x.Inbound == 0 {
+		// only a conversation with a customer message today that the AI has not read yet
+		if x.Inbound == 0 || x.LastInAt == nil || x.LastInAt.Before(today) || (x.SummaryAt != nil && !x.LastInAt.After(*x.SummaryAt)) {
 			continue
+		}
+		window := today // the customer messages that get a note: today's, after the last reading
+		if x.SummaryAt != nil && x.SummaryAt.After(window) {
+			window = *x.SummaryAt
 		}
 		var items []waanalysis.Item
 		_ = json.Unmarshal(x.Items, &items)
-		t := waThreadIn{ID: x.ThreadID.String(), Title: x.Title, Dealer: deref(x.DealerName), Sales: deref(x.SalesName), Intent: waanalysis.IntentLabel(x.Intent), Items: items, Group: x.Kind == "group"}
+		t := waThreadIn{ID: x.ThreadID.String(), Title: x.Title, Dealer: deref(x.DealerName), Sales: deref(x.SalesName), Intent: waanalysis.IntentLabel(x.Intent), Items: items, Group: x.Kind == "group",
+			PreviousSummary: deref(x.Summary)}
 		if x.WaitingSince != nil {
 			t.Waiting = waanalysis.WaitLabel(int(now.Sub(*x.WaitingSince).Minutes()))
 		}
 		tid := x.ThreadID
-		msgs, err := o.St.Q.ListThreadMessages(ctx, gen.ListThreadMessagesParams{ThreadID: &tid, SentAt: now.Add(time.Minute), Lim: 8})
+		msgs, err := o.St.Q.ListThreadMessages(ctx, gen.ListThreadMessagesParams{ThreadID: &tid, SentAt: now.Add(time.Minute), Lim: 12})
 		if err != nil {
 			return nil, err
 		}
 		for _, m := range msgs {
-			rd.addMsg(&t, m, window)
+			if !m.SentAt.Before(today) { // today's messages only: the earlier ones are in previous_summary
+				rd.addMsg(&t, m, window)
+			}
 		}
 		// the person in the title ("Mbak Rina · Toko Sinar") and the sales are masked before leaving the server
 		if p, _, ok := strings.Cut(x.Title, " · "); ok || x.Kind == "new" {
@@ -445,6 +466,12 @@ func intp(v *int32) *int {
 
 // ErrNoWA: the cycle has no Analisa WhatsApp (not a full cycle, or no conversation in the window).
 var ErrNoWA = errors.New("siklus ini tidak punya Analisa WhatsApp")
+
+// ErrWAUpToDate: no customer message today that the AI has not read — nothing to send for Analisa WhatsApp.
+var ErrWAUpToDate = errors.New(WAUpToDate + " — Analisa WhatsApp siklus ini tidak perlu dikirim; ringkasan sebelumnya tetap dipakai")
+
+// WAUpToDate starts the ErrWAUpToDate text (a scheduled reading that found nothing new is a success, not a failure).
+const WAUpToDate = "tidak ada pesan pelanggan baru hari ini yang belum dibaca"
 
 // ErrStillReading: the cycle is still reading WhatsApp (Ingest) — call orchestrator_input_get again in a few seconds.
 var ErrStillReading = errors.New("siklus masih membaca WhatsApp (tahap Ingest) — panggil orchestrator_status lalu orchestrator_input_get lagi beberapa detik kemudian")
@@ -580,7 +607,10 @@ func (o *Orchestrator) WAInputFor(ctx context.Context, cycleID uuid.UUID) (json.
 	if err != nil {
 		return nil, err
 	}
-	raw, _ := json.Marshal(map[string]any{"cycle_id": cycleID, "agent": AgentWA, "instructions": llm.Prompt("wa") + " " + waMCPSubmit,
+	if len(rd.Threads) == 0 {
+		return nil, ErrWAUpToDate // nothing new today: no reading, no tokens; the earlier lines stay
+	}
+	raw, _ := json.Marshal(map[string]any{"cycle_id": cycleID, "agent": AgentWA, "previous_overview": rd.PreviousOverview, "instructions": llm.Prompt("wa") + " " + waMCPSubmit,
 		"totals": rd.Totals, "threads": rd.Threads})
 	var tree any
 	_ = json.Unmarshal(raw, &tree)
