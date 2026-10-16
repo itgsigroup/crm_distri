@@ -102,6 +102,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		var thread gen.ChatThread
 		var dealerID, contactID, groupID *uuid.UUID
 		threadKind, title, subtitle := "", "", ""
+		teamChat := false // a 1:1 chat between two numbers linked to GSI Orbit
 		fromInternal := internal(m.FromNumber)
 		if m.IsGroup && !fromInternal && !m.FromMe {
 			// in a group, any GSI number (linked, a user's, a sales') is our side
@@ -171,7 +172,14 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			}
 		} else {
 			remote := NumberOfJID(m.ChatJID)
-			if internal(remote) {
+			if _, err := q.GetWANumber(ctx, remote); err == nil {
+				_, err = q.GetWANumber(ctx, account)
+				teamChat = err == nil
+			}
+			// a linked number is internal once it has a holder; a chat between two linked GSI numbers is a work chat
+			// both numbers' Chat shows (16 Oct: Tantri → Granike stood on neither side). DMs with an employee's
+			// own number (internal, not linked) are still never stored.
+			if internal(remote) && !teamChat {
 				res.Reason = DropInternalDM
 				return nil
 			}
@@ -297,10 +305,10 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if threadKind == "dealer" {
 			res.DealerID = dealerID
 		}
-		if dir == "in" && !m.History && !mp.Internal && msgID != uuid.Nil && strings.TrimSpace(m.Text) != "" {
+		if dir == "in" && !m.History && !mp.Internal && !teamChat && msgID != uuid.Nil && strings.TrimSpace(m.Text) != "" {
 			res.Inbound, res.InboundText = msgID, m.Text
 		}
-		if threadKind == "new" && dir == "in" && !m.History { // no profile lookups for old chats right after linking
+		if threadKind == "new" && dir == "in" && !m.History && !teamChat { // no profile lookups for old chats right after linking
 			res.NewNumber = Digits(strings.SplitN(m.ChatJID, "@", 2)[0])
 		}
 		return nil

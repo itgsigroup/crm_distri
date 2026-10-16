@@ -69,10 +69,12 @@ select count(*)::bigint from outbox o where o.channel = 'wa_system' and o.status
   and not exists (select 1 from wa_groups g where g.jid = o.to_ref and g.kind = 'internal');
 
 -- name: AuditInternalDMs :one
--- Direct messages between internal numbers must never be stored (09-policies-security).
+-- Direct messages between internal numbers must never be stored (09-policies-security); a chat between two numbers
+-- linked to GSI Orbit is a work chat both numbers keep.
 select count(*)::bigint from chat_messages m join chat_threads t on t.id = m.thread_id
 where t.kind <> 'group' and m.sent_at >= sqlc.arg(since)::timestamptz and m.sent_at < sqlc.arg(until)::timestamptz
-  and split_part(t.wa_jid, '@', 1) in (select wa_number from internal_numbers);
+  and split_part(t.wa_jid, '@', 1) in (select wa_number from internal_numbers)
+  and not (split_part(t.wa_jid, '@', 1) in (select wa_number from wa_numbers) and t.account in (select wa_number from wa_numbers));
 
 -- name: AuditInternalGroupToDealer :one
 -- Internal group messages are for stock, schedules and tasks only: never attributed to a dealer.

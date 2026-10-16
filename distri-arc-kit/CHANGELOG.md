@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat antar dua nomor GSI tertaut sampai ke kedua nomor · 2026-10-16
+- Pesan Tantri ke Granike ada di HP tapi tidak muncul di Chat Granike: nomor tertaut yang sudah punya pemegang otomatis tercatat sebagai nomor internal, sehingga chat 1:1 di antara keduanya dibuang sebagai "DM antar karyawan".
+- Chat 1:1 antara dua nomor yang sama-sama tertaut ke GSI Orbit kini disimpan di kedua nomor (tidak dianggap nomor baru, tidak memicu saran balasan dealer). Nomor pribadi karyawan yang tidak tertaut tetap tidak disimpan; audit privasi pilot ikut aturan ini.
+- Pesan yang sebelumnya hanya tersimpan di satu sisi disalin ke nomor lain saat worker menyala; pesan yang terbuang di kedua sisi tidak bisa diambil ulang.
+
 ## Change · Pusat kendali: Orchestrator jadi pop-up kanan bawah · 2026-10-16
 - Kartu Orchestrator di samping sapaan Pusat kendali diganti pop-up di kanan bawah, sama seperti di Dashboard dan halaman lain. Isinya tetap: status siklus, enam tahap, update terakhir analisis, Analisa WhatsApp terakhir, jumlah chat / pesan masuk / menunggu / keputusan, pilihan MCP Claude atau model AI, Analisis ulang, dan Buka Orchestrator.
 - Kartu sapaan kini selebar halaman.

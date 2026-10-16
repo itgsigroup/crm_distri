@@ -76,7 +76,12 @@ func TestInternalDMIsNeverStored(t *testing.T) {
 	ctx := context.Background()
 	msgs := count(t, st, "select count(*) from chat_messages")
 	sigs := count(t, st, "select count(*) from signals")
-	r, err := in.Process(ctx, wa.Message{ID: "DM1", Account: andi, ChatJID: wa.UserJID(dewi), FromNumber: dewi, FromName: "Dewi", Text: "nanti makan siang?", Time: time.Now()})
+	// an employee's own number (internal, not linked to GSI Orbit)
+	var own string
+	if err := st.Pool.QueryRow(ctx, "select wa_number from internal_numbers where wa_number not in (select wa_number from wa_numbers) limit 1").Scan(&own); err != nil {
+		t.Fatal(err)
+	}
+	r, err := in.Process(ctx, wa.Message{ID: "DM1", Account: andi, ChatJID: wa.UserJID(own), FromNumber: own, FromName: "Dewi", Text: "nanti makan siang?", Time: time.Now()})
 	if err != nil || r.Stored || r.Reason != wa.DropInternalDM {
 		t.Fatalf("internal DM: %+v %v", r, err)
 	}
@@ -195,15 +200,16 @@ func TestGroupMessagesShownOnEveryNumber(t *testing.T) {
 	}
 }
 
-// A 1:1 chat between two linked GSI numbers that are not internal numbers: the sender's phone and the receiver's phone
-// carry the same WhatsApp id, and each number's Chat shows the message (15 Oct: Catharina → Granike reached only
-// Catharina's thread). The receiver's copy is made as soon as the sender's is stored, in real time; the receiver's
+// A 1:1 chat between two linked GSI numbers — internal numbers too, as every linked number with a holder is: the
+// sender's phone and the receiver's phone carry the same WhatsApp id, and each number's Chat shows the message
+// (15 Oct: Catharina → Granike reached only Catharina's thread; 16 Oct: Tantri → Granike reached neither, dropped as
+// an internal DM). The receiver's copy is made as soon as the sender's is stored, in real time; the receiver's
 // phone delivering it later, or any re-delivery, stores nothing new; an edit and a delete reach both copies.
 func TestDMBetweenLinkedNumbersShownOnBoth(t *testing.T) {
 	st, in := setup(t)
 	ctx := context.Background()
-	if _, err := st.Pool.Exec(ctx, "delete from internal_numbers where wa_number in ($1, $2)", andi, dewi); err != nil {
-		t.Fatal(err)
+	if count(t, st, "select count(*) from internal_numbers where wa_number in ($1, $2)", andi, dewi) != 2 {
+		t.Fatal("both linked numbers should be internal numbers")
 	}
 	t0 := time.Now().Add(-time.Hour)
 	out := wa.Message{ID: "LD1", Account: andi, ChatJID: wa.UserJID(dewi), FromMe: true, FromNumber: andi, FromName: "Andi", Text: "stok 4MP masih?", Time: t0}
