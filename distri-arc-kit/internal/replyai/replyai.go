@@ -200,7 +200,11 @@ func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string
 	if err != nil {
 		return 0, err
 	}
-	cards := replyrule.Suggest(rules, m.Body, data)
+	history, err := s.History(ctx, *m.ThreadID, m.SentAt)
+	if err != nil {
+		return 0, err
+	}
+	cards := replyrule.Suggest(rules, m.Body, history, data)
 	existing, err := s.St.Q.ReplyAIDrafts(ctx, []uuid.UUID{messageID})
 	if err != nil {
 		return 0, err
@@ -228,7 +232,7 @@ func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string
 				return n, ErrNoModel
 			}
 		}
-		draft, res, ok := s.phrase(ctx, model, ruleOf(want, c.RuleID), c, m.Body, data)
+		draft, res, ok := s.phrase(ctx, model, ruleOf(want, c.RuleID), c, m.Body, history, data)
 		if !ok {
 			continue
 		}
@@ -247,9 +251,22 @@ func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string
 	return n, nil
 }
 
+// History is the conversation before a message (newest first) that the cards and the AI read.
+func (s *Service) History(ctx context.Context, thread uuid.UUID, before time.Time) ([]replyrule.Line, error) {
+	rows, err := s.St.Q.ReplyTriggerHistory(ctx, gen.ReplyTriggerHistoryParams{ThreadID: thread, Before: before})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]replyrule.Line, 0, len(rows))
+	for _, x := range rows {
+		out = append(out, replyrule.Line{In: x.Direction == "in", Text: llm.MaskCredentials(x.Body)})
+	}
+	return out, nil
+}
+
 // Preview has the AI write the drafts of the cards whose rule asks for it, in place (AI Trigger → Coba kalimat;
 // nothing is stored).
-func (s *Service) Preview(ctx context.Context, rules []replyrule.Rule, cards []*replyrule.Suggestion, text string, d replyrule.Data) error {
+func (s *Service) Preview(ctx context.Context, rules []replyrule.Rule, cards []*replyrule.Suggestion, text string, history []replyrule.Line, d replyrule.Data) error {
 	var model llm.Provider
 	for _, c := range cards {
 		r := ruleOf(rules, c.RuleID)
@@ -261,7 +278,7 @@ func (s *Service) Preview(ctx context.Context, rules []replyrule.Rule, cards []*
 				return ErrNoModel
 			}
 		}
-		if draft, res, ok := s.phrase(ctx, model, r, c, text, d); ok {
+		if draft, res, ok := s.phrase(ctx, model, r, c, text, history, d); ok {
 			c.Draft, c.AI, c.AIModel = draft, true, res.Model
 		}
 	}
@@ -298,8 +315,18 @@ var draftSchema = map[string]any{"type": "object", "additionalProperties": false
 	"properties": map[string]any{"draft": map[string]any{"type": "string"}}}
 
 // phrase asks the model for the draft; ok is false when it failed or broke a fact (the template draft stays).
-func (s *Service) phrase(ctx context.Context, model llm.Provider, r replyrule.Rule, c *replyrule.Suggestion, text string, d replyrule.Data) (string, llm.Response, bool) {
-	input, _ := json.Marshal(map[string]any{"pesan": text, "jenis": c.Action, "nilai": c.Vars(), "draf": c.Draft, "instruksi": r.AIInstruction})
+func (s *Service) phrase(ctx context.Context, model llm.Provider, r replyrule.Rule, c *replyrule.Suggestion, text string, history []replyrule.Line, d replyrule.Data) (string, llm.Response, bool) {
+	// riwayat: the earlier messages, oldest first, so the AI answers in the conversation's context
+	riwayat := make([]map[string]string, 0, len(history))
+	for i := len(history) - 1; i >= 0; i-- {
+		from := "kami"
+		if history[i].In {
+			from = "pelanggan"
+		}
+		riwayat = append(riwayat, map[string]string{"dari": from, "teks": history[i].Text})
+	}
+	input, _ := json.Marshal(map[string]any{"pesan": text, "riwayat": riwayat, "produk_dari_riwayat": c.FromHistory, "jenis": c.Action, "nilai": c.Vars(),
+		"draf": c.Draft, "instruksi": r.AIInstruction})
 	var names []string
 	if d.Dealer != nil {
 		names = append(names, d.Dealer.Name)

@@ -815,7 +815,7 @@ body.map-maximized{overflow:hidden}
 .ibc-an-tg.on{border-color:var(--indigo);color:var(--indigo);background:var(--indigo-soft)}
 @media (max-width:1500px){.ibc-an-l{display:none}.ibc-an-tg{padding:0 10px}}
 /* Analisa WhatsApp per bubble (ADR 0027) */
-.bub-an{display:flex;flex-direction:column;gap:4px;max-width:min(520px,100%);margin-top:4px;padding:6px 9px;border-radius:9px;background:var(--surface);border:1px dashed var(--line-strong);font-size:11.5px;line-height:1.45;color:var(--text-2)}
+.bub-an{display:flex;flex-direction:column;gap:4px;max-width:min(520px,100%);margin-top:4px;padding:6px 9px 6px 10px;border-radius:9px;background:color-mix(in srgb,var(--ai-c) 7%,var(--surface));border:1px dashed color-mix(in srgb,var(--ai-c) 35%,transparent);border-left:3px solid var(--ai-c);font-size:11.5px;line-height:1.45;color:var(--text-2)}
 .bub-an.out{align-self:flex-end}
 .bub-an-row{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px}
 .bub-an .pill{font-size:10.5px;padding:1px 7px}
@@ -1239,24 +1239,26 @@ body.map-maximized{overflow:hidden}
 .an-wa-note{max-width:520px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 
 /* Rekomendasi balasan (ADR 0038) */
-.sug{align-self:flex-start;max-width:min(460px,92%);margin-top:4px;padding:8px 10px;border-radius:10px;font-size:12.5px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
-.sug.tone-good{border-color:color-mix(in srgb,var(--good) 40%,transparent)}
-.sug.tone-bad{border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
-.sug.tone-warn{border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+/* AI results (AI Trigger cards, Analisa WhatsApp notes) wear the AI violet of the mockup (--ai-c), never a bubble's
+   colour: a tinted panel with a violet bar, so they cannot be taken for a message. */
+.sug{--ai-ink:var(--ai-c);align-self:flex-start;max-width:min(460px,92%);margin-top:4px;padding:8px 10px 8px 11px;border-radius:10px;font-size:12.5px;background:color-mix(in srgb,var(--ai-c) 9%,var(--surface));border:1px solid color-mix(in srgb,var(--ai-c) 28%,transparent);border-left:3px solid var(--ai-c);display:flex;flex-direction:column;gap:4px}
+.sug-tag{display:flex;align-items:center;flex-wrap:wrap;gap:2px 4px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ai-ink)}
+.sug-tag .i{width:11px;height:11px}
+.sug-tag span{font-weight:500;letter-spacing:0;text-transform:none;color:var(--text-3)}
+.sug-hist{font-size:11.5px;color:var(--text-2)}
+.sug-hist q{font-style:italic}
 .sug-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .sug-h .i{width:14px;height:14px}
 .sug.tone-good .sug-h b{color:var(--good)}
 .sug.tone-bad .sug-h b{color:var(--bad)}
 .sug.tone-warn .sug-h b{color:var(--warn)}
-.sug-h .sug-kind{margin-left:auto;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
 .sug-f{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:4px 12px}
 .sug-f div{min-width:0}
 .sug-f dt{font-size:10.5px;color:var(--text-3)}
 .sug-f dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.sug-d.ai{background:var(--kp-ai-soft,var(--surface-2))}
-.sug-ai{display:inline-flex;align-items:center;gap:2px;margin-right:6px;font-style:normal;font-size:10.5px;font-weight:700;color:var(--kp-ai,var(--text-2))}
+.sug-ai{display:inline-flex;align-items:center;gap:2px;margin-right:6px;font-style:normal;font-size:10.5px;font-weight:700;color:var(--ai-ink)}
 .sug-ai .i{width:11px;height:11px}
-.sug-wait{display:flex;align-items:center;gap:6px;color:var(--kp-ai,var(--text-2))}
+.sug-wait{display:flex;align-items:center;gap:6px;color:var(--ai-ink)}
 .sug-wait .i{width:13px;height:13px}
 .at-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--text-2);line-height:1.5}
 .at-list li{align-items:flex-start}
@@ -1279,11 +1281,12 @@ body.map-maximized{overflow:hidden}
 .at-res{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
 .at-bubble{align-self:flex-start;max-width:min(460px,92%)}
 .at-bubble .b{padding:8px 12px;border-radius:12px;background:var(--surface-2);font-size:13px}
+.at-prev{opacity:.75}
 .at-err{color:var(--bad);font-size:12.5px}
 @media (max-width:600px){.at-list li{flex-wrap:wrap}.at-list li>div:not(.at-act){flex-basis:calc(100% - 40px);min-width:0}.rr-list li>.at-act{flex-basis:100%;justify-content:flex-end}}
 .sug-h span,.sug-o,.sug small{color:var(--text-3)}
 .sug-n{color:var(--text-2)}
-.sug-d{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;border-radius:8px;background:var(--surface-2)}
+.sug-d{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;border-radius:8px;background:var(--surface);border:1px dashed color-mix(in srgb,var(--ai-c) 40%,transparent)}
 .sug-d span{flex:1;min-width:160px}
 .sug-d .btn{height:28px;font-size:12px}
 .sug small{font-size:11px}

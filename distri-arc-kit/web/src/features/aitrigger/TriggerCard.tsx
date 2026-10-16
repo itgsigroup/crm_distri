@@ -12,12 +12,13 @@ export function TriggerCard({ s, asOf, onUse, onAI, aiBusy }: {
   const stock = s.action === 'stock'
   return (
     <div className={`sug tone-${s.tone}`}>
+      <div className="sug-tag"><Icon name="spark" />AI Trigger · {info.label}<span>· hanya terlihat tim, bukan pesan</span></div>
       <div className="sug-h">
         <Icon name={info.icon} />
         <b>{s.headline || s.rule}</b>
         {s.product && <span>{s.product}</span>}
-        <span className="sug-kind">{info.label}</span>
       </div>
+      {s.from_history && <div className="sug-hist">Produk dari riwayat chat: <q>{s.from_history}</q></div>}
       {stock && s.others.length > 0 && <div className="sug-o">Cabang lain: {s.others.slice(0, 4).map((o) => `${o.branch} ${o.qty.toLocaleString('id-ID')}`).join(' · ')}</div>}
       {s.facts.length > 0 && (
         <dl className="sug-f">

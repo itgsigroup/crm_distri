@@ -672,6 +672,8 @@ export interface ReplySuggestion {
   rule_id: string; rule: string; action: ReplyAction; keyword: string; headline: string; tone: 'good' | 'warn' | 'bad' | 'neutral'
   facts: { label: string; value: string }[]; product?: string; sku?: string; branch?: string; qty: number
   others: { branch: string; qty: number }[]; ready: boolean; draft?: string; note?: string; candidates?: string[]
+  /** the message names no product: it was taken from this earlier message of the chat */
+  from_history?: string
   /** the draft was written by an AI from the same facts; ai_pending: it is still being written */
   ai?: boolean; ai_model?: string; ai_pending?: boolean; ai_phrase?: boolean
 }

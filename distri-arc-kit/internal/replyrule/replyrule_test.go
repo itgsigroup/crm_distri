@@ -22,7 +22,7 @@ var stock = []domain.StockItem{
 
 func one(t *testing.T, rules []Rule, text string, d Data) *Suggestion {
 	t.Helper()
-	cs := Suggest(rules, text, d)
+	cs := Suggest(rules, text, nil, d)
 	if len(cs) > 1 {
 		t.Fatalf("%q: %d cards", text, len(cs))
 	}
@@ -59,7 +59,8 @@ func TestSuggest(t *testing.T) {
 	if s := one(t, []Rule{rule}, "kamera 4mp ready?", Data{Stock: stock}); s == nil || s.Qty != 25 || s.Draft != "Ready 25 pcs untuk Kamera IP 4MP di gudang kami." {
 		t.Fatalf("no branch: %+v", s)
 	}
-	if Matches(rule, "readymix beton") != "" || Matches(rule, "Ada barang nya?") != "ada barang" {
+	if Matches(rule, "readymix beton") != "" || Matches(rule, "Ada barang nya?") != "ada barang" || Matches(rule, "stoknya ada?") != "stok" ||
+		Matches(rule, "stokis") != "" {
 		t.Fatal("whole-word keywords")
 	}
 }
@@ -121,12 +122,34 @@ func TestCreditAndOrder(t *testing.T) {
 }
 
 func TestSeveralCards(t *testing.T) {
-	cs := Suggest([]Rule{rule, priceRule, {ID: "r2", Action: ActionStock, Keywords: []string{"ready"}}}, "harga dan stok kamera 4MP ready?",
+	cs := Suggest([]Rule{rule, priceRule, {ID: "r2", Action: ActionStock, Keywords: []string{"ready"}}}, "harga dan stok kamera 4MP ready?", nil,
 		Data{Branch: "Semarang", Stock: stock, Products: products})
 	if len(cs) != 2 || cs[0].Action != ActionStock || cs[0].RuleID != "r1" || cs[1].Action != ActionPrice {
 		t.Fatalf("one card per kind, first rule wins: %+v", cs)
 	}
 	if n := Needs([]Rule{rule, priceRule, creditRule}, "harga kamera"); !n[ActionPrice] || n[ActionStock] || n[ActionCredit] {
 		t.Fatalf("needs: %v", n)
+	}
+}
+
+// "stoknya ada?" names no product: the card takes it from the newest earlier message that names one.
+func TestProductFromHistory(t *testing.T) {
+	d := Data{Branch: "Semarang", Stock: stock, Products: products}
+	history := []Line{{In: true, Text: "oke pak"}, {In: false, Text: "Untuk NVR 16ch bisa kami bantu"}, {In: true, Text: "kamera 4mp ada?"}}
+	cs := Suggest([]Rule{rule}, "stoknya masih ada?", history, d)
+	if len(cs) != 1 || cs[0].Product != "NVR 16ch" || cs[0].FromHistory != "Untuk NVR 16ch bisa kami bantu" || cs[0].Ready {
+		t.Fatalf("product from history: %+v", cs)
+	}
+	if cs := Suggest([]Rule{rule}, "stok kamera 4mp ada?", history, d); cs[0].Product != "Kamera IP 4MP" || cs[0].FromHistory != "" {
+		t.Fatalf("the message's own product wins: %+v", cs[0])
+	}
+	if cs := Suggest([]Rule{priceRule}, "harganya berapa?", history[2:], d); cs[0].Product != "Kamera IP 4MP" || cs[0].FromHistory == "" {
+		t.Fatalf("price from history: %+v", cs[0])
+	}
+	if cs := Suggest([]Rule{rule}, "stoknya ada?", []Line{{In: true, Text: "kamera ip 4mp dome atau bullet?"}}, Data{Stock: append(stock[:3:3], domain.StockItem{SKU: "K4X", Name: "Kamera IP 4MP Dome", Qty: 1})}); cs[0].Product != "" || len(cs[0].Products) != 2 || cs[0].FromHistory == "" {
+		t.Fatalf("several products in history: %+v", cs[0])
+	}
+	if cs := Suggest([]Rule{rule}, "stoknya ada?", []Line{{In: true, Text: "halo"}}, d); cs[0].Product != "" || cs[0].Note == "" {
+		t.Fatalf("no product anywhere: %+v", cs[0])
 	}
 }

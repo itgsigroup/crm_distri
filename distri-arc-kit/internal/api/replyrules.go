@@ -133,10 +133,11 @@ func (s *Server) deleteReplyRule(w http.ResponseWriter, r *http.Request) {
 // (slug or id, optional); with ai the AI writes the drafts of the rules that ask for it (nothing is stored).
 func (s *Server) testReplyRule(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Text   string `json:"text"`
-		Branch string `json:"branch"`
-		Dealer string `json:"dealer"`
-		AI     bool   `json:"ai"`
+		Text   string   `json:"text"`
+		Branch string   `json:"branch"`
+		Dealer string   `json:"dealer"`
+		AI     bool     `json:"ai"`
+		Before []string `json:"history"` // earlier messages of the customer, oldest first
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&in); err != nil {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Body tidak valid")
@@ -171,10 +172,16 @@ func (s *Server) testReplyRule(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	cards := replyrule.Suggest(rules, in.Text, data)
+	var history []replyrule.Line
+	for i := len(in.Before) - 1; i >= 0 && len(history) < replyrule.HistoryLines; i-- {
+		if t := strings.TrimSpace(in.Before[i]); t != "" {
+			history = append(history, replyrule.Line{In: true, Text: t})
+		}
+	}
+	cards := replyrule.Suggest(rules, in.Text, history, data)
 	aiErr := ""
 	if in.AI {
-		if err := s.replyAI.Preview(ctx, rules, cards, in.Text, data); err != nil {
+		if err := s.replyAI.Preview(ctx, rules, cards, in.Text, history, data); err != nil {
 			aiErr = err.Error()
 		}
 	}
@@ -250,7 +257,7 @@ func (s *Server) attachSuggestions(ctx context.Context, msgs []MessageView, bran
 	}
 	var ids []uuid.UUID
 	for _, i := range recent {
-		msgs[i].Suggest = replyrule.Suggest(rules, msgs[i].Body, data)
+		msgs[i].Suggest = replyrule.Suggest(rules, msgs[i].Body, historyOf(msgs, i), data)
 		if len(msgs[i].Suggest) > 0 {
 			ids = append(ids, msgs[i].ID)
 		}
@@ -287,6 +294,23 @@ func (s *Server) attachSuggestions(ctx context.Context, msgs []MessageView, bran
 		}
 	}
 	return nil
+}
+
+// historyOf is the conversation before msgs[i] on this page, newest first: up to HistoryLines messages of the three
+// days before it (as ReplyTriggerHistory, which the AI job reads).
+func historyOf(msgs []MessageView, i int) []replyrule.Line {
+	var out []replyrule.Line
+	for j := i - 1; j >= 0 && len(out) < replyrule.HistoryLines; j-- {
+		m := msgs[j]
+		if msgs[i].SentAt.Sub(m.SentAt) > 72*time.Hour {
+			break
+		}
+		if m.Deleted || strings.TrimSpace(m.Body) == "" {
+			continue
+		}
+		out = append(out, replyrule.Line{In: m.Direction == "in", Text: m.Body})
+	}
+	return out
 }
 
 // stockAsOf is when the stock behind the suggestions was synced (nil without stock cards or a sync).

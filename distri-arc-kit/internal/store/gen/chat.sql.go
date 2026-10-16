@@ -2441,6 +2441,44 @@ func (q *Queries) ReplyAIDrafts(ctx context.Context, ids []uuid.UUID) ([]ReplyAi
 	return items, nil
 }
 
+const replyTriggerHistory = `-- name: ReplyTriggerHistory :many
+select coalesce(direction, '')::text as direction, coalesce(body, '')::text as body from chat_messages
+where thread_id = $1::uuid and sent_at < $2::timestamptz and sent_at > $2::timestamptz - interval '3 days'
+  and deleted_at is null and coalesce(body, '') <> ''
+order by sent_at desc limit 10
+`
+
+type ReplyTriggerHistoryParams struct {
+	ThreadID uuid.UUID `json:"thread_id"`
+	Before   time.Time `json:"before"`
+}
+
+type ReplyTriggerHistoryRow struct {
+	Direction string `json:"direction"`
+	Body      string `json:"body"`
+}
+
+// The earlier messages of a customer message's conversation (AI Trigger, ADR 0041): newest first, three days back.
+func (q *Queries) ReplyTriggerHistory(ctx context.Context, arg ReplyTriggerHistoryParams) ([]ReplyTriggerHistoryRow, error) {
+	rows, err := q.db.Query(ctx, replyTriggerHistory, arg.ThreadID, arg.Before)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReplyTriggerHistoryRow{}
+	for rows.Next() {
+		var i ReplyTriggerHistoryRow
+		if err := rows.Scan(&i.Direction, &i.Body); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const replyTriggerMessage = `-- name: ReplyTriggerMessage :one
 select m.id, m.thread_id, coalesce(m.body, '')::text as body, coalesce(m.direction, '')::text as direction, m.internal, m.deleted_at, m.sent_at,
   t.dealer_id, coalesce(t.kind, '')::text as kind

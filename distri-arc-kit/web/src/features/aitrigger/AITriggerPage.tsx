@@ -103,19 +103,21 @@ function RuleSheet({ rule, aiReady }: { rule?: ReplyRule; aiReady: boolean }) {
 /** Try a customer sentence against the enabled triggers, for a branch or a dealer, optionally with the AI. */
 function TryIt({ aiReady }: { aiReady: boolean }) {
   const [text, setText] = useState('Pak, kamera 4MP ready? harganya berapa?')
+  const [before, setBefore] = useState('')
   const [branch, setBranch] = useState('')
   const [dealerQ, setDealerQ] = useState('')
   const [ai, setAI] = useState(false)
   const { data: dealers = [] } = useDealers(dealerQ.length >= 2 ? dealerQ : '')
   const dealer = useMemo(() => dealers.find((x) => x.name.toLowerCase() === dealerQ.trim().toLowerCase()), [dealers, dealerQ])
   const run = useMutation({
-    mutationFn: () => api.post<{ suggestions: ReplySuggestion[]; dealer: string; branch: string; ai_error: string }>('/reply-rules/test', { text, branch, dealer: dealer?.id ?? '', ai }),
+    mutationFn: () => api.post<{ suggestions: ReplySuggestion[]; dealer: string; branch: string; ai_error: string }>('/reply-rules/test', { text, branch, dealer: dealer?.id ?? '', ai, history: before.split('\n').map((l) => l.trim()).filter(Boolean) }),
   })
   const res = run.data
   return (
     <div className="card">
       <div className="card-h"><h2>Coba kalimat pelanggan</h2></div>
       <div className="at-try">
+        <textarea rows={2} value={before} onChange={(e) => setBefore(e.target.value)} aria-label="Pesan sebelumnya" placeholder="Pesan sebelumnya (opsional, satu per baris) — mis. “Pak kamera 4MP harganya berapa?” lalu tanya “stoknya ada?” di bawah" />
         <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Kalimat pelanggan" />
         <div className="rr-try-row">
           <input value={dealerQ} onChange={(e) => setDealerQ(e.target.value)} list="at-dealers" placeholder="Dealer (opsional — untuk harga tier, limit, order)" aria-label="Dealer" />
@@ -134,6 +136,7 @@ function TryIt({ aiReady }: { aiReady: boolean }) {
         <div className="at-res">
           <small className="muted">{res.suggestions.length === 0 ? 'Tidak ada trigger yang cocok — pesan ini tidak mendapat kartu.' : `${res.suggestions.length} kartu${res.dealer ? ` · ${res.dealer}` : ''}${res.branch ? ` · cabang ${res.branch}` : ''}`}</small>
           {res.ai_error && <small className="at-warn"><Icon name="alert" />{res.ai_error}</small>}
+          {before.split('\n').map((l) => l.trim()).filter(Boolean).map((l, i) => <div key={i} className="m in at-bubble at-prev"><div className="b">{l}</div></div>)}
           <div className="m in at-bubble"><div className="b">{text}</div></div>
           {res.suggestions.map((s) => <TriggerCard key={s.rule_id} s={s} />)}
         </div>
@@ -192,8 +195,8 @@ export function AITriggerPage() {
         </div>
         <ol className="at-steps">
           <li><b>Pelanggan menulis</b> pesan WhatsApp yang memuat kata kunci trigger, mis. “stok”, “harga”, “tagihan”, “status order”.</li>
-          <li><b>Sistem mengambil data</b> — stok per cabang, harga sesuai tier, sisa limit &amp; tagihan, atau status order — dan menampilkan kartunya di bawah pesan itu di Chat.</li>
-          <li><b>Draf jawaban</b> diisi dari template, atau ditulis AI bila trigger mengaktifkan “Jawaban ditulis AI”. Angka tetap dari sistem.</li>
+          <li><b>Sistem mengambil data</b> — stok per cabang, harga sesuai tier, sisa limit &amp; tagihan, atau status order — dan menampilkan kartunya (warna ungu AI, beda dari bubble) di bawah pesan itu di Chat. Bila pesan tidak menyebut produk (“stoknya ada?”), produk diambil dari 10 pesan sebelumnya.</li>
+          <li><b>Draf jawaban</b> diisi dari template, atau ditulis AI bila trigger mengaktifkan “Jawaban ditulis AI” — AI membaca riwayat chat untuk konteksnya. Angka tetap dari sistem.</li>
           <li><b>Sales memutuskan</b>: tekan <i>Pakai jawaban</i>, edit, lalu kirim sendiri. Tidak ada yang terkirim otomatis.</li>
         </ol>
       </div>

@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · AI Trigger membaca riwayat chat · warna kartu AI dibedakan · 2026-10-16
+- Pesan yang memicu trigger tetapi tidak menyebut produk ("stoknya ada?", "harganya berapa?") kini mengambil produk dari 10 pesan sebelumnya di chat itu (3 hari terakhir, pesan terbaru dulu; pesan pelanggan maupun pesan kita). Kartu menulis "Produk dari riwayat chat: …". Bila beberapa produk cocok, kartu menampilkan pilihannya.
+- AI yang menulis draf kini juga membaca riwayat chat (urut lama → baru) untuk konteks dan nada; angka tetap hanya dari data sistem, bukan dari riwayat.
+- Kata kunci juga cocok dengan akhiran -nya/-kah/-lah ("stoknya", "harganya").
+- Kartu AI Trigger dan catatan Analisa WhatsApp di bawah bubble kini berwarna ungu AI (latar ungu muda, garis ungu di kiri, label "AI Trigger · hanya terlihat tim, bukan pesan"), jelas berbeda dari bubble putih (pelanggan) dan hijau (kita). Draf jawaban tampil dalam kotak bergaris putus-putus.
+- Coba kalimat pelanggan di halaman AI Trigger punya kolom "Pesan sebelumnya" untuk mencoba riwayat.
+
 ## Feat · Halaman AI Trigger · 2026-10-16
 - Menu baru **Pengaturan → AI Trigger** (halaman sendiri, menggantikan kartu Rekomendasi balasan di Pengaturan): daftar trigger dengan kata kunci, aktif/mati langsung dari daftar, dan kotak *Coba kalimat pelanggan* (bisa memilih dealer dan cabang).
 - Empat jenis data: **stok** per cabang, **harga** sesuai tier dealer, **limit & tagihan** (sisa limit, tagihan terbuka, tagihan tertua), **status order** terakhir. Trigger bawaan: Tanya stok, Tanya harga, Tanya limit & tagihan, Status order — kata kunci dan draf bisa diubah.

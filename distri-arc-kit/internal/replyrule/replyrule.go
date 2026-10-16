@@ -78,6 +78,8 @@ type Suggestion struct {
 	Draft    string      `json:"draft,omitempty"`
 	Note     string      `json:"note,omitempty"`
 	Products []string    `json:"candidates,omitempty"` // several products fit equally: the sales picks
+	// FromHistory: the message does not name the product; it was taken from this earlier message of the chat
+	FromHistory string `json:"from_history,omitempty"`
 	// AI: the draft was rewritten by an AI from these facts; AIPending: the AI is still writing it
 	AI        bool   `json:"ai,omitempty"`
 	AIModel   string `json:"ai_model,omitempty"`
@@ -147,19 +149,46 @@ var reWord = regexp.MustCompile(`[\pL\d]+`)
 func words(s string) []string { return reWord.FindAllString(strings.ToLower(s), -1) }
 
 // Matches returns the first keyword of the rule found in text (whole words; a keyword of several words in order).
+// A word with the suffix -nya, -kah or -lah counts as the word ("stoknya" → stok, "harganya" → harga).
 func Matches(r Rule, text string) string {
-	w := " " + strings.Join(words(text), " ") + " "
+	ws := words(text)
+	w := " " + strings.Join(ws, " ") + " "
+	for i, x := range ws {
+		ws[i] = stem(x)
+	}
+	stemmed := " " + strings.Join(ws, " ") + " "
 	for _, k := range r.Keywords {
 		kw := strings.Join(words(k), " ")
-		if kw != "" && strings.Contains(w, " "+kw+" ") {
+		if kw != "" && (strings.Contains(w, " "+kw+" ") || strings.Contains(stemmed, " "+kw+" ")) {
 			return k
 		}
 	}
 	return ""
 }
 
+// stem drops an Indonesian particle suffix when at least three letters stay ("punya" stays).
+func stem(w string) string {
+	for _, suf := range []string{"nya", "kah", "lah"} {
+		if strings.HasSuffix(w, suf) && len([]rune(w))-3 >= 3 {
+			return strings.TrimSuffix(w, suf)
+		}
+	}
+	return w
+}
+
+// Line is an earlier message of the conversation (history), for a question that does not name its product
+// ("stoknya ada?" after "kamera 4MP berapa?").
+type Line struct {
+	In   bool   `json:"in"` // from the customer
+	Text string `json:"text"`
+}
+
+// HistoryLines is how many earlier messages a card reads (newest first) to find the product.
+const HistoryLines = 10
+
 // Suggest is one card per action for the enabled rules that match text (the first rule of an action wins).
-func Suggest(rules []Rule, text string, d Data) []*Suggestion {
+// history holds the conversation's earlier messages, newest first (nil: none).
+func Suggest(rules []Rule, text string, history []Line, d Data) []*Suggestion {
 	var out []*Suggestion
 	done := map[string]bool{}
 	for _, r := range rules {
@@ -174,9 +203,9 @@ func Suggest(rules []Rule, text string, d Data) []*Suggestion {
 			Tone: "neutral", AIPhrase: r.AIPhrase}
 		switch r.Action {
 		case ActionStock:
-			stockCard(s, r, text, d)
+			stockCard(s, r, text, history, d)
 		case ActionPrice:
-			priceCard(s, r, text, d)
+			priceCard(s, r, text, history, d)
 		case ActionCredit:
 			creditCard(s, r, d)
 		case ActionOrder:
@@ -200,8 +229,8 @@ func (s *Suggestion) draft(r Rule, v map[string]string) {
 	s.Draft = fill(tpl, v)
 }
 
-func stockCard(s *Suggestion, r Rule, text string, d Data) {
-	p, cands := find(text, catalog(d.Stock))
+func stockCard(s *Suggestion, r Rule, text string, history []Line, d Data) {
+	p, cands := s.findIn(text, history, catalog(d.Stock))
 	if p == nil {
 		unknownProduct(s, cands, "data stok")
 		return
@@ -246,12 +275,12 @@ func stockCard(s *Suggestion, r Rule, text string, d Data) {
 	}
 }
 
-func priceCard(s *Suggestion, r Rule, text string, d Data) {
+func priceCard(s *Suggestion, r Rule, text string, history []Line, d Data) {
 	cat := make([]*product, 0, len(d.Products))
 	for _, x := range d.Products {
 		cat = append(cat, &product{sku: x.SKU, name: x.Name, toks: words(x.Name), list: x.ListPrice, prices: x.Prices})
 	}
-	p, cands := find(text, cat)
+	p, cands := s.findIn(text, history, cat)
 	if p == nil {
 		unknownProduct(s, cands, "daftar harga")
 		if len(d.Products) == 0 {
@@ -357,10 +386,34 @@ func orderCard(s *Suggestion, r Rule, d Data) {
 	s.draft(r, map[string]string{"nomor": o.Number, "tanggal": date, "status": orderStatus[ph], "total": rupiahPlain(o.Total)})
 }
 
+// findIn finds the product in the message, else in the earlier messages (newest first): the card then tells which
+// message named it (FromHistory).
+func (s *Suggestion) findIn(text string, history []Line, cat []*product) (*product, []string) {
+	p, cands := find(text, cat)
+	if p != nil || len(cands) > 0 {
+		return p, cands
+	}
+	for _, h := range history[:min(len(history), HistoryLines)] {
+		if hp, hc := find(h.Text, cat); hp != nil || len(hc) > 0 { // several products fit there: the sales picks
+			s.FromHistory = clip(h.Text, 90)
+			return hp, hc
+		}
+	}
+	return nil, nil
+}
+
+func clip(t string, n int) string {
+	t = strings.Join(strings.Fields(t), " ")
+	if r := []rune(t); len(r) > n {
+		return string(r[:n-1]) + "…"
+	}
+	return t
+}
+
 func unknownProduct(s *Suggestion, cands []string, src string) {
 	s.Products = cands
 	s.Headline = "Produk tidak dikenali"
-	s.Note = "Produk di pesan tidak dikenali di " + src + " — sebutkan produknya atau cek manual."
+	s.Note = "Produk tidak dikenali di " + src + ", juga tidak di " + fmt.Sprint(HistoryLines) + " pesan sebelumnya — tanyakan produknya atau cek manual."
 	if len(cands) > 0 {
 		s.Headline, s.Note = "Beberapa produk cocok", "Beberapa produk cocok — pilih yang dimaksud pelanggan."
 	}

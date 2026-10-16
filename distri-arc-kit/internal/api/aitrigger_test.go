@@ -20,11 +20,15 @@ import (
 )
 
 // stubModel answers every request with one draft, as a real model would (not the fake provider).
-type stubModel struct{ draft string }
+type stubModel struct {
+	draft string
+	last  llm.Request
+}
 
 func (m *stubModel) Name() string  { return "test" }
 func (m *stubModel) Model() string { return "test-model" }
-func (m *stubModel) Complete(context.Context, llm.Request) (llm.Response, error) {
+func (m *stubModel) Complete(_ context.Context, r llm.Request) (llm.Response, error) {
+	m.last = r
 	b, _ := json.Marshal(map[string]string{"draft": m.draft})
 	return llm.Response{JSON: b, Provider: "test", Model: "test-model"}, nil
 }
@@ -120,6 +124,37 @@ func TestAITrigger(t *testing.T) {
 	_, th = get(t, srv, "/api/chat/threads/"+tid, ceo)
 	if c := th["messages"].([]any)[0].(map[string]any)["suggest"].([]any)[0].(map[string]any); c["ai"] == true || c["ready"] == true {
 		t.Fatalf("stale AI draft shown: %v", c)
+	}
+
+	// "stoknya ada?" names no product: the card and the AI read the chat before it
+	var t2, m2 string
+	if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('new', '6281300000302@s.whatsapp.net', 'Toko Dua', '6281234504471', now()) returning id").Scan(&t2); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into chat_messages (thread_id, wa_msg_id, direction, body, sent_at, status) values
+		($1, 'AH1', 'in', 'pak NVR uji 32ch harganya berapa?', now() - interval '3 hours', 'received'),
+		($1, 'AH2', 'out', 'Baik pak kami cek dulu', now() - interval '2 hours', 'sent'),
+		($1, 'AH3', 'in', 'stoknya ada?', now() - interval '1 hour', 'received')`, t2); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Pool.QueryRow(ctx, "select id from chat_messages where wa_msg_id = 'AH3'").Scan(&m2); err != nil {
+		t.Fatal(err)
+	}
+	_, th = get(t, srv, "/api/chat/threads/"+t2, ceo)
+	last := th["messages"].([]any)[2].(map[string]any)
+	if cs, _ := last["suggest"].([]any); len(cs) != 1 || cs[0].(map[string]any)["product"] != "NVR Uji 32ch" || cs[0].(map[string]any)["from_history"] != "pak NVR uji 32ch harganya berapa?" {
+		t.Fatalf("product from the chat history: %v", last["suggest"])
+	}
+	model.draft = "Untuk NVR Uji 32ch saat ini sedang kosong Pak."
+	if code, out := post(t, srv.URL+"/api/chat/threads/"+t2+"/messages/"+m2+"/ai-draft", ceo, map[string]any{"rule_id": stock["id"]}); code != 200 {
+		t.Fatalf("ai draft with history: %d %v", code, out)
+	}
+	var in struct {
+		Riwayat []map[string]string `json:"riwayat"`
+		Produk  string              `json:"produk_dari_riwayat"`
+	}
+	if err := json.Unmarshal(model.last.Input, &in); err != nil || len(in.Riwayat) != 2 || in.Riwayat[0]["dari"] != "pelanggan" || in.Riwayat[1]["dari"] != "kami" || in.Produk == "" {
+		t.Fatalf("the AI did not get the chat history (oldest first): %s", model.last.Input)
 	}
 	if n := countRows(t, st, "select count(*) from outbox"); n != 0 {
 		t.Errorf("AI Trigger queued %d messages", n)

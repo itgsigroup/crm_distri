@@ -28,6 +28,14 @@ kunci, tetapi aturannya hanya kartu di Pengaturan dan hanya untuk stok.
   Kartu menampilkan "AI sedang menulis…" sampai 2 menit setelah pesan masuk. Retensi 30 hari.
 - **Tidak ada pengiriman otomatis**: kartu hanya untuk sales; "Pakai jawaban" mengisi kolom ketik.
 
+## Riwayat chat (revisi 16 Okt, Sam: "kalau ada kata stok AI harus melihat riwayat chatnya")
+- Kartu stok dan harga: bila pesan tidak menyebut produk, produk dicari di maksimal 10 pesan sebelumnya (3 hari, terbaru
+  dulu, kedua arah); kartu menyebut pesan sumbernya (`from_history`). Dikerjakan di Go, deterministik.
+- AI menerima `riwayat` (urut lama → baru, kredensial dimasking) dan `produk_dari_riwayat`; angka di draf tetap hanya
+  boleh dari fakta dan pesan saat ini (`CheckDraft`), bukan dari riwayat.
+- Tampilan: hasil AI (kartu AI Trigger, catatan Analisa WhatsApp) memakai ungu AI mockup (`--ai-c`), tidak pernah warna
+  bubble.
+
 ## Hubungan dengan ADR 0032
 ADR 0032 membatasi *analisa* ke Claude lewat MCP. Draf AI Trigger bukan analisa: tidak menilai dealer atau membuat
 usulan, hanya menyusun ulang kalimat dari fakta data, dan hanya bila CEO/admin mengaktifkannya per trigger. Bawaan

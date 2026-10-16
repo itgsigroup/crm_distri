@@ -657,3 +657,10 @@ select g.jid, coalesce(array_agg(distinct t.account) filter (where t.account is 
 from wa_groups g left join chat_threads t on t.wa_jid = g.jid
 where coalesce(g.name, '') = '' or exists (select 1 from chat_threads x where x.wa_jid = g.jid and x.kind = 'group' and coalesce(x.title, '') = '')
 group by g.jid;
+
+-- name: ReplyTriggerHistory :many
+-- The earlier messages of a customer message's conversation (AI Trigger, ADR 0041): newest first, three days back.
+select coalesce(direction, '')::text as direction, coalesce(body, '')::text as body from chat_messages
+where thread_id = sqlc.arg(thread_id)::uuid and sent_at < sqlc.arg(before)::timestamptz and sent_at > sqlc.arg(before)::timestamptz - interval '3 days'
+  and deleted_at is null and coalesce(body, '') <> ''
+order by sent_at desc limit 10;
