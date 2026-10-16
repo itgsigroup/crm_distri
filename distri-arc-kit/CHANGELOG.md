@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Pusat kendali: Orchestrator jadi pop-up kanan bawah · 2026-10-16
+- Kartu Orchestrator di samping sapaan Pusat kendali diganti pop-up di kanan bawah, sama seperti di Dashboard dan halaman lain. Isinya tetap: status siklus, enam tahap, update terakhir analisis, Analisa WhatsApp terakhir, jumlah chat / pesan masuk / menunggu / keputusan, pilihan MCP Claude atau model AI, Analisis ulang, dan Buka Orchestrator.
+- Kartu sapaan kini selebar halaman.
+
 ## Feat · Analisis ulang di pop-up Orchestrator: sesuai halaman, pilih MCP atau model AI, halaman ikut berubah · 2026-10-16
 - Pop-up Orchestrator kini menulis halaman yang dianalisis dan apa yang dijalankan (mis. Push stok → AI Stok · Analisa Stok; Kredit · kas → AI Kredit · AI Penagihan · Analisa Kas).
 - Pilih mesin analisa: **MCP Claude** (claude.ai / Desktop) atau **model dari halaman API & model AI** (mis. Claude Opus 5.5 lewat Claude API, atau ChatGPT API) yang langsung jalan di server lewat tool MCP yang sama. Pilihan diingat; model nonaktif bila kuncinya belum diisi atau anggaran harian habis. Tombol "Lewat MCP" yang lama diganti pilihan ini.

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { Icon } from '../components/Icon'
 import { PIPELINE_STAGES, type ScreenKey } from '../lib/i18n/id'
@@ -67,7 +67,7 @@ function savedEngine(): Engine | null {
 // Floating Orchestrator dock on every screen except Pusat kendali, Orchestrator and Chat: re-analyse this page (or
 // everything) with Claude through MCP or with the API and model chosen on Pengaturan → API & model AI; the page's
 // data refreshes when the cycle is done.
-export function Dock({ screen }: { screen: ScreenKey }) {
+export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: ReactNode; links?: ReactNode }) {
   const [open, setOpen] = useState(false)
   const { s, reanalyze } = useOrch()
   const st = useOrchStatus()
@@ -91,6 +91,7 @@ export function Dock({ screen }: { screen: ScreenKey }) {
       <div className="dk-body">
         <div className="dk-pipe"><PipeChips /></div>
         <div className="dk-track"><i style={{ width: `${progress(s)}%` }} /></div>
+        {extra && <div className="dk-extra">{extra}</div>}
         <div className="dk-scope">
           <span>Layar ini: <b>{scopeLabel(scope)}</b></span>
           <small>{scopeAgents(scope).join(' · ')}</small>
@@ -104,8 +105,9 @@ export function Dock({ screen }: { screen: ScreenKey }) {
           </button>
         </div>
         <div className="dk-acts">
-          <button className="btn primary" disabled={st.running} onClick={() => run(scope)}><Icon name="refresh" />Analisis ulang layar ini</button>
-          <button className="btn ghost" disabled={st.running} onClick={() => run('all')}>Semua</button>
+          <button className="btn primary" disabled={st.running} onClick={() => run(scope)}><Icon name="refresh" />{scope === 'all' ? 'Analisis ulang' : 'Analisis ulang layar ini'}</button>
+          {scope !== 'all' && <button className="btn ghost" disabled={st.running} onClick={() => run('all')}>Semua</button>}
+          {links}
         </div>
       </div>
     </div>
