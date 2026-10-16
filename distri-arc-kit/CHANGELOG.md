@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Link di pesan bisa diklik · 2026-10-16
+- Alamat web di pesan (`https://…`, `http://…`, `www.…`) kini tampil sebagai link dan terbuka di tab baru, seperti di WhatsApp. Tanda baca penutup kalimat tidak ikut masuk link; hanya alamat web yang dijadikan link.
+
 ## Change · Sematkan pesan tanpa batas · 2026-10-16
 - Pesan yang disematkan tidak lagi dibatasi 3 per chat; sematan baru tidak menggantikan yang lama.
 - Bar sematan tetap menampilkan satu per satu (klik untuk ke pesan dan lanjut ke berikutnya, nomor urut 1/n). Bila lebih dari 3, tombol **Semua** membuka daftar semua sematan untuk langsung ke pesannya atau melepasnya.

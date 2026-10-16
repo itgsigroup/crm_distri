@@ -22,10 +22,17 @@ import { pastedImage } from './paste'
 import { TriggerCard } from '../aitrigger/TriggerCard'
 import type { ChatHit } from './findInChat'
 import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type Member } from './mentions'
+import { linkParts } from './links'
 
-/** A bubble's text with its tags ("@Budi", WhatsApp's colour) and the searched words marked. */
+/** A bubble's text with its tags ("@Budi", WhatsApp's colour), its links (open in a new tab) and the searched words
+ * marked. */
 function BubbleText({ text, mentions, mark }: { text: string; mentions?: Mention[] | null; mark?: string }) {
-  return <>{mentionParts(text, mentions).map((p, i) => (p.tag ? <span key={i} className="bub-tag">{p.t}</span> : mark ? <Marked key={i} text={p.t} q={mark} /> : p.t))}</>
+  const plain = (t: string, key: string | number) => (mark ? <Marked key={key} text={t} q={mark} /> : <span key={key}>{t}</span>)
+  return <>{mentionParts(text, mentions).map((p, i) => (p.tag
+    ? <span key={i} className="bub-tag">{p.t}</span>
+    : linkParts(p.t).map((l, k) => (l.href
+      ? <a key={`${i}-${k}`} className="bub-link" href={l.href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>{mark ? <Marked text={l.t} q={mark} /> : l.t}</a>
+      : plain(l.t, `${i}-${k}`)))))}</>
 }
 
 

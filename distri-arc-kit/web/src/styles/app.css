@@ -1490,3 +1490,4 @@ body.map-maximized{overflow:hidden}
 .pin-list{position:absolute;left:0;right:0;top:100%;z-index:15;max-height:320px;overflow-y:auto;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 8px 20px rgba(0,0,0,.12)}
 .pin-list>div{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 12px;border-top:1px solid var(--line)}
 .pin-list>div.on{background:var(--surface-2)}
+.bub-link{color:var(--accent);text-decoration:underline;text-underline-offset:2px;word-break:break-all}
