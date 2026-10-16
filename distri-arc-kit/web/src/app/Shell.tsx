@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon'
 import { AppearancePicker } from '../components/AppearancePicker'
 import { useAppearance } from './appearance'
 import { useFeedback } from '../components/feedback'
-import { AGENT_NAMES, TITLES, type ScreenKey } from '../lib/i18n/id'
+import { TITLES, type ScreenKey } from '../lib/i18n/id'
 import { todayLine } from '../lib/format'
 import { useHealth, useMe, useNow, useOrbit, useThreads } from './queries'
 import { useCommand } from './command'
@@ -176,19 +176,14 @@ export function Shell() {
             <NavBtn to="roles" cur={cur} icon="shield">Peran &amp; akses</NavBtn>
             <NavBtn to="branches" cur={cur} icon="building">Cabang</NavBtn>
             <NavBtn to="salesmap" cur={cur} icon="net">Mapping sales</NavBtn>
+            {me && (['mcp', 'aiapi', 'aitrigger', 'konsep', 'conn'] as ScreenKey[]).some((k) => canSee(me.screens, k)) && <div className="nav-sec">Pengaturan</div>}
+            <NavBtn to="mcp" cur={cur} icon="spark">MCP Claude</NavBtn>
+            <NavBtn to="aiapi" cur={cur} icon="plug">API &amp; model AI</NavBtn>
+            <NavBtn to="aitrigger" cur={cur} icon="spark">AI Trigger</NavBtn>
+            <NavBtn to="konsep" cur={cur} icon="doc">Panduan</NavBtn>
+            <NavBtn to="conn" cur={cur} icon="gear">Pengaturan</NavBtn>
           </nav>
           <div className="rail-sec">
-            <nav className="nav" aria-label="Pengaturan">
-              <NavBtn to="mcp" cur={cur} icon="spark">MCP Claude</NavBtn>
-              <NavBtn to="aiapi" cur={cur} icon="plug">API &amp; model AI</NavBtn>
-              <NavBtn to="aitrigger" cur={cur} icon="spark">AI Trigger</NavBtn>
-              <NavBtn to="konsep" cur={cur} icon="doc">Panduan</NavBtn>
-              <NavBtn to="conn" cur={cur} icon="gear">Pengaturan</NavBtn>
-            </nav>
-            <div className="agents">
-              <div className="agents-h"><span className="dot-live" />Orchestrator · <span>{orch.running ? 'menganalisis…' : 'siap'}</span></div>
-              <ul>{AGENT_NAMES.map((a) => <li key={a} className="on">{a}</li>)}</ul>
-            </div>
             <div style={{ position: 'relative' }}>
               {menu && (
                 <div className="card me-menu">

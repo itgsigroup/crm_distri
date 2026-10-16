@@ -26,7 +26,6 @@ export const TITLES: Record<ScreenKey, [string, string]> = {
   konsep: ['Konsep orbit', 'Panduan Orbit: satu gambar, 14 istilah, cara baca papan'],
 }
 
-export const AGENT_NAMES = ['AI Order', 'AI Follow-up', 'AI Kredit', 'AI Stok', 'AI Penagihan', 'AI Prospek']
 
 export const PIPELINE_STAGES = ['Ingest', 'Analisis', 'Sintesis', 'Keputusan', 'Eksekusi', 'Belajar']
 export const STAGE_LABEL: Record<string, string> = { ingest: 'Ingest', analyze: 'Analisis', synthesize: 'Sintesis', decide: 'Keputusan', execute: 'Eksekusi', learn: 'Belajar' }

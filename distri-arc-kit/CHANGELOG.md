@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Sidebar satu daftar · 2026-10-16
+- Menu MCP Claude, API & model AI, AI Trigger, Panduan, dan Pengaturan tidak lagi menempel di bawah sidebar: kini bagian "Pengaturan" di daftar menu yang sama dan ikut scroll di layar pendek. Yang menempel di bawah hanya kartu akun.
+- Kartu "Orchestrator · siap" dengan daftar enam agen di sidebar dihapus (status Orchestrator tetap di menu Orchestrator dan bar atas).
+
 ## Feat · AI Trigger membaca riwayat chat · warna kartu AI dibedakan · 2026-10-16
 - Pesan yang memicu trigger tetapi tidak menyebut produk ("stoknya ada?", "harganya berapa?") kini mengambil produk dari 10 pesan sebelumnya di chat itu (3 hari terakhir, pesan terbaru dulu; pesan pelanggan maupun pesan kita). Kartu menulis "Produk dari riwayat chat: …". Bila beberapa produk cocok, kartu menampilkan pilihannya.
 - AI yang menulis draf kini juga membaca riwayat chat (urut lama → baru) untuk konteks dan nada; angka tetap hanya dari data sistem, bukan dari riwayat.
