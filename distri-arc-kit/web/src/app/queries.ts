@@ -113,6 +113,8 @@ export const useStockProposals = () =>
 
 // ---------- Orchestrator ----------
 export const useCycleLatest = () => useQuery({ queryKey: ['cycle', 'latest'], queryFn: () => api.get<CycleLatest>('/cycles/latest'), refetchInterval: 60_000 })
+export const useCycleEngines = (enabled = true) =>
+  useQuery({ queryKey: ['cycle', 'engines'], enabled, staleTime: 30_000, queryFn: () => api.get<{ model: { ready: boolean; provider: string; model: string; label: string; model_label: string; why: string }; mcp_wait_sec: number }>('/cycles/engines') })
 export const useCycles = () => useQuery({ queryKey: ['cycles'], queryFn: () => api.get<Items<Cycle>>('/cycles?limit=100').then((r) => r.items) })
 export const useConflicts = (sales?: string, enabled = true) => useQuery({ queryKey: ['cycles', 'conflicts', sales ?? 'all'], enabled, queryFn: () => api.get<Items<Conflict>>('/conflicts' + sp(sales)).then((r) => r.items) })
 export const useAgents = (sales?: string) => useQuery({ queryKey: ['agents', sales ?? 'all'], queryFn: () => api.get<Items<AgentInfo>>('/agents' + sp(sales)).then((r) => r.items) })

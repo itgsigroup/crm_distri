@@ -20,12 +20,21 @@ export function scopeLabel(scope: string): string {
   return 'dealer ' + id
 }
 
-type Via = 'auto' | 'api' | 'mcp'
+type Via = 'auto' | 'api' | 'mcp' | 'model'
 interface OrchCtx {
   s: CycleUI
-  reanalyze: (scope: string, via?: Via) => void
+  /** engine: who analyses ('mcp' Claude through MCP, 'model' the API & model AI choice); label names it in the result */
+  reanalyze: (scope: string, via?: Via, label?: string) => void
 }
 const Ctx = createContext<OrchCtx>({ s: initialCycle, reanalyze: () => {} })
+
+/** Everything a finished cycle can change, so the open page shows the new analysis (proposals, page readings,
+ * metrics, Analisa WhatsApp, brief) — also when SSE is down and the poll ends the cycle. */
+export function refreshPages(qc: ReturnType<typeof useQueryClient>) {
+  for (const k of ['cycle', 'cycles', 'plan', 'proposals', 'agents', 'brief', 'dealers', 'dealer', 'orbit', 'segmen', 'relasi', 'kpi', 'agenda', 'stock', 'credit', 'trend'])
+    qc.invalidateQueries({ queryKey: [k] })
+  qc.invalidateQueries({ queryKey: ['chat', 'wa-analysis'] })
+}
 
 /** Owns the live cycle state of the tab: POST /cycles, SSE events, a polling fallback and the finishing toast. */
 export function OrchProvider({ children }: { children: ReactNode }) {
@@ -41,6 +50,8 @@ export function OrchProvider({ children }: { children: ReactNode }) {
         if (name === 'cycle_stage') {
           dispatch({ type: 'stage', cycleId: String(d.cycle_id), stage: d.stage as StageName, status: String(d.status), label: scopeLabel(String(d.scope ?? 'all')) })
         } else if (name === 'cycle_done') {
+          // a page reading or Analisa WhatsApp sent through MCP (source mcp, agent set) is not the end of the cycle
+          if (d.agent) return
           dispatch({ type: 'done', cycleId: String(d.id), result: { number: (d.number as number) ?? null, note: String(d.note ?? ''), updated: Number(d.updated ?? 0), label: String(d.label ?? 'semua'), via: String(d.via ?? 'api'), status: String(d.status ?? 'done') } })
         }
       }),
@@ -85,30 +96,33 @@ export function OrchProvider({ children }: { children: ReactNode }) {
         alert({
           icon: r.status === 'partial' ? 'warning' : 'success',
           title: r.status === 'partial' ? 'Analisis selesai sebagian' : 'Analisis berhasil',
-          text: r.status === 'partial' ? `Analisis ulang ${r.label} selesai, tetapi sebagian agen tidak berjalan.` : `Analisis ulang ${r.label} selesai lewat ${r.via.toUpperCase()}.`,
+          text: r.status === 'partial' ? `Analisis ulang ${r.label} selesai, tetapi sebagian agen tidak berjalan.` : `Analisis ulang ${r.label} selesai lewat ${s.via && s.via !== 'api' ? s.via : r.via.toUpperCase()}. Halaman ini sudah diperbarui dengan hasilnya.`,
           details: [['Siklus', cycle], ['Saran diperbarui', String(r.updated)], ['Selesai', at], ...(r.note ? [['Catatan', r.note] as [string, string]] : [])],
         })
       }
     }
     dispatch({ type: 'ack' })
-    for (const k of ['cycle', 'cycles', 'plan', 'proposals', 'agents', 'brief', 'dealers', 'dealer', 'orbit', 'segmen']) qc.invalidateQueries({ queryKey: [k] })
-  }, [s.running, s.result, s.mine, alert, qc])
+    refreshPages(qc)
+  }, [s.running, s.result, s.mine, s.via, alert, qc])
 
   const reanalyze = useCallback(
-    (scope: string, via: Via = 'auto') => {
+    (scope: string, via: Via = 'auto', label?: string) => {
       if (s.running) {
         toast('Orchestrator sedang berjalan')
         return
       }
-      const v = via === 'mcp' ? 'mcp' : 'api'
+      const v = via === 'mcp' || via === 'model' ? via : 'api'
       api
         .post<QueuedCycle>('/cycles', { scope, via: v })
         .then((c) => {
-          dispatch({ type: 'start', cycleId: c.id, label: c.label, via: c.mcp ? 'mcp' : v })
-          if (c.mcp) openSheet(<MCPAnalysisSheet cycle={c} />) // Claude analyses it through MCP; results stay in GSI Orbit
+          const by = c.mcp?.engine === 'claude_api' ? c.mcp.model || label || 'API' : c.mcp ? 'Claude lewat MCP' : label || 'API'
+          dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by })
+          if (c.mcp) openSheet(<MCPAnalysisSheet cycle={c} />) // Claude or the chosen API analyses it through MCP; results stay in GSI Orbit
         })
         .catch((e: unknown) =>
-          e instanceof ApiError && e.status === 409
+          e instanceof ApiError && e.code === 'no_api'
+            ? alert({ icon: 'warning', title: 'API belum siap', text: e.message, details: [['Atur di', 'Pengaturan → API & model AI']] })
+            : e instanceof ApiError && e.status === 409
             ? alert({ icon: 'warning', title: 'Analisis sedang berjalan', text: 'Orchestrator masih menganalisis. Tunggu sampai selesai, lalu coba lagi.' })
             : alert({ icon: 'error', title: 'Analisis gagal dimulai', text: e instanceof Error ? e.message : 'Gagal memulai analisis', details: [['Waktu', `${hhmm(new Date())} WIB`]] }),
         )

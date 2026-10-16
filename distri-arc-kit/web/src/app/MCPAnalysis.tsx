@@ -8,7 +8,7 @@ import { hhmm } from '../lib/format'
 import { useOrchStatus } from './orch'
 
 /** How a cycle asked from the "Analisis ulang" button is analysed by Claude through MCP (POST /cycles → mcp). */
-export interface CycleMCP { engine: 'claude_api' | 'claude_ai'; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string }
+export interface CycleMCP { engine: 'claude_api' | 'claude_ai'; /** claude_api: "Claude API · Claude Opus 5.5" */ model?: string; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string }
 export type QueuedCycle = Cycle & { mcp?: CycleMCP }
 
 interface InputState { agent: string; submitted_at: string | null }
@@ -32,8 +32,8 @@ export function MCPAnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
   const copy = () => navigator.clipboard?.writeText(m.prompt).then(() => toast('Perintah disalin — tempel di Claude'), () => toast('Gagal menyalin; pilih teks lalu salin manual'))
   return (
     <>
-      <SheetHead icon="plug" title={`Claude menganalisis lewat MCP · siklus #${cycle.number ?? ''}`}
-        sub={m.engine === 'claude_api' ? 'Claude di server mengerjakan sendiri lewat tool MCP — hasilnya langsung tersimpan di GSI Orbit' : `Buka Claude dan kirim perintahnya — batas ${waitText(m.wait_sec)}; agen tanpa jawaban dicatat Gagal`} onClose={closeSheet} />
+      <SheetHead icon={m.engine === 'claude_api' ? 'spark' : 'plug'} title={m.engine === 'claude_api' ? `${m.model || 'API'} menganalisis · siklus #${cycle.number ?? ''}` : `Claude menganalisis lewat MCP · siklus #${cycle.number ?? ''}`}
+        sub={m.engine === 'claude_api' ? 'Model pilihan di API & model AI mengerjakan sendiri di server lewat tool MCP — hasilnya langsung tersimpan dan halaman diperbarui' : `Buka Claude dan kirim perintahnya — batas ${waitText(m.wait_sec)}; agen tanpa jawaban dicatat Gagal`} onClose={closeSheet} />
       <div className="sec mcpa">
         {m.engine === 'claude_ai' ? (<>
           <ol className="mcpa-steps">
@@ -46,7 +46,7 @@ export function MCPAnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
             ? <p className="mcpa-note"><Icon name="check" />Opsi kedua aktif: bila Claude belum menjawab dalam {waitText(m.wait_sec)}, <b>{m.fallback}</b> di server mengerjakan agen yang tersisa lewat tool MCP yang sama. Biayanya tercatat di <b>Pengaturan → API &amp; model AI</b>.</p>
             : <p className="mcpa-note"><Icon name="lock" />Claude Desktop / claude.ai hanya bekerja bila ada perintah yang dikirim di sana — aplikasi tidak bisa menjalankannya sendiri. Agar analisis tetap jalan saat Claude tidak menjawab, aktifkan opsi kedua (Claude API atau ChatGPT API) di <b>API &amp; model AI</b>.</p>}
         </>) : (
-          <p className="mcpa-note"><Icon name="check" />Kunci Claude API tersimpan: Claude di server menjalankan analisis lewat tool MCP yang sama (tercatat di Riwayat MCP dan Analisis terjadwal). Tidak perlu membuka apa pun.</p>
+          <p className="mcpa-note"><Icon name="check" /><b>{m.model || 'API'}</b> (pilihan di Pengaturan → API &amp; model AI) menjalankan analisis di server lewat tool MCP yang sama — biaya tercatat di halaman itu. Tidak perlu membuka apa pun; halaman ini boleh ditutup.</p>
         )}
         <div className="mcpa-agents">
           <div className="mcpa-h">Agen {sent.size}/{m.agents.length} dianalisis Claude{running ? '' : ' · siklus selesai'}</div>

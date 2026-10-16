@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Analisis ulang di pop-up Orchestrator: sesuai halaman, pilih MCP atau model AI, halaman ikut berubah · 2026-10-16
+- Pop-up Orchestrator kini menulis halaman yang dianalisis dan apa yang dijalankan (mis. Push stok → AI Stok · Analisa Stok; Kredit · kas → AI Kredit · AI Penagihan · Analisa Kas).
+- Pilih mesin analisa: **MCP Claude** (claude.ai / Desktop) atau **model dari halaman API & model AI** (mis. Claude Opus 5.5 lewat Claude API, atau ChatGPT API) yang langsung jalan di server lewat tool MCP yang sama. Pilihan diingat; model nonaktif bila kuncinya belum diisi atau anggaran harian habis. Tombol "Lewat MCP" yang lama diganti pilihan ini.
+- Setelah analisa selesai, halaman yang sedang dibuka ikut diperbarui dengan hasilnya (keputusan, Analisa Stok, Analisa Kas, KPI, orbit, segmen, peta relasi, Analisa WhatsApp), juga saat koneksi real-time terputus.
+- Perbaikan: kiriman Analisa Stok/Kas/WhatsApp lewat MCP tidak lagi membuat siklus tampil "selesai" sebelum waktunya. ADR 0042.
+
 ## Feat · Pop-up saat memuat data · 2026-10-16
 - Saat halaman mengambil data yang belum ada (buka halaman, ganti dealer, buka chat), muncul pop-up di tengah layar dengan animasi orbit 3D — planet GSI Orbit, dua cincin miring dengan satelit — plus apa yang sedang dimuat ("Memuat dealer, chat…") dan bar progres.
 - Hanya muncul bila memuat lebih dari ±0,35 detik (tidak berkedip untuk data cepat), tampil minimal 0,5 detik, tidak muncul untuk refresh di latar (pesan masuk, polling), dan tidak menghalangi klik. Mengikuti tema terang/gelap; animasi diam bila perangkat meminta gerak dikurangi.

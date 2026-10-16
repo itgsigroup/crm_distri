@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/riverqueue/river"
 
 	"distri-arc/internal/analyst"
 	"distri-arc/internal/clock"
@@ -28,6 +29,7 @@ func (s *Server) cycleRoutes(r chi.Router) {
 	r.Get("/cycles/latest", s.latestCycle)
 	r.Get("/cycles", s.listCycles)
 	r.Post("/cycles", s.postCycle)
+	r.Get("/cycles/engines", s.cycleEngines)
 	r.Get("/cycles/{id}", s.getCycle)
 	r.Get("/cycles/{id}/inputs", s.cycleInputs)
 	r.Get("/conflicts", s.conflicts)
@@ -117,14 +119,33 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 		httpx.Fail(w, http.StatusBadRequest, "invalid_scope", err.Error())
 		return
 	}
-	if via != "mcp" {
-		via = "api"
-	}
-	// require_ai without a model on the server: the button's analysis goes to Claude through MCP
+	// engine (16 Oct): "mcp" — Claude through MCP (claude.ai, Desktop, a routine); "model" — the API and model chosen
+	// on Pengaturan → API & model AI, run now by the server through the same MCP tools; "" / "api" — the server's
+	// LLM_PROVIDER router when it has one and the policy allows it, else the chosen API when ready, else MCP.
+	ok, prov, model, why := analyst.APIReady(r.Context(), s.st.Q, s.clock.Now(), s.secret(), s.cfg.AnthropicKey, s.cfg.OpenAIKey)
 	pol, _ := policy.Load(r.Context(), s.st.Q)
 	serverModel := s.cfg.LLMProvider == "anthropic" && s.cfg.AnthropicKey != ""
-	if pol.LLM.RequireAI && !serverModel {
-		via = "mcp"
+	useModel := false
+	switch via {
+	case "mcp":
+	case "model":
+		if !ok {
+			httpx.Fail(w, http.StatusConflict, "no_api", why)
+			return
+		}
+		useModel = true
+	default:
+		switch {
+		case serverModel && !pol.LLM.MCPOnly():
+			via = "api"
+		case ok:
+			useModel = true
+		default:
+			via = "mcp"
+		}
+	}
+	if useModel {
+		via = "mcp" // the cycle publishes its Input and waits; the model answers it through the MCP tools
 	}
 	u, _ := CurrentUser(r.Context())
 	o := &orchestrator.Orchestrator{St: s.st, Clock: s.clock}
@@ -138,6 +159,9 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 		if s.jobs != nil {
 			// Claude through MCP first; the API second option joins after the wait (ADR 0040, worker)
 			_, err = s.jobs.InsertTx(r.Context(), tx, jobs.CycleRunArgs{CycleID: c.ID.String()}, nil)
+			if err == nil && useModel {
+				_, err = s.jobs.InsertTx(r.Context(), tx, jobs.CycleMCPArgs{CycleID: c.ID.String(), By: deref(u.Email)}, &river.InsertOpts{MaxAttempts: 1})
+			}
 		}
 		return err
 	})
@@ -157,8 +181,10 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 			}
 			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cyc.ID.String(), names, s.mcpWait())
 			m := &cycleMCP{Engine: "claude_ai", Prompt: prompt, ClaudeURL: "https://claude.ai/new?q=" + url.QueryEscape(prompt), WaitSec: int(s.mcpWait().Seconds()), Agents: names}
-			if ok, prov, model := analyst.FallbackReady(r.Context(), s.st.Q, s.clock.Now(), s.secret(), s.cfg.AnthropicKey, s.cfg.OpenAIKey); ok {
-				m.Fallback = analyst.ProviderLabel(prov) + " · " + model
+			if useModel {
+				m.Engine, m.Model = "claude_api", analyst.ProviderLabel(prov)+" · "+analyst.ModelLabel(model)
+			} else if fok, fprov, fmodel := analyst.FallbackReady(r.Context(), s.st.Q, s.clock.Now(), s.secret(), s.cfg.AnthropicKey, s.cfg.OpenAIKey); fok {
+				m.Fallback = analyst.ProviderLabel(fprov) + " · " + analyst.ModelLabel(fmodel)
 			}
 			out.MCP = m
 		}
@@ -173,13 +199,22 @@ type cycleQueued struct {
 }
 
 type cycleMCP struct {
-	Engine string `json:"engine"` // claude_ai: Claude through MCP (claude.ai, Desktop, a routine)
+	Engine string `json:"engine"`          // claude_ai: Claude through MCP (claude.ai, Desktop, a routine); claude_api: the chosen API
+	Model  string `json:"model,omitempty"` // claude_api: "Claude API · Claude Opus 5.5"
 	// Fallback: the API that takes the agents Claude did not answer after WaitSec ("ChatGPT API · gpt-5"); "" off
 	Fallback  string   `json:"fallback"`
 	Prompt    string   `json:"prompt"`
 	ClaudeURL string   `json:"claude_url"`
 	WaitSec   int      `json:"wait_sec"`
 	Agents    []string `json:"agents"`
+}
+
+// cycleEngines: what "Analisis ulang" can run on — Claude through MCP always; the API and model chosen on
+// Pengaturan → API & model AI when its key is set and today's budget is not spent.
+func (s *Server) cycleEngines(w http.ResponseWriter, r *http.Request) {
+	ok, prov, model, why := analyst.APIReady(r.Context(), s.st.Q, s.clock.Now(), s.secret(), s.cfg.AnthropicKey, s.cfg.OpenAIKey)
+	httpx.JSON(w, http.StatusOK, map[string]any{"model": map[string]any{"ready": ok, "provider": analyst.ProviderLabel(prov), "model": model,
+		"label": analyst.ProviderLabel(prov) + " · " + analyst.ModelLabel(model), "model_label": analyst.ModelLabel(model), "why": why}, "mcp_wait_sec": int(s.mcpWait().Seconds())})
 }
 
 // cycleInputs: per agent, whether Claude sent its analysis through MCP yet (the button's progress).

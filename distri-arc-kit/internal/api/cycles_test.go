@@ -7,13 +7,19 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"distri-arc/db"
+	"distri-arc/internal/api"
 	"distri-arc/internal/clock"
+	"distri-arc/internal/config"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/orchestrator"
+	"distri-arc/internal/seed"
+	"distri-arc/internal/testdb"
 )
 
 func post(t *testing.T, url, user string, body any) (int, map[string]any) {
@@ -77,5 +83,39 @@ func TestPlanRunNow(t *testing.T) {
 	_, plan = get(t, srv, "/api/plan/today", "sam@gsi.co.id")
 	if s := plan["items"].([]any)[0].(map[string]any)["status"]; s != "done" {
 		t.Fatalf("step status %v", s)
+	}
+}
+
+// "Analisis ulang" with the API & model AI choice (16 Oct): refused without a key, else the cycle waits on the MCP
+// tools for the chosen model (engine claude_api) — never for claude.ai.
+func TestPostCyclesWithModel(t *testing.T) {
+	srv, _ := chatServer(t)
+	_, eng := get(t, srv, "/api/cycles/engines", "sam@gsi.co.id")
+	if m := eng["model"].(map[string]any); m["ready"] != false || m["why"] == "" {
+		t.Fatalf("engines without a key: %v", eng)
+	}
+	code, out := post(t, srv.URL+"/api/cycles", "sam@gsi.co.id", map[string]string{"scope": "screen:stock", "via": "model"})
+	if code != http.StatusConflict || out["error"].(map[string]any)["code"] != "no_api" {
+		t.Fatalf("model without a key: %d %v", code, out)
+	}
+
+	st := testdb.New(t)
+	if _, err := seed.Run(context.Background(), st, db.Seed); err != nil {
+		t.Fatal(err)
+	}
+	h := api.New(config.Config{Env: "dev", AnthropicKey: "sk-ant-test-0000"}, st, clock.Fixed(time.Date(2026, 10, 5, 9, 0, 0, 0, clock.WIB)), slog.New(slog.NewTextHandler(io.Discard, nil))).Handler()
+	srv2 := httptest.NewServer(h)
+	t.Cleanup(srv2.Close)
+	_, eng = get(t, srv2, "/api/cycles/engines", "sam@gsi.co.id")
+	if m := eng["model"].(map[string]any); m["ready"] != true || m["label"] == "" {
+		t.Fatalf("engines with a key: %v", eng)
+	}
+	code, out = post(t, srv2.URL+"/api/cycles", "sam@gsi.co.id", map[string]string{"scope": "screen:stock", "via": "model"})
+	m, _ := out["mcp"].(map[string]any)
+	if code != http.StatusAccepted || out["via"] != "mcp" || m == nil || m["engine"] != "claude_api" || m["model"] == "" {
+		t.Fatalf("model: %d %v", code, out)
+	}
+	if agents := m["agents"].([]any); len(agents) != 1 || agents[0] != "AI Stok" {
+		t.Fatalf("Push stok runs AI Stok only: %v", agents)
 	}
 }

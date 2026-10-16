@@ -303,3 +303,36 @@ func FallbackReady(ctx context.Context, q *gen.Queries, now time.Time, sessionKe
 	}
 	return true, cfg.Provider(), cfg.ProviderModel()
 }
+
+// APIReady reports whether the API chosen on Pengaturan → API & model AI can analyse now, whatever the second
+// option is set to (the Orchestrator's "Analisis ulang" with the API, 16 Oct): its key is present and today's budget
+// is not spent. It returns the provider, the model and, when not ready, why.
+func APIReady(ctx context.Context, q *gen.Queries, now time.Time, sessionKey []byte, envClaude, envOpenAI string) (ok bool, provider, model, why string) {
+	cfg := LoadConfig(ctx, q)
+	provider, model = cfg.Provider(), cfg.ProviderModel()
+	var key string
+	if provider == FallbackOpenAI {
+		key, _ = LoadOpenAIKey(ctx, q, sessionKey, envOpenAI)
+	} else {
+		key, _ = LoadKey(ctx, q, sessionKey, envClaude)
+	}
+	if key == "" {
+		return false, provider, model, "Kunci " + ProviderLabel(provider) + " belum diisi (Pengaturan → API & model AI)"
+	}
+	if cfg.DailyBudgetIDR > 0 {
+		if spent, err := q.AnalystCostSince(ctx, clock.Today(now)); err == nil && spent.Cost >= cfg.DailyBudgetIDR {
+			return false, provider, model, "Anggaran harian " + ProviderLabel(provider) + " sudah terpakai"
+		}
+	}
+	return true, provider, model, ""
+}
+
+// ModelLabel is a model's name as the API & model AI page shows it ("Claude Opus 5.5"); the id when unknown.
+func ModelLabel(id string) string {
+	for _, m := range append(append([]ModelInfo{}, Models...), OpenAIModels...) {
+		if m.ID == id {
+			return m.Label
+		}
+	}
+	return id
+}
