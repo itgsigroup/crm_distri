@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Format teks WhatsApp: tebal, miring, coret, monospace · 2026-10-16
+- Bubble kini menampilkan format WhatsApp: `*tebal*`, `_miring_`, `~coret~`, ```` ```monospace``` ````, `` `kode` `` dan baris kutipan `> …`. Aturannya sama dengan WhatsApp (penanda harus menempel pada kata; `2*3*4` atau `file_nama_baru.pdf` tidak berubah). Tag @ dan link tetap jalan di dalam teks yang diformat.
+- Kotak pesan: pilih teks lalu klik **B / I / S / </>** yang muncul, atau pintasan Ctrl/⌘+B (tebal), Ctrl/⌘+I (miring), Ctrl/⌘+Shift+X (coret), Ctrl/⌘+Shift+M (monospace). Menekan lagi melepas formatnya. Pesan terkirim dengan penanda, jadi HP penerima menampilkan formatnya.
+
 ## Fix · Nama di grup: kontak tersimpan dulu, lalu nama profil WhatsApp · 2026-10-16
 - Nama pengirim di bubble grup dan di daftar Anggota kini memakai nama kontak yang disimpan di HP nomor itu; bila tidak disimpan, nama profil WhatsApp orangnya. Nama master data hanya dipakai bila keduanya tidak ada, lalu nomor tersamar.
 - Daftar nama anggota diambil dari HP per nomor GSI (disimpan 5 menit). Chat 1:1 tetap: nama kontak tersimpan, lalu nama profil; nama kontak kosong tidak lagi menghalangi nama profil.

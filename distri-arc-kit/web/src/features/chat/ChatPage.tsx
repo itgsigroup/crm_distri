@@ -23,17 +23,38 @@ import { TriggerCard } from '../aitrigger/TriggerCard'
 import type { ChatHit } from './findInChat'
 import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type Member } from './mentions'
 import { linkParts } from './links'
+import { formatParts, quoteLines, shortcutMark, wrapSelection, type Mark } from './format'
 import { MembersSheet, openMemberChat, useMembers } from './Members'
 
-/** A bubble's text with its tags ("@Budi", WhatsApp's colour), its links (open in a new tab) and the searched words
- * marked. */
-function BubbleText({ text, mentions, mark }: { text: string; mentions?: Mention[] | null; mark?: string }) {
+/** Plain text with its tags ("@Budi", WhatsApp's colour), its links (open in a new tab) and the searched words marked. */
+function RichText({ text, mentions, mark }: { text: string; mentions?: Mention[] | null; mark?: string }) {
   const plain = (t: string, key: string | number) => (mark ? <Marked key={key} text={t} q={mark} /> : <span key={key}>{t}</span>)
   return <>{mentionParts(text, mentions).map((p, i) => (p.tag
     ? <span key={i} className="bub-tag">{p.t}</span>
     : linkParts(p.t).map((l, k) => (l.href
       ? <a key={`${i}-${k}`} className="bub-link" href={l.href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>{mark ? <Marked text={l.t} q={mark} /> : l.t}</a>
       : plain(l.t, `${i}-${k}`)))))}</>
+}
+
+/** One line's WhatsApp formatting (*bold*, _italic_, ~strikethrough~, ```monospace```) around its rich text. */
+function FormattedLine({ text, mentions, mark }: { text: string; mentions?: Mention[] | null; mark?: string }) {
+  return <>{formatParts(text).map((f, i) => {
+    let el: ReactNode = f.m ? (mark ? <Marked text={f.t} q={mark} /> : f.t) : <RichText text={f.t} mentions={mentions} mark={mark} />
+    if (f.m) el = <code className="bub-mono">{el}</code>
+    if (f.s) el = <s>{el}</s>
+    if (f.i) el = <em>{el}</em>
+    if (f.b) el = <strong>{el}</strong>
+    return <span key={i}>{el}</span>
+  })}</>
+}
+
+/** A bubble's text as WhatsApp shows it: formatting, "> " quote lines, tags, links, and the searched words marked. */
+function BubbleText({ text, mentions, mark }: { text: string; mentions?: Mention[] | null; mark?: string }) {
+  const lines = quoteLines(text)
+  if (!lines.some((l) => l.quote)) return <FormattedLine text={text} mentions={mentions} mark={mark} />
+  return <>{lines.map((l, i) => (l.quote
+    ? <span key={i} className="bub-q"><FormattedLine text={l.t} mentions={mentions} mark={mark} /></span>
+    : <span key={i}><FormattedLine text={l.t} mentions={mentions} mark={mark} />{i < lines.length - 1 && !lines[i + 1].quote ? '\n' : ''}</span>))}</>
 }
 
 
@@ -461,6 +482,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const [picks, setPicks] = useState<Member[]>([])
   const [tagging, setTagging] = useState<{ start: number; q: string } | null>(null)
   const [tagSel, setTagSel] = useState(0)
+  // the composer's selection: the format bar (B I S </>) shows while some text is selected
+  const [sel, setSel] = useState<[number, number]>([0, 0])
   const { openSheet } = useFeedback()
   const [zoom, setZoom] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
@@ -481,6 +504,18 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     const at = group && !editing ? mentionQuery(value, caret) : null
     setTagging(at)
     if (at?.q !== tagging?.q) setTagSel(0)
+  }
+  // WhatsApp formatting: the selection wrapped in *, _, ~ or ``` (again: unwrapped); the selection is kept
+  const applyMark = (mk: Mark) => {
+    const el = input.current
+    if (!el) return
+    const r = wrapSelection(text, el.selectionStart, el.selectionEnd, mk)
+    setText(r.text)
+    setSel([r.start, r.end])
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(r.start, r.end)
+    })
   }
   const pickTag = (m: Member) => {
     if (!tagging) return
@@ -676,6 +711,12 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   }
   // Enter sends, Shift+Enter starts a new line (WhatsApp Web); Enter while an IME is composing a word does neither
   const composerKey = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    const mk = shortcutMark(e)
+    if (mk) { // Ctrl/⌘+B bold, +I italic, +Shift+X strikethrough, +Shift+M monospace (WhatsApp Web)
+      e.preventDefault()
+      applyMark(mk)
+      return
+    }
     if (tagOptions.length > 0) {
       // choosing whom to tag, like WhatsApp: ↑ ↓, Enter or Tab picks, Esc closes the list
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -814,6 +855,13 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         ) : (
           <form onSubmit={submit}>
             {!editing && <AttachMenu onFile={pickFile} onPoll={openPoll} disabled={upload.isPending} />}
+            {tagOptions.length === 0 && sel[1] > sel[0] && (
+              <div className="cmp-fmt" role="toolbar" aria-label="Format teks">
+                {([['*', 'B', 'Tebal (Ctrl/⌘+B)'], ['_', 'I', 'Miring (Ctrl/⌘+I)'], ['~', 'S', 'Coret (Ctrl/⌘+Shift+X)'], ['```', '</>', 'Monospace (Ctrl/⌘+Shift+M)']] as [Mark, string, string][]).map(([mk, label, title]) => (
+                  <button key={mk} type="button" className={`fmt-${label === '</>' ? 'm' : label.toLowerCase()}`} title={title} aria-label={title} onMouseDown={(e) => { e.preventDefault(); applyMark(mk) }}>{label}</button>
+                ))}
+              </div>
+            )}
             {tagOptions.length > 0 && (
               <div className="cmp-tags" role="listbox" aria-label="Tandai anggota grup">
                 {tagOptions.map((m, i) => (
@@ -825,7 +873,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
               </div>
             )}
             <textarea ref={input} rows={1} value={text} onChange={(e) => typed(e.target.value, e.target.selectionStart ?? e.target.value.length)} onKeyDown={composerKey}
-              onBlur={() => setTagging(null)}
+              onBlur={() => { setTagging(null); setSel([0, 0]) }}
+              onSelect={(e) => setSel([e.currentTarget.selectionStart, e.currentTarget.selectionEnd])}
               onPaste={(e) => {
                 // a copied screenshot or picture: it becomes the file to send, the box takes its caption (WhatsApp Web)
                 const img = !editing && pastedImage(e.clipboardData.files, e.clipboardData.getData('text/plain'))
