@@ -293,6 +293,8 @@ export interface ThreadView {
   sales: string
   last_message_at: string | null
   unread: number
+  /** unread messages that tag this number ("@"), until the chat is opened */
+  mentioned?: number
   last_body: string
   last_from: string
   tag: Tag | null
@@ -311,8 +313,12 @@ export interface ThreadView {
   pinned_at?: string
 }
 export interface Annotation { k: string; t: string; act?: string }
+/** A member a message tags: "@<token>" in the body, shown as "@<name>". */
+export interface Mention { token: string; number?: string; name?: string }
 export interface MessageView {
   id: string
+  /** the members the text tags (WhatsApp "@") */
+  mentions?: Mention[] | null
   direction: 'in' | 'out'
   from_name: string
   body: string
@@ -379,7 +385,7 @@ export interface MsgAnalysis {
   cycle_number?: number
 }
 export interface ThreadDetail {
-  thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; phone_name?: string; dealer_id: string; sales: string; sales_wa: string; account_label: string; account_masked: string; suggestions: string[] | null; tag: Tag | null; unread: number
+  thread: { id: string; kind: ThreadView['kind']; title: string; subtitle: string; phone_name?: string; dealer_id: string; sales: string; sales_wa: string; account_label: string; account_masked: string; suggestions: string[] | null; tag: Tag | null; unread: number; mentioned?: number
     /** the contact's number of a one-to-one chat */
     phone?: string; dealer_code?: string; dealer_city?: string; waiting_since?: string | null
     /** when the bubbles were last analysed (null: never) */

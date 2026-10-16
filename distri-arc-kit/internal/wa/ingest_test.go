@@ -2,6 +2,7 @@ package wa_test
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"strings"
@@ -653,5 +654,60 @@ func TestPhoneNameKeptForSearch(t *testing.T) {
 	}
 	if count(t, st, "select count(*) from chat_threads where id = $1 and phone_name = 'Pak Yohanes'", r.ThreadID) != 1 {
 		t.Fatal("phone name not kept")
+	}
+}
+
+// A group message that tags members ("@Dewi @Budi"): the message keeps the tags with the names Chat shows; the
+// tagged GSI number's chat row counts the tag until that chat is opened — reading the group under another number
+// leaves it — and the other number in the group, not tagged, gets none.
+func TestGroupTagMarksTheTaggedNumber(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	const budi = "6285700001234"
+	g := "120363999@g.us"
+	text := "@" + dewi + " tolong cek stok, @" + budi + " juga @77889"
+	ms := []wa.Mention{{Token: dewi, Number: dewi}, {Token: budi, Number: budi, Name: "Budi"}, {Token: "77889", Name: ""}}
+	t0 := time.Now().Add(-time.Minute)
+	for _, acc := range []string{andi, dewi} {
+		m := wa.Message{ID: "TAG1", Account: acc, ChatJID: g, IsGroup: true, GroupName: "Proyek RSUD", GroupMembers: []string{budi}, FromNumber: budi, FromName: "Budi", Text: text, Mentions: ms, Time: t0}
+		if _, err := in.Process(ctx, m); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tagged := func(acc string) int {
+		return count(t, st, "select mentioned from chat_threads where account = $1 and wa_jid = $2", acc, g)
+	}
+	if tagged(dewi) != 1 || tagged(andi) != 0 {
+		t.Fatalf("tags: dewi %d andi %d, want 1 and 0", tagged(dewi), tagged(andi))
+	}
+	var raw []byte
+	if err := st.Pool.QueryRow(ctx, "select mentions from chat_messages where wa_msg_id = 'TAG1'").Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	var got []wa.Mention
+	if err := json.Unmarshal(raw, &got); err != nil || len(got) != 3 || got[0].Name == "" || got[0].Name == wa.MaskNumber(dewi) || got[1].Name != "Budi" || got[2].Token != "77889" {
+		t.Fatalf("mentions kept as %s", raw)
+	}
+	// history never counts; the group read under andi leaves dewi's tag; dewi opening the chat clears it
+	if _, err := in.Process(ctx, wa.Message{ID: "TAG0", Account: dewi, ChatJID: g, IsGroup: true, FromNumber: budi, Text: "@" + dewi + " lama", Mentions: ms[:1], Time: t0.Add(-time.Hour), History: true}); err != nil {
+		t.Fatal(err)
+	}
+	var andiThread, dewiThread uuid.UUID
+	_ = st.Pool.QueryRow(ctx, "select id from chat_threads where account = $1 and wa_jid = $2", andi, g).Scan(&andiThread)
+	_ = st.Pool.QueryRow(ctx, "select id from chat_threads where account = $1 and wa_jid = $2", dewi, g).Scan(&dewiThread)
+	if err := st.Q.MarkThreadRead(ctx, andiThread); err != nil {
+		t.Fatal(err)
+	}
+	if tagged(dewi) != 1 {
+		t.Fatal("reading the group under another number cleared the tag")
+	}
+	if err := st.Q.MarkThreadRead(ctx, dewiThread); err != nil {
+		t.Fatal(err)
+	}
+	if tagged(dewi) != 0 {
+		t.Fatal("opening the chat did not clear the tag")
+	}
+	if got := wa.MentionTokens("@" + dewi + " dan @" + dewi + ", @12 @77889"); len(got) != 2 || got[0] != dewi || got[1] != "77889" {
+		t.Errorf("MentionTokens = %v", got)
 	}
 }

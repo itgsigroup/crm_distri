@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, 
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Items } from '../../api/client'
-import type { MediaView, MessageView, ThreadDetail, ThreadView, WATeam } from '../../api/types'
+import type { MediaView, Mention, MessageView, ThreadDetail, ThreadView, WATeam } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
@@ -21,6 +21,12 @@ import { ChatRowMenu } from './ChatRowMenu'
 import { pastedImage } from './paste'
 import { TriggerCard } from '../aitrigger/TriggerCard'
 import type { ChatHit } from './findInChat'
+import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type Member } from './mentions'
+
+/** A bubble's text with its tags ("@Budi", WhatsApp's colour) and the searched words marked. */
+function BubbleText({ text, mentions, mark }: { text: string; mentions?: Mention[] | null; mark?: string }) {
+  return <>{mentionParts(text, mentions).map((p, i) => (p.tag ? <span key={i} className="bub-tag">{p.t}</span> : mark ? <Marked key={i} text={p.t} q={mark} /> : p.t))}</>
+}
 
 
 function initials(t: ThreadView | ThreadDetail['thread']) {
@@ -156,6 +162,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
               <span>{timeLabel(c.last_message_at, now)}</span>
               <span className="ibr-marks">
                 {c.pinned_at && <Icon name="pin" className="i ibr-pin" />}
+                {!!c.mentioned && <span className="un at" title="Anda ditandai di chat ini">@</span>}
                 {c.unread > 0 && <span className="un">{c.unread > 99 ? '99+' : c.unread}</span>}
               </span>
               {!account && <span className="via">via {(c.account_label || c.sales).replace(/^Nomor\s+/, '')}</span>}
@@ -344,7 +351,7 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       <div className="bb">
         {m.quote && <QuoteBlock q={m.quote} mine={via} onJump={onJump} />}
         {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
-        {m.media?.kind === 'poll' ? <PollBody text={caption} /> : mark ? <Marked text={caption} q={mark} /> : caption}
+        {m.media?.kind === 'poll' ? <PollBody text={caption} /> : <BubbleText text={caption} mentions={m.mentions} mark={mark} />}
         <span className="tm">{m.pinned && <Icon name="pin" className="i tm-pin" />}{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
         <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined}
           onPin={onPin && m.status !== 'pending' && m.status !== 'failed' ? () => onPin(m) : undefined} onLabel={onLabel ? () => onLabel(m) : undefined} />
@@ -435,6 +442,10 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const [editing, setEditing] = useState<MessageView | null>(null)
   const [replying, setReplying] = useState<MessageView | null>(null)
   const [file, setFile] = useState<File | null>(null)
+  // tags ("@"): the members picked into the text, and the "@…" being typed with the highlighted choice
+  const [picks, setPicks] = useState<Member[]>([])
+  const [tagging, setTagging] = useState<{ start: number; q: string } | null>(null)
+  const [tagSel, setTagSel] = useState(0)
   const { openSheet } = useFeedback()
   const [zoom, setZoom] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
@@ -443,6 +454,31 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const body = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
   const from = (data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
+  const group = data?.thread.kind === 'group'
+  const { data: members } = useQuery({
+    queryKey: ['chat', 'members', id],
+    queryFn: () => api.get<Items<Member>>(`/chat/threads/${id}/members`).then((r) => r.items),
+    enabled: group,
+    staleTime: 5 * 60_000,
+  })
+  const tagOptions = tagging && members ? matchMembers(members, tagging.q) : []
+  const typed = (value: string, caret: number) => {
+    setText(value)
+    const at = group && !editing ? mentionQuery(value, caret) : null
+    setTagging(at)
+    if (at?.q !== tagging?.q) setTagSel(0)
+  }
+  const pickTag = (m: Member) => {
+    if (!tagging) return
+    const r = insertMention(text, tagging, m)
+    setText(r.text)
+    setPicks((p) => (p.some((x) => x.number === m.number) ? p : [...p, m]))
+    setTagging(null)
+    requestAnimationFrame(() => {
+      input.current?.focus()
+      input.current?.setSelectionRange(r.caret, r.caret)
+    })
+  }
   const send = useMutation({
     mutationFn: (v: { body: string; reply_to?: string }) => api.post(`/chat/threads/${id}/messages`, v),
     onSuccess: () => {
@@ -590,11 +626,11 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     }
   }, [older, toast])
   useEffect(() => {
-    if (!(picked && data && data.thread.unread > 0)) return
+    if (!(picked && data && (data.thread.unread > 0 || !!data.thread.mentioned))) return
     // opened = read: the count and the "Belum dibaca" tag drop at once, then the lists, the numbers' badges and
     // the other numbers' copies of a group come back from the server
-    qc.setQueriesData<ThreadView[]>({ queryKey: ['chat', 'threads'] }, (list) => list?.map((t) => (t.id === id ? { ...t, unread: 0 } : t)))
-    qc.setQueryData<ThreadDetail>(['chat', 'thread', id], (d) => (d ? { ...d, thread: { ...d.thread, unread: 0 } } : d))
+    qc.setQueriesData<ThreadView[]>({ queryKey: ['chat', 'threads'] }, (list) => list?.map((t) => (t.id === id ? { ...t, unread: 0, mentioned: 0 } : t)))
+    qc.setQueryData<ThreadDetail>(['chat', 'thread', id], (d) => (d ? { ...d, thread: { ...d.thread, unread: 0, mentioned: 0 } } : d))
     api.post(`/chat/threads/${id}/read`).finally(() => {
       qc.invalidateQueries({ queryKey: ['chat', 'threads'] })
       qc.invalidateQueries({ queryKey: ['wa'] })
@@ -626,6 +662,23 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   }
   // Enter sends, Shift+Enter starts a new line (WhatsApp Web); Enter while an IME is composing a word does neither
   const composerKey = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    if (tagOptions.length > 0) {
+      // choosing whom to tag, like WhatsApp: ↑ ↓, Enter or Tab picks, Esc closes the list
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        setTagSel((i) => (i + (e.key === 'ArrowDown' ? 1 : tagOptions.length - 1)) % tagOptions.length)
+        return
+      }
+      if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') {
+        e.preventDefault()
+        pickTag(tagOptions[Math.min(tagSel, tagOptions.length - 1)])
+        return
+      }
+      if (e.key === 'Escape') {
+        setTagging(null)
+        return
+      }
+    }
     if (e.key === 'Escape') {
       if (editing) cancelEdit()
       setReplying(null)
@@ -638,7 +691,9 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   }
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    const v = text.trim()
+    const v = editing ? text.trim() : toWire(text.trim(), picks) // tags go to WhatsApp as "@<number>"
+    setPicks([])
+    setTagging(null)
     if (file && !editing) {
       setText('')
       sendForm(file, file.name, { body: v })
@@ -740,13 +795,24 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         ) : (
           <form onSubmit={submit}>
             {!editing && <AttachMenu onFile={pickFile} onPoll={openPoll} disabled={upload.isPending} />}
-            <textarea ref={input} rows={1} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={composerKey}
+            {tagOptions.length > 0 && (
+              <div className="cmp-tags" role="listbox" aria-label="Tandai anggota grup">
+                {tagOptions.map((m, i) => (
+                  <button key={m.number} type="button" role="option" aria-selected={i === tagSel} className={i === tagSel ? 'on' : ''}
+                    onMouseDown={(e) => { e.preventDefault(); pickTag(m) }} onMouseEnter={() => setTagSel(i)}>
+                    <b>{m.name}</b><small>{fmtPhone(m.number)}</small>
+                  </button>
+                ))}
+              </div>
+            )}
+            <textarea ref={input} rows={1} value={text} onChange={(e) => typed(e.target.value, e.target.selectionStart ?? e.target.value.length)} onKeyDown={composerKey}
+              onBlur={() => setTagging(null)}
               onPaste={(e) => {
                 // a copied screenshot or picture: it becomes the file to send, the box takes its caption (WhatsApp Web)
                 const img = !editing && pastedImage(e.clipboardData.files, e.clipboardData.getData('text/plain'))
                 if (img) { e.preventDefault(); pickFile(img) }
               }}
-              placeholder={editing ? 'Ubah pesan…' : file ? 'Tambahkan keterangan…' : 'Tulis balasan… (Shift+Enter: baris baru)'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : file ? 'Keterangan file' : 'Tulis balasan'} />
+              placeholder={editing ? 'Ubah pesan…' : file ? 'Tambahkan keterangan…' : group ? 'Tulis balasan… (@ untuk menandai, Shift+Enter: baris baru)' : 'Tulis balasan… (Shift+Enter: baris baru)'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : file ? 'Keterangan file' : 'Tulis balasan'} />
             {text.trim() || file || editing
               ? <button type="submit" className="send" aria-label={editing ? 'Simpan edit' : 'Kirim'} disabled={send.isPending || edit.isPending || upload.isPending}><Icon name={editing ? 'check' : 'send'} /></button>
               : <button type="button" className="send" onClick={voice.start} aria-label="Rekam pesan suara" title="Rekam pesan suara"><Mic /></button>}

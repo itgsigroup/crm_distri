@@ -11,9 +11,9 @@ export interface Quote { id: string; from_me: boolean; participant?: string; tex
 export interface SendTarget {
   id: string
   connected(): boolean
-  sendText(chat: string, text: string, typingMs: number, quote?: Quote): Promise<string>
+  sendText(chat: string, text: string, typingMs: number, quote?: Quote, mentions?: string[]): Promise<string>
   /** A file, voice note or poll (text = caption); returns the id and the media's download reference. */
-  sendContent(chat: string, content: Content, text: string, typingMs: number, quote?: Quote): Promise<{ wamid: string; ref?: string }>
+  sendContent(chat: string, content: Content, text: string, typingMs: number, quote?: Quote, mentions?: string[]): Promise<{ wamid: string; ref?: string }>
   editText(chat: string, wamid: string, text: string): Promise<void>
   deleteText(chat: string, wamid: string): Promise<void>
 }
@@ -44,7 +44,7 @@ export class Sender {
 
   private now(): Date { return this.opts.now ? this.opts.now() : new Date() }
 
-  async send(target: SendTarget, chat: string, text: string, actionId: string, quote?: Quote, content?: Content): Promise<{ wamid: string; duplicate: boolean; ref?: string }> {
+  async send(target: SendTarget, chat: string, text: string, actionId: string, quote?: Quote, content?: Content, mentions?: string[]): Promise<{ wamid: string; duplicate: boolean; ref?: string }> {
     if (!actionId) throw new SendError(403, 'not_approved', 'kirim ditolak — action belum disetujui manusia')
     if (!chat || (!text.trim() && !content)) throw new SendError(400, 'bad_request', 'chat_id dan text wajib')
     const gtext = guardText(content, text)
@@ -67,8 +67,8 @@ export class Sender {
       if (wait > 0) await (this.opts.sleep ?? sleep)(wait)
       let wamid: string
       let ref: string | undefined
-      if (content) ({ wamid, ref } = await target.sendContent(chat, content, text, typingMs(this.policy, text || 'x'.repeat(20)), quote))
-      else wamid = await target.sendText(chat, text, typingMs(this.policy, text), quote)
+      if (content) ({ wamid, ref } = await target.sendContent(chat, content, text, typingMs(this.policy, text || 'x'.repeat(20)), quote, mentions))
+      else wamid = await target.sendText(chat, text, typingMs(this.policy, text), quote, mentions)
       const at = this.now()
       this.lastSendAt.set(target.id, at.getTime())
       await this.store.recordSend({ session: target.id, chat, actionId, wamid, at, hash: textHash(gtext) })

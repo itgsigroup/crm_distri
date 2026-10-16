@@ -23,6 +23,14 @@ describe('Baileys → WaEvent', () => {
     const g = await toWaEvent('s-andi', msg({ id: 'A3', remoteJid: '1203@g.us', participant: '111@lid', fromMe: false }, { conversation: 'Jadwal survei Kamis' }), r, false)
     expect(g).toMatchObject({ is_group: true, chat_id: '1203@g.us', from: '6281299887766', group_meta: { name: 'Proyek RSUD' } })
   })
+  it('passes on the members a group message tags, a LID resolved to the phone number', async () => {
+    const ev = await toWaEvent('s-andi', msg({ id: 'T1', remoteJid: '1203@g.us', participant: '111@lid', fromMe: false }, {
+      extendedTextMessage: { text: '@6281200000001 tolong cek @222 juga', contextInfo: { mentionedJid: ['6281200000001@s.whatsapp.net', '222@lid', '222@lid'] } },
+    }), r, false)
+    expect(ev?.mentions).toEqual([{ token: '6281200000001', phone: '6281200000001', name: '' }, { token: '222', phone: '', name: '' }])
+    const plain = await toWaEvent('s-andi', msg({ id: 'T2', remoteJid: '1203@g.us', participant: '111@lid', fromMe: false }, { conversation: 'tanpa tag' }), r, false)
+    expect(plain?.mentions).toBeUndefined()
+  })
   it('keeps a download reference for media: key and CDN fields only, no caption or thumbnail', async () => {
     const key = new Uint8Array([1, 2, 3, 4])
     const ev = await toWaEvent('s', msg({ id: 'IMG1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, {

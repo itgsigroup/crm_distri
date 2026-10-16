@@ -179,6 +179,7 @@ type ChatMessage struct {
 	Holding    *bool           `json:"holding"`
 	Closing    *bool           `json:"closing"`
 	AutoReply  *bool           `json:"auto_reply"`
+	Mentions   json.RawMessage `json:"mentions"`
 }
 
 type ChatMessageKey struct {
@@ -255,6 +256,7 @@ type ChatThread struct {
 	PhoneName        *string         `json:"phone_name"`
 	UnrepliedMark    *time.Time      `json:"unreplied_mark"`
 	RepliedMark      *time.Time      `json:"replied_mark"`
+	Mentioned        int32           `json:"mentioned"`
 }
 
 type ChatThreadPin struct {

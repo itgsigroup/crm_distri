@@ -7,6 +7,9 @@ export interface GroupMeta { name: string; members: GroupMember[] }
  * Media of a message. The content is never downloaded on arrival; `ref` is what WhatsApp needs to fetch it later on
  * request (POST /sessions/{id}/media): the message key and the media's CDN path and decryption key, no thumbnail.
  */
+/** A member tagged in a message ("@Budi"): the digits the text carries after "@" (a number or a LID), the member's
+ * phone number when known, and the name the group knows them by. */
+export interface Mention { token: string; phone: string; name: string }
 export interface MediaMeta { kind: string; mime: string; file_name: string; size: number; seconds?: number; ptt?: boolean; ref?: string }
 export interface WaEvent {
   wamid: string
@@ -22,6 +25,7 @@ export interface WaEvent {
   media_meta?: MediaMeta
   timestamp: string
   quoted?: string
+  mentions?: Mention[] // members tagged in the text (WhatsApp "@")
   edit_of?: string // the message this one edits (its text replaces the original's)
   revoke_of?: string // the message this one deletes for everyone ("Pesan ini dihapus")
   from_me: boolean
@@ -50,12 +54,30 @@ function meta(kind: string, x: Media): MediaMeta {
   return out
 }
 
+/** The contextInfo of a message's content (every content type carries one: the quoted message, the tagged members). */
+function contextOf(m: proto.IMessage): proto.IContextInfo | undefined {
+  for (const v of Object.values(m)) {
+    if (v && typeof v === 'object' && 'contextInfo' in v) {
+      const c = (v as { contextInfo?: proto.IContextInfo | null }).contextInfo
+      if (c) return c
+    }
+  }
+  return undefined
+}
+
+/** The JIDs tagged in a message ("@Budi"), as WhatsApp lists them. */
+export function mentionedJids(message: proto.IMessage | null | undefined): string[] {
+  const m = normalizeMessageContent(message)
+  if (!m) return []
+  return [...new Set((contextOf(m)?.mentionedJid ?? []).filter(Boolean))]
+}
+
 /** Extracts human text and media metadata. Media content is never downloaded here. */
 export function messageText(message: proto.IMessage | null | undefined): { text: string; media?: MediaMeta; quoted?: string } {
   const m = normalizeMessageContent(message)
   if (!m) return { text: '' }
   // the message replied to ("Balas"): every content type carries it in its contextInfo
-  const quoted = Object.values(m).map((v) => (v && typeof v === 'object' && 'contextInfo' in v ? (v as { contextInfo?: proto.IContextInfo | null }).contextInfo?.stanzaId : undefined)).find(Boolean) ?? undefined
+  const quoted = contextOf(m)?.stanzaId ?? undefined
   if (m.conversation) return { text: m.conversation, quoted }
   if (m.extendedTextMessage) return { text: m.extendedTextMessage.text ?? '', quoted }
   if (m.imageMessage) return { text: m.imageMessage.caption ?? '', media: meta('image', m.imageMessage), quoted }
@@ -161,6 +183,15 @@ export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, hi
   if (revoke) ev.revoke_of = revoke
   if (quoted) ev.quoted = quoted
   if (group) ev.group_meta = (await r.groupMeta(chat)) ?? { name: '', members: [] }
+  const tagged = edit || revoke ? [] : mentionedJids(msg.message)
+  if (tagged.length) {
+    const members = ev.group_meta?.members ?? []
+    ev.mentions = await Promise.all(tagged.map(async (jid) => {
+      const member = members.find((x) => x.jid === jid || (x.phone && x.phone === digits(jid)))
+      const phone = member?.phone || (isLidUser(jid) ? digits((await r.pnForLid(jid)) ?? '') : digits(jid))
+      return { token: digits(jid), phone, name: member?.name ?? '' }
+    }))
+  }
   return ev
 }
 

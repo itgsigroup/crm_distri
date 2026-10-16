@@ -447,24 +447,6 @@ func (q *Queries) FindContactByNumber(ctx context.Context, waNumber *string) (Fi
 	return i, err
 }
 
-const gSINumberName = `-- name: GSINumberName :one
-select coalesce(
-  (select coalesce(nullif(u.name, ''), nullif(w.label, ''), s.name) from wa_numbers w left join users u on u.id = w.user_id
-     left join sales_users s on s.id = w.sales_id where w.wa_number = $1::text),
-  (select nullif(label, '') from internal_numbers where wa_number = $1::text),
-  (select name from users where wa_number = $1::text limit 1),
-  (select name from sales_users where wa_number = $1::text limit 1),
-  '')::text
-`
-
-// The name a GSI number goes by: its linked holder, its internal label, a user's or a sales' name.
-func (q *Queries) GSINumberName(ctx context.Context, waNumber string) (string, error) {
-	row := q.db.QueryRow(ctx, gSINumberName, waNumber)
-	var column_1 string
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const getContactType = `-- name: GetContactType :one
 select type from contact_types where wa_number = $1
 `
@@ -543,7 +525,7 @@ func (q *Queries) GetSalesByNumber(ctx context.Context, waNumber *string) (Sales
 }
 
 const getThread = `-- name: GetThread :one
-select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, t.unreplied_mark, t.replied_mark, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
+select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, t.unreplied_mark, t.replied_mark, t.mentioned, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
   coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
   coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
   coalesce(nullif(d.branch, ''), s.branch, '')::text as thread_branch,
@@ -589,6 +571,7 @@ type GetThreadRow struct {
 	PhoneName        *string         `json:"phone_name"`
 	UnrepliedMark    *time.Time      `json:"unreplied_mark"`
 	RepliedMark      *time.Time      `json:"replied_mark"`
+	Mentioned        int32           `json:"mentioned"`
 	DealerSlug       *string         `json:"dealer_slug"`
 	DealerName       *string         `json:"dealer_name"`
 	SalesName        *string         `json:"sales_name"`
@@ -631,6 +614,7 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 		&i.PhoneName,
 		&i.UnrepliedMark,
 		&i.RepliedMark,
+		&i.Mentioned,
 		&i.DealerSlug,
 		&i.DealerName,
 		&i.SalesName,
@@ -648,7 +632,7 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 }
 
 const getThreadByAccountJID = `-- name: GetThreadByAccountJID :one
-select id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at, phone_name, unreplied_mark, replied_mark from chat_threads where wa_jid = $1 and account is not distinct from $2
+select id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at, phone_name, unreplied_mark, replied_mark, mentioned from chat_threads where wa_jid = $1 and account is not distinct from $2
 `
 
 type GetThreadByAccountJIDParams struct {
@@ -684,12 +668,13 @@ func (q *Queries) GetThreadByAccountJID(ctx context.Context, arg GetThreadByAcco
 		&i.PhoneName,
 		&i.UnrepliedMark,
 		&i.RepliedMark,
+		&i.Mentioned,
 	)
 	return i, err
 }
 
 const getThreadMessage = `-- name: GetThreadMessage :one
-select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, m.closing, m.auto_reply, x.account as holder_account from chat_messages m
+select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, m.closing, m.auto_reply, m.mentions, x.account as holder_account from chat_messages m
 join chat_threads x on x.id = m.thread_id
 join chat_threads t on t.id = $1::uuid
 where m.id = $2::uuid and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
@@ -721,6 +706,7 @@ type GetThreadMessageRow struct {
 	Holding       *bool           `json:"holding"`
 	Closing       *bool           `json:"closing"`
 	AutoReply     *bool           `json:"auto_reply"`
+	Mentions      json.RawMessage `json:"mentions"`
 	HolderAccount *string         `json:"holder_account"`
 }
 
@@ -750,6 +736,7 @@ func (q *Queries) GetThreadMessage(ctx context.Context, arg GetThreadMessagePara
 		&i.Holding,
 		&i.Closing,
 		&i.AutoReply,
+		&i.Mentions,
 		&i.HolderAccount,
 	)
 	return i, err
@@ -905,6 +892,40 @@ func (q *Queries) GetWANumberByUser(ctx context.Context, userID *uuid.UUID) (WaN
 	return i, err
 }
 
+const groupMembersSeen = `-- name: GroupMembersSeen :many
+select distinct on (m.from_number) m.from_number::text as number, coalesce(nullif(m.from_name, ''), '')::text as name
+from chat_messages m join chat_threads t on t.id = m.thread_id
+where t.kind = 'group' and t.wa_jid = $1::text and m.direction = 'in' and coalesce(m.from_number, '') <> ''
+  and m.deleted_at is null
+order by m.from_number, m.sent_at desc
+`
+
+type GroupMembersSeenRow struct {
+	Number string `json:"number"`
+	Name   string `json:"name"`
+}
+
+// The people who wrote in a group, as Chat knows them (any GSI number's copy): who the composer can tag ("@").
+func (q *Queries) GroupMembersSeen(ctx context.Context, waJid string) ([]GroupMembersSeenRow, error) {
+	rows, err := q.db.Query(ctx, groupMembersSeen, waJid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GroupMembersSeenRow{}
+	for rows.Next() {
+		var i GroupMembersSeenRow
+		if err := rows.Scan(&i.Number, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const groupThreadAccounts = `-- name: GroupThreadAccounts :many
 select x.id, x.account, coalesce(n.label, s.name, x.account) as account_label
 from chat_threads x join chat_threads t on t.id = $1 and t.kind = 'group' and x.wa_jid = t.wa_jid
@@ -1037,14 +1058,15 @@ func (q *Queries) InsertAIDraftOrder(ctx context.Context, arg InsertAIDraftOrder
 const insertChatMessage = `-- name: InsertChatMessage :one
 with k as (
   insert into chat_message_keys (wa_msg_id, message_id, sent_at)
-  values (coalesce($14::text, $2::text, 'local:' || gen_random_uuid()), gen_random_uuid(), $15::timestamptz)
+  values (coalesce($15::text, $2::text, 'local:' || gen_random_uuid()), gen_random_uuid(), $16::timestamptz)
   on conflict (wa_msg_id) do nothing
   returning message_id, sent_at
 )
-insert into chat_messages (id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, quoted_wa_id)
+insert into chat_messages (id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, quoted_wa_id, mentions)
 select k.message_id, $1::uuid, $2::text, $3::text, $4::text,
        $5::text, $6::text, $7::jsonb, k.sent_at, $8::jsonb,
-       $9::uuid, $10::text, $11::uuid, $12::bool, $13::text
+       $9::uuid, $10::text, $11::uuid, $12::bool, $13::text,
+       $14::jsonb
 from k
 returning id
 `
@@ -1063,6 +1085,7 @@ type InsertChatMessageParams struct {
 	ProposalID *uuid.UUID      `json:"proposal_id"`
 	Internal   bool            `json:"internal"`
 	QuotedWaID *string         `json:"quoted_wa_id"`
+	Mentions   json.RawMessage `json:"mentions"`
 	MsgKey     *string         `json:"msg_key"`
 	SentAt     time.Time       `json:"sent_at"`
 }
@@ -1084,6 +1107,7 @@ func (q *Queries) InsertChatMessage(ctx context.Context, arg InsertChatMessagePa
 		arg.ProposalID,
 		arg.Internal,
 		arg.QuotedWaID,
+		arg.Mentions,
 		arg.MsgKey,
 		arg.SentAt,
 	)
@@ -1381,7 +1405,7 @@ values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 on conflict (seed_key) do update set title = excluded.title, subtitle = excluded.subtitle, tag = excluded.tag,
   suggestions = excluded.suggestions, identification = excluded.identification, unread = excluded.unread,
   dealer_id = excluded.dealer_id, contact_id = excluded.contact_id, group_id = excluded.group_id
-returning id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at, phone_name, unreplied_mark, replied_mark
+returning id, kind, dealer_id, group_id, contact_id, wa_jid, title, subtitle, sales_id, last_message_at, unread, identification, tag, suggestions, seed_key, account, history_req_oldest, history_req_at, history_tries, history_done_at, phone_name, unreplied_mark, replied_mark, mentioned
 `
 
 type InsertThreadParams struct {
@@ -1445,6 +1469,7 @@ func (q *Queries) InsertThread(ctx context.Context, arg InsertThreadParams) (Cha
 		&i.PhoneName,
 		&i.UnrepliedMark,
 		&i.RepliedMark,
+		&i.Mentioned,
 	)
 	return i, err
 }
@@ -1682,8 +1707,8 @@ func (q *Queries) ListReplyRules(ctx context.Context) ([]ReplyRule, error) {
 }
 
 const listThreadMessages = `-- name: ListThreadMessages :many
-select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at, quoted_wa_id, deleted_at, holding, closing, auto_reply from (
-  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, m.closing, m.auto_reply from chat_messages m
+select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at, quoted_wa_id, deleted_at, holding, closing, auto_reply, mentions from (
+  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, m.closing, m.auto_reply, m.mentions from chat_messages m
   where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
                         where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
     and m.sent_at < $2 and m.sent_at >= $3::timestamptz order by m.sent_at desc limit $4
@@ -1734,6 +1759,7 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 			&i.Holding,
 			&i.Closing,
 			&i.AutoReply,
+			&i.Mentions,
 		); err != nil {
 			return nil, err
 		}
@@ -1746,11 +1772,11 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 }
 
 const listThreads = `-- name: ListThreads :many
-select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, t.unreplied_mark, t.replied_mark, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
+select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, t.unreplied_mark, t.replied_mark, t.mentioned, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, g.kind as group_kind,
   coalesce(n.label, s.name, t.account) as account_label, coalesce(n.team, 'sales')::text as account_team,
   coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
   -- a group's last message may have been stored under another GSI number's thread of the same group
-  lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
+  lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction, lm.mentions as last_mentions,
   -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply;
   -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
   -- marked by hand (migration 0040): "sudah dibalas" answers what came before it; "belum dibalas" waits until a reply
@@ -1767,11 +1793,11 @@ left join sales_users s on s.id = t.sales_id
 left join wa_groups g on g.id = t.group_id
 left join wa_numbers n on n.wa_number = t.account
 left join lateral (
-  select u.body, u.from_name, u.direction from (
-    (select m.body, m.from_name, m.direction, m.sent_at from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1)
+  select u.body, u.from_name, u.direction, u.mentions from (
+    (select m.body, m.from_name, m.direction, m.mentions, m.sent_at from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1)
     union all
-    (select o.body, o.from_name, o.direction, o.sent_at from chat_threads x
-       cross join lateral (select m.body, m.from_name, m.direction, m.sent_at from chat_messages m
+    (select o.body, o.from_name, o.direction, o.mentions, o.sent_at from chat_threads x
+       cross join lateral (select m.body, m.from_name, m.direction, m.mentions, m.sent_at from chat_messages m
                            where m.thread_id = x.id order by m.sent_at desc limit 1) o
      where t.kind = 'group' and x.wa_jid = t.wa_jid and x.id <> t.id)
   ) u order by u.sent_at desc limit 1
@@ -1804,6 +1830,7 @@ type ListThreadsRow struct {
 	PhoneName        *string         `json:"phone_name"`
 	UnrepliedMark    *time.Time      `json:"unreplied_mark"`
 	RepliedMark      *time.Time      `json:"replied_mark"`
+	Mentioned        int32           `json:"mentioned"`
 	DealerSlug       *string         `json:"dealer_slug"`
 	DealerName       *string         `json:"dealer_name"`
 	SalesName        *string         `json:"sales_name"`
@@ -1814,6 +1841,7 @@ type ListThreadsRow struct {
 	LastBody         *string         `json:"last_body"`
 	LastFrom         *string         `json:"last_from"`
 	LastDirection    *string         `json:"last_direction"`
+	LastMentions     json.RawMessage `json:"last_mentions"`
 	WaitingSince     interface{}     `json:"waiting_since"`
 }
 
@@ -1852,6 +1880,7 @@ func (q *Queries) ListThreads(ctx context.Context, since time.Time) ([]ListThrea
 			&i.PhoneName,
 			&i.UnrepliedMark,
 			&i.RepliedMark,
+			&i.Mentioned,
 			&i.DealerSlug,
 			&i.DealerName,
 			&i.SalesName,
@@ -1862,6 +1891,7 @@ func (q *Queries) ListThreads(ctx context.Context, since time.Time) ([]ListThrea
 			&i.LastBody,
 			&i.LastFrom,
 			&i.LastDirection,
+			&i.LastMentions,
 			&i.WaitingSince,
 		); err != nil {
 			return nil, err
@@ -2042,12 +2072,13 @@ func (q *Queries) MarkLateCommitments(ctx context.Context, dueAt *time.Time) ([]
 }
 
 const markThreadRead = `-- name: MarkThreadRead :exec
-update chat_threads x set unread = 0
+update chat_threads x set unread = 0, mentioned = case when x.id = t.id then 0 else x.mentioned end
 from chat_threads t
-where t.id = $1 and x.unread <> 0 and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+where t.id = $1 and (x.unread <> 0 or (x.id = t.id and x.mentioned <> 0)) and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
 `
 
-// A group is one conversation for every GSI number in it: reading it reads it under each number.
+// A group is one conversation for every GSI number in it: reading it reads it under each number. A tag ("@") is for
+// one number: only the chat opened clears it.
 func (q *Queries) MarkThreadRead(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, markThreadRead, id)
 	return err
@@ -2088,6 +2119,16 @@ type MarkThreadUnrepliedParams struct {
 
 func (q *Queries) MarkThreadUnreplied(ctx context.Context, arg MarkThreadUnrepliedParams) error {
 	_, err := q.db.Exec(ctx, markThreadUnreplied, arg.At, arg.ID)
+	return err
+}
+
+const mentionThread = `-- name: MentionThread :exec
+update chat_threads set mentioned = mentioned + 1 where id = $1
+`
+
+// A live message tagged this thread's number ("@"): the chat row shows it until the chat is opened.
+func (q *Queries) MentionThread(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, mentionThread, id)
 	return err
 }
 
@@ -2231,6 +2272,26 @@ type NameNewThreadParams struct {
 func (q *Queries) NameNewThread(ctx context.Context, arg NameNewThreadParams) error {
 	_, err := q.db.Exec(ctx, nameNewThread, arg.ID, arg.Title)
 	return err
+}
+
+const numberName = `-- name: NumberName :one
+select coalesce(
+  (select coalesce(nullif(u.name, ''), nullif(w.label, ''), s.name) from wa_numbers w left join users u on u.id = w.user_id
+     left join sales_users s on s.id = w.sales_id where w.wa_number = $1::text),
+  (select nullif(label, '') from internal_numbers where wa_number = $1::text),
+  (select name from users where wa_number = $1::text and name <> '' limit 1),
+  (select name from sales_users where wa_number = $1::text limit 1),
+  (select name from contacts where wa_number = $1::text and coalesce(name, '') <> '' limit 1),
+  '')::text
+`
+
+// The name a number goes by in Chat (a tagged member, an employee's chat): a GSI number's holder or label, a user's
+// or a sales' name, else the dealer contact's name.
+func (q *Queries) NumberName(ctx context.Context, waNumber string) (string, error) {
+	row := q.db.QueryRow(ctx, numberName, waNumber)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const openCommitments = `-- name: OpenCommitments :many

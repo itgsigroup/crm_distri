@@ -43,6 +43,8 @@ sql:
       - db/migrations/0039_chat_pins_labels.sql
       - db/migrations/0040_chat_list_marks.sql
       - db/migrations/0041_ai_triggers.sql
+      - db/migrations/0042_internal_dm_threads.sql
+      - db/migrations/0043_chat_mentions.sql
     queries: db/queries
     gen:
       go:

@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Tag (@) di grup seperti WhatsApp · 2026-10-16
+- Pesan grup yang menandai anggota kini tampil dengan nama yang ditandai (@Budi, berwarna), bukan deretan angka; pratinjau di daftar chat juga.
+- Nomor GSI yang ditandai melihat tanda **@** di baris chat, sampai chat itu dibuka di nomor tersebut. Membaca grup lewat nomor lain tidak menghapus tanda nomor ini; riwayat lama tidak memunculkan tanda.
+- Menandai dari Chat: ketik **@** di grup, pilih anggota (↑ ↓, Enter/Tab, atau klik). Daftar berisi orang yang pernah menulis di grup dan nomor GSI lain di grup itu. Terkirim ke WhatsApp sebagai tag asli, jadi HP anggota mendapat notifikasi tag.
+- Migrasi 0043 (`chat_messages.mentions`, `chat_threads.mentioned`); wa-bridge meneruskan `mentionedJid` (LID diterjemahkan ke nomor) dan mengirim tag.
+
 ## Fix · DM antar karyawan tampil di Chat, tidak masuk analisa · 2026-10-16
 - Pesan Tantri ke Granike ada di HP tapi tidak muncul di Chat: nomor tertaut yang punya pemegang tercatat sebagai nomor internal, dan DM antar nomor internal dibuang.
 - DM antar karyawan (nomor internal, nomor tertaut, nomor user/sales) kini disimpan dan tampil di Chat kedua nomor sebagai percakapan **Internal** (chip filter *Internal*, tag INTERNAL). "Internal" berarti tidak masuk analisa: tanpa sinyal, tidak dibaca Analisa WhatsApp/Orchestrator, tidak dihitung *Belum dibalas*, tanpa saran balasan, tanpa identifikasi nomor.

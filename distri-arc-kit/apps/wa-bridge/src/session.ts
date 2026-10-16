@@ -392,15 +392,16 @@ export class Session implements SendTarget {
   convertAudio: AudioConverter = ffmpegToOgg
 
   /** A file, voice note or poll, sent like a text (presence, read, typing — "recording…" for a voice note). */
-  async sendContent(chat: string, content: Content, text: string, typing: number, quote?: Quote): Promise<{ wamid: string; ref?: string }> {
+  async sendContent(chat: string, content: Content, text: string, typing: number, quote?: Quote, mentions?: string[]): Promise<{ wamid: string; ref?: string }> {
     const msg = await toMessage(content, text, this.convertAudio)
+    if (mentions?.length && content.kind !== 'poll' && content.kind !== 'audio') Object.assign(msg, { mentions }) // tagged in the caption
     const m = await this.deliver(chat, msg, typing, quote, content.kind === 'audio' && content.ptt ? 'recording' : 'composing')
     return { wamid: m.key.id as string, ref: mediaRef(m) ?? undefined }
   }
 
   /** Sends like a person: online, reads the chat (blue ticks), pauses, "typing…", then the message. */
-  async sendText(chat: string, text: string, typing: number, quote?: Quote): Promise<string> {
-    const m = await this.deliver(chat, { text }, typing, quote, 'composing')
+  async sendText(chat: string, text: string, typing: number, quote?: Quote, mentions?: string[]): Promise<string> {
+    const m = await this.deliver(chat, mentions?.length ? { text, mentions } : { text }, typing, quote, 'composing')
     return m.key.id as string
   }
 

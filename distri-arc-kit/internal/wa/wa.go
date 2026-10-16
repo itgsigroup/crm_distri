@@ -6,8 +6,11 @@ package wa
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
+	"regexp"
+	"slices"
 	"strings"
 	"time"
 )
@@ -37,6 +40,8 @@ type Message struct {
 	QuotedID string `json:"quoted_id,omitempty"`
 	// RevokeOf: this message deletes the message with that id for everyone ("Pesan ini dihapus").
 	RevokeOf string `json:"revoke_of,omitempty"`
+	// Mentions: the group members the text tags ("@Budi").
+	Mentions []Mention `json:"mentions,omitempty"`
 	// mirror: the other linked GSI number's copy of a 1:1 message, made by GSI Orbit (never mirrored again)
 	mirror bool
 }
@@ -47,6 +52,62 @@ type Quote struct {
 	FromMe      bool   `json:"from_me"`
 	Participant string `json:"participant,omitempty"` // a group member's JID (groups only)
 	Text        string `json:"text"`
+}
+
+// Mention is a member tagged in a message ("@Budi"): the body carries "@<Token>" (a number, or a LID WhatsApp shows
+// in groups that hide numbers), Number is the member's phone number when known, Name how Chat shows them.
+type Mention struct {
+	Token  string `json:"token"`
+	Number string `json:"number,omitempty"`
+	Name   string `json:"name,omitempty"`
+}
+
+type mentionsKey struct{}
+
+// WithMentions makes the send tag these numbers (the text carries "@<number>" for each, as WhatsApp sends tags).
+func WithMentions(ctx context.Context, numbers []string) context.Context {
+	if len(numbers) == 0 {
+		return ctx
+	}
+	return context.WithValue(ctx, mentionsKey{}, numbers)
+}
+
+// MentionsFrom is the numbers set by WithMentions.
+func MentionsFrom(ctx context.Context) []string {
+	ms, _ := ctx.Value(mentionsKey{}).([]string)
+	return ms
+}
+
+var mentionToken = regexp.MustCompile(`@(\d{5,20})`)
+
+// NamedMentions is a text with its tags as people read them: "@6281…" becomes "@Budi" (mentions as stored).
+func NamedMentions(text string, mentions []byte) string {
+	if len(mentions) == 0 || !strings.Contains(text, "@") {
+		return text
+	}
+	var ms []Mention
+	if json.Unmarshal(mentions, &ms) != nil {
+		return text
+	}
+	return mentionToken.ReplaceAllStringFunc(text, func(tag string) string {
+		for _, m := range ms {
+			if m.Token == tag[1:] && m.Name != "" {
+				return "@" + m.Name
+			}
+		}
+		return tag
+	})
+}
+
+// MentionTokens lists the "@<digits>" tags in a text, once each, in order.
+func MentionTokens(text string) []string {
+	var out []string
+	for _, m := range mentionToken.FindAllStringSubmatch(text, -1) {
+		if !slices.Contains(out, m[1]) {
+			out = append(out, m[1])
+		}
+	}
+	return out
 }
 
 type quoteKey struct{}

@@ -101,6 +101,11 @@ type bridgeEvent struct {
 		} `json:"members"`
 	} `json:"group_meta"`
 	MediaMeta *Media `json:"media_meta"`
+	Mentions  []struct {
+		Token string `json:"token"`
+		Phone string `json:"phone"`
+		Name  string `json:"name"`
+	} `json:"mentions"`
 }
 
 type bridgeStatus struct {
@@ -148,6 +153,11 @@ func (e bridgeEvent) message() Message {
 	m := Message{ID: e.WAMID, Account: acc, ChatJID: e.ChatID, FromNumber: Digits(e.From), FromName: e.SenderName,
 		IsGroup: e.IsGroup, FromMe: e.FromMe, Text: text, Time: t, ChatName: strings.TrimSpace(e.ChatName), History: e.IsHistory,
 		Media: e.MediaMeta, EditOf: e.EditOf, QuotedID: e.Quoted, RevokeOf: e.RevokeOf}
+	for _, x := range e.Mentions {
+		if tok := Digits(x.Token); tok != "" {
+			m.Mentions = append(m.Mentions, Mention{Token: tok, Number: Digits(x.Phone), Name: strings.TrimSpace(x.Name)})
+		}
+	}
 	if e.GroupMeta != nil {
 		m.GroupName = e.GroupMeta.Name
 		for _, x := range e.GroupMeta.Members {
@@ -426,6 +436,9 @@ func (b *Baileys) Send(ctx context.Context, account, chatJID, text string) (stri
 	if q := QuoteFrom(ctx); q != nil {
 		in["quote"] = q
 	}
+	if ms := MentionsFrom(ctx); len(ms) > 0 {
+		in["mentions"] = ms
+	}
 	_, hdr, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/send", in, &out)
 	var be *bridgeError
 	if errors.As(err, &be) && (be.Status == http.StatusForbidden || be.Status == http.StatusConflict || be.Status == http.StatusTooManyRequests) {
@@ -453,6 +466,9 @@ func (b *Baileys) SendContent(ctx context.Context, account, chatJID, text string
 	in := map[string]any{"chat_id": chatJID, "text": text, "action_id": action, "content": c}
 	if q := QuoteFrom(ctx); q != nil {
 		in["quote"] = q
+	}
+	if ms := MentionsFrom(ctx); len(ms) > 0 {
+		in["mentions"] = ms
 	}
 	var out struct {
 		WAMID string `json:"wamid"`

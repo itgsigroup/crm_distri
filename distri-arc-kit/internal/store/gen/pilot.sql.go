@@ -17,7 +17,7 @@ const auditInternalDMs = `-- name: AuditInternalDMs :one
 select count(*)::bigint from chat_messages m join chat_threads t on t.id = m.thread_id
 where t.kind <> 'group' and m.sent_at >= $1::timestamptz and m.sent_at < $2::timestamptz
   and split_part(t.wa_jid, '@', 1) in (select wa_number from internal_numbers)
-  and not (split_part(t.wa_jid, '@', 1) in (select wa_number from wa_numbers) and t.account in (select wa_number from wa_numbers))
+  and (t.kind <> 'internal' or m.signal_id is not null)
 `
 
 type AuditInternalDMsParams struct {
@@ -25,8 +25,8 @@ type AuditInternalDMsParams struct {
 	Until time.Time `json:"until"`
 }
 
-// Direct messages between internal numbers must never be stored (09-policies-security); a chat between two numbers
-// linked to GSI Orbit is a work chat both numbers keep.
+// Direct messages between internal numbers are kept in Chat but never analysed (09-policies-security): one outside an
+// internal thread, or that made a signal, is a breach.
 func (q *Queries) AuditInternalDMs(ctx context.Context, arg AuditInternalDMsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, auditInternalDMs, arg.Since, arg.Until)
 	var column_1 int64

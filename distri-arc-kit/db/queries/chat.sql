@@ -149,10 +149,15 @@ update chat_threads set phone_name = nullif(sqlc.arg(name)::text, '')
 where wa_jid in (sqlc.arg(number)::text || '@s.whatsapp.net') or split_part(split_part(wa_jid, '@', 1), ':', 1) = sqlc.arg(number)::text and wa_jid like '%@s.whatsapp.net';
 
 -- name: MarkThreadRead :exec
--- A group is one conversation for every GSI number in it: reading it reads it under each number.
-update chat_threads x set unread = 0
+-- A group is one conversation for every GSI number in it: reading it reads it under each number. A tag ("@") is for
+-- one number: only the chat opened clears it.
+update chat_threads x set unread = 0, mentioned = case when x.id = t.id then 0 else x.mentioned end
 from chat_threads t
-where t.id = $1 and x.unread <> 0 and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid));
+where t.id = $1 and (x.unread <> 0 or (x.id = t.id and x.mentioned <> 0)) and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid));
+
+-- name: MentionThread :exec
+-- A live message tagged this thread's number ("@"): the chat row shows it until the chat is opened.
+update chat_threads set mentioned = mentioned + 1 where id = $1;
 
 -- name: InsertChatMessage :one
 -- chat_message_keys keeps wa_msg_id unique across monthly partitions; a known id inserts nothing (no rows).
@@ -163,10 +168,11 @@ with k as (
   on conflict (wa_msg_id) do nothing
   returning message_id, sent_at
 )
-insert into chat_messages (id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, quoted_wa_id)
+insert into chat_messages (id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, quoted_wa_id, mentions)
 select k.message_id, sqlc.narg(thread_id)::uuid, sqlc.narg(wa_msg_id)::text, sqlc.narg(direction)::text, sqlc.narg(from_number)::text,
        sqlc.narg(from_name)::text, sqlc.narg(body)::text, sqlc.narg(media)::jsonb, k.sent_at, sqlc.narg(annotation)::jsonb,
-       sqlc.narg(signal_id)::uuid, sqlc.arg(status)::text, sqlc.narg(proposal_id)::uuid, sqlc.arg(internal)::bool, sqlc.narg(quoted_wa_id)::text
+       sqlc.narg(signal_id)::uuid, sqlc.arg(status)::text, sqlc.narg(proposal_id)::uuid, sqlc.arg(internal)::bool, sqlc.narg(quoted_wa_id)::text,
+       sqlc.narg(mentions)::jsonb
 from k
 returning id;
 
@@ -191,7 +197,7 @@ select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, 
   coalesce(n.label, s.name, t.account) as account_label, coalesce(n.team, 'sales')::text as account_team,
   coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
   -- a group's last message may have been stored under another GSI number's thread of the same group
-  lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction,
+  lm.body as last_body, lm.from_name as last_from, lm.direction as last_direction, lm.mentions as last_mentions,
   -- the oldest customer message not yet answered: how long the conversation has been waiting for a reply;
   -- an answer is ours (sent, or a GSI employee in a group) and not a holding reply ("tunggu sebentar", ADR 0034)
   -- marked by hand (migration 0040): "sudah dibalas" answers what came before it; "belum dibalas" waits until a reply
@@ -208,11 +214,11 @@ left join sales_users s on s.id = t.sales_id
 left join wa_groups g on g.id = t.group_id
 left join wa_numbers n on n.wa_number = t.account
 left join lateral (
-  select u.body, u.from_name, u.direction from (
-    (select m.body, m.from_name, m.direction, m.sent_at from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1)
+  select u.body, u.from_name, u.direction, u.mentions from (
+    (select m.body, m.from_name, m.direction, m.mentions, m.sent_at from chat_messages m where m.thread_id = t.id order by m.sent_at desc limit 1)
     union all
-    (select o.body, o.from_name, o.direction, o.sent_at from chat_threads x
-       cross join lateral (select m.body, m.from_name, m.direction, m.sent_at from chat_messages m
+    (select o.body, o.from_name, o.direction, o.mentions, o.sent_at from chat_threads x
+       cross join lateral (select m.body, m.from_name, m.direction, m.mentions, m.sent_at from chat_messages m
                            where m.thread_id = x.id order by m.sent_at desc limit 1) o
      where t.kind = 'group' and x.wa_jid = t.wa_jid and x.id <> t.id)
   ) u order by u.sent_at desc limit 1
@@ -665,18 +671,28 @@ where thread_id = sqlc.arg(thread_id)::uuid and sent_at < sqlc.arg(before)::time
   and deleted_at is null and coalesce(body, '') <> ''
 order by sent_at desc limit 10;
 
--- name: GSINumberName :one
--- The name a GSI number goes by: its linked holder, its internal label, a user's or a sales' name.
-select coalesce(
-  (select coalesce(nullif(u.name, ''), nullif(w.label, ''), s.name) from wa_numbers w left join users u on u.id = w.user_id
-     left join sales_users s on s.id = w.sales_id where w.wa_number = sqlc.arg(wa_number)::text),
-  (select nullif(label, '') from internal_numbers where wa_number = sqlc.arg(wa_number)::text),
-  (select name from users where wa_number = sqlc.arg(wa_number)::text limit 1),
-  (select name from sales_users where wa_number = sqlc.arg(wa_number)::text limit 1),
-  '')::text;
-
 -- name: SetThreadInternal :exec
 -- A 1:1 chat whose number became a GSI number: an internal chat, out of every analysis from now on.
 update chat_threads set kind = 'internal', subtitle = 'Karyawan GSI', identification = null,
   title = case when kind = 'new' then sqlc.arg(title)::text else title end
 where id = sqlc.arg(id)::uuid;
+
+-- name: NumberName :one
+-- The name a number goes by in Chat (a tagged member, an employee's chat): a GSI number's holder or label, a user's
+-- or a sales' name, else the dealer contact's name.
+select coalesce(
+  (select coalesce(nullif(u.name, ''), nullif(w.label, ''), s.name) from wa_numbers w left join users u on u.id = w.user_id
+     left join sales_users s on s.id = w.sales_id where w.wa_number = sqlc.arg(wa_number)::text),
+  (select nullif(label, '') from internal_numbers where wa_number = sqlc.arg(wa_number)::text),
+  (select name from users where wa_number = sqlc.arg(wa_number)::text and name <> '' limit 1),
+  (select name from sales_users where wa_number = sqlc.arg(wa_number)::text limit 1),
+  (select name from contacts where wa_number = sqlc.arg(wa_number)::text and coalesce(name, '') <> '' limit 1),
+  '')::text;
+
+-- name: GroupMembersSeen :many
+-- The people who wrote in a group, as Chat knows them (any GSI number's copy): who the composer can tag ("@").
+select distinct on (m.from_number) m.from_number::text as number, coalesce(nullif(m.from_name, ''), '')::text as name
+from chat_messages m join chat_threads t on t.id = m.thread_id
+where t.kind = 'group' and t.wa_jid = sqlc.arg(wa_jid)::text and m.direction = 'in' and coalesce(m.from_number, '') <> ''
+  and m.deleted_at is null
+order by m.from_number, m.sent_at desc;

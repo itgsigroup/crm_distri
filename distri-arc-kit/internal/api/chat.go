@@ -40,6 +40,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Post("/chat/threads/{id}/read", s.chatRead)
 	r.Get("/chat/threads/{id}/context", s.chatContext)
 	r.Get("/chat/threads/{id}/search", s.chatSearch)
+	r.Get("/chat/threads/{id}/members", s.chatMembers)
 	r.Post("/chat/threads/{id}/messages", s.chatSend)
 	r.Patch("/chat/threads/{id}/messages/{mid}", s.chatEdit)
 	r.Delete("/chat/threads/{id}/messages/{mid}", s.chatDelete)
@@ -83,6 +84,7 @@ type ThreadView struct {
 	Sales         string          `json:"sales"`
 	LastMessageAt *time.Time      `json:"last_message_at"`
 	Unread        int32           `json:"unread"`
+	Mentioned     int32           `json:"mentioned,omitempty"` // unread messages that tag this number ("@")
 	LastBody      string          `json:"last_body"`
 	LastFrom      string          `json:"last_from"`
 	Tag           json.RawMessage `json:"tag"`
@@ -213,7 +215,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		v := ThreadView{ID: t.ID, Kind: kind, Title: deref(t.Title), Subtitle: deref(t.Subtitle), DealerID: deref(t.DealerSlug), DealerName: deref(t.DealerName),
-			Sales: deref(t.SalesName), LastMessageAt: t.LastMessageAt, Unread: t.Unread, LastBody: llm.MaskCredentials(deref(t.LastBody)), Tag: t.Tag, GroupKind: deref(t.GroupKind),
+			Sales: deref(t.SalesName), LastMessageAt: t.LastMessageAt, Unread: t.Unread, Mentioned: t.Mentioned, LastBody: llm.MaskCredentials(wa.NamedMentions(deref(t.LastBody), t.LastMentions)), Tag: t.Tag, GroupKind: deref(t.GroupKind),
 			Account: deref(t.Account), AccountLabel: t.AccountLabel, AccountTeam: t.AccountTeam, ContactType: t.ContactType, LastDirection: deref(t.LastDirection), WaitingSince: timeOrNil(t.WaitingSince)}
 		if kind != "group" {
 			v.PhoneName = deref(t.PhoneName)
@@ -368,6 +370,8 @@ type MessageView struct {
 	Suggest []*replyrule.Suggestion `json:"suggest,omitempty"`
 	Labels  []uuid.UUID             `json:"labels,omitempty"`
 	Pinned  bool                    `json:"pinned,omitempty"`
+	// Mentions: the members the text tags — "@<token>" in Body is shown as "@<name>"
+	Mentions json.RawMessage `json:"mentions,omitempty"`
 }
 
 // MsgQuote is the quoted bubble shown above a reply.
@@ -579,7 +583,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	now := s.clock.Now()
 	for _, m := range msgs {
 		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: llm.MaskCredentials(deref(m.Body)), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Holding: deref(m.Holding), AutoReply: deref(m.AutoReply), closing: deref(m.Closing), Annotation: m.Annotation, SignalID: m.SignalID,
-			Media: mediaView(m.Media), EditedAt: m.EditedAt}
+			Media: mediaView(m.Media), EditedAt: m.EditedAt, Mentions: m.Mentions}
 		if label, ok := others[deref(m.ThreadID)]; ok && v.Direction == "out" {
 			v.Direction, v.FromName, v.Internal = "in", label, true
 		}
@@ -638,7 +642,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"thread": map[string]any{
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "phone_name": deref(t.PhoneName), "dealer_id": deref(t.DealerSlug),
-		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread,
+		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread, "mentioned": t.Mentioned,
 		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
 		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "branch": t.ThreadBranch, "contact_type": t.ContactType, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),
 		"labels": convLabels,
@@ -871,8 +875,13 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		}
 		media, _ = json.Marshal(wa.Media{Kind: c.Kind, Mime: c.Mime, FileName: c.FileName, Size: c.Size, Seconds: c.Seconds, PTT: c.PTT})
 	}
+	mentions, tagged, err := s.sendMentions(r.Context(), t, caption)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
 	var res map[string]any
-	err := s.st.Tx(r.Context(), func(q *gen.Queries, tx pgx.Tx) error {
+	err = s.st.Tx(r.Context(), func(q *gen.Queries, tx pgx.Tx) error {
 		title := "Balasan ke " + deref(t.Title)
 		if forwarded != nil {
 			title = "Teruskan ke " + deref(t.Title)
@@ -888,7 +897,7 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		if quote != nil {
 			quoted = &quote.ID
 		}
-		mid, err := q.InsertChatMessage(r.Context(), gen.InsertChatMessageParams{ThreadID: &t.ID, WaMsgID: &pendingID, Direction: &dir, FromNumber: &from, FromName: &name, Body: &body, Media: media, SentAt: now, Status: "pending", ProposalID: &p.ID, QuotedWaID: quoted})
+		mid, err := q.InsertChatMessage(r.Context(), gen.InsertChatMessageParams{ThreadID: &t.ID, WaMsgID: &pendingID, Direction: &dir, FromNumber: &from, FromName: &name, Body: &body, Media: media, SentAt: now, Status: "pending", ProposalID: &p.ID, QuotedWaID: quoted, Mentions: mentions})
 		if err != nil {
 			return err
 		}
@@ -903,7 +912,7 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 				in.Content.FileID = fid.String()
 			}
 		}
-		payload, _ := json.Marshal(outbox.WAPayload{From: from, To: *t.WaJid, Text: text, Kind: "reply", MessageID: mid.String(), ThreadID: t.ID.String(), Quote: quote, Content: in.Content})
+		payload, _ := json.Marshal(outbox.WAPayload{From: from, To: *t.WaJid, Text: text, Kind: "reply", MessageID: mid.String(), ThreadID: t.ID.String(), Quote: quote, Content: in.Content, Mentions: tagged})
 		to := *t.WaJid
 		ob, err := q.InsertOutbox(r.Context(), gen.InsertOutboxParams{ProposalID: &p.ID, Channel: "wa", ToRef: &to, Payload: payload})
 		if err != nil {

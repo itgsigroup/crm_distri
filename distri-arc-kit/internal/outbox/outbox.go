@@ -34,6 +34,8 @@ type WAPayload struct {
 	EditSentAt *time.Time `json:"edit_sent_at,omitempty"`
 	// a reply to one bubble (WhatsApp "Balas"): the quoted message
 	Quote *wa.Quote `json:"quote,omitempty"`
+	// the members a group send tags ("@<number>" in Text)
+	Mentions []string `json:"mentions,omitempty"`
 	// a file, voice note or poll sent from Chat (Text is the caption); the file waits in chat_outgoing_files
 	Content *OutContent `json:"content,omitempty"`
 }
@@ -171,7 +173,7 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 			return gap - now.Sub(last), nil
 		}
 	}
-	sctx := wa.WithQuote(wa.WithAction(ctx, id.String()), p.Quote)
+	sctx := wa.WithMentions(wa.WithQuote(wa.WithAction(ctx, id.String()), p.Quote), p.Mentions)
 	var msgID, ref string
 	var sendErr error
 	if p.Content != nil {

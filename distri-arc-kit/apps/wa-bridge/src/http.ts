@@ -7,6 +7,13 @@ import { ContentError, MAX_CONTENT_BYTES, type Content } from './content.js'
 import { verify } from './sign.js'
 import type { Store } from './store.js'
 
+/** The members a send tags ("@Budi" in the text as "@<number>"): their JIDs; numbers become phone JIDs. */
+export function mentionJids(v: unknown): string[] | undefined {
+  if (!Array.isArray(v)) return undefined
+  const out = v.filter((x): x is string => typeof x === 'string' && x.trim() !== '').map((x) => (x.includes('@') ? x : x.replace(/\D/g, '') + '@s.whatsapp.net'))
+  return out.length ? [...new Set(out)] : undefined
+}
+
 /** The parts of a session the HTTP layer uses (lets tests run without WhatsApp). */
 export interface BridgeSession extends SendTarget {
   snapshot(): { session: string; status: string; phone: string; qr: string; reason?: string }
@@ -58,7 +65,7 @@ async function readBody(req: IncomingMessage, limit = 1 << 20): Promise<string> 
  *   GET    /sessions/{id}/qr              current QR / status
  *   GET    /sessions/{id}/groups          joined groups with members
  *   GET    /sessions/{id}/contacts/{jid}  profile (name, about, has_photo, business)
- *   POST   /sessions/{id}/send            {chat_id, text, action_id, quote?: {id, from_me, participant?, text},
+ *   POST   /sessions/{id}/send            {chat_id, text, action_id, quote?: {id, from_me, participant?, text}, mentions?: [jid],
  *                                          content?: {kind: image|video|document|audio|poll, mime, file_name, data (base64),
  *                                          ptt, seconds, poll: {name, options, multi}}} → {wamid, ref?}
  *   POST   /sessions/{id}/edit            {chat_id, wamid, text, action_id} → {wamid}: edit a sent text (approved action)
@@ -117,9 +124,9 @@ export function handler(d: Deps) {
       }
       if (method === 'GET' && parts[2] === 'contacts' && parts[3]) return json(res, 200, await s.profile(parts[3]))
       if (method === 'POST' && parts[2] === 'send') {
-        const inp = JSON.parse(body || '{}') as { chat_id?: string; text?: string; action_id?: string; quote?: Quote; content?: Content }
+        const inp = JSON.parse(body || '{}') as { chat_id?: string; text?: string; action_id?: string; quote?: Quote; content?: Content; mentions?: string[] }
         try {
-          const out = await d.sender.send(s, inp.chat_id ?? '', inp.text ?? '', inp.action_id ?? '', inp.quote?.id ? inp.quote : undefined, inp.content?.kind ? inp.content : undefined)
+          const out = await d.sender.send(s, inp.chat_id ?? '', inp.text ?? '', inp.action_id ?? '', inp.quote?.id ? inp.quote : undefined, inp.content?.kind ? inp.content : undefined, mentionJids(inp.mentions))
           return json(res, 200, out)
         } catch (e) {
           if (e instanceof ContentError) return json(res, 400, { error: e.message, code: 'bad_content' })

@@ -8,6 +8,7 @@ import (
 	"hash/fnv"
 	"log/slog"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -184,7 +185,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 				threadKind, subtitle, fromInternal = "internal", "Karyawan GSI", true
 				title = contactName(m)
 				if title == "" {
-					if title, err = q.GSINumberName(ctx, remote); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+					if title, err = q.NumberName(ctx, remote); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 						return err
 					}
 				}
@@ -236,7 +237,13 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			dir = "out"
 		}
 		id := m.ID
-		mp := gen.InsertChatMessageParams{ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, QuotedWaID: strp(m.QuotedID), SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && (m.IsGroup || threadKind == "internal")}
+		mentions, err := in.mentions(ctx, q, m.Mentions)
+		if err != nil {
+			return err
+		}
+		// a live message from someone else that tags this number: the chat row shows "@" until it is opened
+		tagged := !m.FromMe && !m.History && slices.ContainsFunc(m.Mentions, func(x Mention) bool { return x.Number == account || x.Token == account })
+		mp := gen.InsertChatMessageParams{Mentions: mentions, ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, QuotedWaID: strp(m.QuotedID), SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && (m.IsGroup || threadKind == "internal")}
 		msgID, err := q.InsertChatMessage(ctx, mp)
 		if errors.Is(err, pgx.ErrNoRows) && !m.IsGroup {
 			// a 1:1 chat between two linked GSI numbers: both phones carry the same WhatsApp id (one sent it, the
@@ -266,6 +273,11 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 				if !m.FromMe && !m.History {
 					unread = 1
 				}
+				if tagged {
+					if err := q.MentionThread(ctx, thread.ID); err != nil {
+						return err
+					}
+				}
 				return q.TouchThread(ctx, gen.TouchThreadParams{ID: thread.ID, LastMessageAt: &m.Time, Unread: unread})
 			}
 			return nil
@@ -294,6 +306,11 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		}
 		if err := q.TouchThread(ctx, gen.TouchThreadParams{ID: thread.ID, LastMessageAt: &m.Time, Unread: unread}); err != nil {
 			return err
+		}
+		if tagged {
+			if err := q.MentionThread(ctx, thread.ID); err != nil {
+				return err
+			}
 		}
 		if m.FromMe && !m.History && !m.IsGroup {
 			// answered from the phone: the chat was read there, as WhatsApp shows it
@@ -341,6 +358,30 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		in.OnInbound(ctx, res.Inbound, res.InboundText)
 	}
 	return res, err
+}
+
+// mentions is how a message's tags are kept: each with the name Chat shows ("@Budi") — a GSI or dealer contact's
+// name first, else the name the group knows, else the masked number. nil when the message tags no one.
+func (in *Ingestor) mentions(ctx context.Context, q *gen.Queries, ms []Mention) ([]byte, error) {
+	if len(ms) == 0 {
+		return nil, nil
+	}
+	out := make([]Mention, 0, len(ms))
+	for _, x := range ms {
+		if x.Number != "" {
+			name, err := q.NumberName(ctx, x.Number)
+			if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+				return nil, err
+			}
+			if name != "" {
+				x.Name = name
+			} else if x.Name == "" {
+				x.Name = MaskNumber(x.Number)
+			}
+		}
+		out = append(out, x)
+	}
+	return json.Marshal(out)
 }
 
 // GroupNames lists the joined groups of a linked number with their names (the bridge's group list).
