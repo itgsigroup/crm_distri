@@ -49,6 +49,7 @@ type Server struct {
 	jobs    *river.Client[pgx.Tx]
 	cloud   *wa.CloudAPI
 	media   wa.MediaFetcher // chat media from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
+	roster  wa.GroupRoster  // group members from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
 	odoo    odoo.Source
 	mcp     *mcp.Server
 	idf     *identify.Service
@@ -63,6 +64,9 @@ type Server struct {
 
 // WithMedia sets where chat media is fetched from (tests; production uses the Baileys bridge).
 func (s *Server) WithMedia(f wa.MediaFetcher) *Server { s.media = f; return s }
+
+// WithRoster sets where group members are read from (tests; production uses the Baileys bridge).
+func (s *Server) WithRoster(r wa.GroupRoster) *Server { s.roster = r; return s }
 
 // WithAsk enables POST /ask (the command bar).
 func (s *Server) WithAsk(a *ask.Service) *Server {

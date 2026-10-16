@@ -18,7 +18,7 @@ import (
 	"distri-arc/internal/testdb"
 )
 
-// Pinned messages and labels (migration 0039): at most three pins per conversation, the oldest replaced; a group's
+// Pinned messages and labels (migration 0039): any number of pins per conversation; a group's
 // pins and labels are the same under every GSI number in it; anyone in Chat adds a label, only admins rename or
 // delete one; labels show on the chat row and on the bubble.
 func TestChatPinsAndLabels(t *testing.T) {

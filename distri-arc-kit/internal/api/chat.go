@@ -41,6 +41,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Get("/chat/threads/{id}/context", s.chatContext)
 	r.Get("/chat/threads/{id}/search", s.chatSearch)
 	r.Get("/chat/threads/{id}/members", s.chatMembers)
+	r.Post("/chat/threads/{id}/members/{number}/open", s.chatOpenMember)
 	r.Post("/chat/threads/{id}/messages", s.chatSend)
 	r.Patch("/chat/threads/{id}/messages/{mid}", s.chatEdit)
 	r.Delete("/chat/threads/{id}/messages/{mid}", s.chatDelete)
@@ -341,10 +342,12 @@ type MessageView struct {
 	ID        uuid.UUID `json:"id"`
 	Direction string    `json:"direction"`
 	FromName  string    `json:"from_name"`
-	Body      string    `json:"body"`
-	SentAt    time.Time `json:"sent_at"`
-	Status    string    `json:"status"`
-	Internal  bool      `json:"internal"`
+	// FromNumber: the sender of a group message (a click on the name opens the one-to-one chat with them)
+	FromNumber string    `json:"from_number,omitempty"`
+	Body       string    `json:"body"`
+	SentAt     time.Time `json:"sent_at"`
+	Status     string    `json:"status"`
+	Internal   bool      `json:"internal"`
 	// Holding: our message only says an answer will come — the response time keeps running (ADR 0034)
 	Holding bool `json:"holding,omitempty"`
 	// AutoReply: an automatic WhatsApp Business message (greeting, away) — neither an answer nor a request (ADR 0035)
@@ -584,6 +587,9 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	for _, m := range msgs {
 		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: llm.MaskCredentials(deref(m.Body)), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Holding: deref(m.Holding), AutoReply: deref(m.AutoReply), closing: deref(m.Closing), Annotation: m.Annotation, SignalID: m.SignalID,
 			Media: mediaView(m.Media), EditedAt: m.EditedAt, Mentions: m.Mentions}
+		if deref(t.Kind) == "group" && v.Direction == "in" {
+			v.FromNumber = deref(m.FromNumber)
+		}
 		if label, ok := others[deref(m.ThreadID)]; ok && v.Direction == "out" {
 			v.Direction, v.FromName, v.Internal = "in", label, true
 		}
@@ -1358,6 +1364,25 @@ func (s *Server) mediaFetcher() wa.MediaFetcher {
 	if s.media != nil {
 		return s.media
 	}
+	if b := s.bridge(); b != nil {
+		return b
+	}
+	return nil
+}
+
+// groupRoster is how the API reads a group's members (the Baileys bridge; tests set their own; nil without it).
+func (s *Server) groupRoster() wa.GroupRoster {
+	if s.roster != nil {
+		return s.roster
+	}
+	if b := s.bridge(); b != nil {
+		return b
+	}
+	return nil
+}
+
+// bridge is the Baileys bridge as the API reaches it, nil when another transport runs.
+func (s *Server) bridge() *wa.Baileys {
 	if s.cfg.WATransport != "baileys" {
 		return nil
 	}

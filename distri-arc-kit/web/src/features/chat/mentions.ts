@@ -30,7 +30,8 @@ export function mentionQuery(text: string, caret: number): { start: number; q: s
   return { start: caret - m[2].length - 1, q: m[2] }
 }
 
-export interface Member { number: string; name: string }
+/** A group member: whom "@" tags and "Anggota" lists (thread_id: the one-to-one chat with them, when it exists). */
+export interface Member { number: string; name: string; admin?: boolean; gsi?: boolean; thread_id?: string }
 
 /** Members whose name or number matches what was typed after "@" (case-insensitive), at most 8. */
 export function matchMembers(members: Member[], q: string): Member[] {

@@ -23,6 +23,7 @@ import { TriggerCard } from '../aitrigger/TriggerCard'
 import type { ChatHit } from './findInChat'
 import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type Member } from './mentions'
 import { linkParts } from './links'
+import { MembersSheet, openMemberChat, useMembers } from './Members'
 
 /** A bubble's text with its tags ("@Budi", WhatsApp's colour), its links (open in a new tab) and the searched words
  * marked. */
@@ -333,9 +334,9 @@ function TriggerCards({ m, thread, asOf, onUse }: { m: MessageView; thread: stri
   ))}</>
 }
 
-function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark, onPin, onLabel }: {
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark, onPin, onLabel, onMember }: {
   m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date; mark?: string
-  onPin?: (m: MessageView) => void; onLabel?: (m: MessageView) => void
+  onPin?: (m: MessageView) => void; onLabel?: (m: MessageView) => void; onMember?: (number: string) => void
   onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
   onUse?: (m: MessageView, text: string) => void; asOf?: string | null
 }) {
@@ -354,7 +355,14 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
   }
   return (
     <div className={`m ${m.direction}${m.media ? ' has-media' : ''}`} data-mid={m.id}>
-      {group && m.direction === 'in' && <span className="who">{m.from_name}<span className={`pill ${m.internal ? 'neutral' : 'accent'}`}>{m.internal ? 'internal' : 'eksternal'}</span></span>}
+      {group && m.direction === 'in' && (
+        <span className="who">
+          {m.from_number && onMember
+            ? <button type="button" className="who-link" onClick={() => onMember(m.from_number!)} title={`Chat dengan ${m.from_name || fmtPhone(m.from_number)} · ${fmtPhone(m.from_number)}`}>{m.from_name || fmtPhone(m.from_number)}</button>
+            : m.from_name}
+          <span className={`pill ${m.internal ? 'neutral' : 'accent'}`}>{m.internal ? 'internal' : 'eksternal'}</span>
+        </span>
+      )}
       <div className="bb">
         {m.quote && <QuoteBlock q={m.quote} mine={via} onJump={onJump} />}
         {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
@@ -462,13 +470,12 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const input = useRef<HTMLTextAreaElement>(null)
   const from = (data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
   const group = data?.thread.kind === 'group'
-  const { data: members } = useQuery({
-    queryKey: ['chat', 'members', id],
-    queryFn: () => api.get<Items<Member>>(`/chat/threads/${id}/members`).then((r) => r.items),
-    enabled: group,
-    staleTime: 5 * 60_000,
-  })
+  const { data: roster } = useMembers(id, group)
+  const members = roster?.items
   const tagOptions = tagging && members ? matchMembers(members, tagging.q) : []
+  const navigate = useNavigate()
+  // a group member's name or number: their one-to-one chat from this group's number (made when there is none yet)
+  const openMember = (number: string) => openMemberChat(id, number).then((tid) => { navigate('/chat/' + tid) }, (e: Error) => { toast(e.message); throw e })
   const typed = (value: string, caret: number) => {
     setText(value)
     const at = group && !editing ? mentionQuery(value, caret) : null
@@ -749,6 +756,11 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         </div>
         <div className="ibc-acts">
           <Waiting since={t.waiting_since} now={now} />
+          {t.kind === 'group' && (
+            <button type="button" className="ibl-btn ibc-find ibc-mem" onClick={() => openSheet(<MembersSheet thread={id} group={displayTitle(t)} onOpen={(n) => openMember(n)} />)} title="Anggota grup — klik nama untuk chat" aria-label="Anggota grup">
+              <Icon name="people" />{roster ? <span>{roster.items.length + roster.hidden}</span> : null}
+            </button>
+          )}
           <button type="button" className="ibl-btn ibc-find" onClick={() => openSheet(<LabelSheet title="Label chat" sub={displayTitle(t)} selected={t.labels ?? []}
             save={(ids) => api.put(`/chat/threads/${id}/labels`, { label_ids: ids })} />)} title="Label chat" aria-label="Label chat"><Icon name="tag" /></button>
           <button type="button" className={`ibl-btn ibc-find${searching ? ' on' : ''}`} onClick={() => { setSearching(!searching); if (searching) setMark('') }} title="Cari di chat ini" aria-label="Cari di chat ini" aria-pressed={searching}><Icon name="search" /></button>
@@ -776,7 +788,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           return (
             <div key={m.id} style={{ display: 'contents' }}>
               {sep}
-              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} onUse={useSuggestion} asOf={data?.stock_as_of} mark={mark} onPin={(x) => pin.mutate(x)} onLabel={labelMsg} />
+              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} onUse={useSuggestion} asOf={data?.stock_as_of} mark={mark} onPin={(x) => pin.mutate(x)} onLabel={labelMsg} onMember={(n) => { openMember(n).catch(() => {}) }} />
             </div>
           )
         })}

@@ -240,6 +240,12 @@ export class Session implements SendTarget {
     }
   }
 
+  /** What the phone calls a member: its saved name, WhatsApp name or push name ('' when unknown). */
+  private contactName(jid: string, phone: string): string {
+    const c = this.contacts.get(jid) ?? (phone ? this.contacts.get(phone + '@s.whatsapp.net') : undefined)
+    return c?.name || c?.verifiedName || c?.notify || ''
+  }
+
   private resolver(): Resolver {
     return {
       ownPhone: this.meta.phone || digits(this.sock?.user?.id),
@@ -331,7 +337,7 @@ export class Session implements SendTarget {
     const all = await this.sock.groupFetchAllParticipating()
     const items = Object.values(all).map(g => {
       this.groups.set(g.id, { meta: g, at: Date.now() })
-      return { jid: g.id, meta: toGroupMeta(g.subject, g.participants) }
+      return { jid: g.id, meta: toGroupMeta(g.subject, g.participants, (jid, phone) => this.contactName(jid, phone)) }
     })
     this.groupList = { at: Date.now(), items }
     return items

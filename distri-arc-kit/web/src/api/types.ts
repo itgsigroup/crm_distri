@@ -321,6 +321,8 @@ export interface MessageView {
   mentions?: Mention[] | null
   direction: 'in' | 'out'
   from_name: string
+  /** the sender of a group message (a click on the name opens the chat with them) */
+  from_number?: string
   body: string
   sent_at: string
   status: 'received' | 'pending' | 'sent' | 'failed'

@@ -87,12 +87,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 	var res Result
 	err := in.st.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
 		account := Digits(m.Account)
-		var salesID *uuid.UUID
-		if n, err := q.GetWANumber(ctx, account); err == nil && n.SalesID != nil {
-			salesID = n.SalesID // the number's owner (a sales may link several numbers)
-		} else if s, err := q.GetSalesByNumber(ctx, &account); err == nil {
-			salesID = &s.ID
-		}
+		salesID := ownerSales(ctx, q, account)
 		internal := func(n string) bool {
 			v, _ := q.IsInternalNumber(ctx, Digits(n))
 			return v
@@ -170,40 +165,16 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 				subtitle = "Grup pelanggan"
 			}
 		} else {
-			remote := NumberOfJID(m.ChatJID)
-			if ct, err := q.GetContactType(ctx, remote); err == nil && ct == "personal" {
+			d, err := classifyDirect(ctx, q, NumberOfJID(m.ChatJID), contactName(m))
+			if errors.Is(err, ErrPersonal) {
 				res.Reason = DropPersonal
 				return nil
 			}
-			gsi, err := q.CountOutsiders(ctx, []string{remote})
 			if err != nil {
 				return err
 			}
-			if gsi == 0 && remote != "" {
-				// a DM with a GSI employee (internal, linked, a user's or a sales' number) is kept and shown in Chat on
-				// both sides, but it is our side talking: internal, read by no analysis (Sam 16 Oct: Tantri → Granike)
-				threadKind, subtitle, fromInternal = "internal", "Karyawan GSI", true
-				title = contactName(m)
-				if title == "" {
-					if title, err = q.NumberName(ctx, remote); err != nil && !errors.Is(err, pgx.ErrNoRows) {
-						return err
-					}
-				}
-				if title == "" {
-					title = MaskNumber(remote)
-				}
-			} else if c, err := q.FindContactByNumber(ctx, &remote); err == nil {
-				dealerID, contactID, threadKind = c.DealerID, &c.ID, "dealer"
-				title = deref(c.Name) + " · " + ShortDealer(c.DealerName)
-				subtitle = c.DealerName + " · " + deref(c.Role)
-			} else if errors.Is(err, pgx.ErrNoRows) {
-				threadKind, title, subtitle = "new", MaskNumber(remote), "Nomor baru"
-				if name := contactName(m); name != "" {
-					title, subtitle = name, MaskNumber(remote)
-				}
-			} else {
-				return err
-			}
+			threadKind, title, subtitle, dealerID, contactID = d.kind, d.title, d.subtitle, d.dealerID, d.contactID
+			fromInternal = fromInternal || d.kind == "internal"
 		}
 
 		thread, err := q.GetThreadByAccountJID(ctx, gen.GetThreadByAccountJIDParams{WaJid: &m.ChatJID, Account: &account})
@@ -358,6 +329,89 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		in.OnInbound(ctx, res.Inbound, res.InboundText)
 	}
 	return res, err
+}
+
+// ownerSales is the sales a GSI number's chats belong to: the number's owner (a sales may link several numbers), else
+// the sales whose main number it is.
+func ownerSales(ctx context.Context, q *gen.Queries, account string) *uuid.UUID {
+	if n, err := q.GetWANumber(ctx, account); err == nil && n.SalesID != nil {
+		return n.SalesID
+	}
+	if s, err := q.GetSalesByNumber(ctx, &account); err == nil {
+		return &s.ID
+	}
+	return nil
+}
+
+// ErrPersonal: the number is marked personal (pribadi) — never kept in the CRM (ADR 0035).
+var ErrPersonal = errors.New("wa: personal number")
+
+// direct is how a one-to-one chat with a number is kept: its kind, title and subtitle, and the dealer contact.
+type direct struct {
+	kind, title, subtitle string
+	dealerID, contactID   *uuid.UUID
+}
+
+// classifyDirect sorts a one-to-one chat with a number (name: what the phone calls it): a GSI employee (internal, read
+// by no analysis), a dealer contact, or a new number. ErrPersonal for a number marked personal.
+func classifyDirect(ctx context.Context, q *gen.Queries, remote, name string) (direct, error) {
+	if ct, err := q.GetContactType(ctx, remote); err == nil && ct == "personal" {
+		return direct{}, ErrPersonal
+	}
+	gsi, err := q.CountOutsiders(ctx, []string{remote})
+	if err != nil {
+		return direct{}, err
+	}
+	if gsi == 0 && remote != "" {
+		// a DM with a GSI employee (internal, linked, a user's or a sales' number) is kept and shown in Chat on both
+		// sides, but it is our side talking: internal, read by no analysis (Sam 16 Oct: Tantri → Granike)
+		d := direct{kind: "internal", subtitle: "Karyawan GSI", title: name}
+		if d.title == "" {
+			if d.title, err = q.NumberName(ctx, remote); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+				return direct{}, err
+			}
+		}
+		if d.title == "" {
+			d.title = MaskNumber(remote)
+		}
+		return d, nil
+	}
+	c, err := q.FindContactByNumber(ctx, &remote)
+	if err == nil {
+		return direct{kind: "dealer", dealerID: c.DealerID, contactID: &c.ID, title: deref(c.Name) + " · " + ShortDealer(c.DealerName), subtitle: c.DealerName + " · " + deref(c.Role)}, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return direct{}, err
+	}
+	if name != "" {
+		return direct{kind: "new", title: name, subtitle: MaskNumber(remote)}, nil
+	}
+	return direct{kind: "new", title: MaskNumber(remote), subtitle: "Nomor baru"}, nil
+}
+
+// OpenDirect is the one-to-one chat of a GSI number (account) with a number — a group member clicked in Chat — made
+// as ingest would make it when it does not exist yet (no message, so it joins the chat list with the first one).
+// ErrPersonal for a number marked personal.
+func OpenDirect(ctx context.Context, st *store.Store, account, number, name string) (uuid.UUID, error) {
+	account, number = Digits(account), Digits(number)
+	jid := UserJID(number)
+	var id uuid.UUID
+	err := st.Tx(ctx, func(q *gen.Queries, _ pgx.Tx) error {
+		if t, err := q.GetThreadByAccountJID(ctx, gen.GetThreadByAccountJIDParams{WaJid: &jid, Account: &account}); err == nil {
+			id = t.ID
+			return nil
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		d, err := classifyDirect(ctx, q, number, name)
+		if err != nil {
+			return err
+		}
+		t, err := q.InsertThread(ctx, gen.InsertThreadParams{Kind: &d.kind, DealerID: d.dealerID, ContactID: d.contactID, WaJid: &jid, Title: &d.title, Subtitle: &d.subtitle, SalesID: ownerSales(ctx, q, account), Account: &account})
+		id = t.ID
+		return err
+	})
+	return id, err
 }
 
 // mentions is how a message's tags are kept: each with the name Chat shows ("@Budi") — a GSI or dealer contact's

@@ -264,6 +264,42 @@ func (q *Queries) DeleteWANumber(ctx context.Context, waNumber string) error {
 	return err
 }
 
+const directThreadsOf = `-- name: DirectThreadsOf :many
+select id, split_part(wa_jid, '@', 1)::text as number from chat_threads
+where account = $1::text and kind <> 'group' and wa_jid = any($2::text[])
+`
+
+type DirectThreadsOfParams struct {
+	Account string   `json:"account"`
+	Jids    []string `json:"jids"`
+}
+
+type DirectThreadsOfRow struct {
+	ID     uuid.UUID `json:"id"`
+	Number string    `json:"number"`
+}
+
+// A GSI number's one-to-one chats with these numbers (a group's members): which one a click opens.
+func (q *Queries) DirectThreadsOf(ctx context.Context, arg DirectThreadsOfParams) ([]DirectThreadsOfRow, error) {
+	rows, err := q.db.Query(ctx, directThreadsOf, arg.Account, arg.Jids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DirectThreadsOfRow{}
+	for rows.Next() {
+		var i DirectThreadsOfRow
+		if err := rows.Scan(&i.ID, &i.Number); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const dropOtherCopies = `-- name: DropOtherCopies :exec
 with me as (
   select m.id, m.thread_id, t.kind, t.wa_jid from chat_messages m join chat_threads t on t.id = m.thread_id where m.id = $1::uuid

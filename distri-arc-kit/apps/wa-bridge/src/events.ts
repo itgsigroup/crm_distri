@@ -1,7 +1,7 @@
 import { isJidBroadcast, isJidGroup, isJidNewsletter, isJidStatusBroadcast, isLidUser, normalizeMessageContent, proto, type WAMessage } from 'baileys'
 
 // WaEvent is the bridge → worker contract; Go side: internal/wa/baileys.go (bridgeEvent).
-export interface GroupMember { jid: string; phone: string; name: string }
+export interface GroupMember { jid: string; phone: string; name: string; admin?: boolean }
 export interface GroupMeta { name: string; members: GroupMember[] }
 /**
  * Media of a message. The content is never downloaded on arrival; `ref` is what WhatsApp needs to fetch it later on
@@ -195,10 +195,17 @@ export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, hi
   return ev
 }
 
-/** Group metadata in the API's shape; participants are resolved to phone numbers when known. */
-export function toGroupMeta(subject: string, participants: { id: string; phoneNumber?: string; name?: string; notify?: string }[]): GroupMeta {
+/** Group metadata in the API's shape; participants are resolved to phone numbers when known, named by WhatsApp or by
+ * the phone's contacts (nameOf), and admins marked. */
+export function toGroupMeta(subject: string, participants: { id: string; phoneNumber?: string; name?: string; notify?: string; admin?: string | null }[],
+  nameOf?: (jid: string, phone: string) => string): GroupMeta {
   return {
     name: subject,
-    members: participants.map(p => ({ jid: p.id, phone: digits(p.phoneNumber ?? (isLidUser(p.id) ? '' : p.id)), name: p.name ?? p.notify ?? '' })),
+    members: participants.map(p => {
+      const phone = digits(p.phoneNumber ?? (isLidUser(p.id) ? '' : p.id))
+      const m: GroupMember = { jid: p.id, phone, name: p.name ?? p.notify ?? nameOf?.(p.id, phone) ?? '' }
+      if (p.admin) m.admin = true
+      return m
+    }),
   }
 }

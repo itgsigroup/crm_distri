@@ -288,6 +288,19 @@ type MediaFetcher interface {
 	Media(ctx context.Context, account string, m Media) (io.ReadCloser, error)
 }
 
+// RosterMember is a member of a WhatsApp group as the linked phone sees it. Number is empty for a member whose number
+// WhatsApp hides (only a LID).
+type RosterMember struct {
+	Number string
+	Name   string
+	Admin  bool
+}
+
+// GroupRoster lists a group's members through a GSI number that is in it.
+type GroupRoster interface {
+	GroupMembers(ctx context.Context, account, groupJID string) ([]RosterMember, error)
+}
+
 // ErrMediaGone: WhatsApp no longer has the file and the phone could not upload it again.
 var ErrMediaGone = errors.New("media sudah tidak tersedia di WhatsApp")
 

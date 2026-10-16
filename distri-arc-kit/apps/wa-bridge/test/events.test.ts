@@ -1,6 +1,6 @@
 import type { WAMessage } from 'baileys'
 import { describe, expect, it } from 'vitest'
-import { decodeMediaRef, messageText, toWaEvent, type Resolver } from '../src/events.js'
+import { decodeMediaRef, messageText, toGroupMeta, toWaEvent, type Resolver } from '../src/events.js'
 
 const r: Resolver = {
   ownPhone: '6281200000001',
@@ -30,6 +30,18 @@ describe('Baileys → WaEvent', () => {
     expect(ev?.mentions).toEqual([{ token: '6281200000001', phone: '6281200000001', name: '' }, { token: '222', phone: '', name: '' }])
     const plain = await toWaEvent('s-andi', msg({ id: 'T2', remoteJid: '1203@g.us', participant: '111@lid', fromMe: false }, { conversation: 'tanpa tag' }), r, false)
     expect(plain?.mentions).toBeUndefined()
+  })
+  it('lists group members with their numbers, names from the phone and admins', () => {
+    const g = toGroupMeta('Proyek RSUD', [
+      { id: '6281299887766@s.whatsapp.net', admin: 'superadmin' },
+      { id: '333@lid', phoneNumber: '6281511112222@s.whatsapp.net', notify: 'Rina' },
+      { id: '444@lid' },
+    ], (_jid, phone) => (phone === '6281299887766' ? 'Budi Toko' : ''))
+    expect(g.members).toEqual([
+      { jid: '6281299887766@s.whatsapp.net', phone: '6281299887766', name: 'Budi Toko', admin: true },
+      { jid: '333@lid', phone: '6281511112222', name: 'Rina' },
+      { jid: '444@lid', phone: '', name: '' },
+    ])
   })
   it('keeps a download reference for media: key and CDN fields only, no caption or thumbnail', async () => {
     const key = new Uint8Array([1, 2, 3, 4])

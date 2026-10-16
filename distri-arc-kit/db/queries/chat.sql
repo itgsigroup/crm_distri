@@ -696,3 +696,8 @@ from chat_messages m join chat_threads t on t.id = m.thread_id
 where t.kind = 'group' and t.wa_jid = sqlc.arg(wa_jid)::text and m.direction = 'in' and coalesce(m.from_number, '') <> ''
   and m.deleted_at is null
 order by m.from_number, m.sent_at desc;
+
+-- name: DirectThreadsOf :many
+-- A GSI number's one-to-one chats with these numbers (a group's members): which one a click opens.
+select id, split_part(wa_jid, '@', 1)::text as number from chat_threads
+where account = sqlc.arg(account)::text and kind <> 'group' and wa_jid = any(sqlc.arg(jids)::text[]);

@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 
 	"distri-arc/internal/httpx"
@@ -18,66 +20,115 @@ import (
 // Tags in group chats (WhatsApp "@Budi"): who the composer can tag, and the tags a send from Chat carries. The text
 // holds "@<number>" for each tag, as WhatsApp sends them; Chat shows the name.
 
-// GroupMember is someone the composer can tag in a group.
+// GroupMember is a member of a group as Chat shows it: tagged from the composer, listed under "Anggota", and a click
+// opens the one-to-one chat with them (ThreadID when this GSI number already has one).
 type GroupMember struct {
-	Number string `json:"number"`
-	Name   string `json:"name"`
+	Number   string `json:"number"`
+	Name     string `json:"name"`
+	Admin    bool   `json:"admin,omitempty"`
+	GSI      bool   `json:"gsi,omitempty"` // a GSI number (employee)
+	ThreadID string `json:"thread_id,omitempty"`
 }
 
-// groupMembers: the people who wrote in the group and the other GSI numbers in it, each with the name Chat knows,
-// never this thread's own number.
-func (s *Server) groupMembers(ctx context.Context, t gen.GetThreadRow) ([]GroupMember, error) {
+// groupMembers: the group's members from WhatsApp (through this thread's number), the people who wrote in it and the
+// other GSI numbers in it, each with the name Chat knows; never this thread's own number. hidden: members whose
+// number WhatsApp hides (they cannot be tagged or opened). Without the bridge, only who Chat has seen.
+func (s *Server) groupMembers(ctx context.Context, t gen.GetThreadRow) (out []GroupMember, hidden int, err error) {
 	if deref(t.Kind) != "group" {
-		return nil, nil
+		return nil, 0, nil
 	}
-	own := deref(t.SalesWa)
-	seen := map[string]string{}
-	rows, err := s.st.Q.GroupMembersSeen(ctx, deref(t.WaJid))
+	own, jid := wa.Digits(deref(t.SalesWa)), deref(t.WaJid)
+	byNum := map[string]*GroupMember{}
+	add := func(n, name string, admin bool) {
+		if n = wa.Digits(n); n == "" || n == own {
+			return
+		}
+		m := byNum[n]
+		if m == nil {
+			m = &GroupMember{Number: n}
+			byNum[n] = m
+		}
+		if m.Name == "" {
+			m.Name = strings.TrimSpace(name)
+		}
+		m.Admin = m.Admin || admin
+	}
+	if r := s.groupRoster(); r != nil {
+		roster, err := r.GroupMembers(ctx, own, jid)
+		if err != nil {
+			s.log.Warn("group members", "group", jid, "err", err) // the bridge down: who Chat has seen still shows
+		}
+		for _, m := range roster {
+			if m.Number == "" {
+				hidden++
+				continue
+			}
+			add(m.Number, m.Name, m.Admin)
+		}
+	}
+	rows, err := s.st.Q.GroupMembersSeen(ctx, jid)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	for _, m := range rows {
-		seen[wa.Digits(m.Number)] = m.Name
+		add(m.Number, m.Name, false)
 	}
 	accs, err := s.st.Q.GroupThreadAccounts(ctx, t.ID)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	for _, a := range accs {
-		if n := wa.Digits(deref(a.Account)); n != "" {
-			if _, ok := seen[n]; !ok {
-				seen[n] = a.AccountLabel
-			}
-		}
+		add(deref(a.Account), a.AccountLabel, false)
 	}
-	out := []GroupMember{}
-	for n, name := range seen {
-		if n == "" || n == own {
-			continue
-		}
+	jids := make([]string, 0, len(byNum))
+	for n, m := range byNum {
+		jids = append(jids, wa.UserJID(n))
 		known, err := s.st.Q.NumberName(ctx, n)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return nil, err
+			return nil, 0, err
 		}
 		if known != "" {
-			name = known
+			m.Name = known
 		}
-		if strings.TrimSpace(name) == "" {
-			name = wa.MaskNumber(n)
+		if m.Name == "" {
+			m.Name = wa.MaskNumber(n)
 		}
-		out = append(out, GroupMember{Number: n, Name: name})
+		outsiders, err := s.st.Q.CountOutsiders(ctx, []string{n})
+		if err != nil {
+			return nil, 0, err
+		}
+		m.GSI = outsiders == 0
 	}
-	sort.Slice(out, func(i, j int) bool { return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name) })
-	return out, nil
+	threads, err := s.st.Q.DirectThreadsOf(ctx, gen.DirectThreadsOfParams{Account: own, Jids: jids})
+	if err != nil {
+		return nil, 0, err
+	}
+	for _, th := range threads {
+		if m := byNum[wa.Digits(th.Number)]; m != nil {
+			m.ThreadID = th.ID.String()
+		}
+	}
+	out = make([]GroupMember, 0, len(byNum))
+	for _, m := range byNum {
+		out = append(out, *m)
+	}
+	// admins first, then by name, like WhatsApp's group info
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Admin != out[j].Admin {
+			return out[i].Admin
+		}
+		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
+	})
+	return out, hidden, nil
 }
 
-// chatMembers: GET /chat/threads/{id}/members — who the composer offers after "@" (groups only; empty otherwise).
+// chatMembers: GET /chat/threads/{id}/members — the group's members (Anggota, and who "@" offers); empty otherwise.
 func (s *Server) chatMembers(w http.ResponseWriter, r *http.Request) {
 	t, ok := s.threadParam(w, r)
 	if !ok {
 		return
 	}
-	ms, err := s.groupMembers(r.Context(), t)
+	ms, hidden, err := s.groupMembers(r.Context(), t)
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
@@ -85,7 +136,42 @@ func (s *Server) chatMembers(w http.ResponseWriter, r *http.Request) {
 	if ms == nil {
 		ms = []GroupMember{}
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"items": ms})
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": ms, "hidden": hidden})
+}
+
+// chatOpenMember: POST /chat/threads/{id}/members/{number}/open — the one-to-one chat of this group thread's GSI
+// number with a member, made when it does not exist yet (nothing is sent). → {thread_id}
+func (s *Server) chatOpenMember(w http.ResponseWriter, r *http.Request) {
+	t, ok := s.threadParam(w, r)
+	if !ok {
+		return
+	}
+	n := wa.Digits(chi.URLParam(r, "number"))
+	ms, _, err := s.groupMembers(r.Context(), t)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	i := slices.IndexFunc(ms, func(m GroupMember) bool { return m.Number == n })
+	if i < 0 {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Nomor ini bukan anggota grup")
+		return
+	}
+	if ms[i].ThreadID != "" {
+		httpx.JSON(w, http.StatusOK, map[string]any{"thread_id": ms[i].ThreadID})
+		return
+	}
+	id, err := wa.OpenDirect(r.Context(), s.st, deref(t.SalesWa), n, ms[i].Name)
+	if errors.Is(err, wa.ErrPersonal) {
+		httpx.Fail(w, http.StatusConflict, "personal", "Nomor ini ditandai pribadi — chat-nya tidak disimpan di GSI Orbit")
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	s.audit(r, "chat.open_member", "chat_thread", &id, map[string]any{"group_thread": t.ID, "number": n})
+	httpx.JSON(w, http.StatusCreated, map[string]any{"thread_id": id})
 }
 
 // sendMentions: the tags of a text sent from Chat to a group ("@<number>" in the text) — kept with the bubble (by
@@ -95,7 +181,7 @@ func (s *Server) sendMentions(ctx context.Context, t gen.GetThreadRow, text stri
 	if deref(t.Kind) != "group" || len(tokens) == 0 {
 		return nil, nil, nil
 	}
-	members, err := s.groupMembers(ctx, t)
+	members, _, err := s.groupMembers(ctx, t)
 	if err != nil {
 		return nil, nil, err
 	}

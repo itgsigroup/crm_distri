@@ -552,6 +552,34 @@ func (b *Baileys) GroupNames(ctx context.Context, account string) (map[string]st
 	return names, nil
 }
 
+// GroupMembers lists a group's members from the bridge's group list (cached there for ten minutes).
+func (b *Baileys) GroupMembers(ctx context.Context, account, groupJID string) ([]RosterMember, error) {
+	var out []struct {
+		JID  string `json:"jid"`
+		Meta struct {
+			Members []struct {
+				Phone string `json:"phone"`
+				Name  string `json:"name"`
+				Admin bool   `json:"admin"`
+			} `json:"members"`
+		} `json:"meta"`
+	}
+	if _, _, err := b.call(ctx, http.MethodGet, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/groups", nil, &out); err != nil {
+		return nil, err
+	}
+	for _, g := range out {
+		if g.JID != groupJID {
+			continue
+		}
+		ms := make([]RosterMember, 0, len(g.Meta.Members))
+		for _, m := range g.Meta.Members {
+			ms = append(ms, RosterMember{Number: Digits(m.Phone), Name: strings.TrimSpace(m.Name), Admin: m.Admin})
+		}
+		return ms, nil
+	}
+	return nil, nil // the number is no longer in the group
+}
+
 // mediaClient fetches files: no overall timeout (a video may take a while), the request context bounds it.
 var mediaClient = &http.Client{}
 

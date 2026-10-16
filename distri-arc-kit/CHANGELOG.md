@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Anggota grup, klik untuk chat · 2026-10-16
+- Grup di Chat punya tombol **Anggota** (ikon orang + jumlah) di atas: daftar anggota dari WhatsApp (admin di atas, tanda Admin/GSI), bisa dicari nama atau nomor. Anggota yang menyembunyikan nomornya dihitung tetapi tidak bisa dibuka.
+- Klik anggota, atau klik nama pengirim di bubble grup, langsung membuka chat 1:1 dari nomor GSI yang sama. Bila belum pernah chat, percakapannya dibuat kosong (tidak ada yang terkirim; pesan pertama tetap lewat antrean dan penjaga anti-blokir). Nomor pribadi tidak dibuka.
+- Daftar "@" saat menandai kini memakai anggota lengkap yang sama. wa-bridge mengirim tanda admin dan nama kontak anggota.
+
 ## Fix · Link di pesan bisa diklik · 2026-10-16
 - Alamat web di pesan (`https://…`, `http://…`, `www.…`) kini tampil sebagai link dan terbuka di tab baru, seperti di WhatsApp. Tanda baca penutup kalimat tidak ikut masuk link; hanya alamat web yang dijadikan link.
 
