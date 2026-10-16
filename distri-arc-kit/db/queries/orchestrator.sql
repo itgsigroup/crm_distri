@@ -187,3 +187,7 @@ update plan_items set time_label = $2 where id = $1;
 
 -- name: NextPlanSeq :one
 select coalesce(max(seq), 0)::int + 1 from plan_items where plan_date = $1;
+
+-- name: SetCycleEngine :exec
+-- The model and effort "Analisis ulang" asked for.
+update cycles set engine_model = nullif(sqlc.arg(engine_model)::text, ''), effort = nullif(sqlc.arg(effort)::text, '') where id = sqlc.arg(id)::uuid;

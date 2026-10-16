@@ -46,12 +46,18 @@ type CycleView struct {
 	gen.Cycle
 	Stages []gen.CycleStage `json:"stages"`
 	Label  string           `json:"label"`
+	// ModelLabel: the model the analysis asked for, as people read it ("Claude Opus 5.5"); empty when not recorded
+	ModelLabel string `json:"model_label,omitempty"`
 }
 
 func (s *Server) cycleView(r *http.Request, c gen.Cycle) CycleView {
 	st, _ := s.st.Q.ListCycleStages(r.Context(), c.ID)
 	sc, _ := domain.ParseScope(c.Scope)
-	return CycleView{Cycle: c, Stages: nonNil(st), Label: sc.Label()}
+	v := CycleView{Cycle: c, Stages: nonNil(st), Label: sc.Label()}
+	if c.EngineModel != nil {
+		v.ModelLabel = analyst.ModelLabel(*c.EngineModel)
+	}
+	return v
 }
 
 // nextRun is the next hourly slot within 06.00–20.00 WIB.
@@ -104,16 +110,25 @@ func (s *Server) listCycles(w http.ResponseWriter, r *http.Request) {
 type cycleRequest struct {
 	Scope string `json:"scope"`
 	Via   string `json:"via"`
+	// Model: the Claude model to use in claude.ai (via mcp); Effort: low | medium | high (16 Oct, the dock)
+	Model  string `json:"model"`
+	Effort string `json:"effort"`
 }
 
 // postCycle queues a cycle (Analisis ulang) and lets the worker run it: 202, or 409 while one is running.
 func (s *Server) postCycle(w http.ResponseWriter, r *http.Request) {
 	var req cycleRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	s.queueCycle(w, r, req.Scope, req.Via)
+	s.queueCycle(w, r, req.Scope, req.Via, req.Model, req.Effort)
 }
 
-func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via string) {
+// effortLabel is how an effort reads in the app.
+var effortLabel = map[string]string{"low": "low", "medium": "medium", "high": "high"}
+
+func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, wantModel, effort string) {
+	if _, ok := effortLabel[effort]; !ok {
+		effort = "medium"
+	}
 	sc, err := domain.ParseScope(scope)
 	if err != nil {
 		httpx.Fail(w, http.StatusBadRequest, "invalid_scope", err.Error())
@@ -155,6 +170,21 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 		if err != nil {
 			return err
 		}
+		// the model it asks for: the API's own (Pengaturan) on the server, the one picked for claude.ai through MCP
+		engineModel := ""
+		switch {
+		case useModel:
+			engineModel = model
+		case via == "mcp":
+			engineModel = wantModel
+			if !analyst.ValidModel(engineModel) {
+				engineModel = "claude-opus-5-5"
+			}
+		}
+		if err := q.SetCycleEngine(r.Context(), gen.SetCycleEngineParams{ID: c.ID, EngineModel: engineModel, Effort: effort}); err != nil {
+			return err
+		}
+		c.EngineModel, c.Effort = &engineModel, &effort
 		cyc = c
 		if s.jobs != nil {
 			// Claude through MCP first; the API second option joins after the wait (ADR 0040, worker)
@@ -180,7 +210,11 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via s
 				}
 			}
 			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cyc.ID.String(), names, s.mcpWait())
-			m := &cycleMCP{Engine: "claude_ai", Prompt: prompt, ClaudeURL: "https://claude.ai/new?q=" + url.QueryEscape(prompt), WaitSec: int(s.mcpWait().Seconds()), Agents: names}
+			if !useModel { // claude.ai picks its model itself: the prompt says which one was chosen
+				prompt += "\n\nModel yang dipilih di GSI Orbit: " + analyst.ModelLabel(deref(cyc.EngineModel)) + " · effort " + effort + "."
+			}
+			m := &cycleMCP{Engine: "claude_ai", Prompt: prompt, ClaudeURL: "https://claude.ai/new?q=" + url.QueryEscape(prompt), WaitSec: int(s.mcpWait().Seconds()), Agents: names,
+				ModelLabel: analyst.ModelLabel(deref(cyc.EngineModel)), Effort: effort}
 			if useModel {
 				m.Engine, m.Model = "claude_api", analyst.ProviderLabel(prov)+" · "+analyst.ModelLabel(model)
 			} else if fok, fprov, fmodel := analyst.FallbackReady(r.Context(), s.st.Q, s.clock.Now(), s.secret(), s.cfg.AnthropicKey, s.cfg.OpenAIKey); fok {
@@ -201,6 +235,9 @@ type cycleQueued struct {
 type cycleMCP struct {
 	Engine string `json:"engine"`          // claude_ai: Claude through MCP (claude.ai, Desktop, a routine); claude_api: the chosen API
 	Model  string `json:"model,omitempty"` // claude_api: "Claude API · Claude Opus 5.5"
+	// ModelLabel / Effort: the model and effort asked for ("Claude Opus 5.5", "high")
+	ModelLabel string `json:"model_label"`
+	Effort     string `json:"effort"`
 	// Fallback: the API that takes the agents Claude did not answer after WaitSec ("ChatGPT API · gpt-5"); "" off
 	Fallback  string   `json:"fallback"`
 	Prompt    string   `json:"prompt"`
@@ -360,7 +397,7 @@ func (s *Server) agents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) runAgent(w http.ResponseWriter, r *http.Request) {
-	s.queueCycle(w, r, "agent:"+chi.URLParam(r, "name"), r.URL.Query().Get("via"))
+	s.queueCycle(w, r, "agent:"+chi.URLParam(r, "name"), r.URL.Query().Get("via"), "", "")
 }
 
 // PlanStepView is one step of Rencana hari ini with what its button acts on.

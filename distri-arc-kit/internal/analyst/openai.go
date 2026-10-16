@@ -87,6 +87,12 @@ type ChatRequest struct {
 	Messages            []map[string]any `json:"messages"`
 	Tools               []map[string]any `json:"tools,omitempty"`
 	MaxCompletionTokens int              `json:"max_completion_tokens,omitempty"`
+	ReasoningEffort     string           `json:"reasoning_effort,omitempty"` // reasoning models only (gpt-5, o3, o4)
+}
+
+// reasoningModel: the ChatGPT models that take reasoning_effort.
+func reasoningModel(id string) bool {
+	return strings.HasPrefix(id, "gpt-5") || strings.HasPrefix(id, "o3") || strings.HasPrefix(id, "o4")
 }
 
 // ChatToolCall is one function call of the model.
@@ -206,6 +212,9 @@ func (r *Runner) openai(ctx context.Context, cs *sdk.ClientSession, m ChatModel,
 		{"role": "system", "content": system},
 		{"role": "user", "content": sch.Prompt},
 	}}
+	if r.Effort != "" && reasoningModel(model) {
+		req.ReasoningEffort = r.Effort
+	}
 	calls := 0
 	for turn := 0; turn < int(sch.MaxSteps)+stepBuffer; turn++ {
 		t0 := time.Now()

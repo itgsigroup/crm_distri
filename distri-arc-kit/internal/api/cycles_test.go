@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -117,5 +118,24 @@ func TestPostCyclesWithModel(t *testing.T) {
 	}
 	if agents := m["agents"].([]any); len(agents) != 1 || agents[0] != "AI Stok" {
 		t.Fatalf("Push stok runs AI Stok only: %v", agents)
+	}
+}
+
+// The model and effort chosen on the dock (16 Oct): through MCP the model to use in claude.ai (written into the prompt,
+// shown with the cycle), with an unknown model replaced by Claude Opus 5.5 and an unknown effort by medium.
+func TestPostCyclesModelAndEffort(t *testing.T) {
+	srv, st := chatServer(t)
+	code, out := post(t, srv.URL+"/api/cycles", "sam@gsi.co.id", map[string]string{"scope": "screen:stock", "via": "mcp", "model": "claude-sonnet-5-5", "effort": "high"})
+	m, _ := out["mcp"].(map[string]any)
+	if code != http.StatusAccepted || out["engine_model"] != "claude-sonnet-5-5" || out["effort"] != "high" || out["model_label"] != "Claude Sonnet 5.5" ||
+		m == nil || m["model_label"] != "Claude Sonnet 5.5" || m["effort"] != "high" || !strings.Contains(m["prompt"].(string), "Claude Sonnet 5.5 · effort high") {
+		t.Fatalf("mcp with sonnet high: %d %v", code, out)
+	}
+	if _, err := st.Pool.Exec(context.Background(), "update cycles set status = 'done'"); err != nil {
+		t.Fatal(err)
+	}
+	code, out = post(t, srv.URL+"/api/cycles", "sam@gsi.co.id", map[string]string{"scope": "screen:stock", "via": "mcp", "model": "gpt-9", "effort": "turbo"})
+	if code != http.StatusAccepted || out["engine_model"] != "claude-opus-5-5" || out["effort"] != "medium" {
+		t.Fatalf("defaults: %d %v", code, out)
 	}
 }

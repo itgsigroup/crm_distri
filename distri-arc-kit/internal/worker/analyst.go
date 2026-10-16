@@ -115,7 +115,11 @@ func (w *CycleMCPWorker) Work(ctx context.Context, job *river.Job[jobs.CycleMCPA
 			if err != nil {
 				return err
 			}
-			if _, err := w.runner.Run(ctx, id, nil, "manual", job.Args.By); err != nil {
+			rn := *w.runner // the effort chosen on the dock for this analysis
+			if cyc.Effort != nil {
+				rn.Effort = *cyc.Effort
+			}
+			if _, err := rn.Run(ctx, id, nil, "manual", job.Args.By); err != nil {
 				return river.JobCancel(err)
 			}
 			return nil

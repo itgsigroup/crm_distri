@@ -270,7 +270,7 @@ func (q *Queries) FinishCycle(ctx context.Context, arg FinishCycleParams) error 
 }
 
 const getCycle = `-- name: GetCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles where id = $1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles where id = $1
 `
 
 func (q *Queries) GetCycle(ctx context.Context, id uuid.UUID) (Cycle, error) {
@@ -293,6 +293,8 @@ func (q *Queries) GetCycle(ctx context.Context, id uuid.UUID) (Cycle, error) {
 		&i.ConflictCount,
 		&i.Note,
 		&i.Stage,
+		&i.EngineModel,
+		&i.Effort,
 	)
 	return i, err
 }
@@ -438,7 +440,7 @@ func (q *Queries) LastSentFollowup(ctx context.Context, dealerID *uuid.UUID) (ti
 }
 
 const latestCycle = `-- name: LatestCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles order by number desc limit 1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles order by number desc limit 1
 `
 
 // Latest by number (insertion order): a clock that moved back (dev ARC_NOW, NTP) never hides a new cycle.
@@ -462,12 +464,14 @@ func (q *Queries) LatestCycle(ctx context.Context) (Cycle, error) {
 		&i.ConflictCount,
 		&i.Note,
 		&i.Stage,
+		&i.EngineModel,
+		&i.Effort,
 	)
 	return i, err
 }
 
 const latestDoneCycle = `-- name: LatestDoneCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles where status in ('done', 'partial') order by number desc limit 1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles where status in ('done', 'partial') order by number desc limit 1
 `
 
 func (q *Queries) LatestDoneCycle(ctx context.Context) (Cycle, error) {
@@ -490,12 +494,14 @@ func (q *Queries) LatestDoneCycle(ctx context.Context) (Cycle, error) {
 		&i.ConflictCount,
 		&i.Note,
 		&i.Stage,
+		&i.EngineModel,
+		&i.Effort,
 	)
 	return i, err
 }
 
 const latestFullCycle = `-- name: LatestFullCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles where status in ('done', 'partial') and scope = 'all' order by number desc limit 1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles where status in ('done', 'partial') and scope = 'all' order by number desc limit 1
 `
 
 // The last finished cycle with scope all (Rencana hari ini, Ringkasan, conflicts come from it).
@@ -519,6 +525,8 @@ func (q *Queries) LatestFullCycle(ctx context.Context) (Cycle, error) {
 		&i.ConflictCount,
 		&i.Note,
 		&i.Stage,
+		&i.EngineModel,
+		&i.Effort,
 	)
 	return i, err
 }
@@ -715,7 +723,7 @@ func (q *Queries) ListCycleStages(ctx context.Context, cycleID uuid.UUID) ([]Cyc
 }
 
 const listCycles = `-- name: ListCycles :many
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage from cycles order by number desc limit $1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles order by number desc limit $1
 `
 
 func (q *Queries) ListCycles(ctx context.Context, limit int32) ([]Cycle, error) {
@@ -744,6 +752,8 @@ func (q *Queries) ListCycles(ctx context.Context, limit int32) ([]Cycle, error) 
 			&i.ConflictCount,
 			&i.Note,
 			&i.Stage,
+			&i.EngineModel,
+			&i.Effort,
 		); err != nil {
 			return nil, err
 		}
@@ -1045,7 +1055,7 @@ func (q *Queries) ProposalsOfCycle(ctx context.Context, cycleID *uuid.UUID) ([]P
 
 const queueCycle = `-- name: QueueCycle :one
 insert into cycles (trigger, scope, via, requested_by, status, started_at)
-values ($1, $2, $3, $4, 'queued', $5) returning id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage
+values ($1, $2, $3, $4, 'queued', $5) returning id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort
 `
 
 type QueueCycleParams struct {
@@ -1083,6 +1093,8 @@ func (q *Queries) QueueCycle(ctx context.Context, arg QueueCycleParams) (Cycle, 
 		&i.ConflictCount,
 		&i.Note,
 		&i.Stage,
+		&i.EngineModel,
+		&i.Effort,
 	)
 	return i, err
 }
@@ -1169,6 +1181,22 @@ func (q *Queries) SalesInteractions(ctx context.Context, arg SalesInteractionsPa
 		return nil, err
 	}
 	return items, nil
+}
+
+const setCycleEngine = `-- name: SetCycleEngine :exec
+update cycles set engine_model = nullif($1::text, ''), effort = nullif($2::text, '') where id = $3::uuid
+`
+
+type SetCycleEngineParams struct {
+	EngineModel string    `json:"engine_model"`
+	Effort      string    `json:"effort"`
+	ID          uuid.UUID `json:"id"`
+}
+
+// The model and effort "Analisis ulang" asked for.
+func (q *Queries) SetCycleEngine(ctx context.Context, arg SetCycleEngineParams) error {
+	_, err := q.db.Exec(ctx, setCycleEngine, arg.EngineModel, arg.Effort, arg.ID)
+	return err
 }
 
 const setCycleStage = `-- name: SetCycleStage :exec

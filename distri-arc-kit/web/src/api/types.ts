@@ -481,6 +481,10 @@ export interface Cycle {
   stage: StageName | null
   stages: CycleStage[]
   label: string
+  /** the model and effort the analysis asked for (16 Oct) */
+  engine_model?: string | null
+  effort?: 'low' | 'medium' | 'high' | null
+  model_label?: string
 }
 export interface CycleLatest { cycle: Cycle | null; last_done: Cycle | null; last_full: Cycle | null; running: boolean; next_at: string }
 export interface Conflict {

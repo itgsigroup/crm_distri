@@ -8,13 +8,14 @@ import { GROUND, PH, PX, W, jump, newRun, score, step, type Run } from './jumpga
 // While an analysis runs: what the AI is reading, stage by stage, and at the end whether it worked — with a small game
 // to play while waiting (Sam 16 Oct). Used by the analysis pop-up and by Pusat kendali.
 
-const READING: Record<string, [string, string]> = {
-  ingest: ['Membaca data', 'chat WhatsApp baru hari ini, order, invoice, pembayaran dan stok'],
-  analyze: ['Agen AI menganalisa', 'jadwal order, limit kredit, stok, prospek dan penagihan per dealer'],
-  synthesize: ['Menggabungkan temuan', 'hasil keenam agen dan konflik di antaranya'],
-  decide: ['Menyusun usulan', 'keputusan yang menunggu persetujuan Anda'],
-  execute: ['Menyimpan hasil', 'usulan, Analisa Stok, Analisa Kas dan Analisa WhatsApp'],
-  learn: ['Mencatat pelajaran', 'keputusan sebelumnya untuk siklus berikutnya'],
+// each stage in short: its icon, its name, and the one line shown while it runs
+const READING: Record<string, { icon: string; name: string; line: string }> = {
+  ingest: { icon: 'chat', name: 'Baca data', line: 'chat WhatsApp hari ini, order, invoice & stok' },
+  analyze: { icon: 'spark', name: 'Analisa', line: '6 agen AI menganalisa dealer' },
+  synthesize: { icon: 'net', name: 'Gabungkan', line: 'menggabungkan temuan agen' },
+  decide: { icon: 'flag', name: 'Usulan', line: 'menyusun usulan untuk Anda' },
+  execute: { icon: 'doc', name: 'Simpan', line: 'menyimpan hasil' },
+  learn: { icon: 'trend', name: 'Belajar', line: 'mencatat pelajaran' },
 }
 
 const BEST_KEY = 'jumpgame-best'
@@ -36,8 +37,8 @@ export function AnalysisPanel() {
   )
 }
 
-/** "AI sedang membaca data…": the stage in plain words, the six stages, scope, engine and time running — and the game
- * beside it. extra: a line under the stages (the MCP hint). */
+/** "AI sedang membaca data…": the stage running, the six stages as chips with their icons, engine and time — and the
+ * game below, wide. extra: a line under the stages (the MCP hint). */
 export function AnalysisRunning({ extra, focusGame = false }: { extra?: ReactNode; focusGame?: boolean }) {
   const { s } = useOrch()
   const [now, setNow] = useState(() => Date.now())
@@ -45,36 +46,32 @@ export function AnalysisRunning({ extra, focusGame = false }: { extra?: ReactNod
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
   }, [])
-  const cur = Math.min(s.shown, STAGES.length - 1)
-  const [what, detail] = READING[STAGES[cur]]
+  const cur = READING[STAGES[Math.min(s.shown, STAGES.length - 1)]]
   return (
-    <div className="an-grid">
-      <div className="an-read">
-        <div className="an-head">
-          <span className="an-pulse" />
-          <div>
-            <h2>AI sedang membaca data<span className="an-dots"><i>.</i><i>.</i><i>.</i></span></h2>
-            <p>{what}: {detail}</p>
-          </div>
+    <div className="an-run">
+      <div className="an-head">
+        <span className="an-pulse" />
+        <div>
+          <h2>AI sedang membaca data<span className="an-dots"><i>.</i><i>.</i><i>.</i></span></h2>
+          <p><Icon name={cur.icon} />{cur.name} · {cur.line}</p>
         </div>
-        <ol className="an-steps">
-          {STAGES.map((st, i) => {
-            const state = chipState(s, i, true)
-            return (
-              <li key={st} className={state}>
-                <span className="an-st">{state === 'done' ? <Icon name="check" /> : state === 'run' ? <i className="an-spin" /> : i + 1}</span>
-                <span><b>{READING[st][0]}</b><small>{READING[st][1]}</small></span>
-              </li>
-            )
-          })}
-        </ol>
-        {extra}
         <div className="an-meta">
-          <span>Lingkup <b>{s.label || 'semua'}</b></span>
-          <span>Oleh <b>{s.via === 'api' ? 'API' : s.via}</b></span>
-          {s.startedAt && <span>Berjalan <b>{duration(now - s.startedAt)}</b></span>}
+          <span><Icon name="spark" /><b>{s.via === 'api' ? 'API' : s.via}</b></span>
+          {s.startedAt && <span><Icon name="refresh" /><b>{duration(now - s.startedAt)}</b></span>}
         </div>
       </div>
+      <ol className="an-chips">
+        {STAGES.map((st) => {
+          const state = chipState(s, STAGES.indexOf(st), true)
+          return (
+            <li key={st} className={state} title={READING[st].line}>
+              <span className="an-ic">{state === 'run' ? <i className="an-spin" /> : <Icon name={state === 'done' ? 'check' : READING[st].icon} />}</span>
+              {READING[st].name}
+            </li>
+          )
+        })}
+      </ol>
+      {extra}
       <JumpGame autoFocus={focusGame} />
     </div>
   )

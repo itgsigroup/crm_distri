@@ -6,6 +6,7 @@ import { PIPELINE_STAGES, type ScreenKey } from '../lib/i18n/id'
 import { chipState, progress } from './cycle'
 import { scopeLabel, useOrch, useOrchStatus } from './orch'
 import { useCycleEngines } from './queries'
+import { EFFORTS, MCP_MODELS, effort, mcpModel, setEffort, setMcpModel, shortModel, type Effort } from './enginePrefs'
 
 /** Pipeline chips (mockup pipeHtml compact): done / run per stage. */
 export function PipeChips() {
@@ -75,6 +76,10 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
   const { pathname } = useLocation()
   const { data: eng } = useCycleEngines(open)
   const [pick, setPick] = useState<Engine | null>(savedEngine)
+  const [model, setModel] = useState(mcpModel)
+  const [eff, setEff] = useState<Effort>(effort)
+  const chooseModel = (id: string) => { setModel(id); setMcpModel(id) }
+  const chooseEffort = (e: Effort) => { setEff(e); setEffort(e) }
   const modelReady = !!eng?.model.ready
   const engine: Engine = pick === 'model' && !modelReady ? 'mcp' : pick ?? (modelReady ? 'model' : 'mcp')
   const choose = (e: Engine) => { setPick(e); try { localStorage.setItem(ENGINE_KEY, e) } catch { /* private mode */ } }
@@ -100,11 +105,29 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
         </div>
         <div className="dk-eng" role="radiogroup" aria-label="Dianalisis oleh">
           <button type="button" role="radio" aria-checked={engine === 'mcp'} className={engine === 'mcp' ? 'on' : ''} disabled={st.running} onClick={() => choose('mcp')}>
-            <Icon name="plug" /><span><b>MCP Claude</b><small>claude.ai / Desktop</small></span>
+            <Icon name="plug" /><span><b>MCP Claude</b><small>{shortModel(model)} · {eff}</small></span>
           </button>
           <button type="button" role="radio" aria-checked={engine === 'model'} className={engine === 'model' ? 'on' : ''} disabled={st.running || !modelReady} title={eng?.model.why || undefined} onClick={() => choose('model')}>
-            <Icon name="spark" /><span><b>{eng ? eng.model.model_label : 'API & model AI'}</b><small>{!eng ? 'memuat…' : modelReady ? `${eng.model.provider} · di server` : 'kunci API belum diisi'}</small></span>
+            <Icon name="spark" /><span><b>{eng ? eng.model.model_label : 'API & model AI'}</b><small>{!eng ? 'memuat…' : modelReady ? `${eng.model.provider} · ${eff}` : 'kunci API belum diisi'}</small></span>
           </button>
+        </div>
+        <div className="dk-tune">
+          {engine === 'mcp' ? (
+            <label className="dk-model">
+              <span>Model</span>
+              <select value={model} disabled={st.running} onChange={(e) => chooseModel(e.target.value)} title="Pilih model yang sama di claude.ai / Desktop — perintahnya menyebut model ini">
+                {MCP_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </select>
+            </label>
+          ) : (
+            <span className="dk-model"><span>Model</span><b title="Diatur di Pengaturan → API & model AI">{eng?.model.model_label ?? '—'}</b></span>
+          )}
+          <div className="dk-effort" role="radiogroup" aria-label="Effort">
+            <span>Effort</span>
+            {EFFORTS.map((x) => (
+              <button key={x.id} type="button" role="radio" aria-checked={eff === x.id} className={eff === x.id ? 'on' : ''} disabled={st.running} title={x.hint} onClick={() => chooseEffort(x.id)}>{x.label}</button>
+            ))}
+          </div>
         </div>
         <div className="dk-acts">
           <button className="btn primary" disabled={st.running} onClick={() => run(scope)}><Icon name="refresh" />{scope === 'all' ? 'Analisis ulang' : 'Analisis ulang layar ini'}</button>

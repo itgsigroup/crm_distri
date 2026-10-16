@@ -10,6 +10,7 @@ import { useSse } from './SseProvider'
 import { useCycleLatest, useQueue } from './queries'
 import { STAGES, TICK_MS, cycleReducer, initialCycle, type CycleUI } from './cycle'
 import { AnalysisSheet, type QueuedCycle } from './AnalysisSheet'
+import { effort, mcpModel } from './enginePrefs'
 
 /** Label of a scope string, as the API's domain.Scope.Label ("screen:orbit" → "orbit"). */
 export function scopeLabel(scope: string): string {
@@ -119,10 +120,13 @@ export function OrchProvider({ children }: { children: ReactNode }) {
         return
       }
       const v = via === 'mcp' || via === 'model' ? via : 'api'
+      // the model (for claude.ai) and effort chosen on the dock, the same for every "Analisis ulang"
       api
-        .post<QueuedCycle>('/cycles', { scope, via: v })
+        .post<QueuedCycle>('/cycles', { scope, via: v, model: mcpModel(), effort: effort() })
         .then((c) => {
-          const by = c.mcp?.engine === 'claude_api' ? c.mcp.model || label || 'API' : c.mcp ? 'Claude lewat MCP' : label || 'API'
+          const eff = c.mcp?.effort || c.effort || effort()
+          const by = c.mcp?.engine === 'claude_api' ? `${c.mcp.model || label || 'API'} · ${eff}`
+            : c.mcp ? `MCP Claude · ${c.mcp.model_label || 'Claude'} · ${eff}` : label || 'API'
           dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by, at: Date.now() })
           openSheet(<AnalysisSheet cycle={c} />) // "AI sedang membaca data…" with the game, then berhasil / gagal
         })

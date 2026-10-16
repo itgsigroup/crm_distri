@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Pilih model AI & effort di Orchestrator; tahap AI ringkas berikon; game lebih besar · 2026-10-16
+- Dock Orchestrator (kanan bawah) punya pilihan **Model** dan **Effort (Low · Medium · High)**. MCP Claude: pilih Claude Opus 5.5 / Sonnet 5.5 / Haiku 5.5 / Fable 5.1 — perintah untuk Claude menyebut model dan effort itu, dan pop-up meminta memilih model yang sama di claude.ai. API di server: modelnya dari Pengaturan → API & model AI, effort-nya benar-benar dipakai (Claude: `output_config.effort`; ChatGPT: `reasoning_effort` pada GPT-5/o3/o4). Pilihan diingat di browser.
+- Model dan effort tersimpan di siklus (migrasi 0045) dan tampil di pop-up analisis ("MCP Claude · Opus 5.5 · high") serta di halaman Orchestrator (Model AI terakhir).
+- Tahap "AI sedang membaca data" diringkas jadi 6 chip berikon: Baca data · Analisa · Gabungkan · Usulan · Simpan · Belajar.
+- Game Lompat! kini selebar pop-up (pop-up dilebarkan), di bawah tahap AI.
+
 ## Change · Analisa WhatsApp hanya membaca pesan baru hari ini (hemat token); game Lompat! · 2026-10-16
 - AI (Claude lewat MCP atau model di server) kini hanya membaca percakapan yang punya **pesan pelanggan baru hari ini yang belum dibaca**, dan hanya pesan hari ini. Isi sebelumnya ikut sebagai ringkasan lama untuk diperbarui, bukan dibaca ulang. Siklus tanpa pesan baru tidak memanggil AI sama sekali (0 token), dan jadwal Analisa WhatsApp dianggap berhasil.
 - Yang sudah dibaca tetap tampil di Pusat kendali: ringkasan per percakapan dan ringkasan umum dibawa ke siklus berikutnya sampai ada pesan baru; catatan per bubble memang sudah tersimpan. Angka (chat, pesan masuk, menunggu balasan, KPI) tetap dihitung sistem dari 7 hari terakhir tanpa AI. Migrasi 0044 (`wa_insights.summary_at`).

@@ -1,4 +1,5 @@
 import type { CycleStage } from '../../api/types'
+import { effort, mcpModel, shortModel } from '../../app/enginePrefs'
 import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
@@ -75,9 +76,9 @@ export function OrchestratorPage() {
           <div className="oh-kv"><small>Analisis terakhir</small><b>{st.run ? `#${st.run.toLocaleString('id-ID')} · ${st.last}` : '—'}</b></div>
           {canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${(wa.cycle_number ?? 0).toLocaleString('id-ID')} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
           <div className="oh-kv"><small>Berikutnya</small><b>{st.next} · tiap jam</b></div>
-          <div className="oh-kv"><small>Jalur analisis</small><b>Claude lewat MCP</b></div>
+          <div className="oh-kv"><small>Model AI terakhir</small><b title="Model dan effort yang dipilih untuk analisis terakhir (Orchestrator di kanan bawah)">{st.lastDone?.model_label ? `${st.lastDone.via === 'mcp' ? 'MCP · ' : ''}${st.lastDone.model_label}${st.lastDone.effort ? ` · ${st.lastDone.effort}` : ''}` : 'Claude lewat MCP'}</b></div>
           <div className="oh-btns">
-            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all', 'mcp')} title="Claude menganalisis lewat MCP"><Icon name="plug" />Analisis ulang (Claude · MCP)</button>
+            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all', 'mcp')} title={`Claude menganalisis lewat MCP · ${shortModel(mcpModel())} · effort ${effort()} (ubah di Orchestrator kanan bawah)`}><Icon name="plug" />Analisis ulang (Claude · MCP)</button>
           </div>
         </div>
       </div>

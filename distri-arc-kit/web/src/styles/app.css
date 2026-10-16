@@ -314,7 +314,6 @@
 .an-cron-pv.bad{background:var(--bad-soft,var(--surface-2));color:var(--bad)}
 .an-cron small,.an-note{display:block;margin-top:6px;font-size:11.5px;font-weight:500;color:var(--text-3);line-height:1.5}
 .an-cron small code{font-family:var(--font-mono)}
-.sheet:has(.an-sheet){width:min(980px,calc(100vw - 32px))}
 .an-runs{display:grid;grid-template-columns:190px minmax(0,1fr);gap:14px;margin-top:16px}
 .an-runlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:62vh;overflow:auto}
 .an-runlist button{width:100%;text-align:left;display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:10px;font-size:12.5px;color:var(--text-2)}
@@ -325,10 +324,6 @@
 .an-report-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--text-3);margin-bottom:10px}
 .an-err{display:flex;gap:6px;align-items:center;padding:8px 10px;border-radius:9px;background:var(--bad-soft,var(--surface-2));color:var(--bad);font-size:12.5px;margin-bottom:10px}
 .an-err .i{width:14px;height:14px;flex:none}
-.an-steps{margin-top:14px;font-size:12px;color:var(--text-2)}
-.an-steps summary{cursor:pointer;font-weight:600;color:var(--text-3)}
-.an-steps ol{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
-.an-steps code,.an-steps .mono{font-family:var(--font-mono);font-size:11.5px}
 .md{font-size:13.5px;line-height:1.6;color:var(--text)}
 .md h3{font-family:var(--font-display);font-size:17px;margin:4px 0 8px}
 .md h4{font-size:14px;margin:16px 0 6px}
@@ -1511,8 +1506,6 @@ body.map-maximized{overflow:hidden}
 /* Pusat kendali: the analysis panel (what the AI reads, the game, berhasil / gagal) */
 .an-panel{margin:0 0 16px;padding:16px 18px}
 .an-panel.running{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent-soft)}
-.an-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
-@media (max-width:760px){.an-grid{grid-template-columns:1fr}}
 .an-head{display:flex;gap:12px;align-items:flex-start}
 .an-head h2{margin:0;font-size:16px}
 .an-head p{margin:2px 0 0;font-size:13px;color:var(--text-2)}
@@ -1522,16 +1515,6 @@ body.map-maximized{overflow:hidden}
 .an-dots i:nth-child(2){animation-delay:.2s}
 .an-dots i:nth-child(3){animation-delay:.4s}
 @keyframes an-dot{0%,60%,100%{opacity:.2}30%{opacity:1}}
-.an-steps{list-style:none;margin:12px 0 10px;padding:0;display:flex;flex-direction:column;gap:6px}
-.an-steps li{display:flex;gap:10px;align-items:flex-start;color:var(--text-3);font-size:12.5px}
-.an-steps li b{display:block;font-weight:600;font-size:13px}
-.an-steps li small{display:block;font-size:11.5px}
-.an-steps li.run{color:var(--text)}
-.an-steps li.done{color:var(--text-2)}
-.an-st{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--surface-3);color:var(--text-3)}
-.an-steps li.done .an-st{background:var(--good-soft);color:var(--good)}
-.an-steps li.run .an-st{background:var(--accent-soft);color:var(--accent)}
-.an-st .i{width:13px;height:13px}
 .an-spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent);border-right-color:transparent;animation:an-spin .8s linear infinite}
 @keyframes an-spin{to{transform:rotate(360deg)}}
 .an-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text-3)}
@@ -1553,7 +1536,6 @@ body.map-maximized{overflow:hidden}
 .an-res.bad .an-res-ic{background:var(--bad-soft);color:var(--bad)}
 
 /* the analysis pop-up: wider for the stages and the game; the Claude hint with its button */
-.sheet:has(.an-sheet){width:min(760px,calc(100vw - 32px))}
 .an-mcp{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:9px 12px;border-radius:10px;background:var(--accent-soft);font-size:12.5px;color:var(--text-2)}
 .an-mcp span{flex:1;min-width:200px}
 
@@ -1576,3 +1558,33 @@ body.map-maximized{overflow:hidden}
 .jg-msg rect{fill:rgba(0,0,0,.62)}
 .jg-msg text{text-anchor:middle;font:800 11px var(--font-body, sans-serif);fill:#fff}
 .jg-msg .jg-sub{font-weight:600;font-size:8px;fill:#ffd23f}
+
+/* the analysis view: the stage running, six chips with icons, then the game wide below */
+.sheet:has(.an-sheet){width:min(900px,calc(100vw - 32px))}
+.an-run{display:flex;flex-direction:column;gap:12px}
+.an-head{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.an-head>div:nth-child(2){flex:1;min-width:220px}
+.an-head p{display:flex;align-items:center;gap:6px}
+.an-head p .i,.an-meta .i{width:14px;height:14px}
+.an-meta span{display:inline-flex;align-items:center;gap:4px}
+.an-chips{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@media (max-width:640px){.an-chips{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.an-chips li{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--text-3);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-ic{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3)}
+.an-ic .i{width:13px;height:13px}
+.an-chips li.done{color:var(--text-2)}
+.an-chips li.done .an-ic{background:var(--good-soft);color:var(--good)}
+.an-chips li.run{color:var(--text);border-color:var(--accent);background:var(--accent-soft)}
+.an-chips li.run .an-ic{background:var(--surface);color:var(--accent)}
+.an-game{padding:8px}
+.an-game .jg{max-height:min(46vh,340px)}
+
+/* the dock: the model and the effort the analysis asks for */
+.dk-tune{display:flex;flex-direction:column;gap:6px}
+.dk-model,.dk-effort{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)}
+.dk-model>span:first-child,.dk-effort>span:first-child{width:46px;flex:none}
+.dk-model select{flex:1;min-width:0;height:30px;padding:0 8px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--text);font:inherit;font-size:12.5px}
+.dk-model b{color:var(--text);font-size:12.5px}
+.dk-effort button{flex:1;height:28px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--text-2);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.dk-effort button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.dk-effort button:disabled{opacity:.6;cursor:default}

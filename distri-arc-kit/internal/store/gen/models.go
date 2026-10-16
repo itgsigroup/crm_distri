@@ -335,6 +335,8 @@ type Cycle struct {
 	ConflictCount *int32     `json:"conflict_count"`
 	Note          *string    `json:"note"`
 	Stage         *string    `json:"stage"`
+	EngineModel   *string    `json:"engine_model"`
+	Effort        *string    `json:"effort"`
 }
 
 type CycleInput struct {

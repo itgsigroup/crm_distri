@@ -248,6 +248,8 @@ type Runner struct {
 	EnvOpenAI  string                     // OPENAI_API_KEY
 	NewModel   func(key string) Model     // default NewAnthropic
 	NewChat    func(key string) ChatModel // default NewOpenAIChat
+	// Effort: low | medium | high for this run ("" = the model's default) — chosen on the Orchestrator dock (16 Oct)
+	Effort string
 }
 
 // Step is one tool call of a run (shown under the report).
@@ -449,6 +451,9 @@ func (r *Runner) claude(ctx context.Context, cs *sdk.ClientSession, m Model, mod
 	}
 	if adaptiveThinking(model) {
 		p.Thinking = anthropic.BetaThinkingConfigParamUnion{OfAdaptive: &anthropic.BetaThinkingConfigAdaptiveParam{}}
+		if r.Effort != "" { // effort works on the models that think adaptively (not Haiku 4.5 and older)
+			p.OutputConfig = anthropic.BetaOutputConfigParam{Effort: anthropic.BetaOutputConfigEffort(r.Effort)}
+		}
 	}
 	calls := 0
 	for turn := 0; turn < int(sch.MaxSteps)+stepBuffer; turn++ {

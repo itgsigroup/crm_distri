@@ -8,7 +8,7 @@ import { AnalysisResult, AnalysisRunning } from '../features/control/AnalysisPan
 import { useOrch } from './orch'
 
 /** How a cycle asked from the "Analisis ulang" button is analysed by Claude through MCP (POST /cycles → mcp). */
-export interface CycleMCP { engine: 'claude_api' | 'claude_ai'; /** claude_api: "Claude API · Claude Opus 5.5" */ model?: string; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string }
+export interface CycleMCP { engine: 'claude_api' | 'claude_ai'; /** claude_api: "Claude API · Claude Opus 5.5" */ model?: string; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string; /** the model and effort asked for */ model_label?: string; effort?: string }
 export type QueuedCycle = Cycle & { mcp?: CycleMCP }
 
 interface InputState { agent: string; submitted_at: string | null }
@@ -36,7 +36,7 @@ export function AnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
     <div className="an-mcp">
       <span>
         {sent > 0 ? <>Claude sudah mengirim <b>{sent}/{m.agents.length}</b> agen.</>
-          : claude ? <>Analisis lewat Claude: buka Claude lalu tekan Enter agar mulai membaca.{m.fallback ? <> Bila Claude tidak menjawab dalam {Math.round(m.wait_sec / 60)} menit, <b>{m.fallback}</b> melanjutkan di server.</> : null}</>
+          : claude ? <>Buka Claude, pilih <b>{m.model_label || 'Claude Opus 5.5'}</b>{m.effort ? <> · effort <b>{m.effort}</b></> : null}, lalu tekan Enter agar mulai membaca.{m.fallback ? <> Bila Claude tidak menjawab dalam {Math.round(m.wait_sec / 60)} menit, <b>{m.fallback}</b> melanjutkan di server.</> : null}</>
           : <><b>{m.model || 'API'}</b> membaca di server — tidak perlu membuka apa pun.</>}
       </span>
       {claude && sent === 0 && <a className="btn primary" href={m.claude_url} target="_blank" rel="noopener noreferrer"><Icon name="plug" />Buka Claude</a>}
