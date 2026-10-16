@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Pop-up analisis: "AI sedang membaca data" + game, pengganti langkah MCP · 2026-10-16
+- Pop-up "Claude menganalisis lewat MCP" (langkah 1–3, daftar agen, perintah) dihapus. Setiap **Analisis ulang** kini membuka pop-up **AI sedang membaca data…** dengan tahap yang sedang dibaca dan game **Tap tap Enter**, lalu di pop-up yang sama **Analisis berhasil / sebagian / gagal**.
+- Lewat Claude (claude.ai) tetap ada satu tombol **Buka Claude**, karena Claude hanya bekerja bila perintahnya dikirim di sana; setelah Claude mulai mengirim, tampil jumlah agen yang sudah dikirim. Lewat API di server tidak perlu membuka apa pun.
+- Panel di Pusat kendali kini hanya untuk analisis yang tidak Anda mulai (siklus per jam), agar tidak tampil dobel.
+
 ## Feat · Pusat kendali: AI sedang membaca data, hasil berhasil/gagal, dan game sambil menunggu · 2026-10-16
 - Saat analisis berjalan, Pusat kendali menampilkan panel **AI sedang membaca data…**: tahap yang sedang dikerjakan dengan penjelasan (membaca chat, order, invoice, pembayaran dan stok → agen AI menganalisa → menggabungkan temuan → menyusun usulan → menyimpan hasil → mencatat pelajaran), lingkup, mesin AI, dan lama berjalan.
 - Setelah selesai, panel yang sama menampilkan **Analisis berhasil**, **selesai sebagian**, atau **gagal** beserta siklus, jam selesai, durasi, jumlah saran diperbarui, dan penyebab bila gagal. Di halaman ini pop-up hasil tidak muncul lagi (tidak dobel).

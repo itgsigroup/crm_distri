@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '../../components/Icon'
 import { hhmm } from '../../lib/format'
-import { STAGES, chipState } from '../../app/cycle'
+import { STAGES, chipState, type CycleUI } from '../../app/cycle'
 import { duration, useOrch } from '../../app/orch'
 import { START_SPEED, advance, arcPath, newGame, point, press, type Game } from './tapgame'
 
-// Pusat kendali while an analysis runs: what the AI is reading, stage by stage, and at the end whether it worked —
-// with a small game to play while waiting (Sam 16 Oct). The panel announces the result itself (no pop-up).
+// While an analysis runs: what the AI is reading, stage by stage, and at the end whether it worked — with a small game
+// to play while waiting (Sam 16 Oct). Used by the analysis pop-up and by Pusat kendali.
 
 const READING: Record<string, [string, string]> = {
   ingest: ['Membaca data', 'chat WhatsApp, order, invoice, pembayaran dan stok'],
@@ -22,84 +22,88 @@ function savedBest(): number {
   try { return Number(localStorage.getItem(BEST_KEY)) || 0 } catch { return 0 }
 }
 
+type Last = NonNullable<CycleUI['last']>
+
+/** Pusat kendali: a cycle this tab did not start (the hourly one, or another user's) — what the AI reads, and the
+ * game. An analysis started here shows in its own pop-up (AnalysisSheet), so it is not shown twice. */
 export function AnalysisPanel() {
-  const { s, showPanel } = useOrch()
-  useEffect(() => showPanel(), [showPanel]) // the result shows here, not as a pop-up
-  const [closed, setClosed] = useState<number | null>(null)
+  const { s } = useOrch()
+  if (!s.running || s.mine) return null
+  return (
+    <div className="card an-panel running" role="status" aria-live="polite">
+      <AnalysisRunning />
+    </div>
+  )
+}
+
+/** "AI sedang membaca data…": the stage in plain words, the six stages, scope, engine and time running — and the game
+ * beside it. extra: a line under the stages (the MCP hint). */
+export function AnalysisRunning({ extra, focusGame = false }: { extra?: ReactNode; focusGame?: boolean }) {
+  const { s } = useOrch()
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
-    if (!s.running) return
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
-  }, [s.running])
-
-  const last = s.last
-  const showResult = !s.running && !!last && last.mine && closed !== last.endedAt
-  if (!s.running && !showResult) return null
-
-  if (showResult && last) {
-    const failed = last.status === 'failed'
-    const partial = last.status === 'partial'
-    const took = last.startedAt ? duration(last.endedAt - last.startedAt) : '—'
-    return (
-      <div className={`card an-panel ${failed ? 'bad' : partial ? 'warn' : 'good'}`} role="status">
-        <div className="an-res">
-          <span className="an-res-ic"><Icon name={failed ? 'alert' : 'check'} /></span>
-          <div>
-            <h2>{failed ? 'Analisis gagal' : partial ? 'Analisis selesai sebagian' : 'Analisis berhasil'}</h2>
-            <p>
-              {failed
-                ? `Analisis ulang ${last.label} tidak selesai. Data dan saran sebelumnya tetap dipakai — coba lagi beberapa saat lagi.`
-                : partial
-                ? `Analisis ulang ${last.label} selesai, tetapi sebagian agen tidak berjalan.`
-                : `Analisis ulang ${last.label} selesai. Halaman ini sudah diperbarui dengan hasilnya.`}
-            </p>
-            <div className="an-meta">
-              <span>Siklus <b>{last.number ? '#' + last.number.toLocaleString('id-ID') : '—'}</b></span>
-              <span>Selesai <b>{hhmm(new Date(last.endedAt))} WIB</b></span>
-              <span>Durasi <b>{took}</b></span>
-              {!failed && <span>Saran diperbarui <b>{last.updated}</b></span>}
-              {last.note && <span className="an-note">{failed ? 'Penyebab' : 'Catatan'}: {last.note}</span>}
-            </div>
-          </div>
-          <button type="button" className="ibl-btn" onClick={() => setClosed(last.endedAt)} aria-label="Tutup" title="Tutup"><Icon name="x" /></button>
-        </div>
-      </div>
-    )
-  }
-
+  }, [])
   const cur = Math.min(s.shown, STAGES.length - 1)
   const [what, detail] = READING[STAGES[cur]]
   return (
-    <div className="card an-panel running" role="status" aria-live="polite">
-      <div className="an-grid">
-        <div className="an-read">
-          <div className="an-head">
-            <span className="an-pulse" />
-            <div>
-              <h2>AI sedang membaca data<span className="an-dots"><i>.</i><i>.</i><i>.</i></span></h2>
-              <p>{what}: {detail}</p>
-            </div>
-          </div>
-          <ol className="an-steps">
-            {STAGES.map((st, i) => {
-              const state = chipState(s, i, true)
-              return (
-                <li key={st} className={state}>
-                  <span className="an-st">{state === 'done' ? <Icon name="check" /> : state === 'run' ? <i className="an-spin" /> : i + 1}</span>
-                  <span><b>{READING[st][0]}</b><small>{READING[st][1]}</small></span>
-                </li>
-              )
-            })}
-          </ol>
-          <div className="an-meta">
-            <span>Lingkup <b>{s.label || 'semua'}</b></span>
-            <span>Oleh <b>{s.via === 'api' ? 'API' : s.via}</b></span>
-            {s.startedAt && <span>Berjalan <b>{duration(now - s.startedAt)}</b></span>}
+    <div className="an-grid">
+      <div className="an-read">
+        <div className="an-head">
+          <span className="an-pulse" />
+          <div>
+            <h2>AI sedang membaca data<span className="an-dots"><i>.</i><i>.</i><i>.</i></span></h2>
+            <p>{what}: {detail}</p>
           </div>
         </div>
-        {/* the MCP sheet (instructions for Claude) keeps the keyboard; otherwise Enter goes straight to the game */}
-        <TapGame autoFocus={s.mine && !/mcp/i.test(s.via)} />
+        <ol className="an-steps">
+          {STAGES.map((st, i) => {
+            const state = chipState(s, i, true)
+            return (
+              <li key={st} className={state}>
+                <span className="an-st">{state === 'done' ? <Icon name="check" /> : state === 'run' ? <i className="an-spin" /> : i + 1}</span>
+                <span><b>{READING[st][0]}</b><small>{READING[st][1]}</small></span>
+              </li>
+            )
+          })}
+        </ol>
+        {extra}
+        <div className="an-meta">
+          <span>Lingkup <b>{s.label || 'semua'}</b></span>
+          <span>Oleh <b>{s.via === 'api' ? 'API' : s.via}</b></span>
+          {s.startedAt && <span>Berjalan <b>{duration(now - s.startedAt)}</b></span>}
+        </div>
+      </div>
+      <TapGame autoFocus={focusGame} />
+    </div>
+  )
+}
+
+/** The end of an analysis: berhasil, selesai sebagian or gagal, with the cycle, time, duration and cause. */
+export function AnalysisResult({ last }: { last: Last }) {
+  const failed = last.status === 'failed'
+  const partial = last.status === 'partial'
+  const took = last.startedAt ? duration(last.endedAt - last.startedAt) : '—'
+  return (
+    <div className={`an-res ${failed ? 'bad' : partial ? 'warn' : 'good'}`} role="status">
+      <span className="an-res-ic"><Icon name={failed ? 'alert' : 'check'} /></span>
+      <div>
+        <h2>{failed ? 'Analisis gagal' : partial ? 'Analisis selesai sebagian' : 'Analisis berhasil'}</h2>
+        <p>
+          {failed
+            ? `Analisis ulang ${last.label} tidak selesai. Data dan saran sebelumnya tetap dipakai — coba lagi beberapa saat lagi.`
+            : partial
+            ? `Analisis ulang ${last.label} selesai, tetapi sebagian agen tidak berjalan.`
+            : `Analisis ulang ${last.label} selesai. Halaman sudah diperbarui dengan hasilnya.`}
+        </p>
+        <div className="an-meta">
+          <span>Siklus <b>{last.number ? '#' + last.number.toLocaleString('id-ID') : '—'}</b></span>
+          <span>Selesai <b>{hhmm(new Date(last.endedAt))} WIB</b></span>
+          <span>Durasi <b>{took}</b></span>
+          {!failed && <span>Saran diperbarui <b>{last.updated}</b></span>}
+          {last.note && <span className="an-note">{failed ? 'Penyebab' : 'Catatan'}: {last.note}</span>}
+        </div>
       </div>
     </div>
   )

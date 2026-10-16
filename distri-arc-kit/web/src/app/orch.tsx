@@ -9,7 +9,7 @@ import { STAGE_LABEL } from '../lib/i18n/id'
 import { useSse } from './SseProvider'
 import { useCycleLatest, useQueue } from './queries'
 import { STAGES, TICK_MS, cycleReducer, initialCycle, type CycleUI } from './cycle'
-import { MCPAnalysisSheet, type QueuedCycle } from './MCPAnalysis'
+import { AnalysisSheet, type QueuedCycle } from './AnalysisSheet'
 
 /** Label of a scope string, as the API's domain.Scope.Label ("screen:orbit" → "orbit"). */
 export function scopeLabel(scope: string): string {
@@ -124,7 +124,7 @@ export function OrchProvider({ children }: { children: ReactNode }) {
         .then((c) => {
           const by = c.mcp?.engine === 'claude_api' ? c.mcp.model || label || 'API' : c.mcp ? 'Claude lewat MCP' : label || 'API'
           dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by, at: Date.now() })
-          if (c.mcp) openSheet(<MCPAnalysisSheet cycle={c} />) // Claude or the chosen API analyses it through MCP; results stay in GSI Orbit
+          openSheet(<AnalysisSheet cycle={c} />) // "AI sedang membaca data…" with the game, then berhasil / gagal
         })
         .catch((e: unknown) =>
           e instanceof ApiError && e.code === 'no_api'

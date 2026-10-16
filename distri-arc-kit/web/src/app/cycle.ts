@@ -28,7 +28,7 @@ export interface CycleUI {
   result: CycleResult | null
   startedAt: number | null // when this tab saw the cycle start (ms)
   // the last cycle finished in this tab, kept after its result was announced (the Pusat kendali panel shows it)
-  last: (CycleResult & { mine: boolean; startedAt: number | null; endedAt: number }) | null
+  last: (CycleResult & { cycleId: string | null; mine: boolean; startedAt: number | null; endedAt: number }) | null
 }
 
 export type CycleAction =
@@ -64,7 +64,7 @@ export function cycleReducer(s: CycleUI, a: CycleAction): CycleUI {
       return s
     }
     case 'ack':
-      return { ...s, result: null, mine: false, last: s.result ? { ...s.result, mine: s.mine, startedAt: s.startedAt, endedAt: a.at ?? 0 } : s.last }
+      return { ...s, result: null, mine: false, last: s.result ? { ...s.result, cycleId: s.cycleId, mine: s.mine, startedAt: s.startedAt, endedAt: a.at ?? 0 } : s.last }
   }
 }
 
