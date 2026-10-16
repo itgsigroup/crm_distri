@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Sematkan pesan tanpa batas · 2026-10-16
+- Pesan yang disematkan tidak lagi dibatasi 3 per chat; sematan baru tidak menggantikan yang lama.
+- Bar sematan tetap menampilkan satu per satu (klik untuk ke pesan dan lanjut ke berikutnya, nomor urut 1/n). Bila lebih dari 3, tombol **Semua** membuka daftar semua sematan untuk langsung ke pesannya atau melepasnya.
+
 ## Feat · Tag (@) di grup seperti WhatsApp · 2026-10-16
 - Pesan grup yang menandai anggota kini tampil dengan nama yang ditandai (@Budi, berwarna), bukan deretan angka; pratinjau di daftar chat juga.
 - Nomor GSI yang ditandai melihat tanda **@** di baris chat, sampai chat itu dibuka di nomor tersebut. Membaca grup lewat nomor lain tidak menghapus tanda nomor ini; riwayat lama tidak memunculkan tanda.

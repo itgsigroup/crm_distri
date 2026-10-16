@@ -1482,3 +1482,11 @@ body.map-maximized{overflow:hidden}
 .cmp-tags button{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:8px;background:none;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
 .cmp-tags button.on{background:var(--accent-soft)}
 .cmp-tags small{color:var(--text-3);font-size:11px}
+
+/* Pinned messages without a limit: "Semua" lists every pin under the bar */
+.pin-wrap{flex:none;position:relative}
+.pin-all{width:auto;padding:0 10px;font-size:12px;font-weight:600}
+.pin-all.on{background:var(--accent-soft);color:var(--accent)}
+.pin-list{position:absolute;left:0;right:0;top:100%;z-index:15;max-height:320px;overflow-y:auto;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 8px 20px rgba(0,0,0,.12)}
+.pin-list>div{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 12px;border-top:1px solid var(--line)}
+.pin-list>div.on{background:var(--surface-2)}

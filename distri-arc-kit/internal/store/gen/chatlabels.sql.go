@@ -334,22 +334,6 @@ func (q *Queries) MessageLabels(ctx context.Context, ids []uuid.UUID) ([]Message
 	return items, nil
 }
 
-const trimPins = `-- name: TrimPins :exec
-delete from chat_pins where conv = $1::text and message_id not in
-  (select x.message_id from chat_pins x where x.conv = $1::text order by x.pinned_at desc limit $2::int)
-`
-
-type TrimPinsParams struct {
-	Conv string `json:"conv"`
-	Keep int32  `json:"keep"`
-}
-
-// WhatsApp keeps three pins: a fourth replaces the oldest.
-func (q *Queries) TrimPins(ctx context.Context, arg TrimPinsParams) error {
-	_, err := q.db.Exec(ctx, trimPins, arg.Conv, arg.Keep)
-	return err
-}
-
 const updateChatLabel = `-- name: UpdateChatLabel :execrows
 update chat_labels set name = $1::text, color = $2::text where id = $3::uuid
 `

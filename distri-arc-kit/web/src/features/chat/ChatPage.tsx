@@ -580,7 +580,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       setOlderMore(!!r.has_more)
     }, (e: Error) => toast(e.message)).finally(() => setLoading(false))
   }
-  // Sematkan: kept in GSI Orbit for the team (three per chat, the oldest replaced) — nothing goes to WhatsApp
+  // Sematkan: kept in GSI Orbit for the team (no limit per chat) — nothing goes to WhatsApp
   const pin = useMutation({
     mutationFn: (m: MessageView) => api.put(`/chat/threads/${id}/messages/${m.id}/pin`, { pinned: !m.pinned }),
     onSuccess: (_, m) => {

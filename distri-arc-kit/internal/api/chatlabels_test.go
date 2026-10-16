@@ -50,15 +50,15 @@ func TestChatPinsAndLabels(t *testing.T) {
 		msgs = append(msgs, id)
 	}
 	base := srv.URL + "/api/chat/threads/"
-	for _, m := range msgs[:4] {
-		if code, out := sendJSON(t, "PUT", base+a+"/messages/"+m+"/pin", ceo, map[string]any{"pinned": true}); code != 200 || len(out["pins"].([]any)) > 3 {
+	for i, m := range msgs {
+		if code, out := sendJSON(t, "PUT", base+a+"/messages/"+m+"/pin", ceo, map[string]any{"pinned": true}); code != 200 || len(out["pins"].([]any)) != i+1 {
 			t.Fatalf("pin %d %v", code, out)
 		}
 	}
-	// the other GSI number's view of the group: the same three pins, newest first; the first one was replaced
+	// no limit (Sam 16 Oct): the other GSI number's view of the group holds all five pins, newest first
 	_, page := get(t, srv, "/api/chat/threads/"+b, ceo)
 	pins := page["pins"].([]any)
-	if len(pins) != 3 || pins[0].(map[string]any)["message_id"] != msgs[3] || pins[2].(map[string]any)["message_id"] != msgs[1] {
+	if len(pins) != 5 || pins[0].(map[string]any)["message_id"] != msgs[4] || pins[4].(map[string]any)["message_id"] != msgs[0] {
 		t.Fatalf("pins under the other number %v", pins)
 	}
 	pinned := 0
@@ -67,10 +67,10 @@ func TestChatPinsAndLabels(t *testing.T) {
 			pinned++
 		}
 	}
-	if pinned != 3 {
+	if pinned != 5 {
 		t.Fatalf("%d bubbles marked pinned", pinned)
 	}
-	if code, out := sendJSON(t, "PUT", base+b+"/messages/"+msgs[3]+"/pin", ceo, map[string]any{"pinned": false}); code != 200 || len(out["pins"].([]any)) != 2 {
+	if code, out := sendJSON(t, "PUT", base+b+"/messages/"+msgs[3]+"/pin", ceo, map[string]any{"pinned": false}); code != 200 || len(out["pins"].([]any)) != 4 {
 		t.Fatalf("unpin %d %v", code, out)
 	}
 

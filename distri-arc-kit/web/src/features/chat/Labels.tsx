@@ -84,21 +84,40 @@ export function LabelSheet({ title, sub, selected, save }: { title: string; sub:
   )
 }
 
-/** The pinned messages above the chat: one at a time, a click goes to it and shows the next (like WhatsApp). */
+/** The pinned messages above the chat: one at a time, a click goes to it and shows the next (like WhatsApp). Any
+ * number may be pinned; with more than three, "Semua" lists them all to go to one or unpin it. */
 export function PinnedBar({ pins, who, onJump, onUnpin }: { pins: ChatPin[]; who: string; onJump: (p: ChatPin) => void; onUnpin: (p: ChatPin) => void }) {
   const [cur, setCur] = useState(0)
+  const [all, setAll] = useState(false)
   if (!pins.length) return null
   const i = cur < pins.length ? cur : 0
   const p = pins[i]
+  const name = (x: ChatPin) => (x.direction === 'out' ? 'Anda' : x.from_name || who)
   return (
-    <div className="pin-bar">
-      {pins.length > 1 && <span className="pin-ticks" aria-hidden>{pins.map((x, k) => <i key={x.message_id} className={k === i ? 'on' : ''} />)}</span>}
-      <button type="button" className="pin-main" onClick={() => { onJump(p); setCur(nextPin(i, pins.length)) }}
-        title={`Disematkan ${p.pinned_by ? 'oleh ' + p.pinned_by + ' ' : ''}${shortDate(p.pinned_at)} ${hhmm(p.pinned_at)} — klik untuk ke pesan`}>
-        <Icon name="pin" />
-        <span><b>{p.direction === 'out' ? 'Anda' : p.from_name || who}{pins.length > 1 ? ` · ${i + 1}/${pins.length}` : ''}</b>{pinLine(p)}</span>
-      </button>
-      <button type="button" className="ibl-btn" onClick={() => onUnpin(p)} title="Lepas sematan" aria-label="Lepas sematan"><Icon name="x" /></button>
+    <div className="pin-wrap">
+      <div className="pin-bar">
+        {pins.length > 1 && pins.length <= 5 && <span className="pin-ticks" aria-hidden>{pins.map((x, k) => <i key={x.message_id} className={k === i ? 'on' : ''} />)}</span>}
+        <button type="button" className="pin-main" onClick={() => { onJump(p); setCur(nextPin(i, pins.length)) }}
+          title={`Disematkan ${p.pinned_by ? 'oleh ' + p.pinned_by + ' ' : ''}${shortDate(p.pinned_at)} ${hhmm(p.pinned_at)} — klik untuk ke pesan`}>
+          <Icon name="pin" />
+          <span><b>{name(p)}{pins.length > 1 ? ` · ${i + 1}/${pins.length}` : ''}</b>{pinLine(p)}</span>
+        </button>
+        {pins.length > 3 && <button type="button" className={`ibl-btn pin-all${all ? ' on' : ''}`} onClick={() => setAll(!all)} aria-expanded={all} title="Lihat semua pesan yang disematkan">Semua</button>}
+        <button type="button" className="ibl-btn" onClick={() => onUnpin(p)} title="Lepas sematan" aria-label="Lepas sematan"><Icon name="x" /></button>
+      </div>
+      {all && (
+        <div className="pin-list" role="list" aria-label="Pesan yang disematkan">
+          {pins.map((x, k) => (
+            <div key={x.message_id} role="listitem" className={k === i ? 'on' : ''}>
+              <button type="button" className="pin-main" onClick={() => { onJump(x); setCur(k); setAll(false) }}>
+                <Icon name="pin" />
+                <span><b>{name(x)} · {shortDate(x.sent_at)} {hhmm(x.sent_at)}</b>{pinLine(x)}</span>
+              </button>
+              <button type="button" className="ibl-btn" onClick={() => onUnpin(x)} title="Lepas sematan" aria-label="Lepas sematan"><Icon name="x" /></button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

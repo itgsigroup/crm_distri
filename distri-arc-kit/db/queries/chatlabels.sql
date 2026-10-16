@@ -52,10 +52,5 @@ order by p.pinned_at desc;
 insert into chat_pins (conv, message_id, sent_at, pinned_by) values (sqlc.arg(conv)::text, sqlc.arg(message_id)::uuid, sqlc.arg(sent_at)::timestamptz, sqlc.narg(pinned_by)::text)
 on conflict (conv, message_id) do update set pinned_at = now(), pinned_by = excluded.pinned_by;
 
--- name: TrimPins :exec
--- WhatsApp keeps three pins: a fourth replaces the oldest.
-delete from chat_pins where conv = sqlc.arg(conv)::text and message_id not in
-  (select x.message_id from chat_pins x where x.conv = sqlc.arg(conv)::text order by x.pinned_at desc limit sqlc.arg(keep)::int);
-
 -- name: DeletePin :exec
 delete from chat_pins where conv = $1 and message_id = $2;

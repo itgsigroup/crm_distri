@@ -22,9 +22,6 @@ import (
 // Pinned messages and labels in Chat, like WhatsApp Business (migration 0039). A pin or a label belongs to the
 // conversation — for a group, the same for every GSI number in it. Pins stay in GSI Orbit: nothing goes to WhatsApp.
 
-// maxPins: WhatsApp keeps three pinned messages; a fourth replaces the oldest.
-const maxPins = 3
-
 var labelColor = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 
 func (s *Server) chatLabelRoutes(r chi.Router) {
@@ -299,10 +296,8 @@ func (s *Server) pinMessage(w http.ResponseWriter, r *http.Request) {
 		if !b.Pinned {
 			return q.DeletePin(r.Context(), gen.DeletePinParams{Conv: conv, MessageID: m.ID})
 		}
-		if err := q.InsertPin(r.Context(), gen.InsertPinParams{Conv: conv, MessageID: m.ID, SentAt: m.SentAt, PinnedBy: u.Name}); err != nil {
-			return err
-		}
-		return q.TrimPins(r.Context(), gen.TrimPinsParams{Conv: conv, Keep: maxPins})
+		// no limit (Sam 16 Oct): unlike WhatsApp's three, a chat keeps every message the team pins
+		return q.InsertPin(r.Context(), gen.InsertPinParams{Conv: conv, MessageID: m.ID, SentAt: m.SentAt, PinnedBy: u.Name})
 	})
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
