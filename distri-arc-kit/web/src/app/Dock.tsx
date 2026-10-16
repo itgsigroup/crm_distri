@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router'
 import { Icon } from '../components/Icon'
 import { PIPELINE_STAGES, type ScreenKey } from '../lib/i18n/id'
@@ -64,7 +65,7 @@ function savedEngine(): Engine | null {
   try { const v = localStorage.getItem(ENGINE_KEY); return v === 'mcp' || v === 'model' ? v : null } catch { return null }
 }
 
-// Floating Orchestrator dock on every screen except Pusat kendali, Orchestrator and Chat: re-analyse this page (or
+// Floating Orchestrator dock, fixed at the bottom right of the screen on every page except Orchestrator and Chat: re-analyse this page (or
 // everything) with Claude through MCP or with the API and model chosen on Pengaturan → API & model AI; the page's
 // data refreshes when the cycle is done.
 export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: ReactNode; links?: ReactNode }) {
@@ -79,7 +80,8 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
   const choose = (e: Engine) => { setPick(e); try { localStorage.setItem(ENGINE_KEY, e) } catch { /* private mode */ } }
   const scope = screenScope(screen, pathname)
   const run = (sc: string) => reanalyze(sc, engine, engine === 'model' ? eng?.model.label : 'Claude lewat MCP')
-  return (
+  // rendered on <body>: inside a page (.screen animates a transform) position: fixed would scroll with the content
+  return createPortal(
     <div className={`dock ${open ? 'open' : ''} ${st.running ? 'running' : ''}`}>
       <button className="dk-main" onClick={() => setOpen(!open)} aria-label="Orchestrator">
         <span className="dk-dot" />
@@ -110,6 +112,7 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
           {links}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
