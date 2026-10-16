@@ -9,8 +9,10 @@ describe('chat inbox', () => {
     expect(filterOf({ kind: 'group', group_kind: 'internal' })).toBe('group_internal')
     expect(filterOf({ kind: 'group' })).toBe('group_internal')
     expect(filterOf({ kind: 'new' })).toBe('new')
+    expect(filterOf({ kind: 'internal' })).toBe('internal')
+    expect(inFilter({ kind: 'internal', unread: 0, waiting_since: W }, 'unreplied')).toBe(false)
     expect(countFilters([{ kind: 'dealer', unread: 0, waiting_since: W }, { kind: 'dealer', unread: 2 }, { kind: 'group', group_kind: 'external', unread: 1, waiting_since: W }, { kind: 'new', unread: 0, waiting_since: W }]))
-      .toEqual({ all: 4, unread: 2, unreplied: 2, dealer: 2, group_internal: 0, group_external: 1, new: 1, supplier: 0 })
+      .toEqual({ all: 4, unread: 2, unreplied: 2, dealer: 2, group_internal: 0, group_external: 1, new: 1, internal: 0, supplier: 0 })
   })
 
   it('filters unread conversations of every kind', () => {

@@ -283,7 +283,7 @@ export interface HealthFull {
 export interface Tag { k: string; t: string }
 export interface ThreadView {
   id: string
-  kind: 'dealer' | 'group' | 'new'
+  kind: 'dealer' | 'group' | 'new' | 'internal'
   title: string
   subtitle: string
   /** the name the linked phone saved for this number ("Pak Yohanes"), shown with the master name */

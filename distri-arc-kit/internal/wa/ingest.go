@@ -22,7 +22,6 @@ import (
 
 // Drop reasons (privacy filter, 09-policies-security.md).
 const (
-	DropInternalDM    = "dm_internal"    // DM between two internal numbers: never stored
 	DropGroupDisabled = "group_disabled" // internal group with reading switched off
 	DropPersonal      = "personal"       // a number marked personal (pribadi): never kept in the CRM (ADR 0035)
 	DropDuplicate     = "duplicate"      // same WhatsApp message id seen before
@@ -102,7 +101,6 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		var thread gen.ChatThread
 		var dealerID, contactID, groupID *uuid.UUID
 		threadKind, title, subtitle := "", "", ""
-		teamChat := false // a 1:1 chat between two numbers linked to GSI Orbit
 		fromInternal := internal(m.FromNumber)
 		if m.IsGroup && !fromInternal && !m.FromMe {
 			// in a group, any GSI number (linked, a user's, a sales') is our side
@@ -172,22 +170,28 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			}
 		} else {
 			remote := NumberOfJID(m.ChatJID)
-			if _, err := q.GetWANumber(ctx, remote); err == nil {
-				_, err = q.GetWANumber(ctx, account)
-				teamChat = err == nil
-			}
-			// a linked number is internal once it has a holder; a chat between two linked GSI numbers is a work chat
-			// both numbers' Chat shows (16 Oct: Tantri → Granike stood on neither side). DMs with an employee's
-			// own number (internal, not linked) are still never stored.
-			if internal(remote) && !teamChat {
-				res.Reason = DropInternalDM
-				return nil
-			}
 			if ct, err := q.GetContactType(ctx, remote); err == nil && ct == "personal" {
 				res.Reason = DropPersonal
 				return nil
 			}
-			if c, err := q.FindContactByNumber(ctx, &remote); err == nil {
+			gsi, err := q.CountOutsiders(ctx, []string{remote})
+			if err != nil {
+				return err
+			}
+			if gsi == 0 && remote != "" {
+				// a DM with a GSI employee (internal, linked, a user's or a sales' number) is kept and shown in Chat on
+				// both sides, but it is our side talking: internal, read by no analysis (Sam 16 Oct: Tantri → Granike)
+				threadKind, subtitle, fromInternal = "internal", "Karyawan GSI", true
+				title = contactName(m)
+				if title == "" {
+					if title, err = q.GSINumberName(ctx, remote); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+						return err
+					}
+				}
+				if title == "" {
+					title = MaskNumber(remote)
+				}
+			} else if c, err := q.FindContactByNumber(ctx, &remote); err == nil {
 				dealerID, contactID, threadKind = c.DealerID, &c.ID, "dealer"
 				title = deref(c.Name) + " · " + ShortDealer(c.DealerName)
 				subtitle = c.DealerName + " · " + deref(c.Role)
@@ -208,6 +212,13 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if err != nil {
 			return fmt.Errorf("thread: %w", err)
 		}
+		if threadKind == "internal" && deref(thread.Kind) != "internal" {
+			// the number became a GSI number after its chat started
+			if err := q.SetThreadInternal(ctx, gen.SetThreadInternalParams{ID: thread.ID, Title: title}); err != nil {
+				return err
+			}
+			thread.Kind = &threadKind
+		}
 		if name := strings.TrimSpace(m.ChatName); name != "" && !m.IsGroup && thread.PhoneName == nil {
 			// what the phone calls this contact, for search (a dealer's title stays its master name)
 			if err := q.SetThreadPhoneName(ctx, gen.SetThreadPhoneNameParams{ID: thread.ID, Name: name}); err != nil {
@@ -225,7 +236,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			dir = "out"
 		}
 		id := m.ID
-		mp := gen.InsertChatMessageParams{ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, QuotedWaID: strp(m.QuotedID), SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && m.IsGroup}
+		mp := gen.InsertChatMessageParams{ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, QuotedWaID: strp(m.QuotedID), SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && (m.IsGroup || threadKind == "internal")}
 		msgID, err := q.InsertChatMessage(ctx, mp)
 		if errors.Is(err, pgx.ErrNoRows) && !m.IsGroup {
 			// a 1:1 chat between two linked GSI numbers: both phones carry the same WhatsApp id (one sent it, the
@@ -262,18 +273,20 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if err != nil {
 			return err
 		}
-		payload, _ := json.Marshal(map[string]any{"thread": thread.ID, "direction": dir, "text": m.Text, "from_name": m.FromName, "from_number": m.FromNumber, "account": account, "group": m.IsGroup, "internal": fromInternal})
-		summary := m.Text
-		sp := gen.UpsertSignalParams{Kind: kind, OccurredAt: m.Time, DedupeKey: "wa:" + m.ID, Summary: &summary, Payload: payload, SalesID: salesID}
-		if threadKind == "dealer" {
-			sp.DealerID, sp.ContactID = dealerID, contactID
-		}
-		sid, err := q.UpsertSignal(ctx, sp)
-		if err != nil {
-			return err
-		}
-		if err := q.SetMessageSignal(ctx, gen.SetMessageSignalParams{ID: msgID, SignalID: &sid}); err != nil {
-			return err
+		var sid uuid.UUID
+		if threadKind != "internal" { // a DM between employees is no signal: no analysis reads it
+			payload, _ := json.Marshal(map[string]any{"thread": thread.ID, "direction": dir, "text": m.Text, "from_name": m.FromName, "from_number": m.FromNumber, "account": account, "group": m.IsGroup, "internal": fromInternal})
+			summary := m.Text
+			sp := gen.UpsertSignalParams{Kind: kind, OccurredAt: m.Time, DedupeKey: "wa:" + m.ID, Summary: &summary, Payload: payload, SalesID: salesID}
+			if threadKind == "dealer" {
+				sp.DealerID, sp.ContactID = dealerID, contactID
+			}
+			if sid, err = q.UpsertSignal(ctx, sp); err != nil {
+				return err
+			}
+			if err := q.SetMessageSignal(ctx, gen.SetMessageSignalParams{ID: msgID, SignalID: &sid}); err != nil {
+				return err
+			}
 		}
 		unread := int32(0)
 		if !m.FromMe && !m.History { // synced history arrives read: only live messages count as new
@@ -305,10 +318,10 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if threadKind == "dealer" {
 			res.DealerID = dealerID
 		}
-		if dir == "in" && !m.History && !mp.Internal && !teamChat && msgID != uuid.Nil && strings.TrimSpace(m.Text) != "" {
+		if dir == "in" && !m.History && !mp.Internal && msgID != uuid.Nil && strings.TrimSpace(m.Text) != "" {
 			res.Inbound, res.InboundText = msgID, m.Text
 		}
-		if threadKind == "new" && dir == "in" && !m.History && !teamChat { // no profile lookups for old chats right after linking
+		if threadKind == "new" && dir == "in" && !m.History { // no profile lookups for old chats right after linking
 			res.NewNumber = Digits(strings.SplitN(m.ChatJID, "@", 2)[0])
 		}
 		return nil

@@ -71,10 +71,11 @@ func TestDealerMessageIsStoredOnceAndTouchesContact(t *testing.T) {
 	}
 }
 
-func TestInternalDMIsNeverStored(t *testing.T) {
+// A DM between GSI employees stays in Chat (Sam 16 Oct: "DM antar karyawan tetap ada"), but it is internal: its own
+// thread kind that no analysis reads, no signal, no "waiting for a reply", no customer-reply suggestion.
+func TestInternalDMIsKeptOutOfAnalysis(t *testing.T) {
 	st, in := setup(t)
 	ctx := context.Background()
-	msgs := count(t, st, "select count(*) from chat_messages")
 	sigs := count(t, st, "select count(*) from signals")
 	// an employee's own number (internal, not linked to GSI Orbit)
 	var own string
@@ -82,11 +83,32 @@ func TestInternalDMIsNeverStored(t *testing.T) {
 		t.Fatal(err)
 	}
 	r, err := in.Process(ctx, wa.Message{ID: "DM1", Account: andi, ChatJID: wa.UserJID(own), FromNumber: own, FromName: "Dewi", Text: "nanti makan siang?", Time: time.Now()})
-	if err != nil || r.Stored || r.Reason != wa.DropInternalDM {
+	if err != nil || !r.Stored || r.Inbound != uuid.Nil || r.NewNumber != "" {
 		t.Fatalf("internal DM: %+v %v", r, err)
 	}
-	if count(t, st, "select count(*) from chat_messages") != msgs || count(t, st, "select count(*) from signals") != sigs {
-		t.Fatal("internal DM reached the database")
+	if n := count(t, st, `select count(*) from chat_messages m join chat_threads t on t.id = m.thread_id
+		where m.wa_msg_id = 'DM1' and t.kind = 'internal' and m.internal and m.signal_id is null`); n != 1 {
+		t.Fatalf("internal DM stored as %d internal messages, want 1", n)
+	}
+	if count(t, st, "select count(*) from signals") != sigs {
+		t.Fatal("internal DM made a signal")
+	}
+	if n := count(t, st, "select count(*) from chat_threads where account = $1 and wa_jid = $2 and unread = 1", andi, wa.UserJID(own)); n != 1 {
+		t.Error("internal DM not counted unread in Chat")
+	}
+	// a number that becomes a GSI number later (a new employee): its earlier chat turns internal with the next message
+	const hire = "6281299990001"
+	if _, err := in.Process(ctx, wa.Message{ID: "DM2", Account: dewi, ChatJID: wa.UserJID(hire), FromNumber: hire, Text: "halo", Time: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, "insert into internal_numbers (wa_number, label) values ($1, 'Rina')", hire); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := in.Process(ctx, wa.Message{ID: "DM3", Account: dewi, ChatJID: wa.UserJID(hire), FromNumber: hire, Text: "jadi?", Time: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	if n := count(t, st, "select count(*) from chat_threads where account = $1 and wa_jid = $2 and kind = 'internal' and title = 'Rina'", dewi, wa.UserJID(hire)); n != 1 {
+		t.Error("chat with a number that became internal did not turn internal")
 	}
 }
 

@@ -245,7 +245,7 @@ func (s Service) audit(ctx context.Context, r *Report, pp domain.PilotPolicy, fr
 		return err
 	}
 	n, err = q.AuditInternalDMs(ctx, gen.AuditInternalDMsParams{Since: from, Until: to})
-	if err := add("internal_dm", "DM antar nomor internal tersimpan", n, err); err != nil {
+	if err := add("internal_dm", "DM antar nomor internal masuk analisa", n, err); err != nil {
 		return err
 	}
 	n, err = q.AuditInternalGroupToDealer(ctx, gen.AuditInternalGroupToDealerParams{Since: from, Until: to})

@@ -60,7 +60,7 @@ function Waiting({ since, now }: { since?: string | null; now: Date }) {
 
 // Compact filter chips: an icon and the count; the active chip also shows its name, every chip names itself on hover.
 const FILTER_ICONS: Record<Filter, string> = {
-  all: 'chat', unread: 'bell', unreplied: 'send', dealer: 'building', group_internal: 'people', group_external: 'net', new: 'spark', supplier: 'box',
+  all: 'chat', unread: 'bell', unreplied: 'send', dealer: 'building', group_internal: 'people', group_external: 'net', new: 'spark', internal: 'lock', supplier: 'box',
 }
 
 function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, onLeave }: {
@@ -144,6 +144,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
               <div className="ibr-top">
                 <b>{displayTitle(c)}</b>
                 {c.kind === 'group' && <span className="ibr-tag grp">{c.group_kind === 'external' ? 'GRUP PELANGGAN' : 'GRUP'}</span>}
+                {c.kind === 'internal' && <span className="ibr-tag grp" title="Chat antar karyawan GSI · tidak masuk analisa">INTERNAL</span>}
                 {c.contact_type === 'supplier' && <span className="ibr-tag grp">PEMASOK</span>}
                 <Waiting since={c.waiting_since} now={now} />
               </div>

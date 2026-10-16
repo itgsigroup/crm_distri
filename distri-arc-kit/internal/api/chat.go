@@ -202,7 +202,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		kind := deref(t.Kind)
 		external := kind == "group" && deref(t.GroupKind) == "external"
 		if (tab == "dealer" && kind != "dealer") || (tab == "group_internal" && (kind != "group" || external)) ||
-			(tab == "group_external" && !external) || (tab == "new" && kind != "new") {
+			(tab == "group_external" && !external) || (tab == "new" && kind != "new") || (tab == "internal" && kind != "internal") {
 			continue
 		}
 		if (account != "" && deref(t.Account) != account) || (team != "" && t.AccountTeam != team) {

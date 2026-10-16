@@ -447,6 +447,24 @@ func (q *Queries) FindContactByNumber(ctx context.Context, waNumber *string) (Fi
 	return i, err
 }
 
+const gSINumberName = `-- name: GSINumberName :one
+select coalesce(
+  (select coalesce(nullif(u.name, ''), nullif(w.label, ''), s.name) from wa_numbers w left join users u on u.id = w.user_id
+     left join sales_users s on s.id = w.sales_id where w.wa_number = $1::text),
+  (select nullif(label, '') from internal_numbers where wa_number = $1::text),
+  (select name from users where wa_number = $1::text limit 1),
+  (select name from sales_users where wa_number = $1::text limit 1),
+  '')::text
+`
+
+// The name a GSI number goes by: its linked holder, its internal label, a user's or a sales' name.
+func (q *Queries) GSINumberName(ctx context.Context, waNumber string) (string, error) {
+	row := q.db.QueryRow(ctx, gSINumberName, waNumber)
+	var column_1 string
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const getContactType = `-- name: GetContactType :one
 select type from contact_types where wa_number = $1
 `
@@ -2798,6 +2816,23 @@ type SetSignalReplyParams struct {
 
 func (q *Queries) SetSignalReply(ctx context.Context, arg SetSignalReplyParams) error {
 	_, err := q.db.Exec(ctx, setSignalReply, arg.ID, arg.Column2)
+	return err
+}
+
+const setThreadInternal = `-- name: SetThreadInternal :exec
+update chat_threads set kind = 'internal', subtitle = 'Karyawan GSI', identification = null,
+  title = case when kind = 'new' then $1::text else title end
+where id = $2::uuid
+`
+
+type SetThreadInternalParams struct {
+	Title string    `json:"title"`
+	ID    uuid.UUID `json:"id"`
+}
+
+// A 1:1 chat whose number became a GSI number: an internal chat, out of every analysis from now on.
+func (q *Queries) SetThreadInternal(ctx context.Context, arg SetThreadInternalParams) error {
+	_, err := q.db.Exec(ctx, setThreadInternal, arg.Title, arg.ID)
 	return err
 }
 

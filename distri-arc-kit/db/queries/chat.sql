@@ -664,3 +664,19 @@ select coalesce(direction, '')::text as direction, coalesce(body, '')::text as b
 where thread_id = sqlc.arg(thread_id)::uuid and sent_at < sqlc.arg(before)::timestamptz and sent_at > sqlc.arg(before)::timestamptz - interval '3 days'
   and deleted_at is null and coalesce(body, '') <> ''
 order by sent_at desc limit 10;
+
+-- name: GSINumberName :one
+-- The name a GSI number goes by: its linked holder, its internal label, a user's or a sales' name.
+select coalesce(
+  (select coalesce(nullif(u.name, ''), nullif(w.label, ''), s.name) from wa_numbers w left join users u on u.id = w.user_id
+     left join sales_users s on s.id = w.sales_id where w.wa_number = sqlc.arg(wa_number)::text),
+  (select nullif(label, '') from internal_numbers where wa_number = sqlc.arg(wa_number)::text),
+  (select name from users where wa_number = sqlc.arg(wa_number)::text limit 1),
+  (select name from sales_users where wa_number = sqlc.arg(wa_number)::text limit 1),
+  '')::text;
+
+-- name: SetThreadInternal :exec
+-- A 1:1 chat whose number became a GSI number: an internal chat, out of every analysis from now on.
+update chat_threads set kind = 'internal', subtitle = 'Karyawan GSI', identification = null,
+  title = case when kind = 'new' then sqlc.arg(title)::text else title end
+where id = sqlc.arg(id)::uuid;

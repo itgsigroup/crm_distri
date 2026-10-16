@@ -10,7 +10,7 @@ jadi 2 analisa", dan hasil WhatsApp masuk Rencana.
 
 ## Keputusan
 - Setiap **siklus penuh** (scope `all`) membaca dua sumber. Tahap Ingest memanggil `readWA`: pesan 7 hari terakhir
-  dari percakapan `dealer` dan `new` (grup tidak dibaca; DM antar karyawan memang tidak disimpan).
+  dari percakapan `dealer` dan `new` (grup tidak dibaca; DM antar karyawan tersimpan sebagai percakapan `internal` dan tidak dibaca).
 - `internal/waanalysis` (Go murni): per percakapan — niat (ekstraktor yang sama dengan AI Order: order, tanya harga,
   tanya stok, rilis kredit, retur), barang yang diminta, pesan masuk/keluar, menunggu sejak, median waktu balas,
   prioritas; `Summarize` menghitung total dan per sales. Semua angka dari Go.
