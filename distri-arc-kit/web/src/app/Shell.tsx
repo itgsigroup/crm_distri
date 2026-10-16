@@ -6,6 +6,7 @@ import { AppearancePicker } from '../components/AppearancePicker'
 import { useAppearance } from './appearance'
 import { useFeedback } from '../components/feedback'
 import { TITLES, type ScreenKey } from '../lib/i18n/id'
+import { LoadingPopup } from '../components/LoadingPopup'
 import { todayLine } from '../lib/format'
 import { useHealth, useMe, useNow, useOrbit, useThreads } from './queries'
 import { useCommand } from './command'
@@ -247,6 +248,7 @@ export function Shell() {
         </nav>
       </div>
       {cur !== 'chat' && cur !== 'today' && cur !== 'orch' && <Dock screen={cur} />}
+      <LoadingPopup />
     </>
   )
 }

@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Pop-up saat memuat data · 2026-10-16
+- Saat halaman mengambil data yang belum ada (buka halaman, ganti dealer, buka chat), muncul pop-up di tengah layar dengan animasi orbit 3D — planet GSI Orbit, dua cincin miring dengan satelit — plus apa yang sedang dimuat ("Memuat dealer, chat…") dan bar progres.
+- Hanya muncul bila memuat lebih dari ±0,35 detik (tidak berkedip untuk data cepat), tampil minimal 0,5 detik, tidak muncul untuk refresh di latar (pesan masuk, polling), dan tidak menghalangi klik. Mengikuti tema terang/gelap; animasi diam bila perangkat meminta gerak dikurangi.
+
 ## Change · Sidebar satu daftar · 2026-10-16
 - Menu MCP Claude, API & model AI, AI Trigger, Panduan, dan Pengaturan tidak lagi menempel di bawah sidebar: kini bagian "Pengaturan" di daftar menu yang sama dan ikut scroll di layar pendek. Yang menempel di bawah hanya kartu akun.
 - Kartu "Orchestrator · siap" dengan daftar enam agen di sidebar dihapus (status Orchestrator tetap di menu Orchestrator dan bar atas).

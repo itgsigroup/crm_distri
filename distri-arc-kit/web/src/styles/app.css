@@ -1428,3 +1428,28 @@ body.map-maximized{overflow:hidden}
 .ibr-w:hover .ibr-menu-btn,.ibr-menu.open .ibr-menu-btn,.ibr-menu-btn:focus-visible{opacity:1}
 @media (hover:none){.ibr-menu-btn{opacity:.85}}
 .ibr-menu-list{right:0;left:auto;top:28px;min-width:210px}
+
+/* Loading popup (16 Oct): a 3D orbit — planet, two tilted rings with satellites — over a light veil; never blocks clicks. */
+.ld-wrap{position:fixed;inset:0;z-index:1500;display:grid;place-items:center;pointer-events:none;background:color-mix(in srgb,var(--bg) 30%,transparent);animation:ld-fade .2s ease-out}
+.ld-card{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:250px;max-width:calc(100vw - 32px);padding:22px 26px 18px;border-radius:20px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-lift);animation:ld-pop .28s cubic-bezier(.2,.9,.3,1.25)}
+.ld-scene{position:relative;width:104px;height:104px;perspective:420px}
+.ld-3d{position:absolute;inset:0;transform-style:preserve-3d}
+.ld-planet{position:absolute;inset:30px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff 0,color-mix(in srgb,var(--accent) 55%,#fff) 16%,var(--accent) 52%,color-mix(in srgb,var(--accent) 60%,#000) 100%);animation:ld-breathe 2.4s ease-in-out infinite}
+.ld-glow{position:absolute;inset:14px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--accent) 35%,transparent) 0,transparent 68%);animation:ld-breathe 2.4s ease-in-out infinite}
+.ld-orbit{position:absolute;border-radius:50%;transform-style:preserve-3d}
+.ld-o1{inset:8px;border:2px solid color-mix(in srgb,var(--accent) 50%,transparent);animation:ld-ring1 2.6s linear infinite}
+.ld-o2{inset:0;border:2px solid color-mix(in srgb,var(--ai-c) 45%,transparent);animation:ld-ring2 3.8s linear infinite}
+.ld-orbit i{position:absolute;top:-6px;left:calc(50% - 5px);width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.ld-o2 i{top:auto;bottom:-6px;background:var(--ai-c);box-shadow:0 0 10px var(--ai-c)}
+.ld-text{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.ld-text b{font-size:14px;font-weight:650;color:var(--text)}
+.ld-text span{font-size:12px;color:var(--text-3)}
+.ld-bar{position:relative;width:100%;height:3px;border-radius:3px;overflow:hidden;background:var(--surface-3)}
+.ld-bar i{position:absolute;top:0;bottom:0;width:40%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--ai-c));animation:ld-slide 1.2s ease-in-out infinite}
+@keyframes ld-ring1{from{transform:rotateX(70deg) rotateY(-12deg) rotateZ(0)}to{transform:rotateX(70deg) rotateY(-12deg) rotateZ(360deg)}}
+@keyframes ld-ring2{from{transform:rotateX(64deg) rotateY(30deg) rotateZ(360deg)}to{transform:rotateX(64deg) rotateY(30deg) rotateZ(0)}}
+@keyframes ld-breathe{50%{transform:scale(1.06)}}
+@keyframes ld-slide{from{left:-40%}to{left:100%}}
+@keyframes ld-fade{from{opacity:0}}
+@keyframes ld-pop{from{opacity:0;transform:scale(.9) translateY(6px)}}
+@media (prefers-reduced-motion:reduce){.ld-o1,.ld-o2,.ld-planet,.ld-glow,.ld-bar i,.ld-card,.ld-wrap{animation-duration:0s;animation-iteration-count:1}.ld-o1{transform:rotateX(70deg)}.ld-o2{transform:rotateX(64deg) rotateY(30deg)}.ld-bar i{left:30%}}
