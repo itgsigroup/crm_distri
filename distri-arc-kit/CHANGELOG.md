@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Nama di grup: kontak tersimpan dulu, lalu nama profil WhatsApp · 2026-10-16
+- Nama pengirim di bubble grup dan di daftar Anggota kini memakai nama kontak yang disimpan di HP nomor itu; bila tidak disimpan, nama profil WhatsApp orangnya. Nama master data hanya dipakai bila keduanya tidak ada, lalu nomor tersamar.
+- Daftar nama anggota diambil dari HP per nomor GSI (disimpan 5 menit). Chat 1:1 tetap: nama kontak tersimpan, lalu nama profil; nama kontak kosong tidak lagi menghalangi nama profil.
+
 ## Feat · Anggota grup, klik untuk chat · 2026-10-16
 - Grup di Chat punya tombol **Anggota** (ikon orang + jumlah) di atas: daftar anggota dari WhatsApp (admin di atas, tanda Admin/GSI), bisa dicari nama atau nomor. Anggota yang menyembunyikan nomornya dihitung tetapi tidak bisa dibuka.
 - Klik anggota, atau klik nama pengirim di bubble grup, langsung membuka chat 1:1 dari nomor GSI yang sama. Bila belum pernah chat, percakapannya dibuat kosong (tidak ada yang terkirim; pesan pertama tetap lewat antrean dan penjaga anti-blokir). Nomor pribadi tidak dibuka.

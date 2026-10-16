@@ -565,7 +565,9 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	// a group: messages stored under another GSI number's thread of the group; one that number sent is shown as
 	// "in" from that number (this number did not send it)
 	others := map[uuid.UUID]string{}
+	var senderNames map[string]string
 	if deref(t.Kind) == "group" {
+		senderNames = s.rosterNames(r.Context(), wa.Digits(deref(t.SalesWa)), deref(t.WaJid))
 		accs, err := s.st.Q.GroupThreadAccounts(r.Context(), t.ID)
 		if err != nil {
 			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
@@ -589,6 +591,9 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 			Media: mediaView(m.Media), EditedAt: m.EditedAt, Mentions: m.Mentions}
 		if deref(t.Kind) == "group" && v.Direction == "in" {
 			v.FromNumber = deref(m.FromNumber)
+			if n := senderNames[wa.Digits(v.FromNumber)]; n != "" {
+				v.FromName = n // the contact saved on this number's phone, else their WhatsApp profile name
+			}
 		}
 		if label, ok := others[deref(m.ThreadID)]; ok && v.Direction == "out" {
 			v.Direction, v.FromName, v.Internal = "in", label, true

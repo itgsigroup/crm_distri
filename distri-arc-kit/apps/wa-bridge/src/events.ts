@@ -195,15 +195,16 @@ export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, hi
   return ev
 }
 
-/** Group metadata in the API's shape; participants are resolved to phone numbers when known, named by WhatsApp or by
- * the phone's contacts (nameOf), and admins marked. */
+/** Group metadata in the API's shape; participants are resolved to phone numbers when known and admins marked. A
+ * member's name: the name saved on the phone (nameOf: saved, verified business, then the profile name the phone knows),
+ * else the name WhatsApp gives with the group (their profile name). */
 export function toGroupMeta(subject: string, participants: { id: string; phoneNumber?: string; name?: string; notify?: string; admin?: string | null }[],
   nameOf?: (jid: string, phone: string) => string): GroupMeta {
   return {
     name: subject,
     members: participants.map(p => {
       const phone = digits(p.phoneNumber ?? (isLidUser(p.id) ? '' : p.id))
-      const m: GroupMember = { jid: p.id, phone, name: p.name ?? p.notify ?? nameOf?.(p.id, phone) ?? '' }
+      const m: GroupMember = { jid: p.id, phone, name: nameOf?.(p.id, phone) || p.name || p.notify || '' }
       if (p.admin) m.admin = true
       return m
     }),

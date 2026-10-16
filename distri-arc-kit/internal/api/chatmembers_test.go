@@ -34,7 +34,8 @@ func TestGroupMembersOpenTheirChat(t *testing.T) {
 		t.Fatal(err)
 	}
 	const andi, budi, rina = "6281234504471", "6285700001234", "6285700005678"
-	roster := fakeRoster{{Number: andi}, {Number: budi, Name: "Budi WA", Admin: true}, {Number: ""}}
+	// names as andi's phone knows them: Rina saved as a contact; she wrote with her profile name "Rina"
+	roster := fakeRoster{{Number: andi}, {Number: budi, Name: "Budi WA", Admin: true}, {Number: rina, Name: "Bu Rina Toko"}, {Number: ""}}
 	h := api.New(config.Config{Env: "dev", ChatWindowDays: 14}, st, clock.Fixed(time.Now()), slog.New(slog.NewTextHandler(io.Discard, nil))).WithRoster(roster).Handler()
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
@@ -52,8 +53,13 @@ func TestGroupMembersOpenTheirChat(t *testing.T) {
 		t.Fatalf("members %d %v", code, out)
 	}
 	first := items[0].(map[string]any)
-	if first["number"] != budi || first["admin"] != true || first["name"] != "Budi WA" || items[1].(map[string]any)["number"] != rina {
+	if first["number"] != budi || first["admin"] != true || first["name"] != "Budi WA" || items[1].(map[string]any)["name"] != "Bu Rina Toko" {
 		t.Fatalf("members order or names %v", items)
+	}
+	// the group's bubbles name the sender as the phone saved them, with the number to open their chat
+	_, gp := get(t, srv, "/api/chat/threads/"+g, ceo)
+	if m := gp["messages"].([]any)[0].(map[string]any); m["from_name"] != "Bu Rina Toko" || m["from_number"] != rina {
+		t.Fatalf("sender in the bubble %v", m)
 	}
 	open := srv.URL + "/api/chat/threads/" + g + "/members/" + budi + "/open"
 	code, o1 := sendJSON(t, "POST", open, ceo, map[string]any{})

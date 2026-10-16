@@ -61,7 +61,7 @@ export const formatPairCode = (c: string) => (c.length === 8 ? `${c.slice(0, 4)}
 
 /** How the phone knows a contact: saved name, verified business name, then their own push name. */
 export function contactName(c: Partial<Contact> | undefined): string {
-  return (c?.name ?? c?.verifiedName ?? c?.notify ?? '').trim()
+  return (c?.name || c?.verifiedName || c?.notify || '').trim()
 }
 
 /**

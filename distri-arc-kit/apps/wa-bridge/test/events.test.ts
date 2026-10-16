@@ -35,11 +35,13 @@ describe('Baileys → WaEvent', () => {
     const g = toGroupMeta('Proyek RSUD', [
       { id: '6281299887766@s.whatsapp.net', admin: 'superadmin' },
       { id: '333@lid', phoneNumber: '6281511112222@s.whatsapp.net', notify: 'Rina' },
+      { id: '6281533334444@s.whatsapp.net', notify: 'Profil Dodi' },
       { id: '444@lid' },
-    ], (_jid, phone) => (phone === '6281299887766' ? 'Budi Toko' : ''))
+    ], (_jid, phone) => ({ '6281299887766': 'Budi Toko', '6281533334444': 'Pak Dodi (disimpan)' })[phone] ?? '')
     expect(g.members).toEqual([
       { jid: '6281299887766@s.whatsapp.net', phone: '6281299887766', name: 'Budi Toko', admin: true },
       { jid: '333@lid', phone: '6281511112222', name: 'Rina' },
+      { jid: '6281533334444@s.whatsapp.net', phone: '6281533334444', name: 'Pak Dodi (disimpan)' },
       { jid: '444@lid', phone: '', name: '' },
     ])
   })

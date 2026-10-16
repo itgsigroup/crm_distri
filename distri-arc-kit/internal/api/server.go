@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -50,12 +51,15 @@ type Server struct {
 	cloud   *wa.CloudAPI
 	media   wa.MediaFetcher // chat media from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
 	roster  wa.GroupRoster  // group members from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
-	odoo    odoo.Source
-	mcp     *mcp.Server
-	idf     *identify.Service
-	ask     *ask.Service
-	replyAI *replyai.Service
-	http    *ops.HTTPMetrics
+	// rosters: group members as each GSI number's phone names them, kept a few minutes (every group page shows them)
+	rostersMu sync.Mutex
+	rosters   map[string]rosterEntry
+	odoo      odoo.Source
+	mcp       *mcp.Server
+	idf       *identify.Service
+	ask       *ask.Service
+	replyAI   *replyai.Service
+	http      *ops.HTTPMetrics
 	// scheduled analysis seams (tests): the Claude client of inline runs and the API-key check
 	analystModel func(key string) analyst.Model
 	verifyKey    func(ctx context.Context, key string) error
