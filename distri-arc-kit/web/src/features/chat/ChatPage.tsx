@@ -886,7 +886,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
               : <button type="button" className="send" onClick={voice.start} aria-label="Rekam pesan suara" title="Rekam pesan suara"><Mic /></button>}
           </form>
         )}
-        <span className="pol"><Icon name="lock" />Dikirim dari {from} ({t.account_masked}) · jeda & "mengetik…" seperti manusia · penjaga anti-blokir</span>
+        <span className="pol" title={'Dikirim dari ' + from + ' (' + t.account_masked + ') · jeda & "mengetik…" seperti manusia · penjaga anti-blokir'}><Icon name="lock" />Dikirim dari {from} ({t.account_masked}) · anti-blokir</span>
       </div>
       {zoom && <Lightbox url={zoom} onClose={() => setZoom(null)} />}
     </div>

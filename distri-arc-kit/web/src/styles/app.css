@@ -1636,3 +1636,26 @@ body.map-maximized{overflow:hidden}
 .dk-effort button{flex:1;height:28px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--text-2);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .dk-effort button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .dk-effort button:disabled{opacity:.6;cursor:default}
+
+/* Chat fills the screen (Sam 17 Oct, laptop 1366×650): a compact page header, a slimmer numbers bar and composer, so
+ * the conversation gets the height — nothing is removed, only tightened */
+@media (min-width:901px){
+  .stage:has(.chat.komo){padding-bottom:10px}
+  .stage:has(.chat.komo) .topbar{padding:8px 0}
+  .stage:has(.chat.komo) .topbar h1{font-size:20px}
+  .stage:has(.chat.komo) .topbar .sub{display:none}
+  .chat.komo{height:calc(100dvh - 74px);min-height:400px;gap:10px}
+  .chat.komo .wa-rail{height:46px;padding:4px 8px}
+  .chat.komo .wr-av{width:30px;height:30px;border-radius:10px;font-size:11px}
+  .chat.komo .wr-i{padding:3px 8px 3px 3px}
+  .chat.komo .wr-i .dot{top:25px;left:25px;width:9px;height:9px}
+  .chat.komo .wr-un{left:21px;top:-3px}
+  .chat.komo .wr-sep{height:22px}
+  .chat.komo .ibl-head{padding:8px 10px 4px}
+  .chat.komo .ibl-search{height:32px;margin:0 10px 6px}
+  .chat.komo .ibl-chips{gap:4px;padding:0 10px 8px}
+  .chat.komo .ibl-chips button{height:26px}
+  .chat.komo .ibc-h{padding:6px 12px}
+  .chat.komo .ibc-c{gap:4px;padding:8px 12px 8px}
+  .chat.komo .ibc-c .pol{font-size:10.5px;line-height:1.2}
+}

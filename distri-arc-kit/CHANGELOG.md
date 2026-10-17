@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Chat lebih lega di layar laptop · 2026-10-17
+- Halaman Chat kini pas satu layar (1366×650 tanpa menggulir). Judul halaman diringkas (tanpa subjudul), bar nomor lebih tipis, header daftar chat, filter, header percakapan, dan kotak tulis dirapatkan. Baris info "Dikirim dari …" dipendekkan (keterangan lengkap tetap muncul saat kursor diarahkan). Batas tinggi minimal 560 px yang membuat halaman ikut menggulir dihapus, jadi area percakapan dapat ±60–80 px lebih tinggi. Tidak ada fungsi yang dihapus.
+
 ## Fix · Sesi tidak perlu login ulang; Rendy (Penagihan) hanya melihat chat nomornya · 2026-10-17
 - **Sesi bergeser**: login berlaku 30 hari dan diperpanjang otomatis setiap kali aplikasi dipakai (token diperbarui tiap jam). Sebelumnya sesi habis tetap 12 jam setelah login. Login ulang hanya setelah menekan Keluar, atau setelah 30 hari tidak membuka aplikasi.
 - **Chat WhatsApp per peran**: Peran & akses punya sakelar baru **Chat WhatsApp hanya nomor sendiri** (`roles.chat_scope`, migrasi 0048). Peran dengan data "miliknya" selalu hanya nomornya sendiri. Peran ini juga tidak bisa mengatur tim atau menautkan nomor orang lain, dan hanya melihat nomor lengkap miliknya.
