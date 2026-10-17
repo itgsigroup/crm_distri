@@ -33,6 +33,7 @@ func (s *Server) cycleRoutes(r chi.Router) {
 	r.Get("/cycles/{id}", s.getCycle)
 	r.Get("/cycles/{id}/inputs", s.cycleInputs)
 	r.Get("/cycles/{id}/progress", s.cycleProgress)
+	r.Post("/cycles/{id}/cancel", s.cancelCycle)
 	r.Get("/conflicts", s.conflicts)
 	r.Get("/agents", s.agents)
 	r.Post("/agents/{name}/run", s.runAgent)

@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"distri-arc/internal/agents"
+	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
 	"distri-arc/internal/events"
 	"distri-arc/internal/llm"
@@ -30,6 +31,7 @@ type MCPInput struct {
 	Agent        string             `json:"agent"`
 	Kinds        []string           `json:"kinds"`
 	Today        string             `json:"today"`
+	Since        string             `json:"since"` // the last AI analysis of this agent: only what is new since then is here
 	Instructions string             `json:"instructions"`
 	Policies     map[string]any     `json:"policies"`
 	Dealers      []mcpDealer        `json:"dealers"`
@@ -86,21 +88,45 @@ type mcpNewNumber struct {
 
 const mcpInstructions = "Kembalikan proposal untuk agen ini lewat orchestrator_submit. Setiap proposal wajib: kind dari 'kinds', " +
 	"dealer_id = uuid dealer di Input (kecuali dealer baru), signal_ids hanya dari Input, confidence 0–1, why, dan preview (draft WA ≤ 3 kalimat) bila mengirim. " +
-	"Angka (harga, limit, jumlah) ambil dari 'candidates' — jangan menghitung ulang. Placeholder <PIC_n>/<NO_n> biarkan apa adanya."
+	"Angka (harga, limit, jumlah) ambil dari 'candidates' — jangan menghitung ulang. Placeholder <PIC_n>/<NO_n> biarkan apa adanya. " +
+	"Input hanya memuat yang baru sejak 'since' (analisis AI terakhir agen ini): pesan, nomor baru, dan dealer yang punya sinyal baru atau kandidat — yang lain sudah dianalisa."
 
 // BuildMCPInput prepares one agent's Input for an MCP client: Go candidates (templates, no LLM), dealer
 // context, masked. It returns the masked JSON, the signal ids a submission may cite and the unmask mapping.
-func BuildMCPInput(ctx context.Context, in *agents.Input, a agents.Agent, cycleID uuid.UUID) (json.RawMessage, []uuid.UUID, map[string]string, []domain.Proposal, error) {
+// Only what is new since `since` goes to the AI (Sam 17 Oct): messages and new numbers after it, and the dealers with
+// a newer signal or a Go candidate; the candidates themselves are computed over all data.
+func BuildMCPInput(ctx context.Context, in *agents.Input, a agents.Agent, cycleID uuid.UUID, since time.Time) (json.RawMessage, []uuid.UUID, map[string]string, []domain.Proposal, error) {
 	cands, err := a.Analyze(ctx, in, nil)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	x := MCPInput{CycleID: cycleID.String(), Agent: a.Name(), Kinds: a.Kinds(), Today: in.Today.Format("2006-01-02"), Instructions: mcpInstructions, Candidates: cands,
+	keep := map[uuid.UUID]bool{}
+	for _, p := range cands {
+		if p.DealerID != nil {
+			keep[*p.DealerID] = true
+		}
+		for _, id := range p.DealerIDs {
+			keep[id] = true
+		}
+	}
+	for _, m := range in.WA {
+		if m.At.After(since) {
+			keep[m.DealerID] = true
+		}
+	}
+	x := MCPInput{CycleID: cycleID.String(), Agent: a.Name(), Kinds: a.Kinds(), Today: in.Today.Format("2006-01-02"), Since: since.Format(time.RFC3339), Instructions: mcpInstructions, Candidates: cands,
 		Policies: map[string]any{"margin_floor_pct": in.Policies.Margin.Pct, "credit_room_min": in.Policies.Credit.RoomMin, "followup_gap_days": in.Policies.Followup.GapDays,
 			"aging_days": in.Policies.Stock.AgingDays, "bundle_max_discount_pct": in.Policies.Stock.BundleMaxDiscountPct}}
 	var names []string
 	ids := map[uuid.UUID]bool{}
 	for _, d := range in.Dealers {
+		fresh := keep[d.UUID]
+		for _, s := range d.Signals {
+			fresh = fresh || s.At.After(since)
+		}
+		if !fresh {
+			continue
+		}
 		m := d.Metrics
 		md := mcpDealer{ID: d.ID, UUID: d.UUID, Name: d.Name, Tier: d.Tier, Branch: d.Branch, Sales: d.Owner.Name, Status: m.Status, Segment: m.Segment,
 			Rhythm: m.Rhythm, Last: m.Last, DueIn: m.DueIn, Credit: m.Credit, Limit: d.CreditLimit, SOW: m.SOW, OmzetBln: m.OmzetBln, Memo: d.Memo, Invoices: d.OpenInvoices}
@@ -109,13 +135,19 @@ func BuildMCPInput(ctx context.Context, in *agents.Input, a agents.Agent, cycleI
 			md.Contacts = append(md.Contacts, c.Name)
 			names = append(names, c.Name)
 		}
-		for _, s := range d.Signals {
+		for i, s := range d.Signals { // newest first: the new ones, and the last three for context
+			if i >= 3 && !s.At.After(since) {
+				break
+			}
 			md.Signals = append(md.Signals, mcpSignal{ID: s.ID, Kind: s.Kind, At: s.At, Text: s.Text})
 			ids[s.ID] = true
 		}
 		x.Dealers = append(x.Dealers, md)
 	}
 	for _, m := range in.WA {
+		if !m.At.After(since) {
+			continue
+		}
 		x.Messages = append(x.Messages, mcpMessage{SignalID: m.SignalID, Dealer: m.DealerID, Contact: m.Contact, At: m.At, Text: m.Text})
 		ids[m.SignalID] = true
 		names = append(names, m.Contact)
@@ -127,6 +159,9 @@ func BuildMCPInput(ctx context.Context, in *agents.Input, a agents.Agent, cycleI
 		ids[id] = true
 	}
 	for _, n := range in.NewNumbers {
+		if !n.At.After(since) {
+			continue
+		}
 		x.NewNumbers = append(x.NewNumbers, mcpNewNumber{SignalID: n.SignalID, Name: n.Name, Org: n.Org, Score: n.Score, Text: n.Text})
 		ids[n.SignalID] = true
 		names = append(names, n.Sales)
@@ -279,7 +314,7 @@ func (o *Orchestrator) InputFor(ctx context.Context, cycleID uuid.UUID, agent st
 	if err != nil {
 		return nil, err
 	}
-	raw, ids, mapping, _, err := BuildMCPInput(ctx, in, a, cycleID)
+	raw, ids, mapping, _, err := BuildMCPInput(ctx, in, a, cycleID, o.AnalyzedSince(ctx, a.Name(), cyc, in.Today))
 	if err != nil {
 		return nil, err
 	}
@@ -367,7 +402,7 @@ func (o *Orchestrator) analyzeViaMCP(ctx context.Context, r *stageRun, list []ag
 	cid := r.cyc.ID
 	var waiting []string
 	for _, a := range list {
-		raw, ids, mapping, cands, err := BuildMCPInput(ctx, r.in, a, cid)
+		raw, ids, mapping, cands, err := BuildMCPInput(ctx, r.in, a, cid, o.AnalyzedSince(ctx, a.Name(), r.cyc, r.in.Today))
 		if err != nil {
 			r.errs[a.Name()] = err.Error()
 			continue
@@ -394,7 +429,12 @@ func (o *Orchestrator) analyzeViaMCP(ctx context.Context, r *stageRun, list []ag
 	}
 	deadline := time.Now().Add(wait)
 	submitted := map[string]json.RawMessage{}
-	for time.Now().Before(deadline) && len(submitted) < len(waiting) {
+	for polls := 0; time.Now().Before(deadline) && len(submitted) < len(waiting); polls++ {
+		if polls%4 == 0 { // "Batalkan analisis": stop waiting for Claude within a second
+			if err := o.cancelled(ctx, cid); err != nil {
+				return nil, err
+			}
+		}
 		rows, err := o.St.Q.ListCycleInputs(ctx, cid)
 		if err != nil {
 			return nil, err
@@ -453,6 +493,23 @@ func (o *Orchestrator) analyzeViaMCP(ctx context.Context, r *stageRun, list []ag
 	}
 	return map[string]any{"agents": len(list), "proposals": n, "via": "mcp", "mcp_agents": fromMCP, "partial": partial,
 		"text": fmt.Sprintf("%d/%d agen lewat MCP", fromMCP, len(waiting))}, nil
+}
+
+// AnalyzedSince is the mark of an agent's last AI analysis (Sam 17 Oct): when the last whole cycle (or one of this agent)
+// whose analysis of the agent was received started. The Input carries only what is newer. One dealer's cycle, and an
+// agent never analysed, look back the 7 days the agents read.
+func (o *Orchestrator) AnalyzedSince(ctx context.Context, agent string, cyc gen.Cycle, today time.Time) time.Time {
+	floor := clock.Today(today).AddDate(0, 0, -7)
+	if sc, err := domain.ParseScope(cyc.Scope); err == nil && sc.Kind == "dealer" {
+		return floor
+	}
+	var at *time.Time
+	_ = o.St.Pool.QueryRow(ctx, `select max(c.started_at) from agent_runs a join cycles c on c.id = a.cycle_id
+		where a.agent = $1 and a.status = 'done' and c.id <> $2 and (c.scope = 'all' or c.scope = 'agent:' || $1)`, agent, cyc.ID).Scan(&at)
+	if at == nil || at.Before(floor) {
+		return floor
+	}
+	return *at
 }
 
 // waitLabel: "10 menit", "45 detik".

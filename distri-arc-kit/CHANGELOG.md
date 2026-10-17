@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · AI hanya membaca yang baru sejak analisis terakhir; tombol Batalkan analisis · 2026-10-17
+- **Penanda analisis terakhir per agen**: Input untuk Claude/API kini hanya berisi pesan WA, nomor baru, dan dealer yang punya sinyal baru atau kandidat **sejak analisis AI terakhir agen itu** (siklus penuh yang jawabannya diterima). Sebelumnya setiap agen menerima semua 2.841 dealer + pesan 7 hari (~6 MB per agen). Angka dan kandidat tetap dihitung Go dari data lengkap. Analisis satu dealer dan agen yang belum pernah dianalisa tetap melihat 7 hari. Penanda ikut dikirim ke AI (`since`) dan tampil di progres ("baru sejak 17/10 11.19").
+- **Batalkan analisis**: tombol di panel "AI sedang membaca data" (Pusat kendali, Orchestrator, pop-up). Siklus antre langsung ditutup, siklus berjalan berhenti dalam ±1 detik (juga saat menunggu Claude), dicatat "Dibatalkan oleh …", dan Analisis ulang bisa dipakai lagi. Endpoint `POST /api/cycles/{id}/cancel`, migrasi 0047.
+
 ## Feat · Orchestrator: Analisis ulang dengan progres AI dan game langsung di halaman · 2026-10-17
 - Tombol **Analisis ulang (Claude · MCP)** di halaman Orchestrator tidak lagi membuka pop-up. Panel tampil di bawah header halaman: progres AI (data dibaca, per agen, langkah terakhir), tombol **Buka Claude**, dan game **Lompat!**. Setelah selesai, hasil berhasil/sebagian/gagal muncul di panel yang sama sampai ditutup.
 - Siklus yang tidak dimulai dari halaman ini (siklus per jam) juga tampil di panel dengan progres dan game.

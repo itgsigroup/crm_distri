@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,8 +10,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
+	"distri-arc/internal/clock"
+	"distri-arc/internal/events"
 	"distri-arc/internal/httpx"
+	"distri-arc/internal/store/gen"
 )
 
 // What the AI is analysing right now (Pusat kendali, Sam 17 Oct): per stage its line, per agent whether it waits,
@@ -51,6 +56,12 @@ func covers(input []byte) string {
 		var xs []json.RawMessage
 		if json.Unmarshal(in[f[0]], &xs) == nil && len(xs) > 0 {
 			parts = append(parts, fmt.Sprintf("%d %s", len(xs), f[1]))
+		}
+	}
+	var since string
+	if json.Unmarshal(in["since"], &since) == nil {
+		if t, err := time.Parse(time.RFC3339, since); err == nil {
+			parts = append(parts, "baru sejak "+t.In(clock.WIB).Format("02/01 15.04"))
 		}
 	}
 	return strings.Join(parts, " · ")
@@ -158,4 +169,33 @@ func (s *Server) cycleProgress(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"cycle_id": id, "number": c.Number, "status": c.Status, "stage": c.Stage, "via": c.Via,
 		"stages": stages, "agents": agents, "steps": steps})
+}
+
+// cancelCycle is "Batalkan analisis": a queued cycle ends at once, a running one within a second (the worker checks
+// at each stage and while it waits for Claude). 409 when the cycle already finished.
+func (s *Server) cancelCycle(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Siklus tidak ditemukan")
+		return
+	}
+	u, _ := CurrentUser(r.Context())
+	by := deref(u.Name)
+	if by == "" {
+		by = deref(u.Email)
+	}
+	c, err := s.st.Q.CancelCycle(r.Context(), gen.CancelCycleParams{ID: id, By: by})
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.Fail(w, http.StatusConflict, "not_running", "Analisis ini sudah selesai")
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	if c.Status == "failed" { // it was still queued: closed here, nobody else announces it
+		_ = events.Notify(r.Context(), s.st.Pool, "cycle_done", map[string]any{"id": c.ID, "number": c.Number, "status": "failed", "note": deref(c.Note)})
+	}
+	s.auditUser(r, "cycle.cancel", "cycle:"+id.String(), map[string]any{"number": c.Number, "by": by})
+	httpx.JSON(w, http.StatusOK, map[string]any{"id": c.ID, "status": c.Status, "cancelled_by": by})
 }

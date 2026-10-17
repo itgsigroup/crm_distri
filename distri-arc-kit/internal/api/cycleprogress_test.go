@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
@@ -54,5 +55,26 @@ func TestCycleProgress(t *testing.T) {
 	}
 	if st := out["stages"].([]any); len(st) != 2 || st[0].(map[string]any)["text"] != "WhatsApp 963 chat · 288 menunggu" {
 		t.Fatalf("stages %v", st)
+	}
+}
+
+// "Batalkan analisis": a queued cycle ends at once as failed with who cancelled it; a finished one cannot be cancelled.
+func TestCancelCycle(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	var id string
+	if err := st.Pool.QueryRow(ctx, `insert into cycles (trigger, scope, via, status) values ('manual', 'all', 'mcp', 'queued') returning id`).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	code, out := sendJSON(t, "POST", srv.URL+"/api/cycles/"+id+"/cancel", "sam@gsi.co.id", nil)
+	if code != 200 || out["status"] != "failed" {
+		t.Fatalf("%d %v", code, out)
+	}
+	var note string
+	if err := st.Pool.QueryRow(ctx, `select note from cycles where id = $1`, id).Scan(&note); err != nil || !strings.HasPrefix(note, "Dibatalkan oleh ") {
+		t.Fatalf("note %q %v", note, err)
+	}
+	if code, _ := sendJSON(t, "POST", srv.URL+"/api/cycles/"+id+"/cancel", "sam@gsi.co.id", nil); code != 409 {
+		t.Fatalf("cancelled twice: %d", code)
 	}
 }

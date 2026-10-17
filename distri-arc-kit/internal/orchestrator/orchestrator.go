@@ -149,6 +149,9 @@ func (o *Orchestrator) Execute(ctx context.Context, id uuid.UUID) (*Report, erro
 	if err != nil {
 		return nil, err
 	}
+	if cyc.CancelledAt != nil { // cancelled while queued: already closed by the API
+		return nil, CancelledError{By: deref(cyc.CancelledBy)}
+	}
 	sc, err := domain.ParseScope(cyc.Scope)
 	if err != nil {
 		return nil, o.fail(ctx, cyc, err)
@@ -190,10 +193,27 @@ func (o *Orchestrator) Execute(ctx context.Context, id uuid.UUID) (*Report, erro
 	return &Report{Cycle: cyc, Stored: r.stored, Conflicts: r.conflicts, Plan: r.plan, Errors: r.errs}, nil
 }
 
+// CancelledError: a person pressed "Batalkan analisis" (cycles.cancelled_at); the cycle ends as failed with who did.
+type CancelledError struct{ By string }
+
+func (e CancelledError) Error() string { return "Dibatalkan oleh " + e.By }
+
+// cancelled reports whether a person cancelled the cycle.
+func (o *Orchestrator) cancelled(ctx context.Context, id uuid.UUID) error {
+	if by, err := o.St.Q.CycleCancelledBy(ctx, id); err == nil {
+		return CancelledError{By: deref(by)}
+	}
+	return nil
+}
+
 func (o *Orchestrator) fail(ctx context.Context, cyc gen.Cycle, cause error) error {
 	ctx = context.WithoutCancel(ctx)
 	now := o.Clock.Now()
 	note := "gagal: " + cause.Error()
+	var ce CancelledError
+	if errors.As(cause, &ce) {
+		note = ce.Error()
+	}
 	_ = o.St.Q.FinishCycle(ctx, gen.FinishCycleParams{ID: cyc.ID, Status: "failed", FinishedAt: &now, Note: &note})
 	_ = events.Notify(ctx, o.St.Pool, "cycle_done", map[string]any{"id": cyc.ID, "number": cyc.Number, "status": "failed", "note": note})
 	o.log().Error("cycle failed", "id", cyc.ID, "err", cause)
@@ -203,6 +223,9 @@ func (o *Orchestrator) fail(ctx context.Context, cyc gen.Cycle, cause error) err
 // stage records a stage transition (running → done/partial) and announces it.
 func (o *Orchestrator) stage(ctx context.Context, r *stageRun, name string, fn func(context.Context, *stageRun) (map[string]any, error)) error {
 	started := o.Clock.Now()
+	if err := o.cancelled(ctx, r.cyc.ID); err != nil {
+		return err
+	}
 	_ = o.St.Q.SetCycleStage(ctx, gen.SetCycleStageParams{ID: r.cyc.ID, Stage: &name})
 	_ = o.St.Q.UpsertCycleStage(ctx, gen.UpsertCycleStageParams{CycleID: r.cyc.ID, Stage: name, Status: "running", StartedAt: &started})
 	_ = events.Notify(ctx, o.St.Pool, "cycle_stage", map[string]any{"cycle_id": r.cyc.ID, "number": r.cyc.Number, "stage": name, "status": "running", "scope": r.scope.String()})

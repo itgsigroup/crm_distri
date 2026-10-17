@@ -73,6 +73,60 @@ func (q *Queries) ApprovedWithoutOutbox(ctx context.Context) ([]Proposal, error)
 	return items, nil
 }
 
+const cancelCycle = `-- name: CancelCycle :one
+update cycles set cancelled_at = now(), cancelled_by = $1::text,
+  status = case when status = 'queued' then 'failed' else status end,
+  finished_at = case when status = 'queued' then now() else finished_at end,
+  note = case when status = 'queued' then 'Dibatalkan oleh ' || $1::text else note end
+where id = $2 and status in ('queued', 'running') and cancelled_at is null
+returning id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort, cancelled_at, cancelled_by
+`
+
+type CancelCycleParams struct {
+	By string    `json:"by"`
+	ID uuid.UUID `json:"id"`
+}
+
+// A person stops a queued or running cycle; a queued one ends at once, a running one when the worker sees it.
+func (q *Queries) CancelCycle(ctx context.Context, arg CancelCycleParams) (Cycle, error) {
+	row := q.db.QueryRow(ctx, cancelCycle, arg.By, arg.ID)
+	var i Cycle
+	err := row.Scan(
+		&i.ID,
+		&i.Number,
+		&i.Trigger,
+		&i.Scope,
+		&i.Via,
+		&i.RequestedBy,
+		&i.Status,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.DurationMs,
+		&i.SignalsCount,
+		&i.AutoCount,
+		&i.DecisionCount,
+		&i.ConflictCount,
+		&i.Note,
+		&i.Stage,
+		&i.EngineModel,
+		&i.Effort,
+		&i.CancelledAt,
+		&i.CancelledBy,
+	)
+	return i, err
+}
+
+const cycleCancelledBy = `-- name: CycleCancelledBy :one
+select cancelled_by from cycles where id = $1 and cancelled_at is not null
+`
+
+func (q *Queries) CycleCancelledBy(ctx context.Context, id uuid.UUID) (*string, error) {
+	row := q.db.QueryRow(ctx, cycleCancelledBy, id)
+	var cancelled_by *string
+	err := row.Scan(&cancelled_by)
+	return cancelled_by, err
+}
+
 const cycleProposals = `-- name: CycleProposals :many
 select p.id, p.cycle_id, p.agent, p.dealer_id, p.kind, p.title, p.why, p.prep, p.preview, p.steps, p.impact, p.confidence, p.signal_ids, p.autonomy, p.status, p.due_label, p.decided_by, p.decided_at, p.decision_reason, p.edited_payload, p.executed_at, p.created_at, p.summary, p.button, p.icon, p.pills, p.options, p.queue, p.payload, p.chosen_option, p.dedupe_key, p.dealer_ids, d.name as dealer_name, d.slug as dealer_slug from proposals p left join dealers d on d.id = p.dealer_id
 where p.kind <> 'reply' and p.created_at >= $1::timestamptz and p.status not in ('expired')
@@ -270,7 +324,7 @@ func (q *Queries) FinishCycle(ctx context.Context, arg FinishCycleParams) error 
 }
 
 const getCycle = `-- name: GetCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles where id = $1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort, cancelled_at, cancelled_by from cycles where id = $1
 `
 
 func (q *Queries) GetCycle(ctx context.Context, id uuid.UUID) (Cycle, error) {
@@ -295,6 +349,8 @@ func (q *Queries) GetCycle(ctx context.Context, id uuid.UUID) (Cycle, error) {
 		&i.Stage,
 		&i.EngineModel,
 		&i.Effort,
+		&i.CancelledAt,
+		&i.CancelledBy,
 	)
 	return i, err
 }
@@ -440,7 +496,7 @@ func (q *Queries) LastSentFollowup(ctx context.Context, dealerID *uuid.UUID) (ti
 }
 
 const latestCycle = `-- name: LatestCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles order by number desc limit 1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort, cancelled_at, cancelled_by from cycles order by number desc limit 1
 `
 
 // Latest by number (insertion order): a clock that moved back (dev ARC_NOW, NTP) never hides a new cycle.
@@ -466,12 +522,14 @@ func (q *Queries) LatestCycle(ctx context.Context) (Cycle, error) {
 		&i.Stage,
 		&i.EngineModel,
 		&i.Effort,
+		&i.CancelledAt,
+		&i.CancelledBy,
 	)
 	return i, err
 }
 
 const latestDoneCycle = `-- name: LatestDoneCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles where status in ('done', 'partial') order by number desc limit 1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort, cancelled_at, cancelled_by from cycles where status in ('done', 'partial') order by number desc limit 1
 `
 
 func (q *Queries) LatestDoneCycle(ctx context.Context) (Cycle, error) {
@@ -496,12 +554,14 @@ func (q *Queries) LatestDoneCycle(ctx context.Context) (Cycle, error) {
 		&i.Stage,
 		&i.EngineModel,
 		&i.Effort,
+		&i.CancelledAt,
+		&i.CancelledBy,
 	)
 	return i, err
 }
 
 const latestFullCycle = `-- name: LatestFullCycle :one
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles where status in ('done', 'partial') and scope = 'all' order by number desc limit 1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort, cancelled_at, cancelled_by from cycles where status in ('done', 'partial') and scope = 'all' order by number desc limit 1
 `
 
 // The last finished cycle with scope all (Rencana hari ini, Ringkasan, conflicts come from it).
@@ -527,6 +587,8 @@ func (q *Queries) LatestFullCycle(ctx context.Context) (Cycle, error) {
 		&i.Stage,
 		&i.EngineModel,
 		&i.Effort,
+		&i.CancelledAt,
+		&i.CancelledBy,
 	)
 	return i, err
 }
@@ -723,7 +785,7 @@ func (q *Queries) ListCycleStages(ctx context.Context, cycleID uuid.UUID) ([]Cyc
 }
 
 const listCycles = `-- name: ListCycles :many
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles order by number desc limit $1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort, cancelled_at, cancelled_by from cycles order by number desc limit $1
 `
 
 func (q *Queries) ListCycles(ctx context.Context, limit int32) ([]Cycle, error) {
@@ -754,6 +816,8 @@ func (q *Queries) ListCycles(ctx context.Context, limit int32) ([]Cycle, error) 
 			&i.Stage,
 			&i.EngineModel,
 			&i.Effort,
+			&i.CancelledAt,
+			&i.CancelledBy,
 		); err != nil {
 			return nil, err
 		}
@@ -1055,7 +1119,7 @@ func (q *Queries) ProposalsOfCycle(ctx context.Context, cycleID *uuid.UUID) ([]P
 
 const queueCycle = `-- name: QueueCycle :one
 insert into cycles (trigger, scope, via, requested_by, status, started_at)
-values ($1, $2, $3, $4, 'queued', $5) returning id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort
+values ($1, $2, $3, $4, 'queued', $5) returning id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort, cancelled_at, cancelled_by
 `
 
 type QueueCycleParams struct {
@@ -1095,6 +1159,8 @@ func (q *Queries) QueueCycle(ctx context.Context, arg QueueCycleParams) (Cycle, 
 		&i.Stage,
 		&i.EngineModel,
 		&i.Effort,
+		&i.CancelledAt,
+		&i.CancelledBy,
 	)
 	return i, err
 }

@@ -366,7 +366,7 @@ func (q *Queries) ListProposalsByStatus(ctx context.Context, arg ListProposalsBy
 }
 
 const listRecentCycles = `-- name: ListRecentCycles :many
-select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort from cycles order by started_at desc limit $1
+select id, number, trigger, scope, via, requested_by, status, started_at, finished_at, duration_ms, signals_count, auto_count, decision_count, conflict_count, note, stage, engine_model, effort, cancelled_at, cancelled_by from cycles order by started_at desc limit $1
 `
 
 func (q *Queries) ListRecentCycles(ctx context.Context, limit int32) ([]Cycle, error) {
@@ -397,6 +397,8 @@ func (q *Queries) ListRecentCycles(ctx context.Context, limit int32) ([]Cycle, e
 			&i.Stage,
 			&i.EngineModel,
 			&i.Effort,
+			&i.CancelledAt,
+			&i.CancelledBy,
 		); err != nil {
 			return nil, err
 		}

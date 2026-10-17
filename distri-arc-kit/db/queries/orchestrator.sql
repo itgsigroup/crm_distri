@@ -191,3 +191,15 @@ select coalesce(max(seq), 0)::int + 1 from plan_items where plan_date = $1;
 -- name: SetCycleEngine :exec
 -- The model and effort "Analisis ulang" asked for.
 update cycles set engine_model = nullif(sqlc.arg(engine_model)::text, ''), effort = nullif(sqlc.arg(effort)::text, '') where id = sqlc.arg(id)::uuid;
+
+-- name: CancelCycle :one
+-- A person stops a queued or running cycle; a queued one ends at once, a running one when the worker sees it.
+update cycles set cancelled_at = now(), cancelled_by = sqlc.arg(by)::text,
+  status = case when status = 'queued' then 'failed' else status end,
+  finished_at = case when status = 'queued' then now() else finished_at end,
+  note = case when status = 'queued' then 'Dibatalkan oleh ' || sqlc.arg(by)::text else note end
+where id = sqlc.arg(id) and status in ('queued', 'running') and cancelled_at is null
+returning *;
+
+-- name: CycleCancelledBy :one
+select cancelled_by from cycles where id = $1 and cancelled_at is not null;

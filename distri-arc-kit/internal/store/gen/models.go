@@ -337,6 +337,8 @@ type Cycle struct {
 	Stage         *string    `json:"stage"`
 	EngineModel   *string    `json:"engine_model"`
 	Effort        *string    `json:"effort"`
+	CancelledAt   *time.Time `json:"cancelled_at"`
+	CancelledBy   *string    `json:"cancelled_by"`
 }
 
 type CycleInput struct {

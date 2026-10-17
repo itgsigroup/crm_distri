@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import { Icon } from '../../components/Icon'
+import { useFeedback } from '../../components/feedback'
 import { hhmm } from '../../lib/format'
 import { STAGES, chipState, type CycleUI } from '../../app/cycle'
 import { duration, useOrch } from '../../app/orch'
@@ -61,6 +62,7 @@ export function AnalysisRunning({ extra, focusGame = false }: { extra?: ReactNod
         <div className="an-meta">
           <span><Icon name="spark" /><b>{s.via === 'api' ? 'API' : s.via}</b></span>
           {s.startedAt && <span><Icon name="refresh" /><b>{duration(now - s.startedAt)}</b></span>}
+          {s.cycleId && !s.finished && <CancelButton cycleId={s.cycleId} />}
         </div>
       </div>
       <ol className="an-chips">
@@ -78,6 +80,23 @@ export function AnalysisRunning({ extra, focusGame = false }: { extra?: ReactNod
       {extra}
       <JumpGame autoFocus={focusGame} />
     </div>
+  )
+}
+
+/** "Batalkan analisis" (Sam 17 Oct): stops a cycle that waits — e.g. Claude was never opened — so Analisis ulang is
+ * free again; the cycle ends as failed with who cancelled it. */
+function CancelButton({ cycleId }: { cycleId: string }) {
+  const { toast } = useFeedback()
+  const cancel = useMutation({
+    mutationFn: () => api.post(`/cycles/${cycleId}/cancel`, {}),
+    onSuccess: () => toast('Analisis dibatalkan'),
+    onError: (e: Error) => toast(e.message),
+  })
+  return (
+    <button className="btn quiet an-cancel" disabled={cancel.isPending || cancel.isSuccess}
+      onClick={() => { if (window.confirm('Batalkan analisis ini? Data dan saran sebelumnya tetap dipakai.')) cancel.mutate() }}>
+      <Icon name="x" />{cancel.isSuccess ? 'Membatalkan…' : 'Batalkan analisis'}
+    </button>
   )
 }
 
