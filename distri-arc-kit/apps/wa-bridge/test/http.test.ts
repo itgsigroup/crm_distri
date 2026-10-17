@@ -38,6 +38,7 @@ describe('bridge HTTP', () => {
     await store.markInbound('s1', '6281@s.whatsapp.net', new Date(), false)
     const sent: string[] = []
     const asked: unknown[] = []
+    const saved: string[] = []
     let paced = false
     const session: BridgeSession = {
       id: 's1', connected: () => true, sendText: async (_c, text) => { sent.push(text); return 'W1' }, editText: async (_c, id, text) => { sent.push(`edit ${id}: ${text}`) }, deleteText: async (_c, id) => { sent.push(`delete ${id}`) }, sendContent: async (_c, content) => { sent.push(`content ${content.kind}`); return { wamid: 'W2' } },
@@ -47,6 +48,7 @@ describe('bridge HTTP', () => {
         return Readable.from([Buffer.from('JPEG'), Buffer.from('DATA')])
       },
       snapshot: () => ({ session: 's1', status: 'connected', phone: '628', qr: '' }), listGroups: async () => [], profile: async () => ({}),
+      saveContact: async (phone, name) => { saved.push(`${phone}=${name}`) },
       fetchHistory: async (chat, oldest, count) => {
         if (paced) throw new HistoryBusy('permintaan riwayat terlalu cepat', 429)
         asked.push({ chat, oldest, count })
@@ -92,6 +94,10 @@ describe('bridge HTTP', () => {
     expect(asked).toEqual([{ chat: '6281@s.whatsapp.net', oldest: { id: 'M0', fromMe: true, ts: 1759600000000 }, count: 50 }])
     paced = true
     expect((await post('/sessions/s1/history', { chat_id: '6281@s.whatsapp.net', id: 'M0', ts: 1 })).status).toBe(429)
+    // a name saved in GSI Orbit goes to the account's WhatsApp contacts; a bad number is refused
+    expect((await post('/sessions/s1/contacts', { phone: '62 812-1', name: 'X' })).status).toBe(400)
+    expect((await post('/sessions/s1/contacts', { phone: '6281234567890', name: '  Pak   Budi ' })).status).toBe(200)
+    expect(saved).toEqual(['6281234567890=Pak Budi'])
     const health = await (await fetch(bridge + '/health')).json()
     expect(health).toMatchObject({ ok: true, sessions: { s1: 'connected' }, limits: { s1: { last_hour: 1, per_hour: 20, today: 1 } } })
   })

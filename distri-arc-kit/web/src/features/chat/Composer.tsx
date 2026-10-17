@@ -17,7 +17,7 @@ function PollIcon() {
 }
 
 /** 📎: Dokumen, Foto & video, Polling. */
-export function AttachMenu({ onFile, onPoll, disabled }: { onFile: (f: File) => void; onPoll: () => void; disabled?: boolean }) {
+export function AttachMenu({ onFile, onPoll, onContact, disabled }: { onFile: (f: File) => void; onPoll: () => void; onContact?: () => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
   const doc = useRef<HTMLInputElement>(null)
@@ -36,12 +36,13 @@ export function AttachMenu({ onFile, onPoll, disabled }: { onFile: (f: File) => 
   }
   return (
     <span className="cmp-attach" ref={ref}>
-      <button type="button" className="cmp-ic" onClick={() => setOpen(!open)} disabled={disabled} aria-label="Lampirkan" aria-haspopup="menu" aria-expanded={open} title="Lampirkan file, foto, video, atau polling"><Clip /></button>
+      <button type="button" className="cmp-ic" onClick={() => setOpen(!open)} disabled={disabled} aria-label="Lampirkan" aria-haspopup="menu" aria-expanded={open} title="Lampirkan file, foto, video, polling, atau kontak"><Clip /></button>
       {open && (
         <span className="cmp-menu" role="menu">
           <button type="button" role="menuitem" onClick={() => doc.current?.click()}><span className="cmp-dot doc"><Icon name="doc" /></span>Dokumen</button>
           <button type="button" role="menuitem" onClick={() => media.current?.click()}><span className="cmp-dot media"><Icon name="box" /></span>Foto &amp; video</button>
           <button type="button" role="menuitem" onClick={() => { setOpen(false); onPoll() }}><span className="cmp-dot poll"><PollIcon /></span>Polling</button>
+          {onContact && <button type="button" role="menuitem" onClick={() => { setOpen(false); onContact() }}><span className="cmp-dot contact"><Icon name="people" /></span>Kontak</button>}
         </span>
       )}
       <input ref={doc} type="file" hidden onChange={picked} />
@@ -132,6 +133,32 @@ export function Mic() {
 }
 
 /** "Buat polling": a question, 2–12 options, one or several answers. */
+/** Sends a WhatsApp contact card: a name and a number; the customer can open a chat or save it from the card. */
+export function ContactSheet({ onSend, initial }: { onSend: (c: { name: string; phone: string }) => Promise<unknown>; initial?: { name: string; phone: string } }) {
+  const { closeSheet } = useFeedback()
+  const [name, setName] = useState(initial?.name ?? '')
+  const [phone, setPhone] = useState(initial?.phone ?? '')
+  const [busy, setBusy] = useState(false)
+  const digits = phone.replace(/\D/g, '')
+  const ok = name.trim() !== '' && digits.length >= 8 && digits.length <= 15
+  const send = () => {
+    if (!ok) return
+    setBusy(true)
+    onSend({ name: name.trim(), phone }).then(closeSheet, () => setBusy(false))
+  }
+  return (
+    <>
+      <SheetHead icon="people" title="Kirim kontak" sub="Dikirim seperti kartu kontak WhatsApp — pelanggan bisa langsung chat atau menyimpannya" onClose={closeSheet} />
+      <div className="sec poll-form">
+        <label>Nama<input value={name} onChange={(e) => setName(e.target.value)} placeholder="mis. Andi · Sales GSI Semarang" maxLength={80} autoFocus /></label>
+        <label>Nomor WhatsApp<input value={phone} onChange={(e) => setPhone(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') send() }} placeholder="0812… atau +62 812…" inputMode="tel" maxLength={24} /></label>
+        {phone && digits.length < 8 && <small className="poll-err">Nomor minimal 8 digit</small>}
+      </div>
+      <div className="ft"><button className="btn quiet" onClick={closeSheet}>Batal</button><span className="spacer" /><button className="btn primary" disabled={!ok || busy} onClick={send}><Icon name="send" />Kirim kontak</button></div>
+    </>
+  )
+}
+
 export function PollSheet({ onSend }: { onSend: (p: { name: string; options: string[]; multi: boolean }) => Promise<unknown> }) {
   const { closeSheet } = useFeedback()
   const [name, setName] = useState('')

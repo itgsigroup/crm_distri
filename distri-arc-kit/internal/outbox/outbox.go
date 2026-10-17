@@ -42,14 +42,15 @@ type WAPayload struct {
 
 // OutContent is the non-text part of a send from Chat.
 type OutContent struct {
-	Kind     string   `json:"kind"` // image | video | document | audio | poll
-	Mime     string   `json:"mime,omitempty"`
-	FileName string   `json:"file_name,omitempty"`
-	Size     int64    `json:"size,omitempty"`
-	PTT      bool     `json:"ptt,omitempty"`
-	Seconds  int      `json:"seconds,omitempty"`
-	FileID   string   `json:"file_id,omitempty"`
-	Poll     *wa.Poll `json:"poll,omitempty"`
+	Kind     string          `json:"kind"` // image | video | document | audio | poll
+	Mime     string          `json:"mime,omitempty"`
+	FileName string          `json:"file_name,omitempty"`
+	Size     int64           `json:"size,omitempty"`
+	PTT      bool            `json:"ptt,omitempty"`
+	Seconds  int             `json:"seconds,omitempty"`
+	FileID   string          `json:"file_id,omitempty"`
+	Poll     *wa.Poll        `json:"poll,omitempty"`
+	Contact  *wa.ContactCard `json:"contact,omitempty"`
 }
 
 // Rules are the anti-ban limits (09-policies-security): proactive messages are capped per sales per day and
@@ -376,7 +377,7 @@ func (s *Sender) sendContent(ctx context.Context, p WAPayload) (string, string, 
 	if !ok {
 		return "", "", &wa.SendRefused{Code: "bad_content", Reason: "transport WhatsApp ini tidak bisa mengirim file, pesan suara, atau polling"}
 	}
-	c := wa.Content{Kind: p.Content.Kind, Mime: p.Content.Mime, FileName: p.Content.FileName, PTT: p.Content.PTT, Seconds: p.Content.Seconds, Poll: p.Content.Poll}
+	c := wa.Content{Kind: p.Content.Kind, Mime: p.Content.Mime, FileName: p.Content.FileName, PTT: p.Content.PTT, Seconds: p.Content.Seconds, Poll: p.Content.Poll, Contact: p.Content.Contact}
 	if p.Content.FileID != "" {
 		fid, err := uuid.Parse(p.Content.FileID)
 		if err != nil {

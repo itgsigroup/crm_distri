@@ -343,6 +343,19 @@ export class Session implements SendTarget {
     return items
   }
 
+  /**
+   * Saves a number as a contact of this WhatsApp account (app-state "contact" action, as WhatsApp itself does when a
+   * contact is saved in the app): it syncs to the phone and, with saveOnPrimaryAddressbook, into its address book.
+   */
+  async saveContact(phone: string, fullName: string): Promise<void> {
+    if (!this.sock) throw new Error('sesi belum terhubung')
+    const jid = phone + '@s.whatsapp.net'
+    const firstName = fullName.split(' ')[0]
+    await this.sock.addOrEditContact(jid, { fullName, firstName, pnJid: jid, saveOnPrimaryAddressbook: true })
+    const c = this.contacts.get(jid) ?? { id: jid }
+    this.contacts.set(jid, { ...c, name: fullName })
+  }
+
   /** Profile lookup for the Identity agent: cached 7 days and rate-limited per hour. */
   async profile(jid: string): Promise<Profile> {
     const norm = jid.includes('@') ? jidNormalizedUser(jid) : jid.replace(/\D/g, '') + '@s.whatsapp.net'

@@ -53,6 +53,12 @@ export function mediaCaption(body: string, media?: MediaView): string {
   return media ? body.replace(/^\[[^\]]*\]\s*/, '') : body
 }
 
+/** A contact card's bubble text "Pak Budi · +62812…" as its name and number (number "" when the card had none). */
+export function contactCard(caption: string): { name: string; phone: string } {
+  const m = /^(.*?)\s*·\s*(\+?[\d\s-]{6,})$/.exec(caption.trim())
+  return m ? { name: m[1].trim(), phone: m[2].replace(/[^\d+]/g, '') } : { name: caption.trim(), phone: '' }
+}
+
 const KIND_LABEL: Record<string, string> = { image: 'Foto', video: 'Video', gif: 'GIF', audio: 'Audio', document: 'Dokumen', sticker: 'Stiker', location: 'Lokasi', contact: 'Kontak', poll: 'Polling' }
 
 /** "Pesan suara", "Foto", "BoQ.pdf"… */

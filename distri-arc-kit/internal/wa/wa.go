@@ -245,15 +245,29 @@ type Editor interface {
 	Edit(ctx context.Context, account, chatJID, waMsgID, text string) error
 }
 
-// Content is what a send from Chat carries besides text: a file (photo, video, document), a voice note, or a poll.
+// Content is what a send from Chat carries besides text: a file (photo, video, document), a voice note, a poll, or a
+// contact card.
 type Content struct {
-	Kind     string `json:"kind"` // image | video | document | audio | poll
-	Mime     string `json:"mime,omitempty"`
-	FileName string `json:"file_name,omitempty"`
-	Data     []byte `json:"data,omitempty"` // base64 in JSON
-	PTT      bool   `json:"ptt,omitempty"`  // a voice note (converted to ogg/opus by the bridge)
-	Seconds  int    `json:"seconds,omitempty"`
-	Poll     *Poll  `json:"poll,omitempty"`
+	Kind     string       `json:"kind"` // image | video | document | audio | poll | contact
+	Mime     string       `json:"mime,omitempty"`
+	FileName string       `json:"file_name,omitempty"`
+	Data     []byte       `json:"data,omitempty"` // base64 in JSON
+	PTT      bool         `json:"ptt,omitempty"`  // a voice note (converted to ogg/opus by the bridge)
+	Seconds  int          `json:"seconds,omitempty"`
+	Poll     *Poll        `json:"poll,omitempty"`
+	Contact  *ContactCard `json:"contact,omitempty"`
+}
+
+// ContactCard is a WhatsApp contact (vCard) sent in a chat: a name and a number (digits, 62…).
+type ContactCard struct {
+	Name  string `json:"name"`
+	Phone string `json:"phone"`
+}
+
+// ContactSaver is implemented by transports that can save a number with a name in a WhatsApp account's contacts
+// (synced to its phone): a name given in GSI Orbit then also shows on the holder's phone (Sam 17 Oct).
+type ContactSaver interface {
+	SaveContact(ctx context.Context, account, phone, name string) error
 }
 
 // Poll is a WhatsApp poll (vote): a question and 2–12 options, one or several answers.

@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Kirim kontak WhatsApp; nama panggilan tersimpan ke kontak WhatsApp HP · 2026-10-17
+- **Kirim kontak**: menu lampiran (📎) punya **Kontak**. Isi nama + nomor (08… atau +62…), lalu terkirim sebagai kartu kontak WhatsApp (vCard), lewat antrean kirim dan penjaga anti-blokir seperti pesan lain. Kartu tampil di chat dengan nama, nomor, dan tombol **Chat**. Kartu kontak dari pelanggan kini ikut menampilkan nomornya.
+- **Simpan ke kontak HP**: saat **Nama panggilan** (ikon pensil di header chat) disimpan, nama itu juga disimpan ke kontak WhatsApp nomor yang memegang chat, dan tersinkron ke HP-nya. Kalau HP offline, nama tetap tersimpan di GSI Orbit dan notifikasi memberi tahu. Menghapus nama panggilan tidak menghapus kontak di HP. ADR 0044.
+
 ## Change · Chat: Ringkas tampilan daftar (Alt+R), bubble dan kotak tulis lebih kecil · 2026-10-17
 - Tombol **Ringkas tampilan** di header daftar chat (atau **Alt+R**): satu baris nama + jam, satu baris pesan terakhir; tag grup, sumber, label, dan "via" disembunyikan, sementara jumlah belum dibaca, waktu tunggu, dan pin tetap tampil. Baris ±49 px (sebelumnya ±88 px). Pilihan diingat di browser.
 - Bubble chat lebih kecil (teks 12,5 px, padding lebih rapat) dan kotak tulis pesan lebih pendek (tinggi 36 px, tetap membesar otomatis untuk pesan panjang).

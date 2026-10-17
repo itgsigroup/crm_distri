@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
+import { bubbleLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 
 describe('bubbleLine', () => {
   it('a customer order waiting too long', () => {
@@ -64,5 +64,12 @@ describe('bubble forward', () => {
     expect(forwardable({ body: '[polling] Kirim kapan?', status: 'sent', media: { kind: 'poll', viewable: true } })).toBe(false)
     expect(forwardable({ body: 'halo', status: 'pending' })).toBe(false)
     expect(forwardable({ body: 'halo', status: 'received', deleted: true })).toBe(false)
+  })
+})
+
+describe('contact card', () => {
+  it('reads the name and number of a card bubble', () => {
+    expect(contactCard('Pak Budi · +6281234567890')).toEqual({ name: 'Pak Budi', phone: '+6281234567890' })
+    expect(contactCard('Bu Sari')).toEqual({ name: 'Bu Sari', phone: '' })
   })
 })

@@ -653,3 +653,9 @@ func (b *Baileys) Unpair(ctx context.Context, account string) error {
 	}
 	return err
 }
+
+// SaveContact saves a number with a name in the account's WhatsApp contacts through the bridge (synced to the phone).
+func (b *Baileys) SaveContact(ctx context.Context, account, phone, name string) error {
+	_, _, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/contacts", map[string]any{"phone": Digits(phone), "name": name}, nil)
+	return err
+}

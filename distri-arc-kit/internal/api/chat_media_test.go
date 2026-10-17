@@ -431,6 +431,19 @@ func TestChatSendsFilesVoiceNotesAndPolls(t *testing.T) {
 	if code, _ := sendJSON(t, http.MethodPost, url, "andi@gsi.co.id", map[string]any{"poll": map[string]any{"name": "x", "options": []string{"satu"}}}); code != http.StatusBadRequest {
 		t.Fatalf("poll with one option: %d", code)
 	}
+
+	// a WhatsApp contact card (Sam 17 Oct): name + number, a local 08… number becomes 62…
+	code, out = sendJSON(t, http.MethodPost, url, "andi@gsi.co.id", map[string]any{"contact": map[string]any{"name": " Pak  Budi ", "phone": "0812-3456-7890"}})
+	if code != http.StatusAccepted || count(t, st, "select count(*) from chat_messages where id = $1 and body = '[kontak] Pak Budi · +6281234567890' and media->>'kind' = 'contact'", out["message_id"]) != 1 {
+		t.Fatalf("contact: %d %v", code, out)
+	}
+	send(out["outbox_id"].(string), 3*time.Minute)
+	if s := fake.Sent(); s[len(s)-1].Media == nil || s[len(s)-1].Media.Kind != "contact" {
+		t.Fatalf("contact sent as %+v", s[len(s)-1])
+	}
+	if code, _ := sendJSON(t, http.MethodPost, url, "andi@gsi.co.id", map[string]any{"contact": map[string]any{"name": "Budi", "phone": "123"}}); code != http.StatusBadRequest {
+		t.Fatalf("contact without a valid number: %d", code)
+	}
 	big := make([]byte, 25<<20+10)
 	if code, _ := sendFile(t, url, "andi@gsi.co.id", "besar.pdf", "application/pdf", big, nil); code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("file over 25 MB: %d", code)
@@ -491,5 +504,35 @@ func TestChatForward(t *testing.T) {
 	// another sales user sees neither conversation
 	if code, _ := fw(text, "dewi@gsi.co.id"); code != http.StatusNotFound {
 		t.Fatalf("other sales forwarded: %d", code)
+	}
+}
+
+// A nickname given in GSI Orbit is also saved in the WhatsApp contacts of the number holding the chat (Sam 17 Oct).
+func TestAliasSavedToPhoneContacts(t *testing.T) {
+	st := testdb.New(t)
+	if _, err := seed.Run(context.Background(), st, db.Seed); err != nil {
+		t.Fatal(err)
+	}
+	fake := wa.NewFake()
+	s := api.New(config.Config{Env: "dev"}, st, clock.Fixed(chatNow), slog.New(slog.NewTextHandler(io.Discard, nil))).WithContacts(fake)
+	srv := httptest.NewServer(s.Handler())
+	t.Cleanup(srv.Close)
+	th := sinarThread(t, st)
+	var account, jid string
+	if err := st.Pool.QueryRow(context.Background(), "select coalesce(account, ''), coalesce(wa_jid, '') from chat_threads where id = $1", th).Scan(&account, &jid); err != nil {
+		t.Fatal(err)
+	}
+	code, out := put(t, srv.URL+"/api/chat/threads/"+th.String()+"/alias", "sam@gsi.co.id", map[string]any{"name": "Mbak Rina Sinar"})
+	if code != 200 {
+		t.Fatalf("%d %v", code, out)
+	}
+	if account == "" {
+		if out["phone_synced"] != false {
+			t.Fatalf("no account, still synced: %v", out)
+		}
+		return
+	}
+	if out["phone_synced"] != true || len(fake.Saved()) != 1 || fake.Saved()[0] != account+":"+wa.NumberOfJID(jid)+"=Mbak Rina Sinar" {
+		t.Fatalf("synced %v saved %v", out, fake.Saved())
 	}
 }

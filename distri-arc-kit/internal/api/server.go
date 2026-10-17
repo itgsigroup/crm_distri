@@ -40,17 +40,18 @@ import (
 
 // Server wires handlers to the store.
 type Server struct {
-	cfg     config.Config
-	st      *store.Store
-	clock   clock.Clock
-	log     *slog.Logger
-	views   *views.Builder
-	hub     *events.Hub
-	threads threadList
-	jobs    *river.Client[pgx.Tx]
-	cloud   *wa.CloudAPI
-	media   wa.MediaFetcher // chat media from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
-	roster  wa.GroupRoster  // group members from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
+	cfg      config.Config
+	st       *store.Store
+	clock    clock.Clock
+	log      *slog.Logger
+	views    *views.Builder
+	hub      *events.Hub
+	threads  threadList
+	jobs     *river.Client[pgx.Tx]
+	cloud    *wa.CloudAPI
+	media    wa.MediaFetcher // chat media from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
+	roster   wa.GroupRoster  // group members from WhatsApp; nil = the Baileys bridge when WA_TRANSPORT=baileys
+	contacts wa.ContactSaver // saves names to a number's WhatsApp contacts; nil = the Baileys bridge
 	// rosters: group members as each GSI number's phone names them, kept a few minutes (every group page shows them)
 	rostersMu sync.Mutex
 	rosters   map[string]rosterEntry
@@ -68,6 +69,9 @@ type Server struct {
 
 // WithMedia sets where chat media is fetched from (tests; production uses the Baileys bridge).
 func (s *Server) WithMedia(f wa.MediaFetcher) *Server { s.media = f; return s }
+
+// WithContacts sets where names are saved as WhatsApp contacts (tests; production uses the Baileys bridge).
+func (s *Server) WithContacts(c wa.ContactSaver) *Server { s.contacts = c; return s }
 
 // WithRoster sets where group members are read from (tests; production uses the Baileys bridge).
 func (s *Server) WithRoster(r wa.GroupRoster) *Server { s.roster = r; return s }

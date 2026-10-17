@@ -91,7 +91,13 @@ export function messageText(message: proto.IMessage | null | undefined): { text:
     return { text: [poll.name ?? '', ...opts.map((o) => '• ' + o)].join('\n'), media: { kind: 'poll', mime: '', file_name: '', size: 0 } }
   }
   if (m.locationMessage) return { text: m.locationMessage.name ?? '', media: { kind: 'location', mime: '', file_name: '', size: 0 } }
-  if (m.contactMessage) return { text: m.contactMessage.displayName ?? '', media: { kind: 'contact', mime: '', file_name: '', size: 0 } }
+  if (m.contactMessage) {
+    // the card's number (waid, else the first TEL) beside the name, so Chat shows whom the customer shared
+    const card = m.contactMessage.vcard ?? ''
+    const num = /waid=(\d+)/.exec(card)?.[1] ?? /TEL[^:]*:([+\d\s-]+)/.exec(card)?.[1]?.replace(/[^\d+]/g, '') ?? ''
+    const name = m.contactMessage.displayName ?? ''
+    return { text: [name, num && (num.startsWith('+') ? num : '+' + num)].filter(Boolean).join(' · '), media: { kind: 'contact', mime: '', file_name: '', size: 0 } }
+  }
   return { text: '' }
 }
 

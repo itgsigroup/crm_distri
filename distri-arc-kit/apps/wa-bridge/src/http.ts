@@ -21,6 +21,8 @@ export interface BridgeSession extends SendTarget {
   profile(jid: string): Promise<unknown>
   fetchHistory(chat: string, oldest: { id: string; fromMe: boolean; ts: number }, count: number): Promise<void>
   downloadMedia(ref: string): Promise<NodeJS.ReadableStream>
+  /** Saves a number with a name in this account's WhatsApp contacts (synced to the phone). */
+  saveContact(phone: string, fullName: string): Promise<void>
 }
 
 export interface BridgeManager {
@@ -123,6 +125,16 @@ export function handler(d: Deps) {
         return json(res, 200, await s.listGroups())
       }
       if (method === 'GET' && parts[2] === 'contacts' && parts[3]) return json(res, 200, await s.profile(parts[3]))
+      if (method === 'POST' && parts[2] === 'contacts') {
+        // a person saved a name for a number in GSI Orbit: it goes to this account's WhatsApp contacts (and the phone)
+        const inp = JSON.parse(body || '{}') as { phone?: string; name?: string }
+        const phone = (inp.phone ?? '').replace(/\D/g, '')
+        const name = (inp.name ?? '').replace(/\s+/g, ' ').trim()
+        if (!/^\d{8,15}$/.test(phone) || !name || name.length > 80) return json(res, 400, { error: 'nomor (8–15 digit) dan nama wajib', code: 'bad_request' })
+        if (!s.connected()) return json(res, 409, { error: 'sesi belum terhubung', code: 'not_linked' })
+        await s.saveContact(phone, name)
+        return json(res, 200, { ok: true })
+      }
       if (method === 'POST' && parts[2] === 'send') {
         const inp = JSON.parse(body || '{}') as { chat_id?: string; text?: string; action_id?: string; quote?: Quote; content?: Content; mentions?: string[] }
         try {

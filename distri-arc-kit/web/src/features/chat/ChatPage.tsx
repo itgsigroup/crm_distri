@@ -11,8 +11,8 @@ import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../.
 import { useOrch } from '../../app/orch'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf, teamName } from './Connect'
 import { countFilters, displayTitle, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
-import { AttachMenu, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
-import { bubbleLine, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
+import { AttachMenu, ContactSheet, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
+import { bubbleLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 import { ForwardSheet } from './Forward'
 import { ChatSearch, Marked } from './ChatSearch'
 import { LabelChips, LabelSheet, PinnedBar, useChatLabels } from './Labels'
@@ -412,7 +412,7 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       <div className="bb">
         {m.quote && <QuoteBlock q={m.quote} mine={via} onJump={onJump} />}
         {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
-        {m.media?.kind === 'poll' ? <PollBody text={caption} /> : <BubbleText text={caption} mentions={m.mentions} mark={mark} />}
+        {m.media?.kind === 'poll' ? <PollBody text={caption} /> : m.media?.kind === 'contact' ? <ContactBody text={caption} /> : <BubbleText text={caption} mentions={m.mentions} mark={mark} />}
         <span className="tm">{m.pinned && <Icon name="pin" className="i tm-pin" />}{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
         <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined}
           onPin={onPin && m.status !== 'pending' && m.status !== 'failed' ? () => onPin(m) : undefined} onLabel={onLabel ? () => onLabel(m) : undefined} />
@@ -427,6 +427,19 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       {m.proposal && <span className="ann"><span className="ai" />Usulan Claude · <AnnProposal p={m.proposal} /></span>}
       {analysis && m.analysis && <BubbleAnalysis a={m.analysis} dir={m.direction} />}
     </div>
+  )
+}
+
+/** A contact card: the person's name and number, with a link to chat with the number on WhatsApp. */
+function ContactBody({ text }: { text: string }) {
+  const c = contactCard(text)
+  const digits = c.phone.replace(/\D/g, '')
+  return (
+    <span className="bub-contact">
+      <span className="bub-contact-av"><Icon name="people" /></span>
+      <span className="bub-contact-m"><b>{c.name || 'Kontak'}</b>{c.phone && <small>{fmtPhone(digits)}</small>}</span>
+      {digits && <a className="bub-contact-go" href={`https://wa.me/${digits}`} target="_blank" rel="noopener noreferrer" title="Buka chat di WhatsApp">Chat</a>}
+    </span>
   )
 }
 
@@ -603,6 +616,15 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       setReplying(null)
       qc.invalidateQueries({ queryKey: ['chat'] })
       toast('Polling masuk antrean kirim · lewat penjaga anti-blokir')
+    }, (e: Error) => { toast(e.message); throw e })
+  }} />)
+  const openContact = () => openSheet(<ContactSheet onSend={(c) => {
+    const body: Record<string, unknown> = { contact: c }
+    if (replying) body.reply_to = replying.id
+    return api.post(`/chat/threads/${id}/messages`, body).then(() => {
+      setReplying(null)
+      qc.invalidateQueries({ queryKey: ['chat'] })
+      toast('Kontak masuk antrean kirim · lewat penjaga anti-blokir')
     }, (e: Error) => { toast(e.message); throw e })
   }} />)
   const remove = useMutation({
@@ -794,8 +816,11 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const rename = () => {
     const v = window.prompt(`Nama panggilan untuk ${t.phone ? fmtPhone(t.phone) : t.title} — tampil sebagai "Nama - ${t.title}" dan bisa dicari. Kosongkan untuk menghapus.`, t.phone_name ?? '')
     if (v === null) return
-    api.put<{ name: string }>(`/chat/threads/${id}/alias`, { name: v }).then(
-      (r) => { toast(r.name ? `Nama panggilan: ${r.name}` : 'Nama panggilan dihapus'); qc.invalidateQueries({ queryKey: ['chat'] }) },
+    api.put<{ name: string; phone_synced?: boolean; phone_note?: string }>(`/chat/threads/${id}/alias`, { name: v }).then(
+      (r) => {
+        toast(!r.name ? 'Nama panggilan dihapus' : r.phone_synced ? `Nama panggilan: ${r.name} · tersimpan juga di kontak WhatsApp HP` : `Nama panggilan: ${r.name}${r.phone_note ? ' · ' + r.phone_note : ''}`)
+        qc.invalidateQueries({ queryKey: ['chat'] })
+      },
       (e) => toast(e instanceof Error ? e.message : 'Gagal menyimpan nama'),
     )
   }
@@ -879,7 +904,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           <RecordingBar secs={voice.secs} onCancel={voice.cancel} onSend={voice.send} />
         ) : (
           <form onSubmit={submit}>
-            {!editing && <AttachMenu onFile={pickFile} onPoll={openPoll} disabled={upload.isPending} />}
+            {!editing && <AttachMenu onFile={pickFile} onPoll={openPoll} onContact={openContact} disabled={upload.isPending} />}
             {tagOptions.length === 0 && sel[1] > sel[0] && (
               <div className="cmp-fmt" role="toolbar" aria-label="Format teks">
                 {([['*', 'B', 'Tebal (Ctrl/⌘+B)'], ['_', 'I', 'Miring (Ctrl/⌘+I)'], ['~', 'S', 'Coret (Ctrl/⌘+Shift+X)'], ['```', '</>', 'Monospace (Ctrl/⌘+Shift+M)']] as [Mark, string, string][]).map(([mk, label, title]) => (

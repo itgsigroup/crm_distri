@@ -6,13 +6,20 @@ import type { AnyMessageContent } from 'baileys'
  * note recorded in the browser, or a poll. The file travels base64 in the signed request and is never stored here.
  */
 export interface Content {
-  kind: 'image' | 'video' | 'document' | 'audio' | 'poll'
+  kind: 'image' | 'video' | 'document' | 'audio' | 'poll' | 'contact'
   mime?: string
   file_name?: string
   data?: string // base64
   ptt?: boolean
   seconds?: number
   poll?: { name: string; options: string[]; multi?: boolean }
+  contact?: { name: string; phone: string } // a WhatsApp contact card (vCard): name and number (digits, 62…)
+}
+
+/** A vCard 3.0 of one contact; waid lets WhatsApp open a chat with the number from the card. */
+export function vcard(name: string, phone: string): string {
+  const clean = name.replace(/[\r\n;]/g, ' ').trim()
+  return ['BEGIN:VCARD', 'VERSION:3.0', `FN:${clean}`, `N:${clean};;;;`, `TEL;type=CELL;type=VOICE;waid=${phone}:+${phone}`, 'END:VCARD'].join('\n')
 }
 
 /** The largest file a send may carry (WhatsApp accepts more for documents; Chat keeps uploads small). */
@@ -46,6 +53,12 @@ export async function toMessage(c: Content, text: string, convert: AudioConverte
     if (!p?.name?.trim() || options.length < 2 || options.length > 12) throw new ContentError('polling butuh pertanyaan dan 2–12 pilihan')
     return { poll: { name: p.name.trim(), values: options, selectableCount: p.multi ? options.length : 1 } }
   }
+  if (c.kind === 'contact') {
+    const name = c.contact?.name?.trim() ?? ''
+    const phone = (c.contact?.phone ?? '').replace(/\D/g, '')
+    if (!name || !/^\d{8,15}$/.test(phone)) throw new ContentError('kontak butuh nama dan nomor 8–15 digit')
+    return { contacts: { displayName: name, contacts: [{ displayName: name, vcard: vcard(name, phone) }] } }
+  }
   const data = Buffer.from(c.data ?? '', 'base64')
   if (!data.length) throw new ContentError('file kosong')
   if (data.length > MAX_CONTENT_BYTES) throw new ContentError('file lebih dari 25 MB')
@@ -68,5 +81,6 @@ export async function toMessage(c: Content, text: string, convert: AudioConverte
 export function guardText(c: Content | undefined, text: string): string {
   if (!c) return text
   if (c.kind === 'poll') return 'poll:' + (c.poll?.name ?? '')
+  if (c.kind === 'contact') return 'contact:' + (c.contact?.phone ?? '')
   return text || `${c.kind}:${c.file_name ?? ''}:${(c.data ?? '').length}`
 }

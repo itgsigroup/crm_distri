@@ -272,8 +272,25 @@ func (s *Server) setThreadAlias(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	s.audit(r, "chat.alias", "chat_thread", &t.ID, map[string]any{"number": wa.MaskNumber(number), "name": name, "threads": n})
-	httpx.JSON(w, http.StatusOK, map[string]any{"name": name, "threads": n})
+	// the name also goes to the WhatsApp contacts of the number holding this chat, so it shows on that phone (Sam 17
+	// Oct); best effort: a phone offline or a transport without it keeps the name in GSI Orbit only
+	synced, note := false, ""
+	if name != "" && deref(t.Account) != "" {
+		if cs := s.contactSaver(); cs == nil {
+			note = "Nama tersimpan di GSI Orbit; transport WhatsApp ini tidak bisa menyimpan kontak ke HP"
+		} else {
+			ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+			err := cs.SaveContact(ctx, deref(t.Account), number, name)
+			cancel()
+			if err != nil {
+				note = "Nama tersimpan di GSI Orbit; belum tersimpan ke kontak HP (" + err.Error() + ")"
+			} else {
+				synced = true
+			}
+		}
+	}
+	s.audit(r, "chat.alias", "chat_thread", &t.ID, map[string]any{"number": wa.MaskNumber(number), "name": name, "threads": n, "phone_synced": synced})
+	httpx.JSON(w, http.StatusOK, map[string]any{"name": name, "threads": n, "phone_synced": synced, "phone_note": note})
 }
 
 // threadMatcher matches a search against a conversation's names and text, forgiving Indonesian spellings of one name
@@ -885,9 +902,12 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		if c.Kind == "audio" && !c.PTT {
 			label = "[audio]"
 		}
-		if c.Kind == "poll" {
+		switch c.Kind {
+		case "poll":
 			body = label + " " + c.Poll.Name + "\n• " + strings.Join(c.Poll.Options, "\n• ")
-		} else {
+		case "contact":
+			body = label + " " + c.Contact.Name + " · +" + c.Contact.Phone
+		default:
 			body = strings.TrimSpace(label + " " + caption)
 		}
 		media, _ = json.Marshal(wa.Media{Kind: c.Kind, Mime: c.Mime, FileName: c.FileName, Size: c.Size, Seconds: c.Seconds, PTT: c.PTT})
@@ -1065,6 +1085,7 @@ type chatSendInput struct {
 	Body    string             `json:"body"`
 	ReplyTo string             `json:"reply_to"` // a bubble of this conversation to quote (WhatsApp "Balas")
 	Poll    *wa.Poll           `json:"poll"`
+	Contact *wa.ContactCard    `json:"contact"` // a WhatsApp contact card to send (name + number)
 	Forward *chatForward       `json:"forward"` // a bubble of another conversation sent on to this one
 	Content *outbox.OutContent `json:"-"`
 }
@@ -1138,6 +1159,18 @@ func readChatSend(r *http.Request) (in chatSendInput, file []byte, why string) {
 			return in, nil, "Polling butuh pertanyaan dan 2–12 pilihan yang berbeda"
 		}
 		in.Content = &outbox.OutContent{Kind: "poll", Poll: p}
+		return in, nil, ""
+	}
+	if in.Contact != nil {
+		name := strings.Join(strings.Fields(in.Contact.Name), " ")
+		phone := wa.Digits(in.Contact.Phone)
+		if strings.HasPrefix(phone, "0") {
+			phone = "62" + phone[1:]
+		}
+		if name == "" || len([]rune(name)) > 80 || len(phone) < 8 || len(phone) > 15 {
+			return in, nil, "Kontak butuh nama (maks. 80 huruf) dan nomor WhatsApp 8–15 digit"
+		}
+		in.Content = &outbox.OutContent{Kind: "contact", Contact: &wa.ContactCard{Name: name, Phone: phone}}
 		return in, nil, ""
 	}
 	if in.Forward != nil {
@@ -1385,6 +1418,17 @@ func (s *Server) mediaFetcher() wa.MediaFetcher {
 func (s *Server) groupRoster() wa.GroupRoster {
 	if s.roster != nil {
 		return s.roster
+	}
+	if b := s.bridge(); b != nil {
+		return b
+	}
+	return nil
+}
+
+// contactSaver saves names to a number's WhatsApp contacts: the test double, else the Baileys bridge.
+func (s *Server) contactSaver() wa.ContactSaver {
+	if s.contacts != nil {
+		return s.contacts
 	}
 	if b := s.bridge(); b != nil {
 		return b

@@ -21,6 +21,18 @@ describe('content to send', () => {
     await expect(toMessage({ kind: 'poll', poll: { name: 'x', options: ['satu'] } }, '', noConvert)).rejects.toBeInstanceOf(ContentError)
     await expect(toMessage({ kind: 'image', data: '' }, '', noConvert)).rejects.toBeInstanceOf(ContentError)
   })
+  it('builds a contact card (vCard with waid) and refuses one without a valid number', async () => {
+    const m = (await toMessage({ kind: 'contact', contact: { name: 'Pak Budi; Toko', phone: '+62 812-3456-7890' } }, '', noConvert)) as { contacts: { displayName: string; contacts: { vcard: string }[] } }
+    expect(m.contacts.displayName).toBe('Pak Budi; Toko')
+    expect(m.contacts.contacts[0].vcard).toContain('FN:Pak Budi  Toko')
+    expect(m.contacts.contacts[0].vcard).toContain('waid=6281234567890:+6281234567890')
+    await expect(toMessage({ kind: 'contact', contact: { name: 'X', phone: '123' } }, '', noConvert)).rejects.toBeInstanceOf(ContentError)
+    expect(guardText({ kind: 'contact', contact: { name: 'X', phone: '628' } }, '')).toBe('contact:628')
+  })
+  it('shows an incoming contact card with its number', () => {
+    expect(messageText({ contactMessage: { displayName: 'Bu Sari', vcard: 'BEGIN:VCARD\nFN:Bu Sari\nTEL;waid=6281122334455:+62 811-2233-4455\nEND:VCARD' } }))
+      .toMatchObject({ text: 'Bu Sari · +6281122334455', media: { kind: 'contact' } })
+  })
   it('compares polls and files by their content for the identical-text guard', () => {
     expect(guardText({ kind: 'poll', poll: { name: 'Q', options: [] } }, '')).toBe('poll:Q')
     expect(guardText(undefined, 'halo')).toBe('halo')

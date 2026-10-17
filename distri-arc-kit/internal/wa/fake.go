@@ -17,6 +17,7 @@ type Fake struct {
 	sent     []Message
 	seq      atomic.Int64
 	states   map[string]string
+	saved    []string
 }
 
 // NewFake returns a fake transport whose numbers are all "connected".
@@ -104,7 +105,9 @@ func (f *Fake) Edit(_ context.Context, account, chatJID, waMsgID, text string) e
 // SendContent records a file, voice note or poll as a sent message carrying its media (Kind "poll" for polls); a
 // media send gets a fake download reference.
 func (f *Fake) SendContent(ctx context.Context, account, chatJID, text string, c Content) (string, string, error) {
-	if c.Kind == "" || (c.Kind != "poll" && len(c.Data) == 0) || (c.Kind == "poll" && (c.Poll == nil || len(c.Poll.Options) < 2)) {
+	noFile := c.Kind == "poll" || c.Kind == "contact"
+	if c.Kind == "" || (!noFile && len(c.Data) == 0) || (c.Kind == "poll" && (c.Poll == nil || len(c.Poll.Options) < 2)) ||
+		(c.Kind == "contact" && (c.Contact == nil || c.Contact.Name == "" || len(Digits(c.Contact.Phone)) < 8)) {
 		return "", "", fmt.Errorf("empty content")
 	}
 	id := fmt.Sprintf("FAKE%06d", f.seq.Add(1))
@@ -114,7 +117,7 @@ func (f *Fake) SendContent(ctx context.Context, account, chatJID, text string, c
 		m.QuotedID = q.ID
 	}
 	ref := ""
-	if c.Kind != "poll" {
+	if !noFile {
 		ref = "FAKEREF-" + id
 	}
 	f.mu.Lock()
@@ -160,4 +163,22 @@ func (f *Fake) Sent() []Message {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return append([]Message(nil), f.sent...)
+}
+
+// SaveContact records a contact saved to an account's WhatsApp contacts (Saved).
+func (f *Fake) SaveContact(_ context.Context, account, phone, name string) error {
+	if len(Digits(phone)) < 8 || name == "" {
+		return fmt.Errorf("bad contact")
+	}
+	f.mu.Lock()
+	f.saved = append(f.saved, Digits(account)+":"+Digits(phone)+"="+name)
+	f.mu.Unlock()
+	return nil
+}
+
+// Saved lists the contacts saved so far ("account:phone=name").
+func (f *Fake) Saved() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]string(nil), f.saved...)
 }
