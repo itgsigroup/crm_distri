@@ -30,6 +30,7 @@ func (s *Server) WithOpenAIVerify(verify func(ctx context.Context, key string) e
 func (s *Server) aiAPIRoutes(r chi.Router) {
 	r.Get("/ai/api", s.aiAPIInfo)
 	r.Put("/ai/api", s.aiAPIConfig)
+	r.Put("/ai/api/wa-auto", s.aiAPIWAAuto)
 	r.Put("/ai/api/key/{provider}", s.aiAPIKey)
 	r.Delete("/ai/api/key/{provider}", s.aiAPIKeyDelete)
 }
@@ -113,7 +114,14 @@ func (s *Server) aiAPIInfo(w http.ResponseWriter, r *http.Request) {
 		fail(err)
 		return
 	}
+	auto, _ := analyst.LoadWAAuto(ctx, s.st.Q)
+	autoRuns, err := s.st.Q.FallbackRuns(ctx, []string{analyst.WAAutoSchedule})
+	if err != nil {
+		fail(err)
+		return
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
+		"wa_auto": auto, "wa_auto_runs": autoRuns,
 		"fallback": cfg.Fallback, "daily_budget_idr": cfg.DailyBudgetIDR, "spent_today_idr": spent.Cost, "ready": ready,
 		"providers": providers, "mcp_wait_sec": int(s.mcpWait().Seconds()), "fallback_window_sec": int((10 * time.Minute).Seconds()),
 		"can_configure": deref(u.Role) == "ceo",
@@ -156,6 +164,26 @@ func (s *Server) aiAPIConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	s.auditUser(r, "ai_api.config", "policy:"+analyst.PolicyKey, map[string]any{"fallback": c.Fallback, "model": c.Model,
 		"openai_model": c.OpenAIModel, "daily_budget_idr": c.DailyBudgetIDR, "by": deref(u.Email)})
+	s.aiAPIInfo(w, r)
+}
+
+// aiAPIWAAuto saves Analisa WhatsApp otomatis: on/off, the hours and the API + model it runs with (ADR 0043).
+func (s *Server) aiAPIWAAuto(w http.ResponseWriter, r *http.Request) {
+	u, ok := s.ceoOnly(w, r)
+	if !ok {
+		return
+	}
+	var a analyst.WAAuto
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&a); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Format tidak valid")
+		return
+	}
+	if err := analyst.SaveWAAuto(r.Context(), s.st, a, nil, s.clock.Now()); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", err.Error())
+		return
+	}
+	s.auditUser(r, "ai_api.wa_auto", "policy:"+analyst.AutoPolicyKey, map[string]any{"enabled": a.Enabled, "hours": a.Hours,
+		"weekend": a.Weekend, "engine": a.Engine, "model": a.Model, "by": deref(u.Email)})
 	s.aiAPIInfo(w, r)
 }
 

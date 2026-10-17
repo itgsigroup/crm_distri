@@ -47,6 +47,7 @@ sql:
       - db/migrations/0043_chat_mentions.sql
       - db/migrations/0044_wa_reading_today.sql
       - db/migrations/0045_cycle_model_effort.sql
+      - db/migrations/0046_wa_analysis_auto.sql
     queries: db/queries
     gen:
       go:

@@ -11,7 +11,11 @@ export interface AIProvider { id: ProviderID; label: string; key_source: '' | 'u
 export interface UsageDay { day: string; provider: string; calls: number; tokens_in: number; tokens_out: number; cost_idr: number }
 export interface UsageModel extends UsageTotals { provider: string; model: string; last_at: string }
 export interface FallbackRun { id: string; schedule: string; status: string; engine: string; model: string; tokens_in: number; tokens_out: number; cost_idr: number; error: string | null; started_at: string; finished_at: string | null }
+/** Analisa WhatsApp otomatis (ADR 0043): the server runs it at these hours (WIB) with one API and model, no fallback. */
+export interface WAAuto { enabled: boolean; hours: number[]; weekend: boolean; engine: ProviderID; model: string; next_run_at?: string | null }
 export interface AIAPIInfo {
+  wa_auto: WAAuto
+  wa_auto_runs: FallbackRun[] | null
   fallback: Fallback
   daily_budget_idr: number
   spent_today_idr: number
@@ -111,3 +115,20 @@ export function modelOption(m: ModelEntry): string {
 
 /** Daily budget choices in dollars (stored in rupiah at the rate). */
 export const BUDGET_USD = [1, 2, 3, 5, 10, 20, 50, 0]
+
+/** "08.00, 10.00, 14.00" — the chosen hours, sorted. */
+export function hoursText(hours: number[]): string {
+  return [...hours].sort((a, b) => a - b).map((h) => String(h).padStart(2, '0') + '.00').join(', ')
+}
+
+/** What Analisa WhatsApp otomatis does with this setting, in one sentence. */
+export function autoText(a: WAAuto, providers: AIProvider[]): string {
+  if (!a.enabled) return 'Mati — Analisa WhatsApp hanya dari routine Claude (claude.ai) dan tombol Analisa.'
+  const p = providers.find((x) => x.id === a.engine)
+  const label = p?.label ?? PROVIDER_LABEL[a.engine]
+  if (!p?.key_source) return `${label} dipilih, tetapi kuncinya belum diisi — jadwal akan gagal sampai kunci diisi.`
+  if (a.hours.length === 0) return 'Pilih minimal satu jam.'
+  const days = a.weekend ? 'setiap hari' : 'Senin–Sabtu'
+  const model = p.models.find((m) => m.id === a.model)?.label || a.model
+  return `Aktif — ${days} jam ${hoursText(a.hours)} WIB dengan ${label} (${model}). Bila gagal, tidak diulang dengan AI lain; menunggu jam berikutnya.`
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { modelLabel } from '../claude/usage'
-import { byProvider, dailyBars, fallbackText, modelOption, providerOf, usd, type AIProvider } from './aiapi'
+import { autoText, byProvider, dailyBars, fallbackText, hoursText, modelOption, providerOf, usd, type AIProvider } from './aiapi'
 
 const providers: AIProvider[] = [
   { id: 'claude', label: 'Claude API', key_source: '', key_hint: '', model: 'claude-opus-5-5', models: [] },
@@ -61,5 +61,13 @@ describe('API & model AI', () => {
     expect(fallbackText({ ...base, fallback: 'claude', ready: false })).toMatch(/kuncinya belum diisi/)
     expect(fallbackText({ ...base, fallback: 'openai', ready: true })).toBe('Aktif — bila Claude lewat MCP belum menjawab dalam 10 menit, ChatGPT API (gpt-5) di server mengerjakan sisanya.')
     expect(fallbackText({ ...base, fallback: 'openai', ready: false, spent_today_idr: 50000 })).toMatch(/anggaran harian/)
+  })
+  it('describes analisa WhatsApp otomatis', () => {
+    const a = { enabled: true, hours: [14, 8], weekend: false, engine: 'openai' as const, model: 'gpt-5' }
+    expect(hoursText([14, 8, 10])).toBe('08.00, 10.00, 14.00')
+    expect(autoText({ ...a, enabled: false }, providers)).toMatch(/^Mati/)
+    expect(autoText(a, providers)).toBe('Aktif — Senin–Sabtu jam 08.00, 14.00 WIB dengan ChatGPT API (gpt-5). Bila gagal, tidak diulang dengan AI lain; menunggu jam berikutnya.')
+    expect(autoText({ ...a, engine: 'claude', model: 'claude-opus-5-5' }, providers)).toMatch(/kuncinya belum diisi/)
+    expect(autoText({ ...a, hours: [] }, providers)).toBe('Pilih minimal satu jam.')
   })
 })

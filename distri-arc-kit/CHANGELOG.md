@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Analisa WhatsApp otomatis: pilih jam dan model AI di Pengaturan · 2026-10-17
+- Pengaturan → API & model AI punya kartu baru **Analisa WhatsApp otomatis**: Aktif/Mati, **Pakai AI** (Claude API atau ChatGPT API) dan modelnya, **jam (WIB)** yang dipilih per jam, dan opsi juga hari Minggu. Riwayat run (berhasil/gagal, model, biaya) tampil di kartu yang sama.
+- Server menjalankan tugas Analisa WhatsApp di jam itu dengan model itu (migrasi 0046, jadwal `wa_analysis_auto`, ADR 0043). Bila gagal, **tidak diulang dengan AI lain** — menunggu jam berikutnya; selama aktif, API cadangan untuk routine Analisa WhatsApp juga diam.
+- Bar nomor WhatsApp di Chat pindah ke atas panel chat (satu baris), panel chat lebih lega.
+
 ## Feat · Pilih model AI & effort di Orchestrator; tahap AI ringkas berikon; game lebih besar · 2026-10-16
 - Dock Orchestrator (kanan bawah) punya pilihan **Model** dan **Effort (Low · Medium · High)**. MCP Claude: pilih Claude Opus 5.5 / Sonnet 5.5 / Haiku 5.5 / Fable 5.1 — perintah untuk Claude menyebut model dan effort itu, dan pop-up meminta memilih model yang sama di claude.ai. API di server: modelnya dari Pengaturan → API & model AI, effort-nya benar-benar dipakai (Claude: `output_config.effort`; ChatGPT: `reasoning_effort` pada GPT-5/o3/o4). Pilihan diingat di browser.
 - Model dan effort tersimpan di siklus (migrasi 0045) dan tampil di pop-up analisis ("MCP Claude · Opus 5.5 · high") serta di halaman Orchestrator (Model AI terakhir).

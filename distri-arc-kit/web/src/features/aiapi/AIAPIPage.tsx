@@ -6,7 +6,7 @@ import { useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { hhmm, shortDate } from '../../lib/format'
 import { modelLabel, tok } from '../claude/usage'
-import { BUDGET_USD, PROVIDER_LABEL, byProvider, dailyBars, fallbackText, modelOption, price, usd, type AIAPIInfo, type AIProvider, type Fallback } from './aiapi'
+import { BUDGET_USD, PROVIDER_LABEL, autoText, byProvider, dailyBars, fallbackText, modelOption, price, usd, type AIAPIInfo, type AIProvider, type Fallback, type FallbackRun, type ProviderID, type WAAuto } from './aiapi'
 
 const useAIAPI = () => useQuery({ queryKey: ['ai', 'api'], queryFn: () => api.get<AIAPIInfo>('/ai/api'), refetchInterval: 30_000 })
 
@@ -126,6 +126,91 @@ function ModelCard({ info }: { info: AIAPIInfo }) {
   )
 }
 
+const RUN_STATUS: Record<string, [string, 'good' | 'warn' | 'bad' | 'accent' | 'neutral']> = {
+  ok: ['Berhasil', 'good'], running: ['Berjalan', 'accent'], error: ['Gagal', 'bad'], template: ['Template', 'neutral'],
+}
+
+const HOURS = Array.from({ length: 24 }, (_, h) => h)
+
+/** Analisa WhatsApp otomatis (ADR 0043): on/off, the hours and the API + model; a failed run is not retried with the
+ * other API. Edited as a draft, saved with one button. */
+function AutoCard({ info }: { info: AIAPIInfo }) {
+  const saved = info.wa_auto
+  const [d, setD] = useState<WAAuto>(saved)
+  const done = useSave()
+  const save = useMutation({ mutationFn: (a: WAAuto) => api.put('/ai/api/wa-auto', { enabled: a.enabled, hours: a.hours, weekend: a.weekend, engine: a.engine, model: a.model }), ...done('Analisa WhatsApp otomatis disimpan') })
+  const edit = info.can_configure
+  const prov = info.providers.find((p) => p.id === d.engine)
+  const models = prov ? (prov.models.some((m) => m.id === d.model) ? prov.models : [{ id: d.model, label: d.model, in_usd: null, out_usd: null, live: false }, ...prov.models]) : []
+  const pickEngine = (e: ProviderID) => setD({ ...d, engine: e, model: info.providers.find((p) => p.id === e)?.model ?? d.model })
+  const toggleHour = (h: number) => setD({ ...d, hours: d.hours.includes(h) ? d.hours.filter((x) => x !== h) : [...d.hours, h].sort((a, b) => a - b) })
+  const dirty = JSON.stringify([d.enabled, [...d.hours].sort((a, b) => a - b), d.weekend, d.engine, d.model]) !== JSON.stringify([saved.enabled, [...saved.hours].sort((a, b) => a - b), saved.weekend, saved.engine, saved.model])
+  const runs: FallbackRun[] = info.wa_auto_runs ?? []
+  return (
+    <div className="card">
+      <div className="card-h"><h2>Analisa WhatsApp otomatis</h2><span className="meta">server menjalankan di jam pilihan · tanpa cadangan AI lain</span></div>
+      <div className="aa-row">
+        <span className="aa-lbl">Status</span>
+        <div className="seg">
+          <button disabled={!edit} className={!d.enabled ? 'is-active' : ''} onClick={() => setD({ ...d, enabled: false })}>Mati</button>
+          <button disabled={!edit} className={d.enabled ? 'is-active' : ''} onClick={() => setD({ ...d, enabled: true })}>Aktif</button>
+        </div>
+        {saved.enabled && saved.next_run_at && <small className="muted">berikutnya {when(saved.next_run_at)} WIB</small>}
+      </div>
+      <div className="aa-row">
+        <span className="aa-lbl">Pakai AI</span>
+        <div className="seg">
+          {(['claude', 'openai'] as const).map((e) => (
+            <button key={e} disabled={!edit} className={d.engine === e ? 'is-active' : ''} onClick={() => pickEngine(e)}>{PROVIDER_LABEL[e]}</button>
+          ))}
+        </div>
+        <select className="cl-input aa-model" disabled={!edit} value={d.model} onChange={(e) => setD({ ...d, model: e.target.value })} aria-label="Model analisa otomatis">
+          {models.map((m) => <option key={m.id} value={m.id}>{modelOption(m)}</option>)}
+        </select>
+      </div>
+      <div className="aa-row aa-row-top">
+        <span className="aa-lbl">Jam (WIB)</span>
+        <div className="aa-hours" role="group" aria-label="Jam analisa otomatis">
+          {HOURS.map((h) => (
+            <button key={h} disabled={!edit} className={d.hours.includes(h) ? 'is-on' : ''} aria-pressed={d.hours.includes(h)} onClick={() => toggleHour(h)}>{String(h).padStart(2, '0')}</button>
+          ))}
+        </div>
+      </div>
+      <div className="aa-row">
+        <span className="aa-lbl">Hari</span>
+        <label className="aa-check"><input type="checkbox" disabled={!edit} checked={d.weekend} onChange={(e) => setD({ ...d, weekend: e.target.checked })} />Juga hari Minggu <small className="muted">(selain Senin–Sabtu)</small></label>
+      </div>
+      <p className="aa-hint">{autoText(d, info.providers)}</p>
+      {edit && (
+        <div className="aa-row">
+          <button className="btn primary" disabled={!dirty || d.hours.length === 0 || save.isPending} onClick={() => save.mutate(d)}><Icon name="check" />Simpan</button>
+          {dirty && <button className="btn quiet" onClick={() => setD(saved)}>Batal</button>}
+        </div>
+      )}
+      {runs.length > 0 && (
+        <div className="odl-wrap aa-auto-runs">
+          <table className="odl">
+            <thead><tr><th>Waktu</th><th>Model</th><th>Hasil</th><th className="r">Biaya</th></tr></thead>
+            <tbody>
+              {runs.slice(0, 8).map((r) => {
+                const [label, tone] = RUN_STATUS[r.status] ?? [r.status, 'neutral']
+                return (
+                  <tr key={r.id}>
+                    <td className="num">{when(r.started_at)}{r.error && <small className="au-sub">{r.error}</small>}</td>
+                    <td>{r.model ? modelLabel(r.model) : '—'}</td>
+                    <td><Pill tone={tone}>{label}</Pill></td>
+                    <td className="r num"><b>{usd(r.cost_idr, info.idr_per_usd)}</b></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** Biaya token in dollars: totals, per API, per day. */
 function CostCard({ info }: { info: AIAPIInfo }) {
   const t = info.usage.totals
@@ -171,10 +256,6 @@ function CostCard({ info }: { info: AIAPIInfo }) {
   )
 }
 
-const RUN_STATUS: Record<string, [string, 'good' | 'warn' | 'bad' | 'accent' | 'neutral']> = {
-  ok: ['Berhasil', 'good'], running: ['Berjalan', 'accent'], error: ['Gagal', 'bad'], template: ['Template', 'neutral'],
-}
-
 /** When the API took over from Claude through MCP (shown once it has). */
 function RunsCard({ info }: { info: AIAPIInfo }) {
   return (
@@ -211,9 +292,10 @@ export function AIAPIPage() {
   return (
     <div className="stack aa">
       <ModelCard info={info} />
+      <AutoCard key={JSON.stringify(info.wa_auto)} info={info} />
       <CostCard info={info} />
       {info.runs.length > 0 && <RunsCard info={info} />}
-      {!info.can_configure && <small className="muted"><Icon name="lock" /> Hanya CEO yang bisa mengubah kunci, model, dan opsi kedua.</small>}
+      {!info.can_configure && <small className="muted"><Icon name="lock" /> Hanya CEO yang bisa mengubah kunci, model, opsi kedua, dan analisa otomatis.</small>}
     </div>
   )
 }

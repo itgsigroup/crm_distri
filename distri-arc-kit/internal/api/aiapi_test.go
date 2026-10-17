@@ -69,6 +69,22 @@ func TestAIAPIPage(t *testing.T) {
 		t.Fatalf("sales changed the second option: %d", code)
 	}
 
+	// ADR 0043: Analisa WhatsApp otomatis — off by default; the CEO picks the hours and one API + model
+	if a := info["wa_auto"].(map[string]any); a["enabled"] != false || a["engine"] != "claude" {
+		t.Fatalf("wa_auto default %v", a)
+	}
+	auto := map[string]any{"enabled": true, "hours": []int{16, 8}, "weekend": false, "engine": "openai", "model": "gpt-5-mini"}
+	if code, _ := sendJSON(t, "PUT", base+"/wa-auto", sales, auto); code != http.StatusForbidden {
+		t.Fatalf("sales changed analisa otomatis: %d", code)
+	}
+	if code, _ := sendJSON(t, "PUT", base+"/wa-auto", ceo, map[string]any{"enabled": true, "hours": []int{8}, "engine": "openai", "model": "claude-opus-5-5"}); code != 400 {
+		t.Fatalf("a Claude model accepted for ChatGPT: %d", code)
+	}
+	if code, out := sendJSON(t, "PUT", base+"/wa-auto", ceo, auto); code != 200 || out["wa_auto"].(map[string]any)["enabled"] != true ||
+		len(out["wa_auto"].(map[string]any)["hours"].([]any)) != 2 || out["wa_auto"].(map[string]any)["model"] != "gpt-5-mini" {
+		t.Fatalf("wa_auto %d %v", code, out["wa_auto"])
+	}
+
 	if code, out := sendJSON(t, "PUT", base+"/key/openai", ceo, map[string]any{"api_key": "sk-ant-api03-000000000000000000"}); code != 400 || !strings.Contains(out["error"].(map[string]any)["message"].(string), "ChatGPT") {
 		t.Fatalf("a Claude key accepted as ChatGPT: %d %v", code, out)
 	}

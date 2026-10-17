@@ -110,7 +110,8 @@ type WAFallbackWorker struct {
 // Work runs the routine's task once when no Analisa WhatsApp succeeded for waLate and the API did not try in the
 // last 2 hours (a failing key or prompt costs at most one run per routine period).
 func (w *WAFallbackWorker) Work(ctx context.Context, _ *river.Job[jobs.WAFallbackArgs]) error {
-	if !w.fb.Ready(ctx) {
+	// Analisa WhatsApp otomatis on: it has its own hours and API, and a failed run is not taken over (ADR 0043)
+	if !w.fb.Ready(ctx) || analyst.WAAutoOn(ctx, w.runner.St.Q) {
 		return nil
 	}
 	st := w.runner.St

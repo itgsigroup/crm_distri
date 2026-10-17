@@ -1328,6 +1328,14 @@ body.map-maximized{overflow:hidden}
 .aa-row .cl-input{width:auto;flex:none;max-width:200px}
 .aa-lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);min-width:120px}
 .aa-hint{margin:6px 0 4px;font-size:12px;color:var(--text-3);line-height:1.5}
+.aa-row-top{align-items:flex-start}
+.aa-hours{display:grid;grid-template-columns:repeat(12,minmax(34px,1fr));gap:4px;flex:1;min-width:0;max-width:520px}
+.aa-hours button{height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:12px;font-variant-numeric:tabular-nums;color:var(--text-2)}
+.aa-hours button:hover:not(:disabled){background:var(--surface-2)}
+.aa-hours button.is-on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.aa-check{display:flex;align-items:center;gap:6px;font-size:13px}
+.aa-auto-runs{margin-top:12px}
+@media (max-width:600px){.aa-hours{grid-template-columns:repeat(6,minmax(0,1fr))}}
 .aa-provs{display:flex;flex-direction:column;margin-top:8px;border-top:1px solid var(--line)}
 .aa-prow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
 .aa-pname{min-width:96px;font-size:13.5px}

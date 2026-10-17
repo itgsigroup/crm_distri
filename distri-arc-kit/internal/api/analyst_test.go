@@ -86,8 +86,8 @@ func TestAnalystSchedules(t *testing.T) {
 	if code, out := sendJSON(t, "PUT", base+"/schedules/"+id, ceo, map[string]any{"name": "Piutang harian", "prompt": body["prompt"], "cron": "30 6 * * *", "enabled": false}); code != 200 || out["enabled"] != false || len(out["next_runs"].([]any)) != 0 {
 		t.Fatalf("update %d %v", code, out)
 	}
-	// the morning brief and Analisa WhatsApp every 2 h (migrations) plus the new one
-	if _, out := sendJSON(t, "GET", base+"/schedules", ceo, nil); len(out["items"].([]any)) != 3 {
+	// the morning brief, Analisa WhatsApp every 2 h and Analisa WhatsApp otomatis (migrations) plus the new one
+	if _, out := sendJSON(t, "GET", base+"/schedules", ceo, nil); len(out["items"].([]any)) != 4 {
 		t.Fatalf("list %v", out)
 	}
 

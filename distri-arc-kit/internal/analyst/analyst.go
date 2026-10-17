@@ -336,6 +336,15 @@ func (r *Runner) execute(ctx context.Context, sch gen.McpSchedule) outcome {
 
 	cfg := LoadConfig(ctx, r.St.Q)
 	prov := cfg.Provider()
+	if sch.Key != nil && *sch.Key == KeyWAAuto { // Analisa WhatsApp otomatis: its own API and model (ADR 0043)
+		a, _ := LoadWAAuto(ctx, r.St.Q)
+		prov = a.Engine
+		if prov == FallbackOpenAI {
+			cfg.OpenAIModel = a.Model
+		} else {
+			cfg.Model = a.Model
+		}
+	}
 	var key string
 	if prov == FallbackOpenAI {
 		key, _ = LoadOpenAIKey(ctx, r.St.Q, r.SessionKey, r.EnvOpenAI)
@@ -679,7 +688,7 @@ const KeyWAAnalysis = "wa_analysis"
 // accepted orchestrator_submit. Anything else (template mode, no submit, a refused submit) is a failed run, so the
 // label in Pusat kendali never says "berhasil" for an analysis that did not land.
 func requiredOutcome(sch gen.McpSchedule, o outcome) error {
-	if sch.Key == nil || *sch.Key != KeyWAAnalysis {
+	if sch.Key == nil || (*sch.Key != KeyWAAnalysis && *sch.Key != KeyWAAuto) {
 		return nil
 	}
 	if o.engine != "claude" && o.engine != "openai" {
