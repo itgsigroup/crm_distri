@@ -137,8 +137,8 @@
 .wa-chip.add{color:var(--accent);border-style:dashed}
 .chat-none{padding:24px 16px;text-align:center;font-size:12.5px;color:var(--text-3);line-height:1.5}
 /* Chat → numbers rail (many WhatsApp numbers) */
-.chat.multi{grid-template-columns:76px 290px minmax(0,1fr) 300px}
-.chat.multi.chat-empty{grid-template-columns:76px minmax(0,1fr)}
+.chat.multi{grid-template-columns:290px minmax(0,1fr) 300px}
+.chat.multi.chat-empty{grid-template-columns:minmax(0,1fr)}
 .wa-rail{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);overflow-y:auto;scrollbar-width:none;min-height:0}
 .wa-rail::-webkit-scrollbar{display:none}
 .wr-i{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;width:64px;padding:6px 2px;border-radius:12px;color:var(--text-2)}
@@ -168,13 +168,23 @@
 .list-acc span{font-size:11.5px;color:var(--text-3)}
 .connect-sub{display:block;font-weight:700;margin:4px 0 -6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3)}
 .connect-sub span{text-transform:none;letter-spacing:0;font-weight:500}
-@media (max-width:1100px){.chat.multi{grid-template-columns:76px 280px minmax(0,1fr)}}
+@media (max-width:1100px){.chat.multi{grid-template-columns:280px minmax(0,1fr)}}
+/* the numbers sit in one row above the chat panes, so the panes get the full width */
+.chat.multi{grid-template-rows:auto minmax(0,1fr)}
+.chat.multi .wa-rail{grid-column:1/-1;flex-direction:row;align-items:center;gap:4px;height:56px;padding:6px 10px;overflow-x:auto;overflow-y:hidden}
+.chat.multi .wr-team{flex-direction:row;flex:none;gap:4px}
+.chat.multi .wr-sep{width:1px;height:28px;margin:0 4px}
+.chat.multi .wr-i{flex:none;flex-direction:row;gap:7px;width:auto;padding:4px 10px 4px 4px}
+.chat.multi .wr-av{width:34px;height:34px;border-radius:11px;font-size:12px}
+.chat.multi .wr-i.all .wr-av .i{width:18px;height:18px}
+.chat.multi .wr-i .dot{top:30px;left:30px;width:10px;height:10px}
+.chat.multi .wr-un{top:-2px;right:auto;left:24px;min-width:16px;height:16px;font-size:9.5px;padding:0 4px}
+.chat.multi .wr-l{font-size:12px;max-width:110px}
+.chat.multi .wr-th{max-width:none}
+.chat.komo .ibp{--rail-off:72px}
 @media (max-width:900px){
-  .chat.multi .wa-rail{flex-direction:row;overflow-x:auto;overflow-y:hidden;margin-bottom:10px;padding:8px}
-  .chat.multi .wr-sep{width:1px;height:32px}
-  .chat.multi .wr-team{flex-direction:row;flex:none}
+  .chat.multi .wa-rail{margin-bottom:10px}
   .chat.multi.show-thread .wa-rail{display:none}
-  .chat.multi .wr-i{flex:none}
 }
 /* Pengaturan → Peran & akses */
 .role-bases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -658,9 +668,9 @@ body.map-maximized{overflow:hidden}
 .assign-warn .i{color:var(--warn)}
 
 /* Chat (Komo-style inbox): list · lead panel · conversation */
-.chat.komo{--wa-bg:#efeae2;--wa-out:#d9fdd3;--wa-in:#fff;--wa-green:#25a35a;--kp-dark:#263840;--kp-ai:#7c3aed;--kp-ai-soft:rgba(124,58,237,.08);grid-template-columns:76px 330px minmax(0,1fr);position:relative}
-.chat.komo.with-lead{grid-template-columns:76px 320px 320px minmax(0,1fr)}
-.chat.komo.with-lead.lead-mini{grid-template-columns:76px 320px 56px minmax(0,1fr)}
+.chat.komo{--wa-bg:#efeae2;--wa-out:#d9fdd3;--wa-in:#fff;--wa-green:#25a35a;--kp-dark:#263840;--kp-ai:#7c3aed;--kp-ai-soft:rgba(124,58,237,.08);grid-template-columns:330px minmax(0,1fr);position:relative}
+.chat.komo.with-lead{grid-template-columns:320px 320px minmax(0,1fr)}
+.chat.komo.with-lead.lead-mini{grid-template-columns:320px 56px minmax(0,1fr)}
 /* lead panel, ringkas: a slim strip that stays visible — who, stage, warnings, the tabs as icons */
 .ibp.mini{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 0 12px;overflow:hidden auto}
 .ibp-mini-open{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:0;background:var(--kp-dark);color:#fff;cursor:pointer}
@@ -903,16 +913,16 @@ body.map-maximized{overflow:hidden}
 .ibc-c .send{width:44px;height:44px;background:var(--wa-green)}
 /* the lead panel keeps its own middle column on laptop widths; only below 1100px it floats over the thread */
 @media (max-width:1280px){
-  .chat.komo.with-lead{grid-template-columns:76px 280px 290px minmax(0,1fr)}
-  .chat.komo.with-lead.lead-mini{grid-template-columns:76px 280px 56px minmax(0,1fr)}
+  .chat.komo.with-lead{grid-template-columns:280px 290px minmax(0,1fr)}
+  .chat.komo.with-lead.lead-mini{grid-template-columns:280px 56px minmax(0,1fr)}
 }
 @media (max-width:1100px){
-  .chat.komo.with-lead{grid-template-columns:76px 280px minmax(0,1fr)}
-  .chat.komo .ibp{position:absolute;right:0;top:0;bottom:0;width:320px;z-index:6;box-shadow:var(--shadow-lift)}
+  .chat.komo.with-lead{grid-template-columns:280px minmax(0,1fr)}
+  .chat.komo .ibp{position:absolute;right:0;top:var(--rail-off);bottom:0;width:320px;z-index:6;box-shadow:var(--shadow-lift)}
   .chat.komo .ibp.mini{width:56px;box-shadow:var(--shadow)}
   .chat.komo.lead-mini .th-pane{margin-right:56px}
 }
-@media (max-width:1100px){.chat.komo,.chat.komo.with-lead{grid-template-columns:76px 280px minmax(0,1fr)}}
+@media (max-width:1100px){.chat.komo,.chat.komo.with-lead{grid-template-columns:280px minmax(0,1fr)}}
 @media (max-width:900px){
   .chat.komo .ibp{position:fixed;inset:auto 0 0 0;top:15vh;width:auto;border-radius:16px 16px 0 0;z-index:40}
   .chat.komo .list-pane{display:flex}.chat.komo .th-pane{display:none}
