@@ -13,11 +13,10 @@ export type QueuedCycle = Cycle & { mcp?: CycleMCP }
 
 interface InputState { agent: string; submitted_at: string | null }
 
-/** The pop-up of an analysis started with "Analisis ulang" (Sam 16 Oct: in place of the MCP steps): "AI sedang membaca
- * data…" with the game while it runs, then berhasil / gagal. Through Claude (claude.ai) it keeps one button to open
- * Claude with the task — Claude only works when someone sends it there. It announces the result itself (no alert). */
-export function AnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
-  const { closeSheet } = useFeedback()
+/** The live part of an analysis started with "Analisis ulang": "AI sedang membaca data…" with the progress and the
+ * game while it runs (through claude.ai with one button to open Claude — Claude only works when someone sends it
+ * there), then berhasil / gagal. Shown in the pop-up and inline on the Orchestrator page. */
+export function AnalysisLive({ cycle }: { cycle: QueuedCycle }) {
   const { s, showPanel } = useOrch()
   useEffect(() => showPanel(), [showPanel])
   const m = cycle.mcp
@@ -42,12 +41,21 @@ export function AnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
       {claude && sent === 0 && <a className="btn primary" href={m.claude_url} target="_blank" rel="noopener noreferrer"><Icon name="plug" />Buka Claude</a>}
     </div>
   )
+  return last ? <AnalysisResult last={last} /> : <AnalysisRunning extra={hint} focusGame={!claude} />
+}
+
+/** The pop-up of an analysis started with "Analisis ulang" (Sam 16 Oct: in place of the MCP steps). It announces the
+ * result itself (no alert). */
+export function AnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
+  const { closeSheet } = useFeedback()
+  const { s } = useOrch()
+  const running = s.cycleId === cycle.id && s.running
   const title = cycle.number ? `Analisis ulang ${cycle.label} · siklus #${cycle.number.toLocaleString('id-ID')}` : `Analisis ulang ${cycle.label}`
   return (
     <>
       <SheetHead icon="spark" title={title} sub={running ? 'Halaman ini boleh ditutup — analisis tetap berjalan dan hasilnya tersimpan' : 'Selesai'} onClose={closeSheet} />
       <div className="sec an-sheet">
-        {last ? <AnalysisResult last={last} /> : <AnalysisRunning extra={hint} focusGame={!claude} />}
+        <AnalysisLive cycle={cycle} />
       </div>
       <div className="ft"><button className="btn quiet" onClick={closeSheet}>Tutup</button><span className="spacer" /><span className="pol"><Icon name="lock" />AI hanya mengusulkan · keputusan tetap di aplikasi</span></div>
     </>

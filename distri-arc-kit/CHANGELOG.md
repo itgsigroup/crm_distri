@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Orchestrator: Analisis ulang dengan progres AI dan game langsung di halaman · 2026-10-17
+- Tombol **Analisis ulang (Claude · MCP)** di halaman Orchestrator tidak lagi membuka pop-up. Panel tampil di bawah header halaman: progres AI (data dibaca, per agen, langkah terakhir), tombol **Buka Claude**, dan game **Lompat!**. Setelah selesai, hasil berhasil/sebagian/gagal muncul di panel yang sama sampai ditutup.
+- Siklus yang tidak dimulai dari halaman ini (siklus per jam) juga tampil di panel dengan progres dan game.
+
 ## Feat · Pusat kendali: progres "AI sedang menganalisa apa" · 2026-10-17
 - Panel "AI sedang membaca data" kini menampilkan **data yang dibaca** (mis. "WhatsApp 963 chat · 288 menunggu"), **progres per agen** (antri · sedang dianalisa · selesai/gagal) dengan cakupannya (jumlah dealer, pesan, stok, kandidat), bar *x/y selesai*, dan **langkah AI terakhir** (membaca data AI Stok, mengirim analisis AI Kredit · 2 saran) dengan jam dan nama koneksinya. Diperbarui tiap 2,5 detik selama siklus berjalan; juga tampil di pop-up analisis.
 - Endpoint baru `GET /api/cycles/{id}/progress` (tahap, agen, langkah MCP dari `mcp_calls`).

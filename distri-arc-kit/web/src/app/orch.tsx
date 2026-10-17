@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client'
@@ -24,12 +24,15 @@ export function scopeLabel(scope: string): string {
 type Via = 'auto' | 'api' | 'mcp' | 'model'
 interface OrchCtx {
   s: CycleUI
-  /** engine: who analyses ('mcp' Claude through MCP, 'model' the API & model AI choice); label names it in the result */
-  reanalyze: (scope: string, via?: Via, label?: string) => void
+  /** engine: who analyses ('mcp' Claude through MCP, 'model' the API & model AI choice); label names it in the result;
+   * inline: the page shows the analysis itself (the Orchestrator page), no pop-up */
+  reanalyze: (scope: string, via?: Via, label?: string, inline?: boolean) => void
+  /** the last cycle this tab asked for, with how it is analysed (the inline panel's Claude button) */
+  queued: QueuedCycle | null
   /** an analysis panel is on screen and announces the result itself (no pop-up); returns the unregister */
   showPanel: () => () => void
 }
-const Ctx = createContext<OrchCtx>({ s: initialCycle, reanalyze: () => {}, showPanel: () => () => {} })
+const Ctx = createContext<OrchCtx>({ s: initialCycle, reanalyze: () => {}, queued: null, showPanel: () => () => {} })
 
 /** Everything a finished cycle can change, so the open page shows the new analysis (proposals, page readings,
  * metrics, Analisa WhatsApp, brief) — also when SSE is down and the poll ends the cycle. */
@@ -42,6 +45,7 @@ export function refreshPages(qc: ReturnType<typeof useQueryClient>) {
 /** Owns the live cycle state of the tab: POST /cycles, SSE events, a polling fallback and the finishing toast. */
 export function OrchProvider({ children }: { children: ReactNode }) {
   const [s, dispatch] = useReducer(cycleReducer, initialCycle)
+  const [queued, setQueued] = useState<QueuedCycle | null>(null)
   const panels = useRef(0) // analysis panels on screen (they announce the result instead of the pop-up)
   const showPanel = useCallback(() => {
     panels.current++
@@ -114,7 +118,7 @@ export function OrchProvider({ children }: { children: ReactNode }) {
   }, [s.running, s.result, s.mine, s.via, alert, qc])
 
   const reanalyze = useCallback(
-    (scope: string, via: Via = 'auto', label?: string) => {
+    (scope: string, via: Via = 'auto', label?: string, inline = false) => {
       if (s.running) {
         toast('Orchestrator sedang berjalan')
         return
@@ -128,7 +132,8 @@ export function OrchProvider({ children }: { children: ReactNode }) {
           const by = c.mcp?.engine === 'claude_api' ? `${c.mcp.model || label || 'API'} · ${eff}`
             : c.mcp ? `MCP Claude · ${c.mcp.model_label || 'Claude'} · ${eff}` : label || 'API'
           dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by, at: Date.now() })
-          openSheet(<AnalysisSheet cycle={c} />) // "AI sedang membaca data…" with the game, then berhasil / gagal
+          setQueued(c)
+          if (!inline) openSheet(<AnalysisSheet cycle={c} />) // "AI sedang membaca data…" with the game, then berhasil / gagal
         })
         .catch((e: unknown) =>
           e instanceof ApiError && e.code === 'no_api'
@@ -141,7 +146,7 @@ export function OrchProvider({ children }: { children: ReactNode }) {
     [s.running, toast, alert, openSheet],
   )
 
-  return <Ctx.Provider value={{ s, reanalyze, showPanel }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ s, reanalyze, queued, showPanel }}>{children}</Ctx.Provider>
 }
 
 export const useOrch = () => useContext(Ctx)

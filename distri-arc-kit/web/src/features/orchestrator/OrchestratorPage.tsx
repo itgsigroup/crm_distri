@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { CycleStage } from '../../api/types'
 import { effort, mcpModel, shortModel } from '../../app/enginePrefs'
 import { Icon } from '../../components/Icon'
@@ -7,6 +8,8 @@ import { hhmm, shortDate } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
 import { useOrch, useOrchStatus } from '../../app/orch'
+import { AnalysisLive } from '../../app/AnalysisSheet'
+import { AnalysisRunning } from '../control/AnalysisPanel'
 import { useCycleLatest, useMCPCalls, useMCPInfo, useQueue, useWAAnalysis } from '../../app/queries'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import { Queue } from '../control/Queue'
@@ -44,6 +47,24 @@ function argText(a: Record<string, unknown> | null): string {
   return Object.entries(a).filter(([, v]) => v !== '' && v != null && !(Array.isArray(v) && v.length === 0)).map(([k, v]) => `${k}:${typeof v === 'string' ? `"${v}"` : Array.isArray(v) ? `[${v.length}]` : JSON.stringify(v)}`).join(', ')
 }
 
+/** The analysis on the page itself (Sam 17 Oct): while a cycle runs, what the AI analyses with the progress and the
+ * game; after the one asked here, berhasil / gagal until closed. */
+function OrchAnalysis() {
+  const { s, queued } = useOrch()
+  const [closed, setClosed] = useState<string | null>(null)
+  const ours = queued && (s.cycleId === queued.id || s.last?.cycleId === queued.id) ? queued : null
+  if (ours && closed !== ours.id && (s.running || s.last?.cycleId === ours.id)) {
+    return (
+      <div className={`card an-panel ${s.running ? 'running' : ''}`} role="status" aria-live="polite">
+        <AnalysisLive cycle={ours} />
+        {!s.running && <div className="an-close"><button className="btn quiet" onClick={() => setClosed(ours.id)}>Tutup</button></div>}
+      </div>
+    )
+  }
+  if (!s.running) return null
+  return <div className="card an-panel running" role="status" aria-live="polite"><AnalysisRunning /></div>
+}
+
 // Orchestrator (mockup screen-orch).
 export function OrchestratorPage() {
   const { openSheet } = useFeedback()
@@ -78,10 +99,11 @@ export function OrchestratorPage() {
           <div className="oh-kv"><small>Berikutnya</small><b>{st.next} · tiap jam</b></div>
           <div className="oh-kv"><small>Model AI terakhir</small><b title="Model dan effort yang dipilih untuk analisis terakhir (Orchestrator di kanan bawah)">{st.lastDone?.model_label ? `${st.lastDone.via === 'mcp' ? 'MCP · ' : ''}${st.lastDone.model_label}${st.lastDone.effort ? ` · ${st.lastDone.effort}` : ''}` : 'Claude lewat MCP'}</b></div>
           <div className="oh-btns">
-            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all', 'mcp')} title={`Claude menganalisis lewat MCP · ${shortModel(mcpModel())} · effort ${effort()} (ubah di Orchestrator kanan bawah)`}><Icon name="plug" />Analisis ulang (Claude · MCP)</button>
+            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all', 'mcp', undefined, true)} title={`Claude menganalisis lewat MCP · ${shortModel(mcpModel())} · effort ${effort()} (ubah di Orchestrator kanan bawah)`}><Icon name="plug" />Analisis ulang (Claude · MCP)</button>
           </div>
         </div>
       </div>
+      <OrchAnalysis />
       {!canWA ? (
         <div className="card"><p className="sg-hint">Analisa WhatsApp mengutip pesan pelanggan, jadi hanya tampil untuk pengguna dengan akses halaman Chat.</p></div>
       ) : <div className="orch-grid">
