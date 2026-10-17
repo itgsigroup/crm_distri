@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../../api/client'
 import { Icon } from '../../components/Icon'
 import { hhmm } from '../../lib/format'
 import { STAGES, chipState, type CycleUI } from '../../app/cycle'
 import { duration, useOrch } from '../../app/orch'
 import { GROUND, PH, PX, W, jump, newRun, score, step, type Run } from './jumpgame'
+import { STATE_LABEL, ordered, summarize, type CycleProgress } from './progress'
 
 // While an analysis runs: what the AI is reading, stage by stage, and at the end whether it worked — with a small game
 // to play while waiting (Sam 16 Oct). Used by the analysis pop-up and by Pusat kendali.
@@ -71,8 +74,59 @@ export function AnalysisRunning({ extra, focusGame = false }: { extra?: ReactNod
           )
         })}
       </ol>
+      {s.cycleId && <AnalysisProgress cycleId={s.cycleId} />}
       {extra}
       <JumpGame autoFocus={focusGame} />
+    </div>
+  )
+}
+
+const AGENT_ICON: Record<string, string> = {
+  'AI Order': 'doc', 'AI Follow-up': 'refresh', 'AI Kredit': 'shield', 'AI Stok': 'box', 'AI Penagihan': 'cash', 'AI Prospek': 'people', 'Analisa WhatsApp': 'chat',
+}
+
+/** What the AI is analysing now: the data read, each agent (antri · sedang dianalisa · selesai) with what it covers,
+ * and the AI's last steps on this cycle — polled while the cycle runs. */
+export function AnalysisProgress({ cycleId }: { cycleId: string }) {
+  const { data: p } = useQuery({
+    queryKey: ['cycle-progress', cycleId],
+    queryFn: () => api.get<CycleProgress>(`/cycles/${cycleId}/progress`),
+    refetchInterval: 2500,
+  })
+  if (!p) return null
+  const sum = summarize(p)
+  const read = p.stages.find((x) => x.stage === 'ingest' && x.text)?.text
+  return (
+    <div className="an-prog">
+      {read && <p className="an-read"><Icon name="chat" />Data dibaca: {read}</p>}
+      {sum.total > 0 && (
+        <>
+          <div className="an-prog-h">
+            <b>{sum.now || 'Analisa agen'}</b>
+            <span className="num">{sum.done}/{sum.total} selesai</span>
+          </div>
+          <div className="an-bar" role="progressbar" aria-valuenow={sum.pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${Math.max(sum.pct, 4)}%` }} /></div>
+          <ul className="an-agents">
+            {ordered(p.agents).map((a) => (
+              <li key={a.agent} className={a.state}>
+                <span className="an-ic">{a.state === 'reading' ? <i className="an-spin" /> : <Icon name={a.state === 'done' ? 'check' : a.state === 'failed' ? 'alert' : AGENT_ICON[a.agent] ?? 'spark'} />}</span>
+                <span className="an-ag">
+                  <b>{a.agent}</b>
+                  {(a.covers || a.summary) && <small>{[a.covers, a.state === 'failed' ? '' : a.summary].filter(Boolean).join(' · ')}</small>}
+                </span>
+                <em>{a.state === 'done' && a.done_at ? `selesai ${hhmm(new Date(a.done_at))}` : STATE_LABEL[a.state]}</em>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {p.steps.length > 0 && (
+        <ol className="an-steps" aria-label="Langkah AI terakhir">
+          {p.steps.slice(0, 4).map((x, i) => (
+            <li key={x.at + i}><span className="num">{hhmm(new Date(x.at))}</span>{x.text}{x.client && <small> · {x.client}</small>}</li>
+          ))}
+        </ol>
+      )}
     </div>
   )
 }

@@ -1536,6 +1536,33 @@ body.map-maximized{overflow:hidden}
 .an-spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent);border-right-color:transparent;animation:an-spin .8s linear infinite}
 @keyframes an-spin{to{transform:rotate(360deg)}}
 .an-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text-3)}
+/* what the AI analyses now: data read, each agent, the last steps */
+.an-prog{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.an-read{display:flex;align-items:center;gap:6px;margin:0;font-size:12.5px;color:var(--text-2)}
+.an-read .i{width:14px;height:14px;color:var(--accent);flex:none}
+.an-prog-h{display:flex;align-items:baseline;gap:10px;font-size:13px}
+.an-prog-h b{flex:1;min-width:0}
+.an-prog-h span{font-size:12px;color:var(--text-3)}
+.an-bar{height:6px;border-radius:999px;background:var(--surface-3);overflow:hidden}
+.an-bar i{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .4s ease}
+.an-agents{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
+.an-agents li{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:12.5px;min-width:0}
+.an-agents li.reading{border-color:var(--accent);background:var(--accent-soft)}
+.an-agents li.done{color:var(--text-2)}
+.an-agents li.done .an-ic{color:var(--good)}
+.an-agents li.failed .an-ic{color:var(--bad)}
+.an-agents li.waiting{opacity:.75}
+.an-agents .an-ic{flex:none;width:18px;height:18px;display:grid;place-items:center;color:var(--text-3)}
+.an-agents .an-ic .i{width:15px;height:15px}
+.an-ag{flex:1;min-width:0;display:flex;flex-direction:column}
+.an-ag b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-ag small{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-agents em{flex:none;font-style:normal;font-size:11px;color:var(--text-3)}
+.an-agents li.reading em{color:var(--accent);font-weight:600}
+.an-steps{list-style:none;margin:0;padding:8px 10px;border-radius:10px;background:var(--surface-2);display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--text-2)}
+.an-steps li{display:flex;gap:8px;min-width:0}
+.an-steps li .num{flex:none;color:var(--text-3)}
+.an-steps small{color:var(--text-3)}
 .an-meta b{color:var(--text)}
 .an-note{flex-basis:100%}
 .an-game{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;user-select:none;touch-action:manipulation;outline:none}

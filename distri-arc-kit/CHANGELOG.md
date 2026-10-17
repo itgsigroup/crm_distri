@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Pusat kendali: progres "AI sedang menganalisa apa" · 2026-10-17
+- Panel "AI sedang membaca data" kini menampilkan **data yang dibaca** (mis. "WhatsApp 963 chat · 288 menunggu"), **progres per agen** (antri · sedang dianalisa · selesai/gagal) dengan cakupannya (jumlah dealer, pesan, stok, kandidat), bar *x/y selesai*, dan **langkah AI terakhir** (membaca data AI Stok, mengirim analisis AI Kredit · 2 saran) dengan jam dan nama koneksinya. Diperbarui tiap 2,5 detik selama siklus berjalan; juga tampil di pop-up analisis.
+- Endpoint baru `GET /api/cycles/{id}/progress` (tahap, agen, langkah MCP dari `mcp_calls`).
+
 ## Feat · Analisa WhatsApp otomatis: pilih jam dan model AI di Pengaturan · 2026-10-17
 - Pengaturan → API & model AI punya kartu baru **Analisa WhatsApp otomatis**: Aktif/Mati, **Pakai AI** (Claude API atau ChatGPT API) dan modelnya, **jam (WIB)** yang dipilih per jam, dan opsi juga hari Minggu. Riwayat run (berhasil/gagal, model, biaya) tampil di kartu yang sama.
 - Server menjalankan tugas Analisa WhatsApp di jam itu dengan model itu (migrasi 0046, jadwal `wa_analysis_auto`, ADR 0043). Bila gagal, **tidak diulang dengan AI lain** — menunggu jam berikutnya; selama aktif, API cadangan untuk routine Analisa WhatsApp juga diam.
