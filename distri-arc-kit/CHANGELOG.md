@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Bar nomor WhatsApp: chip nama saja · 2026-10-17
+- Bar nomor di atas Chat kini berisi chip kecil berisi nama saja (titik status + nama + jumlah belum dibaca), tanpa kartu avatar inisial. Tinggi bar 40 px.
+
 ## Feat · Kirim kontak WhatsApp; nama panggilan tersimpan ke kontak WhatsApp HP · 2026-10-17
 - **Kirim kontak**: menu lampiran (📎) punya **Kontak**. Isi nama + nomor (08… atau +62…), lalu terkirim sebagai kartu kontak WhatsApp (vCard), lewat antrean kirim dan penjaga anti-blokir seperti pesan lain. Kartu tampil di chat dengan nama, nomor, dan tombol **Chat**. Kartu kontak dari pelanggan kini ikut menampilkan nomornya.
 - **Simpan ke kontak HP**: saat **Nama panggilan** (ikon pensil di header chat) disimpan, nama itu juga disimpan ke kontak WhatsApp nomor yang memegang chat, dan tersinkron ke HP-nya. Kalau HP offline, nama tetap tersimpan di GSI Orbit dan notifikasi memberi tahu. Menghapus nama panggilan tidak menghapus kontak di HP. ADR 0044.

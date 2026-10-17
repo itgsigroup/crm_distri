@@ -1691,3 +1691,19 @@ body.map-maximized{overflow:hidden}
 .bub-contact-m b{font-size:13px;overflow:hidden;text-overflow:ellipsis}
 .bub-contact-m small{font-size:11.5px;color:var(--text-3)}
 .bub-contact-go{flex:none;font-size:12px;font-weight:600;color:var(--wa-green,#25a35a);padding:4px 10px;border-radius:999px;border:1px solid currentColor;text-decoration:none}
+
+/* numbers bar: a small name chip per number — no initials card (Sam 17 Oct); status dot and unread inline */
+.chat.multi .wa-rail{height:40px;padding:4px 8px;gap:4px}
+.chat.multi .wr-i{flex-direction:row;align-items:center;gap:5px;height:28px;padding:0 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+.chat.multi .wr-i:not(.all):not(.add) .wr-av{display:none}
+.chat.multi .wr-i.all .wr-av,.chat.multi .wr-i.add .wr-av{width:18px;height:18px;border-radius:50%;font-size:13px}
+.chat.multi .wr-i.all .wr-av .i{width:11px;height:11px}
+.chat.multi .wr-i.add .wr-av{border-width:1px}
+.chat.multi .wr-i .dot{position:static;order:-1;width:7px;height:7px;border:0}
+.chat.multi .wr-un{position:static;order:2;min-width:16px;height:16px;padding:0 4px;font-size:9.5px;border:0}
+.chat.multi .wr-l{font-size:12px;max-width:120px}
+.chat.multi .wr-i.is-active{border-color:var(--accent)}
+.chat.multi .wr-i.is-active .wr-av{box-shadow:none}
+.chat.multi .wr-i.off{opacity:.55}
+.chat.multi .wr-sep{height:18px}
+.chat.multi .wr-th{font-size:9px}
