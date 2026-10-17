@@ -8,6 +8,8 @@ export interface UserRow {
 export interface RoleRow {
   key: string; name: string; description: string; base: string; active: boolean; wa_allowed: boolean; users: number
   screens: string[]; decide: string[]; scope: 'all' | 'own'; policies: boolean
+  /** which WhatsApp numbers the role reads in Chat: every number, or only the one the user holds */
+  chat_scope?: 'all' | 'own'
 }
 export interface RoleCatalog {
   items: RoleRow[]

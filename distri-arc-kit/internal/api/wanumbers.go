@@ -21,9 +21,12 @@ import (
 	"distri-arc/internal/wa"
 )
 
+// waManager: CEO/admin manage every number (team, linking for others) — unless their role reads only its own chats.
+func waManager(u User) bool { return isAdmin(u) && !waOwnOnly(u) }
+
 // canManageNumber: CEO/admin manage every number; anyone else only the number they hold.
 func canManageNumber(u User, n gen.WaNumber) bool {
-	if isAdmin(u) {
+	if waManager(u) {
 		return true
 	}
 	if n.UserID != nil && *n.UserID == u.ID {
@@ -50,7 +53,7 @@ func teamOfRole(role string) string {
 // setWANumberTeam moves a number to another team (sales, admin, billing): CEO/admin only.
 func (s *Server) setWANumberTeam(w http.ResponseWriter, r *http.Request) {
 	me, _ := CurrentUser(r.Context())
-	if !isAdmin(me) {
+	if !waManager(me) {
 		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO atau admin yang mengatur tim nomor")
 		return
 	}
@@ -87,17 +90,20 @@ func (s *Server) createWALink(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Body tidak valid")
 		return
 	}
-	if !isAdmin(me) && !roleOf(me).WAAllowed {
+	if !waManager(me) && !roleOf(me).WAAllowed {
 		httpx.Fail(w, http.StatusForbidden, "forbidden", "Peran Anda tidak memegang nomor WhatsApp")
 		return
 	}
-	if !isAdmin(me) && me.WaNumber != nil {
+	if !waManager(me) && me.WaNumber != nil {
 		httpx.Fail(w, http.StatusConflict, "has_number", "Anda sudah memegang "+wa.MaskNumber(*me.WaNumber)+" — satu pengguna satu nomor")
 		return
 	}
 	team := in.Team
-	if !isAdmin(me) || !waTeams[team] {
-		team = map[bool]string{true: "sales", false: teamOfRole(deref(me.Role))}[isAdmin(me)]
+	if !waManager(me) || !waTeams[team] {
+		team = map[bool]string{true: "sales", false: teamOfRole(deref(me.Role))}[waManager(me)]
+		if deref(me.RoleKey) == "penagihan" {
+			team = "billing"
+		}
 	}
 	method, phone := "qr", ""
 	if in.Method == "code" {
@@ -198,7 +204,7 @@ func (s *Server) assignWANumber(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pilih pengguna")
 		return
 	}
-	manager := can(me, "users")
+	manager := can(me, "users") && !waOwnOnly(me)
 	if !manager && (in.UserID == nil || *in.UserID != me.ID || num.UserID != nil) {
 		httpx.Fail(w, http.StatusForbidden, "forbidden", "Memberi nomor ke pengguna lain lewat halaman Pengguna (pemegang menu Pengguna)")
 		return

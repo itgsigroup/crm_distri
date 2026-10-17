@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
@@ -253,6 +254,46 @@ func TestPenagihanSeesOnlyOwnNumber(t *testing.T) {
 	// admin reads every number
 	if _, all := get(t, srv, "/api/chat/threads", "sam@gsi.co.id"); len(all["items"].([]any)) <= 1 {
 		t.Error("admin does not see every number's chats")
+	}
+}
+
+// Sam 17 Oct: role Penagihan keeps the Admin pages but reads only the WhatsApp number it holds (chat_scope own), and
+// does not see or manage the other numbers.
+func TestPenagihanRoleWithAdminPagesSeesOnlyOwnNumber(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	code, ren := post(t, srv.URL+"/api/users", "sam@gsi.co.id", map[string]any{"email": "rendy@gsi.co.id", "name": "Rendy", "role_key": "penagihan", "password": "rahasia-panjang-1"})
+	if code != http.StatusCreated {
+		t.Fatalf("create user: %d %v", code, ren)
+	}
+	in := wa.NewIngestor(st, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if _, err := st.Pool.Exec(ctx, "insert into wa_links (session_id, created_by, team) values ('link-rendy', 'sam@gsi.co.id', 'billing')"); err != nil {
+		t.Fatal(err)
+	}
+	if err := in.ProcessStatus(ctx, wa.Status{Session: "link-rendy", Account: "6281244440000", State: "connected"}); err != nil {
+		t.Fatal(err)
+	}
+	if code, out := put(t, srv.URL+"/api/wa/numbers/6281244440000/user", "sam@gsi.co.id", map[string]any{"user_id": ren["id"]}); code != 200 {
+		t.Fatalf("assign: %d %v", code, out)
+	}
+	var own string
+	if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('new', '6281300000019@s.whatsapp.net', 'Tagihan Toko D', '6281244440000', now()) returning id").Scan(&own); err != nil {
+		t.Fatal(err)
+	}
+	_, me := get(t, srv, "/api/me", "rendy@gsi.co.id")
+	if me["chat_scope"] != "own" || !slices.Contains(me["screens"].([]any), any("users")) {
+		t.Fatalf("me %v", me)
+	}
+	_, out := get(t, srv, "/api/chat/threads", "rendy@gsi.co.id")
+	if items := out["items"].([]any); len(items) != 1 || items[0].(map[string]any)["id"] != own {
+		t.Fatalf("Penagihan sees %d chats, want only its own", len(items))
+	}
+	_, status := get(t, srv, "/api/wa/status", "rendy@gsi.co.id")
+	if nums := status["items"].([]any); len(nums) != 1 || nums[0].(map[string]any)["wa_number"] != "6281244440000" {
+		t.Errorf("Penagihan sees numbers %v", nums)
+	}
+	if code, _ := put(t, srv.URL+"/api/wa/numbers/6281233330000/team", "rendy@gsi.co.id", map[string]any{"team": "sales"}); code != http.StatusForbidden {
+		t.Errorf("Penagihan moved another number's team: %d", code)
 	}
 }
 

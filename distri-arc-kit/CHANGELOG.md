@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Sesi tidak perlu login ulang; Rendy (Penagihan) hanya melihat chat nomornya · 2026-10-17
+- **Sesi bergeser**: login berlaku 30 hari dan diperpanjang otomatis setiap kali aplikasi dipakai (token diperbarui tiap jam). Sebelumnya sesi habis tetap 12 jam setelah login. Login ulang hanya setelah menekan Keluar, atau setelah 30 hari tidak membuka aplikasi.
+- **Chat WhatsApp per peran**: Peran & akses punya sakelar baru **Chat WhatsApp hanya nomor sendiri** (`roles.chat_scope`, migrasi 0048). Peran dengan data "miliknya" selalu hanya nomornya sendiri. Peran ini juga tidak bisa mengatur tim atau menautkan nomor orang lain, dan hanya melihat nomor lengkap miliknya.
+- Peran baru **Penagihan**: halaman sama dengan Admin, tetapi chat hanya nomor sendiri. Pemegang nomor tim Penagihan yang berperan Admin (Rendy) dipindah ke peran ini. Catharina tetap Admin.
+
 ## Feat · AI hanya membaca yang baru sejak analisis terakhir; tombol Batalkan analisis · 2026-10-17
 - **Penanda analisis terakhir per agen**: Input untuk Claude/API kini hanya berisi pesan WA, nomor baru, dan dealer yang punya sinyal baru atau kandidat **sejak analisis AI terakhir agen itu** (siklus penuh yang jawabannya diterima). Sebelumnya setiap agen menerima semua 2.841 dealer + pesan 7 hari (~6 MB per agen). Angka dan kandidat tetap dihitung Go dari data lengkap. Analisis satu dealer dan agen yang belum pernah dianalisa tetap melihat 7 hari. Penanda ikut dikirim ke AI (`since`) dan tampil di progres ("baru sejak 17/10 11.19").
 - **Batalkan analisis**: tombol di panel "AI sedang membaca data" (Pusat kendali, Orchestrator, pop-up). Siklus antre langsung ditutup, siklus berjalan berhenti dalam ±1 detik (juga saat menunggu Claude), dicatat "Dibatalkan oleh …", dan Analisis ulang bisa dipakai lagi. Endpoint `POST /api/cycles/{id}/cancel`, migrasi 0047.

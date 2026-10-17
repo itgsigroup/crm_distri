@@ -98,7 +98,7 @@ func (q *Queries) GetPolicy(ctx context.Context, key string) (Policy, error) {
 const getUserByEmail = `-- name: GetUserByEmail :one
 select u.id, u.email, u.name, u.role, u.sales_user_id, s.branch, s.name as sales_name, u.totp_enabled_at,
   u.wa_number, r.key as role_key, r.name as role_name, r.screens as role_screens, r.decide as role_decide, coalesce(r.wa_allowed, true) as role_wa,
-  coalesce(r.scope, 'all') as role_scope, coalesce(r.policies, false) as role_policies
+  coalesce(r.scope, 'all') as role_scope, coalesce(r.policies, false) as role_policies, coalesce(r.chat_scope, 'all') as role_chat_scope
 from users u left join sales_users s on s.id = u.sales_user_id left join roles r on r.key = u.role_key
 where lower(u.email) = lower($1) and u.active
 `
@@ -120,6 +120,7 @@ type GetUserByEmailRow struct {
 	RoleWa        bool       `json:"role_wa"`
 	RoleScope     string     `json:"role_scope"`
 	RolePolicies  bool       `json:"role_policies"`
+	RoleChatScope string     `json:"role_chat_scope"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, lower string) (GetUserByEmailRow, error) {
@@ -142,6 +143,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, lower string) (GetUserByEm
 		&i.RoleWa,
 		&i.RoleScope,
 		&i.RolePolicies,
+		&i.RoleChatScope,
 	)
 	return i, err
 }

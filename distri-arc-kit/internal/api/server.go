@@ -208,8 +208,12 @@ type User = gen.GetUserByEmailRow
 // sessionCookie carries the signed session token (HttpOnly, SameSite=Strict).
 const sessionCookie = "arc_session"
 
-// sessionTTL is how long a login lasts.
-const sessionTTL = 12 * time.Hour
+// sessionTTL is how long a login lasts without use: every request renews it (renewAfter), so a user who keeps using
+// the app stays logged in until they log out (Sam 17 Oct); 30 days away and they log in again.
+const sessionTTL = 30 * 24 * time.Hour
+
+// renewAfter: a session token older than this is re-issued with a fresh expiry on the next request.
+const renewAfter = time.Hour
 
 // secret is the session signing key: SESSION_SECRET, or a fixed development key when APP_ENV=dev.
 func (s *Server) secret() []byte { return s.cfg.SessionKey() }
@@ -228,6 +232,7 @@ func (s *Server) auth(next http.Handler) http.Handler {
 			httpx.Fail(w, http.StatusUnauthorized, "unknown_user", "Pengguna tidak dikenal")
 			return
 		}
+		s.renewSession(w, r, u)
 		// a role without a screen cannot call that screen's API either (not only a hidden menu)
 		if sc := access.ScreenForPath(r.URL.Path); sc != "" && !slices.Contains(roleOf(u).Screens, sc) {
 			httpx.Fail(w, http.StatusForbidden, "forbidden", "Peran Anda tidak membuka menu ini — atur di Pengaturan → Peran & akses")
@@ -235,6 +240,22 @@ func (s *Server) auth(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userKey, u)))
 	})
+}
+
+// renewSession re-issues the session cookie with a fresh expiry when the token is older than renewAfter (sliding
+// session); the dev header and an expired or foreign token are left alone.
+func (s *Server) renewSession(w http.ResponseWriter, r *http.Request, u User) {
+	c, err := r.Cookie(sessionCookie)
+	if err != nil || s.secret() == nil {
+		return
+	}
+	now := time.Now()
+	cl, err := auth.Verify(c.Value, s.secret(), now)
+	if err != nil || cl.Sub != u.ID.String() || now.Sub(time.Unix(cl.Iat, 0)) < renewAfter {
+		return
+	}
+	tok := auth.Sign(auth.Claims{Sub: cl.Sub, Email: cl.Email, Role: deref(u.Role), Iat: now.Unix(), Exp: now.Add(sessionTTL).Unix()}, s.secret())
+	s.setSession(w, r, tok, int(sessionTTL.Seconds()))
 }
 
 func (s *Server) sessionEmail(r *http.Request) string {
@@ -299,6 +320,6 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"id": u.ID, "email": u.Email, "name": u.Name, "role": u.Role, "branch": u.Branch,
 		"screens": ro.Screens, "decide": decide, "edit_policies": role == "ceo", "manage_users": can(u, "users"), "scope": ro.Scope,
-		"role_key": ro.Key, "role_name": ro.Name, "wa_number": u.WaNumber, "wa_allowed": ro.WAAllowed,
+		"role_key": ro.Key, "role_name": ro.Name, "wa_number": u.WaNumber, "wa_allowed": ro.WAAllowed, "chat_scope": map[bool]string{true: "own", false: "all"}[waOwnOnly(u)],
 		"totp_available": totpRoles(role), "totp_enabled": u.TotpEnabledAt != nil, "pilot_mode": pilotMode})
 }

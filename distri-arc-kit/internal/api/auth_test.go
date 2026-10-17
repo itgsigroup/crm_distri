@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"testing"
+	"time"
 
 	"distri-arc/internal/auth"
+	"distri-arc/internal/config"
 	"distri-arc/internal/store/gen"
 )
 
@@ -102,5 +104,39 @@ func TestLoginSessionAndRoles(t *testing.T) {
 	}
 	if code, _ := do(t, bad, http.MethodPost, srv.URL+"/api/auth/login", map[string]string{"email": "finance@gsi.co.id", "password": "rahasia-demo-123"}); code != http.StatusTooManyRequests {
 		t.Fatalf("rate limit: %d", code)
+	}
+}
+
+// Sam 17 Oct: a session renews itself while the user works (no re-login after 12 hours), and ends only at logout.
+func TestSessionRenews(t *testing.T) {
+	srv, st := chatServer(t)
+	ctx := context.Background()
+	h, _ := auth.Hash("rahasia-demo-123")
+	if err := st.Q.SetUserPassword(ctx, gen.SetUserPasswordParams{Lower: "sam@gsi.co.id", PasswordHash: &h}); err != nil {
+		t.Fatal(err)
+	}
+	u, _ := st.Q.GetUserByEmail(ctx, "sam@gsi.co.id")
+	// a token issued 11 hours ago that expires in one hour (as the old 12-hour sessions)
+	old := time.Now().Add(-11 * time.Hour)
+	tok := auth.Sign(auth.Claims{Sub: u.ID.String(), Email: "sam@gsi.co.id", Role: "ceo", Iat: old.Unix(), Exp: time.Now().Add(time.Hour).Unix()}, config.Config{Env: "dev"}.SessionKey())
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/api/me", nil)
+	req.AddCookie(&http.Cookie{Name: "arc_session", Value: tok})
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	var renewed *http.Cookie
+	for _, c := range res.Cookies() {
+		if c.Name == "arc_session" {
+			renewed = c
+		}
+	}
+	if res.StatusCode != 200 || renewed == nil || renewed.MaxAge < 29*24*3600 {
+		t.Fatalf("status %d cookie %+v", res.StatusCode, renewed)
+	}
+	cl, err := auth.Verify(renewed.Value, config.Config{Env: "dev"}.SessionKey(), time.Now().Add(20*24*time.Hour))
+	if err != nil || cl.Sub != u.ID.String() {
+		t.Fatalf("renewed token: %v %+v", err, cl)
 	}
 }

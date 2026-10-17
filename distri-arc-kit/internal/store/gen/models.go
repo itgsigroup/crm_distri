@@ -841,6 +841,7 @@ type Role struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	Scope       string    `json:"scope"`
 	Policies    bool      `json:"policies"`
+	ChatScope   string    `json:"chat_scope"`
 }
 
 type SalesUser struct {

@@ -49,6 +49,7 @@ sql:
       - db/migrations/0045_cycle_model_effort.sql
       - db/migrations/0046_wa_analysis_auto.sql
       - db/migrations/0047_cycle_cancel.sql
+      - db/migrations/0048_role_chat_scope.sql
     queries: db/queries
     gen:
       go:

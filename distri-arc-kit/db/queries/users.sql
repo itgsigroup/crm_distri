@@ -31,11 +31,11 @@ from roles r order by r.system desc, array_position(array['ceo','admin','finance
 select * from roles where key = $1;
 
 -- name: UpsertRole :exec
-insert into roles (key, name, description, base, screens, decide, wa_allowed, active, scope, policies, updated_by, updated_at)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())
+insert into roles (key, name, description, base, screens, decide, wa_allowed, active, scope, policies, updated_by, chat_scope, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
 on conflict (key) do update set name = excluded.name, description = excluded.description, base = excluded.base,
   screens = excluded.screens, decide = excluded.decide, wa_allowed = excluded.wa_allowed, active = excluded.active,
-  scope = excluded.scope, policies = excluded.policies, updated_by = excluded.updated_by, updated_at = now();
+  scope = excluded.scope, policies = excluded.policies, updated_by = excluded.updated_by, chat_scope = excluded.chat_scope, updated_at = now();
 
 -- name: DeleteRole :execrows
 delete from roles r where r.key = $1 and not exists (select 1 from users u where u.role_key = r.key);

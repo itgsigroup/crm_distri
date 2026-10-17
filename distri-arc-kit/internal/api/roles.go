@@ -29,7 +29,15 @@ func roleView(ro gen.ListRolesRow) map[string]any {
 	eff := access.Resolve(ro.Key, ro.Name, ro.Base, ro.Screens, ro.Decide, ro.Scope, ro.Policies, ro.WaAllowed)
 	return map[string]any{"key": ro.Key, "name": ro.Name, "description": ro.Description, "base": eff.Base, "active": ro.Active,
 		"wa_allowed": eff.WAAllowed, "users": ro.Users, "screens": eff.Screens, "decide": eff.Decide, "scope": eff.Scope, "policies": eff.Policies,
-		"updated_by": ro.UpdatedBy, "updated_at": ro.UpdatedAt}
+		"chat_scope": chatScope(ro.ChatScope, eff.Scope), "updated_by": ro.UpdatedBy, "updated_at": ro.UpdatedAt}
+}
+
+// chatScope: a role limited to its own data reads only its own chats; otherwise what the role says (all by default).
+func chatScope(v, scope string) string {
+	if v == "own" || scope == "own" {
+		return "own"
+	}
+	return "all"
 }
 
 func (s *Server) listRoles(w http.ResponseWriter, r *http.Request) {
@@ -61,6 +69,7 @@ func (s *Server) saveRole(w http.ResponseWriter, r *http.Request) {
 		Scope       string   `json:"scope"`
 		Policies    bool     `json:"policies"`
 		WAAllowed   bool     `json:"wa_allowed"`
+		ChatScope   string   `json:"chat_scope"` // all | own: which WhatsApp numbers the role reads in Chat
 		Active      *bool    `json:"active"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&in); err != nil {
@@ -113,7 +122,8 @@ func (s *Server) saveRole(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := s.st.Q.UpsertRole(r.Context(), gen.UpsertRoleParams{Key: key, Name: in.Name, Description: strings.TrimSpace(in.Description), Base: ro.Base,
-		Screens: ro.Screens, Decide: ro.Decide, WaAllowed: ro.WAAllowed, Active: active, Scope: ro.Scope, Policies: ro.Policies, UpdatedBy: u.Email}); err != nil {
+		Screens: ro.Screens, Decide: ro.Decide, WaAllowed: ro.WAAllowed, Active: active, Scope: ro.Scope, Policies: ro.Policies, UpdatedBy: u.Email,
+		ChatScope: chatScope(in.ChatScope, ro.Scope)}); err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
@@ -121,7 +131,7 @@ func (s *Server) saveRole(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	s.auditUser(r, "role.save", "role:"+key, map[string]any{"screens": ro.Screens, "decide": ro.Decide, "scope": ro.Scope, "policies": ro.Policies, "wa_allowed": ro.WAAllowed, "active": active})
+	s.auditUser(r, "role.save", "role:"+key, map[string]any{"screens": ro.Screens, "decide": ro.Decide, "scope": ro.Scope, "policies": ro.Policies, "wa_allowed": ro.WAAllowed, "chat_scope": chatScope(in.ChatScope, ro.Scope), "active": active})
 	httpx.JSON(w, http.StatusOK, map[string]any{"key": key, "base": ro.Base, "message": "Peran " + in.Name + " disimpan"})
 }
 

@@ -114,7 +114,7 @@ interface LinkState { session_id: string; method: 'qr' | 'code'; state: 'pairing
 /** Picks the user who holds a linked number (one user, one number), or releases it. */
 function AssignForm({ wa, masked, current, currentSales, onDone }: { wa: string; masked: string; current?: string | null; currentSales?: string | null; onDone: () => void }) {
   const { data: me } = useMe()
-  const manager = !!me?.screens.includes('users')
+  const manager = !!me?.screens.includes('users') && me?.chat_scope !== 'own'
   const { data: users = [] } = useUsers(manager)
   const { data: sales = [] } = useSales()
   const { data: status } = useWAStatus()
@@ -187,7 +187,7 @@ export function LinkSheet() {
   const qc = useQueryClient()
   const { data: wa } = useWAStatus()
   const { data: me } = useMe()
-  const manager = !!me && (me.screens.includes('users') || me.screens.includes('conn'))
+  const manager = !!me && (me.screens.includes('users') || me.screens.includes('conn')) && me?.chat_scope !== 'own'
   const [method, setMethod] = useState<'qr' | 'code'>('qr')
   const [team, setTeam] = useState<WATeam>('sales')
   const [phone, setPhone] = useState('')
@@ -271,7 +271,7 @@ export function ConnectPanel() {
   const { openSheet } = useFeedback()
   const items = status?.items ?? []
   const connected = items.filter((n) => n.state === 'connected')
-  const manager = !!me?.screens.includes('users')
+  const manager = !!me?.screens.includes('users') && me?.chat_scope !== 'own'
   const canLink = manager || (me?.wa_allowed !== false && !items.some((n) => n.mine))
   return (
     <div className="connect">
@@ -323,7 +323,7 @@ export function NumberRail({ account, setAccount, unread }: { account: string; s
   const { data } = useWAStatus()
   const { data: me } = useMe()
   const { openSheet } = useFeedback()
-  const canAdd = !!me?.screens.includes('users') || (me?.wa_allowed !== false && !(data?.items ?? []).some((n) => n.mine))
+  const canAdd = (!!me?.screens.includes('users') && me?.chat_scope !== 'own') || (me?.wa_allowed !== false && !(data?.items ?? []).some((n) => n.mine))
   const items = data?.items ?? []
   const total = Object.values(unread).reduce((a, b) => a + b, 0)
   const pick = (n: WANumber) => {
@@ -377,8 +377,8 @@ export function NumberSheet({ wa, onShowChats }: { wa: string; onShowChats?: () 
   const { data: me } = useMe()
   const n = data?.items.find((x) => x.wa_number === wa)
   if (!n) return <SheetHead icon="phone" title="Nomor tidak ditemukan" onClose={closeSheet} />
-  const manager = !!me?.screens.includes('users')
-  const admin = manager || !!me?.screens.includes('conn')
+  const manager = !!me?.screens.includes('users') && me?.chat_scope !== 'own'
+  const admin = manager || (!!me?.screens.includes('conn') && me?.chat_scope !== 'own')
   const when = (d: string | null | undefined) => (d ? `${shortDate(d)} · ${hhmm(d)} WIB` : '—')
   const rows: [string, ReactNode][] = [
     ['Tim', admin ? <TeamSelect key="t" n={n} /> : teamName(n.team)],

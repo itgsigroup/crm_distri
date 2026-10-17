@@ -184,7 +184,7 @@ func (q *Queries) GetLoginUser(ctx context.Context, lower string) (GetLoginUserR
 }
 
 const getRole = `-- name: GetRole :one
-select key, name, description, base, screens, decide, wa_allowed, system, active, updated_by, updated_at, scope, policies from roles where key = $1
+select key, name, description, base, screens, decide, wa_allowed, system, active, updated_by, updated_at, scope, policies, chat_scope from roles where key = $1
 `
 
 func (q *Queries) GetRole(ctx context.Context, key string) (Role, error) {
@@ -204,6 +204,7 @@ func (q *Queries) GetRole(ctx context.Context, key string) (Role, error) {
 		&i.UpdatedAt,
 		&i.Scope,
 		&i.Policies,
+		&i.ChatScope,
 	)
 	return i, err
 }
@@ -349,7 +350,7 @@ func (q *Queries) ListBranches(ctx context.Context) ([]ListBranchesRow, error) {
 }
 
 const listRoles = `-- name: ListRoles :many
-select r.key, r.name, r.description, r.base, r.screens, r.decide, r.wa_allowed, r.system, r.active, r.updated_by, r.updated_at, r.scope, r.policies, (select count(*) from users u where u.role_key = r.key and u.active) as users
+select r.key, r.name, r.description, r.base, r.screens, r.decide, r.wa_allowed, r.system, r.active, r.updated_by, r.updated_at, r.scope, r.policies, r.chat_scope, (select count(*) from users u where u.role_key = r.key and u.active) as users
 from roles r order by r.system desc, array_position(array['ceo','admin','finance','sales','warehouse'], r.base), r.name
 `
 
@@ -367,6 +368,7 @@ type ListRolesRow struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 	Scope       string    `json:"scope"`
 	Policies    bool      `json:"policies"`
+	ChatScope   string    `json:"chat_scope"`
 	Users       int64     `json:"users"`
 }
 
@@ -393,6 +395,7 @@ func (q *Queries) ListRoles(ctx context.Context) ([]ListRolesRow, error) {
 			&i.UpdatedAt,
 			&i.Scope,
 			&i.Policies,
+			&i.ChatScope,
 			&i.Users,
 		); err != nil {
 			return nil, err
@@ -681,11 +684,11 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 }
 
 const upsertRole = `-- name: UpsertRole :exec
-insert into roles (key, name, description, base, screens, decide, wa_allowed, active, scope, policies, updated_by, updated_at)
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now())
+insert into roles (key, name, description, base, screens, decide, wa_allowed, active, scope, policies, updated_by, chat_scope, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
 on conflict (key) do update set name = excluded.name, description = excluded.description, base = excluded.base,
   screens = excluded.screens, decide = excluded.decide, wa_allowed = excluded.wa_allowed, active = excluded.active,
-  scope = excluded.scope, policies = excluded.policies, updated_by = excluded.updated_by, updated_at = now()
+  scope = excluded.scope, policies = excluded.policies, updated_by = excluded.updated_by, chat_scope = excluded.chat_scope, updated_at = now()
 `
 
 type UpsertRoleParams struct {
@@ -700,6 +703,7 @@ type UpsertRoleParams struct {
 	Scope       string   `json:"scope"`
 	Policies    bool     `json:"policies"`
 	UpdatedBy   *string  `json:"updated_by"`
+	ChatScope   string   `json:"chat_scope"`
 }
 
 func (q *Queries) UpsertRole(ctx context.Context, arg UpsertRoleParams) error {
@@ -715,6 +719,7 @@ func (q *Queries) UpsertRole(ctx context.Context, arg UpsertRoleParams) error {
 		arg.Scope,
 		arg.Policies,
 		arg.UpdatedBy,
+		arg.ChatScope,
 	)
 	return err
 }

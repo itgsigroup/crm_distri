@@ -128,11 +128,17 @@ type chatViewer struct {
 	accounts map[string]bool // Penagihan: the numbers they hold
 }
 
+// waOwnOnly: the user reads (and manages) only their own WhatsApp numbers — a sales, a Penagihan without the
+// management pages, or any role whose Chat WhatsApp is set to its own numbers (Peran & akses, Sam 17 Oct).
+func waOwnOnly(u User) bool {
+	return deref(u.Role) == "sales" || (deref(u.Role) == "finance" && !isAdmin(u)) || u.RoleChatScope == "own"
+}
+
 func (s *Server) chatViewerOf(ctx context.Context, u User) (chatViewer, error) {
 	switch {
 	case deref(u.Role) == "sales":
 		return chatViewer{sales: u.SalesUserID}, nil
-	case deref(u.Role) == "finance" && !isAdmin(u):
+	case waOwnOnly(u):
 		v := chatViewer{accounts: map[string]bool{}}
 		if u.WaNumber != nil {
 			v.accounts[*u.WaNumber] = true
@@ -1582,7 +1588,7 @@ func (s *Server) patchWAGroup(w http.ResponseWriter, r *http.Request) {
 	// from Chat a sales or Penagihan user marks only a group one of their own numbers is in (a customer group is read
 	// by Analisa WhatsApp)
 	u, _ := CurrentUser(r.Context())
-	if v, err := s.chatViewerOf(r.Context(), u); err != nil || (!v.all && !isAdmin(u)) {
+	if v, err := s.chatViewerOf(r.Context(), u); err != nil || !v.all {
 		mine := false
 		if err == nil {
 			rows, qerr := s.st.Pool.Query(r.Context(), "select sales_id, account from chat_threads where group_id = $1", id)
@@ -1636,7 +1642,7 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 	out := []map[string]any{}
 	for _, n := range rows {
 		mine := (n.UserID != nil && *n.UserID == u.ID) || (u.SalesUserID != nil && n.SalesID != nil && *n.SalesID == *u.SalesUserID)
-		if (deref(u.Role) == "sales" || (deref(u.Role) == "finance" && !isAdmin(u))) && !mine {
+		if waOwnOnly(u) && !mine {
 			continue // a sales or Penagihan user sees and pairs only their own number
 		}
 		v := map[string]any{"wa_number": n.WaNumber, "masked": wa.MaskNumber(n.WaNumber), "sales": deref(n.SalesName), "branch": deref(n.SalesBranch), "transport": n.Transport,
@@ -1644,7 +1650,7 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 			"user_id": n.UserID, "user_name": deref(n.UserName), "user_email": deref(n.UserEmail), "mine": mine,
 			"user_role": deref(n.UserRole), "user_branch": deref(n.UserBranch), "session_id": n.SessionID,
 			"thread_count": n.ThreadCount, "unread_count": n.UnreadCount, "last_message_at": n.LastMessageAt, "team": n.Team}
-		if isAdmin(u) || mine {
+		if (isAdmin(u) && !waOwnOnly(u)) || mine {
 			v["phone"] = "+" + n.WaNumber // the full number only for managers and the holder; others see it masked
 		}
 		// the bridge counts per session: numbers linked from Chat run under a "link-…" session, not their number

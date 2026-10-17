@@ -15,6 +15,7 @@ function RoleSheet({ role, cat }: { role?: RoleRow; cat: RoleCatalog }) {
   const [f, setF] = useState({
     name: role?.name ?? '', description: role?.description ?? '', scope: role?.scope ?? 'all', screens: role?.screens ?? ['today', 'konsep'],
     decide: role?.decide ?? [], policies: role?.policies ?? false, wa_allowed: role?.wa_allowed ?? true, active: role?.active ?? true,
+    chat_scope: role?.chat_scope ?? 'all',
   })
   const flip = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
   const screenOff = (s: RoleCatalog['screens'][number]) => s.all_data && f.scope === 'own'
@@ -83,6 +84,8 @@ function RoleSheet({ role, cat }: { role?: RoleRow; cat: RoleCatalog }) {
             <button className={`sw ${f.policies ? 'on' : ''}`} aria-label="Hak kebijakan" disabled={!edit} onClick={() => setF({ ...f, policies: !f.policies, scope: !f.policies ? 'all' : f.scope })} /></li>
           <li><div><b>Memegang nomor WhatsApp</b><span>Pengguna peran ini bisa diberi satu nomor di Chat dan membalas dari nomor itu</span></div>
             <button className={`sw ${f.wa_allowed ? 'on' : ''}`} aria-label="Memegang nomor WhatsApp" disabled={!edit} onClick={() => setF({ ...f, wa_allowed: !f.wa_allowed })} /></li>
+          <li><div><b>Chat WhatsApp hanya nomor sendiri</b><span>{f.scope === 'own' ? 'Peran dengan data miliknya selalu hanya membaca chat nomornya sendiri' : 'Matikan untuk membaca chat semua nomor; nyalakan agar hanya nomor yang dipegang pengguna (seperti sales)'}</span></div>
+            <button className={`sw ${f.chat_scope === 'own' || f.scope === 'own' ? 'on' : ''}`} aria-label="Chat WhatsApp hanya nomor sendiri" disabled={!edit || f.scope === 'own'} onClick={() => setF({ ...f, chat_scope: f.chat_scope === 'own' ? 'all' : 'own' })} /></li>
           {role && <li><div><b>Aktif</b><span>Peran nonaktif tidak bisa dipilih untuk pengguna baru</span></div>
             <button className={`sw ${f.active ? 'on' : ''}`} aria-label="Peran aktif" disabled={!edit} onClick={() => setF({ ...f, active: !f.active })} /></li>}
         </ul>
@@ -116,7 +119,7 @@ export function RolesPage() {
               <td style={{ maxWidth: 320 }}><div className="role-tags">{r.screens.map((s) => <span key={s}>{label(s)}</span>)}</div></td>
               <td>{r.scope === 'own' ? 'Miliknya' : 'Semua'}</td>
               <td className="num">{r.decide.length}</td>
-              <td>{r.wa_allowed ? '1 nomor' : '—'}</td>
+              <td>{r.wa_allowed ? '1 nomor' : '—'}<div className="mono">{r.chat_scope === 'own' ? 'chat nomor sendiri' : 'chat semua nomor'}</div></td>
               <td className="num">{r.users}</td>
               <td style={{ textAlign: 'right' }}><button className="btn quiet" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<RoleSheet role={r} cat={cat} />)}>{me?.edit_policies ? 'Ubah' : 'Lihat'}</button></td>
             </tr>
