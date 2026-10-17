@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Items } from '../../api/client'
@@ -98,11 +98,34 @@ const FILTER_ICONS: Record<Filter, string> = {
   all: 'chat', unread: 'bell', unreplied: 'send', dealer: 'building', group_internal: 'people', group_external: 'net', new: 'spark', internal: 'lock', supplier: 'box',
 }
 
+// the short chat list (one line of name, one of message), remembered in this browser
+const COMPACT_KEY = 'chat.compact'
+function readCompact(): boolean {
+  try { return localStorage.getItem(COMPACT_KEY) === 'on' } catch { return false }
+}
+
 function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, onLeave }: {
   list: ThreadView[]; loaded: boolean; filter: Filter; setFilter: (f: Filter) => void; account: string; active?: string; onPick: (id: string) => void
   onLeave: () => void
 }) {
   const [menu, setMenu] = useState<string | null>(null)
+  const [compact, setCompact] = useState(readCompact)
+  const toggleCompact = useCallback(() => setCompact((v) => {
+    try { localStorage.setItem(COMPACT_KEY, v ? 'off' : 'on') } catch { /* not remembered */ }
+    return !v
+  }), [])
+  // Alt+R anywhere on Chat (outside a text box): the short list (Sam 17 Oct)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.code !== 'KeyR') return
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      e.preventDefault()
+      toggleCompact()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggleCompact])
   const { data: wa } = useWAStatus()
   const now = useNow()
   const qc = useQueryClient()
@@ -142,7 +165,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
     toast('Daftar chat diperbarui')
   }
   return (
-    <div className="pane list-pane ibl">
+    <div className={`pane list-pane ibl${compact ? ' compact' : ''}`}>
       <div className="ibl-head">
         <button type="button" className="ibl-acc" onClick={() => n && openSheet(<NumberSheet wa={n.wa_number} />)} disabled={!n} title={n ? 'Detail nomor' : undefined}>
           <span className="ibl-ic"><Icon name="chat" /></span>
@@ -152,6 +175,8 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
           </span>
           {n && <Icon name="chev" className="i ibl-chev" />}
         </button>
+        <button type="button" className={`ibl-btn${compact ? ' on' : ''}`} onClick={toggleCompact} aria-pressed={compact}
+          title={compact ? 'Tampilan lengkap (Alt+R)' : 'Ringkas tampilan (Alt+R)'} aria-label="Ringkas tampilan"><Icon name="kanban" /></button>
         <button type="button" className="ibl-btn" onClick={refresh} title="Muat ulang" aria-label="Muat ulang"><Icon name="refresh" /></button>
       </div>
       <div className="ibl-search"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari chat" aria-label="Cari chat" /></div>

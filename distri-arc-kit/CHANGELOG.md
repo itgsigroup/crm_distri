@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Chat: Ringkas tampilan daftar (Alt+R), bubble dan kotak tulis lebih kecil · 2026-10-17
+- Tombol **Ringkas tampilan** di header daftar chat (atau **Alt+R**): satu baris nama + jam, satu baris pesan terakhir; tag grup, sumber, label, dan "via" disembunyikan, sementara jumlah belum dibaca, waktu tunggu, dan pin tetap tampil. Baris ±49 px (sebelumnya ±88 px). Pilihan diingat di browser.
+- Bubble chat lebih kecil (teks 12,5 px, padding lebih rapat) dan kotak tulis pesan lebih pendek (tinggi 36 px, tetap membesar otomatis untuk pesan panjang).
+
 ## Change · Chat lebih lega di layar laptop · 2026-10-17
 - Halaman Chat kini pas satu layar (1366×650 tanpa menggulir). Judul halaman diringkas (tanpa subjudul), bar nomor lebih tipis, header daftar chat, filter, header percakapan, dan kotak tulis dirapatkan. Baris info "Dikirim dari …" dipendekkan (keterangan lengkap tetap muncul saat kursor diarahkan). Batas tinggi minimal 560 px yang membuat halaman ikut menggulir dihapus, jadi area percakapan dapat ±60–80 px lebih tinggi. Tidak ada fungsi yang dihapus.
 
