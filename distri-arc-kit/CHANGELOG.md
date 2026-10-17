@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Halaman dealer: Analisa AI (Orchestrator) dan tombol WhatsApp · 2026-10-17
+- Header dealer punya tombol **Analisa AI**: Orchestrator menganalisis dealer itu, dan progres AI (data dibaca, per agen, langkah terakhir), tombol Buka Claude, game, lalu hasil berhasil/gagal tampil langsung di halaman dealer (tanpa pop-up). Panel yang sama dipakai halaman Orchestrator.
+- Tombol **WhatsApp** (hijau) membuka chat dealer itu di Chat GSI Orbit. Bila beberapa PIC punya chat, muncul pilihan per chat dengan waktu terakhir. Balasan tetap lewat antrean kirim dan penjaga anti-blokir. Tombol tidak aktif bila belum ada chat, dan tidak tampil untuk peran tanpa menu Chat.
+
 ## Change · Bar nomor WhatsApp: chip nama saja · 2026-10-17
 - Bar nomor di atas Chat kini berisi chip kecil berisi nama saja (titik status + nama + jumlah belum dibaca), tanpa kartu avatar inisial. Tinggi bar 40 px.
 

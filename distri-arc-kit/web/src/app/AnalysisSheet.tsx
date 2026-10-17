@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import type { Cycle } from '../api/types'
@@ -42,6 +42,25 @@ export function AnalysisLive({ cycle }: { cycle: QueuedCycle }) {
     </div>
   )
   return last ? <AnalysisResult last={last} /> : <AnalysisRunning extra={hint} focusGame={!claude} />
+}
+
+/** The analysis on the page itself (Orchestrator, Dealer — Sam 17 Oct): while a cycle runs, what the AI analyses with
+ * the progress and the game; after the one asked here, berhasil / gagal until closed. onlyMine: a page that shows only
+ * the analysis it asked for (the dealer page), not the hourly cycle. */
+export function InlineAnalysis({ onlyMine = false }: { onlyMine?: boolean }) {
+  const { s, queued } = useOrch()
+  const [closed, setClosed] = useState<string | null>(null)
+  const ours = queued && (s.cycleId === queued.id || s.last?.cycleId === queued.id) ? queued : null
+  if (ours && closed !== ours.id && (s.running || s.last?.cycleId === ours.id)) {
+    return (
+      <div className={`card an-panel ${s.running ? 'running' : ''}`} role="status" aria-live="polite">
+        <AnalysisLive cycle={ours} />
+        {!s.running && <div className="an-close"><button className="btn quiet" onClick={() => setClosed(ours.id)}>Tutup</button></div>}
+      </div>
+    )
+  }
+  if (!s.running || onlyMine) return null
+  return <div className="card an-panel running" role="status" aria-live="polite"><AnalysisRunning /></div>
 }
 
 /** The pop-up of an analysis started with "Analisis ulang" (Sam 16 Oct: in place of the MCP steps). It announces the

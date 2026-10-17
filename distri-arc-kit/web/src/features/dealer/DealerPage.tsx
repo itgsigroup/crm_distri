@@ -10,7 +10,8 @@ import { useOrch, useOrchStatus } from '../../app/orch'
 import { MemoText } from './Memo'
 import { SOWSheet } from './SOWSheet'
 import { useFeedback } from '../../components/feedback'
-import { useDealer, useDealers } from '../../app/queries'
+import { useDealer, useDealers, useMe, useThreads } from '../../app/queries'
+import { InlineAnalysis } from '../../app/AnalysisSheet'
 import { creditTone } from '../control/lists'
 
 const VIA_ICON: Record<string, string> = { mail: 'mail', chat: 'chat', people: 'people', doc: 'doc', form: 'form', box: 'box', phone: 'phone' }
@@ -123,6 +124,34 @@ function activityLabel(a: string) {
   return a === 'normal' ? 'Aktivitas normal' : a === 'menurun' ? 'Aktivitas menurun' : a === 'berhenti' ? 'Tidak aktif' : 'Belum ada siklus order'
 }
 
+/** WhatsApp CTA (Sam 17 Oct): opens the dealer's conversation in Chat — the most recent one, or a choice when several
+ * PIC chat; replies still go through Chat's outbox and anti-ban guard. */
+function WhatsAppCTA({ dealerId }: { dealerId: string }) {
+  const nav = useNavigate()
+  const { data: me } = useMe()
+  const canChat = !!me?.screens.includes('chat')
+  const { data: threads = [] } = useThreads('all', '', canChat)
+  const [open, setOpen] = useState(false)
+  const mine = threads.filter((t) => t.dealer_id === dealerId).sort((a, b) => (b.last_message_at ?? '').localeCompare(a.last_message_at ?? ''))
+  if (!canChat) return null
+  if (mine.length === 0) return <button className="btn ghost dl-wa" disabled title="Belum ada chat WhatsApp dengan dealer ini"><Icon name="chat" />WhatsApp</button>
+  const go = (id: string) => nav('/chat/' + id)
+  return (
+    <span className="dl-wa-w">
+      <button className="btn dl-wa" onClick={() => (mine.length === 1 ? go(mine[0].id) : setOpen(!open))} title={mine.length === 1 ? `Buka chat ${mine[0].title}` : `${mine.length} chat dengan dealer ini`}>
+        <Icon name="chat" />WhatsApp{mine.length > 1 && <small>{mine.length}</small>}
+      </button>
+      {open && (
+        <span className="dl-wa-menu" role="menu">
+          {mine.map((t) => (
+            <button key={t.id} role="menuitem" onClick={() => go(t.id)}><b>{t.title}</b><small>{t.last_message_at ? `${shortDate(t.last_message_at)} · ${hhmm(t.last_message_at)}` : '—'}</small></button>
+          ))}
+        </span>
+      )}
+    </span>
+  )
+}
+
 function DealerBody({ d }: { d: DealerDetail }) {
   const { reanalyze } = useOrch()
   const orch = useOrchStatus()
@@ -151,7 +180,11 @@ function DealerBody({ d }: { d: DealerDetail }) {
             {(d.tier || d.segment_desc) && <Pill tone="neutral">{[d.tier && `Tier ${d.tier}`, d.segment_desc].filter(Boolean).join(' · ')}</Pill>}
             <Pill tone="neutral" icon="chart">{KUAD[m.segment].n} · {KUAD[m.segment].s}</Pill>
             <Pill tone="neutral">Sales {d.owner.name}</Pill>
-            <button className="btn ghost" style={{ height: 26, fontSize: 12, marginLeft: 'auto' }} disabled={orch.running} onClick={() => reanalyze('dealer:' + d.id)}><Icon name="refresh" />Analisis ulang</button>
+            <span className="dl-cta">
+              <WhatsAppCTA dealerId={d.id} />
+              <button className="btn primary dl-ai" disabled={orch.running} onClick={() => reanalyze('dealer:' + d.id, 'auto', undefined, true)}
+                title="Orchestrator menganalisis dealer ini: agen AI menyusun langkah — tagih, follow-up, atau perluas product mix — dengan alasan dan sumbernya"><Icon name="spark" />{orch.running ? 'AI sedang menganalisa…' : 'Analisa AI'}</button>
+            </span>
           </div>
         </div>
         <div className="kpis" style={{ margin: '14px 0 0', flexBasis: '100%' }}>
@@ -173,6 +206,8 @@ function DealerBody({ d }: { d: DealerDetail }) {
           </div>
         </div>
       </div>
+
+      <InlineAnalysis onlyMine />
 
       <div className="anchors">
         <button onClick={() => scrollTo('sec-next')}>Langkah</button>
