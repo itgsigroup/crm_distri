@@ -4,10 +4,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client'
 import type { Cycle, CycleLatest, StageName } from '../api/types'
 import { useFeedback } from '../components/feedback'
-import { hhmm } from '../lib/format'
+import { hhmm, shortDate } from '../lib/format'
 import { STAGE_LABEL } from '../lib/i18n/id'
 import { useSse } from './SseProvider'
-import { useCycleLatest, useQueue } from './queries'
+import { useCycleLatest, useMe, useNow, useQueue, useWAAnalysis } from './queries'
 import { STAGES, TICK_MS, cycleReducer, initialCycle, type CycleUI } from './cycle'
 import { AnalysisSheet, type QueuedCycle } from './AnalysisSheet'
 import { effort, mcpModel } from './enginePrefs'
@@ -212,6 +212,27 @@ export function useOrchStatus(): OrchStatus {
 export function OrchPill() {
   const s = useOrchStatus()
   const nav = useNavigate()
+  const { data: me } = useMe()
+  // the top-right pill is the automatic Analisa WhatsApp through MCP (Sam 19 Oct): its last success and next run;
+  // users without the chat page keep the hourly Orchestrator cycle
+  const canWA = !!me?.screens.includes('chat')
+  const { data: wa } = useWAAnalysis(undefined, canWA)
+  const today = shortDate(useNow().toISOString())
+  const c = wa?.claude
+  if (canWA && c) {
+    const running = c.last?.status === 'running'
+    const ok = c.last_ok_at ?? (c.last?.status === 'ok' ? c.last.finished_at ?? c.last.started_at : null)
+    const failed = !running && c.last && c.last.status !== 'ok'
+    const day = (d: string) => (shortDate(d) === today ? hhmm(d) : `${shortDate(d)} ${hhmm(d)}`)
+    return (
+      <button className={`orch-pill wa${running ? ' running' : ''}${failed ? ' bad' : ''}`} onClick={() => nav('/')}
+        title={`Analisa WhatsApp otomatis lewat MCP${c.runner === 'external' ? ' · routine claude.ai' : ' · API server'} · ${c.cron}${failed && c.last?.error ? ` · gagal: ${c.last.error}` : ''}`}>
+        <span className="op-dot" />
+        <span className="op-t">Analisa WhatsApp · MCP <b>{running ? 'berjalan…' : ok ? day(ok) : 'belum ada'}</b>{failed && <span className="op-bad"> · gagal</span>}</span>
+        <span className="op-next">berikutnya <b>{c.enabled && c.next_run_at ? hhmm(c.next_run_at) : 'dijeda'}</b></span>
+      </button>
+    )
+  }
   return (
     <button className="orch-pill" onClick={() => nav('/orchestrator')}>
       <span className="op-dot" />

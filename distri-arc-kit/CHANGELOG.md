@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Pill kanan atas = Analisa WhatsApp otomatis lewat MCP · 2026-10-19
+- Pill di kanan atas (sebelumnya "Analisis #… · berikutnya" dari siklus Orchestrator per jam) kini menampilkan **Analisa WhatsApp otomatis lewat MCP**: kapan terakhir berhasil, sedang berjalan atau gagal, dan jam berikutnya. Klik membuka Pusat kendali.
+- Jadwal yang ditampilkan: routine claude.ai (ADR 0037) atau jadwal API server (ADR 0043) — yang aktif dan paling dekat jalannya. Pengguna tanpa akses Chat tetap melihat siklus Orchestrator.
+
 ## Change · "Tanya atau perintahkan Orchestrator" pindah ke kotak Orchestrator; kotaknya lebih jelas · 2026-10-19
 - Kolom tanya di bilah atas dihapus. Kolom yang sama kini ada di kotak Orchestrator kanan bawah (paling atas saat kotak dibuka); ⌘K / Ctrl+K membuka kotak dan langsung ke kolom itu.
 - Kotak Orchestrator diberi garis tepi berwarna, garis gradasi AI di atas, dan bayangan lebih tegas; ikon ringkasnya diberi cincin.

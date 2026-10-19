@@ -1746,3 +1746,6 @@ body.map-maximized{overflow:hidden}
 .dk-ask-go{width:28px;height:28px;flex:none;display:grid;place-items:center;border:0;border-radius:8px;background:var(--accent);color:#fff;cursor:pointer}
 .dk-ask-go:disabled{opacity:.4;cursor:default}
 .dk-ask-go .i{width:13px;height:13px}
+/* top-right pill = the automatic Analisa WhatsApp through MCP */
+.orch-pill.running .op-dot{animation:pulse .9s infinite}
+.orch-pill .op-bad{color:var(--bad);font-weight:600}

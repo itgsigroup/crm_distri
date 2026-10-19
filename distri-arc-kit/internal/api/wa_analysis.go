@@ -14,6 +14,7 @@ import (
 
 	"distri-arc/internal/analyst"
 	"distri-arc/internal/httpx"
+	"distri-arc/internal/store/gen"
 	"distri-arc/internal/waanalysis"
 )
 
@@ -196,14 +197,26 @@ func (s *Server) chatStepState(r *http.Request, id uuid.UUID, set map[uuid.UUID]
 // waSchedule is the state of Claude's Analisa WhatsApp every 2 hours (ADR 0037) for the label in Pusat kendali:
 // the last run (berhasil / gagal / berjalan) and the next one. Nil when the schedule was removed.
 func (s *Server) waSchedule(ctx context.Context, now time.Time) map[string]any {
+	// the automatic Analisa WhatsApp through MCP: the claude.ai routine (ADR 0037) and the server's API schedule
+	// (ADR 0043) — whichever enabled one runs next is shown, the routine when neither is on
+	nextOf := func(sch gen.McpSchedule) *time.Time {
+		n := sch.NextRunAt
+		if n == nil || n.Before(now) {
+			n = analyst.NextRun(sch.Cron, now)
+		}
+		return n
+	}
 	sch, err := s.st.Q.GetMCPScheduleByKey(ctx, strPtr(analyst.KeyWAAnalysis))
 	if err != nil {
 		return nil
 	}
-	next := sch.NextRunAt
-	if next == nil || next.Before(now) {
-		next = analyst.NextRun(sch.Cron, now)
+	if auto, aerr := s.st.Q.GetMCPScheduleByKey(ctx, strPtr(analyst.KeyWAAuto)); aerr == nil && auto.Enabled {
+		an := nextOf(auto)
+		if rn := nextOf(sch); !sch.Enabled || (an != nil && (rn == nil || an.Before(*rn))) {
+			sch = auto
+		}
 	}
+	next := nextOf(sch)
 	out := map[string]any{"schedule_id": sch.ID, "name": sch.Name, "enabled": sch.Enabled, "cron": sch.Cron, "next_run_at": next, "last": nil,
 		"runner": sch.Runner, "last_ok_at": nil}
 	if at, err := s.st.Q.LastOKMCPScheduleRun(ctx, sch.ID); err == nil {
