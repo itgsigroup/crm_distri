@@ -57,6 +57,10 @@ func (f *Fallback) Hook(client *river.Client[pgx.Tx], log *slog.Logger) func(ctx
 		if client == nil || !f.Ready(ctx) {
 			return 0
 		}
+		// a cycle asked from Analisis ulang names its MCP client (Claude or ChatGPT): no API takes it over (19 Oct)
+		if c, err := f.St.Q.GetCycle(ctx, cycleID); err == nil && c.Trigger == "manual" && c.EngineModel != nil && *c.EngineModel != "" {
+			return 0
+		}
 		if _, err := client.Insert(ctx, jobs.CycleMCPArgs{CycleID: cycleID.String(), By: fallbackBy, Fallback: true},
 			&river.InsertOpts{ScheduledAt: time.Now().Add(wait), MaxAttempts: 1}); err != nil {
 			log.Warn("api fallback: queue", "cycle", cycleID, "err", err)

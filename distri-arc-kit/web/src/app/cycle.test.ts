@@ -49,6 +49,12 @@ describe('useCycle reducer', () => {
     expect(s.finished).toBe(false)
   })
 
+  it('keeps the cycle this tab started when another cycle reports a stage (its engine label stays)', () => {
+    const s = run([{ type: 'start', cycleId: 'mine', label: 'semua', via: 'MCP Claude · Claude Opus 5.5 · medium' }, { type: 'stage', cycleId: 'old', stage: 'ingest', status: 'running', label: 'semua' }])
+    expect(s.cycleId).toBe('mine')
+    expect(s.via).toBe('MCP Claude · Claude Opus 5.5 · medium')
+  })
+
   it('idle: chips done after a cycle, neutral before the first', () => {
     expect(chipState(initialCycle, 3, true)).toBe('done')
     expect(chipState(initialCycle, 3, false)).toBe('')

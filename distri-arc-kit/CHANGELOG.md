@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Analisis ulang lewat MCP Claude atau ChatGPT, tanpa kunci API; pop-up analisis diperbaiki · 2026-10-19
+- Kotak Orchestrator dan halaman Orchestrator: analisa lewat **MCP** dengan pilihan **AI: Claude | ChatGPT** (bawaan Claude), model dan effort. Pilihan "API & model AI" dihapus — tidak ada kunci API Claude yang dipakai.
+- Pilih Claude = ChatGPT tidak dipakai: siklus dari tombol Analisis ulang tidak diambil alih ChatGPT API walau opsi kedua aktif.
+- Pop-up "AI sedang membaca data…" kini mengikuti siklus yang berjalan (sebelumnya bisa menulis "Selesai" dan "API" dengan semua tahap tercentang padahal siklus belum jalan). ADR 0047.
+
 ## Change · Orchestrator: Analisis ulang dijalankan sistem, tanpa membuka Claude Desktop; progres jadi pop-up · 2026-10-19
 - Tombol **Analisis ulang** (dan *Jalankan ulang* per agen) kini dijalankan server dengan Claude lewat kunci API (Pengaturan → API & model AI), memakai tool MCP yang sama — tidak perlu membuka Claude Desktop. Header menampilkan mesin yang dipakai; tanpa kunci API tombol nonaktif dengan alasannya.
 - "AI sedang membaca data…" tampil sebagai pop-up, bukan kartu di halaman Orchestrator dan Pusat kendali.

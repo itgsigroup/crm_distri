@@ -8,7 +8,7 @@ import { AnalysisResult, AnalysisRunning } from '../features/control/AnalysisPan
 import { useOrch } from './orch'
 
 /** How a cycle asked from the "Analisis ulang" button is analysed by Claude through MCP (POST /cycles → mcp). */
-export interface CycleMCP { engine: 'claude_api' | 'claude_ai'; /** claude_api: "Claude API · Claude Opus 5.5" */ model?: string; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string; /** the model and effort asked for */ model_label?: string; effort?: string }
+export interface CycleMCP { engine: 'claude_api' | 'claude_ai' | 'chatgpt'; /** claude_api: "Claude API · Claude Opus 5.5" */ model?: string; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string; /** the model and effort asked for */ model_label?: string; effort?: string }
 export type QueuedCycle = Cycle & { mcp?: CycleMCP }
 
 interface InputState { agent: string; submitted_at: string | null }
@@ -30,15 +30,17 @@ export function AnalysisLive({ cycle }: { cycle: QueuedCycle }) {
     refetchInterval: running ? 3000 : false,
   })
   const sent = inputs.filter((x) => x.submitted_at).length
-  const claude = m?.engine === 'claude_ai'
+  // an MCP client analyses it: Claude (claude.ai / Desktop) or ChatGPT (chatgpt.com) — the prompt opens there
+  const claude = m?.engine === 'claude_ai' || m?.engine === 'chatgpt'
+  const who = m?.engine === 'chatgpt' ? 'ChatGPT' : 'Claude'
   const hint = m && (
     <div className="an-mcp">
       <span>
-        {sent > 0 ? <>Claude sudah mengirim <b>{sent}/{m.agents.length}</b> agen.</>
-          : claude ? <>Buka Claude, pilih <b>{m.model_label || 'Claude Opus 5.5'}</b>{m.effort ? <> · effort <b>{m.effort}</b></> : null}, lalu tekan Enter agar mulai membaca.{m.fallback ? <> Bila Claude tidak menjawab dalam {Math.round(m.wait_sec / 60)} menit, <b>{m.fallback}</b> melanjutkan di server.</> : null}</>
+        {sent > 0 ? <>{who} sudah mengirim <b>{sent}/{m.agents.length}</b> agen.</>
+          : claude ? <>{who} membaca lewat MCP: buka {who}, pilih <b>{m.model_label || who}</b>{m.effort ? <> · effort <b>{m.effort}</b></> : null}, lalu tekan Enter. Tanpa kunci API{who === 'Claude' ? ', tanpa ChatGPT' : ''}.</>
           : <><b>{m.model || 'API'}</b> membaca di server — tidak perlu membuka apa pun.</>}
       </span>
-      {claude && sent === 0 && <a className="btn primary" href={m.claude_url} target="_blank" rel="noopener noreferrer"><Icon name="plug" />Buka Claude</a>}
+      {claude && sent === 0 && <a className="btn primary" href={m.claude_url} target="_blank" rel="noopener noreferrer"><Icon name="plug" />Buka {who}</a>}
     </div>
   )
   return last ? <AnalysisResult last={last} /> : <AnalysisRunning extra={hint} focusGame={!claude} />

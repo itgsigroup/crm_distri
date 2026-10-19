@@ -47,6 +47,8 @@ export function cycleReducer(s: CycleUI, a: CycleAction): CycleUI {
     case 'stage': {
       const i = STAGES.indexOf(a.stage)
       if (i < 0) return s
+      // another cycle's event while the one this tab started is still going: keep ours (its engine label, its pop-up)
+      if (s.running && s.mine && !s.finished && s.cycleId !== a.cycleId) return s
       const base = s.running && s.cycleId === a.cycleId ? s : { ...initialCycle, running: true, cycleId: a.cycleId, label: a.label ?? 'semua', startedAt: a.at ?? null, last: s.last }
       if (s.finished && s.cycleId === a.cycleId) return s
       const target = Math.max(base.target, a.status === 'running' ? i : i + 1)

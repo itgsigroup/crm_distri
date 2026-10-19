@@ -115,19 +115,25 @@ type cycleRequest struct {
 	// Model: the Claude model to use in claude.ai (via mcp); Effort: low | medium | high (16 Oct, the dock)
 	Model  string `json:"model"`
 	Effort string `json:"effort"`
+	// AI: the MCP client that analyses a "mcp" cycle — claude (default) | chatgpt (19 Oct). The cycle is that client's
+	// only: no API second option takes it over.
+	AI string `json:"ai"`
 }
 
 // postCycle queues a cycle (Analisis ulang) and lets the worker run it: 202, or 409 while one is running.
 func (s *Server) postCycle(w http.ResponseWriter, r *http.Request) {
 	var req cycleRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	s.queueCycle(w, r, req.Scope, req.Via, req.Model, req.Effort)
+	s.queueCycle(w, r, req.Scope, req.Via, req.Model, req.Effort, req.AI)
 }
 
 // effortLabel is how an effort reads in the app.
 var effortLabel = map[string]string{"low": "low", "medium": "medium", "high": "high"}
 
-func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, wantModel, effort string) {
+func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, wantModel, effort, ai string) {
+	if ai != AIChatGPT {
+		ai = AIClaude
+	}
 	if _, ok := effortLabel[effort]; !ok {
 		effort = "medium"
 	}
@@ -179,6 +185,11 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, 
 		switch {
 		case useModel:
 			engineModel = model
+		case via == "mcp" && ai == AIChatGPT:
+			engineModel = wantModel
+			if !analyst.ValidOpenAIModel(engineModel) {
+				engineModel = "gpt-5"
+			}
 		case via == "mcp":
 			engineModel = wantModel
 			if !analyst.ValidModel(engineModel) {
@@ -214,15 +225,17 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, 
 				}
 			}
 			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cyc.ID.String(), names, s.mcpWait())
-			if !useModel { // claude.ai picks its model itself: the prompt says which one was chosen
+			if !useModel { // the MCP client picks its model itself: the prompt says which one was chosen
 				prompt += "\n\nModel yang dipilih di GSI Orbit: " + analyst.ModelLabel(deref(cyc.EngineModel)) + " · effort " + effort + "."
 			}
+			// Claude through MCP (claude.ai, Desktop) or ChatGPT through MCP (chatgpt.com) — no API key, and no API second
+			// option for a cycle asked for here (the worker's hook skips it)
 			m := &cycleMCP{Engine: "claude_ai", Prompt: prompt, ClaudeURL: "https://claude.ai/new?q=" + url.QueryEscape(prompt), WaitSec: int(s.mcpWait().Seconds()), Agents: names,
 				ModelLabel: analyst.ModelLabel(deref(cyc.EngineModel)), Effort: effort}
 			if useModel {
 				m.Engine, m.Model = "claude_api", analyst.ProviderLabel(prov)+" · "+analyst.ModelLabel(model)
-			} else if fok, fprov, fmodel := analyst.FallbackReady(r.Context(), s.st.Q, s.clock.Now(), s.secret(), s.cfg.AnthropicKey, s.cfg.OpenAIKey); fok {
-				m.Fallback = analyst.ProviderLabel(fprov) + " · " + analyst.ModelLabel(fmodel)
+			} else if ai == AIChatGPT {
+				m.Engine, m.ClaudeURL = "chatgpt", "https://chatgpt.com/?q="+url.QueryEscape(prompt)
 			}
 			out.MCP = m
 		}
@@ -236,16 +249,23 @@ type cycleQueued struct {
 	MCP *cycleMCP `json:"mcp,omitempty"`
 }
 
+// The MCP clients "Analisis ulang" can send a cycle to (19 Oct).
+const (
+	AIClaude  = "claude"
+	AIChatGPT = "chatgpt"
+)
+
 type cycleMCP struct {
-	Engine string `json:"engine"`          // claude_ai: Claude through MCP (claude.ai, Desktop, a routine); claude_api: the chosen API
+	Engine string `json:"engine"`          // claude_ai: Claude through MCP (claude.ai, Desktop, a routine); chatgpt: ChatGPT through MCP; claude_api: the chosen API
 	Model  string `json:"model,omitempty"` // claude_api: "Claude API · Claude Opus 5.5"
 	// ModelLabel / Effort: the model and effort asked for ("Claude Opus 5.5", "high")
 	ModelLabel string `json:"model_label"`
 	Effort     string `json:"effort"`
-	// Fallback: the API that takes the agents Claude did not answer after WaitSec ("ChatGPT API · gpt-5"); "" off
+	// Fallback: the API that takes the agents Claude did not answer after WaitSec; always "" since 19 Oct (a cycle asked
+	// from Analisis ulang stays with the chosen MCP client)
 	Fallback  string   `json:"fallback"`
 	Prompt    string   `json:"prompt"`
-	ClaudeURL string   `json:"claude_url"`
+	ClaudeURL string   `json:"claude_url"` // where the MCP client opens with the prompt (claude.ai or chatgpt.com)
 	WaitSec   int      `json:"wait_sec"`
 	Agents    []string `json:"agents"`
 }
@@ -401,7 +421,7 @@ func (s *Server) agents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) runAgent(w http.ResponseWriter, r *http.Request) {
-	s.queueCycle(w, r, "agent:"+chi.URLParam(r, "name"), r.URL.Query().Get("via"), "", "")
+	s.queueCycle(w, r, "agent:"+chi.URLParam(r, "name"), r.URL.Query().Get("via"), "", "", "")
 }
 
 // PlanStepView is one step of Rencana hari ini with what its button acts on.

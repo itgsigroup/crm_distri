@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client'
@@ -10,7 +10,7 @@ import { useSse } from './SseProvider'
 import { useCycleLatest, useMe, useNow, useQueue, useWAAnalysis } from './queries'
 import { STAGES, TICK_MS, cycleReducer, initialCycle, type CycleUI } from './cycle'
 import { AnalysisSheet, type QueuedCycle } from './AnalysisSheet'
-import { effort, mcpModel } from './enginePrefs'
+import { aiLabel, effort, mcpAI, modelOf } from './enginePrefs'
 
 /** Label of a scope string, as the API's domain.Scope.Label ("screen:orbit" → "orbit"). */
 export function scopeLabel(scope: string): string {
@@ -35,7 +35,19 @@ interface OrchCtx {
   /** an analysis panel is on screen and announces the result itself (no pop-up); returns the unregister */
   showPanel: () => () => void
 }
-const Ctx = createContext<OrchCtx>({ s: initialCycle, reanalyze: () => {}, queued: null, showPanel: () => () => {} })
+const NONE: OrchCtx = { s: initialCycle, reanalyze: () => {}, queued: null, showPanel: () => () => {} }
+const Ctx = createContext<OrchCtx>(NONE)
+
+// The analysis pop-up is rendered by FeedbackProvider, which sits above OrchProvider (OrchProvider needs its toast and
+// sheet): there useContext only sees NONE. OrchProvider publishes its live value here so the pop-up follows the cycle
+// (19 Oct: it showed "Selesai" / "API" with every stage ticked while the cycle was still running).
+let live: OrchCtx = NONE
+const listeners = new Set<() => void>()
+const subscribeLive = (l: () => void) => {
+  listeners.add(l)
+  return () => { listeners.delete(l) }
+}
+const getLive = () => live
 
 /** Everything a finished cycle can change, so the open page shows the new analysis (proposals, page readings,
  * metrics, Analisa WhatsApp, brief) — also when SSE is down and the poll ends the cycle. */
@@ -129,11 +141,11 @@ export function OrchProvider({ children }: { children: ReactNode }) {
       const v = via === 'mcp' || via === 'model' || via === 'system' ? via : 'api'
       // the model (for claude.ai) and effort chosen on the dock, the same for every "Analisis ulang"
       api
-        .post<QueuedCycle>('/cycles', { scope, via: v, model: mcpModel(), effort: effort() })
+        .post<QueuedCycle>('/cycles', { scope, via: v, ai: mcpAI(), model: modelOf(mcpAI()), effort: effort() })
         .then((c) => {
           const eff = c.mcp?.effort || c.effort || effort()
           const by = c.mcp?.engine === 'claude_api' ? `${c.mcp.model || label || 'API'} · ${eff}`
-            : c.mcp ? `MCP Claude · ${c.mcp.model_label || 'Claude'} · ${eff}` : v === 'system' ? SYSTEM_LABEL : label || 'API'
+            : c.mcp ? `MCP ${aiLabel(c.mcp.engine === 'chatgpt' ? 'chatgpt' : 'claude')} · ${c.mcp.model_label || aiLabel(mcpAI())} · ${eff}` : v === 'system' ? SYSTEM_LABEL : label || 'API'
           dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by, at: Date.now() })
           setQueued(c)
           if (!inline) openSheet(<AnalysisSheet cycle={c} />) // "AI sedang membaca data…" with the game, then berhasil / gagal
@@ -149,10 +161,24 @@ export function OrchProvider({ children }: { children: ReactNode }) {
     [s.running, toast, alert, openSheet],
   )
 
-  return <Ctx.Provider value={{ s, reanalyze, queued, showPanel }}>{children}</Ctx.Provider>
+  const value = useMemo(() => ({ s, reanalyze, queued, showPanel }), [s, reanalyze, queued, showPanel])
+  useEffect(() => {
+    live = value
+    listeners.forEach((l) => l())
+  }, [value])
+  useEffect(() => () => {
+    live = NONE
+    listeners.forEach((l) => l())
+  }, [])
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
-export const useOrch = () => useContext(Ctx)
+/** The live Orchestrator state: from the provider, or — in the pop-up above it — from what the provider published. */
+export function useOrch(): OrchCtx {
+  const inTree = useContext(Ctx)
+  const outside = useSyncExternalStore(subscribeLive, getLive)
+  return inTree === NONE ? outside : inTree
+}
 
 // Orchestrator status shared by the rail, topbar pill, card and dock.
 export interface OrchStatus {
