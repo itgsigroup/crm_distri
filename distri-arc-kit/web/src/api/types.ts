@@ -467,7 +467,7 @@ export interface Cycle {
   number: number | null
   trigger: 'schedule' | 'manual' | 'mcp'
   scope: string
-  via: 'api' | 'mcp' | null
+  via: 'api' | 'mcp' | 'system' | null
   requested_by: string | null
   status: 'queued' | 'running' | 'done' | 'partial' | 'failed'
   started_at: string

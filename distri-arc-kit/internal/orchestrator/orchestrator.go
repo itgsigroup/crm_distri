@@ -315,6 +315,11 @@ func (o *Orchestrator) ingest(ctx context.Context, r *stageRun) (map[string]any,
 		return nil, err
 	}
 	r.in = in
+	if r.system() {
+		// Analisis ulang "Sistem GSI Orbit" (ADR 0046): the agents' rules and the glossary formulas on the server —
+		// neither Claude through MCP nor the AI requirement apply to this cycle
+		in.Policies.LLM.Mode, in.Policies.LLM.RequireAI = "api", false
+	}
 	// the second source: what the dealers wrote on WhatsApp (ADR 0026)
 	if err := o.readWA(ctx, r); err != nil {
 		return nil, fmt.Errorf("whatsapp: %w", err)
@@ -364,6 +369,17 @@ func (o *Orchestrator) agentList(sc domain.Scope) []agents.Agent {
 	return out
 }
 
+// system: the cycle was asked from "Sistem GSI Orbit" — rules and formulas only, no model (ADR 0046).
+func (r *stageRun) system() bool { return r.cyc.Via != nil && *r.cyc.Via == "system" }
+
+// routerFor is the model a cycle may ask: none for a "Sistem GSI Orbit" cycle (the agents' Go templates).
+func (o *Orchestrator) routerFor(r *stageRun) *llm.Router {
+	if r.system() {
+		return nil
+	}
+	return o.Router
+}
+
 func (o *Orchestrator) analyze(ctx context.Context, r *stageRun) (map[string]any, error) {
 	list := o.agentList(r.scope)
 	strict := r.in.Policies.LLM.RequireAI
@@ -383,7 +399,7 @@ func (o *Orchestrator) analyze(ctx context.Context, r *stageRun) (map[string]any
 			t0 := time.Now()
 			actx, cancel := context.WithTimeout(gctx, 2*time.Minute)
 			defer cancel()
-			ps, err := a.Analyze(actx, r.in, o.Router)
+			ps, err := a.Analyze(actx, r.in, o.routerFor(r))
 			var valid []domain.Proposal
 			notAI := 0
 			for _, p := range ps {
@@ -483,7 +499,7 @@ func (o *Orchestrator) synthesize(ctx context.Context, r *stageRun) (map[string]
 		if r.in.Policies.LLM.MCPOnly() {
 			return nil // MCP only (ADR 0032): a collect comes from Claude's AI Penagihan answer, not written here
 		}
-		ps, err := agents.Collect{}.Analyze(ctx, &one, o.Router)
+		ps, err := agents.Collect{}.Analyze(ctx, &one, o.routerFor(r))
 		if err != nil || len(ps) == 0 || (r.in.Policies.LLM.RequireAI && !agents.ByAI(ps[0])) {
 			return nil
 		}

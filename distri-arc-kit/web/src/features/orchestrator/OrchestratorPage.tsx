@@ -7,7 +7,7 @@ import { Pill } from '../../components/ui'
 import { hhmm, shortDate } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
-import { useOrch, useOrchStatus } from '../../app/orch'
+import { SYSTEM_LABEL, useOrch, useOrchStatus } from '../../app/orch'
 import { InlineAnalysis } from '../../app/AnalysisSheet'
 import { effort, mcpModel, shortModel } from '../../app/enginePrefs'
 import { useAgents, useConflicts, useCycleLatest, useCycles, useMCPCalls, useMCPInfo, useQueue, useWAAnalysis } from '../../app/queries'
@@ -153,16 +153,17 @@ export function OrchestratorPage() {
       <SalesBanner page={page} />
       <div className="card orch-head">
         <div className="oh-l">
-          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca chat WhatsApp dan stok BigQuery, membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda. Analisanya ditulis Claude lewat MCP.</p></div></div>
+          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca chat WhatsApp dan stok BigQuery, membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda. Analisa bisa dijalankan sistem GSI Orbit sendiri (aturan &amp; rumus, langsung) atau oleh Claude lewat MCP.</p></div></div>
         </div>
         <div className="oh-r">
           <div className="oh-kv"><small>Status</small><b>{st.running ? `Menganalisis ${st.scope} · ${st.stage}` : 'Siap · menunggu siklus'}</b></div>
           <div className="oh-kv"><small>Analisis terakhir</small><b>{st.run ? `#${st.run.toLocaleString('id-ID')} · ${st.last}` : '—'}</b></div>
           {canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${(wa.cycle_number ?? 0).toLocaleString('id-ID')} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
           <div className="oh-kv"><small>Berikutnya</small><b>{st.next} · tiap jam</b></div>
-          <div className="oh-kv"><small>Model AI terakhir</small><b title="Model dan effort yang dipilih untuk analisis terakhir (Orchestrator di kanan bawah)">{st.lastDone?.model_label ? `${st.lastDone.via === 'mcp' ? 'MCP · ' : ''}${st.lastDone.model_label}${st.lastDone.effort ? ` · ${st.lastDone.effort}` : ''}` : 'Claude lewat MCP'}</b></div>
+          <div className="oh-kv"><small>Model AI terakhir</small><b title="Model dan effort yang dipilih untuk analisis terakhir (Orchestrator di kanan bawah)">{st.lastDone?.model_label ? `${st.lastDone.via === 'mcp' ? 'MCP · ' : ''}${st.lastDone.model_label}${st.lastDone.effort ? ` · ${st.lastDone.effort}` : ''}` : (st.lastDone?.via === 'system' ? SYSTEM_LABEL : 'Claude lewat MCP')}</b></div>
           <div className="oh-btns">
-            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all', 'mcp', undefined, true)} title={`Claude menganalisis lewat MCP · ${shortModel(mcpModel())} · effort ${effort()} (ubah di Orchestrator kanan bawah)`}><Icon name="plug" />Analisis ulang (Claude · MCP)</button>
+            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all', 'system', SYSTEM_LABEL, true)} title="Aturan agen dan rumus GSI Orbit di server — langsung jalan, tanpa membuka Claude"><Icon name="refresh" />Analisis ulang (Sistem)</button>
+            <button className="btn ghost" disabled={st.running} onClick={() => reanalyze('all', 'mcp', undefined, true)} title={`Claude menganalisis lewat MCP · ${shortModel(mcpModel())} · effort ${effort()}`}><Icon name="plug" />Lewat Claude · MCP</button>
           </div>
         </div>
       </div>

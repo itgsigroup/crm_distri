@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Analisis ulang oleh sistem GSI Orbit, tanpa membuka Claude · 2026-10-19
+- Mesin baru **Sistem**: aturan agen dan rumus GSI Orbit dijalankan langsung di server — tanpa Claude, tanpa API, tanpa biaya AI, tanpa menunggu. Usulan tetap menunggu keputusan manusia.
+- Halaman **Orchestrator**: tombol utama **Analisis ulang (Sistem)**, tombol kedua **Lewat Claude · MCP**. Kotak Orchestrator kanan bawah: pilihan **Sistem · MCP Claude · API & model AI**.
+- Pop-up analisis tidak lagi menulis "Selesai" saat siklusnya masih menunggu siklus lain. ADR 0046, migrasi 0049.
+
 ## Change · Pusat kendali dan Orchestrator persis sesuai MD; analisa dari WhatsApp, stok dari BigQuery · 2026-10-19
 - **Pusat kendali** kembali ke susunan `08-frontend.md`: **Rencana hari ini**, Keputusan, Ringkasan, Jadwal order · 7 hari, Lewat jadwal, KPI utama, Agenda sales, Push stok, Limit tipis. Orchestrator tetap kotak di kanan bawah seperti sebelumnya (bisa diringkas jadi ikon).
 - Isi dari WhatsApp: Rencana dan Keputusan dari usulan Claude atas chat; Jadwal order = chat minta order; Lewat jadwal = chat lewat batas balas; Limit tipis = chat minta rilis kredit/retur; KPI dan Agenda dari WhatsApp. **Push stok** dari stok BigQuery.

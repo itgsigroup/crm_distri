@@ -69,10 +69,11 @@ export function AnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
   const { closeSheet } = useFeedback()
   const { s } = useOrch()
   const running = s.cycleId === cycle.id && s.running
+  const done = s.last?.cycleId === cycle.id
   const title = cycle.number ? `Analisis ulang ${cycle.label} · siklus #${cycle.number.toLocaleString('id-ID')}` : `Analisis ulang ${cycle.label}`
   return (
     <>
-      <SheetHead icon="spark" title={title} sub={running ? 'Halaman ini boleh ditutup — analisis tetap berjalan dan hasilnya tersimpan' : 'Selesai'} onClose={closeSheet} />
+      <SheetHead icon="spark" title={title} sub={running ? 'Halaman ini boleh ditutup — analisis tetap berjalan dan hasilnya tersimpan' : done ? 'Selesai' : 'Menunggu giliran — siklus lain sedang berjalan'} onClose={closeSheet} />
       <div className="sec an-sheet">
         <AnalysisLive cycle={cycle} />
       </div>

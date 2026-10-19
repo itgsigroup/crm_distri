@@ -549,7 +549,7 @@ func (o *Orchestrator) storeWA(ctx context.Context, cycleID uuid.UUID, a waAnswe
 // Without a model the reading waits for Claude through MCP (orchestrator_input_get / orchestrator_submit with agent
 // "Analisa WhatsApp").
 func (o *Orchestrator) writeWASummary(ctx context.Context, r *stageRun) error {
-	if o.Router == nil || !o.Router.HasModel() || (r.waRead && len(r.wa) == 0) || (!r.waRead && r.waMsgs == 0) {
+	if o.Router == nil || !o.Router.HasModel() || r.system() || (r.waRead && len(r.wa) == 0) || (!r.waRead && r.waMsgs == 0) {
 		return nil
 	}
 	if (r.cyc.Via != nil && *r.cyc.Via == "mcp") || (r.in != nil && r.in.Policies.LLM.MCPOnly()) {

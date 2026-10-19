@@ -5,7 +5,7 @@ import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
 import { hhmm } from '../../lib/format'
 import { STAGES, chipState, type CycleUI } from '../../app/cycle'
-import { duration, useOrch } from '../../app/orch'
+import { SYSTEM_LABEL, duration, useOrch } from '../../app/orch'
 import { GROUND, PH, PX, W, jump, newRun, score, step, type Run } from './jumpgame'
 import { STATE_LABEL, ordered, summarize, type CycleProgress } from './progress'
 
@@ -56,7 +56,7 @@ export function AnalysisRunning({ extra, focusGame = false }: { extra?: ReactNod
       <div className="an-head">
         <span className="an-pulse" />
         <div>
-          <h2>AI sedang membaca data<span className="an-dots"><i>.</i><i>.</i><i>.</i></span></h2>
+          <h2>{s.via === SYSTEM_LABEL ? 'Sistem sedang membaca data' : 'AI sedang membaca data'}<span className="an-dots"><i>.</i><i>.</i><i>.</i></span></h2>
           <p><Icon name={cur.icon} />{cur.name} · {cur.line}</p>
         </div>
         <div className="an-meta">

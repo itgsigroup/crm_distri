@@ -138,13 +138,15 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, 
 	}
 	// engine (16 Oct): "mcp" — Claude through MCP (claude.ai, Desktop, a routine); "model" — the API and model chosen
 	// on Pengaturan → API & model AI, run now by the server through the same MCP tools; "" / "api" — the server's
-	// LLM_PROVIDER router when it has one and the policy allows it, else the chosen API when ready, else MCP.
+	// LLM_PROVIDER router when it has one and the policy allows it, else the chosen API when ready, else MCP;
+	// "system" — GSI Orbit's own rules and formulas on the server (ADR 0046).
 	ok, prov, model, why := analyst.APIReady(r.Context(), s.st.Q, s.clock.Now(), s.secret(), s.cfg.AnthropicKey, s.cfg.OpenAIKey)
 	pol, _ := policy.Load(r.Context(), s.st.Q)
 	serverModel := s.cfg.LLMProvider == "anthropic" && s.cfg.AnthropicKey != ""
 	useModel := false
 	switch via {
 	case "mcp":
+	case "system": // GSI Orbit itself: the agents' rules and the glossary formulas, no model and no waiting (ADR 0046)
 	case "model":
 		if !ok {
 			httpx.Fail(w, http.StatusConflict, "no_api", why)

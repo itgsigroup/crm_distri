@@ -270,7 +270,7 @@ func ParseScreenAnswer(overview string, lines []map[string]any) screenAnswer {
 // writeScreenReadings asks the server's model to read the pages in the cycle's scope. Only a model's answer is
 // stored (ADR 0025); a cycle sent to Claude through MCP is read there instead (orchestrator_submit).
 func (o *Orchestrator) writeScreenReadings(ctx context.Context, r *stageRun) error {
-	if o.Router == nil || !o.Router.HasModel() || (r.cyc.Via != nil && *r.cyc.Via == "mcp") || (r.in != nil && r.in.Policies.LLM.MCPOnly()) {
+	if o.Router == nil || !o.Router.HasModel() || r.system() || (r.cyc.Via != nil && *r.cyc.Via == "mcp") || (r.in != nil && r.in.Policies.LLM.MCPOnly()) {
 		return nil
 	}
 	var names []string

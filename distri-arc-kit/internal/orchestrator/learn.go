@@ -158,7 +158,7 @@ func (o *Orchestrator) writeBrief(ctx context.Context, r *stageRun) error {
 		}
 		return nil
 	}
-	if o.Router != nil {
+	if o.Router != nil && !r.system() {
 		cid := r.cyc.ID.String()
 		res := o.Router.Complete(ctx, llm.Request{Purpose: "brief.write", Agent: "Orchestrator", CycleID: &cid, System: llm.Prompt("system") + "\n\n" + llm.Prompt("brief"),
 			Input: input, Schema: schema, MaxTokens: 1500, Fallback: fallback}, check)

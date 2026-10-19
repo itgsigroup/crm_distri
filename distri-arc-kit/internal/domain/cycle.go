@@ -104,7 +104,7 @@ func (s Scope) Agents() []string {
 type Trigger struct {
 	Source string `json:"source"` // schedule | manual | mcp
 	By     string `json:"by"`     // user email or MCP client
-	Via    string `json:"via"`    // api | mcp
+	Via    string `json:"via"`    // api | mcp | system
 }
 
 // Conflict is one rule that fired in Sintesis.
