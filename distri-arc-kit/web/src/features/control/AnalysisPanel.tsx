@@ -29,18 +29,6 @@ function savedBest(): number {
 
 type Last = NonNullable<CycleUI['last']>
 
-/** Pusat kendali: a cycle this tab did not start (the hourly one, or another user's) — what the AI reads, and the
- * game. An analysis started here shows in its own pop-up (AnalysisSheet), so it is not shown twice. */
-export function AnalysisPanel() {
-  const { s } = useOrch()
-  if (!s.running || s.mine) return null
-  return (
-    <div className="card an-panel running" role="status" aria-live="polite">
-      <AnalysisRunning />
-    </div>
-  )
-}
-
 /** "AI sedang membaca data…": the stage running, the six stages as chips with their icons, engine and time — and the
  * game below, wide. extra: a line under the stages (the MCP hint). */
 export function AnalysisRunning({ extra, focusGame = false }: { extra?: ReactNode; focusGame?: boolean }) {

@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Orchestrator: Analisis ulang dijalankan sistem, tanpa membuka Claude Desktop; progres jadi pop-up · 2026-10-19
+- Tombol **Analisis ulang** (dan *Jalankan ulang* per agen) kini dijalankan server dengan Claude lewat kunci API (Pengaturan → API & model AI), memakai tool MCP yang sama — tidak perlu membuka Claude Desktop. Header menampilkan mesin yang dipakai; tanpa kunci API tombol nonaktif dengan alasannya.
+- "AI sedang membaca data…" tampil sebagai pop-up, bukan kartu di halaman Orchestrator dan Pusat kendali.
+
 ## Change · Halaman Orchestrator: Analisis ulang lewat MCP Claude, isi dari WhatsApp, kartu dirapikan · 2026-10-19
 - **Analisis ulang · MCP Claude** di header, dengan pilihan model dan effort (sama dengan kotak Orchestrator). *Jalankan ulang* per agen juga lewat MCP Claude.
 - Isi dari WhatsApp: Pipeline (chat WhatsApp + stok), Resolusi konflik pada dealer yang chat, **Riwayat analisis** = riwayat Analisa WhatsApp (tabel data: cari, urut, halaman), kartu **Agen** menampilkan yang dibaca tiap agen dari chat dan usulannya.

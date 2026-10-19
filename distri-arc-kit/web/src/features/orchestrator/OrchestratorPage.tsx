@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import type { AgentInfo, Conflict, CycleStage, WAAnalysis, WAHistoryRow } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
@@ -8,9 +8,8 @@ import { hhmm, shortDate } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { InlineAnalysis } from '../../app/AnalysisSheet'
-import { EFFORTS, MCP_MODELS, effort, mcpModel, setEffort, setMcpModel, type Effort } from '../../app/enginePrefs'
-import { useAgents, useConflicts, useCycleLatest, useMCPCalls, useMCPInfo, useQueue, useWAAnalysis } from '../../app/queries'
+import { EFFORTS, effort, setEffort, type Effort } from '../../app/enginePrefs'
+import { useAgents, useConflicts, useCycleEngines, useCycleLatest, useMCPCalls, useMCPInfo, useQueue, useWAAnalysis } from '../../app/queries'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import { ColumnTable, type Column } from '../../components/DataTable'
 import { QueueTable } from '../control/tables'
@@ -20,8 +19,8 @@ import { MCPClientsPanel, MCPRules } from '../settings/AIConnections'
 import { CONFLICT_COMPARE, conflictText } from './tables'
 
 // Orchestrator (mockup screen-orch, the components of 08-frontend.md): header, Pipeline, Resolusi konflik, Riwayat
-// analisis, Agen, MCP, Matriks otonomi — every analysis read from WhatsApp, Analisis ulang by Claude through MCP
-// (Sam 19 Oct, ADR 0045).
+// analisis, Agen, MCP, Matriks otonomi — every analysis read from WhatsApp; Analisis ulang by Claude run on the server
+// (API & model AI through the MCP tools, no Claude Desktop) with its progress in the pop-up (Sam 19 Oct, ADR 0045).
 
 // Default stage descriptions before the first cycle (mockup STAGES).
 const STAGE_HINT = ['chat WhatsApp · stok BigQuery', '6 agen membaca chat', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
@@ -99,8 +98,7 @@ function Conflicts({ rows }: { rows: Conflict[] }) {
 }
 
 /** One agent: role, what it read in the chats, its proposals from chat, calibration, re-run through Claude. */
-function AgentCard({ a, wa, fromChat }: { a: AgentInfo; wa: WAAnalysis | undefined; fromChat: number }) {
-  const { reanalyze } = useOrch()
+function AgentCard({ a, wa, fromChat, run, ready }: { a: AgentInfo; wa: WAAnalysis | undefined; fromChat: number; run: (scope: string) => void; ready: boolean }) {
   const st = useOrchStatus()
   return (
     <div className="agent-card">
@@ -108,7 +106,7 @@ function AgentCard({ a, wa, fromChat }: { a: AgentInfo; wa: WAAnalysis | undefin
       <div className="ac-out"><Icon name="chat" />{waOutput(a.name, wa)}{fromChat > 0 && <b> · {fromChat} usulan</b>}</div>
       <div className="ac-f">
         <div className="cal-row"><span>kalibrasi</span><div className="bar"><i style={{ width: `${a.confidence ?? 0}%`, ...(a.confidence !== null && a.confidence < 60 ? { background: 'var(--warn)' } : {}) }} /></div><span className="v num">{a.confidence === null ? '—' : `${a.confidence}%`}</span></div>
-        <button className="btn quiet" disabled={st.running} onClick={() => reanalyze('agent:' + a.name, 'mcp', undefined, true)} title="Claude menganalisis ulang agen ini lewat MCP">Jalankan ulang</button>
+        <button className="btn quiet" disabled={st.running || !ready} onClick={() => run('agent:' + a.name)} title="Claude menganalisis ulang agen ini di server">Jalankan ulang</button>
       </div>
     </div>
   )
@@ -133,9 +131,12 @@ export function OrchestratorPage() {
   const { data: calls = [] } = useMCPCalls()
   const canWA = useCanWA()
   const { data: wa } = useWAAnalysis(sales, canWA)
-  // Claude through MCP, with the model and effort chosen here or on the dock (the same settings)
-  const [model, setModel] = useState(mcpModel)
+  // Claude analyses on the server (Sam 19 Oct): the API and model of Pengaturan → API & model AI run the same MCP tools —
+  // nobody opens Claude Desktop; the effort is shared with the dock
+  const { data: eng } = useCycleEngines()
+  const ready = !!eng?.model.ready
   const [eff, setEff] = useState<Effort>(effort)
+  const run = (scope: string) => reanalyze(scope, 'model', eng?.model.label)
   const shown = st.running && latest?.cycle ? latest.cycle : (latest?.last_full ?? latest?.last_done)
   const meta = st.run ? `siklus #${st.run.toLocaleString('id-ID')} · ${st.last} · ${st.dur}` : 'belum ada siklus'
   // WhatsApp only: the proposals tied to a conversation, the conflicts on dealers that wrote
@@ -143,7 +144,7 @@ export function OrchestratorPage() {
   const waQueue = queue.filter((q) => waIds.has(q.id))
   const waDealers = new Set((wa?.items ?? []).map((r) => r.dealer_id).filter(Boolean))
   const waConflicts = conflicts.filter((c) => c.dealer_id && waDealers.has(c.dealer_id))
-  const lastModel = st.lastDone?.model_label ? `${st.lastDone.via === 'mcp' ? 'MCP · ' : ''}${st.lastDone.model_label}${st.lastDone.effort ? ` · ${st.lastDone.effort}` : ''}` : 'Claude lewat MCP'
+  const lastModel = st.lastDone?.model_label ? `${st.lastDone.via === 'mcp' ? 'MCP · ' : ''}${st.lastDone.model_label}${st.lastDone.effort ? ` · ${st.lastDone.effort}` : ''}` : '—'
 
   return (
     <>
@@ -151,13 +152,9 @@ export function OrchestratorPage() {
       <SalesBanner page={page} />
       <div className="card orch-head">
         <div className="oh-l">
-          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca chat WhatsApp (dan stok BigQuery untuk push stok), membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda. Analisanya ditulis Claude lewat MCP.</p></div></div>
+          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca chat WhatsApp (dan stok BigQuery untuk push stok), membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda. Analisanya ditulis Claude, dijalankan sistem di server — tanpa membuka Claude Desktop.</p></div></div>
           <div className="oh-eng">
-            <label className="dk-model"><span>Model</span>
-              <select value={model} disabled={st.running} onChange={(e) => { setModel(e.target.value); setMcpModel(e.target.value) }} title="Pilih model yang sama di claude.ai / Desktop — perintahnya menyebut model ini">
-                {MCP_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-              </select>
-            </label>
+            <span className="dk-model"><span>Mesin</span>{eng ? (ready ? <b>{eng.model.label} · lewat sistem</b> : <b className="oh-warn">{eng.model.why || 'API belum siap'}</b>) : <b>memuat…</b>} <Link to="/pengaturan/api-ai" className="oh-link">ubah</Link></span>
             <div className="dk-effort" role="radiogroup" aria-label="Effort"><span>Effort</span>
               {EFFORTS.map((x) => <button key={x.id} type="button" role="radio" aria-checked={eff === x.id} className={eff === x.id ? 'on' : ''} disabled={st.running} title={x.hint} onClick={() => { setEff(x.id); setEffort(x.id) }}>{x.label}</button>)}
             </div>
@@ -169,11 +166,10 @@ export function OrchestratorPage() {
           {canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${fmt(wa.cycle_number)} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
           <div className="oh-kv"><small>Model AI terakhir</small><b>{lastModel}</b></div>
           <div className="oh-btns">
-            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all', 'mcp', undefined, true)} title="Claude membaca chat WhatsApp lewat MCP dengan model dan effort di kiri"><Icon name="plug" />Analisis ulang · MCP Claude</button>
+            <button className="btn primary" disabled={st.running || !ready} onClick={() => run('all')} title={ready ? `${eng?.model.label} membaca chat WhatsApp di server — tidak perlu membuka Claude Desktop` : eng?.model.why || 'Isi kunci API di Pengaturan → API & model AI'}><Icon name="refresh" />Analisis ulang</button>
           </div>
         </div>
       </div>
-      <InlineAnalysis />
       {!canWA ? (
         <div className="card"><p className="sg-hint">{NO_WA}</p></div>
       ) : (
@@ -211,7 +207,7 @@ export function OrchestratorPage() {
             <div className="card">
               <div className="card-h"><h2>Agen</h2><span className="meta">dibaca dari chat WhatsApp · {sales ? 'dealer sales ini' : 'siklus terakhir'}</span></div>
               <div className="agent-grid">
-                {agents.map((a) => <AgentCard key={a.name} a={a} wa={wa} fromChat={waQueue.filter((q) => q.agent === a.name).length} />)}
+                {agents.map((a) => <AgentCard key={a.name} a={a} wa={wa} fromChat={waQueue.filter((q) => q.agent === a.name).length} run={run} ready={ready} />)}
               </div>
             </div>
             <div className="card">

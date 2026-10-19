@@ -7,7 +7,6 @@ import { Dock } from '../../app/Dock'
 import { useMe, useNow, usePlan, useQueue, useStockPush, useWAAnalysis } from '../../app/queries'
 import { useOrchStatus } from '../../app/orch'
 import { AgendaTable, PlanTable, PushTable, QueueTable, WAChatTable } from './tables'
-import { AnalysisPanel } from './AnalysisPanel'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import { WALastRead, useCanWA } from '../wa/WAAnalysis'
 import { WABrief, WAClaudeStatus, WAWheels, waIntent, waWaiting } from '../wa/WACards'
@@ -75,9 +74,6 @@ export function ControlCenter() {
           </div>
         </div>
       </div>
-
-      {/* while an analysis runs: what the AI reads, a game to wait with, then berhasil / gagal */}
-      <AnalysisPanel />
 
       {/* the Orchestrator is the pop-up at the bottom right, as on every other page */}
       <Dock screen="today" extra={<>

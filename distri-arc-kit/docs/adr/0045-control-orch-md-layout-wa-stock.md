@@ -49,3 +49,10 @@ stok berasal dari BigQuery.
   **Riwayat analisis = riwayat Analisa WhatsApp** per siklus (tabel data), kartu Agen menampilkan yang dibaca tiap agen
   dari chat (minta order, belum dibalas, rilis kredit, tanya stok/harga, retur, nomor baru) dan usulannya dari chat.
 - Matriks otonomi pindah ke kolom kiri agar dua kolom seimbang; kv otonomi di kartu Agen dihapus (ada di matriks).
+
+## Pembaruan 2026-10-19 (siang, 2) — Analisis ulang tanpa membuka Claude Desktop
+- Tombol **Analisis ulang** dan *Jalankan ulang* di halaman Orchestrator memakai mesin **API & model AI** (`via: model`,
+  ADR 0042): server menjalankan Claude lewat kunci API dengan tool MCP yang sama — tidak ada yang perlu membuka Claude
+  Desktop/claude.ai. Tanpa kunci, tombol nonaktif dengan alasannya dan tautan ke Pengaturan → API & model AI.
+- Progres "AI sedang membaca data" tampil sebagai **pop-up** (AnalysisSheet), bukan kartu di halaman: kartu di
+  halaman Orchestrator dan Pusat kendali dihapus. Halaman Dealer tidak berubah.
