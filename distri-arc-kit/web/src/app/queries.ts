@@ -52,6 +52,7 @@ export const useTrend = (mode: 'months' | 'days', month?: string) =>
 export const useKpi = (sales?: string) => useQuery({ queryKey: ['kpi', sales ?? 'all'], queryFn: () => api.get<KPI>('/kpi' + sp(sales)) })
 export const useAgenda = (sales?: string) => useQuery({ queryKey: ['agenda', sales ?? 'all'], queryFn: () => api.get<Items<AgendaRow>>('/agenda' + sp(sales)).then((r) => r.items) })
 export const useBrief = (sales?: string) => useQuery({ queryKey: ['brief', 'today', sales ?? 'all'], queryFn: () => api.get<Brief>('/brief/today' + sp(sales)) })
+export const useStockStatus = () => useQuery({ queryKey: ['stock', 'status'], refetchInterval: 60_000, queryFn: () => api.get<{ source: string; label: string; synced_at: string | null; every_min: number; live: boolean; can_sync: boolean }>('/stock/status') })
 export const useStockPush = (sales?: string) => useQuery({ queryKey: ['stock', 'push', sales ?? 'all'], queryFn: () => api.get<Items<AgingItem>>('/stock/push' + sp(sales)).then((r) => r.items) })
 export const useSegmenMoversAll = () => useSegmenMovers()
 

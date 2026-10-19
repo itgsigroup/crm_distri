@@ -136,6 +136,14 @@ type DataSyncArgs struct {
 
 func (DataSyncArgs) Kind() string { return "data.sync" }
 
+// StockSyncArgs pulls only the stock from BigQuery (every few minutes, Push stok; Force runs now).
+type StockSyncArgs struct {
+	Force bool   `json:"force"`
+	By    string `json:"by"`
+}
+
+func (StockSyncArgs) Kind() string { return "stock.sync" }
+
 // DataApplyArgs re-runs the transform from staging (after a CSV import or a mapping change).
 type DataApplyArgs struct {
 	Full bool   `json:"full"`

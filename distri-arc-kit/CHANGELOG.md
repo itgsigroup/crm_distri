@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Push stok: stok BigQuery tiap 5 menit, status sinkron, halaman ikut segar · 2026-10-19
+- Stok kini ditarik dari BigQuery **tiap 5 menit** (hanya query stok, ringan) di antara sinkron penuh 15 menit. Halaman Push stok menampilkan sumber dan waktu sinkron terakhir ("sinkron 16.55 · 2 menit lalu · otomatis tiap 5 menit") dengan tombol **Sinkron sekarang**.
+- Setelah sinkron BigQuery apa pun, halaman stok, dealer, orbit, segmen, KPI, dan kredit menyegarkan diri (sebelumnya event sinkron tidak didengar).
+- Analisa Stok tetap ditulis Claude lewat MCP/routine; komponen halaman sesuai MD. ADR 0056.
+
 ## Feat · Dealer: Analisa AI oleh Claude (routine) dengan status dan tombol chat WhatsApp sesuai analisa · 2026-10-19
 - **Analisa AI** di halaman dealer kini dikerjakan Claude lewat routine (tanpa membuka Desktop): membaca siklus order, limit, invoice terbuka, dan 15 chat WhatsApp terakhir dealer, lalu menilai **Bermasalah / Perlu perhatian / Aman** dengan alasan dan ringkasan. Progres tampil sebagai pop-up.
 - Kartu Analisa AI punya **draf WhatsApp dari Claude** dan tombol **Chat: selesaikan masalah / sapa & tawarkan / sapa dealer** (warna sesuai status) yang membuka chat dealer dengan draf sudah terisi di kolom ketik — sales tetap yang mengirim.

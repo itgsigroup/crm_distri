@@ -315,6 +315,7 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	river.AddWorker(workers, &RetentionWorker{st: st, clock: c, log: log})
 	river.AddWorker(workers, &PilotWorker{st: st, clock: c})
 	river.AddWorker(workers, &DataSyncWorker{st: st, clock: c, log: log, secret: deps.SessionKey})
+	river.AddWorker(workers, &StockSyncWorker{st: st, clock: c, log: log, secret: deps.SessionKey})
 	river.AddWorker(workers, &DataApplyWorker{st: st, clock: c, log: log})
 	river.AddWorker(workers, &AlertsWorker{st: st, clock: c, log: log, env: deps.Ops})
 	river.AddWorker(workers, &AnalystTickWorker{st: st, clock: c})
@@ -401,6 +402,10 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 			river.NewPeriodicJob(river.PeriodicInterval(time.Minute), func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.AnalystTickArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: time.Minute}}
 			}, &river.PeriodicJobOpts{RunOnStart: true}),
+			// the stock alone between full syncs (Push stok): checked every minute, pulled when data.source says it is due
+			river.NewPeriodicJob(river.PeriodicInterval(time.Minute), func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.StockSyncArgs{}, &river.InsertOpts{MaxAttempts: 1, UniqueOpts: river.UniqueOpts{ByPeriod: time.Minute}}
+			}, nil),
 			river.NewPeriodicJob(river.PeriodicInterval(5*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.AlertsCheckArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 5 * time.Minute}}
 			}, &river.PeriodicJobOpts{RunOnStart: true}),

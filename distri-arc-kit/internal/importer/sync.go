@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"distri-arc/internal/auth"
 )
@@ -15,10 +16,12 @@ import (
 type SourceConfig struct {
 	Mode     string `json:"mode"` // none | bigquery | csv
 	BigQuery struct {
-		ProjectID   string            `json:"project_id"`
-		Location    string            `json:"location"`
-		SyncMinutes int               `json:"sync_minutes"`
-		Queries     map[string]string `json:"queries"` // entity → SQL
+		ProjectID   string `json:"project_id"`
+		Location    string `json:"location"`
+		SyncMinutes int    `json:"sync_minutes"`
+		// StockMinutes: the stock-only pull between full syncs (Push stok, Sam 19 Oct); 0 = every 5 minutes
+		StockMinutes int               `json:"stock_minutes,omitempty"`
+		Queries      map[string]string `json:"queries"` // entity → SQL
 	} `json:"bigquery"`
 }
 
@@ -86,6 +89,37 @@ func (im Importer) SyncBigQuery(ctx context.Context, bq *BigQuery, cfg SourceCon
 		return rep, errors.New("belum ada query BigQuery yang diisi")
 	}
 	ar, err := im.Apply(ctx, full, by)
+	rep.Apply = ar
+	return rep, err
+}
+
+// StockEvery is how often the stock alone is pulled from BigQuery (5 minutes unless set; never under 2).
+func (c SourceConfig) StockEvery() time.Duration {
+	m := c.BigQuery.StockMinutes
+	if m <= 0 {
+		m = 5
+	}
+	return time.Duration(max(m, 2)) * time.Minute
+}
+
+// SyncBigQueryStock pulls only the stock query and applies incrementally (no invoice is rebuilt): Push stok stays
+// minutes behind BigQuery instead of a full sync's quarter hour (Sam 19 Oct).
+func (im Importer) SyncBigQueryStock(ctx context.Context, bq *BigQuery, cfg SourceConfig, by string) (SyncReport, error) {
+	rep := SyncReport{Staged: map[string]StageReport{}}
+	sql := strings.TrimSpace(cfg.BigQuery.Queries[string(Stock)])
+	if sql == "" {
+		return rep, errors.New("query stok BigQuery belum diisi")
+	}
+	rows, err := bq.Query(ctx, sql)
+	if err != nil {
+		return rep, fmt.Errorf("%s: %w", Stock, err)
+	}
+	sr, err := im.Stage(ctx, Stock, rows, "bigquery", by)
+	rep.Staged[string(Stock)] = sr
+	if err != nil {
+		return rep, fmt.Errorf("%s: %w", Stock, err)
+	}
+	ar, err := im.Apply(ctx, false, by)
 	rep.Apply = ar
 	return rep, err
 }

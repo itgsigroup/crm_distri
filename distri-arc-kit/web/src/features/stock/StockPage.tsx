@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { api } from '../../api/client'
 import type { AgingItem, NextAction, Proposal, ScreenAnalysis } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn } from '../../components/actions'
 import { useFeedback } from '../../components/feedback'
-import { fmtRp, shortName } from '../../lib/format'
+import { fmtRp, hhmm, shortName } from '../../lib/format'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { useKpi, useSalesByProduct, useScreenAnalysis, useStockAging, useStockCritical, useStockProposals } from '../../app/queries'
+import { useKpi, useNow, useSalesByProduct, useScreenAnalysis, useStockAging, useStockCritical, useStockProposals, useStockStatus } from '../../app/queries'
 import { ScreenBrief, ScreenNote } from '../../components/ScreenAI'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { AGING_COMPARE, agingText, agingTie, firstDir, type StockColumn } from './table'
@@ -18,6 +20,24 @@ export function toNext(p: Proposal | undefined): NextAction | null {
 
 const unit = (name: string) => (/modul|detektor|kabel|power/i.test(name) ? 'pcs' : 'unit')
 const num = (v: number) => String(v).replace('.', ',')
+
+/** Where the stock comes from and how fresh it is: BigQuery, the stock alone every few minutes (Sam 19 Oct). */
+function StockSource() {
+  const { toast } = useFeedback()
+  const { data: st } = useStockStatus()
+  const now = useNow()
+  const sync = useMutation({ mutationFn: () => api.post<{ message: string }>('/stock/sync'), onSuccess: (r) => toast(r.message), onError: (e: Error) => toast(e.message) })
+  if (!st) return null
+  const mins = st.synced_at ? Math.max(0, Math.round((now.getTime() - Date.parse(st.synced_at)) / 60_000)) : null
+  const stale = mins != null && mins > st.every_min * 3
+  return (
+    <div className={`stk-src${stale ? ' stale' : ''}`}>
+      <span className={`dot ${st.live ? (stale ? 'warn' : 'good') : 'neutral'}`} />
+      <span>Stok dari <b>{st.label}</b>{st.synced_at ? <> · sinkron <b>{hhmm(st.synced_at)}</b>{mins != null && ` (${mins < 1 ? 'baru saja' : mins + ' menit lalu'})`}</> : ' · belum pernah sinkron'}{st.live ? ` · otomatis tiap ${st.every_min} menit` : ''}</span>
+      {st.live && st.can_sync && <button className="btn quiet" disabled={sync.isPending} onClick={() => sync.mutate()}><Icon name="refresh" />{sync.isPending ? 'Menyinkron…' : 'Sinkron sekarang'}</button>}
+    </div>
+  )
+}
 
 // Push stok (mockup screen-stock).
 export function StockPage() {
@@ -48,6 +68,7 @@ export function StockPage() {
 
   return (
     <>
+      <StockSource />
       <div className="kpis">
         <div className="kpi-t"><small>Perputaran stok · perputaran</small><b className="num">{kpi?.stock_turn_days ?? '—'}<em>hari</em></b><span className={`dl ${kpi && kpi.stock_turn_days <= kpi.targets.stock_turn_days ? 'good' : 'warn'}`}>target {kpi?.targets.stock_turn_days ?? 40}</span></div>
         <div className="kpi-t"><small>Stok &gt; 90 hari</small><b className="num">{fmtRp(oldValue)}</b><span className="dl bad">{kpi?.stock_value ? Math.round((oldValue / kpi.stock_value) * 100) : 0}% dari nilai stok</span></div>

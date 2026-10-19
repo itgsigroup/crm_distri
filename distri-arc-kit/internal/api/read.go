@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"distri-arc/internal/jobs"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -44,6 +45,8 @@ func (s *Server) readRoutes(r chi.Router) {
 	r.Get("/stock/critical", s.stockCritical)
 	r.Get("/stock/push", s.stockPush)
 	r.Get("/stock/sales-by-product", s.stockSales)
+	r.Get("/stock/status", s.stockStatus)
+	r.Post("/stock/sync", s.stockSync)
 	r.Get("/policies", s.policies)
 	r.Get("/credit/overview", s.creditPart("overview"))
 	r.Get("/credit/dealers", s.creditPart("dealers"))
@@ -673,4 +676,27 @@ func (s *Server) screenAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"analysis": map[string]any{"screen": screen, "cycle_id": row.CycleID, "cycle_number": row.CycleNumber,
 		"generated_at": row.CreatedAt, "source": row.Source, "overview": row.Overview, "lines": lines}})
+}
+
+// stockStatus: where Push stok's stock comes from and when it was last read (BigQuery; the stock alone every few
+// minutes between full syncs, Sam 19 Oct).
+func (s *Server) stockStatus(w http.ResponseWriter, r *http.Request) {
+	im := importer.Importer{St: s.st}
+	cfg, _ := im.LoadConfig(r.Context())
+	p := importer.ProvenanceOf(r.Context(), s.st)
+	u, _ := CurrentUser(r.Context())
+	httpx.JSON(w, http.StatusOK, map[string]any{"source": p.Source, "label": p.Label, "synced_at": p.SyncedAt,
+		"every_min": int(cfg.StockEvery().Minutes()), "live": cfg.Mode == "bigquery", "can_sync": can(u, "stock")})
+}
+
+// stockSync pulls the stock from BigQuery now (Push stok's "Sinkron sekarang").
+func (s *Server) stockSync(w http.ResponseWriter, r *http.Request) {
+	u, _ := CurrentUser(r.Context())
+	if !can(u, "stock") {
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Sinkron stok untuk pemegang halaman Push stok")
+		return
+	}
+	if s.enqueue(w, r, jobs.StockSyncArgs{Force: true, By: deref(u.Email)}) {
+		httpx.JSON(w, http.StatusAccepted, map[string]any{"message": "Sinkron stok dari BigQuery dimulai — halaman diperbarui begitu selesai"})
+	}
 }

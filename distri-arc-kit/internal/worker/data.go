@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/riverqueue/river"
@@ -106,6 +107,56 @@ func (w *DataApplyWorker) Work(ctx context.Context, job *river.Job[jobs.DataAppl
 			w.log.Info("data apply", "dealers", rep.Dealers, "invoices", rep.Invoices, "stock", rep.Stock, "s", rep.DurationS)
 		}
 		_ = events.Notify(ctx, w.st.Pool, "data_synced", map[string]any{"ok": err == nil})
+		return err
+	})
+}
+
+// StockSyncWorker pulls only the stock from BigQuery between full syncs (Push stok, Sam 19 Oct): every
+// data.source.bigquery.stock_minutes (5 by default) unless BigQuery was read more recently; Force runs now.
+type StockSyncWorker struct {
+	river.WorkerDefaults[jobs.StockSyncArgs]
+	st     *store.Store
+	clock  clock.Clock
+	log    *slog.Logger
+	secret []byte
+}
+
+// Timeout: one query and an incremental apply.
+func (w *StockSyncWorker) Timeout(*river.Job[jobs.StockSyncArgs]) time.Duration {
+	return 10 * time.Minute
+}
+
+// Work runs the stock pull when it is due.
+func (w *StockSyncWorker) Work(ctx context.Context, job *river.Job[jobs.StockSyncArgs]) error {
+	im := importer.Importer{St: w.st, Clock: w.clock, Log: w.log}
+	cfg, err := im.LoadConfig(ctx)
+	if err != nil || cfg.Mode != "bigquery" || strings.TrimSpace(cfg.BigQuery.Queries[string(importer.Stock)]) == "" {
+		return err
+	}
+	if !job.Args.Force {
+		if last, err := w.st.Q.LastImportRun(ctx, "bigquery"); err == nil && time.Since(last.StartedAt) < cfg.StockEvery() {
+			return nil // a full sync or a stock pull read BigQuery recently
+		}
+	}
+	by := job.Args.By
+	if by == "" {
+		by = "jadwal stok"
+	}
+	return withDataLock(ctx, w.st, func() error {
+		bq, err := im.BigQueryClient(ctx, cfg, w.secret)
+		if errors.Is(err, importer.ErrNoCredentials) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		rep, err := im.SyncBigQueryStock(ctx, bq, cfg, by)
+		if err != nil {
+			w.log.Error("bigquery stock sync", "err", err)
+		} else {
+			w.log.Info("bigquery stock sync", "stock", rep.Apply.Stock)
+		}
+		_ = events.Notify(ctx, w.st.Pool, "data_synced", map[string]any{"ok": err == nil, "stock": true})
 		return err
 	})
 }
