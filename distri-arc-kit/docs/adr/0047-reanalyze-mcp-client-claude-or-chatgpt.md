@@ -1,6 +1,6 @@
 # ADR 0047 — Analisis ulang lewat MCP: Claude atau ChatGPT, tanpa kunci API
 
-Status: diterima · 2026-10-19 · Sam · menggantikan pilihan mesin "API & model AI" di UI (ADR 0042) dan opsi kedua API
+Status: diterima · 2026-10-19 · Sam · bagian ChatGPT dicabut oleh ADR 0048 · menggantikan pilihan mesin "API & model AI" di UI (ADR 0042) dan opsi kedua API
 (ADR 0040) untuk siklus dari tombol Analisis ulang
 
 ## Konteks

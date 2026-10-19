@@ -105,14 +105,15 @@ function ModelCard({ info }: { info: AIAPIInfo }) {
       <div className="aa-row">
         <span className="aa-lbl">Opsi kedua</span>
         <div className="seg">
-          {(['off', 'claude', 'openai'] as const).map((f) => (
+          {/* ChatGPT is never used (Sam 19 Oct, ADR 0048): not offered */}
+          {(['off', 'claude'] as const).map((f) => (
             <button key={f} disabled={!edit || set.isPending} className={info.fallback === f ? 'is-active' : ''} onClick={() => set.mutate(f)}>{f === 'off' ? 'Mati' : PROVIDER_LABEL[f]}</button>
           ))}
         </div>
         <Pill tone={info.ready ? 'good' : info.fallback === 'off' ? 'neutral' : 'warn'}>{info.ready ? 'Siap' : info.fallback === 'off' ? 'Mati' : 'Belum aktif'}</Pill>
       </div>
       <p className="aa-hint">{fallbackText(info)}</p>
-      <div className="aa-provs">{info.providers.map((p) => <ProviderRow key={p.id} p={p} edit={edit} />)}</div>
+      <div className="aa-provs">{info.providers.filter((p) => p.id !== 'openai').map((p) => <ProviderRow key={p.id} p={p} edit={edit} />)}</div>
       <div className="aa-row">
         <span className="aa-lbl">Anggaran / hari</span>
         <select className="cl-input" disabled={!edit} value={cur ?? 'x'} onChange={(e) => budget.mutate(Math.round(Number(e.target.value) * rate))} aria-label="Anggaran harian">
@@ -121,7 +122,7 @@ function ModelCard({ info }: { info: AIAPIInfo }) {
         </select>
         <small className="muted">terpakai hari ini {usd(info.spent_today_idr, rate)}</small>
       </div>
-      <ModelTable providers={info.providers} />
+      <ModelTable providers={info.providers.filter((p) => p.id !== 'openai')} />
     </div>
   )
 }
@@ -160,7 +161,7 @@ function AutoCard({ info }: { info: AIAPIInfo }) {
       <div className="aa-row">
         <span className="aa-lbl">Pakai AI</span>
         <div className="seg">
-          {(['claude', 'openai'] as const).map((e) => (
+          {(['claude'] as const).map((e) => (
             <button key={e} disabled={!edit} className={d.engine === e ? 'is-active' : ''} onClick={() => pickEngine(e)}>{PROVIDER_LABEL[e]}</button>
           ))}
         </div>

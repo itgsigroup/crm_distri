@@ -31,6 +31,10 @@ const (
 	FallbackScheduleWA    = "API cadangan · Analisa WhatsApp"
 )
 
+// ChatGPTOff: GSI Orbit never calls ChatGPT (Sam 19 Oct, ADR 0048) — the second option, Analisa WhatsApp otomatis
+// and reply drafts set to ChatGPT find no key and do not run. Tests of the ChatGPT client switch it off.
+var ChatGPTOff = true
+
 // openAIBase is the Chat Completions endpoint root (tests point it at a fake server).
 var openAIBase = "https://api.openai.com/v1"
 
@@ -44,6 +48,9 @@ func ProviderLabel(p string) string {
 
 // LoadOpenAIKey returns the ChatGPT API key and where it came from: "ui" (sealed in secrets), "env" or "".
 func LoadOpenAIKey(ctx context.Context, q *gen.Queries, sessionKey []byte, envKey string) (string, string) {
+	if ChatGPTOff {
+		return "", "" // ChatGPT is never used (Sam 19 Oct, ADR 0048): no key, so no ChatGPT run, second option or draft
+	}
 	if sealed, err := q.GetSecret(ctx, SecretOpenAI); err == nil {
 		if k, err := auth.Open(sealed, sessionKey); err == nil && k != "" {
 			return k, "ui"

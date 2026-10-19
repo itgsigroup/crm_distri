@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · ChatGPT tidak pernah dipakai · 2026-10-19
+- ChatGPT dimatikan di kode: tidak lagi mengambil alih siklus Orchestrator atau Analisa WhatsApp bila Claude tidak menjawab, tidak dipakai analisa otomatis maupun draft balasan. (Siklus #305 dari Pusat kendali ternyata dijawab ChatGPT API cadangan, bukan Claude.)
+- Pilihan AI Claude/ChatGPT dihapus: Analisis ulang hanya Claude lewat MCP. Halaman API & model AI tidak lagi menawarkan ChatGPT. ADR 0048.
+
 ## Change · Analisis ulang lewat MCP Claude atau ChatGPT, tanpa kunci API; pop-up analisis diperbaiki · 2026-10-19
 - Kotak Orchestrator dan halaman Orchestrator: analisa lewat **MCP** dengan pilihan **AI: Claude | ChatGPT** (bawaan Claude), model dan effort. Pilihan "API & model AI" dihapus — tidak ada kunci API Claude yang dipakai.
 - Pilih Claude = ChatGPT tidak dipakai: siklus dari tombol Analisis ulang tidak diambil alih ChatGPT API walau opsi kedua aktif.

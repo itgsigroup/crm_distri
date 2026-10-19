@@ -10,7 +10,7 @@ import { useSse } from './SseProvider'
 import { useCycleLatest, useMe, useNow, useQueue, useWAAnalysis } from './queries'
 import { STAGES, TICK_MS, cycleReducer, initialCycle, type CycleUI } from './cycle'
 import { AnalysisSheet, type QueuedCycle } from './AnalysisSheet'
-import { aiLabel, effort, mcpAI, modelOf } from './enginePrefs'
+import { effort, mcpModel } from './enginePrefs'
 
 /** Label of a scope string, as the API's domain.Scope.Label ("screen:orbit" → "orbit"). */
 export function scopeLabel(scope: string): string {
@@ -141,11 +141,11 @@ export function OrchProvider({ children }: { children: ReactNode }) {
       const v = via === 'mcp' || via === 'model' || via === 'system' ? via : 'api'
       // the model (for claude.ai) and effort chosen on the dock, the same for every "Analisis ulang"
       api
-        .post<QueuedCycle>('/cycles', { scope, via: v, ai: mcpAI(), model: modelOf(mcpAI()), effort: effort() })
+        .post<QueuedCycle>('/cycles', { scope, via: v, model: mcpModel(), effort: effort() })
         .then((c) => {
           const eff = c.mcp?.effort || c.effort || effort()
           const by = c.mcp?.engine === 'claude_api' ? `${c.mcp.model || label || 'API'} · ${eff}`
-            : c.mcp ? `MCP ${aiLabel(c.mcp.engine === 'chatgpt' ? 'chatgpt' : 'claude')} · ${c.mcp.model_label || aiLabel(mcpAI())} · ${eff}` : v === 'system' ? SYSTEM_LABEL : label || 'API'
+            : c.mcp ? `MCP Claude · ${c.mcp.model_label || 'Claude'} · ${eff}` : v === 'system' ? SYSTEM_LABEL : label || 'API'
           dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by, at: Date.now() })
           setQueued(c)
           if (!inline) openSheet(<AnalysisSheet cycle={c} />) // "AI sedang membaca data…" with the game, then berhasil / gagal

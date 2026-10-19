@@ -22,6 +22,7 @@ import (
 // Pengaturan → API & model AI (ADR 0040): the CEO stores both keys (checked, sealed, shown only as a hint), picks
 // the second option and the models; the page shows what the API tokens cost.
 func TestAIAPIPage(t *testing.T) {
+	chatGPTOn(t) // the ChatGPT client itself, though GSI Orbit keeps it off (ADR 0048)
 	st := testdb.New(t)
 	ctx := context.Background()
 	if _, err := seed.Run(ctx, st, db.Seed); err != nil {
@@ -134,4 +135,10 @@ func TestAIAPIPage(t *testing.T) {
 	if _, out := sendJSON(t, "GET", base, ceo, nil); out["ready"] != false {
 		t.Fatalf("ready without the key: %v", out["ready"])
 	}
+}
+
+func chatGPTOn(t *testing.T) {
+	t.Helper()
+	analyst.ChatGPTOff = false
+	t.Cleanup(func() { analyst.ChatGPTOff = true })
 }

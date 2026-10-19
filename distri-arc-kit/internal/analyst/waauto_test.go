@@ -20,6 +20,7 @@ func (failModel) Step(context.Context, anthropic.BetaMessageNewParams) (*anthrop
 // ADR 0043: Analisa WhatsApp otomatis runs at the chosen hours with the chosen API and model; when that API fails the
 // run fails — ChatGPT never takes over a failed Claude run.
 func TestWAAuto(t *testing.T) {
+	chatGPTOn(t) // the ChatGPT client itself, though GSI Orbit keeps it off (ADR 0048)
 	st, _, rn := setup(t)
 	ctx := context.Background()
 	a, ok := analyst.LoadWAAuto(ctx, st.Q)

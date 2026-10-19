@@ -27,6 +27,7 @@ func (s *chatScript) Chat(_ context.Context, r analyst.ChatRequest) (*analyst.Ch
 // ADR 0040: with ChatGPT as the API, the run drives the same MCP tools (schedule scopes, never decide), sends tool
 // results back as tool messages, and logs tokens and cost under provider openai.
 func TestOpenAIRun(t *testing.T) {
+	chatGPTOn(t) // the ChatGPT client itself, though GSI Orbit keeps it off (ADR 0048)
 	st, sch, rn := setup(t)
 	ctx := context.Background()
 	if err := analyst.SaveConfig(ctx, st.Q, analyst.Config{Model: "claude-opus-5-5", OpenAIModel: "gpt-5-mini", Fallback: analyst.FallbackOpenAI}, nil, now.Now()); err != nil {
@@ -73,6 +74,7 @@ func TestOpenAIRun(t *testing.T) {
 
 // The second option is ready only when it is switched on, its key is there and today's budget is not spent.
 func TestFallbackReady(t *testing.T) {
+	chatGPTOn(t) // the ChatGPT client itself, though GSI Orbit keeps it off (ADR 0048)
 	st, _, _ := setup(t)
 	ctx := context.Background()
 	secret := []byte("0123456789abcdef0123456789abcdef")
@@ -86,5 +88,26 @@ func TestFallbackReady(t *testing.T) {
 	ok, prov, model := analyst.FallbackReady(ctx, st.Q, now.Now(), secret, "", "sk-x")
 	if !ok || prov != "openai" || model != "gpt-5" {
 		t.Fatalf("%v %s %s", ok, prov, model)
+	}
+}
+
+// chatGPTOn lets a test reach the ChatGPT client (off in GSI Orbit since 19 Oct).
+func chatGPTOn(t *testing.T) {
+	t.Helper()
+	analyst.ChatGPTOff = false
+	t.Cleanup(func() { analyst.ChatGPTOff = true })
+}
+
+// ADR 0048: ChatGPT is never used — a second option set to ChatGPT with its key present is not ready.
+func TestChatGPTNeverUsed(t *testing.T) {
+	st, _, _ := setup(t)
+	ctx := context.Background()
+	secret := []byte("0123456789abcdef0123456789abcdef")
+	_ = analyst.SaveConfig(ctx, st.Q, analyst.Config{Model: "claude-opus-5-5", Fallback: analyst.FallbackOpenAI}, nil, now.Now())
+	if ok, _, _ := analyst.FallbackReady(ctx, st.Q, now.Now(), secret, "", "sk-x"); ok {
+		t.Fatal("ChatGPT second option ready while ChatGPT is off")
+	}
+	if k, _ := analyst.LoadOpenAIKey(ctx, st.Q, secret, "sk-x"); k != "" {
+		t.Fatal("ChatGPT key read while ChatGPT is off")
 	}
 }

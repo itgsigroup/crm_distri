@@ -6,7 +6,7 @@ import { PIPELINE_STAGES, type ScreenKey } from '../lib/i18n/id'
 import { chipState, progress } from './cycle'
 import { SYSTEM_LABEL, scopeLabel, useOrch, useOrchStatus } from './orch'
 import { useCommand } from './command'
-import { AIS, EFFORTS, aiLabel, effort, mcpAI, modelOf, modelsOf, setEffort, setMcpAI, setModelOf, shortModel, type AI, type Effort } from './enginePrefs'
+import { EFFORTS, MCP_MODELS, effort, mcpModel, setEffort, setMcpModel, shortModel, type Effort } from './enginePrefs'
 
 /** Pipeline chips (mockup pipeHtml compact): done / run per stage. */
 export function PipeChips() {
@@ -60,7 +60,7 @@ export function scopeAgents(scope: string): string[] {
   return out
 }
 
-// no API key (Sam 19 Oct): Sistem (rules, no AI) or MCP — Claude or ChatGPT as the MCP client
+// no API key, no ChatGPT (Sam 19 Oct): Sistem (rules, no AI) or MCP Claude
 export type Engine = 'system' | 'mcp'
 const ENGINE_KEY = 'orch-engine'
 function savedEngine(): Engine | null {
@@ -72,7 +72,7 @@ function savedMini(): boolean {
 }
 
 // Floating Orchestrator dock, fixed at the bottom right of the screen on every page except Dashboard, Orchestrator and Chat (it can shrink to a round icon): re-analyse this page (or
-// everything) with GSI Orbit's own rules (Sistem, ADR 0046) or through MCP with Claude or ChatGPT — no API key (19 Oct); the page's
+// everything) with GSI Orbit's own rules (Sistem, ADR 0046) or Claude through MCP — no API key, no ChatGPT (19 Oct); the page's
 // data refreshes when the cycle is done.
 export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: ReactNode; links?: ReactNode }) {
   const [open, setOpen] = useState(false)
@@ -82,11 +82,9 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
   const st = useOrchStatus()
   const { pathname } = useLocation()
   const [pick, setPick] = useState<Engine | null>(savedEngine)
-  const [ai, setAi] = useState<AI>(mcpAI)
-  const [model, setModel] = useState(() => modelOf(mcpAI()))
+  const [model, setModel] = useState(mcpModel)
   const [eff, setEff] = useState<Effort>(effort)
-  const chooseAI = (a: AI) => { setAi(a); setMcpAI(a); setModel(modelOf(a)) }
-  const chooseModel = (id: string) => { setModel(id); setModelOf(ai, id) }
+  const chooseModel = (id: string) => { setModel(id); setMcpModel(id) }
   const chooseEffort = (e: Effort) => { setEff(e); setEffort(e) }
   const engine: Engine = pick ?? 'mcp'
   const choose = (e: Engine) => { setPick(e); try { localStorage.setItem(ENGINE_KEY, e) } catch { /* private mode */ } }
@@ -114,7 +112,7 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
     ask(v)
   }
   const scope = screenScope(screen, pathname)
-  const run = (sc: string) => reanalyze(sc, engine, engine === 'system' ? SYSTEM_LABEL : `${aiLabel(ai)} lewat MCP`)
+  const run = (sc: string) => reanalyze(sc, engine, engine === 'system' ? SYSTEM_LABEL : 'Claude lewat MCP')
   const status = st.running ? `menganalisis ${st.scope} · ${st.stage}` : st.run ? `siap · siklus #${st.run.toLocaleString('id-ID')} · ${st.last}` : 'siap · belum ada siklus'
   // rendered on <body>: inside a page (.screen animates a transform) position: fixed would scroll with the content
   if (mini) {
@@ -156,7 +154,7 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
             <Icon name="gear" /><span><b>Sistem</b><small>tanpa AI · langsung</small></span>
           </button>
           <button type="button" role="radio" aria-checked={engine === 'mcp'} className={engine === 'mcp' ? 'on' : ''} disabled={st.running} onClick={() => choose('mcp')}>
-            <Icon name="plug" /><span><b>MCP {aiLabel(ai)}</b><small>{shortModel(model)} · {eff}</small></span>
+            <Icon name="plug" /><span><b>MCP Claude</b><small>{shortModel(model)} · {eff}</small></span>
           </button>
         </div>
         <div className="dk-tune">
@@ -164,14 +162,10 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
             <span className="dk-model"><span>Mesin</span><b>Aturan &amp; rumus GSI Orbit · tanpa AI</b></span>
           ) : (
             <>
-              <div className="dk-effort dk-ai" role="radiogroup" aria-label="AI">
-                <span>AI</span>
-                {AIS.map((x) => <button key={x.id} type="button" role="radio" aria-checked={ai === x.id} className={ai === x.id ? 'on' : ''} disabled={st.running} title={x.id === 'claude' ? 'Claude lewat MCP — ChatGPT tidak dipakai' : 'ChatGPT lewat MCP — Claude tidak dipakai'} onClick={() => chooseAI(x.id)}>{x.label}</button>)}
-              </div>
               <label className="dk-model">
                 <span>Model</span>
-                <select value={model} disabled={st.running} onChange={(e) => chooseModel(e.target.value)} title={`Pilih model yang sama di ${aiLabel(ai)} — perintahnya menyebut model ini`}>
-                  {modelsOf(ai).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+                <select value={model} disabled={st.running} onChange={(e) => chooseModel(e.target.value)} title="Pilih model yang sama di claude.ai / Desktop — perintahnya menyebut model ini">
+                  {MCP_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
               </label>
             </>

@@ -140,23 +140,14 @@ func TestPostCyclesModelAndEffort(t *testing.T) {
 	}
 }
 
-// 19 Oct: Analisis ulang names its MCP client — Claude (claude.ai) or ChatGPT (chatgpt.com) — and no API second option
-// is announced for it.
-func TestPostCyclesChooseAI(t *testing.T) {
-	srv, st := chatServer(t)
-	code, out := post(t, srv.URL+"/api/cycles", "sam@gsi.co.id", map[string]string{"scope": "all", "via": "mcp", "ai": "chatgpt", "model": "gpt-5-mini"})
+// ADR 0047/0048: Analisis ulang goes to Claude through MCP only — claude.ai, no API second option announced, and an
+// "ai": "chatgpt" asked for is ignored.
+func TestPostCyclesClaudeOnly(t *testing.T) {
+	srv, _ := chatServer(t)
+	code, out := post(t, srv.URL+"/api/cycles", "sam@gsi.co.id", map[string]string{"scope": "all", "via": "mcp", "ai": "chatgpt", "model": "gpt-5"})
 	m, _ := out["mcp"].(map[string]any)
-	if code != http.StatusAccepted || out["engine_model"] != "gpt-5-mini" || m == nil || m["engine"] != "chatgpt" ||
-		!strings.HasPrefix(m["claude_url"].(string), "https://chatgpt.com/?q=") || m["fallback"] != "" {
-		t.Fatalf("chatgpt: %d %v", code, out)
-	}
-	if _, err := st.Pool.Exec(context.Background(), "update cycles set status = 'done'"); err != nil {
-		t.Fatal(err)
-	}
-	code, out = post(t, srv.URL+"/api/cycles", "sam@gsi.co.id", map[string]string{"scope": "all", "via": "mcp", "ai": "claude", "model": "gpt-5"})
-	m, _ = out["mcp"].(map[string]any)
 	if code != http.StatusAccepted || out["engine_model"] != "claude-opus-5-5" || m == nil || m["engine"] != "claude_ai" ||
 		!strings.HasPrefix(m["claude_url"].(string), "https://claude.ai/new?q=") || m["fallback"] != "" {
-		t.Fatalf("claude: %d %v", code, out)
+		t.Fatalf("claude only: %d %v", code, out)
 	}
 }

@@ -8,7 +8,7 @@ import { hhmm, shortDate } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { AIS, EFFORTS, aiLabel, effort, mcpAI, modelOf, modelsOf, setEffort, setMcpAI, setModelOf, type AI, type Effort } from '../../app/enginePrefs'
+import { EFFORTS, MCP_MODELS, effort, mcpModel, setEffort, setMcpModel, type Effort } from '../../app/enginePrefs'
 import { useAgents, useConflicts, useCycleLatest, useMCPCalls, useMCPInfo, useQueue, useWAAnalysis } from '../../app/queries'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import { ColumnTable, type Column } from '../../components/DataTable'
@@ -19,8 +19,8 @@ import { MCPClientsPanel, MCPRules } from '../settings/AIConnections'
 import { CONFLICT_COMPARE, conflictText } from './tables'
 
 // Orchestrator (mockup screen-orch, the components of 08-frontend.md): header, Pipeline, Resolusi konflik, Riwayat
-// analisis, Agen, MCP, Matriks otonomi — every analysis read from WhatsApp; Analisis ulang through MCP with Claude or
-// ChatGPT (no API key), its progress in the pop-up (Sam 19 Oct, ADR 0045).
+// analisis, Agen, MCP, Matriks otonomi — every analysis read from WhatsApp; Analisis ulang by Claude through MCP (no API
+// key, no ChatGPT), its progress in the pop-up (Sam 19 Oct, ADR 0045, 0048).
 
 // Default stage descriptions before the first cycle (mockup STAGES).
 const STAGE_HINT = ['chat WhatsApp · stok BigQuery', '6 agen membaca chat', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
@@ -131,13 +131,11 @@ export function OrchestratorPage() {
   const { data: calls = [] } = useMCPCalls()
   const canWA = useCanWA()
   const { data: wa } = useWAAnalysis(sales, canWA)
-  // Through MCP like the Orchestrator dock (Sam 19 Oct): Claude or ChatGPT as the MCP client, no API key; choosing one
-  // leaves the other out. AI, model and effort are shared with the dock.
-  const [ai, setAi] = useState<AI>(mcpAI)
-  const [model, setModel] = useState(() => modelOf(mcpAI()))
+  // Claude through MCP like the Orchestrator dock (Sam 19 Oct) — no API key, no ChatGPT; model and effort shared with
+  // the dock
+  const [model, setModel] = useState(mcpModel)
   const [eff, setEff] = useState<Effort>(effort)
-  const chooseAI = (a: AI) => { setAi(a); setMcpAI(a); setModel(modelOf(a)) }
-  const run = (scope: string) => reanalyze(scope, 'mcp', `${aiLabel(ai)} lewat MCP`)
+  const run = (scope: string) => reanalyze(scope, 'mcp', 'Claude lewat MCP')
   const shown = st.running && latest?.cycle ? latest.cycle : (latest?.last_full ?? latest?.last_done)
   const meta = st.run ? `siklus #${st.run.toLocaleString('id-ID')} · ${st.last} · ${st.dur}` : 'belum ada siklus'
   // WhatsApp only: the proposals tied to a conversation, the conflicts on dealers that wrote
@@ -153,14 +151,11 @@ export function OrchestratorPage() {
       <SalesBanner page={page} />
       <div className="card orch-head">
         <div className="oh-l">
-          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca chat WhatsApp (dan stok BigQuery untuk push stok), membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda. Analisanya ditulis Claude (atau ChatGPT) lewat MCP — tanpa kunci API.</p></div></div>
+          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca chat WhatsApp (dan stok BigQuery untuk push stok), membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda. Analisanya ditulis Claude lewat MCP — tanpa kunci API, tanpa ChatGPT.</p></div></div>
           <div className="oh-eng">
-            <div className="dk-effort dk-ai" role="radiogroup" aria-label="AI"><span>AI</span>
-              {AIS.map((x) => <button key={x.id} type="button" role="radio" aria-checked={ai === x.id} className={ai === x.id ? 'on' : ''} disabled={st.running} title={x.id === 'claude' ? 'Claude lewat MCP — ChatGPT tidak dipakai' : 'ChatGPT lewat MCP — Claude tidak dipakai'} onClick={() => chooseAI(x.id)}>{x.label}</button>)}
-            </div>
             <label className="dk-model"><span>Model</span>
-              <select value={model} disabled={st.running} onChange={(e) => { setModel(e.target.value); setModelOf(ai, e.target.value) }} title={`Pilih model yang sama di ${aiLabel(ai)} — perintahnya menyebut model ini`}>
-                {modelsOf(ai).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+              <select value={model} disabled={st.running} onChange={(e) => { setModel(e.target.value); setMcpModel(e.target.value) }} title="Pilih model yang sama di claude.ai / Desktop — perintahnya menyebut model ini">
+                {MCP_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
             </label>
             <div className="dk-effort" role="radiogroup" aria-label="Effort"><span>Effort</span>
@@ -174,7 +169,7 @@ export function OrchestratorPage() {
           {canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${fmt(wa.cycle_number)} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
           <div className="oh-kv"><small>Model AI terakhir</small><b>{lastModel}</b></div>
           <div className="oh-btns">
-            <button className="btn primary" disabled={st.running} onClick={() => run('all')} title={`${aiLabel(ai)} membaca chat WhatsApp lewat MCP — tanpa kunci API`}><Icon name="plug" />Analisis ulang · MCP {aiLabel(ai)}</button>
+            <button className="btn primary" disabled={st.running} onClick={() => run('all')} title="Claude membaca chat WhatsApp lewat MCP — tanpa kunci API, tanpa ChatGPT"><Icon name="plug" />Analisis ulang · MCP Claude</button>
           </div>
         </div>
       </div>
