@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import type { WAAnalysis, WAInsight, WASalesRow } from '../../api/types'
+import type { WAAnalysis, WAInsight, WAIntent, WASalesRow } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { useMore } from '../../components/More'
 import { Pill, Prov } from '../../components/ui'
@@ -8,8 +8,8 @@ import { fmtNum, hhmm, shortDate } from '../../lib/format'
 import { useNow } from '../../app/queries'
 import { waitLabel, who } from './wa'
 
-// Analisa WhatsApp in the original Pusat kendali / Orchestrator layout. Only numbers measured from the chats and what
-// Claude wrote through MCP (summary per conversation, overview) — no rule-based reading of requests (ADR 0032).
+// Analisa WhatsApp in the Pusat kendali layout of 08-frontend.md: numbers measured from the chats, the request each chat
+// makes (order, rilis kredit, retur) and what Claude wrote through MCP (summary per conversation, overview) — ADR 0045.
 
 const replyText = (m: number | null | undefined) => (m == null ? '—' : waitLabel(m))
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?'
@@ -20,6 +20,9 @@ export function byWait(rows: WAInsight[]): WAInsight[] {
 }
 
 export const waWaiting = (d: WAAnalysis | undefined) => byWait((d?.items ?? []).filter((r) => !!r.waiting_since))
+
+/** The conversations whose customer asks one of these (order, release, return…), waiting ones first. */
+export const waIntent = (d: WAAnalysis | undefined, ...ks: WAIntent[]) => byWait((d?.items ?? []).filter((r) => ks.includes(r.intent)))
 
 /** One conversation per row (the row-list of the original Jadwal order / Lewat jadwal cards). */
 export function WAChatList({ items, empty, limit = 8 }: { items: WAInsight[]; empty: string; limit?: number }) {

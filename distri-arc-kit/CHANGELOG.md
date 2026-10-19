@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Pusat kendali dan Orchestrator persis sesuai MD; analisa dari WhatsApp, stok dari BigQuery · 2026-10-19
+- **Pusat kendali** kembali ke susunan `08-frontend.md`: kartu Orchestrator di atas (pipeline, update terakhir, Analisis ulang), **Rencana hari ini**, Keputusan, Ringkasan, Jadwal order · 7 hari, Lewat jadwal, KPI utama, Agenda sales, Push stok, Limit tipis. Kotak Orchestrator kanan bawah tidak tampil di halaman ini.
+- Isi dari WhatsApp: Rencana dan Keputusan dari usulan Claude atas chat; Jadwal order = chat minta order; Lewat jadwal = chat lewat batas balas; Limit tipis = chat minta rilis kredit/retur; KPI dan Agenda dari WhatsApp. **Push stok** dari stok BigQuery.
+- **Orchestrator** kembali ke susunan MD: Pipeline, Resolusi konflik, Riwayat analisis, Agen (Jalankan ulang), MCP, Matriks otonomi. ADR 0045.
+
 ## Change · Dashboard tanpa Orchestrator; Orchestrator bisa diringkas jadi ikon · 2026-10-19
 - Dock **Orchestrator** melayang tidak lagi tampil di halaman **Dashboard**.
 - Dock punya tombol **Ringkas jadi ikon** (panah di kanan atas): dock mengecil jadi ikon bulat di pojok kanan bawah. Klik ikon untuk membuka lagi. Saat analisis berjalan, ikon berdenyut. Pilihan ringkas diingat di browser.

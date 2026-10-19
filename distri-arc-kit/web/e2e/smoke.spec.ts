@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 const routes = [
-  ['pusat-kendali', '/', 'Menunggu balasan'],
+  ['pusat-kendali', '/', 'Rencana hari ini'],
   ['orbit', '/orbit', 'Isi orbit'],
   ['segmen', '/orbit/segmen', 'Isi segmen'],
   ['dealer-mitra', '/dealer/mitra', 'CV Mitra Jaya Teknik'],
