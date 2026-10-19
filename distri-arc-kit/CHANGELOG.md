@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · "Tanya atau perintahkan Orchestrator" pindah ke kotak Orchestrator; kotaknya lebih jelas · 2026-10-19
+- Kolom tanya di bilah atas dihapus. Kolom yang sama kini ada di kotak Orchestrator kanan bawah (paling atas saat kotak dibuka); ⌘K / Ctrl+K membuka kotak dan langsung ke kolom itu.
+- Kotak Orchestrator diberi garis tepi berwarna, garis gradasi AI di atas, dan bayangan lebih tegas; ikon ringkasnya diberi cincin.
+
 ## Feat · Analisis ulang oleh sistem GSI Orbit, tanpa membuka Claude · 2026-10-19
 - Mesin baru **Sistem**: aturan agen dan rumus GSI Orbit dijalankan langsung di server — tanpa Claude, tanpa API, tanpa biaya AI, tanpa menunggu. Usulan tetap menunggu keputusan manusia.
 - Halaman **Orchestrator**: tombol utama **Analisis ulang (Sistem)**, tombol kedua **Lewat Claude · MCP**. Kotak Orchestrator kanan bawah: pilihan **Sistem · MCP Claude · API & model AI**.

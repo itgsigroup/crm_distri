@@ -113,7 +113,8 @@ test('Peta relasi loads the graph from the API (stage 08)', async ({ page }) => 
 
 test('⌘K answers with sources and the memo shows sources per sentence (stage 10)', async ({ page }) => {
   await page.goto('/', { waitUntil: 'networkidle' })
-  const input = page.locator('.searchwrap input').first()
+  await page.keyboard.press('ControlOrMeta+k') // opens the Orchestrator dock on its ask field
+  const input = page.locator('.dk-ask input')
   await input.fill('dealer mana yang berisiko')
   await input.press('Enter')
   await expect(page.locator('.sheet')).toContainText('Tiga dealer')

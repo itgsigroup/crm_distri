@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router'
 import { Icon } from '../components/Icon'
@@ -6,6 +6,7 @@ import { PIPELINE_STAGES, type ScreenKey } from '../lib/i18n/id'
 import { chipState, progress } from './cycle'
 import { SYSTEM_LABEL, scopeLabel, useOrch, useOrchStatus } from './orch'
 import { useCycleEngines } from './queries'
+import { useCommand } from './command'
 import { EFFORTS, MCP_MODELS, effort, mcpModel, setEffort, setMcpModel, shortModel, type Effort } from './enginePrefs'
 
 /** Pipeline chips (mockup pipeHtml compact): done / run per stage. */
@@ -89,6 +90,29 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
   const modelReady = !!eng?.model.ready
   const engine: Engine = pick === 'model' && !modelReady ? 'system' : pick ?? (modelReady ? 'model' : 'system')
   const choose = (e: Engine) => { setPick(e); try { localStorage.setItem(ENGINE_KEY, e) } catch { /* private mode */ } }
+  // "Tanya atau perintahkan Orchestrator" lives here (19 Oct, out of the top bar); ⌘K opens the dock on it
+  const ask = useCommand()
+  const [q, setQ] = useState('')
+  const askRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setMiniState(false)
+        setOpen(true)
+        setTimeout(() => askRef.current?.focus(), 0) // after the dock opened
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+  const submitAsk = (e: FormEvent) => {
+    e.preventDefault()
+    const v = q.trim()
+    if (!v) return
+    setQ('')
+    ask(v)
+  }
   const scope = screenScope(screen, pathname)
   const run = (sc: string) => reanalyze(sc, engine, engine === 'model' ? eng?.model.label : engine === 'system' ? SYSTEM_LABEL : 'Claude lewat MCP')
   const status = st.running ? `menganalisis ${st.scope} · ${st.stage}` : st.run ? `siap · siklus #${st.run.toLocaleString('id-ID')} · ${st.last}` : 'siap · belum ada siklus'
@@ -115,6 +139,11 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
         <button type="button" className="dk-min" onClick={() => setMini(true)} aria-label="Ringkas jadi ikon" title="Ringkas jadi ikon"><Icon name="chev" /></button>
       </div>
       <div className="dk-body">
+        <form className="dk-ask" autoComplete="off" onSubmit={submitAsk}>
+          <Icon name="spark" />
+          <input ref={askRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tanya atau perintahkan Orchestrator…" title="mis. “dealer mana yang lewat jadwal?” atau “analisis ulang stok”" aria-label="Tanya atau perintahkan Orchestrator" />
+          <button type="submit" className="dk-ask-go" aria-label="Kirim" disabled={!q.trim()}><Icon name="send" /></button>
+        </form>
         <div className="dk-pipe"><PipeChips /></div>
         <div className="dk-track"><i style={{ width: `${progress(s)}%` }} /></div>
         {extra && <div className="dk-extra">{extra}</div>}

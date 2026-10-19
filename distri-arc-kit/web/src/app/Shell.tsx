@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router'
 import sprite from '../icons/sprite.svg?raw'
 import { Icon } from '../components/Icon'
@@ -9,7 +9,6 @@ import { TITLES, type ScreenKey } from '../lib/i18n/id'
 import { LoadingPopup } from '../components/LoadingPopup'
 import { todayLine } from '../lib/format'
 import { useHealth, useMe, useNow, useOrbit, useThreads } from './queries'
-import { useCommand } from './command'
 import { Dock } from './Dock'
 import { OrchPill, useOrchStatus } from './orch'
 import { useSse } from './SseProvider'
@@ -97,9 +96,6 @@ export function Shell() {
   const { data: threads } = useThreads('all', '', !!me?.screens.includes('chat'))
   const unread = threads?.reduce((a, t) => a + t.unread, 0)
   const orch = useOrchStatus()
-  const run = useCommand()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [q, setQ] = useState('')
   const { toast } = useFeedback()
 
   useEffect(() => {
@@ -125,28 +121,11 @@ export function Shell() {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
     window.location.assign('/login')
   }
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        inputRef.current?.focus()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
 
   const atRisk = dealers?.filter((d) => d.metrics.status === 'At risk' || d.metrics.status === 'Churn').length
   const creditBad = dealers?.filter((d) => d.credit_limit > 0 && (d.metrics.credit.state === 'over limit' || d.metrics.credit.state === 'overdue')).length
   const [title, sub] = TITLES[cur]
   const subline = cur === 'today' ? todayLine(now) : sub
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    const v = q.trim()
-    if (!v) return
-    setQ('')
-    run(v)
-  }
   const isOrbit = cur === 'orbit' || cur === 'net' || cur === 'kuad'
   // the menu scrolls on short screens: keep the open page's item in view
   useEffect(() => { document.querySelector('.rail .nav-btn.is-active')?.scrollIntoView?.({ block: 'nearest' }) }, [cur, me])
@@ -217,13 +196,6 @@ export function Shell() {
               )}
             </div>
             <div className="top-right">
-              <div className="searchwrap">
-                <form className="search" autoComplete="off" onSubmit={submit}>
-                  <Icon name="spark" />
-                  <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tanya atau perintahkan Orchestrator… mis. “dealer mana yang lewat jadwal?”" aria-label="Tanya" />
-                  <kbd>⌘K</kbd>
-                </form>
-              </div>
               <OrchPill />
               {me?.pilot_mode === 'shadow' && <span className="chip-sample" title="Pilot: Orchestrator menganalisis, tidak ada yang dikirim ke dealer">Mode bayangan</span>}
               {health?.sample_data && <span className="chip-sample">Data contoh</span>}
