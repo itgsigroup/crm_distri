@@ -1,18 +1,15 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import type { WAAnalysis, WAInsight, WAIntent, WASalesRow } from '../../api/types'
 import { Icon } from '../../components/Icon'
-import { useMore } from '../../components/More'
-import { Pill, Prov } from '../../components/ui'
+import { Prov } from '../../components/ui'
 import { fmtNum, hhmm, shortDate } from '../../lib/format'
 import { useNow } from '../../app/queries'
-import { waitLabel, who } from './wa'
+import { waitLabel } from './wa'
 
 // Analisa WhatsApp in the Pusat kendali layout of 08-frontend.md: numbers measured from the chats, the request each chat
 // makes (order, rilis kredit, retur) and what Claude wrote through MCP (summary per conversation, overview) — ADR 0045.
 
 const replyText = (m: number | null | undefined) => (m == null ? '—' : waitLabel(m))
-const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?'
 
 /** Waiting conversations first (longest wait on top), then the rest by priority. */
 export function byWait(rows: WAInsight[]): WAInsight[] {
@@ -23,39 +20,6 @@ export const waWaiting = (d: WAAnalysis | undefined) => byWait((d?.items ?? []).
 
 /** The conversations whose customer asks one of these (order, release, return…), waiting ones first. */
 export const waIntent = (d: WAAnalysis | undefined, ...ks: WAIntent[]) => byWait((d?.items ?? []).filter((r) => ks.includes(r.intent)))
-
-/** One conversation per row (the row-list of the original Jadwal order / Lewat jadwal cards). */
-export function WAChatList({ items, empty, limit = 8 }: { items: WAInsight[]; empty: string; limit?: number }) {
-  const nav = useNavigate()
-  const [shown, more] = useMore(items, limit)
-  if (items.length === 0) return <p className="sg-hint">{empty}</p>
-  return (
-    <>
-      <ul className="row-list">
-        {shown.map((r) => (
-          <li key={r.thread_id}>
-            <span className="who" style={{ width: 'auto' }}>
-              {r.waiting_since ? <Pill tone={r.needs_reply ? 'bad' : 'warn'}>{waitLabel(r.wait_min)}</Pill> : r.answered ? <Pill tone="good" icon="check">dibalas</Pill> : <Pill tone="neutral">—</Pill>}
-            </span>
-            <div>
-              <div className="t">
-                {r.dealer_id ? <button className="ev" onClick={() => nav('/dealer/' + r.dealer_id)}>{who(r)}</button> : <b>{who(r)}</b>}
-                {r.kind === 'new' && <> · <Pill tone="indigo">nomor baru</Pill></>}
-                {r.sales && <> · {r.sales}</>}
-              </div>
-              <div className="s">
-                {r.summary ? <><span className="ai" title="ditulis Claude lewat MCP" />{r.summary}</> : r.last_text ? <q>{r.last_text}</q> : 'hanya pesan sales'}
-                {r.proposal_ids.length > 0 && <> · <Icon name="spark" />{r.proposal_ids.length} usulan agen</>}
-              </div>
-            </div>
-            <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => nav('/chat/' + r.thread_id)}>Buka chat</button>
-          </li>
-        ))}
-      </ul>
-      {more}
-    </>
-  )
-}
 
 /** Ringkasan Orchestrator from WhatsApp: the AI overview, else what the numbers say. */
 export function WABrief({ data, scoped }: { data: WAAnalysis | undefined; scoped: boolean }) {
@@ -111,47 +75,6 @@ export function WAWheels({ data }: { data: WAAnalysis | undefined }) {
         ))}
       </div>
     </>
-  )
-}
-
-/** Agenda sales from WhatsApp: per sales, the conversations still waiting for their reply. */
-export function WAAgenda({ data }: { data: WAAnalysis | undefined }) {
-  const nav = useNavigate()
-  const [openRow, setOpenRow] = useState('')
-  const rows = data?.sales ?? []
-  const waitingOf = (s: WASalesRow) => byWait((data?.items ?? []).filter((r) => r.sales === s.name && !!r.waiting_since))
-  const busy = rows.filter((s) => s.waiting > 0).sort((a, b) => b.needs_reply - a.needs_reply || b.waiting - a.waiting)
-  const idle = rows.filter((s) => s.waiting === 0)
-  const [shown, more] = useMore(busy, 6)
-  return (
-    <div className="agenda">
-      {shown.map((s) => {
-        const items = waitingOf(s)
-        const all = openRow === s.name
-        return (
-          <div className="ag-row" key={s.name}>
-            <div className="ag-who">
-              <span className="avatar">{initials(s.name || '?')}</span>
-              <div><b>{s.name || 'Tanpa sales'}</b><span>{s.threads} chat · balas {replyText(s.reply_median_min)} · p90 {replyText(s.reply_p90_min ?? null)}</span></div>
-              <span className="ag-n" title="chat belum dibalas">{s.waiting}</span>
-            </div>
-            <ul>
-              {(all ? items : items.slice(0, 3)).map((r) => (
-                <li key={r.thread_id}>
-                  <span className="dot" style={{ background: r.needs_reply ? 'var(--bad)' : 'var(--warn)' }} />
-                  <button className="ev" onClick={() => nav('/chat/' + r.thread_id)}>{who(r)}</button>
-                  <span className="ag-what">menunggu {waitLabel(r.wait_min)}</span>
-                </li>
-              ))}
-              {items.length > 3 && <li><button className="ev-more" onClick={() => setOpenRow(all ? '' : s.name)}>{all ? 'ringkas' : `+${items.length - 3} chat lainnya`}</button></li>}
-            </ul>
-          </div>
-        )
-      })}
-      {more}
-      {idle.length > 0 && <p className="ag-idle">{idle.length} sales tanpa chat menunggu: {idle.slice(0, 6).map((s) => s.name.split(' ')[0]).join(', ')}{idle.length > 6 ? `, +${idle.length - 6}` : ''}</p>}
-      {rows.length === 0 && <p className="ag-idle">Belum ada percakapan.</p>}
-    </div>
   )
 }
 

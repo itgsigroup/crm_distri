@@ -6,13 +6,11 @@ import { greeting, hhmm, shortDate } from '../../lib/format'
 import { Dock } from '../../app/Dock'
 import { useMe, useNow, usePlan, useQueue, useStockPush, useWAAnalysis } from '../../app/queries'
 import { useOrchStatus } from '../../app/orch'
-import { PlanList } from './Plan'
-import { PushList } from './lists'
-import { Queue } from './Queue'
+import { AgendaTable, PlanTable, PushTable, QueueTable, WAChatTable } from './tables'
 import { AnalysisPanel } from './AnalysisPanel'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import { WALastRead, useCanWA } from '../wa/WAAnalysis'
-import { WAAgenda, WABrief, WAChatList, WAClaudeStatus, WAWheels, waIntent, waWaiting } from '../wa/WACards'
+import { WABrief, WAClaudeStatus, WAWheels, waIntent, waWaiting } from '../wa/WACards'
 import { waitLabel } from '../wa/wa'
 
 function scrollTo(id: string) {
@@ -21,8 +19,9 @@ function scrollTo(id: string) {
 
 const NO_WA = 'Analisa WhatsApp mengutip pesan pelanggan, jadi hanya tampil untuk pengguna dengan akses halaman Chat.'
 
-// Pusat kendali, the cards of 08-frontend.md in their places (ADR 0045): every analysis read from WhatsApp, Push stok
-// from the BigQuery stock.
+// Pusat kendali, the cards of 08-frontend.md (ADR 0045), arranged by Sam 19 Oct: Rencana → Agenda sales → Keputusan,
+// Jadwal order + Push stok | Lewat jadwal + Limit tipis; KPI and Ringkasan on the right. Every analysis read from
+// WhatsApp, Push stok from the BigQuery stock; every list is a data table (search, sort, pages).
 export function ControlCenter() {
   const nav = useNavigate()
   const { data: me } = useMe()
@@ -91,28 +90,40 @@ export function ControlCenter() {
         <div className="stack">
           <div className="card" id="plan-card">
             <div className="card-h"><h2>Rencana hari ini</h2><span className="ai" style={{ marginLeft: 6 }}>disusun Orchestrator · dari WhatsApp</span><span className="meta">{waPlan?.total ? `${waPlan.total} langkah · ${waPlan.auto} otonom · ${waPlan.approve} butuh approve` : '0 langkah'}</span></div>
-            {canWA ? <PlanList plan={waPlan} /> : <p className="sg-hint">{NO_WA}</p>}
+            {canWA ? <PlanTable plan={waPlan} /> : <p className="sg-hint">{NO_WA}</p>}
             <div className="plan-foot"><span className="pol"><Icon name="lock" />Langkah berlabel <b>otonom</b> berjalan sendiri dalam batas kebijakan; yang lain menunggu Anda. Tidak ada pesan yang terkirim sendiri.</span><button className="btn ghost" onClick={() => scrollTo('queue-card')}>Ke keputusan</button></div>
+          </div>
+
+          <div className="card" id="agenda-card">
+            <CardH title="Agenda sales" meta="dibagi Orchestrator · chat menunggu balasan per sales" />
+            {canWA ? <AgendaTable data={wa} /> : <p className="sg-hint">{NO_WA}</p>}
           </div>
 
           <div className="card" id="queue-card">
             <div className="card-h"><h2>Keputusan</h2><span className="ai" style={{ marginLeft: 6 }}>Claude · MCP</span><span className="meta">{pending ? `${pending} item · usulan dari chat WhatsApp` : 'Tidak ada usulan dari chat yang menunggu'}</span></div>
-            {canWA ? <Queue items={waQueue} /> : <p className="sg-hint">{NO_WA}</p>}
-          </div>
-
-          <div className="card brief">
-            <div className="card-h"><span className="ai">Ringkasan Orchestrator · {wa?.generated_at ? `${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : '—'}</span><span className="meta" title="AI hanya membaca pesan pelanggan baru hari ini; yang sudah dibaca tetap tampil. Angka dihitung dari 7 hari terakhir tanpa AI.">{wa?.cycle_number ? `dari WhatsApp · ${wa.window_days} hari terakhir · siklus #${wa.cycle_number.toLocaleString('id-ID')}` : ''}</span></div>
-            {canWA ? <><WAClaudeStatus data={wa} /><WABrief data={wa} scoped={scoped} /></> : <p className="sg-hint">{NO_WA}</p>}
+            {canWA ? <QueueTable items={waQueue} /> : <p className="sg-hint">{NO_WA}</p>}
           </div>
 
           <div className="grid-2">
-            <div className="card" id="due-card">
-              <div className="card-h"><h2>Jadwal order · 7 hari</h2><span className="ai" style={{ marginLeft: 6 }}>AI Order</span><span className="meta">Dealer yang minta order di chat WhatsApp minggu ini</span></div>
-              {canWA ? <WAChatList items={orders} empty="Belum ada permintaan order di chat 7 hari terakhir." /> : <p className="sg-hint">{NO_WA}</p>}
+            <div className="stack">
+              <div className="card" id="due-card">
+                <div className="card-h"><h2>Jadwal order · 7 hari</h2><span className="ai" style={{ marginLeft: 6 }}>AI Order</span><span className="meta">Dealer yang minta order di chat WhatsApp minggu ini</span></div>
+                {canWA ? <WAChatTable items={orders} empty="Belum ada permintaan order di chat 7 hari terakhir." /> : <p className="sg-hint">{NO_WA}</p>}
+              </div>
+              <div className="card" id="push-card">
+                <CardH title="Push stok" ai="AI Stok" meta="Stok BigQuery → dealer yang product mix-nya cocok" />
+                <PushTable items={push} />
+              </div>
             </div>
-            <div className="card" id="drift-card">
-              <div className="card-h"><h2>Lewat jadwal</h2><span className="ai" style={{ marginLeft: 6 }}>AI Follow-up</span><span className="meta">Chat lewat {due} belum dibalas — sebelum ordernya hilang</span></div>
-              {canWA ? <WAChatList items={late} empty={`Tidak ada chat yang menunggu lebih dari ${due}.`} /> : <p className="sg-hint">{NO_WA}</p>}
+            <div className="stack">
+              <div className="card" id="drift-card">
+                <div className="card-h"><h2>Lewat jadwal</h2><span className="ai" style={{ marginLeft: 6 }}>AI Follow-up</span><span className="meta">Chat lewat {due} belum dibalas — sebelum ordernya hilang</span></div>
+                {canWA ? <WAChatTable items={late} empty={`Tidak ada chat yang menunggu lebih dari ${due}.`} /> : <p className="sg-hint">{NO_WA}</p>}
+              </div>
+              <div className="card" id="tight-card">
+                <CardH title="Limit tipis" ai="AI Kredit" meta="Chat minta rilis kredit atau retur" />
+                {canWA ? <WAChatTable items={tight} empty="Belum ada permintaan rilis kredit atau retur di chat." /> : <p className="sg-hint">{NO_WA}</p>}
+              </div>
             </div>
           </div>
         </div>
@@ -122,17 +133,9 @@ export function ControlCenter() {
             <CardH title="KPI utama" meta="dari WhatsApp · balas cepat, order tidak hilang" />
             {canWA ? <WAWheels data={wa} /> : <p className="sg-hint">{NO_WA}</p>}
           </div>
-          <div className="card">
-            <CardH title="Agenda sales" meta="dibagi Orchestrator · chat menunggu balasan per sales" />
-            {canWA ? <WAAgenda data={wa} /> : <p className="sg-hint">{NO_WA}</p>}
-          </div>
-          <div className="card">
-            <CardH title="Push stok" ai="AI Stok" meta="Stok BigQuery → dealer yang product mix-nya cocok" />
-            <PushList items={push} />
-          </div>
-          <div className="card" id="tight-card">
-            <CardH title="Limit tipis" ai="AI Kredit" meta="Chat minta rilis kredit atau retur" />
-            {canWA ? <WAChatList items={tight} empty="Belum ada permintaan rilis kredit atau retur di chat." limit={5} /> : <p className="sg-hint">{NO_WA}</p>}
+          <div className="card brief">
+            <div className="card-h"><span className="ai">Ringkasan Orchestrator · {wa?.generated_at ? `${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : '—'}</span><span className="meta" title="AI hanya membaca pesan pelanggan baru hari ini; yang sudah dibaca tetap tampil. Angka dihitung dari 7 hari terakhir tanpa AI.">{wa?.cycle_number ? `dari WhatsApp · ${wa.window_days} hari terakhir · siklus #${wa.cycle_number.toLocaleString('id-ID')}` : ''}</span></div>
+            {canWA ? <><WAClaudeStatus data={wa} /><WABrief data={wa} scoped={scoped} /></> : <p className="sg-hint">{NO_WA}</p>}
           </div>
         </div>
       </div>

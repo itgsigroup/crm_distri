@@ -1749,3 +1749,24 @@ body.map-maximized{overflow:hidden}
 /* top-right pill = the automatic Analisa WhatsApp through MCP */
 .orch-pill.running .op-dot{animation:pulse .9s infinite}
 .orch-pill .op-bad{color:var(--bad);font-weight:600}
+
+/* Pusat kendali cards as data tables (19 Oct): fit a card, wrap text, compact */
+.odl.cc-table{min-width:0;font-size:12.5px}
+.odl.cc-table td{vertical-align:top}
+.cc-table .cc-sub{display:block;margin-top:2px;font-size:11.5px;color:var(--text-3);line-height:1.35}
+.cc-table .cc-sub q{quotes:"“" "”"}
+.cc-table .nowrap{white-space:nowrap}
+.cc-table .btn{height:26px;font-size:12px;white-space:nowrap}
+.cc-table .cc-acts{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.today .card .odl-tools{flex-wrap:wrap}
+.today .card .odl-q{max-width:none;flex:1 1 160px}
+.today .card .odl-footer{flex-wrap:wrap;gap:8px}
+.today .grid-2{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.today .grid-2>.stack,.today .stack>.card{min-width:0}
+@media (max-width:1180px){.today .grid-2{grid-template-columns:minmax(0,1fr)}}
+.plan-foot .pol{display:block;flex:1 1 260px}
+.plan-foot .pol .i{display:inline-block;vertical-align:-2px;margin-right:4px}
+.cc-table td:first-child{min-width:120px}
+.cc-table .btn.cc-ico{width:30px;padding:0;justify-content:center}
+.cc-table .btn.cc-ico .i{width:14px;height:14px;margin:0}
+.cc-table .cc-sub b{color:var(--text-2);font-weight:600}

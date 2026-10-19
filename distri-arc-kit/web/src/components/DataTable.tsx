@@ -97,3 +97,58 @@ export function TablePager({ t, noun }: { t: Pick<ReturnType<typeof useDataTable
     </div>
   )
 }
+
+/** One column of a ColumnTable: its header, how a cell reads, and how two rows compare on it (omitted: not sortable). */
+export interface Column<T> {
+  key: string
+  label: string
+  cell: (row: T) => ReactNode
+  sort?: (a: T, b: T) => number
+  /** direction the column starts with when first clicked (default: A→Z) */
+  first?: Dir
+  right?: boolean
+  className?: string
+}
+
+/** A whole data table from column definitions: search, sort asc/desc per column, pages of 10/25/50 (Pusat kendali
+ * cards, 19 Oct). The first sortable column (or `initial`) orders the rows at first. */
+export function ColumnTable<T>({ rows, columns, text, rowKey, initial, empty, noun, placeholder, className = '' }: {
+  rows: T[]; columns: Column<T>[]; text: (row: T) => string; rowKey: (row: T) => string
+  initial?: { column: string; dir: Dir }; empty: ReactNode; noun: string; placeholder: string; className?: string
+}) {
+  const sortable = columns.filter((c) => c.sort)
+  const compare = Object.fromEntries(sortable.map((c) => [c.key, c.sort!])) as Record<string, (a: T, b: T) => number>
+  const first = initial ?? { column: sortable[0]?.key ?? '', dir: sortable[0]?.first ?? 'asc' }
+  // the cards rebuild their row arrays on every render: keep the same array while the rows read the same, so the
+  // table stays on its page (useDataTable goes back to page 1 when the rows change)
+  const sig = rows.map((r) => rowKey(r) + '\u0001' + text(r)).join('\u0002')
+  const [stable, setStable] = useState({ sig, rows })
+  if (stable.sig !== sig) setStable({ sig, rows })
+  const t = useDataTable<T, string>({
+    rows: stable.sig === sig ? stable.rows : rows, text, compare: compare[first.column] ? compare : { [first.column]: () => 0, ...compare }, initial: first,
+    firstDir: (c) => columns.find((x) => x.key === c)?.first ?? 'asc',
+  })
+  if (rows.length === 0) return <p className="sg-hint">{empty}</p>
+  return (
+    <>
+      <TableSearch value={t.query} onChange={t.setQuery} placeholder={placeholder} label={`Cari ${noun}`} meta={`${t.matches.length.toLocaleString('id-ID')} ${noun}`} />
+      {t.matches.length === 0 ? (
+        <p className="sg-hint">Tidak ada {noun} yang cocok dengan pencarian ini.</p>
+      ) : (
+        <div className="odl-wrap">
+          <table className={`odl cc-table ${className}`}>
+            <thead><tr>
+              {columns.map((c) => c.sort ? <SortTh key={c.key} t={t} c={c.key} right={c.right}>{c.label}</SortTh> : <th key={c.key} className={c.right ? 'r' : undefined}>{c.label}</th>)}
+            </tr></thead>
+            <tbody>
+              {t.shown.map((r) => (
+                <tr key={rowKey(r)}>{columns.map((c) => <td key={c.key} className={[c.right ? 'r' : '', c.className ?? ''].join(' ').trim() || undefined}>{c.cell(r)}</td>)}</tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <TablePager t={t} noun={noun} />
+    </>
+  )
+}

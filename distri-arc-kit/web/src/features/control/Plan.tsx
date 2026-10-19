@@ -2,7 +2,7 @@ import { Fragment, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
-import type { NextAction, Plan, PlanStep } from '../../api/types'
+import type { NextAction, PlanStep } from '../../api/types'
 import { ActBtn } from '../../components/actions'
 import { useFeedback } from '../../components/feedback'
 
@@ -66,8 +66,16 @@ function stepAction(it: PlanStep): NextAction | null {
   return { id: p.id, kind: p.kind, title: '', button: p.button, icon: p.icon, agent: it.agent ?? '', due_label: '', status: p.status, why: '', decided_at: null, executed_at: null, autonomy: p.autonomy }
 }
 
-/** Rencana hari ini (mockup renderPlan). */
-export function PlanList({ plan }: { plan: Plan | undefined }) {
+/** The status pill of a plan step (Rencana hari ini). */
+export function planStatus(it: PlanStep): { tone: string; text: string } {
+  const auto = it.autonomy === 'auto'
+  if (it.status === 'done') return { tone: 'good', text: '✓ ' + (it.link?.startsWith('chat:') ? 'dibalas' : 'dijalankan') }
+  if (it.status === 'skipped') return { tone: 'bad', text: 'ditolak' }
+  return { tone: 'neutral', text: STATUS[it.status] ?? (auto ? 'terjadwal' : 'menunggu Anda') }
+}
+
+/** The action of a plan step: open the chat, decide its proposal, or run an automatic step now. */
+export function PlanAct({ it }: { it: PlanStep }) {
   const nav = useNavigate()
   const qc = useQueryClient()
   const { toast } = useFeedback()
@@ -79,56 +87,13 @@ export function PlanList({ plan }: { plan: Plan | undefined }) {
     },
     onError: (e: Error) => toast(e.message),
   })
-  const items = plan?.items ?? []
-  if (items.length === 0) {
-    return (
-      <ol className="plan">
-        <li>
-          <span className="pt">—</span>
-          <div className="pb"><div className="px" style={{ color: 'var(--text-2)' }}>Belum ada rencana. Orchestrator menyusun Rencana hari ini dari siklus pertamanya: jadwal order, penagihan, dan push stok, diurutkan per jam.</div><div className="pm"><span className="ai">Orchestrator</span><span className="pill neutral">menunggu siklus</span></div></div>
-          <div className="pa" />
-        </li>
-      </ol>
-    )
-  }
-  return (
-    <ol className="plan">
-      {items.map((it) => {
-        const auto = it.autonomy === 'auto'
-        const done = it.status === 'done'
-        const rej = it.status === 'skipped'
-        const next = stepAction(it)
-        return (
-          <li key={it.id} className={done ? 'done' : rej ? 'rej' : ''}>
-            <span className="pt">{it.time_label}</span>
-            <div className="pb">
-              <div className="px"><PlanText text={it.text_html ?? ''} /></div>
-              <div className="pm">
-                <span className="ai">{it.agent}</span>
-                <span className={`pill ${auto ? 'good' : 'warn'}`}>{auto ? 'otonom' : 'butuh approve'}</span>
-                {done ? <span className="pill good">✓ {it.link?.startsWith('chat:') ? 'dibalas' : 'dijalankan'}</span> : rej ? <span className="pill bad">ditolak</span> : <span className="pill neutral">{STATUS[it.status] ?? (auto ? 'terjadwal' : 'menunggu Anda')}</span>}
-              </div>
-            </div>
-            <div className="pa">
-              {it.link?.startsWith('chat:') ? (
-                done ? null : <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => nav('/chat/' + it.link!.slice(5))}>Buka chat</button>
-              ) : it.link === 'chat' && !done && !rej && next?.status === 'proposed' ? (
-                <span style={{ display: 'flex', gap: 6 }}>
-                  <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => nav('/chat')}>Lihat</button>
-                  <ActBtn next={next} small />
-                </span>
-              ) : !auto && next ? (
-                <ActBtn next={next} small />
-              ) : auto && !done && !rej && it.status !== 'waiting' && it.proposals.length > 0 ? (
-                <button className="btn quiet" style={{ height: 28, fontSize: 12 }} disabled={runNow.isPending} onClick={() => runNow.mutate(it.id)}>Jalankan sekarang</button>
-              ) : null}
-            </div>
-          </li>
-        )
-      })}
-    </ol>
-  )
+  const auto = it.autonomy === 'auto'
+  const done = it.status === 'done'
+  const rej = it.status === 'skipped'
+  const next = stepAction(it)
+  if (it.link?.startsWith('chat:')) return done ? null : <button className="btn ghost" onClick={() => nav('/chat/' + it.link!.slice(5))}>Buka chat</button>
+  if (it.link === 'chat' && !done && !rej && next?.status === 'proposed') return <span className="cc-acts"><button className="btn ghost" onClick={() => nav('/chat')}>Lihat</button><ActBtn next={next} small /></span>
+  if (!auto && next) return <ActBtn next={next} small />
+  if (auto && !done && !rej && it.status !== 'waiting' && it.proposals.length > 0) return <button className="btn quiet" disabled={runNow.isPending} onClick={() => runNow.mutate(it.id)}>Jalankan sekarang</button>
+  return null
 }
-
-/** "8 langkah · 3 otonom · 5 butuh approve" */
-export const planMeta = (p: Plan | undefined) => (p && p.total ? `${p.total} langkah · ${p.auto} otonom · ${p.approve} butuh approve` : '0 langkah')

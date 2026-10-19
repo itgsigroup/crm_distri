@@ -34,3 +34,9 @@ stok berasal dari BigQuery.
 - Pengguna tanpa akses Chat melihat kartu Pusat kendali berisi pesan akses, kecuali Push stok.
 - Label permintaan dibaca dari kata kunci pesan (`agents.Extract`), bukan AI; kartu-kartu itu menampilkan daftar chat,
   bukan kesimpulan.
+
+## Pembaruan 2026-10-19 (siang) — susunan dan tabel data
+- Susunan Pusat kendali atas permintaan Sam: kolom kiri Rencana hari ini → Agenda sales → Keputusan → dua kolom
+  (Jadwal order · 7 hari + Push stok | Lewat jadwal + Limit tipis); kolom kanan KPI utama → Ringkasan Orchestrator.
+- Setiap kartu berisi daftar menjadi tabel data (`ColumnTable` di `components/DataTable.tsx`): cari, urut naik/turun
+  per kolom, 10/25/50 baris per halaman. Ringkasan dan KPI tetap berupa teks dan roda.

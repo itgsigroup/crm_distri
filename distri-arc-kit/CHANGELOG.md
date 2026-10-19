@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Pusat kendali: susunan baru dan semua daftar jadi tabel data · 2026-10-19
+- Susunan: **Agenda sales** di bawah Rencana hari ini; **Ringkasan Orchestrator** pindah ke tempat Agenda sales (kolom kanan, di bawah KPI utama); **Push stok** di bawah Jadwal order; **Limit tipis** di bawah Lewat jadwal.
+- Rencana hari ini, Agenda sales, Keputusan, Jadwal order, Lewat jadwal, Push stok, dan Limit tipis kini tabel data: kolom pencarian, urut naik/turun per kolom, dan halaman 10/25/50 baris.
+
 ## Change · Pill kanan atas = Analisa WhatsApp otomatis lewat MCP · 2026-10-19
 - Pill di kanan atas (sebelumnya "Analisis #… · berikutnya" dari siklus Orchestrator per jam) kini menampilkan **Analisa WhatsApp otomatis lewat MCP**: kapan terakhir berhasil, sedang berjalan atau gagal, dan jam berikutnya. Klik membuka Pusat kendali.
 - Jadwal yang ditampilkan: routine claude.ai (ADR 0037) atau jadwal API server (ADR 0043) — yang aktif dan paling dekat jalannya. Pengguna tanpa akses Chat tetap melihat siklus Orchestrator.
