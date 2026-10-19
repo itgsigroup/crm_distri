@@ -317,50 +317,41 @@ const hueOf = (s: string) => HUES[[...s].reduce((a, c) => a + c.charCodeAt(0), 0
 const initialsOf = (n: WANumber) => !(n.user_name || n.label || n.sales) ? '?' : labelOf(n).replace(/^(Pak|Bu|Mbak|Mas)\s+/, '').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '#'
 const STATE_DOT: Record<string, string> = { connected: 'good', pairing: 'warn', disconnected: 'bad', logged_out: 'bad', unpaired: 'neutral' }
 
-/** The WhatsApp numbers of the team, like accounts in WhatsApp Business: pick one to see only its chats (or all),
- * see which are linked and their unread counts, link one that is not, add more. */
-export function NumberRail({ account, setAccount, unread }: { account: string; setAccount: (a: string) => void; unread: Record<string, number> }) {
+/** The WhatsApp numbers of the team, like accounts in WhatsApp Business: pick one to see its chats, see which are
+ * linked and their unread counts, link one that is not, add more. No "Semua" and no team totals (Sam 19 Oct): loading
+ * every number's chats at once made Chat slow — the team names (Sales, Admin, Penagihan) only group the numbers. The
+ * unread counts come with the numbers (/wa/status), never from loading the chats. */
+export function NumberRail({ account, setAccount }: { account: string; setAccount: (a: string) => void }) {
   const { data } = useWAStatus()
   const { data: me } = useMe()
   const { openSheet } = useFeedback()
   const canAdd = (!!me?.screens.includes('users') && me?.chat_scope !== 'own') || (me?.wa_allowed !== false && !(data?.items ?? []).some((n) => n.mine))
   const items = data?.items ?? []
-  const total = Object.values(unread).reduce((a, b) => a + b, 0)
   const pick = (n: WANumber) => {
     if (n.state !== 'connected' && data?.transport !== 'fake') openSheet(<PairSheet wa={n.wa_number} />)
-    else setAccount(account === n.wa_number ? '' : n.wa_number)
+    else setAccount(n.wa_number)
   }
-  // the numbers grouped by team (Sales, Admin, Penagihan); a team's heading shows the chats of all its numbers
   const teams = TEAMS.map(([k, label]) => ({ k, label, nums: items.filter((n) => (n.team ?? 'sales') === k) })).filter((t) => t.nums.length > 0)
   return (
     <nav className="wa-rail" aria-label="Nomor WhatsApp">
-      <button className={`wr-i all ${account === '' ? 'is-active' : ''}`} onClick={() => setAccount('')} title={`Semua nomor · ${items.length} nomor`}>
-        <span className="wr-av"><Icon name="chat" /></span>
-        {total > 0 && <span className="wr-un">{total > 99 ? '99+' : total}</span>}
-        <span className="wr-l">Semua</span>
-      </button>
-      {teams.map((t) => {
-        const un = t.nums.reduce((a, n) => a + (unread[n.wa_number] ?? 0), 0)
-        const key = 'team:' + t.k
-        return (
-          <div key={t.k} className={`wr-team team-${t.k}`} role="group" aria-label={`Tim ${t.label}`}>
-            <span className="wr-sep" />
-            <button className={`wr-th ${account === key ? 'is-active' : ''}`} onClick={() => setAccount(account === key ? '' : key)}
-              title={`Semua chat tim ${t.label} · ${t.nums.length} nomor${un ? ` · ${un} belum dibaca` : ''}`}>
-              {t.label}{un > 0 && <span className="wr-tun">{un > 99 ? '99+' : un}</span>}
-            </button>
-            {t.nums.map((n) => (
+      {teams.map((t, i) => (
+        <div key={t.k} className={`wr-team team-${t.k}`} role="group" aria-label={`Tim ${t.label}`}>
+          {i > 0 && <span className="wr-sep" />}
+          <span className="wr-th">{t.label}</span>
+          {t.nums.map((n) => {
+            const un = n.unread_count ?? 0
+            return (
               <button key={n.wa_number} className={`wr-i ${account === n.wa_number ? 'is-active' : ''} ${n.state !== 'connected' ? 'off' : ''}`} onClick={() => pick(n)}
                 title={`${labelOf(n)} · Tim ${t.label}${holderOf(n) ? ` · ${holderOf(n)}` : ''} · ${phoneOf(n)} · ${STATE[n.state]?.[0] ?? n.state}${n.state !== 'connected' ? ' — klik untuk menautkan' : ''}`}>
                 <span className="wr-av" style={{ background: `hsl(${hueOf(n.wa_number)} 62% 46%)` }}>{initialsOf(n)}</span>
                 <span className={`dot ${STATE_DOT[n.state] ?? 'neutral'}`} />
-                {(unread[n.wa_number] ?? 0) > 0 && <span className="wr-un">{unread[n.wa_number] > 99 ? '99+' : unread[n.wa_number]}</span>}
+                {un > 0 && <span className="wr-un">{un > 99 ? '99+' : un}</span>}
                 <span className="wr-l">{railName(n)}</span>
               </button>
-            ))}
-          </div>
-        )
-      })}
+            )
+          })}
+        </div>
+      ))}
       {canAdd && (
         <button className="wr-i add" onClick={() => openSheet(<LinkSheet />)} title="Hubungkan nomor WhatsApp baru (scan)">
           <span className="wr-av">+</span><span className="wr-l">Nomor</span>

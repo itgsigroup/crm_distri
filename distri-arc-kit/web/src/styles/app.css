@@ -1844,3 +1844,10 @@ body.map-maximized{overflow:hidden}
 .at-engine-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .at-engine-row .cl-input{flex:1 1 260px;min-width:0;max-width:440px}
 .at-engine-hint{margin:10px 0 0;font-size:12.5px;color:var(--text-3);line-height:1.5}
+
+/* Chat: team names only group the numbers (no totals, not clickable); no chat opens by itself (19 Oct) */
+.wa-rail span.wr-th{cursor:default;background:transparent;pointer-events:none}
+.th-none{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--text-3);text-align:center;padding:24px}
+.th-none .i{width:34px;height:34px;color:var(--text-3);opacity:.6}
+.th-none b{font-size:15px;color:var(--text-2)}
+.th-none span{font-size:12.5px;max-width:260px}

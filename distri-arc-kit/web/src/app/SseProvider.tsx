@@ -6,7 +6,7 @@ const INVALIDATES: Record<string, string[][]> = {
   cycle_stage: [['cycle']],
   cycle_done: [['cycle'], ['cycles'], ['plan'], ['proposals'], ['brief'], ['orbit'], ['segmen'], ['dealers'], ['dealer'], ['kpi'], ['agenda'], ['agents'], ['stock'], ['credit'], ['chat', 'wa-analysis']],
   proposal_changed: [['proposals'], ['plan'], ['dealer'], ['dealers'], ['cycle'], ['orbit'], ['chat']],
-  chat_message: [['chat']],
+  chat_message: [['chat'], ['wa', 'status']], // the numbers carry the unread counts (rail, menu badge)
   wa_status: [['wa']],
   mcp_call: [['mcp']],
   mcp_schedule: [['mcp'], ['chat', 'wa-analysis']], // Claude's Analisa WhatsApp every 2 h: the label in Pusat kendali

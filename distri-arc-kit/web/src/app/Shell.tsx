@@ -8,7 +8,7 @@ import { useFeedback } from '../components/feedback'
 import { TITLES, type ScreenKey } from '../lib/i18n/id'
 import { LoadingPopup } from '../components/LoadingPopup'
 import { todayLine } from '../lib/format'
-import { useHealth, useMe, useNow, useOrbit, useThreads } from './queries'
+import { useHealth, useMe, useNow, useOrbit, useWAStatus } from './queries'
 import { Dock } from './Dock'
 import { OrchPill, useOrchStatus } from './orch'
 import { useSse } from './SseProvider'
@@ -95,8 +95,9 @@ export function Shell() {
   const { data: health } = useHealth()
   const now = useNow()
   const { data: dealers } = useOrbit()
-  const { data: threads } = useThreads('all', '', !!me?.screens.includes('chat'))
-  const unread = threads?.reduce((a, t) => a + t.unread, 0)
+  // unread chats from the numbers' counts (/wa/status), never by loading every chat on every page (Sam 19 Oct: slow)
+  const { data: wa } = useWAStatus()
+  const unread = me?.screens.includes('chat') ? wa?.items.reduce((a, n) => a + (n.unread_count ?? 0), 0) : undefined
   const orch = useOrchStatus()
   const { toast } = useFeedback()
 

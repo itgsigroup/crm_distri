@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Chat lebih ringan: tanpa tab Semua, tanpa total tim, tidak membuka chat otomatis · 2026-10-19
+- Barisan nomor: tab **Semua** dihapus; label Sales / Admin / Penagihan hanya pengelompok (tanpa jumlah, tidak bisa diklik). Chat memuat satu nomor saja — nomor terakhir yang dibuka di browser itu, lalu nomor milik Anda, lalu nomor pertama.
+- Membuka halaman Chat tidak lagi langsung membuka percakapan; panel kanan "Pilih chat" sampai Anda klik.
+- Jumlah belum dibaca (barisan nomor dan badge Chat di menu) diambil dari status nomor, bukan dengan memuat semua chat — sebelumnya semua chat dimuat di setiap halaman hanya untuk badge itu.
+
 ## Fix · Chat: percakapan yang dibuka tidak berpindah sendiri · 2026-10-19
 - Chat yang sedang terbuka tetap terbuka sampai Anda memilih chat lain: pesan baru yang menaikkan chat lain ke atas, pindah tab sales/nomor, atau pindah filter tidak lagi mengganti percakapan di layar. Sebelumnya tampilan ikut ke chat teratas bila belum ada chat yang diklik.
 

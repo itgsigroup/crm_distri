@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { useNavigate, useParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Items } from '../../api/client'
-import type { MediaView, Mention, MessageView, ThreadDetail, ThreadView, WATeam } from '../../api/types'
+import type { MediaView, Mention, MessageView, ThreadDetail, ThreadView, WANumber, WATeam } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
@@ -1276,11 +1276,27 @@ const readLead = () => {
   return typeof window === 'undefined' || window.innerWidth >= 1280
 }
 
+const ACCOUNT_KEY = 'chat-account'
+
+/** The number Chat opens on: the one picked last on this browser, else the user's own, else the first linked one. */
+function defaultAccount(items: WANumber[]): string {
+  let last = ''
+  try { last = localStorage.getItem(ACCOUNT_KEY) ?? '' } catch { /* private window */ }
+  return (items.find((n) => n.wa_number === last) ?? items.find((n) => n.mine && n.state === 'connected') ?? items.find((n) => n.state === 'connected') ?? items[0])?.wa_number ?? ''
+}
+
 export function ChatPage() {
   const { threadId } = useParams()
   const nav = useNavigate()
   const [filter, setFilter] = useState<Filter>('all')
-  const [account, setAccount] = useState('')
+  // one number at a time (Sam 19 Oct: "Semua" loaded every number's chats and made Chat slow)
+  const { data: wa } = useWAStatus()
+  const [picked, setPicked] = useState('')
+  const account = picked || defaultAccount(wa?.items ?? [])
+  const setAccount = (a: string) => {
+    setPicked(a)
+    try { localStorage.setItem(ACCOUNT_KEY, a) } catch { /* not remembered */ }
+  }
   const [lead, setLeadState] = useState(readLead)
   const setLead = (v: boolean) => {
     setLeadState(v)
@@ -1291,28 +1307,16 @@ export function ChatPage() {
     }
   }
   const { openSheet } = useFeedback()
-  const { data: list, isSuccess } = useThreads('all', account)
-  const { data: all } = useThreads('all')
-  const { data: wa } = useWAStatus()
-  const unread = useMemo(() => {
-    const m: Record<string, number> = {}
-    for (const t of all ?? []) if (t.account) m[t.account] = (m[t.account] ?? 0) + t.unread
-    return m
-  }, [all])
-  const firstShown = (list ?? []).find((t) => inFilter(t, filter))
-  // the conversation on screen stays until the user picks another (Sam 19 Oct): a new message lifting another chat to
-  // the top, or switching the sales / filter tab, must not swap it. Without one in the address, the first chat shown is
-  // kept; a picked one is kept after going back to /chat. (Adjusted during render, not in an effect.)
+  const { data: list, isSuccess } = useThreads('all', account, !!account)
+  // no chat opens by itself (Sam 19 Oct): the conversation on screen is the one picked, and it stays while another
+  // number or filter is shown or a new message lifts another chat — until another is picked
   const [kept, setKept] = useState<string | undefined>(undefined)
   if (threadId && kept !== threadId) setKept(threadId)
-  else if (!threadId && kept && kept !== firstShown?.id && all && list && !all.some((t) => t.id === kept) && !list.some((t) => t.id === kept))
-    setKept(firstShown?.id) // gone from every list (marked supplier / personal)
-  else if (!threadId && !kept && firstShown) setKept(firstShown.id)
-  const active = threadId ?? kept ?? firstShown?.id
+  const active = threadId ?? kept
   const leave = () => { setKept(undefined); nav('/chat') }
-  const rail = <NumberRail account={account} setAccount={setAccount} unread={unread} />
-  // No conversation yet (no number linked, or history still syncing): show how to connect the team's numbers.
-  if (!threadId && account === '' && list && wa && list.length === 0) {
+  const rail = <NumberRail account={account} setAccount={setAccount} />
+  // No number linked yet: show how to connect the team's numbers.
+  if (!threadId && wa && wa.items.length === 0) {
     return (
       <div className="chat multi chat-empty">
         {rail}
@@ -1326,7 +1330,9 @@ export function ChatPage() {
       {rail}
       <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)} onLeave={leave} />
       {active && <LeadPane key={'l' + active} id={active} mini={!lead} setMini={(v) => setLead(!v)} onAccurate={accurate} />}
-      {active ? <ThreadPane key={active} id={active} picked={!!threadId} onBack={() => nav('/chat')} lead={lead} setLead={setLead} onAccurate={accurate} /> : <div className="pane th-pane" />}
+      {active ? <ThreadPane key={active} id={active} picked={!!threadId} onBack={() => nav('/chat')} lead={lead} setLead={setLead} onAccurate={accurate} /> : (
+        <div className="pane th-pane th-none"><Icon name="chat" /><b>Pilih chat</b><span>Klik salah satu percakapan di daftar untuk membukanya.</span></div>
+      )}
     </div>
   )
 }
