@@ -266,6 +266,10 @@ func Decide(ctx context.Context, st *store.Store, ins *river.Client[pgx.Tx], c c
 		if err := q.SyncPlanStatus(ctx, clock.Today(now)); err != nil {
 			return err
 		}
+		// the messages this approval put in a chat are sent by this person ("dikirim oleh", Sam 19 Oct)
+		if err := q.SetProposalMessagesSender(ctx, gen.SetProposalMessagesSenderParams{Email: who.Email, ProposalID: id, Since: now.Add(-time.Hour)}); err != nil {
+			return err
+		}
 		actor, actorKind, action, entity := who.Email, "user", "proposal.decide", "proposal"
 		after, _ := json.Marshal(map[string]any{"decision": d.Decision, "option": key, "status": out.Status, "reason": reason, "outbox_id": out.OutboxID})
 		if err := q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &actorKind, Action: &action, Entity: &entity, EntityID: &id, After: after}); err != nil {
@@ -417,6 +421,9 @@ func spawnPerDealer(ctx context.Context, q *gen.Queries, tx pgx.Tx, ins *river.C
 			return n, err
 		}
 		if _, err := queueWA(ctx, q, tx, ins, row, d.Preview, now); err != nil {
+			return n, err
+		}
+		if err := q.SetProposalMessagesSender(ctx, gen.SetProposalMessagesSenderParams{Email: who.Email, ProposalID: child, Since: now.Add(-time.Hour)}); err != nil {
 			return n, err
 		}
 		n++

@@ -317,6 +317,9 @@ export interface Annotation { k: string; t: string; act?: string }
 export interface Mention { token: string; number?: string; name?: string }
 export interface MessageView {
   id: string
+  /** the person who sent it from GSI Orbit, or sent from the phone — only for those who see every chat (19 Oct) */
+  sent_by?: string
+  from_phone?: boolean
   /** the members the text tags (WhatsApp "@") */
   mentions?: Mention[] | null
   direction: 'in' | 'out'

@@ -706,3 +706,15 @@ order by m.from_number, m.sent_at desc;
 -- A GSI number's one-to-one chats with these numbers (a group's members): which one a click opens.
 select id, split_part(wa_jid, '@', 1)::text as number from chat_threads
 where account = sqlc.arg(account)::text and kind <> 'group' and wa_jid = any(sqlc.arg(jids)::text[]);
+
+-- name: SetMessageSender :exec
+-- The person who sent a message from GSI Orbit ("dikirim oleh", Sam 19 Oct).
+update chat_messages set sent_by = sqlc.arg(sent_by)::uuid, sent_by_name = sqlc.arg(sent_by_name)::text
+where id = sqlc.arg(id)::uuid and sent_at = sqlc.arg(sent_at)::timestamptz;
+
+-- name: SetProposalMessagesSender :exec
+-- The person who approved a proposal is the sender of the messages it put in a chat (recent ones: partition pruning).
+update chat_messages m set sent_by = u.id, sent_by_name = u.name
+from users u
+where u.email = sqlc.arg(email)::text and m.proposal_id = sqlc.arg(proposal_id)::uuid and m.direction = 'out' and m.sent_by is null
+  and m.sent_at >= sqlc.arg(since)::timestamptz;

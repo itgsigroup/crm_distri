@@ -126,6 +126,7 @@ type chatViewer struct {
 	all      bool
 	sales    *uuid.UUID
 	accounts map[string]bool // Penagihan: the numbers they hold
+	held     map[string]bool // a sales: the numbers they hold (their chats even when a number's sales profile differs)
 }
 
 // waOwnOnly: the user reads (and manages) only their own WhatsApp numbers — a sales, a Penagihan without the
@@ -134,28 +135,37 @@ func waOwnOnly(u User) bool {
 	return deref(u.Role) == "sales" || (deref(u.Role) == "finance" && !isAdmin(u)) || u.RoleChatScope == "own"
 }
 
+// heldNumbers are the WhatsApp numbers a user holds: their own number and every number linked to them.
+func (s *Server) heldNumbers(ctx context.Context, u User) (map[string]bool, error) {
+	held := map[string]bool{}
+	if u.WaNumber != nil {
+		held[*u.WaNumber] = true
+	}
+	rows, err := s.st.Pool.Query(ctx, "select wa_number from wa_numbers where user_id = $1", u.ID)
+	if err != nil {
+		return held, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return held, err
+		}
+		held[n] = true
+	}
+	return held, rows.Err()
+}
+
 func (s *Server) chatViewerOf(ctx context.Context, u User) (chatViewer, error) {
 	switch {
 	case deref(u.Role) == "sales":
-		return chatViewer{sales: u.SalesUserID}, nil
+		// their sales profile's chats, and the chats on the numbers they hold (19 Oct: a number whose sales profile is
+		// another sales still shows its chats to the person holding it)
+		held, err := s.heldNumbers(ctx, u)
+		return chatViewer{sales: u.SalesUserID, held: held}, err
 	case waOwnOnly(u):
-		v := chatViewer{accounts: map[string]bool{}}
-		if u.WaNumber != nil {
-			v.accounts[*u.WaNumber] = true
-		}
-		rows, err := s.st.Pool.Query(ctx, "select wa_number from wa_numbers where user_id = $1", u.ID)
-		if err != nil {
-			return v, err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var n string
-			if err := rows.Scan(&n); err != nil {
-				return v, err
-			}
-			v.accounts[n] = true
-		}
-		return v, rows.Err()
+		acc, err := s.heldNumbers(ctx, u)
+		return chatViewer{accounts: acc}, err
 	}
 	return chatViewer{all: true}, nil
 }
@@ -167,6 +177,9 @@ func (v chatViewer) sees(salesID *uuid.UUID, account *string) bool {
 		return true
 	case v.accounts != nil:
 		return account != nil && v.accounts[*account]
+	}
+	if account != nil && v.held[*account] {
+		return true
 	}
 	return v.sales != nil && salesID != nil && *salesID == *v.sales
 }
@@ -365,6 +378,10 @@ type MessageView struct {
 	ID        uuid.UUID `json:"id"`
 	Direction string    `json:"direction"`
 	FromName  string    `json:"from_name"`
+	// SentBy: the person who sent it from GSI Orbit; FromPhone: sent straight from the number's phone (WhatsApp).
+	// Only for those who see every chat (admin, manager — Sam 19 Oct).
+	SentBy    string `json:"sent_by,omitempty"`
+	FromPhone bool   `json:"from_phone,omitempty"`
 	// FromNumber: the sender of a group message (a click on the name opens the one-to-one chat with them)
 	FromNumber string    `json:"from_number,omitempty"`
 	Body       string    `json:"body"`
@@ -540,6 +557,12 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 			lim, since = jumpPageSize, x
 		}
 	}
+	// "dikirim oleh <nama>" for those who see every chat (admin, manager — Sam 19 Oct)
+	u, _ := CurrentUser(r.Context())
+	showSender := false
+	if v, err := s.chatViewerOf(r.Context(), u); err == nil {
+		showSender = v.all
+	}
 	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Since: since, Lim: lim})
 	if err == nil && len(msgs) == 0 && !since.IsZero() {
 		// nothing in the window (a chat opened from a link): its last messages, not an empty page
@@ -610,7 +633,8 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	out := make([]MessageView, 0, len(msgs))
 	now := s.clock.Now()
 	for _, m := range msgs {
-		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName), Body: llm.MaskCredentials(deref(m.Body)), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Holding: deref(m.Holding), AutoReply: deref(m.AutoReply), closing: deref(m.Closing), Annotation: m.Annotation, SignalID: m.SignalID,
+		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName),
+			SentBy: map[bool]string{true: deref(m.SentByName)}[showSender], FromPhone: showSender && deref(m.Direction) == "out" && m.ProposalID == nil && !m.Internal, Body: llm.MaskCredentials(deref(m.Body)), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Holding: deref(m.Holding), AutoReply: deref(m.AutoReply), closing: deref(m.Closing), Annotation: m.Annotation, SignalID: m.SignalID,
 			Media: mediaView(m.Media), EditedAt: m.EditedAt, Mentions: m.Mentions}
 		if deref(t.Kind) == "group" && v.Direction == "in" {
 			v.FromNumber = deref(m.FromNumber)
@@ -936,6 +960,10 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 		}
 		mid, err := q.InsertChatMessage(r.Context(), gen.InsertChatMessageParams{ThreadID: &t.ID, WaMsgID: &pendingID, Direction: &dir, FromNumber: &from, FromName: &name, Body: &body, Media: media, SentAt: now, Status: "pending", ProposalID: &p.ID, QuotedWaID: quoted, Mentions: mentions})
 		if err != nil {
+			return err
+		}
+		// "dikirim oleh <nama>": the person who pressed Kirim / Teruskan (Sam 19 Oct)
+		if err := q.SetMessageSender(r.Context(), gen.SetMessageSenderParams{ID: mid, SentAt: now, SentBy: u.ID, SentByName: deref(u.Name)}); err != nil {
 			return err
 		}
 		text := body

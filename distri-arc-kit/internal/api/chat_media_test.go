@@ -577,4 +577,26 @@ func TestReplyNamedAfterTheNumbersHolder(t *testing.T) {
 	if tv, _ := th["thread"].(map[string]any); code != http.StatusOK || tv["sender_name"] != holder {
 		t.Fatalf("thread sender %d %v", code, th["thread"])
 	}
+	// "dikirim oleh": the CEO (sees every chat) sees who pressed Teruskan; a sales does not get the label
+	var sam string
+	_ = st.Pool.QueryRow(ctx, "select name from users where email = 'sam@gsi.co.id'").Scan(&sam)
+	sentBy := func(body map[string]any) any {
+		for _, x := range body["messages"].([]any) {
+			if m := x.(map[string]any); m["id"] == out["message_id"] {
+				return m["sent_by"]
+			}
+		}
+		return "missing"
+	}
+	if got := sentBy(th); got != sam {
+		t.Fatalf("CEO sees sent_by %v, want %q", got, sam)
+	}
+	// the sales holding the number sees the chat even though its sales profile is Dewi's — and no sender label
+	code, own := get(t, srv, "/api/chat/threads/"+dst.String(), "andi@gsi.co.id")
+	if code != http.StatusOK {
+		t.Fatalf("holder of the number cannot open the chat on it: %d", code)
+	}
+	if got := sentBy(own); got != nil {
+		t.Fatalf("sales sees sent_by %v", got)
+	}
 }

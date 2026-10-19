@@ -717,7 +717,7 @@ func (q *Queries) GetThreadByAccountJID(ctx context.Context, arg GetThreadByAcco
 }
 
 const getThreadMessage = `-- name: GetThreadMessage :one
-select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, m.closing, m.auto_reply, m.mentions, x.account as holder_account from chat_messages m
+select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, m.closing, m.auto_reply, m.mentions, m.sent_by, m.sent_by_name, x.account as holder_account from chat_messages m
 join chat_threads x on x.id = m.thread_id
 join chat_threads t on t.id = $1::uuid
 where m.id = $2::uuid and (x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
@@ -750,6 +750,8 @@ type GetThreadMessageRow struct {
 	Closing       *bool           `json:"closing"`
 	AutoReply     *bool           `json:"auto_reply"`
 	Mentions      json.RawMessage `json:"mentions"`
+	SentBy        *uuid.UUID      `json:"sent_by"`
+	SentByName    *string         `json:"sent_by_name"`
 	HolderAccount *string         `json:"holder_account"`
 }
 
@@ -780,6 +782,8 @@ func (q *Queries) GetThreadMessage(ctx context.Context, arg GetThreadMessagePara
 		&i.Closing,
 		&i.AutoReply,
 		&i.Mentions,
+		&i.SentBy,
+		&i.SentByName,
 		&i.HolderAccount,
 	)
 	return i, err
@@ -1750,8 +1754,8 @@ func (q *Queries) ListReplyRules(ctx context.Context) ([]ReplyRule, error) {
 }
 
 const listThreadMessages = `-- name: ListThreadMessages :many
-select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at, quoted_wa_id, deleted_at, holding, closing, auto_reply, mentions from (
-  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, m.closing, m.auto_reply, m.mentions from chat_messages m
+select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at, quoted_wa_id, deleted_at, holding, closing, auto_reply, mentions, sent_by, sent_by_name from (
+  select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, m.closing, m.auto_reply, m.mentions, m.sent_by, m.sent_by_name from chat_messages m
   where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
                         where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
     and m.sent_at < $2 and m.sent_at >= $3::timestamptz order by m.sent_at desc limit $4
@@ -1803,6 +1807,8 @@ func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessages
 			&i.Closing,
 			&i.AutoReply,
 			&i.Mentions,
+			&i.SentBy,
+			&i.SentByName,
 		); err != nil {
 			return nil, err
 		}
@@ -2830,6 +2836,29 @@ func (q *Queries) SetMessageReplyTo(ctx context.Context, arg SetMessageReplyToPa
 	return err
 }
 
+const setMessageSender = `-- name: SetMessageSender :exec
+update chat_messages set sent_by = $1::uuid, sent_by_name = $2::text
+where id = $3::uuid and sent_at = $4::timestamptz
+`
+
+type SetMessageSenderParams struct {
+	SentBy     uuid.UUID `json:"sent_by"`
+	SentByName string    `json:"sent_by_name"`
+	ID         uuid.UUID `json:"id"`
+	SentAt     time.Time `json:"sent_at"`
+}
+
+// The person who sent a message from GSI Orbit ("dikirim oleh", Sam 19 Oct).
+func (q *Queries) SetMessageSender(ctx context.Context, arg SetMessageSenderParams) error {
+	_, err := q.db.Exec(ctx, setMessageSender,
+		arg.SentBy,
+		arg.SentByName,
+		arg.ID,
+		arg.SentAt,
+	)
+	return err
+}
+
 const setMessageSignal = `-- name: SetMessageSignal :exec
 update chat_messages set signal_id = $2 where id = $1
 `
@@ -2906,6 +2935,25 @@ update proposals set status = 'executed', executed_at = now() where id = $1
 
 func (q *Queries) SetProposalExecuted(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, setProposalExecuted, id)
+	return err
+}
+
+const setProposalMessagesSender = `-- name: SetProposalMessagesSender :exec
+update chat_messages m set sent_by = u.id, sent_by_name = u.name
+from users u
+where u.email = $1::text and m.proposal_id = $2::uuid and m.direction = 'out' and m.sent_by is null
+  and m.sent_at >= $3::timestamptz
+`
+
+type SetProposalMessagesSenderParams struct {
+	Email      string    `json:"email"`
+	ProposalID uuid.UUID `json:"proposal_id"`
+	Since      time.Time `json:"since"`
+}
+
+// The person who approved a proposal is the sender of the messages it put in a chat (recent ones: partition pruning).
+func (q *Queries) SetProposalMessagesSender(ctx context.Context, arg SetProposalMessagesSenderParams) error {
+	_, err := q.db.Exec(ctx, setProposalMessagesSender, arg.Email, arg.ProposalID, arg.Since)
 	return err
 }
 

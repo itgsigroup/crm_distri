@@ -180,6 +180,8 @@ type ChatMessage struct {
 	Closing    *bool           `json:"closing"`
 	AutoReply  *bool           `json:"auto_reply"`
 	Mentions   json.RawMessage `json:"mentions"`
+	SentBy     *uuid.UUID      `json:"sent_by"`
+	SentByName *string         `json:"sent_by_name"`
 }
 
 type ChatMessageKey struct {

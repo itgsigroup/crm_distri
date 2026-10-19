@@ -50,6 +50,13 @@ sql:
       - db/migrations/0046_wa_analysis_auto.sql
       - db/migrations/0047_cycle_cancel.sql
       - db/migrations/0048_role_chat_scope.sql
+      - db/migrations/0049_cycle_via_system.sql
+      - db/migrations/0050_report_whatsapp.sql
+      - db/migrations/0051_ai_trigger_all_ai.sql
+      - db/migrations/0052_orbit_reading.sql
+      - db/migrations/0053_segmen_reading.sql
+      - db/migrations/0054_relasi_reading.sql
+      - db/migrations/0055_message_sent_by.sql
     queries: db/queries
     gen:
       go:

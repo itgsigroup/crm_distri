@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: label "oleh <nama>" di setiap pesan keluar (admin); sales melihat chat di nomor yang dipegangnya · 2026-10-19
+- Pesan yang dikirim dari GSI Orbit kini mencatat **siapa yang menekan Kirim / Teruskan / Setujui** (kolom baru, migrasi 0055; riwayat lama diisi dari audit). Admin dan manager (yang melihat semua chat) melihat **"oleh Tantri"** di bubble keluar, atau **"dari HP"** bila dikirim langsung dari HP pemegang nomor. Sales tidak melihat label ini. Label hanya di aplikasi — tidak ikut terkirim ke pelanggan.
+- Sales melihat chat milik profil sales-nya **dan** semua chat di nomor yang ia pegang (sebelumnya chat di nomornya sendiri bisa hilang bila nomor itu terdaftar atas sales lain). Penagihan tetap hanya nomor yang dipegangnya.
+
 ## Fix · Chat: pesan terkirim/diteruskan memakai nama pemegang nomor · 2026-10-19
 - Balasan, pesan yang diteruskan, dan kirim dari Chat kini dicatat atas nama **pemegang nomor yang mengirim** (pengguna pemegang nomor, lalu sales nomor itu, lalu label nomor) — sebelumnya memakai nama sales yang ditautkan ke chat (mis. dealer milik Sofy di nomor Elisa tampil "Sofy" padahal terkirim dari nomor Elisa). Keterangan "Dikirim dari …" di bawah kolom ketik juga diperbaiki.
 - Pesan lama yang sudah tercatat dengan nama salah tidak diubah.

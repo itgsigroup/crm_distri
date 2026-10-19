@@ -1886,3 +1886,5 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .kuad .kzc .kzs{font-size:11px;font-weight:600}
 .kuad .kzc{pointer-events:none}
 .kuad .kzc.dim{opacity:.25}
+/* Chat: who sent a message from GSI Orbit ("oleh Tantri") or "dari HP" — for those who see every chat (19 Oct) */
+.tm .tm-by{font-weight:700;color:var(--accent)}
