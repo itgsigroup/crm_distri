@@ -22,7 +22,7 @@ func TestRoleMaster(t *testing.T) {
 		t.Fatalf("sales reads roles: %d", code)
 	}
 	code, list := get(t, srv, "/api/roles", "admin@gsi.co.id")
-	if code != 200 || len(list["items"].([]any)) != 6 || len(list["screens"].([]any)) != 15 {
+	if code != 200 || len(list["items"].([]any)) != 6 || len(list["screens"].([]any)) != 16 { // 16: Report WhatsApp (ADR 0050)
 		t.Fatalf("roles %d %v", code, list)
 	}
 	role := map[string]any{"name": "Sales Telemarketing", "scope": "own", "screens": []string{"today", "chat", "dealer", "ar", "users"}, "decide": []string{"followup", "reply", "credit_limit", "credit_release"}, "wa_allowed": true}

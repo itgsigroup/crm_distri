@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api, type Items } from '../api/client'
 import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, AnalystInfo, CronPreview, MCPCall, MCPClient, MCPInfo, MCPPolicy, Schedule, ScheduleRun, ScheduleRunFull, Plan, Proposal, Relasi, RelasiInsight } from '../api/types'
-import type { ScreenAnalysis, Trend } from '../api/types'
+import type { ScreenAnalysis, Trend, WAReport } from '../api/types'
 import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAAnalysis, WAGroup, WANumber } from '../api/types'
 import type {
   AgendaRow, AgingItem, ARRow, BoardItem, CreditOverview, CriticalItem, ExposureRow, ForecastRow, ProductSales, Brief, DealerDetail, Health, HealthFull, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
@@ -119,6 +119,8 @@ export const useCycles = () => useQuery({ queryKey: ['cycles'], queryFn: () => a
 export const useConflicts = (sales?: string, enabled = true) => useQuery({ queryKey: ['cycles', 'conflicts', sales ?? 'all'], enabled, queryFn: () => api.get<Items<Conflict>>('/conflicts' + sp(sales)).then((r) => r.items) })
 export const useAgents = (sales?: string) => useQuery({ queryKey: ['agents', sales ?? 'all'], queryFn: () => api.get<Items<AgentInfo>>('/agents' + sp(sales)).then((r) => r.items) })
 // Analisa WhatsApp of the last full cycle (ADR 0026); under 'chat' so a new message refreshes the waiting state
+export const useWAReport = (days: number, sales?: string) =>
+  useQuery({ queryKey: ['wa-report', days, sales ?? 'all'], staleTime: 60_000, refetchInterval: 5 * 60_000, queryFn: () => api.get<WAReport>(`/wa/report?days=${days}` + sp(sales, '&')) })
 export const useWAAnalysis = (sales?: string, enabled = true) => useQuery({ queryKey: ['chat', 'wa-analysis', sales ?? 'all'], queryFn: () => api.get<WAAnalysis>('/wa/analysis' + sp(sales)), enabled })
 export const usePlan = (sales?: string) => useQuery({ queryKey: ['plan', 'today', sales ?? 'all'], queryFn: () => api.get<Plan>('/plan/today' + sp(sales)) })
 export const useAutonomy = () => useQuery({ queryKey: ['policies', 'autonomy'], queryFn: () => api.get<AutonomyPolicy>('/policies/autonomy') })

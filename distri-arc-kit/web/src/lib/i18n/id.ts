@@ -2,13 +2,14 @@
 // Terms follow docs/design/01-glossary.md exactly.
 import type { RootCause, Segment } from '../../api/types'
 
-export type ScreenKey = 'today' | 'dashboard' | 'orch' | 'chat' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'ar' | 'users' | 'roles' | 'branches' | 'salesmap' | 'mcp' | 'aiapi' | 'aitrigger' | 'conn' | 'konsep'
+export type ScreenKey = 'today' | 'dashboard' | 'orch' | 'chat' | 'reportwa' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'ar' | 'users' | 'roles' | 'branches' | 'salesmap' | 'mcp' | 'aiapi' | 'aitrigger' | 'conn' | 'konsep'
 
 export const TITLES: Record<ScreenKey, [string, string]> = {
   today: ['Pusat kendali', ''],
   dashboard: ['Dashboard', 'Ringkasan kondisi dealer, order, kas, stok, dan aktivitas'],
   orch: ['Orchestrator', 'Mengatur enam agen AI: sinyal → analisis → konflik → keputusan → eksekusi → belajar'],
   chat: ['Chat', 'WhatsApp banyak nomor + grup gudang · order masuk dari sini'],
+  reportwa: ['Report WhatsApp', 'Kecepatan respons, chat gantung, nomor baru, dan order dari chat — per sales'],
   orbit: ['Orbit', 'Semua dealer menurut siklus ordernya · atas = jadwal order · keluar = lewat jadwal'],
   net: ['Orbit', 'Peta relasi: kedekatan nomor sales ↔ dealer dalam 3D'],
   kuad: ['Orbit', 'Segmen: dealer dikelompokkan menurut seberapa sering dan seberapa besar ordernya'],

@@ -635,12 +635,53 @@ func (q *Queries) WAMessageInsights(ctx context.Context, arg WAMessageInsightsPa
 	return items, nil
 }
 
+const wAReportOrders = `-- name: WAReportOrders :many
+select o.dealer_id, coalesce(o.confirmed_at, o.ordered_at)::timestamptz as at, coalesce(o.total, 0)::bigint as total
+from orders o
+where o.dealer_id = any($1::uuid[]) and o.state <> 'cancel'
+  and coalesce(o.confirmed_at, o.ordered_at) >= $2
+order by 2
+`
+
+type WAReportOrdersParams struct {
+	DealerIds []uuid.UUID `json:"dealer_ids"`
+	Since     *time.Time  `json:"since"`
+}
+
+type WAReportOrdersRow struct {
+	DealerID *uuid.UUID `json:"dealer_id"`
+	At       time.Time  `json:"at"`
+	Total    int64      `json:"total"`
+}
+
+// Report WhatsApp (ADR 0050): the orders of these dealers since a time — an order request in chat counts as won when
+// the dealer orders within a few days after it.
+func (q *Queries) WAReportOrders(ctx context.Context, arg WAReportOrdersParams) ([]WAReportOrdersRow, error) {
+	rows, err := q.db.Query(ctx, wAReportOrders, arg.DealerIds, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []WAReportOrdersRow{}
+	for rows.Next() {
+		var i WAReportOrdersRow
+		if err := rows.Scan(&i.DealerID, &i.At, &i.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const wAWindowMessages = `-- name: WAWindowMessages :many
 
 select m.id, coalesce(gt.id, m.thread_id)::uuid as thread_id, m.direction, m.body, m.sent_at, m.signal_id, m.internal, m.from_name, m.holding,
   m.closing, m.auto_reply,
   t.kind as thread_kind, t.title as thread_title, t.dealer_id, t.sales_id,
-  d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name
+  d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, t.account
 from chat_messages m
 join chat_threads t on t.id = m.thread_id
 left join wa_groups g on g.id = t.group_id
@@ -678,6 +719,7 @@ type WAWindowMessagesRow struct {
 	DealerSlug  *string    `json:"dealer_slug"`
 	DealerName  *string    `json:"dealer_name"`
 	SalesName   *string    `json:"sales_name"`
+	Account     *string    `json:"account"`
 }
 
 // Analisa WhatsApp (ADR 0026)
@@ -714,6 +756,7 @@ func (q *Queries) WAWindowMessages(ctx context.Context, arg WAWindowMessagesPara
 			&i.DealerSlug,
 			&i.DealerName,
 			&i.SalesName,
+			&i.Account,
 		); err != nil {
 			return nil, err
 		}

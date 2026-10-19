@@ -1,3 +1,4 @@
+import { ReportWAPage } from '../features/reportwa/ReportWAPage'
 import { AIAPIPage } from '../features/aiapi/AIAPIPage'
 import { AITriggerPage } from '../features/aitrigger/AITriggerPage'
 import { createBrowserRouter } from 'react-router'
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'orchestrator', element: <OrchestratorPage /> },
       { path: 'chat/:threadId?', element: <ChatPage /> },
+      { path: 'report-whatsapp', element: <ReportWAPage /> },
       { path: 'orbit', element: <OrbitPage /> },
       { path: 'orbit/segmen', element: <SegmenPage /> },
       { path: 'orbit/relasi', element: <RelasiPage /> },

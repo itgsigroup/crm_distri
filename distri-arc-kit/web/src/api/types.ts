@@ -694,3 +694,22 @@ export interface ReplyRule {
   show_qty: boolean; enabled: boolean; ai_phrase: boolean; ai_instruction: string; updated_by: string | null; updated_at: string
 }
 export interface ReplyRules { items: ReplyRule[]; placeholders: Record<ReplyAction, string[]>; ai_ready: boolean }
+
+// ---------- Report WhatsApp (ADR 0050) ----------
+export interface WAReportSales {
+  name: string; rank: number; score: number
+  threads: number; dealers: number; new_numbers: number; groups: number; inbound: number; outbound: number
+  requests: number; answered: number; answered_work: number; within_sla: number
+  reply_median_min: number | null; reply_p90_min: number | null; off_median_min: number | null; new_reply_median_min: number | null
+  waiting: number; hanging: number; promises: number
+  order_asks: number; order_won: number; order_value: number
+  good: string[]; bad: string[]
+}
+export interface WAReportDay { date: string; inbound: number; outbound: number; reply_median_min: number | null; by_sales: Record<string, number> }
+export interface WAReportHang { thread_id: string; title: string; dealer_slug?: string; kind: string; sales: string; why: 'menunggu' | 'janji'; since: string; wait_min: number; last_text: string; intent: string }
+export interface WAReportNew { thread_id: string; title: string; sales: string; first_at: string; inbound: number; first_reply_min: number | null; intent: string; last_text: string }
+export interface WAReport {
+  since: string; until: string; days: number; sla_min: number; hang_min: number; win_days: number
+  team: WAReportSales; sales: WAReportSales[]; daily: WAReportDay[]; heat: number[][]
+  hanging: WAReportHang[]; new_numbers: WAReportNew[]; insights: string[]
+}

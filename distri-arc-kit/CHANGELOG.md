@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Halaman Report WhatsApp per sales · 2026-10-19
+- Menu baru **Report WhatsApp** (Kendali): periode Hari ini / 7 hari / 30 hari, filter sales; sales hanya melihat datanya sendiri.
+- Angka tim: chat masuk, % dibalas ≤ target (30 menit jam kerja), % permintaan dijawab, chat gantung, nomor baru, order dari chat → SO.
+- **Peringkat sales** dengan skor 0–100 dan **winning sales**; **feedback baik & buruk** tiap sales; **ringkasan untuk direktur & manager**.
+- **Tren harian**, **jam ramai pelanggan** (hari × jam), tabel **chat gantung** (belum dibalas / janji "cek dulu") dan **nomor baru** — dengan cari, urut, halaman. Semua dihitung dari chat, tanpa AI. ADR 0050.
+
 ## Feat · Analisis Claude lewat routine claude.ai — tanpa membuka Claude Desktop · 2026-10-19
 - Setiap siklus yang menunggu Claude (tombol Analisis ulang dan siklus per jam) memicu routine **"GSI Orbit · Analisis Orchestrator"** di claude.ai. Claude bekerja di cloud lewat konektor CRM-DISTRI dengan langganan Claude — tanpa membuka Desktop, tanpa kunci API, tanpa ChatGPT. Siklus menunggu sampai 30 menit.
 - Halaman **MCP Claude → Routine Claude**: CEO menyimpan ID routine dan token trigger API (dibuat sekali di claude.ai), lalu **Tes sekarang**.

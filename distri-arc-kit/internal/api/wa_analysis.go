@@ -22,6 +22,7 @@ import (
 // Orchestrator next to the BigQuery one. Guarded by the chat page (it quotes customer messages).
 func (s *Server) waAnalysisRoutes(r chi.Router) {
 	r.Get("/wa/analysis", s.waAnalysis)
+	r.Get("/wa/report", s.waReport)
 }
 
 // WAHistoryRow is one cycle's reading of WhatsApp (Riwayat on the Orchestrator tab).

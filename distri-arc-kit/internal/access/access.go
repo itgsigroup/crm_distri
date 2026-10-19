@@ -23,6 +23,7 @@ type Screen struct {
 // Screens in menu order.
 var Screens = []Screen{
 	{"today", "Pusat kendali", "Kendali", false}, {"orch", "Orchestrator", "Kendali", false}, {"chat", "Chat WhatsApp", "Kendali", false},
+	{"reportwa", "Report WhatsApp", "Kendali", false},
 	{"orbit", "Orbit", "Dealer", false}, {"kuad", "Segmen", "Dealer", false}, {"net", "Peta relasi", "Dealer", false}, {"dealer", "Dealer", "Dealer", false},
 	{"stock", "Push stok", "Operasi", false}, {"ar", "Kredit · kas", "Operasi", true},
 	{"users", "Pengguna", "Master data", true}, {"roles", "Peran & akses", "Master data", true}, {"branches", "Cabang", "Master data", true},
@@ -110,13 +111,13 @@ func DeriveBase(r Role) string {
 func LegacyScreens(base string) []string {
 	switch base {
 	case "sales":
-		return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "konsep"}
+		return []string{"today", "orch", "chat", "reportwa", "orbit", "kuad", "net", "dealer", "stock", "konsep"}
 	case "finance":
-		return []string{"today", "orch", "chat", "orbit", "kuad", "dealer", "ar", "konsep"}
+		return []string{"today", "orch", "chat", "reportwa", "orbit", "kuad", "dealer", "ar", "konsep"}
 	case "warehouse":
 		return []string{"today", "chat", "stock", "dealer", "konsep"}
 	}
-	return []string{"today", "orch", "chat", "orbit", "kuad", "net", "dealer", "stock", "ar", "users", "roles", "branches", "mcp", "conn", "konsep"}
+	return []string{"today", "orch", "chat", "reportwa", "orbit", "kuad", "net", "dealer", "stock", "ar", "users", "roles", "branches", "mcp", "conn", "konsep"}
 }
 
 // LegacyKinds is what an account without a role row decides, by its base.
@@ -149,7 +150,7 @@ var BaseLabel = map[string]string{"ceo": "CEO", "admin": "Admin", "finance": "Fi
 // guarded maps API path prefixes to the page they belong to. Shared reads (dealers, proposals, /stock/push and
 // /dealers/credit-tight used on Pusat kendali, the branch list) stay open to every signed-in user.
 var guarded = []struct{ prefix, screen string }{
-	{"/api/chat/", "chat"}, {"/api/wa/analysis", "chat"}, {"/api/wa/groups", "chat"}, {"/api/wa/pair", "chat"}, {"/api/wa/links", "chat"},
+	{"/api/chat/", "chat"}, {"/api/wa/analysis", "chat"}, {"/api/wa/report", "reportwa"}, {"/api/wa/groups", "chat"}, {"/api/wa/pair", "chat"}, {"/api/wa/links", "chat"},
 	{"/api/credit/", "ar"},
 	{"/api/relasi", "net"},
 	{"/api/stock/aging", "stock"}, {"/api/stock/critical", "stock"}, {"/api/stock/sales-by-product", "stock"},

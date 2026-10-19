@@ -18,6 +18,7 @@ export const ROUTES: Record<ScreenKey, string> = {
   dashboard: '/dashboard',
   orch: '/orchestrator',
   chat: '/chat',
+  reportwa: '/report-whatsapp',
   orbit: '/orbit',
   kuad: '/orbit/segmen',
   net: '/orbit/relasi',
@@ -40,6 +41,7 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/dashboard')) return 'dashboard'
   if (path.startsWith('/orchestrator')) return 'orch'
   if (path.startsWith('/chat')) return 'chat'
+  if (path.startsWith('/report-whatsapp')) return 'reportwa'
   if (path.startsWith('/orbit/segmen')) return 'kuad'
   if (path.startsWith('/orbit/relasi')) return 'net'
   if (path.startsWith('/orbit')) return 'orbit'
@@ -145,6 +147,7 @@ export function Shell() {
             <NavBtn to="today" cur={cur} icon="sun" badge={<Badge n={orch.pending} />}>Pusat kendali</NavBtn>
             <NavBtn to="orch" cur={cur} icon="spark" badge={<span className="live" title="siklus berjalan tiap jam" />}>Orchestrator</NavBtn>
             <NavBtn to="chat" cur={cur} icon="chat" badge={<Badge n={unread} color="var(--good)" />}>Chat</NavBtn>
+            <NavBtn to="reportwa" cur={cur} icon="trend">Report WhatsApp</NavBtn>
             <div className="nav-sec">Dealer</div>
             <NavBtn to="orbit" cur={cur} icon="target" badge={<Badge n={atRisk} color="var(--bad)" />}>Orbit</NavBtn>
             <NavBtn to="dealer" cur={cur} icon="building">Dealer</NavBtn>
