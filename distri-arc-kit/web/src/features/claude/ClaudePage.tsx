@@ -9,6 +9,7 @@ import { hhmm, shortDate } from '../../lib/format'
 import { useMCPCalls, useMCPClients, useMCPInfo, useMCPPolicy, useMe } from '../../app/queries'
 import { useMore } from '../../components/More'
 import { Schedules } from './Schedules'
+import { ClaudeRoutine } from './ClaudeRoutine'
 import { AIUsage } from './AIUsage'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { CALL_COMPARE, KIND, argsText, callFirstDir, callText, type CallColumn } from './usage'
@@ -261,6 +262,7 @@ export function ClaudePage() {
           <div className="ep" style={{ marginTop: 10 }}><span>{endpoint}</span><button className="btn ghost" onClick={() => copy(endpoint, toast)}>Salin URL</button></div>
         </div>
       </div>
+      <ClaudeRoutine />
       <AIUsage />
       <Calls />
       <Schedules />

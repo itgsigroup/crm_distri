@@ -250,7 +250,7 @@ func (w *CycleWorker) Timeout(*river.Job[jobs.CycleRunArgs]) time.Duration {
 	if wait <= 0 {
 		wait = 10 * time.Minute
 	}
-	return max(15*time.Minute, wait+FallbackWindow+5*time.Minute)
+	return max(15*time.Minute, wait+max(FallbackWindow, RoutineWindow)+5*time.Minute) // the API or the Claude routine (ADR 0049)
 }
 
 // Hourly fires on the hour between From and To (WIB), e.g. 06.00–20.00 (policy llm.routing.batch_hours).

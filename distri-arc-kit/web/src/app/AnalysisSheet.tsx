@@ -6,9 +6,10 @@ import { Icon } from '../components/Icon'
 import { SheetHead, useFeedback } from '../components/feedback'
 import { AnalysisResult, AnalysisRunning } from '../features/control/AnalysisPanel'
 import { useOrch } from './orch'
+import { useSse } from './SseProvider'
 
 /** How a cycle asked from the "Analisis ulang" button is analysed by Claude through MCP (POST /cycles → mcp). */
-export interface CycleMCP { engine: 'claude_api' | 'claude_ai'; /** claude_api: "Claude API · Claude Opus 5.5" */ model?: string; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string; /** the model and effort asked for */ model_label?: string; effort?: string }
+export interface CycleMCP { engine: 'claude_api' | 'claude_ai'; /** the Claude routine on claude.ai runs it (ADR 0049) */ routine?: boolean; /** claude_api: "Claude API · Claude Opus 5.5" */ model?: string; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string; /** the model and effort asked for */ model_label?: string; effort?: string }
 export type QueuedCycle = Cycle & { mcp?: CycleMCP }
 
 interface InputState { agent: string; submitted_at: string | null }
@@ -30,20 +31,32 @@ export function AnalysisLive({ cycle }: { cycle: QueuedCycle }) {
     refetchInterval: running ? 3000 : false,
   })
   const sent = inputs.filter((x) => x.submitted_at).length
-  // Claude through MCP analyses it (claude.ai / Desktop) — the prompt opens there
+  // Claude through MCP analyses it: the Claude routine on claude.ai when set (ADR 0049) — nobody opens anything —
+  // else in claude.ai / Desktop with the prompt
   const claude = m?.engine === 'claude_ai'
-  const who = 'Claude'
+  const routine = claude && !!m?.routine
+  const [fired, setFired] = useState<{ ok: boolean; url?: string; error?: string } | null>(null)
+  const { subscribe } = useSse()
+  useEffect(() => subscribe((name, data) => {
+    const d = (data ?? {}) as { cycle_id?: string; ok?: boolean; url?: string; error?: string }
+    if (name === 'routine_fired' && d.cycle_id === cycle.id) setFired({ ok: !!d.ok, url: d.url, error: d.error })
+  }), [subscribe, cycle.id])
+  const byHand = claude && sent === 0 && (!routine || (fired && !fired.ok))
   const hint = m && (
     <div className="an-mcp">
       <span>
-        {sent > 0 ? <>{who} sudah mengirim <b>{sent}/{m.agents.length}</b> agen.</>
-          : claude ? <>{who} membaca lewat MCP: buka {who}, pilih <b>{m.model_label || who}</b>{m.effort ? <> · effort <b>{m.effort}</b></> : null}, lalu tekan Enter. Tanpa kunci API, tanpa ChatGPT.</>
+        {sent > 0 ? <>Claude sudah mengirim <b>{sent}/{m.agents.length}</b> agen.</>
+          : routine && fired?.ok ? <>Claude sedang bekerja di claude.ai (routine) — tidak perlu membuka apa pun. Tanpa kunci API, tanpa ChatGPT.</>
+          : routine && fired ? <>Routine Claude gagal dijalankan: {fired.error}. Buka Claude sendiri untuk melanjutkan.</>
+          : routine ? <>Claude akan menganalisa otomatis lewat routine claude.ai saat data siap — tidak perlu membuka apa pun.</>
+          : claude ? <>Claude membaca lewat MCP: buka Claude, pilih <b>{m.model_label || 'Claude'}</b>{m.effort ? <> · effort <b>{m.effort}</b></> : null}, lalu tekan Enter. Tanpa kunci API, tanpa ChatGPT. Agar tidak perlu membuka Claude, isi <b>Routine Claude</b> di halaman MCP Claude.</>
           : <><b>{m.model || 'API'}</b> membaca di server — tidak perlu membuka apa pun.</>}
       </span>
-      {claude && sent === 0 && <a className="btn primary" href={m.claude_url} target="_blank" rel="noopener noreferrer"><Icon name="plug" />Buka {who}</a>}
+      {routine && fired?.ok && fired.url && <a className="btn ghost" href={fired.url} target="_blank" rel="noopener noreferrer"><Icon name="spark" />Lihat Claude bekerja</a>}
+      {byHand && <a className="btn primary" href={m.claude_url} target="_blank" rel="noopener noreferrer"><Icon name="plug" />Buka Claude</a>}
     </div>
   )
-  return last ? <AnalysisResult last={last} /> : <AnalysisRunning extra={hint} focusGame={!claude} />
+  return last ? <AnalysisResult last={last} /> : <AnalysisRunning extra={hint} focusGame={!byHand} />
 }
 
 /** The analysis on the page itself (Orchestrator, Dealer — Sam 17 Oct): while a cycle runs, what the AI analyses with

@@ -33,6 +33,10 @@ func (s *Server) aiAPIRoutes(r chi.Router) {
 	r.Put("/ai/api/wa-auto", s.aiAPIWAAuto)
 	r.Put("/ai/api/key/{provider}", s.aiAPIKey)
 	r.Delete("/ai/api/key/{provider}", s.aiAPIKeyDelete)
+	r.Get("/ai/routine", s.aiRoutine)
+	r.Put("/ai/routine", s.aiRoutineSave)
+	r.Delete("/ai/routine", s.aiRoutineDelete)
+	r.Post("/ai/routine/test", s.aiRoutineTest)
 }
 
 type aiProvider struct {

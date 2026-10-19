@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Analisis Claude lewat routine claude.ai — tanpa membuka Claude Desktop · 2026-10-19
+- Setiap siklus yang menunggu Claude (tombol Analisis ulang dan siklus per jam) memicu routine **"GSI Orbit · Analisis Orchestrator"** di claude.ai. Claude bekerja di cloud lewat konektor CRM-DISTRI dengan langganan Claude — tanpa membuka Desktop, tanpa kunci API, tanpa ChatGPT. Siklus menunggu sampai 30 menit.
+- Halaman **MCP Claude → Routine Claude**: CEO menyimpan ID routine dan token trigger API (dibuat sekali di claude.ai), lalu **Tes sekarang**.
+- Pop-up analisis: "Claude sedang bekerja di claude.ai (routine)" dengan tautan **Lihat Claude bekerja**; tombol Buka Claude hanya bila routine belum diisi atau gagal. ADR 0049.
+
 ## Change · ChatGPT tidak pernah dipakai · 2026-10-19
 - ChatGPT dimatikan di kode: tidak lagi mengambil alih siklus Orchestrator atau Analisa WhatsApp bila Claude tidak menjawab, tidak dipakai analisa otomatis maupun draft balasan. (Siklus #305 dari Pusat kendali ternyata dijawab ChatGPT API cadangan, bukan Claude.)
 - Pilihan AI Claude/ChatGPT dihapus: Analisis ulang hanya Claude lewat MCP. Halaman API & model AI tidak lagi menawarkan ChatGPT. ADR 0048.

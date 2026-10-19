@@ -223,6 +223,8 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, 
 				ModelLabel: analyst.ModelLabel(deref(cyc.EngineModel)), Effort: effort}
 			if useModel {
 				m.Engine, m.Model = "claude_api", analyst.ProviderLabel(prov)+" · "+analyst.ModelLabel(model)
+			} else if id, _ := analyst.LoadRoutine(r.Context(), s.st.Q, s.secret()); id != "" {
+				m.Routine = true // the worker fires the Claude routine when Analisis starts waiting (ADR 0049)
 			}
 			out.MCP = m
 		}
@@ -244,11 +246,13 @@ type cycleMCP struct {
 	Effort     string `json:"effort"`
 	// Fallback: the API that takes the agents Claude did not answer after WaitSec; always "" since 19 Oct (a cycle asked
 	// from Analisis ulang stays with the chosen MCP client)
-	Fallback  string   `json:"fallback"`
-	Prompt    string   `json:"prompt"`
-	ClaudeURL string   `json:"claude_url"` // claude.ai with the prompt
-	WaitSec   int      `json:"wait_sec"`
-	Agents    []string `json:"agents"`
+	Fallback  string `json:"fallback"`
+	Prompt    string `json:"prompt"`
+	ClaudeURL string `json:"claude_url"` // claude.ai with the prompt
+	// Routine: the Claude routine on claude.ai runs it in the cloud — nobody needs to open Claude (ADR 0049)
+	Routine bool     `json:"routine"`
+	WaitSec int      `json:"wait_sec"`
+	Agents  []string `json:"agents"`
 }
 
 // cycleEngines: what "Analisis ulang" can run on — Claude through MCP always; the API and model chosen on

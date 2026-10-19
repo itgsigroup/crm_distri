@@ -1782,3 +1782,13 @@ body.map-maximized{overflow:hidden}
 .agent-card .ac-out{font-size:12.5px;color:var(--text)}
 .agent-card .ac-out .i{width:13px;height:13px;color:var(--good);flex:none}
 .agent-card .ac-h span{font-size:12px}
+
+/* Routine Claude card (MCP Claude page, ADR 0049) */
+.cr-card{border:1.5px solid color-mix(in srgb,var(--accent) 35%,var(--line))}
+.cr-text{margin:0 0 10px;font-size:13px;line-height:1.55;color:var(--text-2)}
+.cr-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-size:13px}
+.cr-row code{font-size:12px}
+.cr-steps{margin:0 0 10px;padding-left:18px;font-size:12.5px;line-height:1.6;color:var(--text-2)}
+.cr-form{display:flex;gap:8px;flex-wrap:wrap}
+.cr-form .cl-input{flex:1 1 220px;min-width:0}
+.cr-form .pw{flex:1 1 280px;min-width:0}

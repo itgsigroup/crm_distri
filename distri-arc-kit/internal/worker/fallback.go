@@ -12,6 +12,7 @@ import (
 
 	"distri-arc/internal/analyst"
 	"distri-arc/internal/clock"
+	"distri-arc/internal/events"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/orchestrator"
 	"distri-arc/internal/store"
@@ -53,7 +54,12 @@ func (f *Fallback) Ready(ctx context.Context) bool {
 // Hook is orchestrator.OnMCPWait: when the second option is ready, a job runs the API on the cycle once the MCP
 // wait is over, and Analisis waits FallbackWindow longer for it.
 func (f *Fallback) Hook(client *river.Client[pgx.Tx], log *slog.Logger) func(ctx context.Context, cycleID uuid.UUID, number int64, agents []string, wait time.Duration) time.Duration {
-	return func(ctx context.Context, cycleID uuid.UUID, _ int64, _ []string, wait time.Duration) time.Duration {
+	return func(ctx context.Context, cycleID uuid.UUID, number int64, agents []string, wait time.Duration) time.Duration {
+		// Claude routine on claude.ai first (ADR 0049): Claude runs in the cloud on the subscription — nobody opens
+		// Claude Desktop, no API key, no ChatGPT
+		if extra, ok := f.fireRoutine(ctx, log, cycleID, number, agents, wait); ok {
+			return extra
+		}
 		if client == nil || !f.Ready(ctx) {
 			return 0
 		}
@@ -68,6 +74,35 @@ func (f *Fallback) Hook(client *river.Client[pgx.Tx], log *slog.Logger) func(ctx
 		}
 		return FallbackWindow
 	}
+}
+
+// RoutineWindow is the extra time a cycle's Analisis waits for the Claude routine: a cloud session starts, then Claude
+// reads every agent's input and submits.
+const RoutineWindow = 20 * time.Minute
+
+// fireRoutine fires the Claude routine with the cycle's MCP prompt; ok when it started (Analisis then waits
+// RoutineWindow longer). A routine that cannot be fired leaves the cycle to Claude through MCP as before.
+func (f *Fallback) fireRoutine(ctx context.Context, log *slog.Logger, cycleID uuid.UUID, number int64, agents []string, wait time.Duration) (time.Duration, bool) {
+	id, token := analyst.LoadRoutine(ctx, f.St.Q, f.Secret)
+	if id == "" {
+		return 0, false
+	}
+	var names []string
+	for _, a := range agents {
+		if !orchestrator.IsScreenReading(a) && a != orchestrator.AgentWA {
+			names = append(names, a)
+		}
+	}
+	prompt := orchestrator.MCPPrompt(number, cycleID.String(), names, wait+RoutineWindow)
+	url, err := analyst.FireRoutine(ctx, id, token, prompt)
+	if err != nil {
+		log.Warn("claude routine: fire", "cycle", cycleID, "err", err)
+		_ = events.Notify(ctx, f.St.Pool, "routine_fired", map[string]any{"cycle_id": cycleID, "ok": false, "error": err.Error()})
+		return 0, false
+	}
+	log.Info("claude routine: fired", "cycle", cycleID, "run", url)
+	_ = events.Notify(ctx, f.St.Pool, "routine_fired", map[string]any{"cycle_id": cycleID, "ok": true, "url": url})
+	return RoutineWindow, true
 }
 
 // fallbackCycle runs the API on the agents of a still-waiting cycle that Claude through MCP did not answer.

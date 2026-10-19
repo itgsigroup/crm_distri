@@ -12,6 +12,7 @@ const INVALIDATES: Record<string, string[][]> = {
   mcp_schedule: [['mcp'], ['chat', 'wa-analysis']], // Claude's Analisa WhatsApp every 2 h: the label in Pusat kendali
   policy_changed: [['policies'], ['agents'], ['mcp']],
   outbox_failed: [['proposals'], ['dealer'], ['plan']],
+  routine_fired: [['mcp']], // the Claude routine started (or could not) for a waiting cycle — the analysis pop-up shows it
 }
 
 /** Collects query keys and invalidates each distinct one once per `wait` ms (leading edge immediate, then trailing). */
