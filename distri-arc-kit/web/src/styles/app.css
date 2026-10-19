@@ -1770,3 +1770,15 @@ body.map-maximized{overflow:hidden}
 .cc-table .btn.cc-ico{width:30px;padding:0;justify-content:center}
 .cc-table .btn.cc-ico .i{width:14px;height:14px;margin:0}
 .cc-table .cc-sub b{color:var(--text-2);font-weight:600}
+
+/* Orchestrator page tidy (19 Oct): pipeline in 3 columns, MCP model/effort in the header, compact agent cards */
+.orch-pipe{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.orch-pipe .pst{margin-right:0}
+.oh-eng{display:flex;flex-direction:column;gap:8px;margin-top:14px;max-width:420px}
+.oh-eng .dk-model select{height:32px}
+.orch-note{font-size:13px;color:var(--text-2);line-height:1.5;margin-bottom:10px}
+.agent-grid{gap:8px}
+.agent-card{gap:6px;padding:10px 12px}
+.agent-card .ac-out{font-size:12.5px;color:var(--text)}
+.agent-card .ac-out .i{width:13px;height:13px;color:var(--good);flex:none}
+.agent-card .ac-h span{font-size:12px}

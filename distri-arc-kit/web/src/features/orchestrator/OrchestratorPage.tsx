@@ -1,121 +1,116 @@
-import { useMemo } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import type { Conflict, Cycle, CycleStage } from '../../api/types'
+import type { AgentInfo, Conflict, CycleStage, WAAnalysis, WAHistoryRow } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { hhmm, shortDate } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
-import { SYSTEM_LABEL, useOrch, useOrchStatus } from '../../app/orch'
+import { useOrch, useOrchStatus } from '../../app/orch'
 import { InlineAnalysis } from '../../app/AnalysisSheet'
-import { effort, mcpModel, shortModel } from '../../app/enginePrefs'
-import { useAgents, useConflicts, useCycleLatest, useCycles, useMCPCalls, useMCPInfo, useQueue, useWAAnalysis } from '../../app/queries'
+import { EFFORTS, MCP_MODELS, effort, mcpModel, setEffort, setMcpModel, type Effort } from '../../app/enginePrefs'
+import { useAgents, useConflicts, useCycleLatest, useMCPCalls, useMCPInfo, useQueue, useWAAnalysis } from '../../app/queries'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
-import { Queue } from '../control/Queue'
+import { ColumnTable, type Column } from '../../components/DataTable'
+import { QueueTable } from '../control/tables'
 import { useCanWA } from '../wa/WAAnalysis'
+import { waitLabel } from '../wa/wa'
 import { MCPClientsPanel, MCPRules } from '../settings/AIConnections'
-import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
-import { CONFLICT_COMPARE, RUN_COMPARE, conflictFirstDir, conflictText, conflictTie, finishedRuns, runFirstDir, runText, runTie, type ConflictColumn, type RunColumn } from './tables'
+import { CONFLICT_COMPARE, conflictText } from './tables'
+
+// Orchestrator (mockup screen-orch, the components of 08-frontend.md): header, Pipeline, Resolusi konflik, Riwayat
+// analisis, Agen, MCP, Matriks otonomi — every analysis read from WhatsApp, Analisis ulang by Claude through MCP
+// (Sam 19 Oct, ADR 0045).
 
 // Default stage descriptions before the first cycle (mockup STAGES).
-const STAGE_HINT = ['WhatsApp · stok BigQuery', '6 agen paralel', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
+const STAGE_HINT = ['chat WhatsApp · stok BigQuery', '6 agen membaca chat', 'konflik antar agen', 'otonom · ke Anda', 'antrean per sales', 'kalibrasi']
 
-/** Pipeline analisis (mockup pipeHtml, full form). */
-function Pipeline({ stages }: { stages: CycleStage[] }) {
+const NO_WA = 'Analisa WhatsApp mengutip pesan pelanggan, jadi hanya tampil untuk pengguna dengan akses halaman Chat.'
+const fmt = (v: number | undefined | null) => (v ?? 0).toLocaleString('id-ID')
+
+/** Pipeline analisis (mockup pipeHtml, full form); Ingest says what was read from WhatsApp. */
+function Pipeline({ stages, wa }: { stages: CycleStage[]; wa: WAAnalysis | undefined }) {
   const { s } = useOrch()
   const st = useOrchStatus()
   return (
-    <div className="pipe">
+    <div className="pipe orch-pipe">
       {PIPELINE_STAGES.map((n, i) => {
-        const detail = stages.find((x) => x.stage === STAGES[i])?.detail?.text
+        const detail = i === 0 && wa?.cycle_number ? `${fmt(wa.totals.threads)} chat WhatsApp · ${fmt(wa.totals.inbound)} pesan masuk · stok` : stages.find((x) => x.stage === STAGES[i])?.detail?.text
         return (
-          <span key={n} style={{ display: 'contents' }}>
-            {i > 0 && <div className="pl" />}
-            <div className={`pst ${chipState(s, i, st.hasCycle)}`}>
-              <div className="pn"><i />{n}</div>
-              <div className="pd">{detail ?? STAGE_HINT[i]}</div>
-            </div>
-          </span>
+          <div key={n} className={`pst ${chipState(s, i, st.hasCycle)}`}>
+            <div className="pn"><i />{n}</div>
+            <div className="pd">{detail ?? STAGE_HINT[i]}</div>
+          </div>
         )
       })}
     </div>
   )
 }
 
-/** Riwayat analisis as a data table: search, sort every column both ways, pages of 10/25/50. */
-function Runs({ cycles }: { cycles: Cycle[] }) {
-  const rows = useMemo(() => finishedRuns(cycles), [cycles])
-  const t = useDataTable<Cycle, RunColumn>({ rows, text: runText, compare: RUN_COMPARE, tie: runTie, initial: { column: 'jam', dir: 'desc' }, firstDir: runFirstDir })
+/** What each agent read in the chats (intent counts measured from WhatsApp, ADR 0045). */
+function waOutput(name: string, wa: WAAnalysis | undefined): string {
+  const t = wa?.totals
+  if (!t) return 'Belum ada Analisa WhatsApp'
+  const n = (k: keyof typeof t.by_intent) => t.by_intent[k] ?? 0
+  const due = waitLabel(wa.reply_due_min ?? 120)
+  switch (name) {
+    case 'AI Order': return `${n('order')} chat minta order`
+    case 'AI Follow-up': return `${t.waiting} chat belum dibalas · ${t.needs_reply} lewat ${due}`
+    case 'AI Kredit': return `${n('release')} chat minta rilis kredit`
+    case 'AI Stok': return `${n('ask_stock')} chat tanya stok · ${n('ask_price')} tanya harga`
+    case 'AI Penagihan': return `${n('return')} chat retur / klaim`
+    case 'AI Prospek': return `${t.new_numbers} nomor baru menghubungi`
+  }
+  return `${fmt(t.threads)} chat dibaca`
+}
+
+/** Riwayat analisis: every Analisa WhatsApp (data table). */
+function WAHistory({ rows }: { rows: WAHistoryRow[] }) {
+  const n = (v: number | null) => v ?? -1
+  const cols: Column<WAHistoryRow>[] = [
+    { key: 'jam', label: 'Waktu', cell: (r) => <span className="num">{shortDate(r.at)} · {hhmm(r.at)}</span>, sort: (a, b) => Date.parse(a.at) - Date.parse(b.at), first: 'desc', className: 'nowrap' },
+    { key: 'no', label: 'Siklus', cell: (r) => (r.cycle_number ? `#${fmt(r.cycle_number)}` : '—'), sort: (a, b) => n(a.cycle_number) - n(b.cycle_number), first: 'desc', right: true },
+    { key: 'jalur', label: 'Jalur', cell: (r) => <span className={`pill ${r.via === 'mcp' ? 'indigo' : 'neutral'}`}>{(r.via || 'api').toUpperCase()}</span>, sort: (a, b) => a.via.localeCompare(b.via) },
+    { key: 'chat', label: 'Chat', cell: (r) => <>{fmt(r.threads)}<span className="cc-sub">{fmt(r.inbound)} masuk</span></>, sort: (a, b) => a.threads - b.threads, first: 'desc', right: true },
+    { key: 'menunggu', label: 'Menunggu', cell: (r) => fmt(r.waiting), sort: (a, b) => a.waiting - b.waiting, first: 'desc', right: true },
+    { key: 'balas', label: 'Balas', cell: (r) => (r.reply_median_min == null ? '—' : waitLabel(r.reply_median_min)), sort: (a, b) => n(a.reply_median_min) - n(b.reply_median_min), right: true },
+    { key: 'sumber', label: 'Sumber', cell: (r) => (r.source === 'ai' ? <Pill tone="accent">Claude</Pill> : <Pill tone="neutral">angka</Pill>), sort: (a, b) => a.source.localeCompare(b.source) },
+  ]
   return (
-    <>
-      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari nomor, jalur, catatan…" label="Cari riwayat analisis" meta={`${t.matches.length.toLocaleString('id-ID')} siklus`} />
-      {rows.length === 0 ? (
-        <p className="sg-hint">Belum ada siklus — siklus pertama berjalan di jam berikutnya (06.00–20.00) atau lewat Analisis ulang.</p>
-      ) : t.matches.length === 0 ? (
-        <p className="sg-hint">Tidak ada siklus yang cocok dengan pencarian ini.</p>
-      ) : (
-        <div className="odl-wrap">
-          <table className="odl runs-table">
-            <thead><tr>
-              <SortTh t={t} c="jam">Waktu</SortTh><SortTh t={t} c="no" right>No.</SortTh><SortTh t={t} c="jalur">Jalur</SortTh>
-              <SortTh t={t} c="sinyal" right>Sinyal</SortTh><SortTh t={t} c="otonom" right>Otonom</SortTh><SortTh t={t} c="keputusan" right>Keputusan</SortTh>
-              <SortTh t={t} c="konflik" right>Konflik</SortTh><SortTh t={t} c="catatan">Catatan</SortTh>
-            </tr></thead>
-            <tbody>
-              {t.shown.map((r) => (
-                <tr key={r.id}>
-                  <td className="num nowrap">{shortDate(r.started_at)} · {hhmm(r.started_at)}</td>
-                  <td className="r num">#{(r.number ?? 0).toLocaleString('id-ID')}</td>
-                  <td><span className={`pill ${r.via === 'mcp' ? 'indigo' : 'neutral'}`}>{(r.via ?? 'api').toUpperCase()}</span></td>
-                  <td className="r num">{r.signals_count ?? 0}</td>
-                  <td className="r num">{r.auto_count ?? 0}</td>
-                  <td className="r num">{r.decision_count ?? 0}</td>
-                  <td className="r num">{r.conflict_count ?? 0}</td>
-                  <td className="runs-note">{r.status === 'failed' ? <span style={{ color: 'var(--bad)' }}>{r.note}</span> : r.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <TablePager t={t} noun="siklus" />
-    </>
+    <ColumnTable rows={rows} columns={cols} rowKey={(r) => r.at + (r.cycle_number ?? '')} noun="analisa" placeholder="Cari siklus, jalur, sumber…" initial={{ column: 'jam', dir: 'desc' }}
+      text={(r) => `#${r.cycle_number ?? ''} ${r.via} ${r.status} ${r.source === 'ai' ? 'claude' : 'angka'}`}
+      empty="Belum ada Analisa WhatsApp — muncul setelah siklus pertama atau Analisis ulang lewat Claude." />
   )
 }
 
-/** Resolusi konflik as a data table: search, sort every column both ways, pages of 10/25/50. */
-function Conflicts({ rows, onOpen }: { rows: Conflict[]; onOpen: (slug: string) => void }) {
-  const t = useDataTable<Conflict, ConflictColumn>({ rows, text: conflictText, compare: CONFLICT_COMPARE, tie: conflictTie, initial: { column: 'agen', dir: 'asc' }, firstDir: conflictFirstDir })
+/** Resolusi konflik on the dealers that wrote on WhatsApp (data table). */
+function Conflicts({ rows }: { rows: Conflict[] }) {
+  const nav = useNavigate()
+  const cols: Column<Conflict>[] = [
+    { key: 'agen', label: 'Agen', cell: (c) => <span className="nowrap"><span className="cf-dot" style={{ background: `var(--${c.tone && c.tone !== 'neutral' ? c.tone : 'accent'})` }} /><b>{c.agent_a}</b> ↔ <b>{c.agent_b}</b></span>, sort: CONFLICT_COMPARE.agen },
+    { key: 'dealer', label: 'Dealer', cell: (c) => (c.dealer_slug ? <button className="ev" onClick={() => nav('/dealer/' + c.dealer_slug)}>{c.dealer_name}</button> : '—'), sort: CONFLICT_COMPARE.dealer },
+    { key: 'konflik', label: 'Konflik & resolusi', cell: (c) => <>{c.title}<span className="cc-sub"><span className="ai" />{c.resolution}</span></>, sort: CONFLICT_COMPARE.konflik },
+  ]
   return (
-    <>
-      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari agen, dealer, konflik, resolusi…" label="Cari konflik" meta={`${t.matches.length.toLocaleString('id-ID')} konflik`} />
-      {rows.length === 0 ? (
-        <p className="sg-hint">Belum ada konflik pada siklus terakhir.</p>
-      ) : t.matches.length === 0 ? (
-        <p className="sg-hint">Tidak ada konflik yang cocok dengan pencarian ini.</p>
-      ) : (
-        <div className="odl-wrap">
-          <table className="odl conflicts-table">
-            <thead><tr><SortTh t={t} c="agen">Agen</SortTh><SortTh t={t} c="dealer">Dealer</SortTh><SortTh t={t} c="konflik">Konflik</SortTh><SortTh t={t} c="resolusi">Resolusi Orchestrator</SortTh></tr></thead>
-            <tbody>
-              {t.shown.map((c) => {
-                const k = c.tone && c.tone !== 'neutral' ? c.tone : 'accent'
-                return (
-                  <tr key={c.id}>
-                    <td className="nowrap"><span className="cf-dot" style={{ background: `var(--${k})` }} /><b>{c.agent_a}</b> ↔ <b>{c.agent_b}</b></td>
-                    <td>{c.dealer_slug ? <button className="ev" onClick={() => onOpen(c.dealer_slug!)}>{c.dealer_name}</button> : <span style={{ color: 'var(--text-3)' }}>—</span>}</td>
-                    <td>{c.title}</td>
-                    <td className="cf-res"><span className="ai" />{c.resolution}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <TablePager t={t} noun="konflik" />
-    </>
+    <ColumnTable rows={rows} columns={cols} rowKey={(c) => c.id} noun="konflik" placeholder="Cari agen, dealer, konflik, resolusi…" initial={{ column: 'agen', dir: 'asc' }}
+      text={conflictText} empty="Belum ada konflik pada dealer yang chat di siklus terakhir." />
+  )
+}
+
+/** One agent: role, what it read in the chats, its proposals from chat, calibration, re-run through Claude. */
+function AgentCard({ a, wa, fromChat }: { a: AgentInfo; wa: WAAnalysis | undefined; fromChat: number }) {
+  const { reanalyze } = useOrch()
+  const st = useOrchStatus()
+  return (
+    <div className="agent-card">
+      <div className="ac-h"><span className="ni"><Icon name={a.icon} /></span><div><b>{a.name}</b><span>{a.role}</span></div></div>
+      <div className="ac-out"><Icon name="chat" />{waOutput(a.name, wa)}{fromChat > 0 && <b> · {fromChat} usulan</b>}</div>
+      <div className="ac-f">
+        <div className="cal-row"><span>kalibrasi</span><div className="bar"><i style={{ width: `${a.confidence ?? 0}%`, ...(a.confidence !== null && a.confidence < 60 ? { background: 'var(--warn)' } : {}) }} /></div><span className="v num">{a.confidence === null ? '—' : `${a.confidence}%`}</span></div>
+        <button className="btn quiet" disabled={st.running} onClick={() => reanalyze('agent:' + a.name, 'mcp', undefined, true)} title="Claude menganalisis ulang agen ini lewat MCP">Jalankan ulang</button>
+      </div>
+    </div>
   )
 }
 
@@ -124,14 +119,11 @@ function argText(a: Record<string, unknown> | null): string {
   return Object.entries(a).filter(([, v]) => v !== '' && v != null && !(Array.isArray(v) && v.length === 0)).map(([k, v]) => `${k}:${typeof v === 'string' ? `"${v}"` : Array.isArray(v) ? `[${v.length}]` : JSON.stringify(v)}`).join(', ')
 }
 
-// Orchestrator (mockup screen-orch, the components of 08-frontend.md): analysis from WhatsApp, stock from BigQuery (ADR 0045).
 export function OrchestratorPage() {
-  const nav = useNavigate()
   const { openSheet } = useFeedback()
   const { reanalyze } = useOrch()
   const st = useOrchStatus()
   const { data: latest } = useCycleLatest()
-  const { data: cycles = [] } = useCycles()
   const page = useSalesPage()
   const sales = page.sales
   const { data: conflicts = [] } = useConflicts(sales)
@@ -139,13 +131,19 @@ export function OrchestratorPage() {
   const { data: queue = [] } = useQueue(sales)
   const { data: info } = useMCPInfo()
   const { data: calls = [] } = useMCPCalls()
-  const shown = st.running && latest?.cycle ? latest.cycle : (latest?.last_full ?? latest?.last_done)
-  const meta = st.run ? `siklus #${st.run.toLocaleString('id-ID')} · ${st.last} · ${st.dur}` : 'belum ada siklus'
-  // the decisions of one sales' page: the proposals tied to a WhatsApp conversation
   const canWA = useCanWA()
   const { data: wa } = useWAAnalysis(sales, canWA)
+  // Claude through MCP, with the model and effort chosen here or on the dock (the same settings)
+  const [model, setModel] = useState(mcpModel)
+  const [eff, setEff] = useState<Effort>(effort)
+  const shown = st.running && latest?.cycle ? latest.cycle : (latest?.last_full ?? latest?.last_done)
+  const meta = st.run ? `siklus #${st.run.toLocaleString('id-ID')} · ${st.last} · ${st.dur}` : 'belum ada siklus'
+  // WhatsApp only: the proposals tied to a conversation, the conflicts on dealers that wrote
   const waIds = new Set((wa?.items ?? []).flatMap((r) => r.proposal_ids))
   const waQueue = queue.filter((q) => waIds.has(q.id))
+  const waDealers = new Set((wa?.items ?? []).map((r) => r.dealer_id).filter(Boolean))
+  const waConflicts = conflicts.filter((c) => c.dealer_id && waDealers.has(c.dealer_id))
+  const lastModel = st.lastDone?.model_label ? `${st.lastDone.via === 'mcp' ? 'MCP · ' : ''}${st.lastDone.model_label}${st.lastDone.effort ? ` · ${st.lastDone.effort}` : ''}` : 'Claude lewat MCP'
 
   return (
     <>
@@ -153,90 +151,92 @@ export function OrchestratorPage() {
       <SalesBanner page={page} />
       <div className="card orch-head">
         <div className="oh-l">
-          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca chat WhatsApp dan stok BigQuery, membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda. Analisa bisa dijalankan sistem GSI Orbit sendiri (aturan &amp; rumus, langsung) atau oleh Claude lewat MCP.</p></div></div>
+          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca chat WhatsApp (dan stok BigQuery untuk push stok), membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda. Analisanya ditulis Claude lewat MCP.</p></div></div>
+          <div className="oh-eng">
+            <label className="dk-model"><span>Model</span>
+              <select value={model} disabled={st.running} onChange={(e) => { setModel(e.target.value); setMcpModel(e.target.value) }} title="Pilih model yang sama di claude.ai / Desktop — perintahnya menyebut model ini">
+                {MCP_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </select>
+            </label>
+            <div className="dk-effort" role="radiogroup" aria-label="Effort"><span>Effort</span>
+              {EFFORTS.map((x) => <button key={x.id} type="button" role="radio" aria-checked={eff === x.id} className={eff === x.id ? 'on' : ''} disabled={st.running} title={x.hint} onClick={() => { setEff(x.id); setEffort(x.id) }}>{x.label}</button>)}
+            </div>
+          </div>
         </div>
         <div className="oh-r">
           <div className="oh-kv"><small>Status</small><b>{st.running ? `Menganalisis ${st.scope} · ${st.stage}` : 'Siap · menunggu siklus'}</b></div>
           <div className="oh-kv"><small>Analisis terakhir</small><b>{st.run ? `#${st.run.toLocaleString('id-ID')} · ${st.last}` : '—'}</b></div>
-          {canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${(wa.cycle_number ?? 0).toLocaleString('id-ID')} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
-          <div className="oh-kv"><small>Berikutnya</small><b>{st.next} · tiap jam</b></div>
-          <div className="oh-kv"><small>Model AI terakhir</small><b title="Model dan effort yang dipilih untuk analisis terakhir (Orchestrator di kanan bawah)">{st.lastDone?.model_label ? `${st.lastDone.via === 'mcp' ? 'MCP · ' : ''}${st.lastDone.model_label}${st.lastDone.effort ? ` · ${st.lastDone.effort}` : ''}` : (st.lastDone?.via === 'system' ? SYSTEM_LABEL : 'Claude lewat MCP')}</b></div>
+          {canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${fmt(wa.cycle_number)} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
+          <div className="oh-kv"><small>Model AI terakhir</small><b>{lastModel}</b></div>
           <div className="oh-btns">
-            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all', 'system', SYSTEM_LABEL, true)} title="Aturan agen dan rumus GSI Orbit di server — langsung jalan, tanpa membuka Claude"><Icon name="refresh" />Analisis ulang (Sistem)</button>
-            <button className="btn ghost" disabled={st.running} onClick={() => reanalyze('all', 'mcp', undefined, true)} title={`Claude menganalisis lewat MCP · ${shortModel(mcpModel())} · effort ${effort()}`}><Icon name="plug" />Lewat Claude · MCP</button>
+            <button className="btn primary" disabled={st.running} onClick={() => reanalyze('all', 'mcp', undefined, true)} title="Claude membaca chat WhatsApp lewat MCP dengan model dan effort di kiri"><Icon name="plug" />Analisis ulang · MCP Claude</button>
           </div>
         </div>
       </div>
       <InlineAnalysis />
-      <div className="orch-grid">
-        <div className="stack">
-          <div className="card">
-            <div className="card-h"><h2>Pipeline analisis</h2><span className="meta">{meta}</span></div>
-            <Pipeline stages={shown?.stages ?? []} />
-          </div>
-          {sales && (
+      {!canWA ? (
+        <div className="card"><p className="sg-hint">{NO_WA}</p></div>
+      ) : (
+        <div className="orch-grid">
+          <div className="stack">
             <div className="card">
-              <div className="card-h"><h2>Keputusan sales ini</h2><span className="meta">{waQueue.length ? `${waQueue.length} usulan dari chat` : 'Tidak ada usulan dari chat hari ini'}</span></div>
-              <Queue items={waQueue} />
+              <div className="card-h"><h2>Pipeline analisis</h2><span className="meta">{meta}</span></div>
+              <Pipeline stages={shown?.stages ?? []} wa={wa} />
             </div>
-          )}
-          <div className="card">
-            <div className="card-h"><h2>Resolusi konflik</h2><span className="ai" style={{ marginLeft: 6 }}>inti pekerjaan Orchestrator</span><span className="meta">dua agen, satu dealer, satu urutan</span></div>
-            <Conflicts rows={conflicts} onOpen={(slug) => nav('/dealer/' + slug)} />
-          </div>
-          <div className="card">
-            <div className="card-h"><h2>Riwayat analisis</h2><span className="meta">{sales ? 'siklus berjalan untuk seluruh tim · tanpa rincian dealer' : 'tiap jam · 06.00–20.00 · 100 siklus terakhir'}</span></div>
-            <Runs cycles={cycles} />
-          </div>
-        </div>
-        <div className="stack">
-          <div className="card">
-            <div className="card-h"><h2>Agen</h2><span className="meta">{sales ? 'peran · otonomi · usulan hari ini untuk dealer sales ini' : 'peran · otonomi · hasil siklus terakhir'}</span></div>
-            <div className="agent-grid">
-              {agents.map((a) => (
-                <div className="agent-card" key={a.name}>
-                  <div className="ac-h"><span className="ni"><Icon name={a.icon} /></span><div><b>{a.name}</b><span>{a.role}</span></div></div>
-                  <div className="ac-kv"><span><small>Otonom</small>{a.auto}</span><span><small>Butuh approve</small>{a.approve}</span><span><small>Tidak boleh</small>{a.never}</span></div>
-                  <div className="ac-out"><span className="ai" />{sales ? `${a.today} usulan hari ini untuk dealer sales ini` : a.output || 'Belum berjalan'}</div>
-                  <div className="ac-f">
-                    <div className="cal-row"><span>kalibrasi</span><div className="bar"><i style={{ width: `${a.confidence ?? 0}%`, ...(a.confidence !== null && a.confidence < 60 ? { background: 'var(--warn)' } : {}) }} /></div><span className="v num">{a.confidence === null ? '—' : `${a.confidence}%`}</span></div>
-                    <button className="btn quiet" style={{ height: 26, fontSize: 12 }} disabled={st.running} onClick={() => reanalyze('agent:' + a.name)}>Jalankan ulang</button>
-                  </div>
-                </div>
-              ))}
+            {sales && (
+              <div className="card">
+                <div className="card-h"><h2>Keputusan sales ini</h2><span className="meta">{waQueue.length ? `${waQueue.length} usulan dari chat` : 'Tidak ada usulan dari chat hari ini'}</span></div>
+                <QueueTable items={waQueue} />
+              </div>
+            )}
+            <div className="card">
+              <div className="card-h"><h2>Resolusi konflik</h2><span className="ai" style={{ marginLeft: 6 }}>inti pekerjaan Orchestrator</span><span className="meta">dealer yang chat · dua agen, satu urutan</span></div>
+              <Conflicts rows={waConflicts} />
+            </div>
+            <div className="card">
+              <div className="card-h"><h2>Riwayat analisis</h2><span className="meta">Analisa WhatsApp per siklus · {wa?.window_days ?? 7} hari terakhir per baris</span></div>
+              <WAHistory rows={wa?.history ?? []} />
+            </div>
+            <div className="card">
+              <div className="card-h"><h2>Matriks otonomi</h2><span className="meta">dibaca Orchestrator sebelum membagi tugas</span></div>
+              <div className="tbl-wrap">
+                <table className="matrix">
+                  <thead><tr><th>Agen</th><th>Otonom</th><th>Butuh approve</th><th>Tidak boleh</th></tr></thead>
+                  <tbody>{agents.map((a) => <tr key={a.name}><td><b>{a.name}</b></td><td><span className="chip g">{a.auto}</span></td><td><span className="chip w">{a.approve}</span></td><td><span className="chip b">{a.never}</span></td></tr>)}</tbody>
+                </table>
+              </div>
             </div>
           </div>
-          <div className="card">
-            <div className="card-h"><h2>MCP sebagai orchestrator</h2>{info?.enabled ? <Pill tone="good" icon="check">Aktif</Pill> : <Pill tone="neutral" icon="plug">Mati</Pill>}<button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 'auto' }} onClick={() => openSheet(<MCPClientsPanel />)}>Klien &amp; token</button></div>
-            <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.5, marginBottom: 10 }}>Klien MCP (Claude Desktop, ChatGPT, agent eksternal) tidak hanya membaca data: mereka bisa memicu analisis ulang, meminta rencana, dan menjalankan satu agen — lewat tool yang sama dengan yang dipakai Orchestrator internal.</p>
-            <MCPRules />
-            <div className="hr" />
-            <h3 className="h3">Panggilan terakhir dari klien MCP</h3>
-            <ul className="mcp-log">
-              {calls.slice(0, 5).map((m) => (
-                <li key={m.id}><span className="num t">{hhmm(m.created_at)}</span><div><b>{m.client_name ?? 'Klien tanpa token'}</b><code style={{ overflowWrap: 'anywhere' }}>{m.tool}({argText(m.args)})</code><span style={m.status === 'ok' ? undefined : { color: 'var(--bad)' }}>→ {m.status === 'ok' ? m.result_summary : `${m.status} · ${m.result_summary ?? ''}`}</span></div></li>
-              ))}
-              {calls.length === 0 && <li><span className="num t">—</span><div><b>Belum ada panggilan</b><span>Buat token di Klien &amp; token, lalu sambungkan Claude Desktop ke {info?.endpoint ?? '/mcp'}</span></div></li>}
-            </ul>
-            <div className="hr" />
-            <h3 className="h3">Tool MCP</h3>
-            <div className="tools">
-              {([['read', 'Baca'], ['analyze', 'Analisis'], ['orchestrate', 'Orkestrasi'], ['decide', 'Keputusan · human-only']] as const).map(([k, l]) => (
-                <div key={k}><small>{l}</small><code style={{ overflowWrap: 'anywhere' }}>{(info?.tools ?? []).filter((t) => t.scope === k).map((t) => t.name).join(' · ')}</code></div>
-              ))}
+          <div className="stack">
+            <div className="card">
+              <div className="card-h"><h2>Agen</h2><span className="meta">dibaca dari chat WhatsApp · {sales ? 'dealer sales ini' : 'siklus terakhir'}</span></div>
+              <div className="agent-grid">
+                {agents.map((a) => <AgentCard key={a.name} a={a} wa={wa} fromChat={waQueue.filter((q) => q.agent === a.name).length} />)}
+              </div>
             </div>
-          </div>
-          <div className="card">
-            <div className="card-h"><h2>Matriks otonomi</h2><span className="meta">dibaca Orchestrator sebelum membagi tugas</span></div>
-            <div className="tbl-wrap">
-              <table className="matrix">
-                <thead><tr><th>Agen</th><th>Otonom</th><th>Butuh approve</th><th>Tidak boleh</th></tr></thead>
-                <tbody>{agents.map((a) => <tr key={a.name}><td><b>{a.name}</b></td><td><span className="chip g">{a.auto}</span></td><td><span className="chip w">{a.approve}</span></td><td><span className="chip b">{a.never}</span></td></tr>)}</tbody>
-              </table>
+            <div className="card">
+              <div className="card-h"><h2>MCP sebagai orchestrator</h2>{info?.enabled ? <Pill tone="good" icon="check">Aktif</Pill> : <Pill tone="neutral" icon="plug">Mati</Pill>}<button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 'auto' }} onClick={() => openSheet(<MCPClientsPanel />)}>Klien &amp; token</button></div>
+              <p className="orch-note">Klien MCP (Claude Desktop, ChatGPT, agent eksternal) tidak hanya membaca data: mereka bisa memicu analisis ulang, meminta rencana, dan menjalankan satu agen — lewat tool yang sama dengan yang dipakai Orchestrator internal.</p>
+              <MCPRules />
+              <div className="hr" />
+              <h3 className="h3">Panggilan terakhir dari klien MCP</h3>
+              <ul className="mcp-log">
+                {calls.slice(0, 5).map((m) => (
+                  <li key={m.id}><span className="num t">{hhmm(m.created_at)}</span><div><b>{m.client_name ?? 'Klien tanpa token'}</b><code style={{ overflowWrap: 'anywhere' }}>{m.tool}({argText(m.args)})</code><span style={m.status === 'ok' ? undefined : { color: 'var(--bad)' }}>→ {m.status === 'ok' ? m.result_summary : `${m.status} · ${m.result_summary ?? ''}`}</span></div></li>
+                ))}
+                {calls.length === 0 && <li><span className="num t">—</span><div><b>Belum ada panggilan</b><span>Buat token di Klien &amp; token, lalu sambungkan Claude Desktop ke {info?.endpoint ?? '/mcp'}</span></div></li>}
+              </ul>
+              <div className="hr" />
+              <h3 className="h3">Tool MCP</h3>
+              <div className="tools">
+                {([['read', 'Baca'], ['analyze', 'Analisis'], ['orchestrate', 'Orkestrasi'], ['decide', 'Keputusan · human-only']] as const).map(([k, l]) => (
+                  <div key={k}><small>{l}</small><code style={{ overflowWrap: 'anywhere' }}>{(info?.tools ?? []).filter((t) => t.scope === k).map((t) => t.name).join(' · ')}</code></div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   )
 }

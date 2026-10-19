@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Halaman Orchestrator: Analisis ulang lewat MCP Claude, isi dari WhatsApp, kartu dirapikan · 2026-10-19
+- **Analisis ulang · MCP Claude** di header, dengan pilihan model dan effort (sama dengan kotak Orchestrator). *Jalankan ulang* per agen juga lewat MCP Claude.
+- Isi dari WhatsApp: Pipeline (chat WhatsApp + stok), Resolusi konflik pada dealer yang chat, **Riwayat analisis** = riwayat Analisa WhatsApp (tabel data: cari, urut, halaman), kartu **Agen** menampilkan yang dibaca tiap agen dari chat dan usulannya.
+- Tampilan: pipeline 3 kolom, kartu agen ringkas, tabel konflik dan riwayat muat di kartu, Matriks otonomi pindah ke kolom kiri.
+
 ## Change · Pusat kendali: susunan baru dan semua daftar jadi tabel data · 2026-10-19
 - Susunan: **Agenda sales** di bawah Rencana hari ini; **Ringkasan Orchestrator** pindah ke tempat Agenda sales (kolom kanan, di bawah KPI utama); **Push stok** di bawah Jadwal order; **Limit tipis** di bawah Lewat jadwal.
 - Rencana hari ini, Agenda sales, Keputusan, Jadwal order, Lewat jadwal, Push stok, dan Limit tipis kini tabel data: kolom pencarian, urut naik/turun per kolom, dan halaman 10/25/50 baris.

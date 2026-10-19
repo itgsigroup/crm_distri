@@ -40,3 +40,12 @@ stok berasal dari BigQuery.
   (Jadwal order · 7 hari + Push stok | Lewat jadwal + Limit tipis); kolom kanan KPI utama → Ringkasan Orchestrator.
 - Setiap kartu berisi daftar menjadi tabel data (`ColumnTable` di `components/DataTable.tsx`): cari, urut naik/turun
   per kolom, 10/25/50 baris per halaman. Ringkasan dan KPI tetap berupa teks dan roda.
+
+## Pembaruan 2026-10-19 (siang) — halaman Orchestrator dari WhatsApp
+- Tombol **Analisis ulang** di halaman Orchestrator memakai **MCP Claude** (model dan effort dipilih di header, sama
+  dengan dock); tombol Sistem (ADR 0046) tidak ada di halaman ini — tetap tersedia di dock. *Jalankan ulang* per agen
+  juga lewat MCP Claude.
+- Isi komponen MD dari WhatsApp: Pipeline (Ingest = chat WhatsApp + stok), Resolusi konflik pada dealer yang chat,
+  **Riwayat analisis = riwayat Analisa WhatsApp** per siklus (tabel data), kartu Agen menampilkan yang dibaca tiap agen
+  dari chat (minta order, belum dibalas, rilis kredit, tanya stok/harga, retur, nomor baru) dan usulannya dari chat.
+- Matriks otonomi pindah ke kolom kiri agar dua kolom seimbang; kv otonomi di kartu Agen dihapus (ada di matriks).
