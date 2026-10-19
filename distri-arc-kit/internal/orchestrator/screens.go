@@ -443,7 +443,7 @@ func relasiReading(b *views.Board, chats map[uuid.UUID][]orbitMsg, now time.Time
 func (o *Orchestrator) dealerReadingFor(ctx context.Context, scope string) (*screenReading, error) {
 	id, ok := strings.CutPrefix(scope, "dealer:")
 	if !ok {
-		return nil, fmt.Errorf("Analisa Dealer butuh scope dealer:<id>, bukan %q", scope)
+		return nil, fmt.Errorf("analisa dealer butuh scope dealer:<id>, bukan %q", scope)
 	}
 	b, err := views.NewBuilder(o.St, o.Clock).Board(ctx)
 	if err != nil {
@@ -478,7 +478,7 @@ func (o *Orchestrator) dealerReadingFor(ctx context.Context, scope string) (*scr
 	facts := map[string]any{"dealer": it.Name, "tier": it.Tier, "sales": it.Owner.Name, "kota": it.City, "status_orbit": m.Status, "cyc": m.Cyc,
 		"siklus_order_hari": m.Rhythm, "hari_sejak_order": m.Last, "jadwal_order_dalam_hari": m.DueIn, "segmen": m.Segment, "omzet_bln": m.OmzetBln,
 		"rata_rata_per_order": m.AvgOrder, "porsi_belanja_pct": m.SOW, "pic_aktif": m.PICActive, "skor": m.Score,
-		"kredit": map[string]any{"limit": it.CreditLimit, "terpakai": m.Credit.Exposure, "status": m.Credit.State},
+		"kredit":       map[string]any{"limit": it.CreditLimit, "terpakai": m.Credit.Exposure, "status": m.Credit.State},
 		"chat_30_hari": len(chat), "chat_terakhir": chat}
 	if b.Data != nil {
 		h := b.Data.Histories[it.UUID]
@@ -521,7 +521,7 @@ func checkDealer(a screenAnswer) error {
 		}
 	}
 	if !status || !wa {
-		return errors.New("Analisa Dealer butuh baris status dan wa")
+		return errors.New("analisa dealer butuh baris status dan wa")
 	}
 	return nil
 }
