@@ -44,4 +44,11 @@ func TestEngine(t *testing.T) {
 	if s.engineModel(ctx) != nil { // Claude chosen, no Claude key: no draft model (and never a silent switch to ChatGPT)
 		t.Fatal("fell back to ChatGPT")
 	}
+	// the card's pick (19 Oct): ChatGPT on request although the engine is Claude; Claude without its key: none
+	if p, ok := s.modelFor(ctx, "openai").(*llm.OpenAI); !ok || p == nil {
+		t.Fatalf("card asked ChatGPT: %T", s.modelFor(ctx, "openai"))
+	}
+	if s.modelFor(ctx, "claude") != nil {
+		t.Fatal("Claude without a key")
+	}
 }

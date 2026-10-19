@@ -22,3 +22,11 @@ jadi lebih murah". Routine Claude (ADR 0049) terlalu lambat (30–60 detik) dan 
 ## Konsekuensi
 - Biaya mengikuti jumlah pesan yang cocok trigger saja (gpt-4.1-mini ±Rp 15 per draf). Anggaran harian di API & model AI.
 - Pesan yang tidak memakai kata kunci trigger tetap tidak mendapat kartu; menambah kata kunci di halaman AI Trigger.
+
+## Pembaruan 2026-10-19 (sore) — pilih AI di kartu; "Analisa lanjut" diganti Orchestrator
+- Kartu AI Trigger di Chat: **Tulis dengan ChatGPT / Claude** (dan *Tulis ulang* setelah AI menulis); label draf
+  menyebut AI yang menulisnya. `POST …/ai-draft {rule_id, provider}`: `openai` | `claude` memakai model mesin bila
+  providernya sama, else model pertama provider itu; tanpa kunci provider itu → 409 dengan pesan kunci mana yang kurang.
+- Tombol **Analisa lanjut** di kepala chat dihapus. Kotak **Orchestrator** kini tampil di Chat (ikon bulat di atas kolom
+  balasan) dan menganalisa **chat yang terbuka** (scope `thread:<id>`: AI Order, AI Prospek, catatan per bubble) lewat
+  mesin yang sama dengan Pusat kendali (Sistem atau MCP Claude → routine, ADR 0049).

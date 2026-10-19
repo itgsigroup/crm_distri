@@ -41,6 +41,10 @@ export function screenScope(screen: ScreenKey, path: string): string {
       const id = path.split('/')[2]
       return id ? 'dealer:' + id : 'screen:dealer'
     }
+    case 'chat': { // the open conversation (in place of "Analisa lanjut", 19 Oct), else the chats
+      const id = path.split('/')[2]
+      return id ? 'thread:' + id : 'screen:chat'
+    }
   }
   return 'all'
 }
@@ -52,7 +56,8 @@ export function scopeAgents(scope: string): string[] {
   if (kind === 'screen') {
     agents = ({ orbit: ['AI Follow-up', 'AI Kredit'], segmen: ['AI Follow-up', 'AI Kredit'], relasi: ['AI Follow-up', 'AI Kredit'], stock: ['AI Stok'],
       credit: ['AI Kredit', 'AI Penagihan'], chat: ['AI Order', 'AI Prospek'], wa: [] } as Record<string, string[]>)[id] ?? null
-  } else if (kind === 'agent') agents = [id]
+  } else if (kind === 'thread') agents = ['AI Order', 'AI Prospek', 'Analisa WhatsApp']
+  else if (kind === 'agent') agents = [id]
   if (agents === null) return ['6 agen', 'Analisa Stok', 'Analisa Kas', 'Analisa WhatsApp']
   const out = [...agents]
   if (agents.includes('AI Stok')) out.push('Analisa Stok')
@@ -71,12 +76,13 @@ function savedMini(): boolean {
   try { return localStorage.getItem(MINI_KEY) === '1' } catch { return false }
 }
 
-// Floating Orchestrator dock, fixed at the bottom right of the screen on every page except Dashboard, Orchestrator and Chat (it can shrink to a round icon): re-analyse this page (or
+// Floating Orchestrator dock, fixed at the bottom right of the screen on every page except Dashboard and Orchestrator (it can shrink to a round icon; on Chat it analyses the open conversation): re-analyse this page (or
 // everything) with GSI Orbit's own rules (Sistem, ADR 0046) or Claude through MCP — no API key, no ChatGPT (19 Oct); the page's
 // data refreshes when the cycle is done.
 export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: ReactNode; links?: ReactNode }) {
   const [open, setOpen] = useState(false)
-  const [mini, setMiniState] = useState(savedMini)
+  // on Chat it starts as the round icon above the reply box (19 Oct): the open dock must not cover the composer
+  const [mini, setMiniState] = useState(() => screen === 'chat' || savedMini())
   const setMini = (m: boolean) => { setMiniState(m); if (m) setOpen(false); try { localStorage.setItem(MINI_KEY, m ? '1' : '0') } catch { /* private mode */ } }
   const { s, reanalyze } = useOrch()
   const st = useOrchStatus()
@@ -117,7 +123,7 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
   // rendered on <body>: inside a page (.screen animates a transform) position: fixed would scroll with the content
   if (mini) {
     return createPortal(
-      <button className={`dock-mini ${st.running ? 'running' : ''}`} onClick={() => { setMini(false); setOpen(true) }} aria-label="Buka Orchestrator" title={`Orchestrator · ${status}`}>
+      <button className={`dock-mini dock-at-${screen} ${st.running ? 'running' : ''}`} onClick={() => { setMini(false); setOpen(true) }} aria-label="Buka Orchestrator" title={`Orchestrator · ${status}`}>
         <Icon name="spark" />
         {st.running && <i className="dm-ring" />}
       </button>,
@@ -125,7 +131,7 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
     )
   }
   return createPortal(
-    <div className={`dock ${open ? 'open' : ''} ${st.running ? 'running' : ''}`}>
+    <div className={`dock dock-at-${screen} ${open ? 'open' : ''} ${st.running ? 'running' : ''}`}>
       <div className="dk-head">
         <button className="dk-main" onClick={() => setOpen(!open)} aria-label="Orchestrator">
           <span className="dk-dot" />

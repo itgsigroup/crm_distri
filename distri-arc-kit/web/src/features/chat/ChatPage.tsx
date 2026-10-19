@@ -8,7 +8,6 @@ import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { fmtRp, hhmm, shortDate, wib, sowText } from '../../lib/format'
 import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
-import { useOrch } from '../../app/orch'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf, teamName } from './Connect'
 import { countFilters, displayTitle, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
 import { AttachMenu, ContactSheet, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
@@ -19,7 +18,7 @@ import { LabelChips, LabelSheet, PinnedBar, useChatLabels } from './Labels'
 import { hasLabel, pinnedFirst } from './chatLabels'
 import { ChatRowMenu } from './ChatRowMenu'
 import { pastedImage } from './paste'
-import { TriggerCard } from '../aitrigger/TriggerCard'
+import { TriggerCard, type DraftAI } from '../aitrigger/TriggerCard'
 import type { ChatHit } from './findInChat'
 import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type Member } from './mentions'
 import { linkParts } from './links'
@@ -366,17 +365,17 @@ function BubbleMedia({ md, url, pending, onZoom }: { md: MediaView; url: string;
   )
 }
 
-/** The AI Trigger cards under a customer's bubble (ADR 0038, 0041), with "Tulis dengan AI" for a card's draft. */
+/** The AI Trigger cards under a customer's bubble (ADR 0038, 0041, 0051): the draft written (or rewritten) with ChatGPT or Claude. */
 function TriggerCards({ m, thread, asOf, onUse }: { m: MessageView; thread: string; asOf?: string | null; onUse: (m: MessageView, text: string) => void }) {
   const qc = useQueryClient()
   const { toast } = useFeedback()
   const write = useMutation({
-    mutationFn: (rule: string) => api.post(`/chat/threads/${thread}/messages/${m.id}/ai-draft`, { rule_id: rule }),
+    mutationFn: (v: { rule: string; ai: DraftAI }) => api.post(`/chat/threads/${thread}/messages/${m.id}/ai-draft`, { rule_id: v.rule, provider: v.ai }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['chat', 'thread', thread] }),
     onError: (e: Error) => toast(e.message),
   })
   return <>{m.suggest!.map((s) => (
-    <TriggerCard key={s.rule_id} s={s} asOf={asOf} onUse={(text) => onUse(m, text)} onAI={() => write.mutate(s.rule_id)} aiBusy={write.isPending && write.variables === s.rule_id} />
+    <TriggerCard key={s.rule_id} s={s} asOf={asOf} onUse={(text) => onUse(m, text)} onAI={(ai) => write.mutate({ rule: s.rule_id, ai })} aiBusy={write.isPending && write.variables?.rule === s.rule_id ? write.variables.ai : null} />
   ))}</>
 }
 
@@ -507,7 +506,6 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const now = useNow()
   const qc = useQueryClient()
   const { toast } = useFeedback()
-  const { reanalyze, s: orch } = useOrch()
   const [text, setText] = useState('')
   const [older, setOlder] = useState<MessageView[]>([])
   const [olderMore, setOlderMore] = useState(true)
@@ -857,11 +855,10 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           <button type="button" className={`ibl-btn ibc-find${searching ? ' on' : ''}`} onClick={() => { setSearching(!searching); if (searching) setMark('') }} title="Cari di chat ini" aria-label="Cari di chat ini" aria-pressed={searching}><Icon name="search" /></button>
           {readable && (
             <button type="button" className={`ibc-an-tg${perMsg ? ' on' : ''}`} aria-pressed={perMsg} aria-label="Analisa per pesan" onClick={() => setPerMsg(!perMsg)}
-              title={t.analyzed_at ? `Analisa per pesan · terakhir dianalisa ${shortDate(t.analyzed_at)} ${hhmm(t.analyzed_at)}` : 'Analisa per pesan · belum pernah dianalisa — tekan Analisa lanjut'}>
+              title={t.analyzed_at ? `Analisa per pesan · terakhir dianalisa ${shortDate(t.analyzed_at)} ${hhmm(t.analyzed_at)}` : 'Analisa per pesan · belum pernah dianalisa — analisa lewat Orchestrator di kanan bawah'}>
               <Icon name="spark" /><span className="ibc-an-l">Per pesan</span>
             </button>
           )}
-          {readable && <button className="btn ibc-ai" disabled={orch.running} onClick={() => reanalyze(t.dealer_id ? `dealer:${t.dealer_id}` : `thread:${t.id}`, 'mcp')} title="Claude (MCP) menganalisa percakapan ini — catatan per pesan muncul di bawah tiap bubble"><span className="ai" style={{ fontSize: 0 }} />{orch.running ? 'Menganalisis…' : 'Analisa lanjut'}</button>}
           {t.kind !== 'group' && <button className="btn ibc-acc" onClick={onAccurate}><Icon name="send" />Accurate</button>}
           {!lead && <button className="ibl-btn ibc-lead-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
         </div>
@@ -972,7 +969,7 @@ function GroupKind({ id, customer }: { id: string; customer: boolean }) {
   return customer ? (
     <div className="ibp-grp">
       <b><Icon name="people" />Grup pelanggan</b>
-      <span>Dibaca Analisa WhatsApp dan Claude (Analisa lanjut) seperti chat pelanggan; pesan karyawan GSI di grup ini dihitung sebagai balasan.</span>
+      <span>Dibaca Analisa WhatsApp dan Orchestrator seperti chat pelanggan; pesan karyawan GSI di grup ini dihitung sebagai balasan.</span>
       <button type="button" className="btn quiet" disabled={set.isPending} onClick={() => set.mutate('internal')}>Ini grup internal</button>
     </div>
   ) : (
@@ -1058,7 +1055,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
   const notes = th.messages.filter((m) => m.direction === 'in' && m.analysis?.note)
   const claudeNotes = (
     <ul className="ibp-ext">
-      {notes.length === 0 && <li className="muted">Belum ada catatan Claude — tekan Analisa lanjut</li>}
+      {notes.length === 0 && <li className="muted">Belum ada catatan Claude — analisa lewat Orchestrator di kanan bawah</li>}
       {notes.slice(-12).map((m) => (
         <li key={m.id}><span className="ai" style={{ fontSize: 0 }} /><span>{m.analysis!.note}<small>{m.from_name} · {hhmm(m.sent_at)}</small></span></li>
       ))}
@@ -1143,7 +1140,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
             <h4>Catatan Claude per pesan <span className="ai" style={{ marginLeft: 4, fontSize: 0 }} /></h4>
             {claudeNotes}
             {d?.next && <><h4>Usulan Claude</h4><div className="ibp-rec"><b>{d.next.agent}</b><span>{d.next.title}{d.next.why ? ` — ${d.next.why}` : ''}</span></div><ActBtn next={d.next} /></>}
-            <p className="ibp-note">Analisa di panel ini hanya yang ditulis Claude lewat MCP (Analisa lanjut).</p>
+            <p className="ibp-note">Analisa di panel ini ditulis Claude lewat Orchestrator (kotak di kanan bawah).</p>
           </>
         )}
         {tab === 'src' && (

@@ -227,15 +227,25 @@ func (s *Server) replyAIDraft(w http.ResponseWriter, r *http.Request) {
 	}
 	var in struct {
 		RuleID string `json:"rule_id"`
+		// Provider: the AI the sales picks on the card — openai (ChatGPT) | claude; "" the AI Trigger engine (ADR 0051)
+		Provider string `json:"provider"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&in); err != nil || in.RuleID == "" {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Body tidak valid")
 		return
 	}
-	n, err := s.replyAI.Write(r.Context(), mid, &in.RuleID)
+	if in.Provider != "" && in.Provider != "openai" && in.Provider != "claude" {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "AI tidak dikenal")
+		return
+	}
+	n, err := s.replyAI.Write(r.Context(), mid, &in.RuleID, in.Provider)
 	switch {
 	case errors.Is(err, replyai.ErrNoModel):
-		httpx.Fail(w, http.StatusConflict, "no_model", err.Error())
+		msg := err.Error()
+		if in.Provider != "" {
+			msg = "Kunci " + map[string]string{"openai": "ChatGPT", "claude": "Claude"}[in.Provider] + " belum diisi di Pengaturan → API & model AI"
+		}
+		httpx.Fail(w, http.StatusConflict, "no_model", msg)
 		return
 	case errors.Is(err, replyai.ErrNoDraft):
 		httpx.Fail(w, http.StatusConflict, "no_draft", "AI tidak berhasil menulis draf yang sesuai fakta — draf template tetap dipakai")

@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Chat: pilih ChatGPT atau Claude di kartu trigger; "Analisa lanjut" diganti Orchestrator · 2026-10-19
+- Kartu AI Trigger (stok, harga, limit, status order): tombol **Tulis dengan ChatGPT / Claude** dan *Tulis ulang*; draf AI diberi label AI penulisnya.
+- Tombol **Analisa lanjut** dihapus. Kotak **Orchestrator** (seperti di Pusat kendali) kini ada di Chat sebagai ikon di atas kolom balasan dan menganalisa chat yang sedang dibuka.
+
 ## Change · Chat lebih ringan: tanpa tab Semua, tanpa total tim, tidak membuka chat otomatis · 2026-10-19
 - Barisan nomor: tab **Semua** dihapus; label Sales / Admin / Penagihan hanya pengelompok (tanpa jumlah, tidak bisa diklik). Chat memuat satu nomor saja — nomor terakhir yang dibuka di browser itu, lalu nomor milik Anda, lalu nomor pertama.
 - Membuka halaman Chat tidak lagi langsung membuka percakapan; panel kanan "Pilih chat" sampai Anda klik.

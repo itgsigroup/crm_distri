@@ -66,7 +66,28 @@ func SaveEngine(ctx context.Context, q *gen.Queries, e Engine, now time.Time) er
 
 // engineModel is the provider of the engine when its key is set.
 func (s *Service) engineModel(ctx context.Context) llm.Provider {
+	return s.providerOf(ctx, LoadEngine(ctx, s.St.Q))
+}
+
+// modelFor is the AI a draft is written with: the page's engine (provider ""), or the sales' pick on the card —
+// "openai" (ChatGPT) or "claude" — with the engine's model when it is that provider, else that provider's first model.
+func (s *Service) modelFor(ctx context.Context, provider string) llm.Provider {
+	if provider == "" || s.Provider != nil {
+		return s.model(ctx)
+	}
 	e := LoadEngine(ctx, s.St.Q)
+	if e.Provider != provider {
+		ms := EngineModels[provider]
+		if len(ms) == 0 {
+			return nil
+		}
+		e = Engine{Provider: provider, Model: ms[0]}
+	}
+	return s.providerOf(ctx, e)
+}
+
+// providerOf is the provider of an engine when its key is set.
+func (s *Service) providerOf(ctx context.Context, e Engine) llm.Provider {
 	if e.Provider == analyst.FallbackOpenAI {
 		if k, _ := analyst.LoadOpenAIKeyAITrigger(ctx, s.St.Q, s.SessionKey, s.EnvOpenAI); k != "" {
 			return llm.NewOpenAI(k, e.Model)

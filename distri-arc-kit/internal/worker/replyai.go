@@ -29,7 +29,7 @@ func (w *ReplyAIWorker) Work(ctx context.Context, job *river.Job[jobs.ReplyAIArg
 	if err != nil {
 		return river.JobCancel(err)
 	}
-	n, err := w.svc.Write(ctx, id, nil)
+	n, err := w.svc.Write(ctx, id, nil, "")
 	if errors.Is(err, replyai.ErrNoModel) {
 		return nil
 	}

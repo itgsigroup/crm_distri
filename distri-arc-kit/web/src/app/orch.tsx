@@ -16,8 +16,9 @@ import { effort, mcpModel } from './enginePrefs'
 export function scopeLabel(scope: string): string {
   if (!scope || scope === 'all') return 'semua'
   const [kind, id = ''] = scope.split(':')
-  if (kind === 'screen') return ({ orbit: 'orbit', segmen: 'segmen', stock: 'push stok', credit: 'kredit', relasi: 'peta relasi', dealer: 'dealer' } as Record<string, string>)[id] ?? id
+  if (kind === 'screen') return ({ orbit: 'orbit', segmen: 'segmen', stock: 'push stok', credit: 'kredit', relasi: 'peta relasi', dealer: 'dealer', chat: 'chat' } as Record<string, string>)[id] ?? id
   if (kind === 'agent') return id
+  if (kind === 'thread') return 'chat ini'
   return 'dealer ' + id
 }
 

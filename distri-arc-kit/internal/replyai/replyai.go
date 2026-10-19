@@ -166,7 +166,7 @@ var ErrNoDraft = errors.New("tidak ada rekomendasi dengan draf untuk pesan ini")
 
 // Write has the AI write the drafts of one customer message: the rules asking for it (ruleID nil), or one rule on
 // request from the card (ruleID set). Drafts already written from the same facts are kept. Returns how many it wrote.
-func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string) (int, error) {
+func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string, provider string) (int, error) {
 	m, err := s.St.Q.ReplyTriggerMessage(ctx, messageID)
 	if err != nil {
 		return 0, err
@@ -223,7 +223,7 @@ func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string
 			continue
 		}
 		if model == nil {
-			if model = s.model(ctx); model == nil {
+			if model = s.modelFor(ctx, provider); model == nil {
 				return n, ErrNoModel
 			}
 		}
