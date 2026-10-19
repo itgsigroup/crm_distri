@@ -676,7 +676,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"thread": map[string]any{
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "phone_name": deref(t.PhoneName), "dealer_id": deref(t.DealerSlug),
-		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread, "mentioned": t.Mentioned,
+		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "sender_name": t.SenderName, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread, "mentioned": t.Mentioned,
 		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
 		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "branch": t.ThreadBranch, "contact_type": t.ContactType, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),
 		"labels": convLabels,
@@ -928,7 +928,7 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		dir, from := "out", *t.SalesWa
-		name := deref(t.SalesName)
+		name := t.SenderName // the holder of the number it goes out from, not the thread's sales (19 Oct bug)
 		pendingID := "outbox:" + p.ID.String()
 		var quoted *string
 		if quote != nil {

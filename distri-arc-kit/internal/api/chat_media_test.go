@@ -536,3 +536,45 @@ func TestAliasSavedToPhoneContacts(t *testing.T) {
 		t.Fatalf("synced %v saved %v", out, fake.Saved())
 	}
 }
+
+// 19 Oct bug: a chat of Dewi's dealer that sits on Andi's number goes out from Andi's number — and must be shown as
+// sent by Andi (the number's holder), not as Dewi (the chat's sales), both on the bubble and as "Dikirim dari".
+func TestReplyNamedAfterTheNumbersHolder(t *testing.T) {
+	srv, st := mediaServer(t, &fakeMedia{})
+	ctx := context.Background()
+	src := sinarThread(t, st)
+	var account string
+	if err := st.Pool.QueryRow(ctx, "select account from chat_threads where id = $1", src).Scan(&account); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into wa_numbers (wa_number, session_id, label, transport, user_id)
+		values ($1, $1, '', 'fake', (select id from users where email = 'andi@gsi.co.id'))
+		on conflict (wa_number) do update set label = '', user_id = excluded.user_id`, account); err != nil {
+		t.Fatal(err)
+	}
+	var dst uuid.UUID
+	if err := st.Pool.QueryRow(ctx, `insert into chat_threads (kind, wa_jid, title, sales_id, account, last_message_at)
+		values ('dealer', '6281300000302@s.whatsapp.net', 'Toko Dewi', (select id from sales_users where name = 'Dewi'), $1, now()) returning id`, account).Scan(&dst); err != nil {
+		t.Fatal(err)
+	}
+	text := addMessage(t, st, src, "FW9", "in", "received", "Nomor mba Elisa: 0812 0000 9999", chatNow.Add(-time.Hour), nil)
+	code, out := sendJSON(t, http.MethodPost, srv.URL+"/api/chat/threads/"+dst.String()+"/messages", "sam@gsi.co.id",
+		map[string]any{"forward": map[string]string{"thread_id": src.String(), "message_id": text.String()}})
+	if code != http.StatusAccepted {
+		t.Fatalf("forward: %d %v", code, out)
+	}
+	var name, holder string
+	if err := st.Pool.QueryRow(ctx, "select from_name from chat_messages where id = $1", out["message_id"]).Scan(&name); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Pool.QueryRow(ctx, "select name from users where email = 'andi@gsi.co.id'").Scan(&holder); err != nil {
+		t.Fatal(err)
+	}
+	if name != holder || name == "Dewi" {
+		t.Fatalf("sent as %q, want the number's holder %q", name, holder)
+	}
+	code, th := get(t, srv, "/api/chat/threads/"+dst.String(), "sam@gsi.co.id")
+	if tv, _ := th["thread"].(map[string]any); code != http.StatusOK || tv["sender_name"] != holder {
+		t.Fatalf("thread sender %d %v", code, th["thread"])
+	}
+}

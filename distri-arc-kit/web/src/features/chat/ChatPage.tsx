@@ -527,7 +527,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const pendingJump = useRef<string | null>(null)
   const body = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
-  const from = (data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
+  // who a reply goes out as: the holder of the number (sender_name), not the chat's sales
+  const from = (data?.thread.sender_name || data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
   const group = data?.thread.kind === 'group'
   const { data: roster } = useMembers(id, group)
   const members = roster?.items
@@ -1222,7 +1223,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
   )
 }
 
-const from = (t: ThreadDetail['thread']) => (t.account_label || t.sales || '').replace(/^Nomor\s+/, '')
+const from = (t: ThreadDetail['thread']) => (t.sender_name || t.account_label || t.sales || '').replace(/^Nomor\s+/, '')
 
 /** Kirim ke Accurate: the customer's data ready to paste into Accurate (no API connection yet — nothing is
  * written to Accurate by GSI Orbit; a person saves it there). */

@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat: pesan terkirim/diteruskan memakai nama pemegang nomor · 2026-10-19
+- Balasan, pesan yang diteruskan, dan kirim dari Chat kini dicatat atas nama **pemegang nomor yang mengirim** (pengguna pemegang nomor, lalu sales nomor itu, lalu label nomor) — sebelumnya memakai nama sales yang ditautkan ke chat (mis. dealer milik Sofy di nomor Elisa tampil "Sofy" padahal terkirim dari nomor Elisa). Keterangan "Dikirim dari …" di bawah kolom ketik juga diperbaiki.
+- Pesan lama yang sudah tercatat dengan nama salah tidak diubah.
+
 ## Feat · Peta relasi: Analisa Relasi dari isi chat WhatsApp oleh Claude (routine) · 2026-10-19
 - Kartu baru **Analisa Relasi**: Claude membaca isi chat WhatsApp dealer — yang dichat dua sales, yang chatnya menipis, dealer besar yang jarang chat — lalu menulis ringkasan dan catatan per dealer (klik untuk membuka dealer). Lewat routine Claude, tanpa membuka Desktop.
 - Peta tetap sesuai MD (garis = interaksi WA + order). Kartu "Pola relasi" diberi label jujur: dihitung dari interaksi WA + order.

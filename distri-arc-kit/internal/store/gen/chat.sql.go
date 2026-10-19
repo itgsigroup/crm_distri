@@ -562,7 +562,8 @@ func (q *Queries) GetSalesByNumber(ctx context.Context, waNumber *string) (Sales
 
 const getThread = `-- name: GetThread :one
 select t.id, t.kind, t.dealer_id, t.group_id, t.contact_id, t.wa_jid, t.title, t.subtitle, t.sales_id, t.last_message_at, t.unread, t.identification, t.tag, t.suggestions, t.seed_key, t.account, t.history_req_oldest, t.history_req_at, t.history_tries, t.history_done_at, t.phone_name, t.unreplied_mark, t.replied_mark, t.mentioned, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, coalesce(t.account, s.wa_number) as sales_wa,
-  coalesce(n.label, s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
+  coalesce(nullif(hu.name, ''), hs.name, nullif(n.label, ''), s.name, t.account, '')::text as sender_name,
+  coalesce(nullif(n.label, ''), s.name, t.account) as account_label, d.source_id as dealer_code, d.city as dealer_city,
   coalesce(n.team, 'sales')::text as account_team, g.kind as group_kind,
   coalesce(nullif(d.branch, ''), s.branch, '')::text as thread_branch,
   coalesce((select ct.type from contact_types ct where ct.wa_number = split_part(t.wa_jid, '@', 1)), '')::text as contact_type,
@@ -579,6 +580,8 @@ from chat_threads t
 left join dealers d on d.id = t.dealer_id
 left join sales_users s on s.id = t.sales_id
 left join wa_numbers n on n.wa_number = t.account
+left join users hu on hu.id = n.user_id
+left join sales_users hs on hs.id = n.sales_id
 left join wa_groups g on g.id = t.group_id
 where t.id = $1
 `
@@ -612,6 +615,7 @@ type GetThreadRow struct {
 	DealerName       *string         `json:"dealer_name"`
 	SalesName        *string         `json:"sales_name"`
 	SalesWa          *string         `json:"sales_wa"`
+	SenderName       string          `json:"sender_name"`
 	AccountLabel     string          `json:"account_label"`
 	DealerCode       *string         `json:"dealer_code"`
 	DealerCity       *string         `json:"dealer_city"`
@@ -623,6 +627,8 @@ type GetThreadRow struct {
 }
 
 // sales_wa is the number replies go out from: the thread's own number, else its sales' main number.
+// sender_name is who a reply goes out as: the holder of the number it goes out from (its user, its sales, its label),
+// not the thread's sales — a dealer's chat on Elisa's number is sent as Elisa even when the dealer belongs to Sofy.
 func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, error) {
 	row := q.db.QueryRow(ctx, getThread, id)
 	var i GetThreadRow
@@ -655,6 +661,7 @@ func (q *Queries) GetThread(ctx context.Context, id uuid.UUID) (GetThreadRow, er
 		&i.DealerName,
 		&i.SalesName,
 		&i.SalesWa,
+		&i.SenderName,
 		&i.AccountLabel,
 		&i.DealerCode,
 		&i.DealerCity,
