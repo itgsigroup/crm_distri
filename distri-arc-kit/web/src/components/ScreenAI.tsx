@@ -3,14 +3,14 @@ import { hhmm, shortDate } from '../lib/format'
 import { Icon } from './Icon'
 import { Prov } from './ui'
 
-// Analisa Stok / Analisa Kas (ADR 0030): what Claude wrote for a page through MCP — the overview at the top of the
+// Analisa Stok / Analisa Kas / Analisa Orbit (ADR 0030, 0052): what Claude wrote for a page through MCP — the overview at the top of the
 // card, one note per row. The numbers stay GSI Orbit's; nothing here is GSI Orbit's own judgement.
 
 /** The AI overview of a page, with its provenance; or how to get one. */
 export function ScreenBrief({ a, what }: { a: ScreenAnalysis | null | undefined; what: string }) {
   if (!a) {
     return (
-      <p className="scr-ai empty"><Icon name="spark" />Belum dianalisis AI — tekan <b>Analisis ulang</b>: Claude membaca {what} lewat MCP dan menulis ringkasan serta catatan per baris di sini.</p>
+      <p className="scr-ai empty"><Icon name="spark" />Belum dianalisis AI — tekan <b>Analisis ulang</b> di Orchestrator: Claude membaca {what} lewat MCP dan menulis ringkasan serta catatan per baris di sini.</p>
     )
   }
   return (

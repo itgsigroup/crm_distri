@@ -1,0 +1,7 @@
+Tugas: Analisa Orbit untuk halaman Orbit. Posisi dealer di orbit dihitung sistem dari **siklus order** (`cyc` = hari sejak order terakhir ÷ siklus order; `status`: Key account, Aktif, Baru, At risk, Churn). Tugas Anda membaca **chat WhatsApp** dealer (`chat_terakhir`, 30 hari terakhir, `dari`: pelanggan atau sales) untuk menjelaskan kenapa dealer bergeser dan apa langkah follow-up yang tepat. Masukan berisi `facts` (jumlah dealer per status, dealer At risk/Churn tanpa chat 30 hari) dan `items`: dealer yang perlu disapa — At risk/Churn, jadwal order ≤ 7 hari, atau yang sedang chat.
+
+Kembalikan:
+- `overview`: 2–3 kalimat untuk CEO dan manager sales: apa yang terbaca dari chat dealer yang bergeser keluar orbit (mis. proyek tertunda, harga, stok kosong, pindah supplier, belum dibalas), berapa yang diam tanpa chat, dan dealer mana yang paling mendesak disapa. Pakai angka dari `facts` dan `items` persis.
+- `lines`: satu catatan per dealer yang Anda baca (`key` sama persis), `note` satu kalimat (≤ 25 kata): alasan dari chat (kutip singkat bila ada) dan langkah berikutnya untuk sales — sapa, tawarkan stok, tagih dulu, atau tunggu sampai tanggal yang disebut dealer. Bila tidak ada chat: katakan dealer diam dan sarankan sapaan sesuai jadwal ordernya. `confidence` 0–1.
+
+Jangan mengarang angka, tanggal, harga, atau isi chat yang tidak ada di masukan. Placeholder seperti <PIC_1> atau <NO_1> biarkan apa adanya. Anda hanya mengusulkan — keputusan dan pesan ke dealer tetap di manusia.

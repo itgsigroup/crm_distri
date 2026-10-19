@@ -150,5 +150,5 @@ export const useSalesByProduct = () => useQuery({ queryKey: ['stock', 'sales'], 
 export const useCreditOverview = () => useQuery({ queryKey: ['credit', 'overview'], queryFn: () => api.get<CreditOverview>('/credit/overview') })
 export const useCreditDealers = () => useQuery({ queryKey: ['credit', 'dealers'], queryFn: () => api.get<Items<ARRow>>('/credit/dealers').then((r) => r.items) })
 export const useCreditExposure = () => useQuery({ queryKey: ['credit', 'exposure'], queryFn: () => api.get<Items<ExposureRow>>('/credit/exposure').then((r) => r.items) })
-export const useScreenAnalysis = (screen: 'stock' | 'credit') => useQuery({ queryKey: [screen, 'analysis'], queryFn: () => api.get<{ analysis: ScreenAnalysis | null }>('/screen-analysis/' + screen).then((r) => r.analysis) })
+export const useScreenAnalysis = (screen: 'stock' | 'credit' | 'orbit') => useQuery({ queryKey: [screen, 'analysis'], queryFn: () => api.get<{ analysis: ScreenAnalysis | null }>('/screen-analysis/' + screen).then((r) => r.analysis) })
 export const useCreditForecast = () => useQuery({ queryKey: ['credit', 'forecast'], queryFn: () => api.get<Items<ForecastRow>>('/credit/forecast?days=30').then((r) => r.items) })

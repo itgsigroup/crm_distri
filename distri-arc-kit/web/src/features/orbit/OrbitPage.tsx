@@ -5,8 +5,8 @@ import { Icon } from '../../components/Icon'
 import { layoutStep, useMapViewport } from '../../components/MapViewport'
 import { fmtRp, sowText } from '../../lib/format'
 import { KUAD, RING_DESC } from '../../lib/i18n/id'
-import { useOrch, useOrchStatus } from '../../app/orch'
-import { useOrbit, useOrbitMovers, useOrbitSummary, useSales } from '../../app/queries'
+import { useOrbit, useOrbitMovers, useOrbitSummary, useSales, useScreenAnalysis } from '../../app/queries'
+import { ScreenBrief } from '../../components/ScreenAI'
 import { FILTER_KEYS, activeCount, applyFilter, digest, type OrbitFilter } from './filters'
 import { OrbitDealerList, OrbitFilterBar, OrbitSummary } from './OrbitTools'
 import { CX, CY, H, READABLE_FROM, RINGS, RING_R, W, layoutOrbit, layoutReadable } from './geometry'
@@ -212,8 +212,6 @@ function useOrbitFilter(): [OrbitFilter, (p: Partial<OrbitFilter>) => void] {
 export function OrbitPage() {
   const [sales, setSales] = useState('all')
   const nav = useNavigate()
-  const { reanalyze } = useOrch()
-  const orch = useOrchStatus()
   const { data: list = [] } = useOrbit(sales)
   const [all, setAll] = useState(false)
   const [f, setF] = useOrbitFilter()
@@ -226,6 +224,8 @@ export function OrbitPage() {
   const { data: osum } = useOrbitSummary(sales)
   const summary = osum?.items ?? []
   const { data: movers = [] } = useOrbitMovers(sales)
+  // Analisa Orbit (ADR 0052): Claude reads the dealers in orbit with their WhatsApp chats, through the routine
+  const { data: reading } = useScreenAnalysis('orbit')
   const known = filtered.filter((d) => d.metrics.sow_source !== 'default') // unknown shares do not pull the average to 50
   const avgSow = known.length ? Math.round(known.reduce((a, d) => a + d.metrics.sow, 0) / known.length) : 0
   return (
@@ -235,7 +235,6 @@ export function OrbitPage() {
           <div className="orbit-hud">
             <SalesFilters value={sales} onChange={setSales} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <button className="btn ghost" style={{ height: 30, fontSize: 12 }} disabled={orch.running} onClick={() => reanalyze('screen:orbit')}><Icon name="refresh" />Analisis ulang</button>
               <button className="btn ghost" style={{ height: 30, fontSize: 12 }} onClick={() => nav('/panduan')}><Icon name="doc" />Cara baca</button>
             </div>
           </div>
@@ -256,9 +255,14 @@ export function OrbitPage() {
           </div>
           <Legend tail="Scroll / cubit untuk zoom · seret untuk menggeser · kecilkan titik untuk posisi asli" />
         </div>
-        <OrbitDealerList list={filtered} filtered={nFilters > 0} />
+        <OrbitDealerList list={filtered} filtered={nFilters > 0} reading={reading} />
       </div>
       <div className="stack">
+        <div className="card">
+          <div className="card-h"><h2>Analisa Orbit</h2><span className="ai" style={{ marginLeft: 6 }}>Claude · chat WhatsApp</span></div>
+          <p className="orbit-src">Posisi dealer dihitung dari siklus order; alasannya dibaca Claude dari chat WhatsApp dealer.</p>
+          <ScreenBrief a={reading} what="dealer di orbit beserta chat WhatsApp-nya" />
+        </div>
         <div className="card">
           <div className="card-h"><h2>Isi orbit</h2><span className="meta">{f.status ? <button className="ev-more" onClick={() => setF({ status: '' })}>tampilkan semua</button> : 'klik status untuk menyaring'}</span></div>
           <ul className="pulse" id="orbit-rings">
@@ -275,7 +279,7 @@ export function OrbitPage() {
         )}
         </div>
         <div className="card">
-          <div className="card-h"><h2>Yang bergerak</h2><span className="ai" style={{ marginLeft: 6 }}>dibaca AI Follow-up</span></div>
+          <div className="card-h"><h2>Yang bergerak</h2><span className="meta">dihitung dari siklus order · dibanding bulan lalu</span></div>
           <MoverList items={movers} render={orbitMover} />
         </div>
       </div>

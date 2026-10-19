@@ -58,8 +58,9 @@ export function scopeAgents(scope: string): string[] {
       credit: ['AI Kredit', 'AI Penagihan'], chat: ['AI Order', 'AI Prospek'], wa: [] } as Record<string, string[]>)[id] ?? null
   } else if (kind === 'thread') agents = ['AI Order', 'AI Prospek', 'Analisa WhatsApp']
   else if (kind === 'agent') agents = [id]
-  if (agents === null) return ['6 agen', 'Analisa Stok', 'Analisa Kas', 'Analisa WhatsApp']
+  if (agents === null) return ['6 agen', 'Analisa Orbit', 'Analisa Stok', 'Analisa Kas', 'Analisa WhatsApp']
   const out = [...agents]
+  if (agents.includes('AI Follow-up')) out.push('Analisa Orbit')
   if (agents.includes('AI Stok')) out.push('Analisa Stok')
   if (agents.includes('AI Kredit') || agents.includes('AI Penagihan')) out.push('Analisa Kas')
   return out

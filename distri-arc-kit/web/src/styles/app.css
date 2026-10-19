@@ -1859,3 +1859,7 @@ body.map-maximized{overflow:hidden}
 /* On Chat the Orchestrator sits above the reply box (19 Oct) */
 .dock.dock-at-chat,.dock-mini.dock-at-chat{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
 @media (max-width:900px){.dock.dock-at-chat,.dock-mini.dock-at-chat{bottom:calc(150px + env(safe-area-inset-bottom,0px))}}
+/* "Belum dianalisis AI" reads as one sentence (it broke into columns: the paragraph was a flex box) */
+p.scr-ai.empty{display:block;line-height:1.55}
+p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;width:14px;height:14px}
+.orbit-src{margin:-4px 0 10px;font-size:12px;color:var(--text-3);line-height:1.5}

@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Orbit: Analisa Orbit dari chat WhatsApp oleh Claude (routine) · 2026-10-19
+- Kartu baru **Analisa Orbit**: Claude membaca dealer yang perlu disapa (At risk, Churn, jadwal order ≤ 7 hari, atau yang sedang chat) beserta 8 chat WhatsApp terakhirnya, lalu menulis ringkasan dan catatan per dealer di daftar dealer — kenapa dealer bergeser dan langkah follow-up. Berjalan lewat routine Claude, tanpa membuka Desktop.
+- Posisi dealer tetap dari siklus order sesuai MD. Tombol "Analisis ulang" di kepala Orbit diganti kotak Orchestrator kanan bawah; label "Yang bergerak" diperbaiki (dihitung dari siklus order).
+- Perbaikan tampilan: kalimat "Belum dianalisis AI" di Orbit, Push stok, dan Kredit tidak lagi pecah menjadi kolom. ADR 0052.
+
 ## Change · Chat: pilih ChatGPT atau Claude di kartu trigger; "Analisa lanjut" diganti Orchestrator · 2026-10-19
 - Kartu AI Trigger (stok, harga, limit, status order): tombol **Tulis dengan ChatGPT / Claude** dan *Tulis ulang*; draf AI diberi label AI penulisnya.
 - Tombol **Analisa lanjut** dihapus. Kotak **Orchestrator** (seperti di Pusat kendali) kini ada di Chat sebagai ikon di atas kolom balasan dan menganalisa chat yang sedang dibuka.

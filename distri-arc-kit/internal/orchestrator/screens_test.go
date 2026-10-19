@@ -80,6 +80,45 @@ func TestScreenReadingsThroughMCP(t *testing.T) {
 	}
 }
 
+// ADR 0052: Analisa Orbit — the dealers in orbit go to Claude with their position (from the order cycle) and their
+// WhatsApp messages; the answer is checked against that Input and stored for the Orbit page.
+func TestOrbitReadingThroughMCP(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	rep, err := o.Run(ctx, domain.Scope{Kind: "screen", ID: "orbit"}, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := o.InputFor(ctx, rep.Cycle.ID, orchestrator.AgentOrbitRead)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var in screenInput
+	_ = json.Unmarshal(raw, &in)
+	chatting := 0
+	for _, it := range in.Items {
+		if it["key"] == nil || it["status"] == nil || it["cyc"] == nil {
+			t.Fatalf("orbit item %v", it)
+		}
+		if c, _ := it["chat_terakhir"].([]any); len(c) > 0 {
+			chatting++
+		}
+	}
+	if len(in.Items) == 0 || chatting == 0 || !strings.Contains(string(raw), "siklus order") {
+		t.Fatalf("orbit input (%d with chats) %s", chatting, raw)
+	}
+	key := in.Items[0]["key"].(string)
+	ans := orchestrator.ParseScreenAnswer("Dua dealer At risk menunda order karena proyek belum cair; sapa minggu depan.",
+		[]map[string]any{{"key": key, "note": "Proyek belum cair menurut chat — sapa lagi Senin dengan stok yang dia tanyakan.", "confidence": 0.7}})
+	if _, err := o.ScreenSubmit(ctx, rep.Cycle.ID, orchestrator.AgentOrbitRead, ans, nil); err != nil {
+		t.Fatal(err)
+	}
+	a, err := st.Q.LatestScreenAnalysis(ctx, "orbit")
+	if err != nil || a.Source != "ai" || !strings.Contains(string(a.Lines), key) {
+		t.Fatalf("orbit reading %+v %v", a, err)
+	}
+}
+
 // The Analisis ulang prompt asks Claude for the page readings of the agents in scope.
 func TestMCPPromptAsksForPageReadings(t *testing.T) {
 	p := orchestrator.MCPPrompt(7, "c1", []string{"AI Stok"}, 0)

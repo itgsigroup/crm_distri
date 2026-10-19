@@ -597,12 +597,12 @@ func (s *Server) dashboardTrend(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, t)
 }
 
-// screenAnalysis is the latest Analisa Stok / Analisa Kas (ADR 0030): what the AI wrote for the Push stok or
-// Kredit · kas page — an overview and one note per item, keyed like the page's rows (stock item id, dealer id).
+// screenAnalysis is the latest Analisa Stok / Analisa Kas / Analisa Orbit (ADR 0030, 0052): what the AI wrote for the
+// Push stok, Kredit · kas or Orbit page — an overview and one note per item, keyed like the page's rows (stock item id, dealer id).
 // null until an AI has read the page.
 func (s *Server) screenAnalysis(w http.ResponseWriter, r *http.Request) {
 	screen := chi.URLParam(r, "screen")
-	if screen != "stock" && screen != "credit" {
+	if screen != "stock" && screen != "credit" && screen != "orbit" {
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Halaman tidak dikenal")
 		return
 	}
@@ -617,7 +617,7 @@ func (s *Server) screenAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 	var lines map[string]json.RawMessage
 	_ = json.Unmarshal(row.Lines, &lines)
-	if screen == "credit" { // stored per dealer uuid; the page's rows use the dealer id
+	if screen == "credit" || screen == "orbit" { // stored per dealer uuid; the page's rows use the dealer id
 		b, ok := s.board(w, r)
 		if !ok {
 			return

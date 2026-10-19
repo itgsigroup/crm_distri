@@ -1,5 +1,7 @@
 // Orbit reading aids: summary tiles, the filter bar and the dealer list under the board. All three use the
 // definitions in filters.ts so a tile, a filter and the list always count the same dealers.
+import type { ScreenAnalysis } from '../../api/types'
+import { ScreenNote } from '../../components/ScreenAI'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { BoardItem, Segment } from '../../api/types'
@@ -93,7 +95,7 @@ export function scheduleText(d: BoardItem): [string, Tone] {
 
 type DealerColumn = 'dealer' | 'status' | 'jadwal' | 'omzet' | 'limit'
 
-export function OrbitDealerList({ list, filtered }: { list: BoardItem[]; filtered: boolean }) {
+export function OrbitDealerList({ list, filtered, reading }: { list: BoardItem[]; filtered: boolean; reading?: ScreenAnalysis | null }) {
   const nav = useNavigate()
   const [query, setQuery] = useState('')
   const [column, setColumn] = useState<DealerColumn>('omzet')
@@ -163,6 +165,7 @@ export function OrbitDealerList({ list, filtered }: { list: BoardItem[]; filtere
                     <td className="odl-name">
                       <button className="ev" onClick={() => nav('/dealer/' + d.id)}>{d.name}</button>
                       <small>{d.city} · {d.owner.name} · {KUAD[m.segment].n}</small>
+                      <ScreenNote a={reading} k={d.id} />
                     </td>
                     <td><Pill tone={STATUS_TONE[m.status] ?? 'neutral'}>{m.status === 'Baru' ? 'Aktif · baru' : m.status}</Pill></td>
                     <td className={`odl-sch t-${schTone}`}>{sch}</td>

@@ -26,13 +26,15 @@ import (
 const (
 	AgentStockRead = "Analisa Stok"
 	AgentCashRead  = "Analisa Kas"
+	// AgentOrbitRead: Analisa Orbit (ADR 0052) — the dealers in orbit read with their WhatsApp chats
+	AgentOrbitRead = "Analisa Orbit"
 )
 
 // maxScreenItems caps the items one reading sends (largest value first).
 const maxScreenItems = 20
 
 // screenOf maps a reading agent to its page.
-var screenOf = map[string]string{AgentStockRead: "stock", AgentCashRead: "credit"}
+var screenOf = map[string]string{AgentStockRead: "stock", AgentCashRead: "credit", AgentOrbitRead: "orbit"}
 
 // IsScreenReading reports whether an agent name is one of the page readings.
 func IsScreenReading(agent string) bool { _, ok := screenOf[agent]; return ok }
@@ -41,6 +43,9 @@ func IsScreenReading(agent string) bool { _, ok := screenOf[agent]; return ok }
 // Penagihan's.
 func ScreenReadings(agentNames []string) []string {
 	var out []string
+	if slices.Contains(agentNames, "AI Follow-up") { // the Orbit page: when a dealer should be greeted, read with its chats
+		out = append(out, AgentOrbitRead)
+	}
 	if slices.Contains(agentNames, "AI Stok") {
 		out = append(out, AgentStockRead)
 	}
@@ -72,6 +77,24 @@ func (o *Orchestrator) screenReadingFor(ctx context.Context, agent string) (*scr
 		return stockReading(b, views.StockItems(rows)), nil
 	case AgentCashRead:
 		return cashReading(b), nil
+	case AgentOrbitRead:
+		now := o.Clock.Now()
+		rows, err := o.St.Q.WAWindowMessages(ctx, gen.WAWindowMessagesParams{Since: now.AddDate(0, 0, -orbitChatDays), Until: now})
+		if err != nil {
+			return nil, err
+		}
+		chats := map[uuid.UUID][]orbitMsg{}
+		for _, m := range rows {
+			if m.DealerID == nil || strings.TrimSpace(deref(m.Body)) == "" {
+				continue
+			}
+			who := "pelanggan"
+			if deref(m.Direction) == "out" || m.Internal {
+				who = "sales"
+			}
+			chats[*m.DealerID] = append(chats[*m.DealerID], orbitMsg{At: m.SentAt, Who: who, Text: deref(m.Body)})
+		}
+		return orbitReading(b, chats, now), nil
 	}
 	return nil, fmt.Errorf("unknown reading %q", agent)
 }
@@ -135,6 +158,87 @@ func cashReading(b *views.Board) *screenReading {
 	return rd
 }
 
+// orbitChatDays is how far back Analisa Orbit reads a dealer's WhatsApp.
+const orbitChatDays = 30
+
+// orbitMsg is one WhatsApp message of a dealer for Analisa Orbit.
+type orbitMsg struct {
+	At   time.Time
+	Who  string // pelanggan | sales
+	Text string
+}
+
+// orbitStatusRank: the dealers Analisa Orbit reads first — the ones slipping out of orbit, then the ones due soon.
+var orbitStatusRank = map[string]int{"Churn": 0, "At risk": 1, "Aktif": 2, "Baru": 3, "Key account": 4}
+
+// orbitReading: the dealers in orbit that need a word — at risk / churning, due within a week, or chatting — with
+// their position (computed from the order cycle, glossary) and their last WhatsApp messages; the AI reads why they
+// slip or come back from the chats (ADR 0052).
+func orbitReading(b *views.Board, chats map[uuid.UUID][]orbitMsg, now time.Time) *screenReading {
+	type cand struct {
+		it   views.BoardItem
+		rank int
+	}
+	var cs []cand
+	count := map[string]int{}
+	noChat := 0
+	for _, it := range b.Items {
+		m := it.Metrics
+		if m.Status == "" || m.Status == "Prospek" {
+			continue
+		}
+		count[m.Status]++
+		r, ok := orbitStatusRank[m.Status]
+		if !ok {
+			continue
+		}
+		due := m.DueIn != nil && *m.DueIn <= 7
+		talking := len(chats[it.UUID]) > 0
+		if r > 1 && !due && !talking {
+			continue
+		}
+		if r <= 1 && !talking {
+			noChat++
+		}
+		if talking { // a dealer that writes is read before a silent one of the same rank
+			r -= 10
+		}
+		cs = append(cs, cand{it, r})
+	}
+	slices.SortStableFunc(cs, func(x, y cand) int {
+		if x.rank != y.rank {
+			return x.rank - y.rank
+		}
+		return int(y.it.Metrics.OmzetBln - x.it.Metrics.OmzetBln)
+	})
+	rd := &screenReading{Items: []map[string]any{}}
+	for _, c := range cs[:min(len(cs), maxScreenItems)] {
+		it, m := c.it, c.it.Metrics
+		msgs := chats[it.UUID]
+		var chat []map[string]any
+		for _, x := range msgs[max(0, len(msgs)-8):] { // the last 8 messages
+			text := []rune(strings.TrimSpace(x.Text))
+			if len(text) > 200 {
+				text = append(text[:200], '…')
+			}
+			chat = append(chat, map[string]any{"at": x.At.Format("2006-01-02 15:04"), "dari": x.Who, "pesan": string(text)})
+		}
+		item := map[string]any{"key": it.UUID.String(), "dealer": it.Name, "tier": it.Tier, "sales": it.Owner.Name, "status": m.Status,
+			"cyc": m.Cyc, "siklus_order_hari": m.Rhythm, "hari_sejak_order": m.Last, "jadwal_order_dalam_hari": m.DueIn, "aktivitas": m.Activity,
+			"omzet_bln": m.OmzetBln, "sisa_limit": m.Credit.State, "chat_30_hari": len(msgs), "chat_terakhir": chat}
+		if len(msgs) > 0 {
+			item["hari_sejak_chat"] = int(now.Sub(msgs[len(msgs)-1].At).Hours() / 24)
+		}
+		rd.Items = append(rd.Items, item)
+		if it.Owner.Name != "" {
+			rd.names = append(rd.names, it.Owner.Name)
+		}
+	}
+	rd.Facts = map[string]any{"dealer_per_status": count, "at_risk_churn_tanpa_chat_30_hari": noChat, "chat_dibaca_hari": orbitChatDays,
+		"catatan": "posisi orbit dihitung dari siklus order (glossary); chat WhatsApp menjelaskan kenapa dealer bergeser"}
+	return rd
+}
+
 // screenLine is the AI note on one item; screenAnswer the whole reading's answer.
 type screenLine struct {
 	Key        string  `json:"key"`
@@ -190,7 +294,7 @@ func (o *Orchestrator) storeScreen(ctx context.Context, cycleID uuid.UUID, agent
 		Lines: b, Source: "ai", CreatedAt: o.Clock.Now()})
 }
 
-var screenPrompt = map[string]string{AgentStockRead: "stock_read", AgentCashRead: "cash_read"}
+var screenPrompt = map[string]string{AgentStockRead: "stock_read", AgentCashRead: "cash_read", AgentOrbitRead: "orbit_read"}
 
 const screenMCPSubmit = `Kirim lewat orchestrator_submit {"cycle_id": "<cycle_id>", "agent": "%s", "overview": "...", "lines": [{"key": "<key item>", "note": "...", "confidence": 0.8}]}. Placeholder <PIC_n>/<NO_n> biarkan apa adanya.`
 
