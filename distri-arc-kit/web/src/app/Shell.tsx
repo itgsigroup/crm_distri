@@ -247,7 +247,7 @@ export function Shell() {
           ))}
         </nav>
       </div>
-      {cur !== 'chat' && cur !== 'today' && cur !== 'orch' && <Dock screen={cur} />}
+      {cur !== 'chat' && cur !== 'today' && cur !== 'orch' && cur !== 'dashboard' && <Dock screen={cur} />}
       <LoadingPopup />
     </>
   )

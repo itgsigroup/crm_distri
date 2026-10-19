@@ -1721,3 +1721,15 @@ body.map-maximized{overflow:hidden}
 .dl-wa-menu button:hover{background:var(--surface-2)}
 .dl-wa-menu b{font-size:12.5px}
 .dl-wa-menu small{font-size:11px;color:var(--text-3)}
+
+/* Orchestrator dock: header with a "ringkas" button, and the compact round icon */
+.dk-head{display:flex;align-items:center}
+.dk-head .dk-main{flex:1;min-width:0}
+.dk-min{flex:none;width:28px;height:28px;margin-right:10px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--text-3);cursor:pointer}
+.dk-min:hover{background:var(--surface-3);color:var(--text)}
+.dk-min .i{width:14px;height:14px;transform:rotate(90deg)}
+.dock-mini{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:25;width:46px;height:46px;border:0;border-radius:50%;display:grid;place-items:center;color:#fff;cursor:pointer;background:conic-gradient(from 200deg,var(--ai-a),var(--ai-b),var(--ai-c),var(--ai-a));box-shadow:var(--shadow-lift)}
+.dock-mini .i{width:20px;height:20px}
+.dock-mini:hover{transform:scale(1.06)}
+.dock-mini .dm-ring{position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--ai-b);animation:pulse .9s infinite;pointer-events:none}
+@media (max-width:900px){.dock-mini{right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px))}}

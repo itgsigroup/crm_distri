@@ -65,12 +65,18 @@ const ENGINE_KEY = 'orch-engine'
 function savedEngine(): Engine | null {
   try { const v = localStorage.getItem(ENGINE_KEY); return v === 'mcp' || v === 'model' ? v : null } catch { return null }
 }
+const MINI_KEY = 'orch-dock-mini'
+function savedMini(): boolean {
+  try { return localStorage.getItem(MINI_KEY) === '1' } catch { return false }
+}
 
-// Floating Orchestrator dock, fixed at the bottom right of the screen on every page except Orchestrator and Chat: re-analyse this page (or
+// Floating Orchestrator dock, fixed at the bottom right of the screen on every page except Dashboard, Orchestrator and Chat (it can shrink to a round icon): re-analyse this page (or
 // everything) with Claude through MCP or with the API and model chosen on Pengaturan → API & model AI; the page's
 // data refreshes when the cycle is done.
 export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: ReactNode; links?: ReactNode }) {
   const [open, setOpen] = useState(false)
+  const [mini, setMiniState] = useState(savedMini)
+  const setMini = (m: boolean) => { setMiniState(m); if (m) setOpen(false); try { localStorage.setItem(MINI_KEY, m ? '1' : '0') } catch { /* private mode */ } }
   const { s, reanalyze } = useOrch()
   const st = useOrchStatus()
   const { pathname } = useLocation()
@@ -85,16 +91,29 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
   const choose = (e: Engine) => { setPick(e); try { localStorage.setItem(ENGINE_KEY, e) } catch { /* private mode */ } }
   const scope = screenScope(screen, pathname)
   const run = (sc: string) => reanalyze(sc, engine, engine === 'model' ? eng?.model.label : 'Claude lewat MCP')
+  const status = st.running ? `menganalisis ${st.scope} · ${st.stage}` : st.run ? `siap · siklus #${st.run.toLocaleString('id-ID')} · ${st.last}` : 'siap · belum ada siklus'
   // rendered on <body>: inside a page (.screen animates a transform) position: fixed would scroll with the content
+  if (mini) {
+    return createPortal(
+      <button className={`dock-mini ${st.running ? 'running' : ''}`} onClick={() => { setMini(false); setOpen(true) }} aria-label="Buka Orchestrator" title={`Orchestrator · ${status}`}>
+        <Icon name="spark" />
+        {st.running && <i className="dm-ring" />}
+      </button>,
+      document.body,
+    )
+  }
   return createPortal(
     <div className={`dock ${open ? 'open' : ''} ${st.running ? 'running' : ''}`}>
-      <button className="dk-main" onClick={() => setOpen(!open)} aria-label="Orchestrator">
-        <span className="dk-dot" />
-        <span className="dk-txt">
-          <b>Orchestrator</b>
-          <span>{st.running ? `menganalisis ${st.scope} · ${st.stage}` : st.run ? `siap · siklus #${st.run.toLocaleString('id-ID')} · ${st.last}` : 'siap · belum ada siklus'}</span>
-        </span>
-      </button>
+      <div className="dk-head">
+        <button className="dk-main" onClick={() => setOpen(!open)} aria-label="Orchestrator">
+          <span className="dk-dot" />
+          <span className="dk-txt">
+            <b>Orchestrator</b>
+            <span>{status}</span>
+          </span>
+        </button>
+        <button type="button" className="dk-min" onClick={() => setMini(true)} aria-label="Ringkas jadi ikon" title="Ringkas jadi ikon"><Icon name="chev" /></button>
+      </div>
       <div className="dk-body">
         <div className="dk-pipe"><PipeChips /></div>
         <div className="dk-track"><i style={{ width: `${progress(s)}%` }} /></div>
