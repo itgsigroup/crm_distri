@@ -110,7 +110,7 @@ func (w *CycleMCPWorker) Work(ctx context.Context, job *river.Job[jobs.CycleMCPA
 			for _, x := range rows {
 				names = append(names, x.Agent)
 			}
-			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cid.String(), names, w.wait)
+			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cid.String(), names, w.wait, cyc.Scope)
 			id, err := ensureSchedule(ctx, st, ButtonSchedule, prompt)
 			if err != nil {
 				return err

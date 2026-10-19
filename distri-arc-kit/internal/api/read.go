@@ -602,7 +602,7 @@ func (s *Server) dashboardTrend(w http.ResponseWriter, r *http.Request) {
 // null until an AI has read the page.
 func (s *Server) screenAnalysis(w http.ResponseWriter, r *http.Request) {
 	screen := chi.URLParam(r, "screen")
-	if screen != "stock" && screen != "credit" && screen != "orbit" && screen != "segmen" {
+	if screen != "stock" && screen != "credit" && screen != "orbit" && screen != "segmen" && screen != "relasi" {
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Halaman tidak dikenal")
 		return
 	}
@@ -617,7 +617,7 @@ func (s *Server) screenAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 	var lines map[string]json.RawMessage
 	_ = json.Unmarshal(row.Lines, &lines)
-	if screen == "credit" || screen == "orbit" || screen == "segmen" { // stored per dealer uuid; the page's rows use the dealer id
+	if screen != "stock" { // stored per dealer uuid; the page's rows use the dealer id
 		b, ok := s.board(w, r)
 		if !ok {
 			return

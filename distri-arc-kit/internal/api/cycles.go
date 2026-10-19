@@ -213,7 +213,7 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, 
 					names = append(names, a.Name())
 				}
 			}
-			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cyc.ID.String(), names, s.mcpWait())
+			prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cyc.ID.String(), names, s.mcpWait(), sc.String())
 			if !useModel { // the MCP client picks its model itself: the prompt says which one was chosen
 				prompt += "\n\nModel yang dipilih di GSI Orbit: " + analyst.ModelLabel(deref(cyc.EngineModel)) + " · effort " + effort + "."
 			}

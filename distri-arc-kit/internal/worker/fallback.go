@@ -93,7 +93,11 @@ func (f *Fallback) fireRoutine(ctx context.Context, log *slog.Logger, cycleID uu
 			names = append(names, a)
 		}
 	}
-	prompt := orchestrator.MCPPrompt(number, cycleID.String(), names, wait+RoutineWindow)
+	scope := "all"
+	if c, err := f.St.Q.GetCycle(ctx, cycleID); err == nil {
+		scope = c.Scope
+	}
+	prompt := orchestrator.MCPPrompt(number, cycleID.String(), names, wait+RoutineWindow, scope)
 	url, err := analyst.FireRoutine(ctx, id, token, prompt)
 	if err != nil {
 		log.Warn("claude routine: fire", "cycle", cycleID, "err", err)
@@ -128,7 +132,7 @@ func (w *CycleMCPWorker) fallbackCycle(ctx context.Context, cid uuid.UUID) error
 	if len(missing) == 0 {
 		return nil // Claude through MCP answered every agent in time
 	}
-	prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cid.String(), missing, FallbackWindow)
+	prompt := orchestrator.MCPPrompt(deref64(cyc.Number), cid.String(), missing, FallbackWindow, cyc.Scope)
 	id, err := ensureSchedule(ctx, st, FallbackSchedule, prompt)
 	if err != nil {
 		return err

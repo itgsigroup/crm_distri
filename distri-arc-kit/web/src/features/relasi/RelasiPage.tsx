@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { Relasi, RelasiEdge } from '../../api/types'
 import { Icon } from '../../components/Icon'
-import { useDealers, useOrbit, useRelasi, useRelasiInsights, useSales } from '../../app/queries'
+import { useDealers, useOrbit, useRelasi, useRelasiInsights, useSales, useScreenAnalysis } from '../../app/queries'
+import { ScreenBrief } from '../../components/ScreenAI'
 import { FullscreenButton, useFullscreen } from '../../components/MapViewport'
 import { EMPTY, activeCount, applyFilter, type OrbitFilter } from '../orbit/filters'
 import { OrbitFilterBar } from '../orbit/OrbitTools'
@@ -69,6 +70,8 @@ export function RelasiPage() {
   const { data: g } = useRelasi(period, 'all')
   const { data: scoped } = useRelasi(period, sales)
   const { data: ins = [] } = useRelasiInsights(period, sales)
+  // Analisa Relasi (ADR 0054): Claude reads how close each sales is to a dealer from what they write (routine)
+  const { data: reading } = useScreenAnalysis('relasi')
   const { data: salesList = [] } = useSales()
   const { ref: stage, big, toggle: toggleFullscreen, className: fsClass } = useFullscreen<HTMLDivElement>()
   const [zoom, setZoom] = useState(1)
@@ -218,7 +221,26 @@ export function RelasiPage() {
           </ul>
         </div>
         <div className="card">
-          <div className="card-h"><h2>Pola relasi</h2><span className="ai" style={{ marginLeft: 6 }}>dibaca GSI Orbit</span></div>
+          <div className="card-h"><h2>Analisa Relasi</h2><span className="ai" style={{ marginLeft: 6 }}>Claude · chat WhatsApp</span></div>
+          <p className="orbit-src">Garis di peta dihitung dari interaksi WA + order; kualitas hubungannya dibaca Claude dari isi chat.</p>
+          <ScreenBrief a={reading} what="kedekatan sales dan dealer dari isi chat WhatsApp" />
+          {reading && Object.keys(reading.lines).length > 0 && (
+            <ul className="ins rl-notes">
+              {Object.entries(reading.lines).map(([id, l]) => {
+                const d = board.find((x) => x.id === id)
+                if (!d) return null
+                return (
+                  <li key={id} onClick={() => nav('/dealer/' + id)} style={{ cursor: 'pointer' }}>
+                    <span className="ii" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}><Icon name="chat" /></span>
+                    <div><b>{d.name}</b><span>{l.note}</span></div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+        <div className="card">
+          <div className="card-h"><h2>Pola relasi</h2><span className="meta">dihitung dari interaksi WA + order</span></div>
           <ul className="ins">
             {ins.length === 0 && <li><span /><div><span>Tidak ada pola khusus.</span></div></li>}
             {ins.map((x) => (

@@ -30,23 +30,38 @@ const (
 	AgentOrbitRead = "Analisa Orbit"
 	// AgentSegmenRead: Analisa Segmen (ADR 0053) — the dealers moving between segments read with their WhatsApp chats
 	AgentSegmenRead = "Analisa Segmen"
+	// AgentRelasiRead: Analisa Relasi (ADR 0054) — how close each sales is to a dealer, read from what they write
+	AgentRelasiRead = "Analisa Relasi"
 )
 
 // maxScreenItems caps the items one reading sends (largest value first).
 const maxScreenItems = 20
 
 // screenOf maps a reading agent to its page.
-var screenOf = map[string]string{AgentStockRead: "stock", AgentCashRead: "credit", AgentOrbitRead: "orbit", AgentSegmenRead: "segmen"}
+var screenOf = map[string]string{AgentStockRead: "stock", AgentCashRead: "credit", AgentOrbitRead: "orbit", AgentSegmenRead: "segmen", AgentRelasiRead: "relasi"}
 
 // IsScreenReading reports whether an agent name is one of the page readings.
 func IsScreenReading(agent string) bool { _, ok := screenOf[agent]; return ok }
 
-// ScreenReadings are the page readings a cycle of these agents includes: AI Stok's page, and AI Kredit's or AI
-// Penagihan's.
-func ScreenReadings(agentNames []string) []string {
+// ScreenReadings are the page readings a cycle of these agents includes: AI Follow-up's pages (Orbit, Segmen, Peta
+// relasi), AI Stok's page, and AI Kredit's or AI Penagihan's.
+func ScreenReadings(agentNames []string) []string { return ScreenReadingsIn("all", agentNames) }
+
+// ScreenReadingsIn narrows AI Follow-up's pages to the one asked for: Analisis ulang on Orbit reads Orbit only (fast),
+// a full cycle reads them all (ADR 0054).
+func ScreenReadingsIn(scope string, agentNames []string) []string {
 	var out []string
-	if slices.Contains(agentNames, "AI Follow-up") { // Orbit (when to greet) and Segmen (how to serve), read with the chats
-		out = append(out, AgentOrbitRead, AgentSegmenRead)
+	if slices.Contains(agentNames, "AI Follow-up") {
+		switch scope {
+		case "screen:orbit":
+			out = append(out, AgentOrbitRead)
+		case "screen:segmen":
+			out = append(out, AgentSegmenRead)
+		case "screen:relasi":
+			out = append(out, AgentRelasiRead)
+		default:
+			out = append(out, AgentOrbitRead, AgentSegmenRead, AgentRelasiRead)
+		}
 	}
 	if slices.Contains(agentNames, "AI Stok") {
 		out = append(out, AgentStockRead)
@@ -79,7 +94,7 @@ func (o *Orchestrator) screenReadingFor(ctx context.Context, agent string) (*scr
 		return stockReading(b, views.StockItems(rows)), nil
 	case AgentCashRead:
 		return cashReading(b), nil
-	case AgentOrbitRead, AgentSegmenRead:
+	case AgentOrbitRead, AgentSegmenRead, AgentRelasiRead:
 		now := o.Clock.Now()
 		rows, err := o.St.Q.WAWindowMessages(ctx, gen.WAWindowMessagesParams{Since: now.AddDate(0, 0, -orbitChatDays), Until: now})
 		if err != nil {
@@ -94,10 +109,13 @@ func (o *Orchestrator) screenReadingFor(ctx context.Context, agent string) (*scr
 			if deref(m.Direction) == "out" || m.Internal {
 				who = "sales"
 			}
-			chats[*m.DealerID] = append(chats[*m.DealerID], orbitMsg{At: m.SentAt, Who: who, Text: deref(m.Body)})
+			chats[*m.DealerID] = append(chats[*m.DealerID], orbitMsg{At: m.SentAt, Who: who, Text: deref(m.Body), Sales: deref(m.SalesName)})
 		}
-		if agent == AgentSegmenRead {
+		switch agent {
+		case AgentSegmenRead:
 			return segmenReading(b, chats, now), nil
+		case AgentRelasiRead:
+			return relasiReading(b, chats, now), nil
 		}
 		return orbitReading(b, chats, now), nil
 	}
@@ -168,9 +186,10 @@ const orbitChatDays = 30
 
 // orbitMsg is one WhatsApp message of a dealer for Analisa Orbit.
 type orbitMsg struct {
-	At   time.Time
-	Who  string // pelanggan | sales
-	Text string
+	At    time.Time
+	Who   string // pelanggan | sales
+	Text  string
+	Sales string // the sales holding the number of the conversation
 }
 
 // orbitStatusRank: the dealers Analisa Orbit reads first — the ones slipping out of orbit, then the ones due soon.
@@ -311,6 +330,105 @@ func segmenReading(b *views.Board, chats map[uuid.UUID][]orbitMsg, now time.Time
 	return rd
 }
 
+// relasiReading: how close the sales are to their dealers, read from what they write (MD: interaksi WA + order) —
+// dealers chatted by two sales, dealers whose chats are thinning (last 15 days against the 15 before), big-order dealers
+// that hardly chat, then the busiest — with who writes to them and their last messages (ADR 0054).
+func relasiReading(b *views.Board, chats map[uuid.UUID][]orbitMsg, now time.Time) *screenReading {
+	type cand struct {
+		it   views.BoardItem
+		rank int
+	}
+	half := now.AddDate(0, 0, -orbitChatDays/2)
+	var cs []cand
+	shared, thin, quietBig, talking := 0, 0, 0, 0
+	for _, it := range b.Items {
+		m := it.Metrics
+		if m.Status == "" || m.Status == "Prospek" {
+			continue
+		}
+		msgs := chats[it.UUID]
+		bySales := map[string]int{}
+		recent, before := 0, 0
+		for _, x := range msgs {
+			if x.Sales != "" {
+				bySales[x.Sales]++
+			}
+			if x.At.After(half) {
+				recent++
+			} else {
+				before++
+			}
+		}
+		rank := 9
+		switch {
+		case len(bySales) >= 2:
+			rank = 0
+			shared++
+		case before >= 4 && recent*2 < before:
+			rank = 1
+			thin++
+		case m.AvgOrder >= 60_000_000 && len(msgs) < 3:
+			rank = 2
+			quietBig++
+		case len(msgs) > 0:
+			rank = 3
+		}
+		if len(msgs) > 0 {
+			talking++
+		}
+		if rank == 9 {
+			continue
+		}
+		cs = append(cs, cand{it, rank})
+	}
+	slices.SortStableFunc(cs, func(x, y cand) int {
+		if x.rank != y.rank {
+			return x.rank - y.rank
+		}
+		return len(chats[y.it.UUID]) - len(chats[x.it.UUID])
+	})
+	rd := &screenReading{Items: []map[string]any{}}
+	for _, c := range cs[:min(len(cs), maxScreenItems)] {
+		it, m := c.it, c.it.Metrics
+		msgs := chats[it.UUID]
+		bySales := map[string]int{}
+		recent := 0
+		for _, x := range msgs {
+			if x.Sales != "" {
+				bySales[x.Sales]++
+			}
+			if x.At.After(half) {
+				recent++
+			}
+		}
+		var chat []map[string]any
+		for _, x := range msgs[max(0, len(msgs)-8):] {
+			text := []rune(strings.TrimSpace(x.Text))
+			if len(text) > 200 {
+				text = append(text[:200], '…')
+			}
+			who := x.Who
+			if who == "sales" && x.Sales != "" {
+				who = "sales " + x.Sales
+			}
+			chat = append(chat, map[string]any{"at": x.At.Format("2006-01-02 15:04"), "dari": who, "pesan": string(text)})
+		}
+		rd.Items = append(rd.Items, map[string]any{"key": it.UUID.String(), "dealer": it.Name, "pemilik_sales": it.Owner.Name, "status": m.Status,
+			"omzet_bln": m.OmzetBln, "rata_rata_per_order": m.AvgOrder, "pic_aktif": m.PICActive, "chat_30_hari": len(msgs),
+			"chat_15_hari_terakhir": recent, "chat_15_hari_sebelumnya": len(msgs) - recent, "chat_per_sales": bySales, "chat_terakhir": chat})
+		if it.Owner.Name != "" {
+			rd.names = append(rd.names, it.Owner.Name)
+		}
+		for n := range bySales {
+			rd.names = append(rd.names, n)
+		}
+	}
+	rd.Facts = map[string]any{"dealer_yang_chat_30_hari": talking, "dealer_dipegang_dua_sales": shared, "chat_menipis": thin,
+		"order_besar_chat_tipis": quietBig, "chat_dibaca_hari": orbitChatDays,
+		"catatan": "garis di Peta relasi = interaksi WA + order (MD); analisa ini membaca isi chat WhatsApp"}
+	return rd
+}
+
 // screenLine is the AI note on one item; screenAnswer the whole reading's answer.
 type screenLine struct {
 	Key        string  `json:"key"`
@@ -366,7 +484,7 @@ func (o *Orchestrator) storeScreen(ctx context.Context, cycleID uuid.UUID, agent
 		Lines: b, Source: "ai", CreatedAt: o.Clock.Now()})
 }
 
-var screenPrompt = map[string]string{AgentStockRead: "stock_read", AgentCashRead: "cash_read", AgentOrbitRead: "orbit_read", AgentSegmenRead: "segmen_read"}
+var screenPrompt = map[string]string{AgentStockRead: "stock_read", AgentCashRead: "cash_read", AgentOrbitRead: "orbit_read", AgentSegmenRead: "segmen_read", AgentRelasiRead: "relasi_read"}
 
 const screenMCPSubmit = `Kirim lewat orchestrator_submit {"cycle_id": "<cycle_id>", "agent": "%s", "overview": "...", "lines": [{"key": "<key item>", "note": "...", "confidence": 0.8}]}. Placeholder <PIC_n>/<NO_n> biarkan apa adanya.`
 
@@ -458,7 +576,7 @@ func (o *Orchestrator) writeScreenReadings(ctx context.Context, r *stageRun) err
 		"lines": map[string]any{"type": "array", "items": map[string]any{"type": "object", "additionalProperties": false, "required": []string{"key", "note", "confidence"},
 			"properties": map[string]any{"key": map[string]any{"type": "string"}, "note": map[string]any{"type": "string"}, "confidence": map[string]any{"type": "number"}}}}}}
 	cid := r.cyc.ID.String()
-	for _, agent := range ScreenReadings(names) {
+	for _, agent := range ScreenReadingsIn(r.scope.String(), names) {
 		rd, err := o.screenReadingFor(ctx, agent)
 		if err != nil || len(rd.Items) == 0 {
 			continue

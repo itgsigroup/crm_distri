@@ -522,12 +522,16 @@ func waitLabel(d time.Duration) string {
 
 // MCPPrompt is what Claude is asked when a cycle waits for its analysis through MCP: the "Analisis ulang" button
 // pre-fills it in claude.ai, and the server-side Claude (Analisis terjadwal engine) receives it as its task.
-func MCPPrompt(number int64, cycleID string, agentNames []string, wait time.Duration) string {
+func MCPPrompt(number int64, cycleID string, agentNames []string, wait time.Duration, scope ...string) string {
+	sc := "all"
+	if len(scope) > 0 && scope[0] != "" {
+		sc = scope[0]
+	}
 	if wait <= 0 {
 		wait = 10 * time.Minute
 	}
 	pages := ""
-	for _, a := range ScreenReadings(agentNames) {
+	for _, a := range ScreenReadingsIn(sc, agentNames) {
 		what := "stok menua dan SKU kritis (halaman Push stok): ringkasan untuk CEO dan satu catatan per item"
 		switch a {
 		case AgentCashRead:
@@ -536,6 +540,8 @@ func MCPPrompt(number int64, cycleID string, agentNames []string, wait time.Dura
 			what = "dealer di orbit dengan chat WhatsApp-nya (halaman Orbit): kenapa dealer bergeser menurut chat, ringkasan untuk CEO dan satu catatan per dealer"
 		case AgentSegmenRead:
 			what = "dealer yang pindah segmen atau melambat dengan chat WhatsApp-nya (halaman Segmen): kenapa menurut chat dan cara melayaninya, ringkasan untuk CEO dan satu catatan per dealer"
+		case AgentRelasiRead:
+			what = "kedekatan sales ↔ dealer dari isi chat WhatsApp (halaman Peta relasi): siapa yang dekat, yang menipis, yang dipegang dua sales, ringkasan untuk CEO dan satu catatan per dealer"
 		}
 		pages += fmt.Sprintf("\nBaca juga %s: panggil orchestrator_input_get {\"cycle_id\": \"%s\", \"agent\": \"%s\"}, tulis %s, kirim lewat orchestrator_submit {\"cycle_id\": \"%s\", \"agent\": \"%s\", \"overview\": \"...\", \"lines\": [{\"key\": \"...\", \"note\": \"...\", \"confidence\": 0.8}]}.\n",
 			a, cycleID, a, what, cycleID, a)

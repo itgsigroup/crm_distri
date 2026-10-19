@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Peta relasi: Analisa Relasi dari isi chat WhatsApp oleh Claude (routine) · 2026-10-19
+- Kartu baru **Analisa Relasi**: Claude membaca isi chat WhatsApp dealer — yang dichat dua sales, yang chatnya menipis, dealer besar yang jarang chat — lalu menulis ringkasan dan catatan per dealer (klik untuk membuka dealer). Lewat routine Claude, tanpa membuka Desktop.
+- Peta tetap sesuai MD (garis = interaksi WA + order). Kartu "Pola relasi" diberi label jujur: dihitung dari interaksi WA + order.
+- Analisis ulang di Orbit, Segmen, atau Peta relasi kini hanya meminta bacaan halaman itu (lebih cepat); siklus penuh meminta ketiganya. ADR 0054.
+
 ## Change · Segmen · Peta titik lebih enak dilihat dan interaktif · 2026-10-19
 - Garis bantu halus putus-putus, garis ambang (sering / besar) lebih tegas; area > 3,5×/bln diberi arsir tipis, bukan blok abu-abu.
 - Label segmen menjadi kartu di pojok (jumlah dealer + omzet/bln) yang selalu di atas titik — tidak tertutup titik lagi — dan memudar saat titik disorot.

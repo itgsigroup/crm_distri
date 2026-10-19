@@ -148,6 +148,45 @@ func TestSegmenReadingThroughMCP(t *testing.T) {
 	}
 }
 
+// ADR 0054: Analisa Relasi — dealers with who writes to them (per sales) and their messages go to Claude; Analisis
+// ulang on one page asks only that page's reading, a full cycle all of them.
+func TestRelasiReadingThroughMCP(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	rep, err := o.Run(ctx, domain.Scope{Kind: "screen", ID: "relasi"}, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := o.InputFor(ctx, rep.Cycle.ID, orchestrator.AgentRelasiRead)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var in screenInput
+	_ = json.Unmarshal(raw, &in)
+	if len(in.Items) == 0 || in.Items[0]["chat_per_sales"] == nil || !strings.Contains(string(raw), "interaksi WA + order") {
+		t.Fatalf("relasi input %s", raw)
+	}
+	key := in.Items[0]["key"].(string)
+	ans := orchestrator.ParseScreenAnswer("Hubungan menguat di dealer yang aktif chat; satu dealer besar hanya bicara tagihan.",
+		[]map[string]any{{"key": key, "note": "Responsif dan banyak tanya stok — pertahankan sapaan mingguan dari sales pemilik.", "confidence": 0.7}})
+	if _, err := o.ScreenSubmit(ctx, rep.Cycle.ID, orchestrator.AgentRelasiRead, ans, nil); err != nil {
+		t.Fatal(err)
+	}
+	if a, err := st.Q.LatestScreenAnalysis(ctx, "relasi"); err != nil || !strings.Contains(string(a.Lines), key) {
+		t.Fatalf("relasi reading %+v %v", a, err)
+	}
+	fu := []string{"AI Follow-up", "AI Kredit"}
+	if got := orchestrator.ScreenReadingsIn("screen:relasi", fu); len(got) != 2 || got[0] != orchestrator.AgentRelasiRead {
+		t.Fatalf("relasi page asks %v", got)
+	}
+	if got := orchestrator.ScreenReadingsIn("all", fu); len(got) != 4 {
+		t.Fatalf("full cycle asks %v", got)
+	}
+	if p := orchestrator.MCPPrompt(3, "c", fu, 0, "screen:orbit"); !strings.Contains(p, orchestrator.AgentOrbitRead) || strings.Contains(p, orchestrator.AgentSegmenRead) {
+		t.Fatalf("orbit prompt %s", p)
+	}
+}
+
 // The Analisis ulang prompt asks Claude for the page readings of the agents in scope.
 func TestMCPPromptAsksForPageReadings(t *testing.T) {
 	p := orchestrator.MCPPrompt(7, "c1", []string{"AI Stok"}, 0)

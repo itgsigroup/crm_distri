@@ -34,7 +34,7 @@ func TestScreenAnalysisEndpoint(t *testing.T) {
 	if code != http.StatusOK || a["overview"] != "Kas aman." || a["source"] != "ai" || lines[slug] == nil {
 		t.Fatalf("credit reading: %d %v", code, out)
 	}
-	if code, _ := get(t, srv, "/api/screen-analysis/relasi", "sam@gsi.co.id"); code != http.StatusNotFound { // orbit and segmen are read since ADR 0052/0053
+	if code, _ := get(t, srv, "/api/screen-analysis/dealer", "sam@gsi.co.id"); code != http.StatusNotFound { // orbit, segmen, relasi are read since ADR 0052–0054
 		t.Fatalf("unknown screen: %d", code)
 	}
 }
