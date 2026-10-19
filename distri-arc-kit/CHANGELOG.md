@@ -2,7 +2,7 @@
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
 ## Change · Pusat kendali dan Orchestrator persis sesuai MD; analisa dari WhatsApp, stok dari BigQuery · 2026-10-19
-- **Pusat kendali** kembali ke susunan `08-frontend.md`: kartu Orchestrator di atas (pipeline, update terakhir, Analisis ulang), **Rencana hari ini**, Keputusan, Ringkasan, Jadwal order · 7 hari, Lewat jadwal, KPI utama, Agenda sales, Push stok, Limit tipis. Kotak Orchestrator kanan bawah tidak tampil di halaman ini.
+- **Pusat kendali** kembali ke susunan `08-frontend.md`: **Rencana hari ini**, Keputusan, Ringkasan, Jadwal order · 7 hari, Lewat jadwal, KPI utama, Agenda sales, Push stok, Limit tipis. Orchestrator tetap kotak di kanan bawah seperti sebelumnya (bisa diringkas jadi ikon).
 - Isi dari WhatsApp: Rencana dan Keputusan dari usulan Claude atas chat; Jadwal order = chat minta order; Lewat jadwal = chat lewat batas balas; Limit tipis = chat minta rilis kredit/retur; KPI dan Agenda dari WhatsApp. **Push stok** dari stok BigQuery.
 - **Orchestrator** kembali ke susunan MD: Pipeline, Resolusi konflik, Riwayat analisis, Agen (Jalankan ulang), MCP, Matriks otonomi. ADR 0045.
 

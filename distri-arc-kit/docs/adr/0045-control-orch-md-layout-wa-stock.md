@@ -8,9 +8,9 @@ Sam meminta Pusat kendali dan Orchestrator kembali **persis** seperti `docs/desi
 stok berasal dari BigQuery.
 
 ## Keputusan
-- **Pusat kendali** memakai komponen dan urutan MD: kartu Orchestrator (di hero, bukan dock), Rencana hari ini,
-  Keputusan, Ringkasan, Jadwal order · 7 hari, Lewat jadwal, KPI utama, Agenda sales, Push stok, Limit tipis.
-  Dock tidak tampil di `/` (sesuai MD).
+- **Pusat kendali** memakai komponen dan urutan MD: Rencana hari ini, Keputusan, Ringkasan, Jadwal order · 7 hari,
+  Lewat jadwal, KPI utama, Agenda sales, Push stok, Limit tipis. Kartu Orchestrator tetap berupa dock kanan bawah
+  (seperti sebelumnya, permintaan Sam 19 Okt) — satu-satunya beda dari MD.
 - Sumber tiap kartu:
   | Kartu | Sumber |
   |---|---|

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Icon } from '../../components/Icon'
-import { CardH, Pill } from '../../components/ui'
+import { CardH } from '../../components/ui'
 import { greeting, hhmm, shortDate } from '../../lib/format'
-import { PipeChips } from '../../app/Dock'
+import { Dock } from '../../app/Dock'
 import { useMe, useNow, usePlan, useQueue, useStockPush, useWAAnalysis } from '../../app/queries'
-import { useOrch, useOrchStatus } from '../../app/orch'
+import { useOrchStatus } from '../../app/orch'
 import { PlanList } from './Plan'
 import { PushList } from './lists'
 import { Queue } from './Queue'
@@ -29,8 +29,6 @@ export function ControlCenter() {
   const now = useNow()
   const page = useSalesPage()
   const sales = page.sales
-  const orch = useOrchStatus()
-  const { reanalyze } = useOrch()
   const canWA = useCanWA()
   const { data: wa } = useWAAnalysis(sales, canWA)
   const { data: plan } = usePlan(sales)
@@ -55,7 +53,7 @@ export function ControlCenter() {
     <>
       <SalesPicker page={page} />
       <SalesBanner page={page} />
-      <div className="cc-hero">
+      <div className="cc-hero cc-tidy cc-solo">
         <div className="cc-left">
           <div className="greet">
             <h2>{greeting(now)}, {first}.</h2>
@@ -77,29 +75,19 @@ export function ControlCenter() {
             <button onClick={() => nav('/chat')}><span className="n" style={{ background: 'var(--indigo)' }}><Icon name="chat" /></span>Buka Chat</button>
           </div>
         </div>
-        <div className="orch-card">
-          <div className="oc-h">
-            <span className="ai">Orchestrator</span>
-            {orch.running ? <Pill tone="accent" icon="refresh">Menganalisis</Pill> : <Pill tone="good" icon="check">Siap</Pill>}
-            <span className="meta">{orch.run ? `siklus #${orch.run.toLocaleString('id-ID')} · ${orch.last} · ${orch.dur}` : 'belum ada siklus · tiap jam 06.00–20.00'}</span>
-          </div>
-          <div className="oc-pipe"><PipeChips /></div>
-          <LastUpdate />
-          <WALastRead sales={sales} compact />
-          <div className="oc-foot">
-            <div className="oc-nums"><span><b>{fmt(t?.threads)}</b> chat</span><span><b>{fmt(t?.inbound)}</b> pesan masuk</span><span><b>{t?.needs_reply ?? 0}</b> menunggu</span><span><b>{pending}</b> keputusan</span></div>
-            <div className="oc-btns">
-              <button className="btn primary" disabled={orch.running} onClick={() => reanalyze('all', 'mcp', 'Claude lewat MCP')}><Icon name="refresh" />Analisis ulang</button>
-              <button className="btn ghost" onClick={() => nav(page.link('/orchestrator'))}>Buka Orchestrator</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* while an analysis runs: what the AI reads, a game to wait with, then berhasil / gagal */}
       <AnalysisPanel />
 
-      <div className="today">
+      {/* the Orchestrator is the pop-up at the bottom right, as on every other page */}
+      <Dock screen="today" extra={<>
+        <LastUpdate />
+        <WALastRead sales={sales} compact />
+        <div className="dk-nums"><span><b>{fmt(t?.threads)}</b> chat</span><span><b>{fmt(t?.inbound)}</b> pesan masuk</span><span><b>{t?.needs_reply ?? 0}</b> menunggu</span><span><b>{pending}</b> keputusan</span></div>
+      </>} links={<button className="btn quiet" onClick={() => nav(page.link('/orchestrator'))}>Buka Orchestrator</button>} />
+
+      <div className="today cc-tidy">
         <div className="stack">
           <div className="card" id="plan-card">
             <div className="card-h"><h2>Rencana hari ini</h2><span className="ai" style={{ marginLeft: 6 }}>disusun Orchestrator · dari WhatsApp</span><span className="meta">{waPlan?.total ? `${waPlan.total} langkah · ${waPlan.auto} otonom · ${waPlan.approve} butuh approve` : '0 langkah'}</span></div>
