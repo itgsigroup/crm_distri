@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Segmen · Peta titik lebih enak dilihat dan interaktif · 2026-10-19
+- Garis bantu halus putus-putus, garis ambang (sering / besar) lebih tegas; area > 3,5×/bln diberi arsir tipis, bukan blok abu-abu.
+- Label segmen menjadi kartu di pojok (jumlah dealer + omzet/bln) yang selalu di atas titik — tidak tertutup titik lagi — dan memudar saat titik disorot.
+- Arahkan ke zona: zona menyala dan titik segmen lain meredup; klik zona untuk menyaring. Arahkan ke titik: titik lain meredup, titik itu ditonjolkan dengan garis bidik ke kedua sumbu.
+
 ## Feat · Segmen: Analisa Segmen dari chat WhatsApp oleh Claude (routine); titik 3 bulan lalu kembali · 2026-10-19
 - Kartu baru **Analisa Segmen**: Claude membaca dealer yang pindah segmen, yang melambat, dan yang sedang chat beserta 8 chat WhatsApp terakhirnya — kenapa pindah dan cara melayaninya — dengan catatan per dealer di daftar kotak. Lewat routine Claude, tanpa membuka Desktop.
 - Segmen tetap dihitung dari order sesuai MD. Tombol "Analisis ulang" diganti kotak Orchestrator; label "Pindah kotak" diperbaiki.

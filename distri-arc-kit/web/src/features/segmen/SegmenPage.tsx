@@ -119,7 +119,17 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   const PH = H - T - B
   const { containerRef: wrap, svgProps, ...viewport } = useMapViewport(PW, PH)
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
+  const [zone, setZone] = useState<Segment | null>(null) // the zone under the pointer lights up
   const [all, setAll] = useState(false)
+  // dealers and omzet per segment for the corner cards
+  const tot = useMemo(() => {
+    const t: Record<string, { n: number; omzet: number }> = {}
+    for (const d of list) {
+      const k = d.metrics.segment
+      t[k] = { n: (t[k]?.n ?? 0) + 1, omzet: (t[k]?.omzet ?? 0) + d.metrics.omzet_bln }
+    }
+    return t
+  }, [list])
   // the value range follows the data, so dealers beyond 3,5×/bln or 200 jt get their own place instead of an edge pile
   const dom = useMemo(() => domainOf(list.map((d) => d.metrics)), [list])
   const xq = px(thresholds.freq_per_month, dom)
@@ -131,7 +141,7 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   const resize = viewport.markerScale / scale // the layout may lag a fast zoom by a frame; dots are drawn at the current size
   const strokeW = Math.max(0.3 * viewport.unit, Math.min(2 * viewport.markerScale, 1.5 * viewport.unit))
   const Z: [Segment, number, number, number, number][] = [['A', xq, T, W - R - xq, yq - T], ['C', L, T, xq - L, yq - T], ['B', xq, yq, W - R - xq, H - B - yq], ['D', L, yq, xq - L, H - B - yq]]
-  const ZL: [Segment, number, number, 'start' | 'end'][] = [['A', W - R - 10, T + 22, 'end'], ['C', L + 10, T + 22, 'start'], ['B', W - R - 10, H - B - 28, 'end'], ['D', L + 10, H - B - 28, 'start']]
+  const ZL: [Segment, number, number, 'start' | 'end'][] = [['A', W - R - 8, T + 64, 'end'], ['C', L + 8, T + 22, 'start'], ['B', W - R - 8, H - B - 28, 'end'], ['D', L + 8, H - B - 28, 'start']]
   const move = (e: MouseEvent, d: BoardItem) => {
     if (viewport.dragging) { setHover(null); return }
     const r = wrap.current!.getBoundingClientRect()
@@ -179,6 +189,10 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
           <marker id="kuad-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0 0L10 5L0 10z" fill="var(--text-3)" />
           </marker>
+          {/* the compressed part above 3,5×/bln: a light hatch instead of a grey block */}
+          <pattern id="kuad-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="var(--text-3)" strokeWidth="1" strokeOpacity=".12" />
+          </pattern>
         </defs>
         {ys.map((v) => (
           <text key={v} x={L - 8} y={(sy(py(v, dom)) + 4).toFixed(1)} textAnchor="end" className="kt">{fmtTick(v)}</text>
@@ -196,7 +210,9 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
         <svg x={L} y={T} width={PW} height={PH} viewBox={viewport.viewBox} className="kuad-plot" {...svgProps}>
           <g transform={`translate(${-L} ${-T})`}>
             {Z.map(([k, x, y, w, h]) => (
-              <rect key={k} x={x.toFixed(1)} y={y.toFixed(1)} width={w.toFixed(1)} height={h.toFixed(1)} fill={`var(--${KUAD[k].k})`} opacity={sel && sel !== k ? 0.015 : k === 'D' ? 0.04 : 0.06} className="kz" onClick={() => onSel(k)} />
+              <rect key={k} x={x.toFixed(1)} y={y.toFixed(1)} width={w.toFixed(1)} height={h.toFixed(1)} fill={`var(--${KUAD[k].k})`}
+                opacity={sel ? (sel === k ? 0.11 : 0.015) : zone === k ? 0.1 : k === 'D' ? 0.035 : 0.05}
+                className={`kz${zone === k || sel === k ? ' on' : ''}`} onClick={() => onSel(sel === k ? null : k)} onMouseEnter={() => setZone(k)} onMouseLeave={() => setZone(null)} />
             ))}
             {ys.map((v) => <line key={v} x1={L} y1={py(v, dom).toFixed(2)} x2={W - R} y2={py(v, dom).toFixed(2)} className="kg" />)}
             {xs.map((f) => <line key={f} x1={px(f, dom).toFixed(2)} y1={T} x2={px(f, dom).toFixed(2)} y2={H - B} className="kg" />)}
@@ -210,12 +226,16 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
             <line x1={L} y1={yq.toFixed(1)} x2={W - R} y2={yq.toFixed(1)} className="kq" />
             <text x={(xq + 5).toFixed(1)} y={H - B - 8} className="kt sm" fill="var(--text-2)">sering: ≥ {fq(thresholds.freq_per_month)}×/bln</text>
             <text x={W - R - 5} y={(yq - 7).toFixed(1)} textAnchor="end" className="kt sm" fill="var(--text-2)">besar: ≥ {fmtRp(thresholds.size_idr)} / order</text>
-            {ZL.map(([k, x, y, a]) => (
-              <g key={k} className={`kzl ${sel && sel !== k ? 'dim' : ''}`} onClick={() => onSel(k)}>
-                <text x={x} y={y} textAnchor={a} className="kzn" fill={`var(--${zoneColor(k)})`}>{KUAD[k].n.toUpperCase()}</text>
-                <text x={x} y={y + 15} textAnchor={a} className="kzs">{KUAD[k].nick}</text>
-              </g>
-            ))}
+            {hover && (() => {
+              const n = nodes.find((x) => x.d.id === hover.d.id)
+              if (!n) return null
+              return (
+                <g className="kcross" aria-hidden="true">
+                  <line x1={L} y1={n.y.toFixed(2)} x2={n.x.toFixed(2)} y2={n.y.toFixed(2)} />
+                  <line x1={n.x.toFixed(2)} y1={n.y.toFixed(2)} x2={n.x.toFixed(2)} y2={H - B} />
+                </g>
+              )
+            })()}
             {/* titik putus = position three months ago (MD 08-frontend), drawn for the dealers that changed segment only,
                 so the chart stays readable; a thin line leads to where the dealer is now */}
             {nodes.filter(({ d }) => d.prev && d.prev.freq != null && d.prev.segment !== d.metrics.segment && !(sel && sel !== d.metrics.segment && sel !== d.prev.segment)).map(({ d, x, y, size }) => {
@@ -234,7 +254,7 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
               const tone = toneOf(d.metrics.credit.state)
               const r = Math.max(1.6 * viewport.unit, size * resize)
               return (
-                <g key={d.id} className="dn" role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
+                <g key={d.id} className={`dn${hd ? (hd.id === d.id ? ' on' : ' dim') : zone && d.metrics.segment !== zone ? ' dim' : ''}`} role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
                   <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={Math.max(r, 7 * viewport.unit).toFixed(2)} className="dn-hit" fill="transparent" pointerEvents="all" />
                   <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={r.toFixed(2)} style={{ strokeWidth: strokeW }} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} className="dn-dot" {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: `${(3 * viewport.unit).toFixed(2)} ${(3 * viewport.unit).toFixed(2)}` } : {})} />
                 </g>
@@ -242,6 +262,22 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
             })}
           </g>
         </svg>
+        {/* the four segments as cards in the plot corners — above the dots, fixed while zooming; they let the pointer
+            through (dots under them stay reachable) and fade while a dot is hovered; click the zone to filter */}
+        {ZL.map(([k, x, y, a]) => {
+          const t = tot[k] ?? { n: 0, omzet: 0 }
+          const w = 150
+          const bx = a === 'end' ? x - w : x
+          const by = y < (T + H - B) / 2 ? y - 14 : y - 22
+          return (
+            <g key={k} className={`kzc${sel === k ? ' sel' : ''}${(sel && sel !== k) || hd ? ' dim' : ''}${zone === k ? ' hot' : ''}`} aria-label={`Segmen ${k}: ${t.n} dealer`}>
+              <rect x={bx} y={by} width={w} height={46} rx={10} className="kzc-bg" style={{ stroke: `var(--${zoneColor(k)})` }} />
+              <rect x={a === 'end' ? bx + w - 4 : bx} y={by + 8} width={4} height={30} rx={2} fill={`var(--${zoneColor(k)})`} />
+              <text x={a === 'end' ? bx + w - 12 : bx + 12} y={by + 18} textAnchor={a} className="kzn" fill={`var(--${zoneColor(k)})`}>{KUAD[k].n.toUpperCase()}</text>
+              <text x={a === 'end' ? bx + w - 12 : bx + 12} y={by + 34} textAnchor={a} className="kzs">{t.n.toLocaleString('id-ID')} dealer · {fmtRp(t.omzet)}/bln</text>
+            </g>
+          )
+        })}
       </svg>
       {viewport.controls}
       {hd ? (

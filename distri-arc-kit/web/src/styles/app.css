@@ -1866,3 +1866,23 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 /* Segmen: titik putus (three months ago) for the dealers that changed segment, linked to where they are now */
 .kuad .kprev-l{stroke:var(--text-3);stroke-dasharray:2 3;opacity:.7;fill:none}
 .kuad .kprev{fill:none;stroke:var(--text-3)}
+
+/* Segmen peta titik, easier on the eye and interactive (19 Oct) */
+.kuad .kg{stroke:var(--line);stroke-width:1;stroke-dasharray:2 5;opacity:.7}
+.kuad .kq{stroke:color-mix(in srgb,var(--text-2) 70%,transparent);stroke-width:1.6;stroke-dasharray:7 5}
+.kuad .kz{transition:opacity .2s ease}
+.kuad .kz.on{stroke:color-mix(in srgb,var(--text-3) 40%,transparent);stroke-width:1}
+.kuad .ksplit{fill:url(#kuad-hatch);opacity:1}
+.kuad .dn{transition:opacity .18s ease}
+.kuad .dn .dn-dot{fill-opacity:.88;transition:r .15s ease,fill-opacity .15s ease}
+.kuad .dn.dim{opacity:.22}
+.kuad .dn.on .dn-dot{fill-opacity:1;stroke:var(--text);filter:drop-shadow(0 2px 6px rgba(15,23,42,.35))}
+.kuad .kcross line{stroke:var(--accent);stroke-width:1.2;stroke-dasharray:4 4;vector-effect:non-scaling-stroke;opacity:.8}
+.kuad .kzc{cursor:pointer;transition:opacity .2s ease}
+.kuad .kzc.dim{opacity:.45}
+.kuad .kzc-bg{fill:color-mix(in srgb,var(--surface) 90%,transparent);stroke-width:1;stroke-opacity:.35;filter:drop-shadow(0 4px 12px rgba(15,23,42,.10))}
+.kuad .kzc.hot .kzc-bg,.kuad .kzc.sel .kzc-bg{stroke-opacity:1;stroke-width:1.5}
+.kuad .kzc .kzn{font-size:12.5px}
+.kuad .kzc .kzs{font-size:11px;font-weight:600}
+.kuad .kzc{pointer-events:none}
+.kuad .kzc.dim{opacity:.25}
