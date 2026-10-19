@@ -119,6 +119,35 @@ func TestOrbitReadingThroughMCP(t *testing.T) {
 	}
 }
 
+// ADR 0053: Analisa Segmen — the dealers moving between segments go to Claude with their segment now and three months
+// ago (from orders) and their WhatsApp messages; the answer is stored for the Segmen page.
+func TestSegmenReadingThroughMCP(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	rep, err := o.Run(ctx, domain.Scope{Kind: "screen", ID: "segmen"}, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := o.InputFor(ctx, rep.Cycle.ID, orchestrator.AgentSegmenRead)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var in screenInput
+	_ = json.Unmarshal(raw, &in)
+	if len(in.Items) == 0 || in.Items[0]["segmen"] == nil || !strings.Contains(string(raw), "chat_terakhir") || !strings.Contains(string(raw), "dihitung dari order") {
+		t.Fatalf("segmen input %s", raw)
+	}
+	key := in.Items[0]["key"].(string)
+	ans := orchestrator.ParseScreenAnswer("Satu dealer turun dari A ke B karena order dipecah kecil menunggu limit.",
+		[]map[string]any{{"key": key, "note": "Order dipecah kecil menurut chat — tawarkan bundle untuk menaikkan nilai order.", "confidence": 0.7}})
+	if _, err := o.ScreenSubmit(ctx, rep.Cycle.ID, orchestrator.AgentSegmenRead, ans, nil); err != nil {
+		t.Fatal(err)
+	}
+	if a, err := st.Q.LatestScreenAnalysis(ctx, "segmen"); err != nil || !strings.Contains(string(a.Lines), key) {
+		t.Fatalf("segmen reading %+v %v", a, err)
+	}
+}
+
 // The Analisis ulang prompt asks Claude for the page readings of the agents in scope.
 func TestMCPPromptAsksForPageReadings(t *testing.T) {
 	p := orchestrator.MCPPrompt(7, "c1", []string{"AI Stok"}, 0)

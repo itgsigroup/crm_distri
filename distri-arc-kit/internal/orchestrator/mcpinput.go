@@ -534,6 +534,8 @@ func MCPPrompt(number int64, cycleID string, agentNames []string, wait time.Dura
 			what = "piutang dan prediksi kas (halaman Kredit · kas): ringkasan untuk CEO dan satu catatan per dealer"
 		case AgentOrbitRead:
 			what = "dealer di orbit dengan chat WhatsApp-nya (halaman Orbit): kenapa dealer bergeser menurut chat, ringkasan untuk CEO dan satu catatan per dealer"
+		case AgentSegmenRead:
+			what = "dealer yang pindah segmen atau melambat dengan chat WhatsApp-nya (halaman Segmen): kenapa menurut chat dan cara melayaninya, ringkasan untuk CEO dan satu catatan per dealer"
 		}
 		pages += fmt.Sprintf("\nBaca juga %s: panggil orchestrator_input_get {\"cycle_id\": \"%s\", \"agent\": \"%s\"}, tulis %s, kirim lewat orchestrator_submit {\"cycle_id\": \"%s\", \"agent\": \"%s\", \"overview\": \"...\", \"lines\": [{\"key\": \"...\", \"note\": \"...\", \"confidence\": 0.8}]}.\n",
 			a, cycleID, a, what, cycleID, a)

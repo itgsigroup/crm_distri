@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Segmen: Analisa Segmen dari chat WhatsApp oleh Claude (routine); titik 3 bulan lalu kembali · 2026-10-19
+- Kartu baru **Analisa Segmen**: Claude membaca dealer yang pindah segmen, yang melambat, dan yang sedang chat beserta 8 chat WhatsApp terakhirnya — kenapa pindah dan cara melayaninya — dengan catatan per dealer di daftar kotak. Lewat routine Claude, tanpa membuka Desktop.
+- Segmen tetap dihitung dari order sesuai MD. Tombol "Analisis ulang" diganti kotak Orchestrator; label "Pindah kotak" diperbaiki.
+- Peta titik: **titik putus-putus** posisi 3 bulan lalu (sesuai MD) kembali untuk dealer yang pindah segmen, dengan garis ke posisinya sekarang. ADR 0053.
+
 ## Feat · Orbit: Analisa Orbit dari chat WhatsApp oleh Claude (routine) · 2026-10-19
 - Kartu baru **Analisa Orbit**: Claude membaca dealer yang perlu disapa (At risk, Churn, jadwal order ≤ 7 hari, atau yang sedang chat) beserta 8 chat WhatsApp terakhirnya, lalu menulis ringkasan dan catatan per dealer di daftar dealer — kenapa dealer bergeser dan langkah follow-up. Berjalan lewat routine Claude, tanpa membuka Desktop.
 - Posisi dealer tetap dari siklus order sesuai MD. Tombol "Analisis ulang" di kepala Orbit diganti kotak Orchestrator kanan bawah; label "Yang bergerak" diperbaiki (dihitung dari siklus order).

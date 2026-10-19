@@ -7,8 +7,8 @@ import { layoutStep, useMapViewport } from '../../components/MapViewport'
 import { fmtRp, fx1, shortName } from '../../lib/format'
 import { KUAD } from '../../lib/i18n/id'
 import { useMore } from '../../components/More'
-import { useOrch, useOrchStatus } from '../../app/orch'
-import { useSegmen, useSegmenMovers, useSegmenSummary } from '../../app/queries'
+import { useScreenAnalysis, useSegmen, useSegmenMovers, useSegmenSummary } from '../../app/queries'
+import { ScreenBrief, ScreenNote } from '../../components/ScreenAI'
 import { Legend, MoverList, SalesFilters } from '../orbit/OrbitPage'
 import { toneOf } from '../orbit/geometry'
 import { SegmenFilterBar } from './SegmenFilterBar'
@@ -216,6 +216,20 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
                 <text x={x} y={y + 15} textAnchor={a} className="kzs">{KUAD[k].nick}</text>
               </g>
             ))}
+            {/* titik putus = position three months ago (MD 08-frontend), drawn for the dealers that changed segment only,
+                so the chart stays readable; a thin line leads to where the dealer is now */}
+            {nodes.filter(({ d }) => d.prev && d.prev.freq != null && d.prev.segment !== d.metrics.segment && !(sel && sel !== d.metrics.segment && sel !== d.prev.segment)).map(({ d, x, y, size }) => {
+              const p = d.prev!
+              const qx = xOf(p.freq, dom)
+              const qy = clampY(p.avg_order, dom)
+              const r = Math.max(1.6 * viewport.unit, size * resize * 0.8)
+              return (
+                <g key={'p' + d.id} className="kprev-g" aria-hidden="true">
+                  <line x1={qx.toFixed(2)} y1={qy.toFixed(2)} x2={x.toFixed(2)} y2={y.toFixed(2)} className="kprev-l" style={{ strokeWidth: strokeW }} />
+                  <circle cx={qx.toFixed(2)} cy={qy.toFixed(2)} r={r.toFixed(2)} className="kprev" style={{ strokeWidth: strokeW, strokeDasharray: `${(3 * viewport.unit).toFixed(2)} ${(3 * viewport.unit).toFixed(2)}` }} />
+                </g>
+              )
+            })}
             {nodes.map(({ d, x, y, size, baru }) => {
               const tone = toneOf(d.metrics.credit.state)
               const r = Math.max(1.6 * viewport.unit, size * resize)
@@ -345,8 +359,8 @@ export function SegmenPage() {
     }
   }
   const nav = useNavigate()
-  const { reanalyze } = useOrch()
-  const orch = useOrchStatus()
+  // Analisa Segmen (ADR 0053): Claude reads the dealers moving between segments with their WhatsApp chats (routine)
+  const { data: reading } = useScreenAnalysis('segmen')
   const { data } = useSegmen(sales)
   const { data: sum } = useSegmenSummary(sales)
   const { data: movers = [] } = useSegmenMovers(sales)
@@ -373,7 +387,6 @@ export function SegmenPage() {
             <SalesFilters value={sales} onChange={(next) => { setSales(next); setSel(null); setFilter({ cabang: '' }) }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span className="meta">{list.length.toLocaleString('id-ID')} dealer · {fmtRp(total)}/bln</span>
-              <button className="btn ghost" style={{ height: 30, fontSize: 12 }} disabled={orch.running} onClick={() => reanalyze('screen:segmen')}><Icon name="refresh" />Analisis ulang</button>
               <button className="btn ghost" style={{ height: 30, fontSize: 12 }} onClick={() => nav('/panduan#t-kuadran')}><Icon name="doc" />Cara baca</button>
             </div>
           </div>
@@ -400,6 +413,11 @@ export function SegmenPage() {
         </div>
       </div>
       <div className="stack">
+        <div className="card">
+          <div className="card-h"><h2>Analisa Segmen</h2><span className="ai" style={{ marginLeft: 6 }}>Claude · chat WhatsApp</span></div>
+          <p className="orbit-src">Segmen dihitung dari seringnya dan besarnya order; alasan pindah segmen dibaca Claude dari chat WhatsApp dealer.</p>
+          <ScreenBrief a={reading} what="dealer yang pindah segmen atau melambat beserta chat WhatsApp-nya" />
+        </div>
         <div className="card" ref={detail} style={{ scrollMarginTop: 12 }}>
           <div className="card-h"><h2>{sel ? `${KUAD[sel].nick} · ${KUAD[sel].n}` : 'Dealer per kotak'}</h2>{sel && <span className="meta">{selList.length.toLocaleString('id-ID')} dealer</span>}</div>
           <div className="kplays">
@@ -417,6 +435,7 @@ export function SegmenPage() {
                     <li key={d.id}>
                       <button className="ev" onClick={() => nav('/dealer/' + d.id)}>{d.name}</button>
                       <span>{d.metrics.freq != null ? fx1(d.metrics.freq) + '× sebulan' : 'baru'} · {fmtRp(d.metrics.avg_order)} per order</span>
+                      <ScreenNote a={reading} k={d.id} />
                       {d.next && <ActBtn small next={d.next} />}
                     </li>
                   ))}
@@ -430,7 +449,7 @@ export function SegmenPage() {
           </div>
         </div>
         <div className="card">
-          <div className="card-h"><h2>Pindah kotak</h2><span className="ai" style={{ marginLeft: 6 }}>3 bulan terakhir</span></div>
+          <div className="card-h"><h2>Pindah kotak</h2><span className="meta">dihitung dari order · 3 bulan terakhir</span></div>
           <MoverList items={visibleMovers} render={segmenMover} />
         </div>
       </div>
