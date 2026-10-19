@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat: percakapan yang dibuka tidak berpindah sendiri · 2026-10-19
+- Chat yang sedang terbuka tetap terbuka sampai Anda memilih chat lain: pesan baru yang menaikkan chat lain ke atas, pindah tab sales/nomor, atau pindah filter tidak lagi mengganti percakapan di layar. Sebelumnya tampilan ikut ke chat teratas bila belum ada chat yang diklik.
+
 ## Change · AI Trigger: rekomendasi jawaban stok/harga ditulis AI saat itu juga · 2026-10-19
 - Semua trigger (stok, harga, limit & tagihan, status order) kini meminta AI menulis rekomendasi jawaban begitu pesan pelanggan cocok — hanya pesan yang cocok, jadi hemat. Angka tetap dari sistem; draf yang angkanya tidak cocok ditolak.
 - Halaman AI Trigger: kartu **AI penulis rekomendasi** — ChatGPT (bawaan, gpt-4.1-mini) atau Claude, pilih model. ChatGPT hanya dipakai di sini; analisa tetap Claude. ADR 0051.

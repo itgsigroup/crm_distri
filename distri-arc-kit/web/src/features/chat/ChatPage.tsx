@@ -1300,7 +1300,16 @@ export function ChatPage() {
     return m
   }, [all])
   const firstShown = (list ?? []).find((t) => inFilter(t, filter))
-  const active = threadId ?? firstShown?.id
+  // the conversation on screen stays until the user picks another (Sam 19 Oct): a new message lifting another chat to
+  // the top, or switching the sales / filter tab, must not swap it. Without one in the address, the first chat shown is
+  // kept; a picked one is kept after going back to /chat. (Adjusted during render, not in an effect.)
+  const [kept, setKept] = useState<string | undefined>(undefined)
+  if (threadId && kept !== threadId) setKept(threadId)
+  else if (!threadId && kept && kept !== firstShown?.id && all && list && !all.some((t) => t.id === kept) && !list.some((t) => t.id === kept))
+    setKept(firstShown?.id) // gone from every list (marked supplier / personal)
+  else if (!threadId && !kept && firstShown) setKept(firstShown.id)
+  const active = threadId ?? kept ?? firstShown?.id
+  const leave = () => { setKept(undefined); nav('/chat') }
   const rail = <NumberRail account={account} setAccount={setAccount} unread={unread} />
   // No conversation yet (no number linked, or history still syncing): show how to connect the team's numbers.
   if (!threadId && account === '' && list && wa && list.length === 0) {
@@ -1315,7 +1324,7 @@ export function ChatPage() {
   return (
     <div className={`chat multi komo ${threadId ? 'show-thread' : ''} ${active ? 'with-lead' : ''} ${active && !lead ? 'lead-mini' : ''}`}>
       {rail}
-      <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)} onLeave={() => nav('/chat')} />
+      <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)} onLeave={leave} />
       {active && <LeadPane key={'l' + active} id={active} mini={!lead} setMini={(v) => setLead(!v)} onAccurate={accurate} />}
       {active ? <ThreadPane key={active} id={active} picked={!!threadId} onBack={() => nav('/chat')} lead={lead} setLead={setLead} onAccurate={accurate} /> : <div className="pane th-pane" />}
     </div>
