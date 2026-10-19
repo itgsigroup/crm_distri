@@ -68,7 +68,7 @@ func (s *Server) aiAPIInfo(w http.ResponseWriter, r *http.Request) {
 	today := clock.Today(now)
 	cfg := analyst.LoadConfig(ctx, s.st.Q)
 	ck, csrc := analyst.LoadKey(ctx, s.st.Q, s.secret(), s.cfg.AnthropicKey)
-	ok, okSrc := analyst.LoadOpenAIKey(ctx, s.st.Q, s.secret(), s.cfg.OpenAIKey)
+	ok, okSrc := analyst.LoadOpenAIKeyAITrigger(ctx, s.st.Q, s.secret(), s.cfg.OpenAIKey) // shown for AI Trigger, its only user (ADR 0051)
 	hint := func(k string) string {
 		if k == "" {
 			return ""

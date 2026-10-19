@@ -113,7 +113,8 @@ function ModelCard({ info }: { info: AIAPIInfo }) {
         <Pill tone={info.ready ? 'good' : info.fallback === 'off' ? 'neutral' : 'warn'}>{info.ready ? 'Siap' : info.fallback === 'off' ? 'Mati' : 'Belum aktif'}</Pill>
       </div>
       <p className="aa-hint">{fallbackText(info)}</p>
-      <div className="aa-provs">{info.providers.filter((p) => p.id !== 'openai').map((p) => <ProviderRow key={p.id} p={p} edit={edit} />)}</div>
+      <div className="aa-provs">{info.providers.map((p) => <ProviderRow key={p.id} p={p} edit={edit} />)}</div>
+      <p className="aa-hint">ChatGPT API hanya dipakai AI Trigger (rekomendasi jawaban di Chat). Analisa dan opsi kedua tidak pernah memakai ChatGPT.</p>
       <div className="aa-row">
         <span className="aa-lbl">Anggaran / hari</span>
         <select className="cl-input" disabled={!edit} value={cur ?? 'x'} onChange={(e) => budget.mutate(Math.round(Number(e.target.value) * rate))} aria-label="Anggaran harian">
@@ -122,7 +123,7 @@ function ModelCard({ info }: { info: AIAPIInfo }) {
         </select>
         <small className="muted">terpakai hari ini {usd(info.spent_today_idr, rate)}</small>
       </div>
-      <ModelTable providers={info.providers.filter((p) => p.id !== 'openai')} />
+      <ModelTable providers={info.providers} />
     </div>
   )
 }

@@ -693,7 +693,10 @@ export interface ReplyRule {
   id: string; name: string; action: ReplyAction; keywords: string[]; template_ready: string; template_empty: string
   show_qty: boolean; enabled: boolean; ai_phrase: boolean; ai_instruction: string; updated_by: string | null; updated_at: string
 }
-export interface ReplyRules { items: ReplyRule[]; placeholders: Record<ReplyAction, string[]>; ai_ready: boolean }
+export interface ReplyEngine { provider: 'openai' | 'claude'; model: string }
+export interface ReplyRules { items: ReplyRule[]; placeholders: Record<ReplyAction, string[]>; ai_ready: boolean
+  /** the AI that writes the recommendations (ADR 0051) and the models offered per provider */
+  engine: ReplyEngine; engine_models: Record<string, string[]> }
 
 // ---------- Report WhatsApp (ADR 0050) ----------
 export interface WAReportSales {

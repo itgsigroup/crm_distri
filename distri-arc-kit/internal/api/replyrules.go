@@ -27,6 +27,7 @@ func (s *Server) replyRuleRoutes(r chi.Router) {
 	r.Put("/reply-rules/{id}", s.saveReplyRule)
 	r.Delete("/reply-rules/{id}", s.deleteReplyRule)
 	r.Post("/reply-rules/test", s.testReplyRule)
+	r.Put("/reply-rules/engine", s.saveReplyEngine)
 	r.Post("/chat/threads/{id}/messages/{mid}/ai-draft", s.replyAIDraft)
 }
 
@@ -37,7 +38,28 @@ func (s *Server) listReplyRules(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(rows), "placeholders": replyrule.Placeholders, "ai_ready": s.replyAI.HasModel(r.Context())})
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": nonNil(rows), "placeholders": replyrule.Placeholders, "ai_ready": s.replyAI.HasModel(r.Context()),
+		"engine": replyai.LoadEngine(r.Context(), s.st.Q), "engine_models": replyai.EngineModels})
+}
+
+// saveReplyEngine: PUT /reply-rules/engine {provider, model} — the AI that writes AI Trigger recommendations (ADR 0051).
+func (s *Server) saveReplyEngine(w http.ResponseWriter, r *http.Request) {
+	u, _ := CurrentUser(r.Context())
+	if !isAdmin(u) {
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO atau admin yang mengatur AI Trigger")
+		return
+	}
+	var e replyai.Engine
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&e); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Format tidak valid")
+		return
+	}
+	if err := replyai.SaveEngine(r.Context(), s.st.Q, e, s.clock.Now()); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", err.Error())
+		return
+	}
+	s.auditUser(r, "reply_ai.engine", "policy:"+replyai.PolicyKey, map[string]any{"provider": e.Provider, "model": e.Model})
+	s.listReplyRules(w, r)
 }
 
 type replyRuleIn struct {

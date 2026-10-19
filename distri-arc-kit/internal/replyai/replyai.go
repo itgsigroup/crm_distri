@@ -19,7 +19,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"distri-arc/internal/analyst"
 	"distri-arc/internal/events"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/replyrule"
@@ -141,18 +140,14 @@ func (s *Service) Data(ctx context.Context, rules []replyrule.Rule, texts []stri
 	return d, nil
 }
 
-// model is the provider AI drafts are written with: the API & model AI page's choice and key, else LLM_PROVIDER.
+// model is the provider AI drafts are written with: the AI Trigger engine (ChatGPT or Claude, ADR 0051) and its
+// key, else LLM_PROVIDER.
 func (s *Service) model(ctx context.Context) llm.Provider {
 	if s.Provider != nil {
 		return s.Provider
 	}
-	cfg := analyst.LoadConfig(ctx, s.St.Q)
-	if cfg.Provider() == analyst.FallbackOpenAI {
-		if k, _ := analyst.LoadOpenAIKey(ctx, s.St.Q, s.SessionKey, s.EnvOpenAI); k != "" {
-			return llm.NewOpenAI(k, cfg.OpenAIModel)
-		}
-	} else if k, _ := analyst.LoadKey(ctx, s.St.Q, s.SessionKey, s.EnvClaude); k != "" {
-		return llm.NewAnthropic(k, cfg.Model)
+	if p := s.engineModel(ctx); p != nil {
+		return p
 	}
 	if s.Env.HasModel() {
 		return s.Env.Primary
@@ -164,7 +159,7 @@ func (s *Service) model(ctx context.Context) llm.Provider {
 func (s *Service) HasModel(ctx context.Context) bool { return s.model(ctx) != nil }
 
 // ErrNoModel: no API key — drafts stay the template.
-var ErrNoModel = errors.New("AI belum aktif — isi kunci di Pengaturan → API & model AI")
+var ErrNoModel = errors.New("AI belum aktif — isi kunci ChatGPT atau Claude di Pengaturan → API & model AI")
 
 // ErrNoDraft: the message has no card with a draft to rewrite.
 var ErrNoDraft = errors.New("tidak ada rekomendasi dengan draf untuk pesan ini")

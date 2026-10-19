@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
-import type { ReplyAction, ReplyRule, ReplyRules, ReplySuggestion } from '../../api/types'
+import type { ReplyAction, ReplyEngine, ReplyRule, ReplyRules, ReplySuggestion } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
@@ -178,6 +178,47 @@ function RuleRow({ r, edit, aiReady }: { r: ReplyRule; edit: boolean; aiReady: b
   )
 }
 
+const ENGINE_LABEL: Record<string, string> = { openai: 'ChatGPT', claude: 'Claude' }
+const MODEL_HINT: Record<string, string> = {
+  'gpt-4.1-mini': 'cepat · ±Rp 15/draf (disarankan)', 'gpt-4.1-nano': 'paling cepat & murah · kalimat lebih sederhana', 'gpt-4o-mini': 'cepat · murah',
+  'gpt-5-mini': 'lebih teliti · lebih lambat', 'claude-haiku-5-5': 'cepat · ±Rp 5/draf', 'claude-sonnet-5-5': 'paling teliti · ±Rp 130/draf',
+}
+
+/** The AI that writes the recommendations (ADR 0051): ChatGPT or Claude, a fast model; one choice for every trigger. */
+function EngineCard({ data, edit }: { data?: ReplyRules; edit: boolean }) {
+  const qc = useQueryClient()
+  const { toast } = useFeedback()
+  const save = useMutation({
+    mutationFn: (e: ReplyEngine) => api.put('/reply-rules/engine', e),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['reply-rules'] }); toast('AI penulis rekomendasi disimpan') },
+    onError: (e: Error) => toast(e.message),
+  })
+  if (!data?.engine) return null
+  const e = data.engine
+  const models = data.engine_models[e.provider] ?? []
+  return (
+    <div className="card at-engine">
+      <div className="card-h">
+        <h2>AI penulis rekomendasi</h2>
+        {data.ai_ready ? <Pill tone="good" icon="check">Aktif · {ENGINE_LABEL[e.provider]}</Pill> : <Pill tone="warn" icon="alert">Kunci {ENGINE_LABEL[e.provider]} belum diisi</Pill>}
+        <span className="meta">dipanggil hanya saat pesan cocok dengan trigger</span>
+      </div>
+      <div className="at-engine-row">
+        <div className="seg" role="radiogroup" aria-label="AI">
+          {(['openai', 'claude'] as const).map((p) => (
+            <button key={p} role="radio" aria-checked={e.provider === p} className={e.provider === p ? 'is-active' : ''} disabled={!edit || save.isPending}
+              onClick={() => save.mutate({ provider: p, model: data.engine_models[p]?.[0] ?? '' })}>{ENGINE_LABEL[p]}</button>
+          ))}
+        </div>
+        <select className="cl-input" value={e.model} disabled={!edit || save.isPending} onChange={(x) => save.mutate({ provider: e.provider, model: x.target.value })} aria-label="Model">
+          {models.map((m) => <option key={m} value={m}>{m} — {MODEL_HINT[m] ?? ''}</option>)}
+        </select>
+      </div>
+      <p className="at-engine-hint">ChatGPT hanya dipakai di sini (rekomendasi jawaban dari angka sistem). Analisa Orchestrator dan Analisa WhatsApp tetap Claude. Kunci diisi di <a href="/pengaturan/api-ai">Pengaturan → API &amp; model AI</a>.</p>
+    </div>
+  )
+}
+
 export function AITriggerPage() {
   const nav = useNavigate()
   const { data: me } = useMe()
@@ -196,10 +237,11 @@ export function AITriggerPage() {
         <ol className="at-steps">
           <li><b>Pelanggan menulis</b> pesan WhatsApp yang memuat kata kunci trigger, mis. “stok”, “harga”, “tagihan”, “status order”.</li>
           <li><b>Sistem mengambil data</b> — stok per cabang, harga sesuai tier, sisa limit &amp; tagihan, atau status order — dan menampilkan kartunya (warna ungu AI, beda dari bubble) di bawah pesan itu di Chat. Bila pesan tidak menyebut produk (“stoknya ada?”), produk diambil dari 10 pesan sebelumnya.</li>
-          <li><b>Draf jawaban</b> diisi dari template, atau ditulis AI bila trigger mengaktifkan “Jawaban ditulis AI” — AI membaca riwayat chat untuk konteksnya. Angka tetap dari sistem.</li>
+          <li><b>AI menulis rekomendasi jawaban</b> saat itu juga (1–2 detik) dengan membaca riwayat chat — hanya untuk pesan yang cocok dengan trigger, jadi hemat. Angka stok &amp; harga tetap dari sistem; draf yang angkanya tidak cocok ditolak dan draf template dipakai.</li>
           <li><b>Sales memutuskan</b>: tekan <i>Pakai jawaban</i>, edit, lalu kirim sendiri. Tidak ada yang terkirim otomatis.</li>
         </ol>
       </div>
+      <EngineCard data={data} edit={edit} />
       <div className="card">
         <div className="card-h">
           <h2>Daftar trigger</h2>

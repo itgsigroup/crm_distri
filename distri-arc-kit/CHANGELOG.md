@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · AI Trigger: rekomendasi jawaban stok/harga ditulis AI saat itu juga · 2026-10-19
+- Semua trigger (stok, harga, limit & tagihan, status order) kini meminta AI menulis rekomendasi jawaban begitu pesan pelanggan cocok — hanya pesan yang cocok, jadi hemat. Angka tetap dari sistem; draf yang angkanya tidak cocok ditolak.
+- Halaman AI Trigger: kartu **AI penulis rekomendasi** — ChatGPT (bawaan, gpt-4.1-mini) atau Claude, pilih model. ChatGPT hanya dipakai di sini; analisa tetap Claude. ADR 0051.
+
 ## Feat · Halaman Report WhatsApp per sales · 2026-10-19
 - Menu baru **Report WhatsApp** (Kendali): periode Hari ini / 7 hari / 30 hari, filter sales; sales hanya melihat datanya sendiri.
 - Angka tim: chat masuk, % dibalas ≤ target (30 menit jam kerja), % permintaan dijawab, chat gantung, nomor baru, order dari chat → SO.

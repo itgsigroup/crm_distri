@@ -31,8 +31,9 @@ const (
 	FallbackScheduleWA    = "API cadangan · Analisa WhatsApp"
 )
 
-// ChatGPTOff: GSI Orbit never calls ChatGPT (Sam 19 Oct, ADR 0048) — the second option, Analisa WhatsApp otomatis
-// and reply drafts set to ChatGPT find no key and do not run. Tests of the ChatGPT client switch it off.
+// ChatGPTOff: GSI Orbit never calls ChatGPT for analysis (Sam 19 Oct, ADR 0048) — the second option and Analisa
+// WhatsApp otomatis set to ChatGPT find no key and do not run. AI Trigger drafts are the one exception (ADR 0051,
+// LoadOpenAIKeyAITrigger). Tests of the ChatGPT client switch it off.
 var ChatGPTOff = true
 
 // openAIBase is the Chat Completions endpoint root (tests point it at a fake server).
@@ -49,8 +50,14 @@ func ProviderLabel(p string) string {
 // LoadOpenAIKey returns the ChatGPT API key and where it came from: "ui" (sealed in secrets), "env" or "".
 func LoadOpenAIKey(ctx context.Context, q *gen.Queries, sessionKey []byte, envKey string) (string, string) {
 	if ChatGPTOff {
-		return "", "" // ChatGPT is never used (Sam 19 Oct, ADR 0048): no key, so no ChatGPT run, second option or draft
+		return "", "" // ChatGPT is never used for analysis (Sam 19 Oct, ADR 0048): no key, so no ChatGPT run or second option
 	}
+	return LoadOpenAIKeyAITrigger(ctx, q, sessionKey, envKey)
+}
+
+// LoadOpenAIKeyAITrigger is the ChatGPT key for AI Trigger drafts only (ADR 0051): the one place ChatGPT may write —
+// a card's draft from facts the system computed, when a customer message matches a trigger.
+func LoadOpenAIKeyAITrigger(ctx context.Context, q *gen.Queries, sessionKey []byte, envKey string) (string, string) {
 	if sealed, err := q.GetSecret(ctx, SecretOpenAI); err == nil {
 		if k, err := auth.Open(sealed, sessionKey); err == nil && k != "" {
 			return k, "ui"
