@@ -273,6 +273,43 @@ func (s *Server) dealerPart(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusOK, map[string]any{"credit": it.Metrics.Credit, "open_invoices": views.OpenInvoices(h, b.Today)})
 	case "contacts":
 		httpx.JSON(w, http.StatusOK, map[string]any{"items": views.Contacts(h.Contacts, b.Today), "pic_active": it.Metrics.PICActive})
+	case "analysis": // Analisa Dealer by Claude (ADR 0055): status, reasons, summary, WhatsApp draft; null until read
+		a, err := s.st.Q.LatestDealerAnalysis(r.Context(), it.UUID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			httpx.JSON(w, http.StatusOK, map[string]any{"analysis": nil})
+			return
+		}
+		if err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+		var reasons []string
+		_ = json.Unmarshal(a.Reasons, &reasons)
+		httpx.JSON(w, http.StatusOK, map[string]any{"analysis": map[string]any{"status": a.Status, "overview": a.Overview, "reasons": nonNil(reasons),
+			"wa_draft": a.WaDraft, "confidence": a.Confidence, "generated_at": a.CreatedAt, "cycle_number": a.CycleNumber}})
+	case "threads": // the WhatsApp conversations with this dealer the person may open (the WhatsApp buttons)
+		u, _ := CurrentUser(r.Context())
+		if !can(u, "chat") {
+			httpx.JSON(w, http.StatusOK, map[string]any{"items": []any{}})
+			return
+		}
+		viewer, err := s.chatViewerOf(r.Context(), u)
+		if err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+		rows, err := s.st.Q.DealerThreads(r.Context(), it.UUID)
+		if err != nil {
+			httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+			return
+		}
+		out := []map[string]any{}
+		for _, t := range rows {
+			if viewer.sees(t.SalesID, t.Account) {
+				out = append(out, map[string]any{"id": t.ID, "title": deref(t.Title), "last_message_at": t.LastMessageAt})
+			}
+		}
+		httpx.JSON(w, http.StatusOK, map[string]any{"items": out})
 	case "commitments", "timeline", "memo", "detail":
 		d, err := s.views.DealerDetail(r.Context(), b, it)
 		if err != nil {

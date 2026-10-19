@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Dealer: Analisa AI oleh Claude (routine) dengan status dan tombol chat WhatsApp sesuai analisa · 2026-10-19
+- **Analisa AI** di halaman dealer kini dikerjakan Claude lewat routine (tanpa membuka Desktop): membaca siklus order, limit, invoice terbuka, dan 15 chat WhatsApp terakhir dealer, lalu menilai **Bermasalah / Perlu perhatian / Aman** dengan alasan dan ringkasan. Progres tampil sebagai pop-up.
+- Kartu Analisa AI punya **draf WhatsApp dari Claude** dan tombol **Chat: selesaikan masalah / sapa & tawarkan / sapa dealer** (warna sesuai status) yang membuka chat dealer dengan draf sudah terisi di kolom ketik — sales tetap yang mengirim.
+- Tombol WhatsApp di halaman dealer tidak lagi memuat semua chat (lebih ringan). Label Memori dealer diperbaiki. Halaman dealer sesuai komponen MD. ADR 0055.
+
 ## Feat · Chat: label "oleh <nama>" di setiap pesan keluar (admin); sales melihat chat di nomor yang dipegangnya · 2026-10-19
 - Pesan yang dikirim dari GSI Orbit kini mencatat **siapa yang menekan Kirim / Teruskan / Setujui** (kolom baru, migrasi 0055; riwayat lama diisi dari audit). Admin dan manager (yang melihat semua chat) melihat **"oleh Tantri"** di bubble keluar, atau **"dari HP"** bila dikirim langsung dari HP pemegang nomor. Sales tidak melihat label ini. Label hanya di aplikasi — tidak ikut terkirim ke pelanggan.
 - Sales melihat chat milik profil sales-nya **dan** semua chat di nomor yang ia pegang (sebelumnya chat di nomornya sendiri bisa hilang bila nomor itu terdaftar atas sales lain). Penagihan tetap hanya nomor yang dipegangnya.

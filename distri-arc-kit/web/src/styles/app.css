@@ -1888,3 +1888,22 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .kuad .kzc.dim{opacity:.25}
 /* Chat: who sent a message from GSI Orbit ("oleh Tantri") or "dari HP" — for those who see every chat (19 Oct) */
 .tm .tm-by{font-weight:700;color:var(--accent)}
+
+/* Dealer · Analisa AI by Claude (ADR 0055): status, reasons, WhatsApp draft and the button that opens it in Chat */
+.dai{border-left:4px solid var(--line-strong)}
+.dai.dai-bad{border-left-color:var(--bad)}.dai.dai-warn{border-left-color:var(--warn)}.dai.dai-good{border-left-color:var(--good)}
+.dai.empty{border-left-color:var(--accent)}
+.dai.empty .btn{margin-top:8px}
+.dai-row{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.dai-status{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-weight:700;font-size:13px;flex:none}
+.dai-status .i{width:14px;height:14px}
+.dai-status.bad{background:var(--bad-soft);color:var(--bad)}.dai-status.warn{background:var(--warn-soft);color:var(--warn)}.dai-status.good{background:var(--good-soft);color:var(--good)}
+.dai-ov{margin:0;flex:1 1 320px;font-size:13.5px;line-height:1.55;color:var(--text)}
+.dai-why{margin:10px 0 0;padding-left:18px;font-size:13px;line-height:1.55;color:var(--text-2)}
+.dai-wa{margin-top:12px;padding:12px 14px;border-radius:12px;background:var(--surface-2);display:flex;flex-direction:column;gap:8px}
+.dai-wa small{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3)}
+.dai-wa q{font-size:13.5px;line-height:1.55;color:var(--text)}
+.dai-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.dai-note{font-size:11.5px;color:var(--text-3)}
+.btn.dai-cta{color:#fff;border:0}
+.btn.dai-cta.bad{background:var(--bad)}.btn.dai-cta.warn{background:var(--warn)}.btn.dai-cta.good{background:var(--good)}

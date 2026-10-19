@@ -187,6 +187,49 @@ func (q *Queries) DealerOpenInvoiceList(ctx context.Context, dealerID *uuid.UUID
 	return items, nil
 }
 
+const dealerThreads = `-- name: DealerThreads :many
+select t.id, t.title, t.account, t.sales_id, t.last_message_at
+from chat_threads t
+where t.dealer_id = $1::uuid and t.kind = 'dealer'
+order by t.last_message_at desc nulls last
+limit 20
+`
+
+type DealerThreadsRow struct {
+	ID            uuid.UUID  `json:"id"`
+	Title         *string    `json:"title"`
+	Account       *string    `json:"account"`
+	SalesID       *uuid.UUID `json:"sales_id"`
+	LastMessageAt *time.Time `json:"last_message_at"`
+}
+
+// The WhatsApp conversations with one dealer (the dealer page's WhatsApp button), newest first.
+func (q *Queries) DealerThreads(ctx context.Context, dealerID uuid.UUID) ([]DealerThreadsRow, error) {
+	rows, err := q.db.Query(ctx, dealerThreads, dealerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DealerThreadsRow{}
+	for rows.Next() {
+		var i DealerThreadsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Account,
+			&i.SalesID,
+			&i.LastMessageAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const deleteChatMessageByWAID = `-- name: DeleteChatMessageByWAID :many
 update chat_messages m set deleted_at = $1::timestamptz
 where m.wa_msg_id = $2::text and m.deleted_at is null

@@ -718,3 +718,11 @@ update chat_messages m set sent_by = u.id, sent_by_name = u.name
 from users u
 where u.email = sqlc.arg(email)::text and m.proposal_id = sqlc.arg(proposal_id)::uuid and m.direction = 'out' and m.sent_by is null
   and m.sent_at >= sqlc.arg(since)::timestamptz;
+
+-- name: DealerThreads :many
+-- The WhatsApp conversations with one dealer (the dealer page's WhatsApp button), newest first.
+select t.id, t.title, t.account, t.sales_id, t.last_message_at
+from chat_threads t
+where t.dealer_id = sqlc.arg(dealer_id)::uuid and t.kind = 'dealer'
+order by t.last_message_at desc nulls last
+limit 20;

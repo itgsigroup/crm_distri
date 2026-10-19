@@ -187,6 +187,42 @@ func TestRelasiReadingThroughMCP(t *testing.T) {
 	}
 }
 
+// ADR 0055: Analisa Dealer — Analisa AI on a dealer asks Claude for that dealer only: its numbers and chats in, a
+// status from three, reasons and a WhatsApp draft out; anything else is refused.
+func TestDealerReadingThroughMCP(t *testing.T) {
+	st, o := setup(t)
+	ctx := context.Background()
+	rep, err := o.Run(ctx, domain.Scope{Kind: "dealer", ID: "mitra"}, sched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := orchestrator.ScreenReadingsIn("dealer:mitra", []string{"AI Follow-up", "AI Kredit", "AI Stok"}); len(got) != 1 || got[0] != orchestrator.AgentDealerRead {
+		t.Fatalf("dealer scope asks %v", got)
+	}
+	raw, err := o.InputFor(ctx, rep.Cycle.ID, orchestrator.AgentDealerRead)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"status"`) || !strings.Contains(string(raw), `"wa"`) || !strings.Contains(string(raw), "invoice_terbuka") {
+		t.Fatalf("dealer input %s", raw)
+	}
+	bad := orchestrator.ParseScreenAnswer("x", []map[string]any{{"key": "status", "note": "gawat", "confidence": 0.5}, {"key": "wa", "note": "Halo", "confidence": 0.5}})
+	if _, err := o.ScreenSubmit(ctx, rep.Cycle.ID, orchestrator.AgentDealerRead, bad, nil); !errors.Is(err, orchestrator.ErrBadSubmit) {
+		t.Fatalf("unknown status accepted: %v", err)
+	}
+	ans := orchestrator.ParseScreenAnswer("Order lewat jadwal 9 hari dan satu invoice telat; dealer menunggu proyek cair.", []map[string]any{
+		{"key": "status", "note": "bermasalah", "confidence": 0.8},
+		{"key": "alasan_1", "note": "Invoice telat 12 hari.", "confidence": 0.8},
+		{"key": "wa", "note": "Selamat siang Pak, mengingatkan invoice yang jatuh tempo minggu lalu. Ada kendala yang bisa kami bantu?", "confidence": 0.8}})
+	if _, err := o.ScreenSubmit(ctx, rep.Cycle.ID, orchestrator.AgentDealerRead, ans, nil); err != nil {
+		t.Fatal(err)
+	}
+	var status, draft string
+	if err := st.Pool.QueryRow(ctx, "select a.status, a.wa_draft from dealer_analyses a join dealers d on d.id = a.dealer_id where d.slug = 'mitra'").Scan(&status, &draft); err != nil || status != "bermasalah" || !strings.Contains(draft, "invoice") {
+		t.Fatalf("stored %q %q %v", status, draft, err)
+	}
+}
+
 // The Analisis ulang prompt asks Claude for the page readings of the agents in scope.
 func TestMCPPromptAsksForPageReadings(t *testing.T) {
 	p := orchestrator.MCPPrompt(7, "c1", []string{"AI Stok"}, 0)

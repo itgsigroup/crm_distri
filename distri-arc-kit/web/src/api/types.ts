@@ -719,3 +719,7 @@ export interface WAReport {
   team: WAReportSales; sales: WAReportSales[]; daily: WAReportDay[]; heat: number[][]
   hanging: WAReportHang[]; new_numbers: WAReportNew[]; insights: string[]
 }
+
+// ---------- Analisa Dealer (ADR 0055) ----------
+export type DealerHealth = 'bermasalah' | 'perlu_perhatian' | 'aman'
+export interface DealerAnalysis { status: DealerHealth; overview: string; reasons: string[]; wa_draft: string; confidence: number | null; generated_at: string; cycle_number: number | null }

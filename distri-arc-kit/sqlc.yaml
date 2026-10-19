@@ -57,6 +57,7 @@ sql:
       - db/migrations/0053_segmen_reading.sql
       - db/migrations/0054_relasi_reading.sql
       - db/migrations/0055_message_sent_by.sql
+      - db/migrations/0056_dealer_analyses.sql
     queries: db/queries
     gen:
       go:

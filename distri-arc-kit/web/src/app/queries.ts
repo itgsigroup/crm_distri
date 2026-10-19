@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api, type Items } from '../api/client'
 import type { AgentInfo, AutonomyPolicy, Conflict, Cycle, CycleLatest, AnalystInfo, CronPreview, MCPCall, MCPClient, MCPInfo, MCPPolicy, Schedule, ScheduleRun, ScheduleRunFull, Plan, Proposal, Relasi, RelasiInsight } from '../api/types'
-import type { ScreenAnalysis, Trend, WAReport } from '../api/types'
+import type { DealerAnalysis, ScreenAnalysis, Trend, WAReport } from '../api/types'
 import type { ChatContext, InternalNumber, ThreadDetail, ThreadView, WAAnalysis, WAGroup, WANumber } from '../api/types'
 import type {
   AgendaRow, AgingItem, ARRow, BoardItem, CreditOverview, CriticalItem, ExposureRow, ForecastRow, ProductSales, Brief, DealerDetail, Health, HealthFull, KPI, Me, Mover, Sales, SegmentSummary, StatusSummary,
@@ -121,6 +121,9 @@ export const useAgents = (sales?: string) => useQuery({ queryKey: ['agents', sal
 // Analisa WhatsApp of the last full cycle (ADR 0026); under 'chat' so a new message refreshes the waiting state
 export const useWAReport = (days: number, sales?: string) =>
   useQuery({ queryKey: ['wa-report', days, sales ?? 'all'], staleTime: 60_000, refetchInterval: 5 * 60_000, queryFn: () => api.get<WAReport>(`/wa/report?days=${days}` + sp(sales, '&')) })
+/** Analisa Dealer by Claude (ADR 0055) and the dealer's WhatsApp conversations (its buttons). */
+export const useDealerAnalysis = (id: string) => useQuery({ queryKey: ['dealer', id, 'analysis'], queryFn: () => api.get<{ analysis: DealerAnalysis | null }>(`/dealers/${id}/analysis`).then((r) => r.analysis) })
+export const useDealerThreads = (id: string, enabled = true) => useQuery({ queryKey: ['dealer', id, 'threads'], enabled, queryFn: () => api.get<{ items: { id: string; title: string; last_message_at: string | null }[] }>(`/dealers/${id}/threads`).then((r) => r.items) })
 export const useWAAnalysis = (sales?: string, enabled = true) => useQuery({ queryKey: ['chat', 'wa-analysis', sales ?? 'all'], queryFn: () => api.get<WAAnalysis>('/wa/analysis' + sp(sales)), enabled })
 export const usePlan = (sales?: string) => useQuery({ queryKey: ['plan', 'today', sales ?? 'all'], queryFn: () => api.get<Plan>('/plan/today' + sp(sales)) })
 export const useAutonomy = () => useQuery({ queryKey: ['policies', 'autonomy'], queryFn: () => api.get<AutonomyPolicy>('/policies/autonomy') })

@@ -13,6 +13,43 @@ import (
 	"github.com/google/uuid"
 )
 
+const latestDealerAnalysis = `-- name: LatestDealerAnalysis :one
+select a.cycle_id, a.dealer_id, a.status, a.overview, a.reasons, a.wa_draft, a.confidence, a.created_at, c.number as cycle_number
+from dealer_analyses a join cycles c on c.id = a.cycle_id
+where a.dealer_id = $1
+order by a.created_at desc
+limit 1
+`
+
+type LatestDealerAnalysisRow struct {
+	CycleID     uuid.UUID       `json:"cycle_id"`
+	DealerID    uuid.UUID       `json:"dealer_id"`
+	Status      string          `json:"status"`
+	Overview    string          `json:"overview"`
+	Reasons     json.RawMessage `json:"reasons"`
+	WaDraft     string          `json:"wa_draft"`
+	Confidence  *int32          `json:"confidence"`
+	CreatedAt   time.Time       `json:"created_at"`
+	CycleNumber *int64          `json:"cycle_number"`
+}
+
+func (q *Queries) LatestDealerAnalysis(ctx context.Context, dealerID uuid.UUID) (LatestDealerAnalysisRow, error) {
+	row := q.db.QueryRow(ctx, latestDealerAnalysis, dealerID)
+	var i LatestDealerAnalysisRow
+	err := row.Scan(
+		&i.CycleID,
+		&i.DealerID,
+		&i.Status,
+		&i.Overview,
+		&i.Reasons,
+		&i.WaDraft,
+		&i.Confidence,
+		&i.CreatedAt,
+		&i.CycleNumber,
+	)
+	return i, err
+}
+
 const latestScreenAnalysis = `-- name: LatestScreenAnalysis :one
 select a.cycle_id, a.screen, a.overview, a.lines, a.source, a.created_at, c.number as cycle_number
 from screen_analyses a join cycles c on c.id = a.cycle_id
@@ -44,6 +81,39 @@ func (q *Queries) LatestScreenAnalysis(ctx context.Context, screen string) (Late
 		&i.CycleNumber,
 	)
 	return i, err
+}
+
+const saveDealerAnalysis = `-- name: SaveDealerAnalysis :exec
+insert into dealer_analyses (cycle_id, dealer_id, status, overview, reasons, wa_draft, confidence, created_at)
+values ($1::uuid, $2::uuid, $3::text, $4::text, $5::jsonb,
+  $6::text, $7::int, $8::timestamptz)
+on conflict (cycle_id, dealer_id) do update set status = excluded.status, overview = excluded.overview, reasons = excluded.reasons,
+  wa_draft = excluded.wa_draft, confidence = excluded.confidence, created_at = excluded.created_at
+`
+
+type SaveDealerAnalysisParams struct {
+	CycleID    uuid.UUID       `json:"cycle_id"`
+	DealerID   uuid.UUID       `json:"dealer_id"`
+	Status     string          `json:"status"`
+	Overview   string          `json:"overview"`
+	Reasons    json.RawMessage `json:"reasons"`
+	WaDraft    string          `json:"wa_draft"`
+	Confidence *int32          `json:"confidence"`
+	CreatedAt  time.Time       `json:"created_at"`
+}
+
+func (q *Queries) SaveDealerAnalysis(ctx context.Context, arg SaveDealerAnalysisParams) error {
+	_, err := q.db.Exec(ctx, saveDealerAnalysis,
+		arg.CycleID,
+		arg.DealerID,
+		arg.Status,
+		arg.Overview,
+		arg.Reasons,
+		arg.WaDraft,
+		arg.Confidence,
+		arg.CreatedAt,
+	)
+	return err
 }
 
 const saveScreenAnalysis = `-- name: SaveScreenAnalysis :exec

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Items } from '../../api/client'
 import type { MediaView, Mention, MessageView, ThreadDetail, ThreadView, WANumber, WATeam } from '../../api/types'
@@ -506,7 +506,17 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const now = useNow()
   const qc = useQueryClient()
   const { toast } = useFeedback()
-  const [text, setText] = useState('')
+  // a draft handed over in the address (?draft=, the dealer page's Analisa Dealer button) fills the reply box once;
+  // the sales reads, edits and sends it (19 Oct)
+  const [params, setParams] = useSearchParams()
+  const [text, setText] = useState(() => params.get('draft') ?? '')
+  useEffect(() => {
+    if (params.has('draft')) {
+      const p = new URLSearchParams(params)
+      p.delete('draft')
+      setParams(p, { replace: true })
+    }
+  }, [params, setParams])
   const [older, setOlder] = useState<MessageView[]>([])
   const [olderMore, setOlderMore] = useState(true)
   const [loading, setLoading] = useState(false)

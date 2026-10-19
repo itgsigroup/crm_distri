@@ -32,13 +32,19 @@ const (
 	AgentSegmenRead = "Analisa Segmen"
 	// AgentRelasiRead: Analisa Relasi (ADR 0054) — how close each sales is to a dealer, read from what they write
 	AgentRelasiRead = "Analisa Relasi"
+	// AgentDealerRead: Analisa Dealer (ADR 0055) — one dealer read with its numbers and its chats: status, reasons and
+	// a WhatsApp draft; asked by Analisa AI on the dealer page (scope dealer:<id>)
+	AgentDealerRead = "Analisa Dealer"
 )
+
+// Dealer statuses Analisa Dealer may give.
+var dealerStatuses = map[string]bool{"bermasalah": true, "perlu_perhatian": true, "aman": true}
 
 // maxScreenItems caps the items one reading sends (largest value first).
 const maxScreenItems = 20
 
 // screenOf maps a reading agent to its page.
-var screenOf = map[string]string{AgentStockRead: "stock", AgentCashRead: "credit", AgentOrbitRead: "orbit", AgentSegmenRead: "segmen", AgentRelasiRead: "relasi"}
+var screenOf = map[string]string{AgentStockRead: "stock", AgentCashRead: "credit", AgentOrbitRead: "orbit", AgentSegmenRead: "segmen", AgentRelasiRead: "relasi", AgentDealerRead: "dealer"}
 
 // IsScreenReading reports whether an agent name is one of the page readings.
 func IsScreenReading(agent string) bool { _, ok := screenOf[agent]; return ok }
@@ -50,6 +56,9 @@ func ScreenReadings(agentNames []string) []string { return ScreenReadingsIn("all
 // ScreenReadingsIn narrows AI Follow-up's pages to the one asked for: Analisis ulang on Orbit reads Orbit only (fast),
 // a full cycle reads them all (ADR 0054).
 func ScreenReadingsIn(scope string, agentNames []string) []string {
+	if strings.HasPrefix(scope, "dealer:") { // one dealer: its own reading only (ADR 0055)
+		return []string{AgentDealerRead}
+	}
 	var out []string
 	if slices.Contains(agentNames, "AI Follow-up") {
 		switch scope {
@@ -429,6 +438,128 @@ func relasiReading(b *views.Board, chats map[uuid.UUID][]orbitMsg, now time.Time
 	return rd
 }
 
+// dealerReadingFor: the dealer of a cycle's scope (dealer:<slug or id>) — its numbers (order cycle, credit, open
+// invoices, last order) and its last 15 WhatsApp messages; the lines Claude answers are fixed keys (ADR 0055).
+func (o *Orchestrator) dealerReadingFor(ctx context.Context, scope string) (*screenReading, error) {
+	id, ok := strings.CutPrefix(scope, "dealer:")
+	if !ok {
+		return nil, fmt.Errorf("Analisa Dealer butuh scope dealer:<id>, bukan %q", scope)
+	}
+	b, err := views.NewBuilder(o.St, o.Clock).Board(ctx)
+	if err != nil {
+		return nil, err
+	}
+	it, ok := b.Get(id)
+	if !ok {
+		return nil, fmt.Errorf("dealer %q tidak ditemukan", id)
+	}
+	now := o.Clock.Now()
+	rows, err := o.St.Q.WAWindowMessages(ctx, gen.WAWindowMessagesParams{Since: now.AddDate(0, 0, -orbitChatDays), Until: now})
+	if err != nil {
+		return nil, err
+	}
+	var chat []map[string]any
+	for _, m := range rows {
+		if m.DealerID == nil || *m.DealerID != it.UUID || strings.TrimSpace(deref(m.Body)) == "" {
+			continue
+		}
+		who := "pelanggan"
+		if deref(m.Direction) == "out" || m.Internal {
+			who = "sales"
+		}
+		text := []rune(strings.TrimSpace(deref(m.Body)))
+		if len(text) > 240 {
+			text = append(text[:240], '…')
+		}
+		chat = append(chat, map[string]any{"at": m.SentAt.Format("2006-01-02 15:04"), "dari": who, "pesan": string(text)})
+	}
+	chat = chat[max(0, len(chat)-15):]
+	m := it.Metrics
+	facts := map[string]any{"dealer": it.Name, "tier": it.Tier, "sales": it.Owner.Name, "kota": it.City, "status_orbit": m.Status, "cyc": m.Cyc,
+		"siklus_order_hari": m.Rhythm, "hari_sejak_order": m.Last, "jadwal_order_dalam_hari": m.DueIn, "segmen": m.Segment, "omzet_bln": m.OmzetBln,
+		"rata_rata_per_order": m.AvgOrder, "porsi_belanja_pct": m.SOW, "pic_aktif": m.PICActive, "skor": m.Score,
+		"kredit": map[string]any{"limit": it.CreditLimit, "terpakai": m.Credit.Exposure, "status": m.Credit.State},
+		"chat_30_hari": len(chat), "chat_terakhir": chat}
+	if b.Data != nil {
+		h := b.Data.Histories[it.UUID]
+		var inv []map[string]any
+		var overdue int64
+		for _, i := range views.OpenInvoices(h, b.Today) {
+			inv = append(inv, map[string]any{"nomor": i.Number, "jatuh_tempo": i.DueAt.Format("2006-01-02"), "sisa": i.Residual, "telat_hari": i.LateDays})
+			if i.LateDays > 0 {
+				overdue += i.Residual
+			}
+		}
+		facts["invoice_terbuka"], facts["lewat_tempo_rp"] = inv, overdue
+		if l := views.DealerOrders(h, m, b.Today, 6).Last; l != nil {
+			facts["order_terakhir"] = map[string]any{"tanggal": l.ConfirmedAt, "tahap": l.Phase, "nilai": l.Total}
+		}
+	}
+	rd := &screenReading{Facts: facts, Items: []map[string]any{
+		{"key": "status", "isi": "satu kata: bermasalah | perlu_perhatian | aman"},
+		{"key": "alasan_1", "isi": "alasan terpenting, satu kalimat"},
+		{"key": "alasan_2", "isi": "alasan kedua (boleh dilewati)"},
+		{"key": "alasan_3", "isi": "alasan ketiga (boleh dilewati)"},
+		{"key": "wa", "isi": "draf pesan WhatsApp untuk dealer ini sesuai statusnya"},
+	}}
+	rd.names = append(rd.names, it.Owner.Name)
+	return rd, nil
+}
+
+// checkDealer: a status from the three, and a WhatsApp draft.
+func checkDealer(a screenAnswer) error {
+	var status, wa bool
+	for _, l := range a.Lines {
+		switch l.Key {
+		case "status":
+			if !dealerStatuses[strings.ToLower(strings.TrimSpace(l.Note))] {
+				return fmt.Errorf("status harus bermasalah, perlu_perhatian, atau aman — bukan %q", l.Note)
+			}
+			status = true
+		case "wa":
+			wa = true
+		}
+	}
+	if !status || !wa {
+		return errors.New("Analisa Dealer butuh baris status dan wa")
+	}
+	return nil
+}
+
+// storeDealer saves Analisa Dealer for the dealer of the cycle's scope.
+func (o *Orchestrator) storeDealer(ctx context.Context, cycleID uuid.UUID, a screenAnswer) error {
+	cyc, err := o.St.Q.GetCycle(ctx, cycleID)
+	if err != nil {
+		return err
+	}
+	b, err := views.NewBuilder(o.St, o.Clock).Board(ctx)
+	if err != nil {
+		return err
+	}
+	it, ok := b.Get(strings.TrimPrefix(cyc.Scope, "dealer:"))
+	if !ok {
+		return fmt.Errorf("dealer %q tidak ditemukan", cyc.Scope)
+	}
+	status, wa := "aman", ""
+	reasons := []string{}
+	conf := 0.0
+	for _, l := range a.Lines {
+		switch {
+		case l.Key == "status":
+			status = strings.ToLower(strings.TrimSpace(l.Note))
+			conf = l.Confidence
+		case l.Key == "wa":
+			wa = strings.TrimSpace(l.Note)
+		case strings.HasPrefix(l.Key, "alasan_"):
+			reasons = append(reasons, strings.TrimSpace(l.Note))
+		}
+	}
+	rb, _ := json.Marshal(reasons)
+	c := int32(max(0, min(100, conf*100+0.5)))
+	return o.St.Q.SaveDealerAnalysis(ctx, gen.SaveDealerAnalysisParams{CycleID: cycleID, DealerID: it.UUID, Status: status, Overview: strings.TrimSpace(a.Overview),
+		Reasons: rb, WaDraft: wa, Confidence: &c, CreatedAt: o.Clock.Now()})
+}
+
 // screenLine is the AI note on one item; screenAnswer the whole reading's answer.
 type screenLine struct {
 	Key        string  `json:"key"`
@@ -471,6 +602,9 @@ func (rd *screenReading) want() map[string]bool {
 
 // storeScreen saves an AI answer for a cycle's page reading.
 func (o *Orchestrator) storeScreen(ctx context.Context, cycleID uuid.UUID, agent string, a screenAnswer) error {
+	if agent == AgentDealerRead {
+		return o.storeDealer(ctx, cycleID, a)
+	}
 	type line struct {
 		Note       string `json:"note"`
 		Confidence int    `json:"confidence"`
@@ -484,7 +618,7 @@ func (o *Orchestrator) storeScreen(ctx context.Context, cycleID uuid.UUID, agent
 		Lines: b, Source: "ai", CreatedAt: o.Clock.Now()})
 }
 
-var screenPrompt = map[string]string{AgentStockRead: "stock_read", AgentCashRead: "cash_read", AgentOrbitRead: "orbit_read", AgentSegmenRead: "segmen_read", AgentRelasiRead: "relasi_read"}
+var screenPrompt = map[string]string{AgentStockRead: "stock_read", AgentCashRead: "cash_read", AgentOrbitRead: "orbit_read", AgentSegmenRead: "segmen_read", AgentRelasiRead: "relasi_read", AgentDealerRead: "dealer_read"}
 
 const screenMCPSubmit = `Kirim lewat orchestrator_submit {"cycle_id": "<cycle_id>", "agent": "%s", "overview": "...", "lines": [{"key": "<key item>", "note": "...", "confidence": 0.8}]}. Placeholder <PIC_n>/<NO_n> biarkan apa adanya.`
 
@@ -494,10 +628,16 @@ func (o *Orchestrator) ScreenInputFor(ctx context.Context, cycleID uuid.UUID, ag
 	if row, err := o.St.Q.GetCycleInput(ctx, gen.GetCycleInputParams{CycleID: cycleID, Agent: agent}); err == nil {
 		return row.Input, nil
 	}
-	if _, err := o.St.Q.GetCycle(ctx, cycleID); err != nil {
+	cyc, err := o.St.Q.GetCycle(ctx, cycleID)
+	if err != nil {
 		return nil, err
 	}
-	rd, err := o.screenReadingFor(ctx, agent)
+	var rd *screenReading
+	if agent == AgentDealerRead {
+		rd, err = o.dealerReadingFor(ctx, cyc.Scope)
+	} else {
+		rd, err = o.screenReadingFor(ctx, agent)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -531,6 +671,11 @@ func (o *Orchestrator) ScreenSubmit(ctx context.Context, cycleID uuid.UUID, agen
 	}
 	if err := checkScreen(a, given.want()); err != nil {
 		return SubmitResult{Rejected: []string{err.Error()}}, fmt.Errorf("%w: %s", ErrBadSubmit, err.Error())
+	}
+	if agent == AgentDealerRead {
+		if err := checkDealer(a); err != nil {
+			return SubmitResult{Rejected: []string{err.Error()}}, fmt.Errorf("%w: %s", ErrBadSubmit, err.Error())
+		}
 	}
 	if err := o.storeScreen(ctx, cycleID, agent, a); err != nil {
 		return SubmitResult{}, err

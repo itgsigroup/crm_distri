@@ -399,6 +399,17 @@ type Dealer struct {
 	Phone            *string         `json:"phone"`
 }
 
+type DealerAnalysis struct {
+	CycleID    uuid.UUID       `json:"cycle_id"`
+	DealerID   uuid.UUID       `json:"dealer_id"`
+	Status     string          `json:"status"`
+	Overview   string          `json:"overview"`
+	Reasons    json.RawMessage `json:"reasons"`
+	WaDraft    string          `json:"wa_draft"`
+	Confidence *int32          `json:"confidence"`
+	CreatedAt  time.Time       `json:"created_at"`
+}
+
 type DealerMetricsDaily struct {
 	DealerID      uuid.UUID       `json:"dealer_id"`
 	AsOf          time.Time       `json:"as_of"`

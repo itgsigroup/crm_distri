@@ -10,8 +10,7 @@ import { useOrch, useOrchStatus } from '../../app/orch'
 import { MemoText } from './Memo'
 import { SOWSheet } from './SOWSheet'
 import { useFeedback } from '../../components/feedback'
-import { useDealer, useDealers, useMe, useThreads } from '../../app/queries'
-import { InlineAnalysis } from '../../app/AnalysisSheet'
+import { useDealer, useDealerAnalysis, useDealerThreads, useDealers, useMe } from '../../app/queries'
 import { creditTone } from '../control/lists'
 
 const VIA_ICON: Record<string, string> = { mail: 'mail', chat: 'chat', people: 'people', doc: 'doc', form: 'form', box: 'box', phone: 'phone' }
@@ -125,21 +124,22 @@ function activityLabel(a: string) {
 }
 
 /** WhatsApp CTA (Sam 17 Oct): opens the dealer's conversation in Chat — the most recent one, or a choice when several
- * PIC chat; replies still go through Chat's outbox and anti-ban guard. */
-function WhatsAppCTA({ dealerId }: { dealerId: string }) {
+ * PIC chat; replies still go through Chat's outbox and anti-ban guard. With a draft (Analisa Dealer), the reply box
+ * opens with it filled in — the sales reads, edits and presses Kirim. The list comes from /dealers/{id}/threads, not
+ * from loading every chat. */
+function WhatsAppCTA({ dealerId, draft, label = 'WhatsApp', className = '' }: { dealerId: string; draft?: string; label?: string; className?: string }) {
   const nav = useNavigate()
   const { data: me } = useMe()
   const canChat = !!me?.screens.includes('chat')
-  const { data: threads = [] } = useThreads('all', '', canChat)
+  const { data: mine = [] } = useDealerThreads(dealerId, canChat)
   const [open, setOpen] = useState(false)
-  const mine = threads.filter((t) => t.dealer_id === dealerId).sort((a, b) => (b.last_message_at ?? '').localeCompare(a.last_message_at ?? ''))
   if (!canChat) return null
-  if (mine.length === 0) return <button className="btn ghost dl-wa" disabled title="Belum ada chat WhatsApp dengan dealer ini"><Icon name="chat" />WhatsApp</button>
-  const go = (id: string) => nav('/chat/' + id)
+  if (mine.length === 0) return <button className={`btn ghost dl-wa ${className}`} disabled title="Belum ada chat WhatsApp dengan dealer ini"><Icon name="chat" />{label}</button>
+  const go = (id: string) => nav('/chat/' + id + (draft ? '?draft=' + encodeURIComponent(draft) : ''))
   return (
     <span className="dl-wa-w">
-      <button className="btn dl-wa" onClick={() => (mine.length === 1 ? go(mine[0].id) : setOpen(!open))} title={mine.length === 1 ? `Buka chat ${mine[0].title}` : `${mine.length} chat dengan dealer ini`}>
-        <Icon name="chat" />WhatsApp{mine.length > 1 && <small>{mine.length}</small>}
+      <button className={`btn dl-wa ${className}`} onClick={() => (mine.length === 1 ? go(mine[0].id) : setOpen(!open))} title={mine.length === 1 ? `Buka chat ${mine[0].title}` : `${mine.length} chat dengan dealer ini`}>
+        <Icon name="chat" />{label}{mine.length > 1 && <small>{mine.length}</small>}
       </button>
       {open && (
         <span className="dl-wa-menu" role="menu">
@@ -152,9 +152,57 @@ function WhatsAppCTA({ dealerId }: { dealerId: string }) {
   )
 }
 
+const HEALTH: Record<string, { tone: string; label: string; cta: string; icon: string }> = {
+  bermasalah: { tone: 'bad', label: 'Bermasalah', cta: 'Chat: selesaikan masalah', icon: 'alert' },
+  perlu_perhatian: { tone: 'warn', label: 'Perlu perhatian', cta: 'Chat: sapa & tawarkan', icon: 'refresh' },
+  aman: { tone: 'good', label: 'Aman', cta: 'Chat: sapa dealer', icon: 'check' },
+}
+
+/** Analisa Dealer (ADR 0055): what Claude read in this dealer's numbers and WhatsApp — a status, the reasons, and a
+ * WhatsApp draft opened in Chat by the button (the sales sends it). */
+function DealerAI({ d, onAnalyse, running }: { d: DealerDetail; onAnalyse: () => void; running: boolean }) {
+  const { data: a } = useDealerAnalysis(d.id)
+  if (!a) {
+    return (
+      <div className="card dai empty">
+        <div className="card-h"><h2>Analisa AI</h2><span className="ai" style={{ marginLeft: 6 }}>Claude · angka &amp; chat WhatsApp</span></div>
+        <p className="sg-hint">Belum dianalisa Claude. Tekan <b>Analisa AI</b>: Claude membaca siklus order, limit, invoice, dan chat WhatsApp dealer ini, lalu menilai apakah bermasalah dan menyiapkan draf pesan WhatsApp.</p>
+        <button className="btn primary" disabled={running} onClick={onAnalyse}><Icon name="spark" />{running ? 'AI sedang menganalisa…' : 'Analisa AI'}</button>
+      </div>
+    )
+  }
+  const h = HEALTH[a.status] ?? HEALTH.aman
+  return (
+    <div className={`card dai dai-${h.tone}`}>
+      <div className="card-h">
+        <h2>Analisa AI</h2><span className="ai" style={{ marginLeft: 6 }}>Claude · angka &amp; chat WhatsApp</span>
+        <span className="meta">{shortDate(a.generated_at)} · {hhmm(a.generated_at)}{a.cycle_number ? ` · siklus #${a.cycle_number.toLocaleString('id-ID')}` : ''}</span>
+      </div>
+      <div className="dai-row">
+        <span className={`dai-status ${h.tone}`}><Icon name={h.icon} />{h.label}</span>
+        <p className="dai-ov">{a.overview}</p>
+      </div>
+      {a.reasons.length > 0 && <ul className="dai-why">{a.reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
+      {a.wa_draft && (
+        <div className="dai-wa">
+          <small>Draf WhatsApp dari Claude</small>
+          <q>{a.wa_draft}</q>
+          <div className="dai-acts">
+            <WhatsAppCTA dealerId={d.id} draft={a.wa_draft} label={h.cta} className={`dai-cta ${h.tone}`} />
+            <button className="btn quiet" disabled={running} onClick={onAnalyse}><Icon name="refresh" />Analisa ulang</button>
+          </div>
+          <span className="dai-note">Draf terisi di kolom ketik Chat — Anda yang membaca, mengubah, dan menekan Kirim.</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function DealerBody({ d }: { d: DealerDetail }) {
   const { reanalyze } = useOrch()
   const orch = useOrchStatus()
+  // Analisa AI: Claude through MCP (the routine, ADR 0049/0055) reads this dealer; the progress is the pop-up
+  const analyse = () => reanalyze('dealer:' + d.id, 'mcp', 'Claude lewat MCP')
   const m = d.metrics
   const cr = m.credit
   const room = cr.room
@@ -182,8 +230,8 @@ function DealerBody({ d }: { d: DealerDetail }) {
             <Pill tone="neutral">Sales {d.owner.name}</Pill>
             <span className="dl-cta">
               <WhatsAppCTA dealerId={d.id} />
-              <button className="btn primary dl-ai" disabled={orch.running} onClick={() => reanalyze('dealer:' + d.id, 'auto', undefined, true)}
-                title="Orchestrator menganalisis dealer ini: agen AI menyusun langkah — tagih, follow-up, atau perluas product mix — dengan alasan dan sumbernya"><Icon name="spark" />{orch.running ? 'AI sedang menganalisa…' : 'Analisa AI'}</button>
+              <button className="btn primary dl-ai" disabled={orch.running} onClick={analyse}
+                title="Claude (MCP, lewat routine) menganalisa dealer ini dari angka dan chat WhatsApp-nya: status, alasan, dan draf pesan WhatsApp"><Icon name="spark" />{orch.running ? 'AI sedang menganalisa…' : 'Analisa AI'}</button>
             </span>
           </div>
         </div>
@@ -207,7 +255,7 @@ function DealerBody({ d }: { d: DealerDetail }) {
         </div>
       </div>
 
-      <InlineAnalysis onlyMine />
+      <DealerAI d={d} onAnalyse={analyse} running={orch.running} />
 
       <div className="anchors">
         <button onClick={() => scrollTo('sec-next')}>Langkah</button>
@@ -312,7 +360,7 @@ function DealerBody({ d }: { d: DealerDetail }) {
       </div>
 
       <div className="card" id="sec-memo">
-        <div className="card-h"><h2>Memori dealer</h2><span className="ai" style={{ marginLeft: 6 }}>brief otomatis</span><span className="meta">diperbarui {d.memo_updated_at ? shortDate(d.memo_updated_at) : '—'}</span></div>
+        <div className="card-h"><h2>Memori dealer</h2><span className="meta" style={{ marginLeft: 6 }}>dirangkum sistem dari sinyal</span><span className="meta">diperbarui {d.memo_updated_at ? shortDate(d.memo_updated_at) : '—'}</span></div>
         <MemoText d={d} />
         <div className="prov-row">
           <Prov icon="chat">WhatsApp</Prov><Prov icon="doc">SO &amp; invoice Odoo</Prov><Prov icon="box">pembayaran</Prov>

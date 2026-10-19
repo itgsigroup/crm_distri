@@ -540,6 +540,8 @@ func MCPPrompt(number int64, cycleID string, agentNames []string, wait time.Dura
 			what = "dealer di orbit dengan chat WhatsApp-nya (halaman Orbit): kenapa dealer bergeser menurut chat, ringkasan untuk CEO dan satu catatan per dealer"
 		case AgentSegmenRead:
 			what = "dealer yang pindah segmen atau melambat dengan chat WhatsApp-nya (halaman Segmen): kenapa menurut chat dan cara melayaninya, ringkasan untuk CEO dan satu catatan per dealer"
+		case AgentDealerRead:
+			what = "satu dealer dengan angka dan chat WhatsApp-nya (halaman dealer): lines berkunci status (bermasalah | perlu_perhatian | aman), alasan_1..3, dan wa (draf pesan WhatsApp sesuai status)"
 		case AgentRelasiRead:
 			what = "kedekatan sales ↔ dealer dari isi chat WhatsApp (halaman Peta relasi): siapa yang dekat, yang menipis, yang dipegang dua sales, ringkasan untuk CEO dan satu catatan per dealer"
 		}
