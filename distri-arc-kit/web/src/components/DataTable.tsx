@@ -112,9 +112,11 @@ export interface Column<T> {
 
 /** A whole data table from column definitions: search, sort asc/desc per column, pages of 10/25/50 (Pusat kendali
  * cards, 19 Oct). The first sortable column (or `initial`) orders the rows at first. */
-export function ColumnTable<T>({ rows, columns, text, rowKey, initial, empty, noun, placeholder, className = '' }: {
+export function ColumnTable<T>({ rows, columns, text, rowKey, initial, empty, noun, placeholder, className = '', rowClass }: {
   rows: T[]; columns: Column<T>[]; text: (row: T) => string; rowKey: (row: T) => string
   initial?: { column: string; dir: Dir }; empty: ReactNode; noun: string; placeholder: string; className?: string
+  /** a class for one row (e.g. an inactive user drawn faded) */
+  rowClass?: (row: T) => string | undefined
 }) {
   const sortable = columns.filter((c) => c.sort)
   const compare = Object.fromEntries(sortable.map((c) => [c.key, c.sort!])) as Record<string, (a: T, b: T) => number>
@@ -142,7 +144,7 @@ export function ColumnTable<T>({ rows, columns, text, rowKey, initial, empty, no
             </tr></thead>
             <tbody>
               {t.shown.map((r) => (
-                <tr key={rowKey(r)}>{columns.map((c) => <td key={c.key} className={[c.right ? 'r' : '', c.className ?? ''].join(' ').trim() || undefined}>{c.cell(r)}</td>)}</tr>
+                <tr key={rowKey(r)} className={rowClass?.(r)}>{columns.map((c) => <td key={c.key} className={[c.right ? 'r' : '', c.className ?? ''].join(' ').trim() || undefined}>{c.cell(r)}</td>)}</tr>
               ))}
             </tbody>
           </table>

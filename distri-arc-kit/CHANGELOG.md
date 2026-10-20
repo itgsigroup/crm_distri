@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Pengguna: datatable (cari, urut per kolom, paginasi); sinkron data dicek saat worker menyala · 2026-10-20
+- Master data → **Pengguna** kini datatable seperti kartu Pusat kendali: pencarian (nama, email, peran, cabang, nomor WhatsApp, aktif/nonaktif), urut per kolom (Nama, Peran, Cabang, WhatsApp, Status), paginasi 10/25/50. Kolom **Status** baru; akun nonaktif tetap tampil redup.
+- Sinkron BigQuery kini juga dicek saat worker menyala — jadwalnya tidak lagi mundur setiap deploy (tetap mengikuti interval sinkron di Pengaturan → Data).
+- Kredit · kas: label KPI "DSO · order → bayar, 90 hari" (sebelumnya tertulis dua kali).
+
 ## Fix · Data BigQuery: satu query gagal tidak lagi membekukan semua data (beku sejak 7 Okt) · 2026-10-20
 - **Masalah**: query stok membaca tabel BigQuery `accurate_data.master_aging` yang sudah tidak ada (404). Karena satu query gagal, setiap sinkron berhenti sebelum langkah *Apply* — baris invoice, pembayaran, dan pelanggan tetap ditarik tiap 15 menit tetapi tidak pernah masuk ke aplikasi. Akibatnya Kredit · kas, status dealer, Orbit, Segmen, dan Push stok memakai data **7 Okt**.
 - **Perbaikan**: query yang gagal dicatat sebagai run gagal (terlihat di Pengaturan → Data) dan dilewati; entitas lain tetap disimpan dan di-*Apply*. Sinkron berikutnya mengejar data 8–20 Okt.

@@ -36,7 +36,7 @@ export function CreditPage() {
   return (
     <>
       <div className="kpis">
-        <div className="kpi-t"><small>DSO (order → bayar) · order → bayar</small><b className="num">{ov?.dso_days ?? '—'}<em>hari</em></b><span className={`dl ${ov && ov.dso_days <= ov.terms_avg + 5 ? 'good' : 'warn'}`}>termin rata-rata {ov?.terms_avg ?? '—'}</span></div>
+        <div className="kpi-t"><small>DSO · order → bayar, 90 hari</small><b className="num">{ov?.dso_days ?? '—'}<em>hari</em></b><span className={`dl ${ov && ov.dso_days <= ov.terms_avg + 5 ? 'good' : 'warn'}`}>termin rata-rata {ov?.terms_avg ?? '—'}</span></div>
         <div className="kpi-t"><small>Piutang dealer</small><b className="num">{fmtRp(ov?.receivable ?? 0)}</b><span className="dl n">{ov?.open_invoices ?? 0} invoice · {ov?.open_dealers ?? 0} dealer</span></div>
         <div className="kpi-t"><small>Lewat tempo</small><b className="num">{fmtRp(ov?.overdue ?? 0)}</b><span className="dl bad">{ov?.overdue_dealers ?? 0} dealer · {ov?.overdue_over_30 ?? 0} di atas 30 hari</span></div>
         <div className="kpi-t"><small>Kas masuk 30 hari (prediksi)</small><b className="num">{fmtRp(ov?.forecast_30 ?? 0)}</b><span className="dl n">tertimbang pola bayar</span></div>

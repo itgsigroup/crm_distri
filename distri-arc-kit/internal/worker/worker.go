@@ -396,9 +396,11 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 			river.NewPeriodicJob(Daily{Hour: 2, Minute: 30}, func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.RetentionPurgeArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 24 * time.Hour}}
 			}, nil),
+			// checked on start too (20 Oct): the interval restarts with the worker, so a day of deploys could skip the
+			// sync for hours; the job itself keeps to data.source's sync_minutes
 			river.NewPeriodicJob(river.PeriodicInterval(15*time.Minute), func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.DataSyncArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 15 * time.Minute}}
-			}, nil),
+			}, &river.PeriodicJobOpts{RunOnStart: true}),
 			river.NewPeriodicJob(river.PeriodicInterval(time.Minute), func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.AnalystTickArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: time.Minute}}
 			}, &river.PeriodicJobOpts{RunOnStart: true}),

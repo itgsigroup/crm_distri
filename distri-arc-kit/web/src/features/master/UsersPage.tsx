@@ -6,6 +6,7 @@ import { Icon } from '../../components/Icon'
 import { PasswordInput } from '../../components/PasswordInput'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
+import { ColumnTable, type Column } from '../../components/DataTable'
 import { useMe } from '../../app/queries'
 import { field, fmtWA, useBranchMaster, useRoles, useUsers, type UserRow } from './api'
 
@@ -78,31 +79,30 @@ function UserSheet({ user }: { user?: UserRow }) {
   )
 }
 
-/** Master data → Pengguna: login accounts, their role and branch; their WhatsApp number comes from Chat. */
+const byText = (f: (u: UserRow) => string) => (a: UserRow, b: UserRow) => f(a).localeCompare(f(b), 'id')
+
+/** Master data → Pengguna: login accounts, their role and branch; their WhatsApp number comes from Chat. A data table
+ * (20 Oct): search, sort per column, pages of 10/25/50. */
 export function UsersPage() {
   const { openSheet } = useFeedback()
   const { data = [] } = useUsers()
-  const [q, setQ] = useState('')
-  const rows = data.filter((u) => !q || `${u.name} ${u.email} ${u.role_name} ${u.branch ?? ''}`.toLowerCase().includes(q.toLowerCase()))
+  const columns: Column<UserRow>[] = [
+    { key: 'name', label: 'Nama', sort: byText((u) => u.name), cell: (u) => <><b>{u.name}</b><div className="mono">{u.email}{u.has_password ? '' : ' · belum punya kata sandi'}</div></> },
+    { key: 'role', label: 'Peran', sort: byText((u) => u.role_name), cell: (u) => <Pill tone={u.role === 'ceo' ? 'accent' : u.role === 'sales' ? 'neutral' : 'indigo'}>{u.role_name}</Pill> },
+    { key: 'branch', label: 'Cabang', sort: byText((u) => u.branch ?? 'Semua cabang'), cell: (u) => u.branch ?? 'Semua cabang' },
+    { key: 'wa', label: 'WhatsApp', sort: byText((u) => u.wa_linked ?? '~'), cell: (u) => u.wa_linked
+      ? <><span className="mono">{fmtWA(u.wa_linked)}</span><div><Pill tone={WA_STATE[u.wa_state ?? '']?.[1] ?? 'neutral'}>{WA_STATE[u.wa_state ?? '']?.[0] ?? u.wa_state}</Pill></div></>
+      : <span style={{ color: 'var(--text-3)', fontSize: 12.5 }}>{u.wa_allowed ? 'belum ada' : '—'}</span> },
+    { key: 'status', label: 'Status', sort: (a, b) => Number(b.active) - Number(a.active), cell: (u) => <Pill tone={u.active ? 'good' : 'neutral'}>{u.active ? 'Aktif' : 'Nonaktif'}</Pill> },
+    { key: 'act', label: '', right: true, cell: (u) => <button className="btn quiet" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<UserSheet user={u} />)}>Ubah</button> },
+  ]
   return (
     <div className="card">
       <div className="card-h"><h2>Pengguna</h2><span className="meta">{data.filter((u) => u.active).length} akun aktif · {data.filter((u) => u.wa_linked).length} memegang nomor WhatsApp</span>
         <button className="btn primary" style={{ height: 32, fontSize: 12.5, marginLeft: 8 }} onClick={() => openSheet(<UserSheet />)}><Icon name="people" />Tambah pengguna</button></div>
-      <input style={{ ...field, marginTop: 0, marginBottom: 10, maxWidth: 360 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama, email, peran, cabang…" aria-label="Cari pengguna" />
-      <div className="tbl-wrap">
-        <table className="tbl">
-          <thead><tr><th>Nama</th><th>Peran</th><th>Cabang</th><th>WhatsApp</th><th /></tr></thead>
-          <tbody>{rows.map((u) => (
-            <tr key={u.id} style={u.active ? undefined : { opacity: 0.5 }}>
-              <td><b>{u.name}</b><div className="mono">{u.email}{u.has_password ? '' : ' · belum punya kata sandi'}{u.active ? '' : ' · nonaktif'}</div></td>
-              <td><Pill tone={u.role === 'ceo' ? 'accent' : u.role === 'sales' ? 'neutral' : 'indigo'}>{u.role_name}</Pill></td>
-              <td>{u.branch ?? 'Semua cabang'}</td>
-              <td>{u.wa_linked ? <><span className="mono">{fmtWA(u.wa_linked)}</span><div><Pill tone={WA_STATE[u.wa_state ?? '']?.[1] ?? 'neutral'}>{WA_STATE[u.wa_state ?? '']?.[0] ?? u.wa_state}</Pill></div></> : <span style={{ color: 'var(--text-3)', fontSize: 12.5 }}>{u.wa_allowed ? 'belum ada' : '—'}</span>}</td>
-              <td style={{ textAlign: 'right' }}><button className="btn quiet" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<UserSheet user={u} />)}>Ubah</button></td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
+      <ColumnTable rows={data} columns={columns} rowKey={(u) => u.id} noun="pengguna" placeholder="Cari nama, email, peran, cabang, nomor WhatsApp…"
+        text={(u) => [u.name, u.email, u.role_name, u.branch ?? 'Semua cabang', u.wa_linked ?? '', u.active ? 'aktif' : 'nonaktif'].join(' ')}
+        initial={{ column: 'name', dir: 'asc' }} empty="Belum ada pengguna." rowClass={(u) => (u.active ? undefined : 'is-off')} />
     </div>
   )
 }
