@@ -325,6 +325,10 @@ export class StationView {
   private w = 0
   private pulseClock = 0
   private perf = { n: 0, sum: 0, level: 2 }
+  // the HD path (bloom on an MSAA render target) draws nothing on some GPUs/browsers: checked on the first frames,
+  // then the scene renders straight to the canvas (still PBR, ACES and MSAA, without bloom)
+  private direct = false
+  private frames = 0
   private reduced: boolean
   private off: (() => void)[] = []
 
@@ -346,7 +350,9 @@ export class StationView {
     pmrem.dispose()
     this.scene.environment = env
     this.scene.background = new THREE.Color('#02030a')
-    this.composer = new EffectComposer(r, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 }))
+    const webgl2 = r.capabilities.isWebGL2
+    const float = webgl2 && (r.extensions.has('EXT_color_buffer_half_float') || r.extensions.has('EXT_color_buffer_float'))
+    this.composer = new EffectComposer(r, new THREE.WebGLRenderTarget(1, 1, { type: float ? THREE.HalfFloatType : THREE.UnsignedByteType, samples: webgl2 ? 4 : 0 }))
     this.composer.addPass(new RenderPass(this.scene, this.camera))
     this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.55, 0.45, 0.9)
     this.composer.addPass(this.bloom)
@@ -1578,12 +1584,52 @@ export class StationView {
       this.target.z + d * Math.cos(yaw) * Math.cos(this.pitch),
     )
     this.camera.lookAt(this.target)
-    this.composer.render()
+    this.render()
     const r = this.renderer
     r.autoClear = false
     r.clearDepth()
     r.render(this.overlay, this.camera)
     r.autoClear = true
+  }
+
+  private render() {
+    const r = this.renderer!
+    if (!this.direct) {
+      try {
+        this.composer!.render()
+      } catch (e) {
+        this.fallback(e)
+      }
+    }
+    if (this.direct) {
+      r.setRenderTarget(null)
+      r.render(this.scene, this.camera)
+      return
+    }
+    this.frames++
+    if ((this.frames === 6 || this.frames === 30 || this.frames === 120) && this.blank()) this.fallback('canvas blank after the HD pass')
+  }
+
+  /** The core is always on screen and bright: black pixels there mean the HD pass drew nothing. */
+  private blank() {
+    const r = this.renderer!
+    const gl = r.getContext()
+    const p = new THREE.Vector3(0, 0, 0).project(this.camera)
+    if (Math.abs(p.x) > 1 || Math.abs(p.y) > 1) return false
+    const x = Math.round(((p.x + 1) / 2) * gl.drawingBufferWidth) - 2
+    const y = Math.round(((p.y + 1) / 2) * gl.drawingBufferHeight) - 2
+    const px = new Uint8Array(5 * 5 * 4)
+    r.setRenderTarget(null)
+    gl.readPixels(Math.max(0, x), Math.max(0, y), 5, 5, gl.RGBA, gl.UNSIGNED_BYTE, px)
+    let max = 0
+    for (let i = 0; i < px.length; i += 4) max = Math.max(max, px[i], px[i + 1], px[i + 2])
+    return max < 24
+  }
+
+  private fallback(why: unknown) {
+    if (this.direct) return
+    this.direct = true
+    console.warn('Stasiun Orbit: HD pass unavailable, rendering directly', why)
   }
 
   private resize(w: number) {

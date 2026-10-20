@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Stasiun Orbit: layar hitam di sebagian GPU/browser · 2026-10-20
+- Di sebagian perangkat, jalur HD (bloom di render target MSAA float) tidak menggambar apa pun: hanya label yang tampil di atas latar hitam. Render target float kini hanya dipakai bila GPU mendukungnya; setelah frame pertama adegan memeriksa piksel di Inti AI, dan bila hitam (atau jalur HD error) otomatis beralih ke render langsung ke kanvas (tetap PBR, ACES, MSAA; tanpa bloom).
+
 ## Feat · Dashboard: Tambang Distribusi diganti Stasiun Orbit 3D HD · 2026-10-20
 - Adegan Dashboard kini **miniatur luar angkasa 3D grafik HD** (three.js): MSAA, tone mapping ACES, bloom, material PBR dengan environment map, nebula dan ribuan bintang, sabuk asteroid. Kualitas turun otomatis (pixel ratio, lalu bloom) bila perangkat tidak kuat; tanpa WebGL tampil pesan; *reduce motion* menghentikan gerak.
 - **Inti AI = Orchestrator** di tengah, dikelilingi cincin stasiun. Enam busur di sekitar inti (dan chip di pojok) menyala per tahap siklus: Ingest → Analisis → Sintesis → Keputusan → Eksekusi → Belajar. Saat siklus berjalan, inti berdenyut, semua astronot berkumpul menganalisa (sinar ke inti), kilat kecil saat Sintesis & konflik, sinyal mengalir planet → inti (Ingest), inti → Dek Keputusan (Keputusan), dek → planet (Eksekusi), gelombang kejut saat Belajar.
