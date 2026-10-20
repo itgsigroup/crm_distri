@@ -18,8 +18,8 @@ import { waitLabel } from '../wa/wa'
 import { MCPClientsPanel, MCPRules } from '../settings/AIConnections'
 import { CONFLICT_COMPARE, conflictText } from './tables'
 
-// Orchestrator (mockup screen-orch, the components of 08-frontend.md): header; Pipeline, Resolusi konflik, MCP,
-// Matriks otonomi | Agen, Riwayat analisis (20 Oct) — every analysis read from WhatsApp; Analisis ulang by Claude through MCP (no API
+// Orchestrator (mockup screen-orch, the components of 08-frontend.md): header; Pipeline, Resolusi konflik, MCP |
+// Agen, Riwayat analisis, Matriks otonomi (20 Oct) — every analysis read from WhatsApp; Analisis ulang by Claude through MCP (no API
 // key, no ChatGPT), its progress in the pop-up (Sam 19 Oct, ADR 0045, 0048).
 
 // Default stage descriptions before the first cycle (mockup STAGES).
@@ -213,15 +213,6 @@ export function OrchestratorPage() {
                 ))}
               </div>
             </div>
-            <div className="card">
-              <div className="card-h"><h2>Matriks otonomi</h2><span className="meta">dibaca Orchestrator sebelum membagi tugas</span></div>
-              <div className="tbl-wrap">
-                <table className="matrix">
-                  <thead><tr><th>Agen</th><th>Otonom</th><th>Butuh approve</th><th>Tidak boleh</th></tr></thead>
-                  <tbody>{agents.map((a) => <tr key={a.name}><td><b>{a.name}</b></td><td><span className="chip g">{a.auto}</span></td><td><span className="chip w">{a.approve}</span></td><td><span className="chip b">{a.never}</span></td></tr>)}</tbody>
-                </table>
-              </div>
-            </div>
           </div>
           <div className="stack">
             <div className="card">
@@ -233,6 +224,15 @@ export function OrchestratorPage() {
             <div className="card">
               <div className="card-h"><h2>Riwayat analisis</h2><span className="meta">Analisa WhatsApp per siklus · {wa?.window_days ?? 7} hari terakhir per baris</span></div>
               <WAHistory rows={wa?.history ?? []} />
+            </div>
+            <div className="card">
+              <div className="card-h"><h2>Matriks otonomi</h2><span className="meta">dibaca Orchestrator sebelum membagi tugas</span></div>
+              <div className="tbl-wrap">
+                <table className="matrix">
+                  <thead><tr><th>Agen</th><th>Otonom</th><th>Butuh approve</th><th>Tidak boleh</th></tr></thead>
+                  <tbody>{agents.map((a) => <tr key={a.name}><td><b>{a.name}</b></td><td><span className="chip g">{a.auto}</span></td><td><span className="chip w">{a.approve}</span></td><td><span className="chip b">{a.never}</span></td></tr>)}</tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
