@@ -158,6 +158,17 @@ export function RelasiPage() {
     v.focus = null
   }, [lit, g])
 
+  // Claude's notes follow "Lihat dari" and the dealer filters like the map (20 Oct): a sales sees the notes on the
+  // dealers they talk to or own
+  const notes = useMemo(() => {
+    const key = 's-' + sales
+    return Object.entries(reading?.lines ?? {}).flatMap(([id, l]) => {
+      const d = board.find((x) => x.id === id)
+      if (!d || (matched && !matched.has(id))) return []
+      if (sales !== 'all' && d.owner?.key !== sales && !(g?.edges ?? []).some((e) => e.sales === key && e.dealer === id && e.w > 0)) return []
+      return [{ id, d, note: l.note }]
+    })
+  }, [reading, board, matched, sales, g])
   const pairs = scoped?.pairs ?? []
   const max = pairs[0]?.w || 1
   return (
@@ -221,21 +232,20 @@ export function RelasiPage() {
           </ul>
         </div>
         <div className="card">
-          <div className="card-h"><h2>Analisa Relasi</h2><span className="ai" style={{ marginLeft: 6 }}>Claude · chat WhatsApp</span></div>
-          <p className="orbit-src">Garis di peta dihitung dari interaksi WA + order; kualitas hubungannya dibaca Claude dari isi chat.</p>
+          <div className="card-h"><h2>Analisa Relasi</h2><span className="ai" style={{ marginLeft: 6 }}>Claude · chat WhatsApp</span>{reading && <span className="meta">chat 30 hari terakhir</span>}</div>
+          <p className="orbit-src">Garis di peta dihitung dari interaksi WA + order; kualitas hubungannya dibaca Claude dari isi chat WhatsApp lewat routine (ikut siklus Orchestrator tiap jam).</p>
           <ScreenBrief a={reading} what="kedekatan sales dan dealer dari isi chat WhatsApp" />
-          {reading && Object.keys(reading.lines).length > 0 && (
+          {reading && Object.keys(reading.lines).length > 0 && (sales !== 'all' || nFilters > 0) && (
+            <p className="orbit-src" style={{ marginTop: 8 }}>{notes.length ? `${notes.length} catatan untuk ${sales !== 'all' ? (salesList.find((x) => x.key === sales)?.name ?? 'sales ini') : 'dealer yang cocok dengan filter'}` : 'Tidak ada catatan Claude untuk pilihan ini.'}</p>
+          )}
+          {notes.length > 0 && (
             <ul className="ins rl-notes">
-              {Object.entries(reading.lines).map(([id, l]) => {
-                const d = board.find((x) => x.id === id)
-                if (!d) return null
-                return (
-                  <li key={id} onClick={() => nav('/dealer/' + id)} style={{ cursor: 'pointer' }}>
-                    <span className="ii" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}><Icon name="chat" /></span>
-                    <div><b>{d.name}</b><span>{l.note}</span></div>
-                  </li>
-                )
-              })}
+              {notes.map(({ id, d, note }) => (
+                <li key={id} onClick={() => nav('/dealer/' + id)} style={{ cursor: 'pointer' }}>
+                  <span className="ii" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}><Icon name="chat" /></span>
+                  <div><b>{d.name}</b><span>{note}</span></div>
+                </li>
+              ))}
             </ul>
           )}
         </div>

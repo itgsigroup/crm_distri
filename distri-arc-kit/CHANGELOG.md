@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Peta relasi: catatan Analisa Relasi ikut filter sales dan dealer · 2026-10-20
+- Dicek terhadap MD (08-frontend, ADR 0054): node sales biru, dealer berwarna skor, ukuran = interaksi/bulan, periode 30–180 hari, klik dua kali → dealer, cadangan 2D, Lihat dari, Pasangan terkuat, Pola relasi — sesuai. **Analisa Relasi** memang ditulis Claude dari isi chat WhatsApp lewat routine: setiap siklus Orchestrator (tiap jam) Claude mengambil input "Analisa Relasi" dan mengirim ringkasan + catatan per dealer lewat MCP.
+- Catatan Claude per dealer kini **ikut filter "Lihat dari" (sales) dan filter dealer**, seperti peta — sebelumnya selalu menampilkan semua catatan. Kartu menyebut cakupannya (chat 30 hari terakhir) dan bahwa analisa ditulis lewat routine.
+
 ## Fix · Segmen: titik dealer Baru terlihat (sebelumnya putih di kanvas putih) · 2026-10-20
 - Dealer **Baru** (baru 1 order, belum punya frekuensi) kini digambar **indigo** dengan garis putus indigo — sebelumnya putih dengan garis abu tipis sehingga hilang di kanvas putih, terutama di Segmen D. Legenda menambah "Baru · 1 order".
 
