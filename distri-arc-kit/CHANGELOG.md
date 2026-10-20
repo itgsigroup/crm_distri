@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Dashboard: Kota Distribusi diganti Tambang Distribusi 3D · 2026-10-20
+- Adegan di atas Dashboard kini **tambang terbuka 3D** (three.js): lubang tambang berteras dengan jalan angkut spiral, Gudang GSI dan Kantor sales di bibir tambang, pohon dan menara lampu sorot (menyala malam hari, WIB).
+- **Setiap dealer = satu titik tambang** di sepanjang jalan angkut (omzet terbesar paling dekat bibir tambang). Penambang mengayun beliung (serpihan batu beterbangan); warna bijih = sisa limit, emas = Key account, tanda ! = At risk, palang = Churn, label "order N hr lagi" untuk jadwal ≤ 14 hari.
+- Semua gerakan dari data nyata: **excavator** menggali dan menuang di dealer yang jadwal ordernya ≤ 14 hari, **dump truck** turun dari gudang mengantar lalu menuang muatan, **pickup merah** menagih dealer over limit / overdue (koin di gudang saat kembali), **surveyor** berjalan follow-up ke dealer At risk. Peti stok menua di halaman gudang, lampu merah berkedip bila ada stok kritis, label chat belum dibaca di kantor.
+- Arahkan kursor untuk detail, klik titik tambang untuk membuka dealer (gudang → Push stok, kantor → Chat). Seret untuk memutar kamera, klik dua kali untuk kembali. Tombol Sembunyikan tetap ada; tanpa WebGL tampil pesan. Gerak dihentikan bila pengguna memilih *reduce motion*.
+
 ## Feat · MCP Claude: semua kartu daftar jadi datatable (cari, urut, paginasi) · 2026-10-20
 - **Koneksi**, **Tool MCP**, **Contoh prompt analisis**, tabel model di **Pemakaian AI**, daftar **Analisis terjadwal**, dan **Riwayat Analisa WhatsApp** kini datatable seperti Riwayat MCP: pencarian, urut per kolom, paginasi 10/25/50. Koneksi yang dicabut dan jadwal yang dijeda tetap tampil redup; tombol Cabut, Jalankan, Laporan, Ubah, dan switch jadwal tetap di barisnya. Riwayat Analisa WhatsApp kini memuat semua run (sebelumnya 12 terakhir).
 - Kartu formulir (Hubungkan Claude, Token manual, Izin & batas, Routine Claude) tidak berisi daftar, jadi tetap.

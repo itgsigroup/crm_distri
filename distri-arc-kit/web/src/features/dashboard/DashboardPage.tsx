@@ -7,7 +7,7 @@ import { fmtNum, fmtRp, hhmm, shortDate } from '../../lib/format'
 import { KUAD } from '../../lib/i18n/id'
 import type { BoardItem, Segment, Trend, TrendKey } from '../../api/types'
 import { dueSoon } from '../orbit/filters'
-import { DashboardTown } from './DashboardTown'
+import { DashboardMine } from './DashboardMine'
 import { TrendChart } from './TrendChart'
 import { TREND_BETTER, TREND_FMT, trendHeads } from './trend'
 import './dashboard.css'
@@ -150,7 +150,7 @@ export function DashboardPage() {
       <div className="db-hero-meta"><span>Dealer dalam cakupan Anda</span><b>{board?.[0]?.metrics.as_of ? `Data dealer ${shortDate(board[0].metrics.as_of)}` : 'Data terbaru'}</b>{srcText && <small title={src?.basis}>Sumber {srcText}</small>}{brief?.generated_at && <small>Ringkasan AI diperbarui {hhmm(brief.generated_at)} WIB</small>}</div>
     </div>
 
-    <DashboardTown board={dealers} kpi={kpi} can={can} />
+    <DashboardMine board={dealers} kpi={kpi} can={can} />
 
     {(boardError || kpiError || pushError) && <div className="db-error" role="alert">Sebagian data gagal dimuat. Muat ulang halaman untuk mencoba lagi.</div>}
 
