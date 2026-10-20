@@ -1954,3 +1954,6 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
   .stage:has(.chat.show-thread) .tb-chat{display:none}
   .ibc-name .orch-pill .op-next{display:none}
 }
+
+/* Orchestrator agent card (20 Oct): "Jalankan ulang" stays clickable while a cycle runs and says why it waits */
+.agent-card .btn[aria-disabled="true"]{opacity:.6}

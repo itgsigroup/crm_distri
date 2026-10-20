@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Orchestrator: susunan kartu baru, Jalankan ulang agen tidak lagi tertahan · 2026-10-20
+- Kolom kiri: Pipeline analisis → Resolusi konflik → **MCP sebagai orchestrator** → Matriks otonomi. Kolom kanan: Agen → **Riwayat analisis**.
+- **Perbaikan "Jalankan ulang" di kartu agen**: bila browser melewatkan sinyal "siklus selesai" dan siklus lain sudah dimulai, aplikasi mengira Orchestrator masih berjalan sehingga semua tombol analisis tetap mati sampai halaman dimuat ulang. Kini status siklus itu dibaca langsung dari server. Tombol juga tidak lagi mati diam-diam: saat siklus lain berjalan, tombol bertuliskan "Menunggu…" dan bila diklik menjelaskan alasannya.
+
 ## Feat · Pusat kendali: kartu Limit tipis di bawah Ringkasan Orchestrator · 2026-10-20
 - Kartu **Limit tipis** pindah ke kolom kanan, tepat di bawah **Ringkasan Orchestrator**. Kolom kiri: Jadwal order + Push stok | Lewat jadwal. Tombol "Limit tipis" di status strip tetap menggulir ke kartunya.
 

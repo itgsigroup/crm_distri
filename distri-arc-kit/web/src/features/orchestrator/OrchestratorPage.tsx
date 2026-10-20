@@ -18,8 +18,8 @@ import { waitLabel } from '../wa/wa'
 import { MCPClientsPanel, MCPRules } from '../settings/AIConnections'
 import { CONFLICT_COMPARE, conflictText } from './tables'
 
-// Orchestrator (mockup screen-orch, the components of 08-frontend.md): header, Pipeline, Resolusi konflik, Riwayat
-// analisis, Agen, MCP, Matriks otonomi — every analysis read from WhatsApp; Analisis ulang by Claude through MCP (no API
+// Orchestrator (mockup screen-orch, the components of 08-frontend.md): header; Pipeline, Resolusi konflik, MCP,
+// Matriks otonomi | Agen, Riwayat analisis (20 Oct) — every analysis read from WhatsApp; Analisis ulang by Claude through MCP (no API
 // key, no ChatGPT), its progress in the pop-up (Sam 19 Oct, ADR 0045, 0048).
 
 // Default stage descriptions before the first cycle (mockup STAGES).
@@ -106,7 +106,8 @@ function AgentCard({ a, wa, fromChat, run }: { a: AgentInfo; wa: WAAnalysis | un
       <div className="ac-out"><Icon name="chat" />{waOutput(a.name, wa)}{fromChat > 0 && <b> · {fromChat} usulan</b>}</div>
       <div className="ac-f">
         <div className="cal-row"><span>kalibrasi</span><div className="bar"><i style={{ width: `${a.confidence ?? 0}%`, ...(a.confidence !== null && a.confidence < 60 ? { background: 'var(--warn)' } : {}) }} /></div><span className="v num">{a.confidence === null ? '—' : `${a.confidence}%`}</span></div>
-        <button className="btn quiet" disabled={st.running} onClick={() => run('agent:' + a.name)} title="Analisis ulang agen ini lewat MCP">Jalankan ulang</button>
+        <button className="btn quiet" aria-disabled={st.running} onClick={() => run('agent:' + a.name)}
+          title={st.running ? `Tunggu analisis ${st.scope} selesai (${st.stage})` : 'Analisis ulang agen ini lewat MCP Claude'}>{st.running ? 'Menunggu…' : 'Jalankan ulang'}</button>
       </div>
     </div>
   )
@@ -193,8 +194,24 @@ export function OrchestratorPage() {
               <Conflicts rows={waConflicts} />
             </div>
             <div className="card">
-              <div className="card-h"><h2>Riwayat analisis</h2><span className="meta">Analisa WhatsApp per siklus · {wa?.window_days ?? 7} hari terakhir per baris</span></div>
-              <WAHistory rows={wa?.history ?? []} />
+              <div className="card-h"><h2>MCP sebagai orchestrator</h2>{info?.enabled ? <Pill tone="good" icon="check">Aktif</Pill> : <Pill tone="neutral" icon="plug">Mati</Pill>}<button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 'auto' }} onClick={() => openSheet(<MCPClientsPanel />)}>Klien &amp; token</button></div>
+              <p className="orch-note">Klien MCP (Claude Desktop, ChatGPT, agent eksternal) tidak hanya membaca data: mereka bisa memicu analisis ulang, meminta rencana, dan menjalankan satu agen — lewat tool yang sama dengan yang dipakai Orchestrator internal.</p>
+              <MCPRules />
+              <div className="hr" />
+              <h3 className="h3">Panggilan terakhir dari klien MCP</h3>
+              <ul className="mcp-log">
+                {calls.slice(0, 5).map((m) => (
+                  <li key={m.id}><span className="num t">{hhmm(m.created_at)}</span><div><b>{m.client_name ?? 'Klien tanpa token'}</b><code style={{ overflowWrap: 'anywhere' }}>{m.tool}({argText(m.args)})</code><span style={m.status === 'ok' ? undefined : { color: 'var(--bad)' }}>→ {m.status === 'ok' ? m.result_summary : `${m.status} · ${m.result_summary ?? ''}`}</span></div></li>
+                ))}
+                {calls.length === 0 && <li><span className="num t">—</span><div><b>Belum ada panggilan</b><span>Buat token di Klien &amp; token, lalu sambungkan Claude Desktop ke {info?.endpoint ?? '/mcp'}</span></div></li>}
+              </ul>
+              <div className="hr" />
+              <h3 className="h3">Tool MCP</h3>
+              <div className="tools">
+                {([['read', 'Baca'], ['analyze', 'Analisis'], ['orchestrate', 'Orkestrasi'], ['decide', 'Keputusan · human-only']] as const).map(([k, l]) => (
+                  <div key={k}><small>{l}</small><code style={{ overflowWrap: 'anywhere' }}>{(info?.tools ?? []).filter((t) => t.scope === k).map((t) => t.name).join(' · ')}</code></div>
+                ))}
+              </div>
             </div>
             <div className="card">
               <div className="card-h"><h2>Matriks otonomi</h2><span className="meta">dibaca Orchestrator sebelum membagi tugas</span></div>
@@ -214,24 +231,8 @@ export function OrchestratorPage() {
               </div>
             </div>
             <div className="card">
-              <div className="card-h"><h2>MCP sebagai orchestrator</h2>{info?.enabled ? <Pill tone="good" icon="check">Aktif</Pill> : <Pill tone="neutral" icon="plug">Mati</Pill>}<button className="btn ghost" style={{ height: 28, fontSize: 12, marginLeft: 'auto' }} onClick={() => openSheet(<MCPClientsPanel />)}>Klien &amp; token</button></div>
-              <p className="orch-note">Klien MCP (Claude Desktop, ChatGPT, agent eksternal) tidak hanya membaca data: mereka bisa memicu analisis ulang, meminta rencana, dan menjalankan satu agen — lewat tool yang sama dengan yang dipakai Orchestrator internal.</p>
-              <MCPRules />
-              <div className="hr" />
-              <h3 className="h3">Panggilan terakhir dari klien MCP</h3>
-              <ul className="mcp-log">
-                {calls.slice(0, 5).map((m) => (
-                  <li key={m.id}><span className="num t">{hhmm(m.created_at)}</span><div><b>{m.client_name ?? 'Klien tanpa token'}</b><code style={{ overflowWrap: 'anywhere' }}>{m.tool}({argText(m.args)})</code><span style={m.status === 'ok' ? undefined : { color: 'var(--bad)' }}>→ {m.status === 'ok' ? m.result_summary : `${m.status} · ${m.result_summary ?? ''}`}</span></div></li>
-                ))}
-                {calls.length === 0 && <li><span className="num t">—</span><div><b>Belum ada panggilan</b><span>Buat token di Klien &amp; token, lalu sambungkan Claude Desktop ke {info?.endpoint ?? '/mcp'}</span></div></li>}
-              </ul>
-              <div className="hr" />
-              <h3 className="h3">Tool MCP</h3>
-              <div className="tools">
-                {([['read', 'Baca'], ['analyze', 'Analisis'], ['orchestrate', 'Orkestrasi'], ['decide', 'Keputusan · human-only']] as const).map(([k, l]) => (
-                  <div key={k}><small>{l}</small><code style={{ overflowWrap: 'anywhere' }}>{(info?.tools ?? []).filter((t) => t.scope === k).map((t) => t.name).join(' · ')}</code></div>
-                ))}
-              </div>
+              <div className="card-h"><h2>Riwayat analisis</h2><span className="meta">Analisa WhatsApp per siklus · {wa?.window_days ?? 7} hari terakhir per baris</span></div>
+              <WAHistory rows={wa?.history ?? []} />
             </div>
           </div>
         </div>

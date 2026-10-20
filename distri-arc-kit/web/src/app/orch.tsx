@@ -99,8 +99,11 @@ export function OrchProvider({ children }: { children: ReactNode }) {
     const t = setInterval(async () => {
       try {
         const l = await api.get<CycleLatest>('/cycles/latest')
-        const c = l.cycle
-        if (!c || c.id !== id) return
+        let c = l.cycle
+        // another cycle is the latest now: read the one this tab follows, so a missed cycle_done does not leave the
+        // app "running" (every Analisis ulang / Jalankan ulang button stayed disabled, 20 Oct)
+        if (c && c.id !== id) c = (await api.get<{ cycle: Cycle }>(`/cycles/${id}`)).cycle
+        if (!c) return
         if (c.stage) dispatch({ type: 'stage', cycleId: id, stage: c.stage, status: 'running' })
         if (c.status === 'done' || c.status === 'partial' || c.status === 'failed') {
           dispatch({ type: 'done', cycleId: id, result: { number: c.number, note: c.note ?? '', updated: 0, label: c.label, via: c.via ?? 'api', status: c.status } })
