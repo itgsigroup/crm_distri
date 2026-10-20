@@ -508,6 +508,30 @@ function AnnProposal({ p }: { p: NonNullable<MessageView['proposal']> }) {
 const PER_MSG_KEY = 'chat.analysis.per-message'
 
 /** Show the analysis under every bubble (on by default, remembered on this browser). */
+// Zoom of the conversation (20 Oct): 70%–160%, remembered on this browser for every chat
+const CHAT_ZOOM_KEY = 'chat.zoom'
+const CHAT_ZOOMS = [0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6]
+function useChatZoom(): [number, (step: number) => void, () => void] {
+  const [z, setZ] = useState(() => {
+    try {
+      const v = Number(localStorage.getItem(CHAT_ZOOM_KEY))
+      return CHAT_ZOOMS.includes(v) ? v : 1
+    } catch {
+      return 1
+    }
+  })
+  const save = (v: number) => {
+    setZ(v)
+    try {
+      localStorage.setItem(CHAT_ZOOM_KEY, String(v))
+    } catch {
+      /* private window: not remembered */
+    }
+  }
+  const step = (d: number) => save(CHAT_ZOOMS[Math.min(CHAT_ZOOMS.length - 1, Math.max(0, CHAT_ZOOMS.indexOf(z) + d))])
+  return [z, step, () => save(1)]
+}
+
 function usePerMessageAnalysis(): [boolean, (v: boolean) => void] {
   const [on, setOn] = useState(() => {
     try {
@@ -561,6 +585,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const { openSheet } = useFeedback()
   const [zoom, setZoom] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
+  const [zoom2, zoomStep, zoomReset] = useChatZoom()
   const [mark, setMark] = useState('')
   const pendingJump = useRef<string | null>(null)
   const body = useRef<HTMLDivElement>(null)
@@ -892,6 +917,11 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           )}
           <button type="button" className="ibl-btn ibc-find" onClick={() => openSheet(<LabelSheet title="Label chat" sub={displayTitle(t)} selected={t.labels ?? []}
             save={(ids) => api.put(`/chat/threads/${id}/labels`, { label_ids: ids })} />)} title="Label chat" aria-label="Label chat"><Icon name="tag" /></button>
+          <div className="ibc-zoom" role="group" aria-label="Zoom chat">
+            <button type="button" onClick={() => zoomStep(-1)} disabled={zoom2 <= CHAT_ZOOMS[0]} aria-label="Perkecil chat" title="Perkecil chat">−</button>
+            <button type="button" className="ibc-zoom-pct" onClick={zoomReset} title="Kembali ke 100%">{Math.round(zoom2 * 100)}%</button>
+            <button type="button" onClick={() => zoomStep(1)} disabled={zoom2 >= CHAT_ZOOMS[CHAT_ZOOMS.length - 1]} aria-label="Perbesar chat" title="Perbesar chat">+</button>
+          </div>
           <button type="button" className={`ibl-btn ibc-find${searching ? ' on' : ''}`} onClick={() => { setSearching(!searching); if (searching) setMark('') }} title="Cari di chat ini" aria-label="Cari di chat ini" aria-pressed={searching}><Icon name="search" /></button>
           {readable && (
             <button type="button" className={`ibc-an-tg${perMsg ? ' on' : ''}`} aria-pressed={perMsg} aria-label="Analisa per pesan" onClick={() => setPerMsg(!perMsg)}
@@ -905,7 +935,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       </div>
       <PinnedBar pins={data.pins ?? []} who={displayTitle(t)} onJump={(p) => jumpToHit({ id: p.message_id, sent_at: p.sent_at })} onUnpin={(p) => unpin(p.message_id)} />
       {searching && <ChatSearch thread={id} onJump={jumpToHit} onQuery={setMark} onClose={() => { setSearching(false); setMark('') }} />}
-      <div className="th-body ibc-body" ref={body} onScroll={onScroll}>
+      <div className="th-body ibc-body" ref={body} onScroll={onScroll} style={zoom2 !== 1 ? { zoom: zoom2 } : undefined}>
         <div className="ibc-start">
           {more
             ? <span className="ibc-pill dark"><Icon name="refresh" />{loading ? 'Memuat pesan sebelumnya…' : 'Gulir ke atas untuk pesan sebelumnya'}</span>

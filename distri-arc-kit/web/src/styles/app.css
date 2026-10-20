@@ -1933,3 +1933,10 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .ibc-orch.running .i{animation:pulse .9s infinite}
 .dock.dock-head{bottom:auto;max-height:calc(100vh - 100px);overflow:auto}
 @media (max-width:900px){.dock.dock-head{left:12px;right:12px!important;width:auto}.ibc-orch span{display:none}.ibc-orch{padding:0 7px}}
+
+/* Chat zoom (20 Oct): − / % / + in the conversation header scales the messages */
+.ibc-zoom{display:inline-flex;align-items:center;gap:1px;padding:2px;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
+.ibc-zoom button{height:28px;min-width:28px;border:0;border-radius:8px;background:transparent;color:var(--text);font-size:17px;font-weight:600;line-height:1;cursor:pointer}
+.ibc-zoom button:hover:not(:disabled){background:var(--surface-2)}
+.ibc-zoom button:disabled{opacity:.35;cursor:default}
+.ibc-zoom .ibc-zoom-pct{min-width:46px;padding:0 4px;font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums}

@@ -2,6 +2,7 @@
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
 ## Feat · Chat: zoom foto dan Orchestrator di samping nama chat · 2026-10-20
+- **Zoom percakapan**: tombol **− / % / +** di header chat (di samping tombol cari) memperbesar/memperkecil isi chat 70%–160%; klik angka % untuk kembali ke 100%. Ukuran diingat di browser ini untuk semua chat.
 - Foto yang dibuka di chat kini bisa **diperbesar / diperkecil**: tombol **− / % / +** di kanan atas (100%–500%), scroll mouse, tombol keyboard `+` `-` `0`, atau klik dua kali. Saat diperbesar, foto bisa digeser dengan menyeret; klik angka % untuk kembali ke ukuran asli.
 - Di halaman Chat, **Orchestrator** tidak lagi melayang di atas kolom ketik: kini tombol **Orchestrator** di header percakapan, di samping nama. Klik untuk membuka panelnya (tanya/perintah, Analisis ulang chat ini, Sistem/MCP Claude) tepat di bawahnya; Esc atau klik di luar menutupnya. ⌘K tetap membukanya. Halaman lain tidak berubah.
 
