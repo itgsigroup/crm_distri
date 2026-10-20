@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Segmen: kanvas tidak terpotong saat digeser / zoom (seperti draw.io) · 2026-10-20
+- Warna kotak segmen, garis grid, dan garis batas "sering" / "besar" kini menyambung sampai tepi layar ke mana pun peta digeser atau di-zoom — sebelumnya berhenti di batas data sehingga sisanya putih dan peta tampak terpotong.
+- Latar titik-titik halus (seperti draw.io) ikut bergeser dan di-zoom bersama titik dealer; ukurannya tetap kecil di zoom berapa pun.
+
 ## Feat · Orchestrator: susunan kartu baru, Jalankan ulang agen tidak lagi tertahan · 2026-10-20
 - Kolom kiri: Pipeline analisis → Resolusi konflik → **MCP sebagai orchestrator**. Kolom kanan: Agen → **Riwayat analisis** → **Matriks otonomi**.
 - **Perbaikan "Jalankan ulang" di kartu agen**: bila browser melewatkan sinyal "siklus selesai" dan siklus lain sudah dimulai, aplikasi mengira Orchestrator masih berjalan sehingga semua tombol analisis tetap mati sampai halaman dimuat ulang. Kini status siklus itu dibaca langsung dari server. Tombol juga tidak lagi mati diam-diam: saat siklus lain berjalan, tombol bertuliskan "Menunggu…" dan bila diklik menjelaskan alasannya.

@@ -140,7 +140,15 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   const nodes = useMemo(() => layout(shown, all, xq, yq, scale, viewport.positionBlend, dom), [shown, all, xq, yq, scale, viewport.positionBlend, dom])
   const resize = viewport.markerScale / scale // the layout may lag a fast zoom by a frame; dots are drawn at the current size
   const strokeW = Math.max(0.3 * viewport.unit, Math.min(2 * viewport.markerScale, 1.5 * viewport.unit))
-  const Z: [Segment, number, number, number, number][] = [['A', xq, T, W - R - xq, yq - T], ['C', L, T, xq - L, yq - T], ['B', xq, yq, W - R - xq, H - B - yq], ['D', L, yq, xq - L, H - B - yq]]
+  // an endless canvas like draw.io (20 Oct): the zones, grid and threshold lines reach past the data to whatever is on
+  // screen, so panning or zooming never shows a cut-off edge; the margin covers the letterboxed sides
+  const vr = viewport.rect
+  const mg = Math.max(vr.w, vr.h)
+  const X0 = Math.min(L, vr.x + L) - mg
+  const X1 = Math.max(W - R, vr.x + L + vr.w) + mg
+  const Y0 = Math.min(T, vr.y + T) - mg
+  const Y1 = Math.max(H - B, vr.y + T + vr.h) + mg
+  const Z: [Segment, number, number, number, number][] = [['A', xq, Y0, X1 - xq, yq - Y0], ['C', X0, Y0, xq - X0, yq - Y0], ['B', xq, yq, X1 - xq, Y1 - yq], ['D', X0, yq, xq - X0, Y1 - yq]]
   const ZL: [Segment, number, number, 'start' | 'end'][] = [['A', W - R - 8, T + 64, 'end'], ['C', L + 8, T + 22, 'start'], ['B', W - R - 8, H - B - 28, 'end'], ['D', L + 8, H - B - 28, 'start']]
   const move = (e: MouseEvent, d: BoardItem) => {
     if (viewport.dragging) { setHover(null); return }
@@ -190,6 +198,10 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
             <path d="M0 0L10 5L0 10z" fill="var(--text-3)" />
           </marker>
           {/* the compressed part above 3,5×/bln: a light hatch instead of a grey block */}
+          {/* the canvas dot grid (draw.io-like), in plot units so it pans and zooms with the dots */}
+          <pattern id="kuad-dots" width="16" height="16" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r={(0.9 * viewport.unit).toFixed(2)} fill="var(--text-3)" fillOpacity=".22" />
+          </pattern>
           <pattern id="kuad-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="8" stroke="var(--text-3)" strokeWidth="1" strokeOpacity=".12" />
           </pattern>
@@ -209,21 +221,22 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
         <text transform={`translate(16 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" className="kax">BESAR SEKALI ORDER (Rp) · makin atas makin besar →</text>
         <svg x={L} y={T} width={PW} height={PH} viewBox={viewport.viewBox} className="kuad-plot" {...svgProps}>
           <g transform={`translate(${-L} ${-T})`}>
+            <rect x={X0} y={Y0} width={X1 - X0} height={Y1 - Y0} fill="url(#kuad-dots)" className="kcanvas" pointerEvents="none" />
             {Z.map(([k, x, y, w, h]) => (
               <rect key={k} x={x.toFixed(1)} y={y.toFixed(1)} width={w.toFixed(1)} height={h.toFixed(1)} fill={`var(--${KUAD[k].k})`}
                 opacity={sel ? (sel === k ? 0.11 : 0.015) : zone === k ? 0.1 : k === 'D' ? 0.035 : 0.05}
                 className={`kz${zone === k || sel === k ? ' on' : ''}`} onClick={() => onSel(sel === k ? null : k)} onMouseEnter={() => setZone(k)} onMouseLeave={() => setZone(null)} />
             ))}
-            {ys.map((v) => <line key={v} x1={L} y1={py(v, dom).toFixed(2)} x2={W - R} y2={py(v, dom).toFixed(2)} className="kg" />)}
-            {xs.map((f) => <line key={f} x1={px(f, dom).toFixed(2)} y1={T} x2={px(f, dom).toFixed(2)} y2={H - B} className="kg" />)}
+            {ys.map((v) => <line key={v} x1={X0} y1={py(v, dom).toFixed(2)} x2={X1} y2={py(v, dom).toFixed(2)} className="kg" />)}
+            {xs.map((f) => <line key={f} x1={px(f, dom).toFixed(2)} y1={Y0} x2={px(f, dom).toFixed(2)} y2={Y1} className="kg" />)}
             {split != null && (
               <g>
-                <rect x={split} y={T} width={W - R - split} height={H - B - T} className="ksplit" />
+                <rect x={split} y={Y0} width={X1 - split} height={Y1 - Y0} className="ksplit" />
                 <text x={split + 4} y={T + 64} className="kt sm" fill="var(--text-3)">&gt; 3,5×/bln · skala dipadatkan</text>
               </g>
             )}
-            <line x1={xq.toFixed(1)} y1={T} x2={xq.toFixed(1)} y2={H - B} className="kq" />
-            <line x1={L} y1={yq.toFixed(1)} x2={W - R} y2={yq.toFixed(1)} className="kq" />
+            <line x1={xq.toFixed(1)} y1={Y0} x2={xq.toFixed(1)} y2={Y1} className="kq" />
+            <line x1={X0} y1={yq.toFixed(1)} x2={X1} y2={yq.toFixed(1)} className="kq" />
             <text x={(xq + 5).toFixed(1)} y={H - B - 8} className="kt sm" fill="var(--text-2)">sering: ≥ {fq(thresholds.freq_per_month)}×/bln</text>
             <text x={W - R - 5} y={(yq - 7).toFixed(1)} textAnchor="end" className="kt sm" fill="var(--text-2)">besar: ≥ {fmtRp(thresholds.size_idr)} / order</text>
             {hover && (() => {
