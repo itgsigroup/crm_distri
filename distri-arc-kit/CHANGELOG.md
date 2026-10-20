@@ -1,6 +1,16 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Dashboard: Tambang Distribusi diganti Stasiun Orbit 3D HD · 2026-10-20
+- Adegan Dashboard kini **miniatur luar angkasa 3D grafik HD** (three.js): MSAA, tone mapping ACES, bloom, material PBR dengan environment map, nebula dan ribuan bintang, sabuk asteroid. Kualitas turun otomatis (pixel ratio, lalu bloom) bila perangkat tidak kuat; tanpa WebGL tampil pesan; *reduce motion* menghentikan gerak.
+- **Inti AI = Orchestrator** di tengah, dikelilingi cincin stasiun. Enam busur di sekitar inti (dan chip di pojok) menyala per tahap siklus: Ingest → Analisis → Sintesis → Keputusan → Eksekusi → Belajar. Saat siklus berjalan, inti berdenyut, semua astronot berkumpul menganalisa (sinar ke inti), kilat kecil saat Sintesis & konflik, sinyal mengalir planet → inti (Ingest), inti → Dek Keputusan (Keputusan), dek → planet (Eksekusi), gelombang kejut saat Belajar.
+- **Dealer = planet** dengan tekstur prosedural: ukuran = omzet, makin dekat inti = jadwal order makin dekat (lewat jadwal paling dalam), atmosfer = status kredit, cincin emas = Key account, cincin merah berdenyut = At risk, planet es = Churn.
+- **Enam agen = astronot** berwarna sendiri. AI Order (biru) mengantar peti ke dealer jadwal order dekat, AI Penagihan (merah) menagih dealer over limit / overdue (koin), AI Kredit (ungu) memasang perisai heksagon di dealer limit tipis, AI Follow-up (oranye) spacewalk bertali ke dealer At risk. Keempatnya membawa **kapsul usulan ke Dek Keputusan**. AI Stok merapikan peti stok menua di cargo bay (lampu merah bila ada stok kritis), AI Prospek mengarahkan radar.
+- **Komandan berhelm emas = manusia** di Dek Keputusan: satu kapsul per usulan yang menunggu (warna agennya), hanya manusia yang memutuskan.
+- **Komet = nomor baru** yang menghubungi lebih dulu (Chat → Nomor baru, tanpa pemasok). Sistem tidak mencari leads: tidak ada yang muncul tanpa pesan masuk. Radar AI Prospek memindai komet bergantian.
+- Arahkan kursor untuk detail (termasuk apa yang sedang dikerjakan tiap astronot). Klik planet → dealer, inti → Orchestrator, dek/komandan → Pusat kendali, cargo bay → Push stok, antena → Chat, komet → chat nomor itu. Seret untuk memutar, pinch / Ctrl+scroll atau tombol +/− untuk zoom, klik dua kali untuk kembali.
+- Chat belum dibaca kini diambil dari hitungan nomor WA, bukan dengan memuat semua chat.
+
 ## Feat · Dashboard: Kota Distribusi diganti Tambang Distribusi 3D · 2026-10-20
 - Adegan di atas Dashboard kini **tambang terbuka 3D** (three.js): lubang tambang berteras dengan jalan angkut spiral, Gudang GSI dan Kantor sales di bibir tambang, pohon dan menara lampu sorot (menyala malam hari, WIB).
 - **Setiap dealer = satu titik tambang** di sepanjang jalan angkut (omzet terbesar paling dekat bibir tambang). Penambang mengayun beliung (serpihan batu beterbangan); warna bijih = sisa limit, emas = Key account, tanda ! = At risk, palang = Churn, label "order N hr lagi" untuk jadwal ≤ 14 hari.

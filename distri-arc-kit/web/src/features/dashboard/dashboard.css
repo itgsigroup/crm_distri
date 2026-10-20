@@ -67,7 +67,7 @@ a.db-metric:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
 @media(max-width:760px){.db-hero{align-items:flex-start;flex-direction:column;padding:20px}.db-hero-meta{text-align:left}.db-main,.db-signals{grid-template-columns:1fr}}
 @media(max-width:520px){.db-metrics,.db-links{grid-template-columns:1fr}.db-metric{min-height:96px}.db-panel .card-h .meta{margin-left:0;text-align:left}}
 
-/* Tambang Distribusi (3D game scene) */
+/* Stasiun Orbit (3D game scene; shares the .mine-* card layout) */
 .mine-card{padding:16px 18px 12px;overflow:hidden}
 .mine-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin-bottom:10px}
 .mine-head h2{font:700 20px/1.2 var(--font-display);letter-spacing:-.02em;margin:4px 0 0}
@@ -75,7 +75,7 @@ a.db-metric:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
 .hud-chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:99px;font:700 12.5px var(--font-display);background:var(--surface-2);border:1px solid var(--line);white-space:nowrap}
 .hud-chip i{font-style:normal;font-size:11px}
 .hud-chip small{font-weight:500;color:var(--text-3)}
-.hud-chip.gold i{color:#e0a800}.hud-chip.amber i{color:#f2a900}.hud-chip.red i{color:#e5534b}.hud-chip.purple i{color:#7c5cf0}
+.hud-chip.gold i{color:#e0a800}.hud-chip.amber i{color:#ff9a2e}.hud-chip.red i{color:#ff4d5e}.hud-chip.purple i{color:#a26bff}.hud-chip.blue i{color:#3b8cff}.hud-chip.cyan i{color:#36b8ff}
 .hud-level{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:99px;background:#1f2937;color:#fff;font:800 12.5px var(--font-display);white-space:nowrap}
 .hud-level b{display:block;width:70px;height:7px;border-radius:99px;background:rgba(255,255,255,.2);overflow:hidden}
 .hud-level b em{display:block;height:100%;background:linear-gradient(90deg,#2fb36a,#ffcf33);border-radius:99px}
@@ -90,4 +90,18 @@ a.db-metric:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
 .mine-legend span{display:inline-flex;align-items:center;gap:6px}
 .mine-legend i{width:10px;height:10px;border-radius:3px}
 .mine-off{display:flex;justify-content:flex-end}
-@media (max-width:760px){.mine-hud{width:100%}.hud-level small{display:none}}
+.station-stage{background:#02030a;box-shadow:inset 0 0 0 1px rgba(120,160,255,.12)}
+.station-stages{position:absolute;left:12px;top:12px;display:flex;gap:4px;flex-wrap:wrap;pointer-events:none}
+.station-stages span{padding:4px 9px;border-radius:99px;font:700 10.5px var(--font-display);letter-spacing:.02em;color:rgba(200,214,240,.55);background:rgba(10,16,34,.72);border:1px solid rgba(120,150,210,.18);backdrop-filter:blur(4px)}
+.station-stages span.done{color:#7ff0d2;border-color:rgba(64,224,190,.45)}
+.station-stages span.run{color:#fff;background:rgba(40,120,200,.75);border-color:#8fd8ff;animation:station-pulse 1s ease-in-out infinite}
+@keyframes station-pulse{50%{box-shadow:0 0 14px rgba(120,210,255,.8)}}
+.station-dock{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:12px;background:rgba(40,28,4,.72);border:1px solid rgba(255,205,90,.45);color:#ffe7a8;pointer-events:none;backdrop-filter:blur(4px)}
+.station-dock b{font:800 22px/1 var(--font-display)}
+.station-dock span{font:600 10.5px/1.25 var(--font-body);color:rgba(255,231,168,.8)}
+.station-zoom{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:4px}
+.station-zoom button{width:30px;height:30px;border-radius:9px;border:1px solid rgba(140,170,230,.3);background:rgba(10,16,34,.75);color:#dfe8ff;font:700 15px/1 var(--font-display);cursor:pointer}
+.station-zoom button:hover{background:rgba(40,70,130,.85)}
+.station-no3d{color:#dfe8ff}
+@media (max-width:760px){.mine-hud{width:100%}.hud-level small{display:none}.station-dock span{display:none}}
+@media (prefers-reduced-motion:reduce){.station-stages span.run{animation:none}}
