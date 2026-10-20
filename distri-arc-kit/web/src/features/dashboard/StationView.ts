@@ -4,7 +4,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { AGENT_COLOR, type AgentKey, type Comet, type FlyKind, type Planet, type StationPlan } from './station'
+import { AGENT_COLOR, AGENT_NAME, type AgentKey, type Comet, type FlyKind, type Planet, type StationPlan } from './station'
 
 // Stasiun Orbit: a space miniature in three.js, rendered HD (MSAA, ACES tone mapping, bloom, PBR with an environment
 // map). The AI core (the Orchestrator) burns in the middle inside the station ring; dealers are planets on orbits
@@ -25,6 +25,11 @@ export type StationTarget =
   | { kind: 'commander' }
 
 export interface CycleState { running: boolean; stage: number; hasCycle: boolean }
+
+/** One agent's part in the cycle being followed (GET /cycles/{id}/progress): the astronaut acts it out. */
+export type WorkState = 'waiting' | 'reading' | 'done' | 'failed'
+export interface AgentWork { state: WorkState; text: string }
+export type Work = Partial<Record<AgentKey, AgentWork>>
 
 export interface StationOptions {
   stage: HTMLElement
@@ -265,6 +270,8 @@ interface Agent {
   fx: THREE.Object3D | null
   label: THREE.Sprite | null
   target: StationTarget & { kind: 'agent' }
+  inWork: boolean
+  workText: string
 }
 interface CometView { comet: Comet; g: THREE.Group; head: THREE.Mesh; tail: THREE.Mesh; hit: THREE.Mesh; label: THREE.Sprite; phase: number; incl: number; enter: number; seed: number }
 interface Pulse { s: THREE.Sprite; from: () => THREE.Vector3; to: () => THREE.Vector3; t: number; dur: number; lift: number }
@@ -323,6 +330,8 @@ export class StationView {
   private last = 0
   private raf = 0
   private w = 0
+  private h = 0
+  private work: Work | null = null
   private pulseClock = 0
   private perf = { n: 0, sum: 0, level: 2 }
   // the HD path (bloom on an MSAA render target) draws nothing on some GPUs/browsers: checked on the first frames,
@@ -812,7 +821,7 @@ export class StationView {
       a.root.add(hitM)
       this.hit(hitM, target)
       this.scene.add(a.root)
-      const ag: Agent = { key, a, tasks: [], next: 0, state: 'home', u: 0, dur: 1, from: new THREE.Vector3(), timer: 0.5 + keys.indexOf(key) * 0.7, planet: '', carry: null, fx: null, label: null, target }
+      const ag: Agent = { key, a, tasks: [], next: 0, state: 'home', u: 0, dur: 1, from: new THREE.Vector3(), timer: 0.5 + keys.indexOf(key) * 0.7, planet: '', carry: null, fx: null, label: null, target, inWork: false, workText: '' }
       a.root.position.copy(this.homeOf(key))
       this.agents.push(ag)
     }
@@ -1080,12 +1089,18 @@ export class StationView {
     this.cycle = c
     if (!this.renderer) return
     if (c.running && !was) {
-      for (const a of this.agents) this.fly(a, 'togather', a.a.root.position.clone())
+      for (const a of this.agents) if (!this.work?.[a.key]) this.fly(a, 'togather', a.a.root.position.clone())
     } else if (!c.running && was) {
       this.core.waveT = 0 // learn: a shock wave from the core
       for (const a of this.agents) if (a.state === 'gather' || a.state === 'togather') this.fly(a, 'return', a.a.root.position.clone())
     }
     if (c.running && c.stage === 5 && stageWas !== 5) this.core.waveT = 0
+  }
+
+  /** The cycle being followed: each astronaut shows its agent's state (antri, menganalisa, selesai with the result,
+   * gagal); null sends them home. */
+  setWork(w: Work | null) {
+    this.work = w
   }
 
   // ---------- animation ----------
@@ -1201,7 +1216,74 @@ export class StationView {
     }
   }
 
+  private stepWork(a: Agent, w: AgentWork, dt: number) {
+    const A = a.a
+    const pos = A.root.position
+    if (!a.inWork) {
+      this.endAct(a)
+      this.setCarry(a, null)
+      a.inWork = true
+      a.workText = ''
+      a.state = 'home'
+    }
+    const i = this.agents.indexOf(a)
+    const finished = w.state === 'done' || w.state === 'failed'
+    let goal: THREE.Vector3
+    if (finished) { // in a row in front of the Dek Keputusan, showing the result
+      const k = i - (this.agents.length - 1) / 2
+      goal = this.dock.pos.clone().add(new THREE.Vector3(k * 0.85, 0.95 + Math.sin(this.t * 1.5 + i) * 0.04, 1.8 - Math.abs(k) * 0.18))
+    } else { // around the core: reading close with a beam, waiting a little further out
+      const reading = w.state === 'reading'
+      const ang = this.t * (reading ? 0.35 : 0.12) + (i / this.agents.length) * Math.PI * 2
+      const r = reading ? GATHER_R : GATHER_R + 0.6
+      goal = new THREE.Vector3(r * Math.cos(ang), (reading ? 0.95 : 1.4) + Math.sin(this.t * 1.3 + i) * 0.08, r * Math.sin(ang))
+    }
+    const prev = pos.clone()
+    const moving = pos.distanceTo(goal) > 0.3
+    pos.lerp(goal, 1 - Math.exp(-dt * 2.2))
+    A.flames.forEach((f) => { f.visible = moving; if (moving) f.scale.set(1, 0.8 + Math.random() * 0.5, 1) })
+    const dir = pos.clone().sub(prev).setY(0)
+    if (moving && dir.lengthSq() > 1e-8) { const l = pos.clone().add(dir); A.root.lookAt(l.x, pos.y, l.z) }
+    else if (finished) A.root.rotation.set(0, lerp(A.root.rotation.y, 0, 0.1), 0) // faces the camera
+    else A.root.lookAt(0, pos.y, 0)
+    A.body.rotation.x = lerp(A.body.rotation.x, moving ? 0.9 : 0.1, 1 - Math.exp(-dt * 5))
+    if (moving) { A.arms[1].rotation.x = -2.5; A.arms[0].rotation.x = -0.35 }
+    else if (w.state === 'reading') A.arms[0].rotation.x = A.arms[1].rotation.x = -1.35 + Math.sin(this.t * 3 + i) * 0.12
+    else if (w.state === 'done') { A.arms[1].rotation.x = -2.7 + Math.sin(this.t * 2 + i) * 0.1; A.arms[0].rotation.x = Math.sin(this.t * 2) * 0.1 } // holds the capsule up
+    else if (w.state === 'failed') A.arms[0].rotation.x = A.arms[1].rotation.x = 0.15
+    else A.arms[0].rotation.x = A.arms[1].rotation.x = Math.sin(this.t * 1.2 + i) * 0.15
+    A.legs[0].rotation.x = Math.sin(this.t * 1.6 + i) * 0.12
+    A.legs[1].rotation.x = -Math.sin(this.t * 1.6 + i) * 0.12
+    if (w.state === 'done' && !a.carry) { this.setCarry(a, 'capsule'); this.spawnBits(pos.clone(), 10, AGENT_COLOR[a.key], 0.3) }
+    if (w.state !== 'done' && a.carry) this.setCarry(a, null)
+    const text = w.state === 'waiting' ? 'antri' : w.state === 'reading' ? 'menganalisa…' : w.state === 'failed' ? '✕ gagal' : '✓ ' + (w.text || 'selesai')
+    if (text !== a.workText) {
+      a.workText = text
+      this.dropSprite(a.label)
+      const bg = w.state === 'failed' ? 'rgba(170,30,36,0.92)' : w.state === 'done' ? AGENT_COLOR[a.key] : w.state === 'reading' ? 'rgba(20,70,120,0.9)' : 'rgba(10,16,34,0.82)'
+      const fg = w.state === 'done' && (a.key === 'prospect' || a.key === 'followup') ? '#1a1300' : '#ffffff'
+      a.label = this.label(AGENT_NAME[a.key].replace('AI ', '') + ' · ' + text, bg, fg, 0.36, 'rgba(255,255,255,0.25)')
+      this.overlay.add(a.label)
+    }
+    // results in a row: labels on three steps so neighbours never cover each other
+    a.label?.position.copy(pos).setY(pos.y + 0.85 + (finished ? (i % 3) * 0.42 : 0))
+    a.target.status = w.state === 'waiting' ? 'Antri — menunggu giliran dianalisa'
+      : w.state === 'reading' ? 'Sedang menganalisa' + (w.text ? ` (${w.text})` : '')
+      : w.state === 'failed' ? 'Gagal' + (w.text ? `: ${w.text}` : '')
+      : 'Selesai · ' + (w.text || 'tanpa saran baru') + ' — kapsul dibawa ke Dek Keputusan'
+  }
+
   private stepAgent(a: Agent, dt: number) {
+    const w = this.work?.[a.key]
+    if (w) { this.stepWork(a, w, dt); return }
+    if (a.inWork) { // the followed cycle was closed: back to the usual work
+      a.inWork = false
+      this.dropSprite(a.label)
+      a.label = null
+      this.setCarry(a, null)
+      this.fly(a, this.cycle.running ? 'togather' : 'return', a.a.root.position.clone())
+      return
+    }
     const A = a.a
     const pos = A.root.position
     if (a.state === 'home') {
@@ -1411,7 +1493,8 @@ export class StationView {
       } else this.pulseClock = 0.3
     }
     // analysis beams from every gathered astronaut to the core
-    const gathered = this.agents.filter((a) => a.state === 'gather')
+    const reads = (a: Agent) => a.inWork && this.work?.[a.key]?.state === 'reading'
+    const gathered = this.agents.filter((a) => a.state === 'gather' || reads(a))
     while (this.beams.length < this.agents.length) {
       const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: new THREE.Color(0.6, 1.8, 2.4), transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }))
       l.visible = false
@@ -1420,7 +1503,7 @@ export class StationView {
     }
     this.beams.forEach((l, i) => {
       const a = gathered[i]
-      l.visible = !!a && c.running && (c.stage === 1 || c.stage === 2)
+      l.visible = !!a && ((c.running && (c.stage === 1 || c.stage === 2)) || reads(a))
       if (!l.visible) return
       const at = (l.geometry as THREE.BufferGeometry).attributes.position as THREE.BufferAttribute
       const h = a.a.hand.getWorldPosition(new THREE.Vector3())
@@ -1533,7 +1616,7 @@ export class StationView {
     }
     if (this.belt) this.belt.rotation.y -= dt * 0.008
     this.stars[0].rotation.y += dt * 0.002
-    for (const a of this.agents) { this.stepAgent(a, dt); this.say(a) }
+    for (const a of this.agents) { this.stepAgent(a, dt); if (!a.inWork) this.say(a) }
     // the commander taps the tablet while capsules wait
     const cm = this.commander
     if (cm) {
@@ -1565,7 +1648,8 @@ export class StationView {
     if (!this.renderer || !this.composer || !st.isConnected || st.getClientRects().length === 0) return
     const w = st.clientWidth
     if (!w) return
-    if (w !== this.w) this.resize(w)
+    const h = st.clientHeight || STATION_H
+    if (w !== this.w || h !== this.h) this.resize(w, h)
     const dt = this.last ? Math.min(0.05, (now - this.last) / 1000) : 0
     this.last = now
     this.adapt(dt)
@@ -1632,12 +1716,13 @@ export class StationView {
     console.warn('Stasiun Orbit: HD pass unavailable, rendering directly', why)
   }
 
-  private resize(w: number) {
+  private resize(w: number, h: number) {
     this.w = w
-    this.renderer!.setSize(w, STATION_H)
+    this.h = h
+    this.renderer!.setSize(w, h)
     this.composer!.setPixelRatio(this.renderer!.getPixelRatio())
-    this.composer!.setSize(w, STATION_H)
-    const aspect = w / STATION_H
+    this.composer!.setSize(w, h)
+    const aspect = w / h
     this.camera.aspect = aspect
     const tan = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))
     this.dist = Math.min(80, Math.max(9.2 / tan, 18.5 / (tan * aspect)))

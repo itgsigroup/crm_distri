@@ -103,5 +103,34 @@ a.db-metric:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
 .station-zoom button{width:30px;height:30px;border-radius:9px;border:1px solid rgba(140,170,230,.3);background:rgba(10,16,34,.75);color:#dfe8ff;font:700 15px/1 var(--font-display);cursor:pointer}
 .station-zoom button:hover{background:rgba(40,70,130,.85)}
 .station-no3d{color:#dfe8ff}
-@media (max-width:760px){.mine-hud{width:100%}.hud-level small{display:none}.station-dock span{display:none}}
+.station-engine{display:inline-flex;height:30px;padding:2px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line)}
+.station-engine button{border:0;background:none;padding:0 10px;border-radius:99px;font:700 11.5px var(--font-display);color:var(--text-3);cursor:pointer}
+.station-engine button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.station-engine button:disabled{cursor:default;opacity:.6}
+.station-run{height:32px;padding:0 14px;font-size:12.5px;white-space:nowrap}
+.station-zoom button.on{background:rgba(40,110,190,.9);border-color:#8fd8ff}
+.station-work{position:absolute;left:12px;bottom:12px;width:min(340px,calc(100% - 70px));max-height:calc(100% - 70px);overflow:auto;padding:12px 14px;border-radius:14px;background:rgba(8,13,30,.86);border:1px solid rgba(120,160,240,.3);color:#e3ebff;backdrop-filter:blur(6px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.sw-h{display:flex;align-items:baseline;gap:8px}
+.sw-h b{font:800 13.5px var(--font-display)}
+.sw-h span{font-size:11px;color:rgba(200,214,240,.65)}
+.sw-h button{margin-left:auto;border:0;background:none;color:#cfd8ef;font-size:18px;line-height:1;cursor:pointer}
+.sw-now{margin:6px 0 0;font-size:11.5px;color:#8fd8ff}
+.sw-agents{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:5px}
+.sw-agents li{display:grid;grid-template-columns:10px auto 1fr;align-items:center;gap:7px;font-size:11.5px}
+.sw-agents li i{width:10px;height:10px;border-radius:50%}
+.sw-agents li b{font-weight:700}
+.sw-agents li span{color:rgba(200,214,240,.75);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sw-agents li.reading span{color:#8fd8ff}.sw-agents li.done span{color:#7ff0d2}.sw-agents li.failed span{color:#ff8a8a}
+.sw-agents li.reading i{animation:station-pulse 1s ease-in-out infinite}
+.sw-res{margin-top:10px;padding-top:9px;border-top:1px solid rgba(120,160,240,.2);display:flex;flex-direction:column;gap:5px}
+.sw-res>b{font-size:12px;color:#ffe7a8}
+.sw-prop{display:flex;align-items:center;gap:7px;border:0;background:rgba(255,255,255,.05);border-radius:8px;padding:6px 8px;color:#e3ebff;font-size:11.5px;text-align:left;cursor:pointer}
+.sw-prop:hover{background:rgba(255,255,255,.1)}
+.sw-prop i{width:8px;height:8px;border-radius:50%;flex:none}
+.sw-prop span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw-go{height:30px;margin-top:4px;font-size:12px}
+.station-card.station-full{position:fixed;inset:0;z-index:1000;margin:0;border-radius:0;display:flex;flex-direction:column;padding:12px 14px}
+.station-full .mine-stage{flex:1;min-height:0}
+.station-full .mine-legend{display:none}
+@media (max-width:760px){.mine-hud{width:100%}.hud-level small{display:none}.station-dock span{display:none}.station-work{width:calc(100% - 60px)}}
 @media (prefers-reduced-motion:reduce){.station-stages span.run{animation:none}}

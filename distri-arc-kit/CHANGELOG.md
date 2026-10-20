@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Stasiun Orbit: tombol "AI Agent bekerja", Perbesar & Layar penuh, hasil kerja agen terlihat · 2026-10-20
+- Tombol **🚀 AI Agent bekerja** di kepala adegan menjalankan Orchestrator untuk semua data (lewat `POST /cycles`, mesin **Sistem** atau **MCP Claude** — pilihan yang sama dengan dock Orchestrator). Tidak ada yang dikirim ke dealer: hasilnya usulan yang menunggu keputusan manusia.
+- **Astronot memerankan agennya sungguhan** dari `GET /cycles/{id}/progress` (diperbarui tiap 2 detik): *antri* melayang menunggu di dekat Inti AI, *menganalisa* mengitari inti dengan sinar ke inti (label berisi data yang dibaca), *selesai* terbang ke depan Dek Keputusan sambil mengangkat kapsul usulan dengan label hasilnya (mis. "Order · ✓ 3 saran"), *gagal* berlabel merah. Siklus terjadwal juga diperankan saat adegan terbuka.
+- **Panel hasil kerja AI agent** di pojok adegan: status tiap agen langsung, lalu setelah selesai jumlah usulan baru dan judulnya, dengan tombol *Putuskan di Pusat kendali*. Hasil siklus yang dimulai dari tombol tetap tampil sampai ditutup; hasil siklus terjadwal tertutup sendiri setelah 45 detik. Pop-up "Analisis berhasil" tidak muncul selama adegan terbuka (hasilnya sudah di adegan).
+- Tombol **Perbesar** (adegan lebih tinggi) dan **Layar penuh** (Esc untuk keluar; di peramban tanpa Fullscreen API adegan memenuhi jendela).
+
 ## Fix · Stasiun Orbit: layar hitam di sebagian GPU/browser · 2026-10-20
 - Di sebagian perangkat, jalur HD (bloom di render target MSAA float) tidak menggambar apa pun: hanya label yang tampil di atas latar hitam. Render target float kini hanya dipakai bila GPU mendukungnya; setelah frame pertama adegan memeriksa piksel di Inti AI, dan bila hitam (atau jalur HD error) otomatis beralih ke render langsung ke kanvas (tetap PBR, ACES, MSAA; tanpa bloom).
 
