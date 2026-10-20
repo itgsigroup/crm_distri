@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import { Icon } from '../../components/Icon'
 import { Pill } from '../../components/ui'
-import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
+import { ColumnTable, SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { hhmm, shortDate } from '../../lib/format'
 import { useSchedules } from '../../app/queries'
 import { MODE, RUN_COMPARE, aiAgents, waitText, TRIGGER, dur, hourly, modelLabel, rpAI, runFirstDir, runText, tok, type AIRun, type AIUsage as Usage, type RunColumn, type UsageTotals } from './usage'
@@ -115,15 +115,17 @@ export function AIUsage() {
       </div>
 
       {data.cost.by_model.length > 0 && (
-        <div className="odl-wrap">
-          <table className="odl au-models">
-            <thead><tr><th>Model (30 hari)</th><th className="r">Panggilan</th><th className="r">Token masuk</th><th className="r">Token keluar</th><th className="r">Biaya</th><th>Terakhir</th></tr></thead>
-            <tbody>
-              {data.cost.by_model.map((m) => (
-                <tr key={m.provider + m.model}><td><b>{modelLabel(m.model)}</b> {m.provider !== 'fake' && m.provider !== 'template' ? <small className="muted">{m.provider}</small> : <small className="muted">tanpa biaya</small>}</td><td className="r num">{m.calls.toLocaleString('id-ID')}</td><td className="r num">{tok(m.tokens_in)}</td><td className="r num">{tok(m.tokens_out)}</td><td className="r num"><b>{rpAI(m.cost_idr)}</b></td><td>{when(m.last_at)}</td></tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="au-models">
+          <ColumnTable rows={data.cost.by_model} rowKey={(m) => m.provider + m.model} noun="model" placeholder="Cari model, provider…"
+            text={(m) => [modelLabel(m.model), m.model, m.provider].join(' ')} initial={{ column: 'cost', dir: 'desc' }} empty="Belum ada pemakaian model."
+            columns={[
+              { key: 'model', label: 'Model (30 hari)', sort: (a, b) => modelLabel(a.model).localeCompare(modelLabel(b.model)), cell: (m) => <><b>{modelLabel(m.model)}</b> {m.provider !== 'fake' && m.provider !== 'template' ? <small className="muted">{m.provider}</small> : <small className="muted">tanpa biaya</small>}</> },
+              { key: 'calls', label: 'Panggilan', right: true, first: 'desc', sort: (a, b) => a.calls - b.calls, cell: (m) => <span className="num">{m.calls.toLocaleString('id-ID')}</span> },
+              { key: 'in', label: 'Token masuk', right: true, first: 'desc', sort: (a, b) => a.tokens_in - b.tokens_in, cell: (m) => <span className="num">{tok(m.tokens_in)}</span> },
+              { key: 'out', label: 'Token keluar', right: true, first: 'desc', sort: (a, b) => a.tokens_out - b.tokens_out, cell: (m) => <span className="num">{tok(m.tokens_out)}</span> },
+              { key: 'cost', label: 'Biaya', right: true, first: 'desc', sort: (a, b) => a.cost_idr - b.cost_idr, cell: (m) => <b className="num">{rpAI(m.cost_idr)}</b> },
+              { key: 'last', label: 'Terakhir', first: 'desc', sort: (a, b) => (a.last_at ?? '').localeCompare(b.last_at ?? ''), cell: (m) => when(m.last_at) },
+            ]} />
         </div>
       )}
 

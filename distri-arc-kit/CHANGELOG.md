@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · MCP Claude: semua kartu daftar jadi datatable (cari, urut, paginasi) · 2026-10-20
+- **Koneksi**, **Tool MCP**, **Contoh prompt analisis**, tabel model di **Pemakaian AI**, daftar **Analisis terjadwal**, dan **Riwayat Analisa WhatsApp** kini datatable seperti Riwayat MCP: pencarian, urut per kolom, paginasi 10/25/50. Koneksi yang dicabut dan jadwal yang dijeda tetap tampil redup; tombol Cabut, Jalankan, Laporan, Ubah, dan switch jadwal tetap di barisnya. Riwayat Analisa WhatsApp kini memuat semua run (sebelumnya 12 terakhir).
+- Kartu formulir (Hubungkan Claude, Token manual, Izin & batas, Routine Claude) tidak berisi daftar, jadi tetap.
+
 ## Feat · Cabang: datatable (cari, urut per kolom, paginasi) · 2026-10-20
 - Master data → **Cabang** kini datatable seperti Pengguna dan Peran & akses: pencarian (cabang, kota, alamat, aktif/nonaktif), urut per kolom (Cabang, Kota, Pengguna, Dealer, Status), paginasi 10/25/50. Kolom **Status** baru; cabang nonaktif tetap tampil redup.
 

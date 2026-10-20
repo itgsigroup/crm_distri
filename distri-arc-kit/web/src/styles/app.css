@@ -1987,3 +1987,10 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .odl tr.is-off td{opacity:.5}
 .odl td.role-screens{max-width:320px}
 .odl td.br-addr{max-width:280px}
+
+/* MCP Claude (20 Oct): every list card is a data table — a paused schedule fades but its switch stays clear */
+.odl tr.is-off td.an-sw-cell{opacity:1}
+.odl td.an-sch-main{min-width:240px}
+.odl td.an-sch-main code{font-family:var(--font-mono);font-size:11px}
+.odl td.cl-tool-desc{max-width:420px}
+.odl .an-row-act{flex-wrap:nowrap}

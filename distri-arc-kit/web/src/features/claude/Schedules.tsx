@@ -7,6 +7,7 @@ import { Markdown } from '../../components/Markdown'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill, type Tone } from '../../components/ui'
 import { hhmm, shortDate, wib } from '../../lib/format'
+import { ColumnTable, type Column } from '../../components/DataTable'
 import { useAnalyst, useCronPreview, useMe, useScheduleRun, useScheduleRuns, useSchedules } from '../../app/queries'
 import { PROMPTS, SCOPE } from './shared'
 
@@ -233,7 +234,20 @@ function ReportsSheet({ sch }: { sch: Schedule }) {
   )
 }
 
-function Row({ sch, info }: { sch: Schedule; info: AnalystInfo }) {
+/** The on/off switch of one schedule (a table cell). */
+function ScheduleSwitch({ sch, info }: { sch: Schedule; info: AnalystInfo }) {
+  const qc = useQueryClient()
+  const { toast } = useFeedback()
+  const toggle = useMutation({
+    mutationFn: () => api.put(`/mcp/schedules/${sch.id}`, { ...sch, enabled: !sch.enabled }),
+    onSuccess: () => { toast(sch.enabled ? 'Jadwal dijeda' : 'Jadwal aktif'); qc.invalidateQueries({ queryKey: ['mcp', 'schedules'] }) },
+    onError: (e: Error) => toast(e.message),
+  })
+  return <button className={`sw ${sch.enabled ? 'on' : ''}`} disabled={!info.can_schedule || toggle.isPending} aria-label={sch.enabled ? 'Jeda jadwal' : 'Aktifkan jadwal'} onClick={() => toggle.mutate()} />
+}
+
+/** Jalankan / Laporan / Ubah of one schedule (a table cell). */
+function ScheduleActions({ sch, info }: { sch: Schedule; info: AnalystInfo }) {
   const qc = useQueryClient()
   const { toast, openSheet } = useFeedback()
   const run = useMutation({
@@ -241,33 +255,25 @@ function Row({ sch, info }: { sch: Schedule; info: AnalystInfo }) {
     onSuccess: (r) => { toast(r.message); qc.invalidateQueries({ queryKey: ['mcp'] }) },
     onError: (e: Error) => toast(e.message),
   })
-  const toggle = useMutation({
-    mutationFn: () => api.put(`/mcp/schedules/${sch.id}`, { ...sch, enabled: !sch.enabled }),
-    onSuccess: () => { toast(sch.enabled ? 'Jadwal dijeda' : 'Jadwal aktif'); qc.invalidateQueries({ queryKey: ['mcp', 'schedules'] }) },
-    onError: (e: Error) => toast(e.message),
-  })
   const last = sch.last_run
   const edit = info.can_schedule
   return (
-    <li className={`an-row ${sch.enabled ? '' : 'off'}`}>
-      <button className={`sw ${sch.enabled ? 'on' : ''}`} disabled={!edit || toggle.isPending} aria-label={sch.enabled ? 'Jeda jadwal' : 'Aktifkan jadwal'} onClick={() => toggle.mutate()} />
-      <div className="an-row-main">
-        <b>{sch.name}</b>
-        <span>{sch.runner === 'external' ? 'Dijalankan routine Claude di claude.ai lewat konektor CRM DISTRI (tanpa kunci API) · ' : ''}{sch.description} · <code>{sch.cron}</code> · {sch.scopes.map((s) => SCOPE[s]?.[0] ?? s).join(', ')} · maks {sch.max_steps} langkah</span>
-        <span>
-          {sch.enabled && sch.next_runs[0] ? <>Berikutnya <b>{when(sch.next_runs[0])}</b></> : 'Dijeda'}
-          {last && <> · terakhir {when(last.started_at)} <Pill tone={STATUS[last.status][1]}>{STATUS[last.status][0]}</Pill>{last.cost_idr ? ` ${rpSmall(last.cost_idr)}` : ''}</>}
-        </span>
-      </div>
-      <div className="an-row-act">
-        {edit && sch.runner === 'external' && <a className="btn ghost" href="https://claude.ai/code/routines" target="_blank" rel="noreferrer noopener"><Icon name="refresh" />Jalankan di claude.ai</a>}
-        {edit && sch.runner !== 'external' && <button className="btn ghost" disabled={run.isPending || last?.status === 'running'} onClick={() => run.mutate()}><Icon name="refresh" />{last?.status === 'running' ? 'Berjalan…' : 'Jalankan'}</button>}
-        <button className="btn ghost" onClick={() => openSheet(<ReportsSheet sch={sch} />)}><Icon name="doc" />Laporan</button>
-        {edit && <button className="btn quiet" onClick={() => openSheet(<ScheduleSheet sch={sch} info={info} />)}>Ubah</button>}
-      </div>
-    </li>
+    <div className="an-row-act">
+      {edit && sch.runner === 'external' && <a className="btn ghost" href="https://claude.ai/code/routines" target="_blank" rel="noreferrer noopener"><Icon name="refresh" />Jalankan di claude.ai</a>}
+      {edit && sch.runner !== 'external' && <button className="btn ghost" disabled={run.isPending || last?.status === 'running'} onClick={() => run.mutate()}><Icon name="refresh" />{last?.status === 'running' ? 'Berjalan…' : 'Jalankan'}</button>}
+      <button className="btn ghost" onClick={() => openSheet(<ReportsSheet sch={sch} />)}><Icon name="doc" />Laporan</button>
+      {edit && <button className="btn quiet" onClick={() => openSheet(<ScheduleSheet sch={sch} info={info} />)}>Ubah</button>}
+    </div>
   )
 }
+
+const scheduleColumns = (info: AnalystInfo): Column<Schedule>[] => [
+  { key: 'on', label: 'Aktif', className: 'an-sw-cell', sort: (a, b) => Number(b.enabled) - Number(a.enabled), cell: (s) => <ScheduleSwitch sch={s} info={info} /> },
+  { key: 'name', label: 'Jadwal', sort: (a, b) => a.name.localeCompare(b.name, 'id'), className: 'an-sch-main', cell: (s) => <><b>{s.name}</b><small className="au-sub">{s.runner === 'external' ? 'Routine Claude di claude.ai lewat konektor CRM DISTRI (tanpa kunci API) · ' : ''}{s.description} · <code>{s.cron}</code> · {s.scopes.map((x) => SCOPE[x]?.[0] ?? x).join(', ')} · maks {s.max_steps} langkah</small></> },
+  { key: 'next', label: 'Berikutnya', sort: (a, b) => (a.enabled && a.next_runs[0] ? a.next_runs[0] : '~').localeCompare(b.enabled && b.next_runs[0] ? b.next_runs[0] : '~'), cell: (s) => (s.enabled && s.next_runs[0] ? <span className="nowrap">{when(s.next_runs[0])}</span> : <span className="muted">Dijeda</span>) },
+  { key: 'last', label: 'Terakhir', first: 'desc', sort: (a, b) => (a.last_run?.started_at ?? '').localeCompare(b.last_run?.started_at ?? ''), cell: (s) => (s.last_run ? <><span className="nowrap">{when(s.last_run.started_at)}</span> <Pill tone={STATUS[s.last_run.status][1]}>{STATUS[s.last_run.status][0]}</Pill>{s.last_run.cost_idr ? ` ${rpSmall(s.last_run.cost_idr)}` : ''}</> : <span className="muted">belum pernah</span>) },
+  { key: 'act', label: '', right: true, cell: (s) => <ScheduleActions sch={s} info={info} /> },
+]
 
 /** History of Claude's Analisa WhatsApp every 2 hours (ADR 0037): each run, whether it landed in Pusat kendali, why
  * not, and its report. */
@@ -281,19 +287,16 @@ function WAHistory({ sch }: { sch: Schedule }) {
         <span>{sch.enabled ? `tiap 2 jam · berikutnya ${sch.next_runs[0] ? when(sch.next_runs[0]) : '—'}` : 'dijeda'} · {runs.filter((r) => r.status === 'ok').length} berhasil dari {runs.length} terakhir</span>
       </div>
       {isLoading ? <p className="cl-empty">Memuat…</p> : runs.length === 0 ? <p className="cl-empty">Belum ada analisa yang masuk. {sch.runner === 'external' ? <>Routine Claude di claude.ai mengirimnya tiap 2 jam; untuk mencoba sekarang tekan <b>Run now</b> di claude.ai/code/routines.</> : <>Jalankan pertama lewat tombol <b>Jalankan</b> pada jadwal di bawah.</>}</p> : (
-        <table className="tbl an-wa-tbl">
-          <thead><tr><th>Waktu</th><th>Hasil</th><th>Keterangan</th><th className="r">Biaya</th></tr></thead>
-          <tbody>
-            {runs.slice(0, 12).map((r) => (
-              <tr key={r.id} onClick={() => openSheet(<ReportsSheet sch={sch} />)} style={{ cursor: 'pointer' }}>
-                <td className="nowrap">{when(r.started_at)}{r.trigger === 'manual' ? ' · manual' : ''}</td>
-                <td><Pill tone={r.status === 'ok' ? 'good' : r.status === 'running' ? 'accent' : 'bad'}>{r.status === 'ok' ? 'Berhasil' : r.status === 'running' ? 'Berjalan' : 'Gagal'}</Pill></td>
-                <td className="an-wa-note">{r.error ?? (r.preview || '—')}</td>
-                <td className="r num">{r.cost_idr ? rpSmall(r.cost_idr) : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ColumnTable rows={runs} rowKey={(r) => r.id} noun="analisa" placeholder="Cari hasil, keterangan…" className="an-wa-tbl"
+          text={(r) => [when(r.started_at), r.trigger === 'manual' ? 'manual' : 'terjadwal', r.status === 'ok' ? 'berhasil' : r.status === 'running' ? 'berjalan' : 'gagal', r.error ?? r.preview ?? ''].join(' ')}
+          initial={{ column: 'at', dir: 'desc' }} empty="Belum ada analisa yang masuk."
+          columns={[
+            { key: 'at', label: 'Waktu', first: 'desc', sort: (a, b) => a.started_at.localeCompare(b.started_at), cell: (r) => <span className="nowrap">{when(r.started_at)}{r.trigger === 'manual' ? ' · manual' : ''}</span> },
+            { key: 'status', label: 'Hasil', sort: (a, b) => a.status.localeCompare(b.status), cell: (r) => <Pill tone={r.status === 'ok' ? 'good' : r.status === 'running' ? 'accent' : 'bad'}>{r.status === 'ok' ? 'Berhasil' : r.status === 'running' ? 'Berjalan' : 'Gagal'}</Pill> },
+            { key: 'note', label: 'Keterangan', className: 'an-wa-note', cell: (r) => r.error ?? (r.preview || '—') },
+            { key: 'cost', label: 'Biaya', right: true, first: 'desc', sort: (a, b) => a.cost_idr - b.cost_idr, cell: (r) => <span className="num">{r.cost_idr ? rpSmall(r.cost_idr) : '—'}</span> },
+            { key: 'open', label: '', right: true, cell: () => <button className="btn quiet" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<ReportsSheet sch={sch} />)}>Laporan</button> },
+          ]} />
       )}
     </div>
   )
@@ -321,9 +324,9 @@ export function Schedules() {
       </div>
       <Engine info={info} />
       {list.find((s) => s.key === 'wa_analysis') && <WAHistory sch={list.find((s) => s.key === 'wa_analysis')!} />}
-      {list.length === 0 ? <p className="cl-empty">Belum ada jadwal. Buat satu — mis. ringkasan setiap pagi Senin–Sabtu 07.00.</p> : (
-        <ul className="an-list">{list.map((s) => <Row key={s.id} sch={s} info={info} />)}</ul>
-      )}
+      <ColumnTable rows={list} columns={scheduleColumns(info)} rowKey={(s) => s.id} noun="jadwal" placeholder="Cari jadwal, keterangan, cron…"
+        text={(s) => [s.name, s.description, s.cron, s.prompt, s.enabled ? 'aktif' : 'dijeda', s.runner === 'external' ? 'routine claude.ai' : 'server'].join(' ')}
+        initial={{ column: 'on', dir: 'asc' }} empty="Belum ada jadwal. Buat satu — mis. ringkasan setiap pagi Senin–Sabtu 07.00." rowClass={(s) => (s.enabled ? undefined : 'is-off')} />
     </div>
   )
 }

@@ -1,17 +1,16 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
-import type { MCPCall, MCPClient, MCPPolicy } from '../../api/types'
+import type { MCPCall, MCPClient, MCPPolicy, MCPTool } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { hhmm, shortDate } from '../../lib/format'
 import { useMCPCalls, useMCPClients, useMCPInfo, useMCPPolicy, useMe } from '../../app/queries'
-import { useMore } from '../../components/More'
 import { Schedules } from './Schedules'
 import { ClaudeRoutine } from './ClaudeRoutine'
 import { AIUsage } from './AIUsage'
-import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
+import { ColumnTable, SortTh, TablePager, TableSearch, useDataTable, type Column } from '../../components/DataTable'
 import { CALL_COMPARE, KIND, argsText, callFirstDir, callText, type CallColumn } from './usage'
 import { PROMPTS, SCOPE } from './shared'
 
@@ -77,27 +76,20 @@ function Connections() {
     onError: (e: Error) => toast(e.message),
   })
   const active = clients.filter((c) => c.active)
-  const [shown, more] = useMore(clients.slice().sort((a, b) => Number(b.active) - Number(a.active)), 8)
+  const columns: Column<MCPClient>[] = [
+    { key: 'name', label: 'Koneksi', sort: (a, b) => a.name.localeCompare(b.name, 'id'), cell: (c) => <><b>{c.name}</b><small className="au-sub">{c.kind === 'oauth' ? 'Login OAuth' : c.kind === 'schedule' ? 'Analisis terjadwal' : 'Token manual'}{c.user && !c.name.includes(c.user) ? ` · ${c.user}` : ''}</small></> },
+    { key: 'scopes', label: 'Izin', cell: (c) => c.scopes.map((s) => SCOPE[s]?.[0] ?? s).join(', ') },
+    { key: 'calls', label: 'Panggilan hari ini', right: true, sort: (a, b) => a.calls_today - b.calls_today, first: 'desc', cell: (c) => <span className="num">{c.calls_today.toLocaleString('id-ID')}</span> },
+    { key: 'seen', label: 'Terakhir dipakai', sort: (a, b) => (a.last_seen_at ?? '').localeCompare(b.last_seen_at ?? ''), first: 'desc', cell: (c) => (c.last_seen_at ? <span className="nowrap">{shortDate(c.last_seen_at)} · {hhmm(c.last_seen_at)}</span> : <span className="muted">belum dipakai</span>) },
+    { key: 'status', label: 'Status', sort: (a, b) => Number(b.active) - Number(a.active), cell: (c) => <Pill tone={c.active ? (c.kind === 'oauth' ? 'accent' : 'good') : 'neutral'}>{c.active ? (c.kind === 'oauth' ? 'Claude' : c.token_prefix || 'Aktif') : 'Dicabut'}</Pill> },
+    { key: 'act', label: '', right: true, cell: (c) => c.active && me?.edit_policies && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => { if (window.confirm(`Cabut koneksi ${c.name}?`)) revoke.mutate(c.id) }}>Cabut</button> },
+  ]
   return (
     <div className="card">
       <div className="card-h"><h2>Koneksi</h2><span className="meta">{active.length} aktif · dicabut kapan saja</span></div>
-      {clients.length === 0 ? <p className="cl-empty">Belum ada Claude yang terhubung. Ikuti langkah di atas.</p> : (
-        <ul className="rules">
-          {shown.map((c: MCPClient) => (
-            <li key={c.id} style={c.active ? undefined : { opacity: 0.5 }}>
-              <div>
-                <b>{c.name}</b>
-                <span>{c.kind === 'oauth' ? 'Login OAuth' : 'Token manual'} · {c.scopes.map((s) => SCOPE[s]?.[0] ?? s).join(', ')} · {c.calls_today} panggilan hari ini{c.last_seen_at ? ` · terakhir ${shortDate(c.last_seen_at)} ${hhmm(c.last_seen_at)}` : ' · belum dipakai'}</span>
-              </div>
-              <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <Pill tone={c.kind === 'oauth' ? 'accent' : 'neutral'}>{c.kind === 'oauth' ? 'Claude' : c.token_prefix}</Pill>
-                {c.active ? (me?.edit_policies && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => { if (window.confirm(`Cabut koneksi ${c.name}?`)) revoke.mutate(c.id) }}>Cabut</button>) : <Pill tone="neutral">dicabut</Pill>}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {more}
+      <ColumnTable rows={clients} columns={columns} rowKey={(c) => c.id} noun="koneksi" placeholder="Cari koneksi, pengguna, izin…"
+        text={(c) => [c.name, c.user ?? '', c.kind === 'oauth' ? 'login oauth claude' : c.kind === 'schedule' ? 'analisis terjadwal' : 'token manual', c.scopes.map((s) => SCOPE[s]?.[0] ?? s).join(' '), c.active ? 'aktif' : 'dicabut'].join(' ')}
+        initial={{ column: 'status', dir: 'asc' }} empty="Belum ada Claude yang terhubung. Ikuti langkah di atas." rowClass={(c) => (c.active ? undefined : 'is-off')} />
     </div>
   )
 }
@@ -167,22 +159,22 @@ function Rules() {
   )
 }
 
+const TOOL_GROUPS = ['read', 'analyze', 'orchestrate', 'decide']
+
 function Tools() {
   const { data: info } = useMCPInfo()
-  const groups = ['read', 'analyze', 'orchestrate', 'decide']
+  const tools = info?.tools ?? []
+  const columns: Column<MCPTool>[] = [
+    { key: 'name', label: 'Tool', sort: (a, b) => a.name.localeCompare(b.name), cell: (t) => <code>{t.name}</code> },
+    { key: 'scope', label: 'Kelompok', sort: (a, b) => TOOL_GROUPS.indexOf(a.scope) - TOOL_GROUPS.indexOf(b.scope) || a.name.localeCompare(b.name), cell: (t) => <span title={SCOPE[t.scope]?.[1]}>{SCOPE[t.scope]?.[0] ?? t.scope}</span> },
+    { key: 'desc', label: 'Keterangan', className: 'cl-tool-desc', cell: (t) => <small>{t.description}</small> },
+  ]
   return (
     <div className="card">
-      <div className="card-h"><h2>Tool MCP</h2><span className="meta">{info?.tools.length ?? 0} tool · Claude memilih sendiri</span></div>
-      {groups.map((g) => {
-        const ts = (info?.tools ?? []).filter((t) => t.scope === g)
-        if (!ts.length) return null
-        return (
-          <div key={g} className="cl-tools">
-            <h4>{SCOPE[g][0]} <span>· {SCOPE[g][1]}</span></h4>
-            <ul>{ts.map((t) => <li key={t.name}><code>{t.name}</code><span>{t.description}</span></li>)}</ul>
-          </div>
-        )
-      })}
+      <div className="card-h"><h2>Tool MCP</h2><span className="meta">{tools.length} tool · Claude memilih sendiri</span></div>
+      <ColumnTable rows={tools} columns={columns} rowKey={(t) => t.name} noun="tool" placeholder="Cari tool, kelompok, keterangan…"
+        text={(t) => [t.name, SCOPE[t.scope]?.[0] ?? t.scope, SCOPE[t.scope]?.[1] ?? '', t.description].join(' ')}
+        initial={{ column: 'scope', dir: 'asc' }} empty="Server MCP belum memberi daftar tool." />
     </div>
   )
 }
@@ -271,7 +263,12 @@ export function ClaudePage() {
           <Connect endpoint={endpoint} />
           <div className="card">
             <div className="card-h"><h2>Contoh prompt analisis</h2><span className="meta">Salin ke Claude</span></div>
-            <ul className="cl-prompts">{PROMPTS.map((p) => <li key={p}><span>{p}</span><button className="btn quiet" onClick={() => copy(p, toast)}><Icon name="doc" />Salin</button></li>)}</ul>
+            <ColumnTable rows={PROMPTS} rowKey={(p) => p} noun="prompt" placeholder="Cari prompt…" text={(p) => p} empty="Belum ada contoh prompt."
+              initial={{ column: 'prompt', dir: 'asc' }}
+              columns={[
+                { key: 'prompt', label: 'Prompt', sort: (a, b) => PROMPTS.indexOf(a) - PROMPTS.indexOf(b), cell: (p) => p },
+                { key: 'copy', label: '', right: true, cell: (p) => <button className="btn quiet" onClick={() => copy(p, toast)}><Icon name="doc" />Salin</button> },
+              ]} />
           </div>
         </div>
         <div className="stack">
