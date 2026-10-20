@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Pusat kendali: kartu Limit tipis di bawah Ringkasan Orchestrator · 2026-10-20
+- Kartu **Limit tipis** pindah ke kolom kanan, tepat di bawah **Ringkasan Orchestrator**. Kolom kiri: Jadwal order + Push stok | Lewat jadwal. Tombol "Limit tipis" di status strip tetap menggulir ke kartunya.
+
 ## Feat · Chat: nomor sales di samping judul, Analisa WhatsApp di samping Orchestrator, zoom mulai 50% · 2026-10-20
 - Deretan nomor (Sales / Admin / Penagihan, + Nomor) pindah ke baris judul halaman, di samping tulisan **Chat** — area percakapan jadi lebih tinggi.
 - Pill **Analisa WhatsApp · MCP <jam> · berikutnya <jam>** pindah dari kanan atas ke header percakapan, di samping tombol Orchestrator. Halaman lain tidak berubah.

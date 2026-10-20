@@ -19,7 +19,7 @@ function scrollTo(id: string) {
 const NO_WA = 'Analisa WhatsApp mengutip pesan pelanggan, jadi hanya tampil untuk pengguna dengan akses halaman Chat.'
 
 // Pusat kendali, the cards of 08-frontend.md (ADR 0045), arranged by Sam 19 Oct: Rencana → Agenda sales → Keputusan,
-// Jadwal order + Push stok | Lewat jadwal + Limit tipis; KPI and Ringkasan on the right. Every analysis read from
+// Jadwal order + Push stok | Lewat jadwal; KPI, Ringkasan and Limit tipis (under it, 20 Oct) on the right. Every analysis read from
 // WhatsApp, Push stok from the BigQuery stock; every list is a data table (search, sort, pages).
 export function ControlCenter() {
   const nav = useNavigate()
@@ -116,10 +116,6 @@ export function ControlCenter() {
                 <div className="card-h"><h2>Lewat jadwal</h2><span className="ai" style={{ marginLeft: 6 }}>AI Follow-up</span><span className="meta">Chat lewat {due} belum dibalas — sebelum ordernya hilang</span></div>
                 {canWA ? <WAChatTable items={late} empty={`Tidak ada chat yang menunggu lebih dari ${due}.`} /> : <p className="sg-hint">{NO_WA}</p>}
               </div>
-              <div className="card" id="tight-card">
-                <CardH title="Limit tipis" ai="AI Kredit" meta="Chat minta rilis kredit atau retur" />
-                {canWA ? <WAChatTable items={tight} empty="Belum ada permintaan rilis kredit atau retur di chat." /> : <p className="sg-hint">{NO_WA}</p>}
-              </div>
             </div>
           </div>
         </div>
@@ -132,6 +128,10 @@ export function ControlCenter() {
           <div className="card brief">
             <div className="card-h"><span className="ai">Ringkasan Orchestrator · {wa?.generated_at ? `${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : '—'}</span><span className="meta" title="AI hanya membaca pesan pelanggan baru hari ini; yang sudah dibaca tetap tampil. Angka dihitung dari 7 hari terakhir tanpa AI.">{wa?.cycle_number ? `dari WhatsApp · ${wa.window_days} hari terakhir · siklus #${wa.cycle_number.toLocaleString('id-ID')}` : ''}</span></div>
             {canWA ? <><WAClaudeStatus data={wa} /><WABrief data={wa} scoped={scoped} /></> : <p className="sg-hint">{NO_WA}</p>}
+          </div>
+          <div className="card" id="tight-card">
+            <CardH title="Limit tipis" ai="AI Kredit" meta="Chat minta rilis kredit atau retur" />
+            {canWA ? <WAChatTable items={tight} empty="Belum ada permintaan rilis kredit atau retur di chat." /> : <p className="sg-hint">{NO_WA}</p>}
           </div>
         </div>
       </div>
