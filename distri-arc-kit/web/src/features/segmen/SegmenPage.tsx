@@ -117,7 +117,7 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   // only the plot area zooms and pans; the axes with their arrows stay in place and their ticks follow the zoom
   const PW = W - L - R
   const PH = H - T - B
-  const { containerRef: wrap, svgProps, ...viewport } = useMapViewport(PW, PH)
+  const { containerRef: wrap, svgProps, ...viewport } = useMapViewport(PW, PH, { minZoom: 0.5 }) // endless canvas: zoom out to 50%
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
   const [zone, setZone] = useState<Segment | null>(null) // the zone under the pointer lights up
   const [all, setAll] = useState(false)

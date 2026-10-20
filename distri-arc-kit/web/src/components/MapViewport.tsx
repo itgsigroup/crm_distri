@@ -27,9 +27,31 @@ export function clientToMap(rect: { left: number; top: number; width: number; he
   return { x: vb.x + (clientX - rect.left - offX) / s, y: vb.y + (clientY - rect.top - offY) / s, s }
 }
 
+/** The zoom levels the − / + buttons step through (draw.io-like round numbers). */
+export const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4, 6, 8]
+
+/** The next button step from `zoom` in direction `dir` (+1 in, -1 out), within [min, MAX_ZOOM]. */
+export function zoomStep(zoom: number, dir: 1 | -1, min = MIN_ZOOM): number {
+  const steps = ZOOM_STEPS.filter((z) => z >= min - 1e-6 && z <= MAX_ZOOM + 1e-6)
+  const next = dir > 0 ? steps.find((z) => z > zoom + 1e-3) : [...steps].reverse().find((z) => z < zoom - 1e-3)
+  return next ?? zoom
+}
+
+/** The on-screen box of an SVG viewport. A nested <svg>'s getBoundingClientRect is the box of its content (an endless
+ * canvas reaches far past it, 20 Oct), so its box comes from its x / y / width / height in the parent's space. */
+export function viewportRect(svg: SVGSVGElement): { left: number; top: number; width: number; height: number } {
+  const parent = svg.ownerSVGElement
+  const m = parent?.getScreenCTM()
+  if (!parent || !m) return svg.getBoundingClientRect()
+  const x = svg.x.baseVal.value, y = svg.y.baseVal.value, w = svg.width.baseVal.value, h = svg.height.baseVal.value
+  const a = new DOMPoint(x, y).matrixTransform(m)
+  const b = new DOMPoint(x + w, y + h).matrixTransform(m)
+  return { left: Math.min(a.x, b.x), top: Math.min(a.y, b.y), width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y) }
+}
+
 /** Zoom by `factor` keeping map point (px, py) where it is on screen; the centre stays on the map. */
-export function zoomAround(view: MapView, factor: number, px: number, py: number, width: number, height: number): MapView {
-  const zoom = clamp(view.zoom * factor, MIN_ZOOM, MAX_ZOOM)
+export function zoomAround(view: MapView, factor: number, px: number, py: number, width: number, height: number, min = MIN_ZOOM): MapView {
+  const zoom = clamp(view.zoom * factor, min, MAX_ZOOM)
   const k = view.zoom / zoom
   return { zoom, cx: clamp(px - (px - view.cx) * k, 0, width), cy: clamp(py - (py - view.cy) * k, 0, height) }
 }
@@ -94,7 +116,8 @@ export function FullscreenButton({ big, onClick }: { big: boolean; onClick: () =
   )
 }
 
-export function useMapViewport(width: number, height: number) {
+// minZoom below 1 lets a map with an endless canvas (Segmen) zoom out past its fit size, like draw.io.
+export function useMapViewport(width: number, height: number, { minZoom = MIN_ZOOM }: { minZoom?: number } = {}) {
   const home: MapView = { cx: width / 2, cy: height / 2, zoom: 1 }
   const fs = useFullscreen<HTMLDivElement>()
   const containerRef = fs.ref
@@ -116,14 +139,14 @@ export function useMapViewport(width: number, height: number) {
   const toMap = useCallback((clientX: number, clientY: number) => {
     const svg = svgRef.current
     if (!svg) return null
-    return clientToMap(svg.getBoundingClientRect(), vbRef.current, clientX, clientY)
+    return clientToMap(viewportRect(svg), vbRef.current, clientX, clientY)
   }, [])
 
   const zoomBy = useCallback((factor: number, clientX?: number, clientY?: number) => {
     const v = viewRef.current
     const p = clientX != null && clientY != null ? toMap(clientX, clientY) : null
-    setView(zoomAround(v, factor, p?.x ?? v.cx, p?.y ?? v.cy, width, height))
-  }, [toMap, setView, width, height])
+    setView(zoomAround(v, factor, p?.x ?? v.cx, p?.y ?? v.cy, width, height, minZoom))
+  }, [toMap, setView, width, height, minZoom])
 
   // wheel / trackpad pinch: a native listener, React's onWheel is passive and cannot stop the page from scrolling
   useEffect(() => {
@@ -187,11 +210,11 @@ export function useMapViewport(width: number, height: number) {
     if (g.kind === 'pinch') {
       const [a, b] = [...pointers.current.values()]
       if (!a || !b) return
-      const zoom = clamp(g.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / g.dist), MIN_ZOOM, MAX_ZOOM)
+      const zoom = clamp(g.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / g.dist), minZoom, MAX_ZOOM)
       // keep the map point that started under the fingers under their current midpoint
       const v = viewRef.current
       const tmp = { ...v, zoom }
-      const r = svgRef.current!.getBoundingClientRect()
+      const r = viewportRect(svgRef.current!)
       const box = viewRect(tmp, width, height, big ? aspect : width / height)
       const at = clientToMap(r, box, (a.x + b.x) / 2, (a.y + b.y) / 2)
       setView({ zoom, cx: clamp(v.cx + g.px - at.x, 0, width), cy: clamp(v.cy + g.py - at.y, 0, height) })
@@ -245,7 +268,7 @@ export function useMapViewport(width: number, height: number) {
     const svg = svgRef.current
     if (!big || !svg) return
     const measure = () => {
-      const r = svg.getBoundingClientRect()
+      const r = viewportRect(svg)
       if (r.width > 0 && r.height > 0) setAspect(r.width / r.height)
     }
     measure()
@@ -259,14 +282,14 @@ export function useMapViewport(width: number, height: number) {
   }, [big])
 
   const reset = () => { setView(home); setDot(1) }
-  const zoomed = view.zoom > MIN_ZOOM + 1e-6 || view.cx !== home.cx || view.cy !== home.cy
+  const zoomed = Math.abs(view.zoom - 1) > 1e-6 || view.cx !== home.cx || view.cy !== home.cy
   const stop = (e: { stopPropagation: () => void }) => e.stopPropagation()
   const controls = (
     <div className="map-controls" role="toolbar" aria-label="Kontrol peta" onPointerDown={stop} onDoubleClick={stop}>
       <div className="map-ctl-group" aria-label="Zoom">
-        <button type="button" aria-label="Zoom out" title="Zoom out (scroll ke bawah)" disabled={view.zoom <= MIN_ZOOM + 1e-6} onClick={() => zoomBy(1 / 1.5)}>−</button>
-        <span aria-live="polite" title="Zoom">{Math.round(view.zoom * 100)}%</span>
-        <button type="button" aria-label="Zoom in" title="Zoom in (scroll ke atas · klik ganda)" disabled={view.zoom >= MAX_ZOOM - 1e-6} onClick={() => zoomBy(1.5)}>+</button>
+        <button type="button" aria-label="Zoom out" title="Zoom out (scroll ke bawah)" disabled={view.zoom <= minZoom + 1e-6} onClick={() => zoomBy(zoomStep(view.zoom, -1, minZoom) / view.zoom)}>−</button>
+        <button type="button" className="map-ctl-pct" aria-live="polite" title="Kembali ke 100% (seluruh peta)" onClick={() => setView(home)}>{Math.round(view.zoom * 100)}%</button>
+        <button type="button" aria-label="Zoom in" title="Zoom in (scroll ke atas · klik ganda)" disabled={view.zoom >= MAX_ZOOM - 1e-6} onClick={() => zoomBy(zoomStep(view.zoom, 1, minZoom) / view.zoom)}>+</button>
       </div>
       <div className="map-ctl-group" aria-label="Ukuran titik">
         <span className="map-ctl-l" title="Ukuran titik — kecilkan untuk melihat posisi asli tiap titik">Titik</span>
@@ -290,8 +313,9 @@ export function useMapViewport(width: number, height: number) {
     zoom: view.zoom,
     /** one screen pixel at fit size, in map units at the current zoom (for strokes and hit areas) */
     unit: 1 / view.zoom,
-    /** dot size in map units relative to the base size: constant on screen while zooming */
-    markerScale: dot / view.zoom,
+    /** dot size in map units relative to the base size: constant on screen while zooming in; below 100% the dots
+     * shrink with the map like the rest of the canvas (draw.io-like zoom out) */
+    markerScale: dot / Math.max(view.zoom, 1),
     /** 0 = every dot on its true position, 1 = dots spread apart so none overlap */
     positionBlend: spreadOf(dot),
     dragging,

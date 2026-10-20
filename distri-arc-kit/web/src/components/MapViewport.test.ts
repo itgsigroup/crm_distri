@@ -1,7 +1,7 @@
-import { expect, test } from 'vitest'
+import { describe, expect, it, test } from 'vitest'
 import type { BoardItem } from '../api/types'
 import { CX, CY, layoutReadable, place } from '../features/orbit/geometry'
-import { MAX_ZOOM, MIN_DOT, clientToMap, spreadOf, viewRect, zoomAround } from './MapViewport'
+import { MAX_ZOOM, MIN_DOT, clientToMap, spreadOf, viewRect, zoomAround, zoomStep } from './MapViewport'
 
 const W = 800
 const H = 740
@@ -55,4 +55,18 @@ test('orbit spreads stacked dots less when they are smaller on screen (zoomed in
   }
   expect(shift(1 / 8)).toBeLessThan(shift(1) / 4)
   for (const x of layoutReadable(many, new Set(), null, 1.2, 1 / 8)) expect(Math.hypot(x.x - CX, x.y - CY)).toBeCloseTo(place(x.d).rad, 3)
+})
+
+describe('zoomStep', () => {
+  it('steps through round zoom levels both ways', () => {
+    expect(zoomStep(1, 1)).toBe(1.25)
+    expect(zoomStep(1.5, 1)).toBe(2)
+    expect(zoomStep(2.25, -1)).toBe(2)
+    expect(zoomStep(8, 1)).toBe(8)
+  })
+  it('stops at the minimum zoom', () => {
+    expect(zoomStep(1, -1)).toBe(1)
+    expect(zoomStep(1, -1, 0.5)).toBe(0.75)
+    expect(zoomStep(0.5, -1, 0.5)).toBe(0.5)
+  })
 })

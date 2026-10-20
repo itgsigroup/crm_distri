@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Segmen: kanvas lebih besar, zoom in / zoom out diperbaiki · 2026-10-20
+- Peta titik Segmen kini selebar kartunya (sebelumnya maksimal 720 px).
+- **Zoom scroll diperbaiki**: setelah kanvas dibuat tanpa batas, posisi peta di layar terbaca salah sehingga scroll di sebagian besar area tidak meng-zoom dan zoom tidak berpusat di kursor. Kini zoom scroll / cubit / klik ganda berpusat tepat di kursor di mana pun.
+- Tombol **− / +** melangkah ke angka bulat **50 · 75 · 100 · 125 · 150 · 200 · 300 · 400 · 600 · 800%**; klik angka % untuk kembali ke 100%. Segmen bisa di-zoom out sampai **50%** (seperti draw.io) — di bawah 100% titik dealer ikut mengecil. Peta Orbit tetap mulai dari 100%.
+
 ## Fix · Segmen: kanvas tidak terpotong saat digeser / zoom (seperti draw.io) · 2026-10-20
 - Warna kotak segmen, garis grid, dan garis batas "sering" / "besar" kini menyambung sampai tepi layar ke mana pun peta digeser atau di-zoom — sebelumnya berhenti di batas data sehingga sisanya putih dan peta tampak terpotong.
 - Latar titik-titik halus (seperti draw.io) ikut bergeser dan di-zoom bersama titik dealer; ukurannya tetap kecil di zoom berapa pun.
