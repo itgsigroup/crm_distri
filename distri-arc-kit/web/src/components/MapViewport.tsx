@@ -117,7 +117,8 @@ export function FullscreenButton({ big, onClick }: { big: boolean; onClick: () =
 }
 
 // minZoom below 1 lets a map with an endless canvas (Segmen) zoom out past its fit size, like draw.io.
-export function useMapViewport(width: number, height: number, { minZoom = MIN_ZOOM }: { minZoom?: number } = {}) {
+// dots: false hides the dot-size control (a map whose dot size carries a value and whose dots never move).
+export function useMapViewport(width: number, height: number, { minZoom = MIN_ZOOM, dots = true }: { minZoom?: number; dots?: boolean } = {}) {
   const home: MapView = { cx: width / 2, cy: height / 2, zoom: 1 }
   const fs = useFullscreen<HTMLDivElement>()
   const containerRef = fs.ref
@@ -291,7 +292,7 @@ export function useMapViewport(width: number, height: number, { minZoom = MIN_ZO
         <button type="button" className="map-ctl-pct" aria-live="polite" title="Kembali ke 100% (seluruh peta)" onClick={() => setView(home)}>{Math.round(view.zoom * 100)}%</button>
         <button type="button" aria-label="Zoom in" title="Zoom in (scroll ke atas · klik ganda)" disabled={view.zoom >= MAX_ZOOM - 1e-6} onClick={() => zoomBy(zoomStep(view.zoom, 1, minZoom) / view.zoom)}>+</button>
       </div>
-      <div className="map-ctl-group" aria-label="Ukuran titik">
+      {dots && <div className="map-ctl-group" aria-label="Ukuran titik">
         <span className="map-ctl-l" title="Ukuran titik — kecilkan untuk melihat posisi asli tiap titik">Titik</span>
         <button type="button" aria-label="Kecilkan titik" title="Kecilkan titik · titik kembali ke posisi aslinya" disabled={dot <= MIN_DOT + 1e-6} onClick={() => setDot((d) => clamp(d / 1.4, MIN_DOT, MAX_DOT))}>
           <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="2.5" /></svg>
@@ -299,7 +300,7 @@ export function useMapViewport(width: number, height: number, { minZoom = MIN_ZO
         <button type="button" aria-label="Besarkan titik" title="Besarkan titik" disabled={dot >= MAX_DOT - 1e-6} onClick={() => setDot((d) => clamp(d * 1.4, MIN_DOT, MAX_DOT))}>
           <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="5.5" /></svg>
         </button>
-      </div>
+      </div>}
       <button type="button" aria-label="Atur ulang peta" title="Atur ulang: seluruh peta, titik normal" disabled={!zoomed && dot === 1} onClick={reset}>↺</button>
       <FullscreenButton big={big} onClick={fs.toggle} />
     </div>

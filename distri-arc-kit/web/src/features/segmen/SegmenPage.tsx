@@ -22,93 +22,34 @@ interface Node {
   d: BoardItem
   x: number
   y: number
-  ox: number
-  oy: number
   size: number
   baru: boolean
 }
 
 const SEGMEN_PRIORITY = 150
+// Prioritas: the largest omzet of each segment (20 Oct) — one list of the 150 largest left Segmen D (988 small
+// dealers) and most of B without a single dot
+const PER_SEGMENT = 40
 
-function topByOmzet(list: BoardItem[], count = SEGMEN_PRIORITY) {
-  return list.length <= count ? list : [...list].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, count)
+function topPerSegment(list: BoardItem[], count = PER_SEGMENT) {
+  const by = new Map<string, BoardItem[]>()
+  for (const d of list) {
+    const g = by.get(d.metrics.segment)
+    if (g) g.push(d)
+    else by.set(d.metrics.segment, [d])
+  }
+  return [...by.values()].flatMap((g) => g.length <= count ? g : [...g].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln).slice(0, count))
 }
 
-/** Dots spread apart inside their own box so none overlap. `markerScale` is the dot size in chart units (smaller when
- * zoomed in or when dots are shrunk), so the spreading is only as large as the dots on screen need. */
-function layout(list: BoardItem[], dense: boolean, xq: number, yq: number, markerScale: number, positionBlend: number, dom: Domain): Node[] {
+/** Every dot on its true position (08-frontend: posisi titik tidak digeser); `markerScale` is the dot size in chart
+ * units, so a dot keeps its size on screen while zooming in. Small omzet first, so large dealers are drawn on top. */
+function layout(list: BoardItem[], dense: boolean, markerScale: number, dom: Domain): Node[] {
   const compact = dense && list.length > SEGMEN_PRIORITY
   const nodes = list.map((d) => {
     const m = d.metrics
     const size = 5 + Math.sqrt(m.sow) * 0.9 // size = share of wallet, smaller than the mockup so hundreds of dealers fit
-    const x = xOf(m.freq, dom)
-    const y = clampY(m.avg_order, dom)
     const baseSize = compact ? Math.max(3, size * 0.35) : size
-    return { d, x, y, ox: x, oy: y, size: baseSize * markerScale, baru: m.freq == null }
-  })
-  if (positionBlend === 0) return nodes.sort((a, b) => a.d.metrics.omzet_bln - b.d.metrics.omzet_bln)
-  const gapMin = markerScale
-  const cell = Math.max(0.5, Math.max(0, ...nodes.map((n) => n.size)) * 2 + gapMin)
-  const reach = 1
-  const stepMax = 4 * Math.min(1, markerScale)
-  const steps = compact ? 36 : 28
-  for (let step = 0; step < steps; step++) {
-    const buckets = new Map<string, number[]>()
-    nodes.forEach((n, i) => {
-      const key = `${Math.floor(n.x / cell)},${Math.floor(n.y / cell)}`
-      const bucket = buckets.get(key)
-      if (bucket) bucket.push(i)
-      else buckets.set(key, [i])
-    })
-    const fx = new Array(nodes.length).fill(0) as number[]
-    const fy = new Array(nodes.length).fill(0) as number[]
-    nodes.forEach((a, i) => {
-      const cx = Math.floor(a.x / cell)
-      const cy = Math.floor(a.y / cell)
-      for (let gx = cx - reach; gx <= cx + reach; gx++) for (let gy = cy - reach; gy <= cy + reach; gy++) {
-        const bucket = buckets.get(`${gx},${gy}`)
-        if (!bucket) continue
-        for (const j of bucket) {
-          if (j <= i) continue
-          const b = nodes[j]
-          let dx = b.x - a.x
-          let dy = b.y - a.y
-          let dist = Math.hypot(dx, dy)
-          const min = a.size + b.size + gapMin
-          if (dist >= min) continue
-          if (dist < 0.01) {
-            const angle = ((i * 73856093 ^ j * 19349663) >>> 0) / 4294967296 * Math.PI * 2
-            dx = Math.cos(angle)
-            dy = Math.sin(angle)
-            dist = 1
-          }
-          const push = (min - dist) * 0.28
-          const ux = dx / dist * push
-          const uy = dy / dist * push
-          fx[i] -= ux
-          fy[i] -= uy
-          fx[j] += ux
-          fy[j] += uy
-        }
-      }
-    })
-    nodes.forEach((n, i) => {
-      const left = n.ox < xq ? L : xq
-      const right = n.ox < xq ? xq : W - R
-      const top = n.oy <= yq ? T : yq
-      const bottom = n.oy <= yq ? yq : H - B
-      const pad = n.size + gapMin
-      const anchorX = (n.ox - n.x) * 0.04
-      const anchorY = (n.oy - n.y) * 0.04
-      const dx = Math.max(-stepMax, Math.min(stepMax, fx[i] + anchorX))
-      const dy = Math.max(-stepMax, Math.min(stepMax, fy[i] + anchorY))
-      n.x = Math.max(left + pad, Math.min(right - pad, n.x + dx))
-      n.y = Math.max(top + pad, Math.min(bottom - pad, n.y + dy))
-    })
-  }
-  if (positionBlend < 1) nodes.forEach((n) => {
-    n.x = n.ox + (n.x - n.ox) * positionBlend
-    n.y = n.oy + (n.y - n.oy) * positionBlend
+    return { d, x: xOf(m.freq, dom), y: clampY(m.avg_order, dom), size: baseSize * markerScale, baru: m.freq == null }
   })
   return nodes.sort((a, b) => a.d.metrics.omzet_bln - b.d.metrics.omzet_bln)
 }
@@ -117,7 +58,9 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   // only the plot area zooms and pans; the axes with their arrows stay in place and their ticks follow the zoom
   const PW = W - L - R
   const PH = H - T - B
-  const { containerRef: wrap, svgProps, ...viewport } = useMapViewport(PW, PH, { minZoom: 0.5 }) // endless canvas: zoom out to 50%
+  // endless canvas: zoom out to 50%; no dot-size control — a dot's size already is the dealer's share of wallet, and
+  // every dot stays on its true position (08-frontend: posisi titik tidak digeser), zoom in pulls stacked dots apart
+  const { containerRef: wrap, svgProps, ...viewport } = useMapViewport(PW, PH, { minZoom: 0.5, dots: false })
   const [hover, setHover] = useState<{ d: BoardItem; x: number; y: number } | null>(null)
   const [zone, setZone] = useState<Segment | null>(null) // the zone under the pointer lights up
   const [all, setAll] = useState(false)
@@ -135,9 +78,9 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   const xq = px(thresholds.freq_per_month, dom)
   const yq = py(thresholds.size_idr, dom)
   const scoped = useMemo(() => sel ? list.filter((d) => d.metrics.segment === sel) : list, [list, sel])
-  const shown = useMemo(() => all ? scoped : topByOmzet(scoped), [all, scoped])
+  const shown = useMemo(() => all ? scoped : topPerSegment(scoped), [all, scoped])
   const scale = useDeferredValue(layoutStep(viewport.markerScale))
-  const nodes = useMemo(() => layout(shown, all, xq, yq, scale, viewport.positionBlend, dom), [shown, all, xq, yq, scale, viewport.positionBlend, dom])
+  const nodes = useMemo(() => layout(shown, all, scale, dom), [shown, all, scale, dom])
   const resize = viewport.markerScale / scale // the layout may lag a fast zoom by a frame; dots are drawn at the current size
   const strokeW = Math.max(0.3 * viewport.unit, Math.min(2 * viewport.markerScale, 1.5 * viewport.unit))
   // an endless canvas like draw.io (20 Oct): the zones, grid and threshold lines reach past the data to whatever is on
@@ -185,7 +128,7 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
   return (
     <div>
       <div className="kuad-controls">
-        <span className="meta">{all ? `${scoped.length.toLocaleString('id-ID')} pelanggan` : `${shown.length.toLocaleString('id-ID')} prioritas dari ${scoped.length.toLocaleString('id-ID')}`}</span>
+        <span className="meta">{all ? `${scoped.length.toLocaleString('id-ID')} pelanggan` : `${shown.length.toLocaleString('id-ID')} prioritas dari ${scoped.length.toLocaleString('id-ID')} · ${PER_SEGMENT} omzet terbesar per segmen`}</span>
         <div className="seg" role="radiogroup" aria-label="Jumlah titik yang ditampilkan">
           <button role="radio" aria-checked={!all} className={!all ? 'is-active' : ''} onClick={() => setAll(false)}>Prioritas</button>
           <button role="radio" aria-checked={all} className={all ? 'is-active' : ''} onClick={() => setAll(true)}>Semua titik</button>
@@ -453,7 +396,7 @@ export function SegmenPage() {
           {data && view === 'titik' && (
             <>
               <SegmenChart list={filtered} sel={sel} onSel={chooseSegment} onOpen={(id) => nav('/dealer/' + id)} thresholds={data.thresholds} />
-              <Legend tail="Scroll / cubit untuk zoom · seret untuk menggeser · kecilkan titik untuk posisi asli" />
+              <Legend tail="Besar titik = porsi belanja di GSI · scroll / cubit untuk zoom · seret untuk menggeser" />
             </>
           )}
           {!!sum?.prospects && (

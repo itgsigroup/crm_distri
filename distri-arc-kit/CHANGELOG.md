@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Segmen: titik di posisi asli (sesuai MD), Segmen D tampil, kontrol Titik dihapus · 2026-10-20
+- **Prioritas** kini 40 dealer omzet terbesar **per segmen** — sebelumnya 150 omzet terbesar dari semua dealer, sehingga Segmen D (dealer kecil) dan sebagian besar Segmen B tidak punya titik sama sekali. "Semua titik" tetap menampilkan seluruh dealer.
+- **Setiap titik di posisi aslinya** (08-frontend: *posisi titik tidak digeser*): titik tidak lagi didorong menjauh agar tidak bertumpuk. Titik yang bertumpuk dipisahkan dengan zoom in (ukuran titik di layar tetap saat zoom in).
+- **Besar titik = porsi belanja dealer di GSI** (share of wallet); kini tertulis di legenda. Kontrol **Titik** (kecil / besar) dihapus dari Segmen karena ukurannya sudah membawa arti. Peta Orbit tidak berubah.
+
 ## Fix · Segmen: kanvas lebih besar, zoom in / zoom out diperbaiki · 2026-10-20
 - Peta titik Segmen kini selebar kartunya (sebelumnya maksimal 720 px).
 - **Zoom scroll diperbaiki**: setelah kanvas dibuat tanpa batas, posisi peta di layar terbaca salah sehingga scroll di sebagian besar area tidak meng-zoom dan zoom tidak berpusat di kursor. Kini zoom scroll / cubit / klik ganda berpusat tepat di kursor di mana pun.
