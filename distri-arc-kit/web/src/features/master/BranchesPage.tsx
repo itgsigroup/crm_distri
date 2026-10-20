@@ -4,6 +4,7 @@ import { api } from '../../api/client'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
+import { ColumnTable, type Column } from '../../components/DataTable'
 import { useMe } from '../../app/queries'
 import { field, useBranchMaster, type Branch } from './api'
 
@@ -42,30 +43,30 @@ function BranchSheet({ branch }: { branch?: Branch }) {
 }
 
 /** Master data → Cabang. */
+const byText = (f: (b: Branch) => string) => (a: Branch, b: Branch) => f(a).localeCompare(f(b), 'id')
+
+// A data table (20 Oct): search, sort per column, pages of 10/25/50 — like Pengguna and Peran & akses.
 export function BranchesPage() {
   const { data: me } = useMe()
   const { openSheet } = useFeedback()
   const { data = [] } = useBranchMaster()
   const edit = !!me?.screens.includes('branches')
+  const columns: Column<Branch>[] = [
+    { key: 'name', label: 'Cabang', sort: byText((b) => b.name), cell: (b) => <b>{b.name}</b> },
+    { key: 'city', label: 'Kota', sort: byText((b) => b.city || '~'), cell: (b) => b.city || '—' },
+    { key: 'address', label: 'Alamat', className: 'br-addr', cell: (b) => b.address || '—' },
+    { key: 'users', label: 'Pengguna', right: true, sort: (a, b) => a.users - b.users, first: 'desc', cell: (b) => <span className="num">{b.users}</span> },
+    { key: 'dealers', label: 'Dealer', right: true, sort: (a, b) => a.dealers - b.dealers, first: 'desc', cell: (b) => <span className="num">{b.dealers.toLocaleString('id-ID')}</span> },
+    { key: 'status', label: 'Status', sort: (a, b) => Number(b.active) - Number(a.active), cell: (b) => <Pill tone={b.active ? 'good' : 'neutral'}>{b.active ? 'Aktif' : 'Nonaktif'}</Pill> },
+    { key: 'act', label: '', right: true, cell: (b) => edit && <button className="btn quiet" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<BranchSheet branch={b} />)}>Ubah</button> },
+  ]
   return (
     <div className="card">
       <div className="card-h"><h2>Cabang</h2><span className="meta">{data.filter((b) => b.active).length} cabang aktif</span>
         {edit && <button className="btn primary" style={{ height: 32, fontSize: 12.5, marginLeft: 8 }} onClick={() => openSheet(<BranchSheet />)}><Icon name="building" />Tambah cabang</button>}</div>
-      {data.length === 0 ? <p style={{ fontSize: 13, color: 'var(--text-3)', margin: 0 }}>Belum ada cabang — tambahkan cabang pertama.</p> : (
-        <div className="tbl-wrap">
-          <table className="tbl">
-            <thead><tr><th>Cabang</th><th>Kota</th><th>Alamat</th><th>Pengguna</th><th>Dealer</th><th /></tr></thead>
-            <tbody>{data.map((b) => (
-              <tr key={b.id} style={b.active ? undefined : { opacity: 0.5 }}>
-                <td><b>{b.name}</b>{!b.active && <> <Pill tone="neutral">Nonaktif</Pill></>}</td>
-                <td>{b.city || '—'}</td><td style={{ maxWidth: 280 }}>{b.address || '—'}</td>
-                <td className="num">{b.users}</td><td className="num">{b.dealers}</td>
-                <td style={{ textAlign: 'right' }}>{edit && <button className="btn quiet" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<BranchSheet branch={b} />)}>Ubah</button>}</td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
-      )}
+      <ColumnTable rows={data} columns={columns} rowKey={(b) => b.id} noun="cabang" placeholder="Cari cabang, kota, alamat…"
+        text={(b) => [b.name, b.city, b.address, b.active ? 'aktif' : 'nonaktif'].join(' ')}
+        initial={{ column: 'name', dir: 'asc' }} empty="Belum ada cabang — tambahkan cabang pertama." rowClass={(b) => (b.active ? undefined : 'is-off')} />
     </div>
   )
 }

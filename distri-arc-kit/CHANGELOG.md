@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Cabang: datatable (cari, urut per kolom, paginasi) · 2026-10-20
+- Master data → **Cabang** kini datatable seperti Pengguna dan Peran & akses: pencarian (cabang, kota, alamat, aktif/nonaktif), urut per kolom (Cabang, Kota, Pengguna, Dealer, Status), paginasi 10/25/50. Kolom **Status** baru; cabang nonaktif tetap tampil redup.
+
 ## Feat · Peran & akses: datatable (cari, urut per kolom, paginasi) · 2026-10-20
 - Master data → **Peran & akses** kini datatable seperti Pengguna: pencarian (nama peran, keterangan, nama halaman, cakupan data, kebijakan, aktif/nonaktif), urut per kolom (Peran, Halaman, Data, Keputusan, WhatsApp, Pengguna, Status), paginasi 10/25/50. Kolom **Status** baru; peran nonaktif tetap tampil redup.
 
