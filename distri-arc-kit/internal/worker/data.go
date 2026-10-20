@@ -81,6 +81,9 @@ func (w *DataSyncWorker) Work(ctx context.Context, job *river.Job[jobs.DataSyncA
 		} else {
 			w.log.Info("bigquery sync", "dealers", rep.Apply.Dealers, "invoices", rep.Apply.Invoices, "stock", rep.Apply.Stock)
 		}
+		for e, msg := range rep.Failed { // the rest was applied; the failed query waits for its fix in Pengaturan → Data
+			w.log.Error("bigquery sync query", "entity", e, "err", msg)
+		}
 		_ = events.Notify(ctx, w.st.Pool, "data_synced", map[string]any{"ok": err == nil})
 		return err
 	})

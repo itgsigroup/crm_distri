@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Data BigQuery: satu query gagal tidak lagi membekukan semua data (beku sejak 7 Okt) · 2026-10-20
+- **Masalah**: query stok membaca tabel BigQuery `accurate_data.master_aging` yang sudah tidak ada (404). Karena satu query gagal, setiap sinkron berhenti sebelum langkah *Apply* — baris invoice, pembayaran, dan pelanggan tetap ditarik tiap 15 menit tetapi tidak pernah masuk ke aplikasi. Akibatnya Kredit · kas, status dealer, Orbit, Segmen, dan Push stok memakai data **7 Okt**.
+- **Perbaikan**: query yang gagal dicatat sebagai run gagal (terlihat di Pengaturan → Data) dan dilewati; entitas lain tetap disimpan dan di-*Apply*. Sinkron berikutnya mengejar data 8–20 Okt.
+- **Belum**: query stok perlu diarahkan ke tabel stok yang baru di BigQuery (Pengaturan → Data → query stok). Sampai itu, stok tetap data 7 Okt.
+
 ## Feat · Dealer: klasifikasi dealer — % dealer aktif dan filter per status · 2026-10-20
 - Daftar dealer punya kotak **Dealer aktif**: persentase dealer aktif (Key account + Aktif + Baru) dari dealer yang pernah order, bar komposisi status, dan chip **Key account · Aktif · Baru · At risk · Churn** dengan persen dan jumlah — klik untuk memfilter (klik lagi untuk melepas); klik angka "Dealer aktif" untuk menampilkan semua dealer aktif. **Prospek** (belum pernah order) dihitung terpisah, tidak masuk persentase. Persentase mengikuti pencarian dan jenis pelanggan yang dipilih. Menggantikan dropdown status.
 - Status di daftar ditulis apa adanya (Baru tidak lagi ditampilkan sebagai Aktif) agar sama dengan filternya.

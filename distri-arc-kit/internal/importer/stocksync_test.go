@@ -54,3 +54,47 @@ func TestSyncBigQueryStock(t *testing.T) {
 		t.Fatalf("stock %d %v", qty, err)
 	}
 }
+
+// One failing query (a BigQuery table renamed: 404) no longer stops the pull (20 Oct): the other entities are staged
+// and applied, the failure is reported and kept as a failed import run.
+func TestSyncBigQueryOneQueryFails(t *testing.T) {
+	st := testdb.New(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/token":
+			_, _ = w.Write([]byte(`{"access_token":"tok-1","expires_in":3600}`))
+		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/queries"):
+			b, _ := io.ReadAll(r.Body)
+			if strings.Contains(string(b), "select stock") {
+				w.WriteHeader(404)
+				_, _ = w.Write([]byte(`{"error":{"code":404,"message":"Not found: Table accurate_data.master_aging"}}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"jobComplete":true,"schema":{"fields":[{"name":"code","type":"STRING"},{"name":"name","type":"STRING"},{"name":"branch","type":"STRING"}]},"rows":[{"f":[{"v":"S01"},{"v":"Granike Monica"},{"v":"Jakarta"}]}]}`))
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer srv.Close()
+	sa, err := ParseServiceAccount(testKey(t, srv.URL+"/token"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	im := Importer{St: st, Clock: clock.Fixed(time.Date(2026, 10, 20, 10, 0, 0, 0, clock.WIB)), Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	var cfg SourceConfig
+	cfg.Mode = "bigquery"
+	cfg.BigQuery.Queries = map[string]string{string(Stock): "select stock", string(Sales): "select sales"}
+	rep, err := im.SyncBigQuery(context.Background(), &BigQuery{SA: sa, BaseURL: srv.URL}, cfg, false, "test")
+	if err != nil {
+		t.Fatalf("sync stopped on the stock query: %v", err)
+	}
+	if _, ok := rep.Failed[string(Stock)]; !ok || len(rep.Failed) != 1 {
+		t.Fatalf("failed %v", rep.Failed)
+	}
+	var applied, failed int
+	_ = st.Pool.QueryRow(context.Background(), "select count(*) from import_runs where source = 'transform' and entity = 'apply' and status = 'done'").Scan(&applied)
+	_ = st.Pool.QueryRow(context.Background(), "select count(*) from import_runs where source = 'bigquery' and entity = 'stock' and status = 'failed'").Scan(&failed)
+	if applied != 1 || failed != 1 {
+		t.Fatalf("apply runs %d, failed stock runs %d", applied, failed)
+	}
+}

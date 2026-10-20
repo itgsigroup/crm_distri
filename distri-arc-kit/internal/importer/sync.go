@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"distri-arc/internal/auth"
+	"distri-arc/internal/store/gen"
 )
 
 // SourceConfig is policy "data.source": where real data comes from and, for BigQuery, one read-only query per
@@ -63,11 +64,15 @@ func (im Importer) BigQueryClient(ctx context.Context, cfg SourceConfig, session
 type SyncReport struct {
 	Staged map[string]StageReport `json:"staged"`
 	Apply  ApplyReport            `json:"apply"`
+	// Failed: the entities whose query or staging failed this pull, with the error (the others were still applied)
+	Failed map[string]string `json:"failed,omitempty"`
 }
 
-// SyncBigQuery runs every configured query, stages the rows and applies them.
+// SyncBigQuery runs every configured query, stages the rows and applies them. One failing query (a table renamed in
+// BigQuery) no longer stops the rest: until 20 Oct the stock query's 404 skipped Apply on every pull, so invoices,
+// payments and dealers stayed at 7 Oct. The failure is recorded as a failed import run and returned in Failed.
 func (im Importer) SyncBigQuery(ctx context.Context, bq *BigQuery, cfg SourceConfig, full bool, by string) (SyncReport, error) {
-	rep := SyncReport{Staged: map[string]StageReport{}}
+	rep := SyncReport{Staged: map[string]StageReport{}, Failed: map[string]string{}}
 	ran := 0
 	for _, e := range Entities {
 		sql := strings.TrimSpace(cfg.BigQuery.Queries[string(e)])
@@ -76,21 +81,48 @@ func (im Importer) SyncBigQuery(ctx context.Context, bq *BigQuery, cfg SourceCon
 		}
 		rows, err := bq.Query(ctx, sql)
 		if err != nil {
-			return rep, fmt.Errorf("%s: %w", e, err)
+			rep.Failed[string(e)] = err.Error()
+			im.recordFailed(ctx, e, by, err)
+			continue
 		}
 		sr, err := im.Stage(ctx, e, rows, "bigquery", by)
 		rep.Staged[string(e)] = sr
 		if err != nil {
-			return rep, fmt.Errorf("%s: %w", e, err)
+			rep.Failed[string(e)] = err.Error()
+			continue
 		}
 		ran++
 	}
 	if ran == 0 {
+		if len(rep.Failed) > 0 {
+			return rep, fmt.Errorf("semua query BigQuery gagal: %s", failedText(rep.Failed))
+		}
 		return rep, errors.New("belum ada query BigQuery yang diisi")
 	}
 	ar, err := im.Apply(ctx, full, by)
 	rep.Apply = ar
 	return rep, err
+}
+
+// recordFailed keeps a query that failed before staging visible in the import runs (Pengaturan → Data).
+func (im Importer) recordFailed(ctx context.Context, e Entity, by string, cause error) {
+	run, err := im.St.Q.StartImportRun(ctx, gen.StartImportRunParams{Source: "bigquery", Entity: string(e), StartedBy: &by})
+	if err != nil {
+		return
+	}
+	msg := cause.Error()
+	_ = im.St.Q.FinishImportRun(ctx, gen.FinishImportRunParams{ID: run, Status: "failed", Error: &msg})
+}
+
+// failedText is "stock: …; invoices: …" in entity order.
+func failedText(f map[string]string) string {
+	var parts []string
+	for _, e := range Entities {
+		if msg, ok := f[string(e)]; ok {
+			parts = append(parts, string(e)+": "+msg)
+		}
+	}
+	return strings.Join(parts, "; ")
 }
 
 // StockEvery is how often the stock alone is pulled from BigQuery (5 minutes unless set; never under 2).
