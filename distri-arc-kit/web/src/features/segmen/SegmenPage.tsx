@@ -212,7 +212,7 @@ function SegmenChart({ list, sel, onSel, onOpen, thresholds }: { list: BoardItem
               return (
                 <g key={d.id} className={`dn${hd ? (hd.id === d.id ? ' on' : ' dim') : zone && d.metrics.segment !== zone ? ' dim' : ''}`} role="button" tabIndex={0} aria-label={d.name} onClick={() => onOpen(d.id)} onMouseMove={(e) => move(e, d)} onFocus={(e) => showFocus(e, d)} onBlur={() => setHover(null)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(d.id) } }}>
                   <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={Math.max(r, 7 * viewport.unit).toFixed(2)} className="dn-hit" fill="transparent" pointerEvents="all" />
-                  <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={r.toFixed(2)} style={{ strokeWidth: strokeW }} fill={baru ? 'var(--surface)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} className="dn-dot" {...(baru ? { stroke: 'var(--text-3)', strokeDasharray: `${(3 * viewport.unit).toFixed(2)} ${(3 * viewport.unit).toFixed(2)}` } : {})} />
+                  <circle cx={x.toFixed(2)} cy={y.toFixed(2)} r={r.toFixed(2)} style={{ strokeWidth: strokeW }} fill={baru ? 'var(--indigo)' : `var(--${tone === 'neutral' ? 'text-3' : tone})`} className={`dn-dot${baru ? ' baru' : ''}`} {...(baru ? { stroke: 'var(--indigo)', style: { strokeWidth: Math.max(strokeW, 1.4 * viewport.unit) }, strokeDasharray: r > 4 * viewport.unit ? `${(3 * viewport.unit).toFixed(2)} ${(2 * viewport.unit).toFixed(2)}` : undefined } : {})} />
                 </g>
               )
             })}
@@ -396,7 +396,7 @@ export function SegmenPage() {
           {data && view === 'titik' && (
             <>
               <SegmenChart list={filtered} sel={sel} onSel={chooseSegment} onOpen={(id) => nav('/dealer/' + id)} thresholds={data.thresholds} />
-              <Legend tail="Besar titik = porsi belanja di GSI · scroll / cubit untuk zoom · seret untuk menggeser" />
+              <Legend extra={<span><i className="lg-baru" />Baru · 1 order</span>} tail="Besar titik = porsi belanja di GSI · scroll / cubit untuk zoom · seret untuk menggeser" />
             </>
           )}
           {!!sum?.prospects && (

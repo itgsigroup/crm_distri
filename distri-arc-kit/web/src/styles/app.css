@@ -1961,3 +1961,7 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 /* Map zoom (20 Oct): the % between − and + is a button back to 100%; the Segmen canvas fills its card */
 .map-controls .map-ctl-pct{min-width:46px;padding:0 4px;background:transparent;font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums}
 .kuad-wrap{max-width:none}
+
+/* Segmen (20 Oct): a dealer with one order (Baru) is indigo with a dashed ring — the white dot vanished on the white canvas */
+.kuad .dn .dn-dot.baru{fill-opacity:.45}
+.orbit-legend i.lg-baru{background:color-mix(in srgb,var(--indigo) 45%,transparent);border:1.5px dashed var(--indigo);box-sizing:border-box}

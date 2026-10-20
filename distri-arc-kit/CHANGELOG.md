@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Segmen: titik dealer Baru terlihat (sebelumnya putih di kanvas putih) · 2026-10-20
+- Dealer **Baru** (baru 1 order, belum punya frekuensi) kini digambar **indigo** dengan garis putus indigo — sebelumnya putih dengan garis abu tipis sehingga hilang di kanvas putih, terutama di Segmen D. Legenda menambah "Baru · 1 order".
+
 ## Fix · Segmen: titik di posisi asli (sesuai MD), Segmen D tampil, kontrol Titik dihapus · 2026-10-20
 - **Prioritas** kini 40 dealer omzet terbesar **per segmen** — sebelumnya 150 omzet terbesar dari semua dealer, sehingga Segmen D (dealer kecil) dan sebagian besar Segmen B tidak punya titik sama sekali. "Semua titik" tetap menampilkan seluruh dealer.
 - **Setiap titik di posisi aslinya** (08-frontend: *posisi titik tidak digeser*): titik tidak lagi didorong menjauh agar tidak bertumpuk. Titik yang bertumpuk dipisahkan dengan zoom in (ukuran titik di layar tetap saat zoom in).

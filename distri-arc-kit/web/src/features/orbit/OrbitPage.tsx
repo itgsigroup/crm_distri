@@ -32,13 +32,14 @@ export function SalesFilters({ value, onChange }: { value: string; onChange: (v:
   )
 }
 
-export function Legend({ tail }: { tail: string }) {
+export function Legend({ tail, extra }: { tail: string; extra?: React.ReactNode }) {
   return (
     <div className="orbit-legend">
       <span><i style={{ background: 'var(--good)' }} />Limit aman</span>
       <span><i style={{ background: 'var(--warn)' }} />Limit tipis</span>
       <span><i style={{ background: 'var(--bad)' }} />Over limit / overdue</span>
       <span><i style={{ background: 'var(--text-3)' }} />Cash</span>
+      {extra}
       <span style={{ marginLeft: 'auto' }}>{tail}</span>
     </div>
   )
