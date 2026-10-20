@@ -1913,3 +1913,23 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .stk-src .dot.good{background:var(--good)}.stk-src .dot.warn{background:var(--warn)}
 .stk-src.stale{color:var(--warn)}
 .stk-src .btn{height:26px;font-size:12px;margin-left:auto}
+
+/* Photo lightbox zoom (20 Oct): − / % / + buttons, wheel, double-click; drag to pan when zoomed */
+.bub-lightbox{overflow:hidden}
+.bub-lightbox img{transition:transform .12s ease-out;transform-origin:center;touch-action:none;user-select:none}
+.bub-lightbox img.zoomed{cursor:grab;transition:none}
+.bub-lightbox img.zoomed:active{cursor:grabbing}
+.bub-lb-bar{z-index:1}
+.bub-lb-zoom{display:flex;align-items:center;gap:2px;padding:2px;border-radius:10px;background:rgba(255,255,255,.14)}
+.bub-lb-zoom button{width:32px;height:30px;border-radius:8px;background:transparent;font-size:18px;font-weight:600;line-height:1}
+.bub-lb-zoom button:hover:not(:disabled){background:rgba(255,255,255,.18)}
+.bub-lb-zoom button:disabled{opacity:.35;cursor:default}
+.bub-lb-zoom .bub-lb-pct{width:auto;min-width:52px;padding:0 6px;font-size:12.5px;font-variant-numeric:tabular-nums}
+
+/* Chat (20 Oct): the Orchestrator is a button next to the conversation's name; its dock opens under it */
+.ibc-orch{flex:none;display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 8px;border:0;border-radius:999px;cursor:pointer;color:#fff;font-size:12px;font-weight:650;background:linear-gradient(90deg,var(--ai-a),var(--ai-b),var(--ai-c))}
+.ibc-orch .i{width:13px;height:13px}
+.ibc-orch:hover,.ibc-orch.on{filter:brightness(1.08);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.ibc-orch.running .i{animation:pulse .9s infinite}
+.dock.dock-head{bottom:auto;max-height:calc(100vh - 100px);overflow:auto}
+@media (max-width:900px){.dock.dock-head{left:12px;right:12px!important;width:auto}.ibc-orch span{display:none}.ibc-orch{padding:0 7px}}

@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: zoom foto dan Orchestrator di samping nama chat · 2026-10-20
+- Foto yang dibuka di chat kini bisa **diperbesar / diperkecil**: tombol **− / % / +** di kanan atas (100%–500%), scroll mouse, tombol keyboard `+` `-` `0`, atau klik dua kali. Saat diperbesar, foto bisa digeser dengan menyeret; klik angka % untuk kembali ke ukuran asli.
+- Di halaman Chat, **Orchestrator** tidak lagi melayang di atas kolom ketik: kini tombol **Orchestrator** di header percakapan, di samping nama. Klik untuk membuka panelnya (tanya/perintah, Analisis ulang chat ini, Sistem/MCP Claude) tepat di bawahnya; Esc atau klik di luar menutupnya. ⌘K tetap membukanya. Halaman lain tidak berubah.
+
 ## Feat · Push stok: stok BigQuery tiap 5 menit, status sinkron, halaman ikut segar · 2026-10-19
 - Stok kini ditarik dari BigQuery **tiap 5 menit** (hanya query stok, ringan) di antara sinkron penuh 15 menit. Halaman Push stok menampilkan sumber dan waktu sinkron terakhir ("sinkron 16.55 · 2 menit lalu · otomatis tiap 5 menit") dengan tombol **Sinkron sekarang**.
 - Setelah sinkron BigQuery apa pun, halaman stok, dealer, orbit, segmen, KPI, dan kredit menyegarkan diri (sebelumnya event sinkron tidak didengar).

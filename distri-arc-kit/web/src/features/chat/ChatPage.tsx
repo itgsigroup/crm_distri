@@ -24,6 +24,7 @@ import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type M
 import { linkParts } from './links'
 import { formatParts, quoteLines, shortcutMark, wrapSelection, type Mark } from './format'
 import { MembersSheet, openMemberChat, useMembers } from './Members'
+import { Dock } from '../../app/Dock'
 
 /** Plain text with its tags ("@Budi", WhatsApp's colour), its links (open in a new tab) and the searched words marked. */
 function RichText({ text, mentions, mark }: { text: string; mentions?: Mention[] | null; mark?: string }) {
@@ -453,18 +454,45 @@ function PollBody({ text }: { text: string }) {
   )
 }
 
-/** A photo opened full size; Esc or a click closes it. */
+/** A photo opened full size; Esc or a click closes it. Zoom with the − / + buttons, the wheel, the + / - keys or a double-click; drag to pan when zoomed. */
+const ZOOM_MIN = 1
+const ZOOM_MAX = 5
 function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  const [z, setZ] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null)
+  const zoomTo = useCallback((v: number) => {
+    const n = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(v * 100) / 100))
+    setZ(n)
+    if (n === 1) setPan({ x: 0, y: 0 })
+  }, [])
   useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const k = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      else if (e.key === '+' || e.key === '=') setZ((v) => Math.min(ZOOM_MAX, v + 0.5))
+      else if (e.key === '-') setZ((v) => { const n = Math.max(ZOOM_MIN, v - 0.5); if (n === 1) setPan({ x: 0, y: 0 }); return n })
+      else if (e.key === '0') { setZ(1); setPan({ x: 0, y: 0 }) }
+    }
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
   }, [onClose])
+  const stop = (e: { stopPropagation: () => void }) => e.stopPropagation()
   return (
-    <div className="bub-lightbox" role="dialog" aria-label="Foto" onClick={onClose}>
-      <img src={url} alt="Foto" onClick={(e) => e.stopPropagation()} />
-      <div className="bub-lb-bar">
-        <a href={url} download onClick={(e) => e.stopPropagation()}>Unduh</a>
+    <div className="bub-lightbox" role="dialog" aria-label="Foto" onClick={onClose} onWheel={(e) => zoomTo(z * (e.deltaY < 0 ? 1.15 : 1 / 1.15))}>
+      <img src={url} alt="Foto" draggable={false} className={z > 1 ? 'zoomed' : ''}
+        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${z})` }}
+        onClick={stop}
+        onDoubleClick={() => zoomTo(z > 1 ? 1 : 2)}
+        onPointerDown={(e) => { if (z > 1) { drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y }; e.currentTarget.setPointerCapture(e.pointerId) } }}
+        onPointerMove={(e) => { const d = drag.current; if (d) { setPan({ x: d.px + e.clientX - d.x, y: d.py + e.clientY - d.y }) } }}
+        onPointerUp={() => { drag.current = null }} />
+      <div className="bub-lb-bar" onClick={stop}>
+        <div className="bub-lb-zoom" role="group" aria-label="Zoom">
+          <button type="button" onClick={() => zoomTo(z - 0.5)} disabled={z <= ZOOM_MIN} aria-label="Perkecil" title="Perkecil (−)">−</button>
+          <button type="button" className="bub-lb-pct" onClick={() => zoomTo(1)} title="Ukuran asli (0)">{Math.round(z * 100)}%</button>
+          <button type="button" onClick={() => zoomTo(z + 0.5)} disabled={z >= ZOOM_MAX} aria-label="Perbesar" title="Perbesar (+)">+</button>
+        </div>
+        <a href={url} download>Unduh</a>
         <button type="button" onClick={onClose} aria-label="Tutup"><Icon name="x" /></button>
       </div>
     </div>
@@ -846,6 +874,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
             <b>{displayTitle(t)}</b>
             {t.kind !== 'group' && <button type="button" className="ibc-alias" onClick={rename} title={t.phone_name ? 'Ubah nama panggilan' : 'Beri nama panggilan (seperti di HP)'} aria-label="Nama panggilan"><Icon name="edit" /></button>}
             {t.subtitle && <span className="ibr-src">≈ {t.subtitle}</span>}
+            <Dock screen="chat" head />
           </div>
           <div className="ibc-sub">
             {t.phone && <span className="ibc-phone">{fmtPhone(t.phone)}</span>}
@@ -866,7 +895,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           <button type="button" className={`ibl-btn ibc-find${searching ? ' on' : ''}`} onClick={() => { setSearching(!searching); if (searching) setMark('') }} title="Cari di chat ini" aria-label="Cari di chat ini" aria-pressed={searching}><Icon name="search" /></button>
           {readable && (
             <button type="button" className={`ibc-an-tg${perMsg ? ' on' : ''}`} aria-pressed={perMsg} aria-label="Analisa per pesan" onClick={() => setPerMsg(!perMsg)}
-              title={t.analyzed_at ? `Analisa per pesan · terakhir dianalisa ${shortDate(t.analyzed_at)} ${hhmm(t.analyzed_at)}` : 'Analisa per pesan · belum pernah dianalisa — analisa lewat Orchestrator di kanan bawah'}>
+              title={t.analyzed_at ? `Analisa per pesan · terakhir dianalisa ${shortDate(t.analyzed_at)} ${hhmm(t.analyzed_at)}` : 'Analisa per pesan · belum pernah dianalisa — analisa lewat Orchestrator di samping nama'}>
               <Icon name="spark" /><span className="ibc-an-l">Per pesan</span>
             </button>
           )}
@@ -1066,7 +1095,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
   const notes = th.messages.filter((m) => m.direction === 'in' && m.analysis?.note)
   const claudeNotes = (
     <ul className="ibp-ext">
-      {notes.length === 0 && <li className="muted">Belum ada catatan Claude — analisa lewat Orchestrator di kanan bawah</li>}
+      {notes.length === 0 && <li className="muted">Belum ada catatan Claude — analisa lewat Orchestrator di samping nama chat</li>}
       {notes.slice(-12).map((m) => (
         <li key={m.id}><span className="ai" style={{ fontSize: 0 }} /><span>{m.analysis!.note}<small>{m.from_name} · {hhmm(m.sent_at)}</small></span></li>
       ))}
@@ -1151,7 +1180,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
             <h4>Catatan Claude per pesan <span className="ai" style={{ marginLeft: 4, fontSize: 0 }} /></h4>
             {claudeNotes}
             {d?.next && <><h4>Usulan Claude</h4><div className="ibp-rec"><b>{d.next.agent}</b><span>{d.next.title}{d.next.why ? ` — ${d.next.why}` : ''}</span></div><ActBtn next={d.next} /></>}
-            <p className="ibp-note">Analisa di panel ini ditulis Claude lewat Orchestrator (kotak di kanan bawah).</p>
+            <p className="ibp-note">Analisa di panel ini ditulis Claude lewat Orchestrator (tombol di samping nama chat).</p>
           </>
         )}
         {tab === 'src' && (

@@ -82,8 +82,12 @@ function savedMini(): boolean {
 // Floating Orchestrator dock, fixed at the bottom right of the screen on every page except Dashboard and Orchestrator (it can shrink to a round icon; on Chat it analyses the open conversation): re-analyse this page (or
 // everything) with GSI Orbit's own rules (Sistem, ADR 0046) or Claude through MCP — no API key, no ChatGPT (19 Oct); the page's
 // data refreshes when the cycle is done.
-export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: ReactNode; links?: ReactNode }) {
+// With `head` (Chat, 20 Oct) it is a button in the conversation's header next to the name, and the dock opens under it.
+export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?: ReactNode; links?: ReactNode; head?: boolean }) {
   const [open, setOpen] = useState(false)
+  const headBtn = useRef<HTMLButtonElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
+  const [at, setAt] = useState<{ top: number; right: number } | null>(null)
   // on Chat it starts as the round icon above the reply box (19 Oct): the open dock must not cover the composer
   const [mini, setMiniState] = useState(() => screen === 'chat' || savedMini())
   const setMini = (m: boolean) => { setMiniState(m); if (m) setOpen(false); try { localStorage.setItem(MINI_KEY, m ? '1' : '0') } catch { /* private mode */ } }
@@ -105,6 +109,7 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
+        if (head) place()
         setMiniState(false)
         setOpen(true)
         setTimeout(() => askRef.current?.focus(), 0) // after the dock opened
@@ -112,7 +117,23 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  }, [head])
+  // the header dock closes on Esc or a click outside it
+  useEffect(() => {
+    if (!head || !open) return
+    const onDown = (e: MouseEvent) => {
+      const n = e.target as Node
+      if (!panel.current?.contains(n) && !headBtn.current?.contains(n)) setOpen(false)
+    }
+    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onEsc)
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onEsc) }
+  }, [head, open])
+  function place() {
+    const r = headBtn.current?.getBoundingClientRect()
+    if (r) setAt({ top: r.bottom + 8, right: Math.max(12, window.innerWidth - r.right) })
+  }
   const submitAsk = (e: FormEvent) => {
     e.preventDefault()
     const v = q.trim()
@@ -123,6 +144,69 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
   const scope = screenScope(screen, pathname)
   const run = (sc: string) => reanalyze(sc, engine, engine === 'system' ? SYSTEM_LABEL : 'Claude lewat MCP')
   const status = st.running ? `menganalisis ${st.scope} · ${st.stage}` : st.run ? `siap · siklus #${st.run.toLocaleString('id-ID')} · ${st.last}` : 'siap · belum ada siklus'
+  const inner = (
+    <div className="dk-body">
+      <form className="dk-ask" autoComplete="off" onSubmit={submitAsk}>
+        <Icon name="spark" />
+        <input ref={askRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tanya atau perintahkan Orchestrator…" title="mis. “dealer mana yang lewat jadwal?” atau “analisis ulang stok”" aria-label="Tanya atau perintahkan Orchestrator" />
+        <button type="submit" className="dk-ask-go" aria-label="Kirim" disabled={!q.trim()}><Icon name="send" /></button>
+      </form>
+      <div className="dk-pipe"><PipeChips /></div>
+      <div className="dk-track"><i style={{ width: `${progress(s)}%` }} /></div>
+      {extra && <div className="dk-extra">{extra}</div>}
+      <div className="dk-scope">
+        <span>Layar ini: <b>{scopeLabel(scope)}</b></span>
+        <small>{scopeAgents(scope).join(' · ')}</small>
+      </div>
+      <div className="dk-eng" role="radiogroup" aria-label="Dianalisis oleh">
+        <button type="button" role="radio" aria-checked={engine === 'system'} className={engine === 'system' ? 'on' : ''} disabled={st.running} title="Aturan agen dan rumus GSI Orbit di server — langsung jalan, tanpa Claude dan tanpa biaya AI" onClick={() => choose('system')}>
+          <Icon name="gear" /><span><b>Sistem</b><small>tanpa AI · langsung</small></span>
+        </button>
+        <button type="button" role="radio" aria-checked={engine === 'mcp'} className={engine === 'mcp' ? 'on' : ''} disabled={st.running} onClick={() => choose('mcp')}>
+          <Icon name="plug" /><span><b>MCP Claude</b><small>{shortModel(model)} · {eff}</small></span>
+        </button>
+      </div>
+      <div className="dk-tune">
+        {engine === 'system' ? (
+          <span className="dk-model"><span>Mesin</span><b>Aturan &amp; rumus GSI Orbit · tanpa AI</b></span>
+        ) : (
+          <>
+            <label className="dk-model">
+              <span>Model</span>
+              <select value={model} disabled={st.running} onChange={(e) => chooseModel(e.target.value)} title="Pilih model yang sama di claude.ai / Desktop — perintahnya menyebut model ini">
+                {MCP_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </select>
+            </label>
+          </>
+        )}
+        {engine !== 'system' && <div className="dk-effort" role="radiogroup" aria-label="Effort">
+          <span>Effort</span>
+          {EFFORTS.map((x) => (
+            <button key={x.id} type="button" role="radio" aria-checked={eff === x.id} className={eff === x.id ? 'on' : ''} disabled={st.running} title={x.hint} onClick={() => chooseEffort(x.id)}>{x.label}</button>
+          ))}
+        </div>}
+      </div>
+      <div className="dk-acts">
+        <button className="btn primary" disabled={st.running} onClick={() => run(scope)}><Icon name="refresh" />{scope === 'all' ? 'Analisis ulang' : 'Analisis ulang layar ini'}</button>
+        {scope !== 'all' && <button className="btn ghost" disabled={st.running} onClick={() => run('all')}>Semua</button>}
+        {links}
+      </div>
+    </div>
+  )
+  if (head) {
+    return (
+      <>
+        <button ref={headBtn} type="button" className={`ibc-orch${open ? ' on' : ''}${st.running ? ' running' : ''}`} onClick={() => { place(); setOpen(!open) }}
+          aria-label="Orchestrator" aria-expanded={open} title={`Orchestrator · ${status}`}>
+          <Icon name="spark" /><span>Orchestrator</span>
+        </button>
+        {open && at && createPortal(
+          <div ref={panel} className={`dock dock-head open ${st.running ? 'running' : ''}`} style={{ top: at.top, right: at.right }}>{inner}</div>,
+          document.body,
+        )}
+      </>
+    )
+  }
   // rendered on <body>: inside a page (.screen animates a transform) position: fixed would scroll with the content
   if (mini) {
     return createPortal(
@@ -145,53 +229,7 @@ export function Dock({ screen, extra, links }: { screen: ScreenKey; extra?: Reac
         </button>
         <button type="button" className="dk-min" onClick={() => setMini(true)} aria-label="Ringkas jadi ikon" title="Ringkas jadi ikon"><Icon name="chev" /></button>
       </div>
-      <div className="dk-body">
-        <form className="dk-ask" autoComplete="off" onSubmit={submitAsk}>
-          <Icon name="spark" />
-          <input ref={askRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tanya atau perintahkan Orchestrator…" title="mis. “dealer mana yang lewat jadwal?” atau “analisis ulang stok”" aria-label="Tanya atau perintahkan Orchestrator" />
-          <button type="submit" className="dk-ask-go" aria-label="Kirim" disabled={!q.trim()}><Icon name="send" /></button>
-        </form>
-        <div className="dk-pipe"><PipeChips /></div>
-        <div className="dk-track"><i style={{ width: `${progress(s)}%` }} /></div>
-        {extra && <div className="dk-extra">{extra}</div>}
-        <div className="dk-scope">
-          <span>Layar ini: <b>{scopeLabel(scope)}</b></span>
-          <small>{scopeAgents(scope).join(' · ')}</small>
-        </div>
-        <div className="dk-eng" role="radiogroup" aria-label="Dianalisis oleh">
-          <button type="button" role="radio" aria-checked={engine === 'system'} className={engine === 'system' ? 'on' : ''} disabled={st.running} title="Aturan agen dan rumus GSI Orbit di server — langsung jalan, tanpa Claude dan tanpa biaya AI" onClick={() => choose('system')}>
-            <Icon name="gear" /><span><b>Sistem</b><small>tanpa AI · langsung</small></span>
-          </button>
-          <button type="button" role="radio" aria-checked={engine === 'mcp'} className={engine === 'mcp' ? 'on' : ''} disabled={st.running} onClick={() => choose('mcp')}>
-            <Icon name="plug" /><span><b>MCP Claude</b><small>{shortModel(model)} · {eff}</small></span>
-          </button>
-        </div>
-        <div className="dk-tune">
-          {engine === 'system' ? (
-            <span className="dk-model"><span>Mesin</span><b>Aturan &amp; rumus GSI Orbit · tanpa AI</b></span>
-          ) : (
-            <>
-              <label className="dk-model">
-                <span>Model</span>
-                <select value={model} disabled={st.running} onChange={(e) => chooseModel(e.target.value)} title="Pilih model yang sama di claude.ai / Desktop — perintahnya menyebut model ini">
-                  {MCP_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-                </select>
-              </label>
-            </>
-          )}
-          {engine !== 'system' && <div className="dk-effort" role="radiogroup" aria-label="Effort">
-            <span>Effort</span>
-            {EFFORTS.map((x) => (
-              <button key={x.id} type="button" role="radio" aria-checked={eff === x.id} className={eff === x.id ? 'on' : ''} disabled={st.running} title={x.hint} onClick={() => chooseEffort(x.id)}>{x.label}</button>
-            ))}
-          </div>}
-        </div>
-        <div className="dk-acts">
-          <button className="btn primary" disabled={st.running} onClick={() => run(scope)}><Icon name="refresh" />{scope === 'all' ? 'Analisis ulang' : 'Analisis ulang layar ini'}</button>
-          {scope !== 'all' && <button className="btn ghost" disabled={st.running} onClick={() => run('all')}>Semua</button>}
-          {links}
-        </div>
-      </div>
+      {inner}
     </div>,
     document.body,
   )
