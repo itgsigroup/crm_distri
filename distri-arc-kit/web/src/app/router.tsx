@@ -1,63 +1,104 @@
-import { ReportWAPage } from '../features/reportwa/ReportWAPage'
-import { AIAPIPage } from '../features/aiapi/AIAPIPage'
-import { AITriggerPage } from '../features/aitrigger/AITriggerPage'
+import type { ComponentType } from 'react'
 import { createBrowserRouter } from 'react-router'
 import { Shell } from './Shell'
-import { LoginPage } from '../features/login/LoginPage'
 import { FeedbackProvider } from '../components/feedback'
 import { OrchProvider } from './orch'
-import { OrchestratorPage } from '../features/orchestrator/OrchestratorPage'
-import { RelasiPage } from '../features/relasi/RelasiPage'
 import { ControlCenter } from '../features/control/ControlCenter'
-import { SalesMapPage } from '../features/salesmap/SalesMapPage'
-import { OrbitPage } from '../features/orbit/OrbitPage'
-import { SegmenPage } from '../features/segmen/SegmenPage'
-import { DealerPage } from '../features/dealer/DealerPage'
-import { ChatPage } from '../features/chat/ChatPage'
-import { StockPage } from '../features/stock/StockPage'
-import { GuidePage } from '../features/guide/GuidePage'
-import { CreditPage } from '../features/credit/CreditPage'
-import { ClaudePage } from '../features/claude/ClaudePage'
-import { ConsentPage } from '../features/claude/ConsentPage'
-import { BranchesPage } from '../features/master/BranchesPage'
-import { RolesPage } from '../features/master/RolesPage'
-import { UsersPage } from '../features/master/UsersPage'
-import { SettingsPage } from '../features/settings/SettingsPage'
-import { PilotPage } from '../features/pilot/PilotPage'
-import { DataPage } from '../features/data/DataPage'
-import { DashboardPage } from '../features/dashboard/DashboardPage'
+
+// Every page but Pusat kendali (the home screen) is its own chunk, loaded when it is opened and prefetched while the
+// browser is idle (prefetchPages): the first load no longer carries three.js, the chat, the relation galaxy and the
+// guide for every user (one 1.6 MB bundle, 20 Oct).
+type Loader = () => Promise<ComponentType>
+const PAGES: Record<string, Loader> = {
+  login: () => import('../features/login/LoginPage').then((m) => m.LoginPage),
+  dashboard: () => import('../features/dashboard/DashboardPage').then((m) => m.DashboardPage),
+  orchestrator: () => import('../features/orchestrator/OrchestratorPage').then((m) => m.OrchestratorPage),
+  chat: () => import('../features/chat/ChatPage').then((m) => m.ChatPage),
+  reportwa: () => import('../features/reportwa/ReportWAPage').then((m) => m.ReportWAPage),
+  orbit: () => import('../features/orbit/OrbitPage').then((m) => m.OrbitPage),
+  segmen: () => import('../features/segmen/SegmenPage').then((m) => m.SegmenPage),
+  relasi: () => import('../features/relasi/RelasiPage').then((m) => m.RelasiPage),
+  dealer: () => import('../features/dealer/DealerPage').then((m) => m.DealerPage),
+  stock: () => import('../features/stock/StockPage').then((m) => m.StockPage),
+  credit: () => import('../features/credit/CreditPage').then((m) => m.CreditPage),
+  users: () => import('../features/master/UsersPage').then((m) => m.UsersPage),
+  roles: () => import('../features/master/RolesPage').then((m) => m.RolesPage),
+  branches: () => import('../features/master/BranchesPage').then((m) => m.BranchesPage),
+  salesmap: () => import('../features/salesmap/SalesMapPage').then((m) => m.SalesMapPage),
+  claude: () => import('../features/claude/ClaudePage').then((m) => m.ClaudePage),
+  consent: () => import('../features/claude/ConsentPage').then((m) => m.ConsentPage),
+  settings: () => import('../features/settings/SettingsPage').then((m) => m.SettingsPage),
+  pilot: () => import('../features/pilot/PilotPage').then((m) => m.PilotPage),
+  data: () => import('../features/data/DataPage').then((m) => m.DataPage),
+  aiapi: () => import('../features/aiapi/AIAPIPage').then((m) => m.AIAPIPage),
+  aitrigger: () => import('../features/aitrigger/AITriggerPage').then((m) => m.AITriggerPage),
+  guide: () => import('../features/guide/GuidePage').then((m) => m.GuidePage),
+}
+
+// After a deploy an open tab still asks for the old chunk names, which are gone: reload once to get the new ones.
+const RELOADED = 'chunk-reload'
+async function load(key: string) {
+  try {
+    const Component = await PAGES[key]()
+    try { sessionStorage.removeItem(RELOADED) } catch { /* private mode */ }
+    return { Component }
+  } catch (e) {
+    let again = false
+    try { again = !sessionStorage.getItem(RELOADED); sessionStorage.setItem(RELOADED, '1') } catch { /* private mode */ }
+    if (again) window.location.reload()
+    throw e
+  }
+}
+const page = (key: string) => ({ lazy: () => load(key) })
+
+/** Fetch the other pages' chunks while the browser is idle, so opening them is instant. */
+export function prefetchPages() {
+  const keys = Object.keys(PAGES).filter((k) => k !== 'login')
+  const next = () => {
+    const k = keys.shift()
+    if (!k) return
+    PAGES[k]().catch(() => {}).finally(() => idle(next))
+  }
+  idle(next)
+}
+const idle = (f: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 300))
+
+function Booting() {
+  return <div className="boot-fallback" role="status" aria-label="Memuat halaman" />
+}
 
 // Routes of docs/design/08-frontend.md.
 export const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
+  { path: '/login', ...page('login'), hydrateFallbackElement: <Booting /> },
   {
     path: '/',
     // inside the router so sheets can navigate (provenance chips, "Buka dealer")
     element: <FeedbackProvider><OrchProvider><Shell /></OrchProvider></FeedbackProvider>,
+    hydrateFallbackElement: <Booting />,
     children: [
       { index: true, element: <ControlCenter /> },
-      { path: 'dashboard', element: <DashboardPage /> },
-      { path: 'orchestrator', element: <OrchestratorPage /> },
-      { path: 'chat/:threadId?', element: <ChatPage /> },
-      { path: 'report-whatsapp', element: <ReportWAPage /> },
-      { path: 'orbit', element: <OrbitPage /> },
-      { path: 'orbit/segmen', element: <SegmenPage /> },
-      { path: 'orbit/relasi', element: <RelasiPage /> },
-      { path: 'dealer/:id?', element: <DealerPage /> },
-      { path: 'stok', element: <StockPage /> },
-      { path: 'kredit', element: <CreditPage /> },
-      { path: 'pengguna', element: <UsersPage /> },
-      { path: 'peran', element: <RolesPage /> },
-      { path: 'cabang', element: <BranchesPage /> },
-      { path: 'mapping-sales', element: <SalesMapPage /> },
-      { path: 'claude', element: <ClaudePage /> },
-      { path: 'claude/izin', element: <ConsentPage /> },
-      { path: 'pengaturan', element: <SettingsPage /> },
-      { path: 'pengaturan/pilot', element: <PilotPage /> },
-      { path: 'pengaturan/data', element: <DataPage /> },
-      { path: 'pengaturan/api-ai', element: <AIAPIPage /> },
-      { path: 'pengaturan/ai-trigger', element: <AITriggerPage /> },
-      { path: 'panduan', element: <GuidePage /> },
+      { path: 'dashboard', ...page('dashboard') },
+      { path: 'orchestrator', ...page('orchestrator') },
+      { path: 'chat/:threadId?', ...page('chat') },
+      { path: 'report-whatsapp', ...page('reportwa') },
+      { path: 'orbit', ...page('orbit') },
+      { path: 'orbit/segmen', ...page('segmen') },
+      { path: 'orbit/relasi', ...page('relasi') },
+      { path: 'dealer/:id?', ...page('dealer') },
+      { path: 'stok', ...page('stock') },
+      { path: 'kredit', ...page('credit') },
+      { path: 'pengguna', ...page('users') },
+      { path: 'peran', ...page('roles') },
+      { path: 'cabang', ...page('branches') },
+      { path: 'mapping-sales', ...page('salesmap') },
+      { path: 'claude', ...page('claude') },
+      { path: 'claude/izin', ...page('consent') },
+      { path: 'pengaturan', ...page('settings') },
+      { path: 'pengaturan/pilot', ...page('pilot') },
+      { path: 'pengaturan/data', ...page('data') },
+      { path: 'pengaturan/api-ai', ...page('aiapi') },
+      { path: 'pengaturan/ai-trigger', ...page('aitrigger') },
+      { path: 'panduan', ...page('guide') },
     ],
   },
 ])

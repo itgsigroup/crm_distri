@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '../../api/client'
-import type { BoardItem, KPI } from '../../api/types'
+import { api, type Items } from '../../api/client'
+import type { BoardItem, KPI, ThreadView } from '../../api/types'
 import { fmtNum, fmtRp, hhmm } from '../../lib/format'
 import { STAGE_LABEL } from '../../lib/i18n/id'
 import { useOrch } from '../../app/orch'
 import { STAGES } from '../../app/cycle'
-import { useCycleLatest, useQueue, useStockCritical, useStockPush, useThreads, useWAStatus } from '../../app/queries'
+import { useCycleLatest, useQueue, useStockCritical, useStockPush, useWAStatus } from '../../app/queries'
 import { STATE_LABEL, ordered, summarize, type CycleProgress } from '../control/progress'
 import { AGENT_COLOR, AGENT_NAME, AGENT_OF, capsules, planStation, type AgentKey } from './station'
 import { STATION_H, StationView, type StationTarget, type Work } from './StationView'
@@ -56,7 +56,15 @@ export function DashboardStation({ board, kpi, can }: { board: BoardItem[]; kpi:
   }
   const { data: push = [] } = useStockPush()
   const { data: critical = [] } = useStockCritical()
-  const { data: fresh = [] } = useThreads('new', '', on && can('chat'))
+  // comets: new numbers, refreshed every minute — outside the 'chat' keys so a new message does not refetch the chat
+  // list (the heaviest query) on the dashboard
+  const { data: fresh = [] } = useQuery({
+    queryKey: ['station', 'comets'],
+    enabled: on && can('chat'),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    queryFn: () => api.get<Items<ThreadView>>('/chat/threads?tab=new').then((r) => r.items),
+  })
   const { data: wa } = useWAStatus()
   const unread = can('chat') ? wa?.items.reduce((a, n) => a + (n.unread_count ?? 0), 0) ?? 0 : 0
   const { data: queue = [] } = useQueue()

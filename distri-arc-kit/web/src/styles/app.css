@@ -1994,3 +1994,7 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .odl td.an-sch-main code{font-family:var(--font-mono);font-size:11px}
 .odl td.cl-tool-desc{max-width:420px}
 .odl .an-row-act{flex-wrap:nowrap}
+
+/* while a page's chunk loads on the first visit (router lazy routes) */
+.boot-fallback{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg)}
+.boot-fallback::after{content:"";width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}

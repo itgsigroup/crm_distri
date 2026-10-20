@@ -23,8 +23,17 @@ type Store struct {
 }
 
 // Open connects to PostgreSQL and verifies the connection.
+//
+// JIT is off for every connection: the planner's cost estimate of the chat list and the Orbit queries passes
+// jit_above_cost, and compiling them took ~1.9 s of a 2.1 s chat list on the 2-CPU server for ~240 ms of work
+// (20 Oct, EXPLAIN ANALYZE); short OLTP queries never win it back.
 func Open(ctx context.Context, url string) (*Store, error) {
-	pool, err := pgxpool.New(ctx, url)
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		return nil, fmt.Errorf("connect: %w", err)
+	}
+	cfg.ConnConfig.RuntimeParams["jit"] = "off"
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("connect: %w", err)
 	}

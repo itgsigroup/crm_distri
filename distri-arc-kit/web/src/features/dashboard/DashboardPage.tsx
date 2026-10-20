@@ -2,7 +2,7 @@ import { Link } from 'react-router'
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { Icon } from '../../components/Icon'
 import { useOrchStatus } from '../../app/orch'
-import { useBrief, useCreditOverview, useKpi, useMe, useOrbit, useOrbitSummary, useStockCritical, useStockPush, useThreads, useTrend } from '../../app/queries'
+import { useBrief, useCreditOverview, useKpi, useMe, useOrbit, useOrbitSummary, useStockCritical, useStockPush, useTrend, useWAStatus } from '../../app/queries'
 import { fmtNum, fmtRp, hhmm, shortDate } from '../../lib/format'
 import { KUAD } from '../../lib/i18n/id'
 import type { BoardItem, Segment, Trend, TrendKey } from '../../api/types'
@@ -72,8 +72,9 @@ function StockCritical() {
 }
 
 function ChatSignal() {
-  const { data, isPending, isError } = useThreads('all', '')
-  const unread = data?.reduce((sum, item) => sum + item.unread, 0) ?? 0
+  // the numbers' unread counts, not the whole chat list (the heaviest query of the app) for one sum
+  const { data, isPending, isError } = useWAStatus()
+  const unread = data?.items.reduce((sum, n) => sum + (n.unread_count ?? 0), 0) ?? 0
   return <div className="db-signal">
     <span className="db-signal-icon accent"><Icon name="chat" /></span>
     <div><b>Chat belum dibaca</b><span>{isError ? 'Data chat gagal dimuat' : isPending ? 'Memuat…' : `${fmtNum(unread)} pesan memerlukan perhatian`}</span></div>

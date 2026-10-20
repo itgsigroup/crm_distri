@@ -2,11 +2,14 @@ import { useQueryClient } from '@tanstack/react-query'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 // One EventSource('/api/events') per tab; each event invalidates the queries it affects (08-frontend).
+const CHAT_LIVE = [['chat', 'threads'], ['chat', 'thread'], ['chat', 'context']]
 const INVALIDATES: Record<string, string[][]> = {
   cycle_stage: [['cycle']],
   cycle_done: [['cycle'], ['cycles'], ['plan'], ['proposals'], ['brief'], ['orbit'], ['segmen'], ['dealers'], ['dealer'], ['kpi'], ['agenda'], ['agents'], ['stock'], ['credit'], ['chat', 'wa-analysis']],
-  proposal_changed: [['proposals'], ['plan'], ['dealer'], ['dealers'], ['cycle'], ['orbit'], ['chat']],
-  chat_message: [['chat'], ['wa', 'status']], // the numbers carry the unread counts (rail, menu badge)
+  proposal_changed: [['proposals'], ['plan'], ['dealer'], ['dealers'], ['cycle'], ['orbit'], ...CHAT_LIVE],
+  // only what a new message changes: not Analisa WhatsApp (the pill on every page refetched it on each message,
+  // ~11,700×/day), labels or group members
+  chat_message: [...CHAT_LIVE, ['chat', 'search'], ['wa', 'status']], // the numbers carry the unread counts (rail, menu badge)
   wa_status: [['wa']],
   mcp_call: [['mcp']],
   mcp_schedule: [['mcp'], ['chat', 'wa-analysis']], // Claude's Analisa WhatsApp every 2 h: the label in Pusat kendali

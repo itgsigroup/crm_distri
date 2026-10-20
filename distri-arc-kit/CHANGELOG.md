@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Perf · Semua halaman lebih cepat: JIT PostgreSQL dimatikan, halaman dimuat per kebutuhan, refetch berlebihan dihapus · 2026-10-20
+- **JIT PostgreSQL dimatikan** untuk setiap koneksi aplikasi (API dan worker). Daftar chat 2,1 dtk → ~0,4 dtk: 1,9 dtk di antaranya kompilasi JIT untuk ~240 ms kerja (EXPLAIN ANALYZE di produksi). Berlaku untuk semua query dengan estimasi biaya tinggi (Orbit, brief, kredit, health).
+- **Halaman dimuat per kebutuhan**: setiap halaman kecuali Pusat kendali jadi chunk sendiri, diunduh di latar belakang saat browser idle. Muatan awal 1,6 MB → 327 KB (gzip 452 → 102 KB); three.js hanya untuk Dashboard dan Relasi. Tab lama yang meminta chunk yang sudah diganti deploy dimuat ulang sekali otomatis.
+- **Refetch berlebihan dihapus**: pesan WA baru tidak lagi memuat ulang Analisa WhatsApp di pill kanan atas setiap halaman (~11.700×/hari), label, dan anggota grup — hanya daftar chat, isi chat, konteks, pencarian, dan status nomor. Kartu "Chat belum dibaca" di Dashboard memakai hitungan nomor WA, bukan seluruh daftar chat; komet Stasiun Orbit disegarkan per menit.
+- Dibersihkan: komponen `control/Queue.tsx` yang tidak dipakai lagi, file `.DS_Store`.
+
 ## Feat · Stasiun Orbit: tombol "AI Agent bekerja", Perbesar & Layar penuh, hasil kerja agen terlihat · 2026-10-20
 - Tombol **🚀 AI Agent bekerja** di kepala adegan menjalankan Orchestrator untuk semua data (lewat `POST /cycles`, mesin **Sistem** atau **MCP Claude** — pilihan yang sama dengan dock Orchestrator). Tidak ada yang dikirim ke dealer: hasilnya usulan yang menunggu keputusan manusia.
 - **Astronot memerankan agennya sungguhan** dari `GET /cycles/{id}/progress` (diperbarui tiap 2 detik): *antri* melayang menunggu di dekat Inti AI, *menganalisa* mengitari inti dengan sinar ke inti (label berisi data yang dibaca), *selesai* terbang ke depan Dek Keputusan sambil mengangkat kapsul usulan dengan label hasilnya (mis. "Order · ✓ 3 saran"), *gagal* berlabel merah. Siklus terjadwal juga diperankan saat adegan terbuka.
