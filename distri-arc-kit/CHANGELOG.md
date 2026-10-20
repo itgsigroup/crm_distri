@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Peran & akses: datatable (cari, urut per kolom, paginasi) · 2026-10-20
+- Master data → **Peran & akses** kini datatable seperti Pengguna: pencarian (nama peran, keterangan, nama halaman, cakupan data, kebijakan, aktif/nonaktif), urut per kolom (Peran, Halaman, Data, Keputusan, WhatsApp, Pengguna, Status), paginasi 10/25/50. Kolom **Status** baru; peran nonaktif tetap tampil redup.
+
 ## Feat · Pengguna: datatable (cari, urut per kolom, paginasi); sinkron data dicek saat worker menyala · 2026-10-20
 - Master data → **Pengguna** kini datatable seperti kartu Pusat kendali: pencarian (nama, email, peran, cabang, nomor WhatsApp, aktif/nonaktif), urut per kolom (Nama, Peran, Cabang, WhatsApp, Status), paginasi 10/25/50. Kolom **Status** baru; akun nonaktif tetap tampil redup.
 - Sinkron BigQuery kini juga dicek saat worker menyala — jadwalnya tidak lagi mundur setiap deploy (tetap mengikuti interval sinkron di Pengaturan → Data).

@@ -4,6 +4,7 @@ import { api } from '../../api/client'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
+import { ColumnTable, type Column } from '../../components/DataTable'
 import { useMe } from '../../app/queries'
 import { field, useRoles, type RoleCatalog, type RoleRow } from './api'
 
@@ -100,32 +101,32 @@ function RoleSheet({ role, cat }: { role?: RoleRow; cat: RoleCatalog }) {
 }
 
 /** Master data → Peran & akses: custom roles (pages, data scope, decisions, policy rights, WhatsApp). */
+const byText = (f: (r: RoleRow) => string) => (a: RoleRow, b: RoleRow) => f(a).localeCompare(f(b), 'id')
+
+// A data table (20 Oct): search, sort per column, pages of 10/25/50 — like Pengguna.
 export function RolesPage() {
   const { data: me } = useMe()
   const { openSheet } = useFeedback()
   const { data: cat } = useRoles()
   if (!cat) return null
   const label = (k: string) => cat.screens.find((s) => s.key === k)?.label ?? k
+  const columns: Column<RoleRow>[] = [
+    { key: 'name', label: 'Peran', sort: byText((r) => r.name), cell: (r) => <><b>{r.name}</b>{r.policies && <> <Pill tone="accent">Kebijakan</Pill></>}<div className="mono">{r.description}</div></> },
+    { key: 'screens', label: 'Halaman', sort: (a, b) => a.screens.length - b.screens.length, first: 'desc', className: 'role-screens', cell: (r) => <div className="role-tags">{r.screens.map((s) => <span key={s}>{label(s)}</span>)}</div> },
+    { key: 'scope', label: 'Data', sort: byText((r) => r.scope), cell: (r) => (r.scope === 'own' ? 'Miliknya' : 'Semua') },
+    { key: 'decide', label: 'Keputusan', right: true, sort: (a, b) => a.decide.length - b.decide.length, first: 'desc', cell: (r) => <span className="num">{r.decide.length}</span> },
+    { key: 'wa', label: 'WhatsApp', sort: (a, b) => Number(b.wa_allowed) - Number(a.wa_allowed), cell: (r) => <>{r.wa_allowed ? '1 nomor' : '—'}<div className="mono">{r.chat_scope === 'own' ? 'chat nomor sendiri' : 'chat semua nomor'}</div></> },
+    { key: 'users', label: 'Pengguna', right: true, sort: (a, b) => a.users - b.users, first: 'desc', cell: (r) => <span className="num">{r.users}</span> },
+    { key: 'status', label: 'Status', sort: (a, b) => Number(b.active) - Number(a.active), cell: (r) => <Pill tone={r.active ? 'good' : 'neutral'}>{r.active ? 'Aktif' : 'Nonaktif'}</Pill> },
+    { key: 'act', label: '', right: true, cell: (r) => <button className="btn quiet" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<RoleSheet role={r} cat={cat} />)}>{me?.edit_policies ? 'Ubah' : 'Lihat'}</button> },
+  ]
   return (
     <div className="card">
       <div className="card-h"><h2>Peran &amp; akses</h2><span className="meta">{cat.items.length} peran · akses tiap halaman bisa dicentang</span>
         {me?.edit_policies && <button className="btn primary" style={{ height: 32, fontSize: 12.5, marginLeft: 8 }} onClick={() => openSheet(<RoleSheet cat={cat} />)}><Icon name="shield" />Tambah peran</button>}</div>
-      <div className="tbl-wrap">
-        <table className="tbl">
-          <thead><tr><th>Peran</th><th>Halaman</th><th>Data</th><th>Keputusan</th><th>WhatsApp</th><th>Pengguna</th><th /></tr></thead>
-          <tbody>{cat.items.map((r) => (
-            <tr key={r.key} style={r.active ? undefined : { opacity: 0.5 }}>
-              <td><b>{r.name}</b>{r.policies && <> <Pill tone="accent">Kebijakan</Pill></>}<div className="mono">{r.description}</div></td>
-              <td style={{ maxWidth: 320 }}><div className="role-tags">{r.screens.map((s) => <span key={s}>{label(s)}</span>)}</div></td>
-              <td>{r.scope === 'own' ? 'Miliknya' : 'Semua'}</td>
-              <td className="num">{r.decide.length}</td>
-              <td>{r.wa_allowed ? '1 nomor' : '—'}<div className="mono">{r.chat_scope === 'own' ? 'chat nomor sendiri' : 'chat semua nomor'}</div></td>
-              <td className="num">{r.users}</td>
-              <td style={{ textAlign: 'right' }}><button className="btn quiet" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<RoleSheet role={r} cat={cat} />)}>{me?.edit_policies ? 'Ubah' : 'Lihat'}</button></td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
+      <ColumnTable rows={cat.items} columns={columns} rowKey={(r) => r.key} noun="peran" placeholder="Cari peran, halaman, keterangan…"
+        text={(r) => [r.name, r.description, r.screens.map(label).join(' '), r.scope === 'own' ? 'miliknya' : 'semua', r.policies ? 'kebijakan' : '', r.active ? 'aktif' : 'nonaktif'].join(' ')}
+        initial={{ column: 'name', dir: 'asc' }} empty="Belum ada peran." rowClass={(r) => (r.active ? undefined : 'is-off')} />
     </div>
   )
 }

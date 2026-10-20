@@ -1985,3 +1985,4 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 
 /* Pengguna (20 Oct): an inactive account stays in the table, faded */
 .odl tr.is-off td{opacity:.5}
+.odl td.role-screens{max-width:320px}
