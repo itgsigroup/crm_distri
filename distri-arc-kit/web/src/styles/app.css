@@ -1965,3 +1965,20 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 /* Segmen (20 Oct): a dealer with one order (Baru) is indigo with a dashed ring — the white dot vanished on the white canvas */
 .kuad .dn .dn-dot.baru{fill-opacity:.45}
 .orbit-legend i.lg-baru{background:color-mix(in srgb,var(--indigo) 45%,transparent);border:1.5px dashed var(--indigo);box-sizing:border-box}
+
+/* Dealer list (20 Oct): Klasifikasi dealer — active share, a stacked status bar, a filter chip per status */
+.dl-cls{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.dl-cls-head{display:grid;grid-template-columns:auto 1fr;align-items:baseline;gap:2px 8px;padding:0;border:0;background:none;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.dl-cls-head span{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);grid-column:1/-1}
+.dl-cls-head b{font-size:22px;font-weight:750;line-height:1.1}
+.dl-cls-head small{font-size:11.5px;color:var(--text-3)}
+.dl-cls-head.on b,.dl-cls-head:hover b{color:var(--accent)}
+.dl-cls-bar{display:flex;height:6px;border-radius:999px;overflow:hidden;background:var(--line)}
+.dl-cls-bar i{display:block;height:100%}
+.dl-cls-chips{display:flex;flex-wrap:wrap;gap:5px}
+.dl-cls-chips button{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:11.5px;cursor:pointer}
+.dl-cls-chips button i{width:7px;height:7px;border-radius:50%}
+.dl-cls-chips button b{font-weight:700}
+.dl-cls-chips button small{color:var(--text-3)}
+.dl-cls-chips button:hover{border-color:var(--accent-line)}
+.dl-cls-chips button.on{border-color:var(--accent);background:var(--accent-soft)}

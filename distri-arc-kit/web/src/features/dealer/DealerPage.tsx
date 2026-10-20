@@ -20,6 +20,52 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
+// Klasifikasi dealer (Sam 20 Oct): how many dealers are active and in which status (glossary › Status dealer), each a
+// filter. "Aktif" counts Key account + Aktif + Baru, out of the dealers that ever ordered; Prospek is counted apart.
+const CLASSES: { s: string; label: string; tone: string; hint: string }[] = [
+  { s: 'Key account', label: 'Key account', tone: 'good', hint: 'share of wallet ≥ 50%, bayar tepat ≥ 85%, omzet besar' },
+  { s: 'Aktif', label: 'Aktif', tone: 'accent', hint: 'order sesuai siklus' },
+  { s: 'Baru', label: 'Baru', tone: 'indigo', hint: 'baru 1 order dalam 90 hari' },
+  { s: 'At risk', label: 'At risk', tone: 'warn', hint: 'lewat 1,2× siklus order' },
+  { s: 'Churn', label: 'Churn', tone: 'bad', hint: 'lewat 2× siklus, atau > 365 hari tanpa order' },
+]
+const ACTIVE = new Set(['Key account', 'Aktif', 'Baru'])
+const pct = (n: number, of: number) => (of ? Math.round((n / of) * 100) : 0)
+
+function DealerClasses({ all, status, onPick }: { all: BoardItem[]; status: string; onPick: (s: string) => void }) {
+  const n: Record<string, number> = {}
+  for (const d of all) n[d.metrics.status] = (n[d.metrics.status] ?? 0) + 1
+  const prospek = n.Prospek ?? 0
+  const ordered = all.length - prospek
+  const active = CLASSES.filter((c) => ACTIVE.has(c.s)).reduce((t, c) => t + (n[c.s] ?? 0), 0)
+  const pick = (s: string) => onPick(status === s ? '' : s)
+  return (
+    <div className="dl-cls" aria-label="Klasifikasi dealer">
+      <button type="button" className={`dl-cls-head${status === 'aktif' ? ' on' : ''}`} onClick={() => pick('aktif')} title="Tampilkan dealer aktif (Key account + Aktif + Baru)">
+        <span>Dealer aktif</span><b className="num">{pct(active, ordered)}%</b><small>{active.toLocaleString('id-ID')} dari {ordered.toLocaleString('id-ID')} yang pernah order</small>
+      </button>
+      <div className="dl-cls-bar" aria-hidden="true">
+        {CLASSES.map((c) => <i key={c.s} style={{ width: `${pct(n[c.s] ?? 0, ordered)}%`, background: `var(--${c.tone})` }} />)}
+      </div>
+      <div className="dl-cls-chips" role="group" aria-label="Filter status dealer">
+        {CLASSES.map((c) => (
+          <button key={c.s} type="button" className={status === c.s ? 'on' : ''} aria-pressed={status === c.s} onClick={() => pick(c.s)} title={c.hint}>
+            <i style={{ background: `var(--${c.tone})` }} />{c.label}<b className="num">{pct(n[c.s] ?? 0, ordered)}%</b><small className="num">{(n[c.s] ?? 0).toLocaleString('id-ID')}</small>
+          </button>
+        ))}
+        <button type="button" className={status === 'Prospek' ? 'on' : ''} aria-pressed={status === 'Prospek'} onClick={() => pick('Prospek')} title="Belum pernah order — tidak dihitung dalam persentase">
+          <i style={{ background: 'var(--text-3)' }} />Prospek<small className="num">{prospek.toLocaleString('id-ID')}</small>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** The status filter: one status, or "aktif" for Key account + Aktif + Baru. */
+export function inStatus(d: BoardItem, status: string) {
+  return !status || (status === 'aktif' ? ACTIVE.has(d.metrics.status) : d.metrics.status === status)
+}
+
 /** Search list on the left (mockup renderList): sorted by position in cycle, furthest first. */
 function DealerList({ active }: { active?: string }) {
   const [q, setQ] = useState('')
@@ -33,7 +79,7 @@ function DealerList({ active }: { active?: string }) {
   const [params, setParams] = useSearchParams()
   const status = params.get('status') ?? ''
   const { data: all = [], isPending, isError } = useDealers(term, type)
-  const list = useMemo(() => (status ? all.filter((d) => d.metrics.status === status) : all), [all, status])
+  const list = useMemo(() => all.filter((d) => inStatus(d, status)), [all, status])
   const pageCount = Math.max(1, Math.ceil(list.length / DEALERS_PER_PAGE))
   const currentPage = Math.min(page, pageCount)
   const pageNumbers = [...new Set([1, currentPage - 1, currentPage, currentPage + 1, pageCount])].filter((n) => n >= 1 && n <= pageCount).sort((a, b) => a - b)
@@ -47,11 +93,8 @@ function DealerList({ active }: { active?: string }) {
       <div className="seg" style={{ margin: '10px 0 2px', alignSelf: 'flex-start' }} role="radiogroup" aria-label="Jenis pelanggan">
         {[['', 'Semua'], ['reseller', 'Dealer'], ['si', 'Freelance / SI']].map(([k, l]) => <button key={k} role="radio" aria-checked={type === k} className={type === k ? 'is-active' : ''} onClick={() => { setType(k); setPage(1) }}>{l}</button>)}
       </div>
-      <select className="st-filter" value={status} onChange={(e) => { setParams(e.target.value ? { status: e.target.value } : {}); setPage(1) }} aria-label="Status dealer">
-        <option value="">Semua status</option>
-        {['Key account', 'Aktif', 'Baru', 'At risk', 'Churn', 'Prospek'].map((s) => <option key={s} value={s}>{s === 'Prospek' ? 'Prospek (belum pernah order)' : s}</option>)}
-      </select>
-      {status && <span className="st-count">{list.length.toLocaleString('id-ID')} dealer {status}</span>}
+      {!isPending && !isError && <DealerClasses all={all} status={status} onPick={(s) => { setParams(s ? { status: s } : {}); setPage(1) }} />}
+      {status && <span className="st-count">{list.length.toLocaleString('id-ID')} dealer {status === 'aktif' ? 'aktif (Key account + Aktif + Baru)' : status}</span>}
       <button className="btn quiet" style={{ height: 28, fontSize: 12, margin: '8px 0 4px', alignSelf: 'flex-start' }} onClick={() => openSheet(<SOWSheet />)}><Icon name="check" />Konfirmasi share of wallet</button>
       <div className="list">
         {shown.map((d) => {
@@ -61,7 +104,7 @@ function DealerList({ active }: { active?: string }) {
               <span className={`dot ${hb(m.score)}`} />
               <div>
                 <b>{d.name}</b>
-                <span>{m.status === 'Baru' ? 'Aktif' : m.status} · {d.customer_type === 'si' ? 'SI' : 'Dealer'} · {KUAD[m.segment].n} · {d.city}{d.tier ? ` · tier ${d.tier}` : ''}</span>
+                <span>{m.status} · {d.customer_type === 'si' ? 'SI' : 'Dealer'} · {KUAD[m.segment].n} · {d.city}{d.tier ? ` · tier ${d.tier}` : ''}</span>
                 <div className="row2">
                   <span>{m.rhythm_days ? (m.due_in! >= 0 ? `jadwal order ${m.due_in} hr` : `lewat ${-m.due_in!} hr`) : m.status === 'Prospek' ? 'belum pernah order' : m.status === 'Churn' ? `order terakhir ${m.last_order_days} hr lalu` : 'baru'} · {d.owner.name}</span>
                   <em className="num">{fmtRp(m.avg_order)}/order</em>
@@ -419,7 +462,7 @@ export function DealerPage() {
   const [params] = useSearchParams()
   const status = params.get('status') ?? ''
   const { data: all } = useDealers('')
-  const list = status ? all?.filter((d) => d.metrics.status === status) : all
+  const list = all?.filter((d) => inStatus(d, status))
   const fallback: BoardItem | undefined = list?.find((d) => d.id === 'mitra') ?? list?.[0]
   const current = id ?? fallback?.id
   const search = params.toString()

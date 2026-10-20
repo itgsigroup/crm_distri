@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Dealer: klasifikasi dealer — % dealer aktif dan filter per status · 2026-10-20
+- Daftar dealer punya kotak **Dealer aktif**: persentase dealer aktif (Key account + Aktif + Baru) dari dealer yang pernah order, bar komposisi status, dan chip **Key account · Aktif · Baru · At risk · Churn** dengan persen dan jumlah — klik untuk memfilter (klik lagi untuk melepas); klik angka "Dealer aktif" untuk menampilkan semua dealer aktif. **Prospek** (belum pernah order) dihitung terpisah, tidak masuk persentase. Persentase mengikuti pencarian dan jenis pelanggan yang dipilih. Menggantikan dropdown status.
+- Status di daftar ditulis apa adanya (Baru tidak lagi ditampilkan sebagai Aktif) agar sama dengan filternya.
+- Dicek terhadap MD (08-frontend): DealerList (urut posisi siklus), DealerHeader, Langkah berikutnya, Order-to-cash, Share of wallet & product mix, Sisa limit, Memori, PIC aktif, Komitmen, Timeline — sesuai.
+
 ## Fix · Peta relasi: catatan Analisa Relasi ikut filter sales dan dealer · 2026-10-20
 - Dicek terhadap MD (08-frontend, ADR 0054): node sales biru, dealer berwarna skor, ukuran = interaksi/bulan, periode 30–180 hari, klik dua kali → dealer, cadangan 2D, Lihat dari, Pasangan terkuat, Pola relasi — sesuai. **Analisa Relasi** memang ditulis Claude dari isi chat WhatsApp lewat routine: setiap siklus Orchestrator (tiap jam) Claude mengambil input "Analisa Relasi" dan mengirim ringkasan + catatan per dealer lewat MCP.
 - Catatan Claude per dealer kini **ikut filter "Lihat dari" (sales) dan filter dealer**, seperti peta — sebelumnya selalu menampilkan semua catatan. Kartu menyebut cakupannya (chat 30 hari terakhir) dan bahwa analisa ditulis lewat routine.
