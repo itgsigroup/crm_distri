@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router'
+import { createPortal } from 'react-dom'
+import { useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Items } from '../../api/client'
 import type { MediaView, Mention, MessageView, ThreadDetail, ThreadView, WANumber, WATeam } from '../../api/types'
@@ -25,6 +26,8 @@ import { linkParts } from './links'
 import { formatParts, quoteLines, shortcutMark, wrapSelection, type Mark } from './format'
 import { MembersSheet, openMemberChat, useMembers } from './Members'
 import { Dock } from '../../app/Dock'
+import { OrchPill } from '../../app/orch'
+import type { ShellContext } from '../../app/Shell'
 
 /** Plain text with its tags ("@Budi", WhatsApp's colour), its links (open in a new tab) and the searched words marked. */
 function RichText({ text, mentions, mark }: { text: string; mentions?: Mention[] | null; mark?: string }) {
@@ -508,9 +511,9 @@ function AnnProposal({ p }: { p: NonNullable<MessageView['proposal']> }) {
 const PER_MSG_KEY = 'chat.analysis.per-message'
 
 /** Show the analysis under every bubble (on by default, remembered on this browser). */
-// Zoom of the conversation (20 Oct): 70%–160%, remembered on this browser for every chat
+// Zoom of the conversation (20 Oct): 50%–160%, remembered on this browser for every chat
 const CHAT_ZOOM_KEY = 'chat.zoom'
-const CHAT_ZOOMS = [0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6]
+const CHAT_ZOOMS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6]
 function useChatZoom(): [number, (step: number) => void, () => void] {
   const [z, setZ] = useState(() => {
     try {
@@ -900,6 +903,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
             {t.kind !== 'group' && <button type="button" className="ibc-alias" onClick={rename} title={t.phone_name ? 'Ubah nama panggilan' : 'Beri nama panggilan (seperti di HP)'} aria-label="Nama panggilan"><Icon name="edit" /></button>}
             {t.subtitle && <span className="ibr-src">≈ {t.subtitle}</span>}
             <Dock screen="chat" head />
+            <OrchPill />
           </div>
           <div className="ibc-sub">
             {t.phone && <span className="ibc-phone">{fmtPhone(t.phone)}</span>}
@@ -1381,11 +1385,14 @@ export function ChatPage() {
   if (threadId && kept !== threadId) setKept(threadId)
   const active = threadId ?? kept
   const leave = () => { setKept(undefined); nav('/chat') }
-  const rail = <NumberRail account={account} setAccount={setAccount} />
+  // the numbers bar goes in the page header next to "Chat" (20 Oct), when the header has its slot
+  const slot = useOutletContext<ShellContext | undefined>()?.topbarSlot ?? null
+  const numbers = <NumberRail account={account} setAccount={setAccount} />
+  const rail = slot ? createPortal(numbers, slot) : numbers
   // No number linked yet: show how to connect the team's numbers.
   if (!threadId && wa && wa.items.length === 0) {
     return (
-      <div className="chat multi chat-empty">
+      <div className={`chat multi chat-empty ${slot ? 'rail-out' : ''}`}>
         {rail}
         <div className="pane connect-pane"><ConnectPanel /></div>
       </div>
@@ -1393,7 +1400,7 @@ export function ChatPage() {
   }
   const accurate = () => active && openSheet(<AccurateSheet id={active} />)
   return (
-    <div className={`chat multi komo ${threadId ? 'show-thread' : ''} ${active ? 'with-lead' : ''} ${active && !lead ? 'lead-mini' : ''}`}>
+    <div className={`chat multi komo ${slot ? 'rail-out' : ''} ${threadId ? 'show-thread' : ''} ${active ? 'with-lead' : ''} ${active && !lead ? 'lead-mini' : ''}`}>
       {rail}
       <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)} onLeave={leave} />
       {active && <LeadPane key={'l' + active} id={active} mini={!lead} setMini={(v) => setLead(!v)} onAccurate={accurate} />}

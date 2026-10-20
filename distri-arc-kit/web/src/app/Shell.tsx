@@ -1,5 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router'
+
+/** What the shell hands its pages: the page-header slot Chat puts its numbers bar in. */
+export type ShellContext = { topbarSlot: HTMLElement | null }
 import sprite from '../icons/sprite.svg?raw'
 import { Icon } from '../components/Icon'
 import { AppearancePicker } from '../components/AppearancePicker'
@@ -109,6 +112,7 @@ export function Shell() {
     if (me && !canSee(me.screens, cur) && loc.pathname !== '/claude/izin') nav('/', { replace: true })
   }, [me, cur, nav, loc.pathname])
   const [menu, setMenu] = useState(false)
+  const [topbarSlot, setTopbarSlot] = useState<HTMLElement | null>(null) // Chat's numbers bar renders here
   const { collapsed, setCollapsed } = useAppearance()
   const { subscribe } = useSse()
   useEffect(
@@ -199,8 +203,9 @@ export function Shell() {
                 </div>
               )}
             </div>
+            {cur === 'chat' && <div className="tb-chat" ref={setTopbarSlot} />}
             <div className="top-right">
-              <OrchPill />
+              {cur !== 'chat' && <OrchPill />}
               {me?.pilot_mode === 'shadow' && <span className="chip-sample" title="Pilot: Orchestrator menganalisis, tidak ada yang dikirim ke dealer">Mode bayangan</span>}
               {health?.sample_data && <span className="chip-sample">Data contoh</span>}
               <button className="icon-btn" aria-label="Notifikasi" onClick={() => toast('Semua yang butuh Anda ada di Pusat kendali.')}>
@@ -210,7 +215,7 @@ export function Shell() {
             </div>
           </header>
           <section className="screen" key={cur}>
-            <Outlet />
+            <Outlet context={{ topbarSlot } satisfies ShellContext} />
           </section>
         </main>
 

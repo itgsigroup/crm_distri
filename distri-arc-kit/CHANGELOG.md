@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: nomor sales di samping judul, Analisa WhatsApp di samping Orchestrator, zoom mulai 50% · 2026-10-20
+- Deretan nomor (Sales / Admin / Penagihan, + Nomor) pindah ke baris judul halaman, di samping tulisan **Chat** — area percakapan jadi lebih tinggi.
+- Pill **Analisa WhatsApp · MCP <jam> · berikutnya <jam>** pindah dari kanan atas ke header percakapan, di samping tombol Orchestrator. Halaman lain tidak berubah.
+- Zoom chat kini **50%–160%**.
+
 ## Feat · Chat: zoom foto dan Orchestrator di samping nama chat · 2026-10-20
 - **Zoom percakapan**: tombol **− / % / +** di header chat (di samping tombol cari) memperbesar/memperkecil isi chat 70%–160%; klik angka % untuk kembali ke 100%. Ukuran diingat di browser ini untuk semua chat.
 - Foto yang dibuka di chat kini bisa **diperbesar / diperkecil**: tombol **− / % / +** di kanan atas (100%–500%), scroll mouse, tombol keyboard `+` `-` `0`, atau klik dua kali. Saat diperbesar, foto bisa digeser dengan menyeret; klik angka % untuk kembali ke ukuran asli.

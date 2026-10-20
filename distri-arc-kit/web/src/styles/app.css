@@ -171,16 +171,16 @@
 @media (max-width:1100px){.chat.multi{grid-template-columns:280px minmax(0,1fr)}}
 /* the numbers sit in one row above the chat panes, so the panes get the full width */
 .chat.multi{grid-template-rows:auto minmax(0,1fr)}
-.chat.multi .wa-rail{grid-column:1/-1;flex-direction:row;align-items:center;gap:4px;height:56px;padding:6px 10px;overflow-x:auto;overflow-y:hidden}
-.chat.multi .wr-team{flex-direction:row;flex:none;gap:4px}
-.chat.multi .wr-sep{width:1px;height:28px;margin:0 4px}
-.chat.multi .wr-i{flex:none;flex-direction:row;gap:7px;width:auto;padding:4px 10px 4px 4px}
-.chat.multi .wr-av{width:34px;height:34px;border-radius:11px;font-size:12px}
-.chat.multi .wr-i.all .wr-av .i{width:18px;height:18px}
-.chat.multi .wr-i .dot{top:30px;left:30px;width:10px;height:10px}
-.chat.multi .wr-un{top:-2px;right:auto;left:24px;min-width:16px;height:16px;font-size:9.5px;padding:0 4px}
-.chat.multi .wr-l{font-size:12px;max-width:110px}
-.chat.multi .wr-th{max-width:none}
+:is(.chat.multi,.tb-chat) .wa-rail{grid-column:1/-1;flex-direction:row;align-items:center;gap:4px;height:56px;padding:6px 10px;overflow-x:auto;overflow-y:hidden}
+:is(.chat.multi,.tb-chat) .wr-team{flex-direction:row;flex:none;gap:4px}
+:is(.chat.multi,.tb-chat) .wr-sep{width:1px;height:28px;margin:0 4px}
+:is(.chat.multi,.tb-chat) .wr-i{flex:none;flex-direction:row;gap:7px;width:auto;padding:4px 10px 4px 4px}
+:is(.chat.multi,.tb-chat) .wr-av{width:34px;height:34px;border-radius:11px;font-size:12px}
+:is(.chat.multi,.tb-chat) .wr-i.all .wr-av .i{width:18px;height:18px}
+:is(.chat.multi,.tb-chat) .wr-i .dot{top:30px;left:30px;width:10px;height:10px}
+:is(.chat.multi,.tb-chat) .wr-un{top:-2px;right:auto;left:24px;min-width:16px;height:16px;font-size:9.5px;padding:0 4px}
+:is(.chat.multi,.tb-chat) .wr-l{font-size:12px;max-width:110px}
+:is(.chat.multi,.tb-chat) .wr-th{max-width:none}
 .chat.komo .ibp{--rail-off:72px}
 @media (max-width:900px){
   .chat.multi .wa-rail{margin-bottom:10px}
@@ -1645,12 +1645,12 @@ body.map-maximized{overflow:hidden}
   .stage:has(.chat.komo) .topbar h1{font-size:20px}
   .stage:has(.chat.komo) .topbar .sub{display:none}
   .chat.komo{height:calc(100dvh - 74px);min-height:400px;gap:10px}
-  .chat.komo .wa-rail{height:46px;padding:4px 8px}
-  .chat.komo .wr-av{width:30px;height:30px;border-radius:10px;font-size:11px}
-  .chat.komo .wr-i{padding:3px 8px 3px 3px}
-  .chat.komo .wr-i .dot{top:25px;left:25px;width:9px;height:9px}
-  .chat.komo .wr-un{left:21px;top:-3px}
-  .chat.komo .wr-sep{height:22px}
+  :is(.chat.komo,.tb-chat) .wa-rail{height:46px;padding:4px 8px}
+  :is(.chat.komo,.tb-chat) .wr-av{width:30px;height:30px;border-radius:10px;font-size:11px}
+  :is(.chat.komo,.tb-chat) .wr-i{padding:3px 8px 3px 3px}
+  :is(.chat.komo,.tb-chat) .wr-i .dot{top:25px;left:25px;width:9px;height:9px}
+  :is(.chat.komo,.tb-chat) .wr-un{left:21px;top:-3px}
+  :is(.chat.komo,.tb-chat) .wr-sep{height:22px}
   .chat.komo .ibl-head{padding:8px 10px 4px}
   .chat.komo .ibl-search{height:32px;margin:0 10px 6px}
   .chat.komo .ibl-chips{gap:4px;padding:0 10px 8px}
@@ -1693,20 +1693,20 @@ body.map-maximized{overflow:hidden}
 .bub-contact-go{flex:none;font-size:12px;font-weight:600;color:var(--wa-green,#25a35a);padding:4px 10px;border-radius:999px;border:1px solid currentColor;text-decoration:none}
 
 /* numbers bar: a small name chip per number — no initials card (Sam 17 Oct); status dot and unread inline */
-.chat.multi .wa-rail{height:40px;padding:4px 8px;gap:4px}
-.chat.multi .wr-i{flex-direction:row;align-items:center;gap:5px;height:28px;padding:0 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
-.chat.multi .wr-i:not(.all):not(.add) .wr-av{display:none}
-.chat.multi .wr-i.all .wr-av,.chat.multi .wr-i.add .wr-av{width:18px;height:18px;border-radius:50%;font-size:13px}
-.chat.multi .wr-i.all .wr-av .i{width:11px;height:11px}
-.chat.multi .wr-i.add .wr-av{border-width:1px}
-.chat.multi .wr-i .dot{position:static;order:-1;width:7px;height:7px;border:0}
-.chat.multi .wr-un{position:static;order:2;min-width:16px;height:16px;padding:0 4px;font-size:9.5px;border:0}
-.chat.multi .wr-l{font-size:12px;max-width:120px}
-.chat.multi .wr-i.is-active{border-color:var(--accent)}
-.chat.multi .wr-i.is-active .wr-av{box-shadow:none}
-.chat.multi .wr-i.off{opacity:.55}
-.chat.multi .wr-sep{height:18px}
-.chat.multi .wr-th{font-size:9px}
+:is(.chat.multi,.tb-chat) .wa-rail{height:40px;padding:4px 8px;gap:4px}
+:is(.chat.multi,.tb-chat) .wr-i{flex-direction:row;align-items:center;gap:5px;height:28px;padding:0 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface)}
+:is(.chat.multi,.tb-chat) .wr-i:not(.all):not(.add) .wr-av{display:none}
+:is(.chat.multi,.tb-chat) .wr-i.all .wr-av,:is(.chat.multi,.tb-chat) .wr-i.add .wr-av{width:18px;height:18px;border-radius:50%;font-size:13px}
+:is(.chat.multi,.tb-chat) .wr-i.all .wr-av .i{width:11px;height:11px}
+:is(.chat.multi,.tb-chat) .wr-i.add .wr-av{border-width:1px}
+:is(.chat.multi,.tb-chat) .wr-i .dot{position:static;order:-1;width:7px;height:7px;border:0}
+:is(.chat.multi,.tb-chat) .wr-un{position:static;order:2;min-width:16px;height:16px;padding:0 4px;font-size:9.5px;border:0}
+:is(.chat.multi,.tb-chat) .wr-l{font-size:12px;max-width:120px}
+:is(.chat.multi,.tb-chat) .wr-i.is-active{border-color:var(--accent)}
+:is(.chat.multi,.tb-chat) .wr-i.is-active .wr-av{box-shadow:none}
+:is(.chat.multi,.tb-chat) .wr-i.off{opacity:.55}
+:is(.chat.multi,.tb-chat) .wr-sep{height:18px}
+:is(.chat.multi,.tb-chat) .wr-th{font-size:9px}
 
 /* Dealer: Analisa AI and the WhatsApp CTA in the header (Sam 17 Oct) */
 .dl-cta{margin-left:auto;display:inline-flex;align-items:center;gap:8px}
@@ -1940,3 +1940,17 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .ibc-zoom button:hover:not(:disabled){background:var(--surface-2)}
 .ibc-zoom button:disabled{opacity:.35;cursor:default}
 .ibc-zoom .ibc-zoom-pct{min-width:46px;padding:0 4px;font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums}
+
+/* Chat (20 Oct): the numbers bar sits in the page header next to "Chat"; Analisa WhatsApp · MCP sits next to the Orchestrator */
+.tb-chat{flex:1 1 auto;min-width:0;display:flex}
+.tb-chat .wa-rail{flex:1 1 auto;min-width:0;box-shadow:none;background:transparent;grid-column:auto}
+.chat.multi.rail-out{grid-template-rows:minmax(0,1fr)}
+.topbar:has(.tb-chat){gap:14px}
+.ibc-name .orch-pill{height:26px;padding:0 10px 0 8px;font-size:11.5px;box-shadow:none;border:1px solid var(--line);flex:0 1 auto;min-width:0}
+.ibc-name .orch-pill .op-t{overflow:hidden;text-overflow:ellipsis;min-width:0}
+@media (min-width:901px){.chat.komo.rail-out{height:calc(100dvh - 88px)}}
+@media (max-width:900px){
+  .tb-chat{flex-basis:100%;order:2}
+  .stage:has(.chat.show-thread) .tb-chat{display:none}
+  .ibc-name .orch-pill .op-next{display:none}
+}
