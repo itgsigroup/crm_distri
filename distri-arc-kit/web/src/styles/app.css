@@ -2057,3 +2057,10 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .sc-kpis{grid-template-columns:repeat(5,1fr)}
 .sc-kpis .kpi-t b{font-size:22px}
 @media (max-width:900px){.sc-kpis{grid-template-columns:repeat(2,1fr)}}
+/* AI Trigger (21 Oct): a stock card with several products Claude found, one line each */
+.sug-items{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.sug-items li{padding:6px 8px;border-radius:8px;background:var(--surface);border-left:3px solid var(--text-3)}
+.sug-items li.tone-good{border-left-color:var(--good)}.sug-items li.tone-warn{border-left-color:var(--warn)}.sug-items li.tone-bad{border-left-color:var(--bad)}
+.sug-it-h{display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
+.sug-it-h span{font-size:12px;font-weight:600}
+.sug-items li.tone-good .sug-it-h span{color:var(--good)}.sug-items li.tone-warn .sug-it-h span{color:var(--warn)}.sug-items li.tone-bad .sug-it-h span{color:var(--bad)}

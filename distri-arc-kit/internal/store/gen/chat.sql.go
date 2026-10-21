@@ -2612,6 +2612,38 @@ func (q *Queries) ReplyAIDrafts(ctx context.Context, ids []uuid.UUID) ([]ReplyAi
 	return items, nil
 }
 
+const replyAIMatches = `-- name: ReplyAIMatches :many
+select message_id, items, note, provider, model, created_at from reply_ai_matches where message_id = any($1::uuid[])
+`
+
+// The products Claude found in these customer messages (AI Trigger, Sam 21 Oct).
+func (q *Queries) ReplyAIMatches(ctx context.Context, ids []uuid.UUID) ([]ReplyAiMatch, error) {
+	rows, err := q.db.Query(ctx, replyAIMatches, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ReplyAiMatch{}
+	for rows.Next() {
+		var i ReplyAiMatch
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.Items,
+			&i.Note,
+			&i.Provider,
+			&i.Model,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const replyTriggerHistory = `-- name: ReplyTriggerHistory :many
 select coalesce(direction, '')::text as direction, coalesce(body, '')::text as body from chat_messages
 where thread_id = $1::uuid and sent_at < $2::timestamptz and sent_at > $2::timestamptz - interval '3 days'
@@ -3453,6 +3485,31 @@ func (q *Queries) UpsertReplyAIDraft(ctx context.Context, arg UpsertReplyAIDraft
 		arg.Provider,
 		arg.Model,
 		arg.FactsHash,
+	)
+	return err
+}
+
+const upsertReplyAIMatch = `-- name: UpsertReplyAIMatch :exec
+insert into reply_ai_matches (message_id, items, note, provider, model) values ($1, $2, $3, $4, $5)
+on conflict (message_id) do update set items = excluded.items, note = excluded.note, provider = excluded.provider,
+  model = excluded.model, created_at = now()
+`
+
+type UpsertReplyAIMatchParams struct {
+	MessageID uuid.UUID       `json:"message_id"`
+	Items     json.RawMessage `json:"items"`
+	Note      string          `json:"note"`
+	Provider  string          `json:"provider"`
+	Model     string          `json:"model"`
+}
+
+func (q *Queries) UpsertReplyAIMatch(ctx context.Context, arg UpsertReplyAIMatchParams) error {
+	_, err := q.db.Exec(ctx, upsertReplyAIMatch,
+		arg.MessageID,
+		arg.Items,
+		arg.Note,
+		arg.Provider,
+		arg.Model,
 	)
 	return err
 }

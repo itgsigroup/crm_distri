@@ -201,7 +201,21 @@ func (s *Server) testReplyRule(w http.ResponseWriter, r *http.Request) {
 			history = append(history, replyrule.Line{In: true, Text: t})
 		}
 	}
-	cards := replyrule.Suggest(rules, in.Text, history, data)
+	var found *replyrule.Match
+	matchErr := ""
+	if data.Stock != nil { // Claude finds the products, as in Chat (Sam 21 Oct)
+		m, err := s.replyAI.Find(ctx, in.Text, history, data.Stock)
+		if err != nil {
+			matchErr = err.Error()
+		}
+		found = m
+	}
+	cards := replyrule.SuggestMatched(rules, in.Text, history, data, found)
+	for _, c := range cards {
+		if c.Action == replyrule.ActionStock && found == nil && matchErr != "" {
+			c.Note = strings.TrimSpace(c.Note + " " + matchErr + ".")
+		}
+	}
 	// every recommendation is written by ChatGPT or Claude (Sam 21 Oct): a draft no AI wrote is not shown
 	aiErr := ""
 	if err := s.replyAI.Preview(ctx, rules, cards, in.Text, history, data); err != nil {
@@ -257,7 +271,7 @@ func (s *Server) replyAIDraft(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusConflict, "no_model", msg)
 		return
 	case errors.Is(err, replyai.ErrNoDraft):
-		httpx.Fail(w, http.StatusConflict, "no_draft", "AI tidak berhasil menulis draf yang sesuai fakta — draf template tetap dipakai")
+		httpx.Fail(w, http.StatusConflict, "no_draft", "ChatGPT dan Claude belum berhasil menulis draf yang sesuai fakta — coba lagi")
 		return
 	case err != nil:
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
@@ -296,11 +310,47 @@ func (s *Server) attachSuggestions(ctx context.Context, msgs []MessageView, bran
 	if err != nil {
 		return err
 	}
+	// the products Claude found in each message (Sam 21 Oct); a stock card without them yet waits for Claude
+	// instead of showing a product guessed by words, unless Claude is not available
+	all := make([]uuid.UUID, len(recent))
+	for j, i := range recent {
+		all[j] = msgs[i].ID
+	}
+	found, err := s.replyAI.Matched(ctx, all)
+	if err != nil {
+		return err
+	}
+	var claude *bool
 	var ids []uuid.UUID
 	for _, i := range recent {
-		msgs[i].Suggest = replyrule.Suggest(rules, msgs[i].Body, historyOf(msgs, i), data)
+		m := found[msgs[i].ID]
+		msgs[i].Suggest = replyrule.SuggestMatched(rules, msgs[i].Body, historyOf(msgs, i), data, m)
 		if len(msgs[i].Suggest) > 0 {
 			ids = append(ids, msgs[i].ID)
+		}
+		if m != nil {
+			continue
+		}
+		for _, c := range msgs[i].Suggest {
+			if c.Action != replyrule.ActionStock {
+				continue
+			}
+			if claude == nil {
+				has := s.replyAI.HasClaude(ctx)
+				claude = &has
+			}
+			switch {
+			case !*claude:
+				c.Note = strings.TrimSpace(c.Note + " " + replyai.ErrNoClaude.Error() + ".")
+			case now.Sub(msgs[i].SentAt) < aiPendingFor:
+				replyrule.Searching(c)
+			default: // an older message Claude has not read (before 21 Oct, or it failed): one job reads it again
+				if pending, _ := s.rewriteDrafts(ctx, msgs[i].ID, "match"); pending {
+					replyrule.Searching(c)
+				} else {
+					c.Note = strings.TrimSpace(c.Note + " Claude belum berhasil membaca barang di pesan ini — dicari dengan kata kunci.")
+				}
+			}
 		}
 	}
 	if len(ids) == 0 {

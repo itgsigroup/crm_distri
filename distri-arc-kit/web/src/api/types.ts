@@ -693,6 +693,14 @@ export interface ReplySuggestion {
   ai?: boolean; ai_model?: string; ai_pending?: boolean; ai_phrase?: boolean
   /** no AI draft for these facts: why (no key, or ChatGPT and Claude did not keep to the facts) */
   ai_error?: string
+  /** stock: the products Claude found when the message names several, one line each */
+  items?: ReplyStockLine[]
+  /** the Claude model that found the products ("" — found by words) */
+  matched_by?: string
+}
+export interface ReplyStockLine {
+  product: string; sku: string; headline: string; tone: 'good' | 'warn' | 'bad' | 'neutral'; qty: number; asked: number; ready: boolean
+  price: string; others: { branch: string; qty: number }[]; note?: string
 }
 export interface ReplyRule {
   id: string; name: string; action: ReplyAction; keywords: string[]; template_ready: string; template_empty: string

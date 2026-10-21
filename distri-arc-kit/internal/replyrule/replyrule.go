@@ -84,6 +84,10 @@ type Suggestion struct {
 	AI        bool   `json:"ai,omitempty"`
 	AIModel   string `json:"ai_model,omitempty"`
 	AIPending bool   `json:"ai_pending,omitempty"`
+	// Items: the products of a stock card that names several, one line each (Claude, Match)
+	Items []StockLine `json:"items,omitempty"`
+	// MatchedBy: the model that found the products in the message ("" — found by words)
+	MatchedBy string `json:"matched_by,omitempty"`
 	// AIError: no AI draft for these facts — why (no key, or ChatGPT and Claude did not keep to the facts)
 	AIError  string `json:"ai_error,omitempty"`
 	AIPhrase bool   `json:"ai_phrase,omitempty"` // the rule asks an AI to write the draft

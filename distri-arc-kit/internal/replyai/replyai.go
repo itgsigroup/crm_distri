@@ -40,6 +40,8 @@ type Service struct {
 	Env *llm.Router
 	// Provider overrides the model (tests)
 	Provider llm.Provider
+	// Matcher overrides the Claude model that finds products (tests)
+	Matcher llm.Provider
 
 	mu      sync.Mutex
 	rules   []replyrule.Rule // cached for Wants
@@ -210,7 +212,11 @@ func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string
 	if err != nil {
 		return 0, err
 	}
-	cards := replyrule.Suggest(rules, m.Body, history, data)
+	var found *replyrule.Match
+	if replyrule.Needs(rules, m.Body)[replyrule.ActionStock] { // Claude finds the products first (Sam 21 Oct)
+		found = s.match(ctx, messageID, *m.ThreadID, m.Body, history, data)
+	}
+	cards := replyrule.SuggestMatched(rules, m.Body, history, data, found)
 	existing, err := s.St.Q.ReplyAIDrafts(ctx, []uuid.UUID{messageID})
 	if err != nil {
 		return 0, err

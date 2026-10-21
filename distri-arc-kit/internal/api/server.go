@@ -88,6 +88,9 @@ func (s *Server) WithAsk(a *ask.Service) *Server {
 // WithReplyModel sets the model AI Trigger drafts are written with (tests).
 func (s *Server) WithReplyModel(p llm.Provider) *Server { s.replyAI.Provider = p; return s }
 
+// WithReplyMatcher sets the Claude model that finds the products of a message (tests).
+func (s *Server) WithReplyMatcher(p llm.Provider) *Server { s.replyAI.Matcher = p; return s }
+
 // WithIdentify enables POST /chat/identify (sources the API can read; the worker adds the WA Business profile).
 func (s *Server) WithIdentify(i *identify.Service) *Server { s.idf = i; return s }
 

@@ -726,3 +726,12 @@ from chat_threads t
 where t.dealer_id = sqlc.arg(dealer_id)::uuid and t.kind = 'dealer'
 order by t.last_message_at desc nulls last
 limit 20;
+
+-- name: ReplyAIMatches :many
+-- The products Claude found in these customer messages (AI Trigger, Sam 21 Oct).
+select * from reply_ai_matches where message_id = any(sqlc.arg(ids)::uuid[]);
+
+-- name: UpsertReplyAIMatch :exec
+insert into reply_ai_matches (message_id, items, note, provider, model) values ($1, $2, $3, $4, $5)
+on conflict (message_id) do update set items = excluded.items, note = excluded.note, provider = excluded.provider,
+  model = excluded.model, created_at = now();

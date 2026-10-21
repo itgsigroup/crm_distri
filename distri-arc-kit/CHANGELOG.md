@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · AI Trigger: Claude mencari barang di pesan; beberapa barang dan jumlah diminta · 2026-10-21
+- Barang di pesan pelanggan kini dicari **Claude** dari kandidat katalog stok, bukan pencocokan kata (ADR 0058). Semua barang di satu pesan terbaca (mis. "H8c 2mp : 8 … sekalian X5S-8W 1 unit" → dua barang), dengan jumlah yang diminta.
+- Kartu stok: satu baris per barang (stok, harga, cabang lain) dan **cukup / kurang** terhadap jumlah diminta ("Kurang · 5 dari 8 diminta" + saran mutasi). Angka tetap dihitung sistem; ChatGPT/Claude menulis draf yang menjawab semua barang.
+- Pesan baru: kartu menampilkan "Claude mencari barang…" sampai Claude selesai (tanpa tebakan). Bacaan disimpan per pesan (`reply_ai_matches`, migrasi 0059); pesan lama dibaca ulang sekali saat chat dibuka. Tanpa kunci Claude kartu memakai kata kunci dan memberi tahu.
+- *Coba kalimat* di halaman AI Trigger juga memakai Claude.
+
 ## Feat · Cek stok: harga tampil di tabel dan modal · 2026-10-21
 - Tabel **Data stok** punya kolom **Harga** (harga list tier A dari daftar harga yang sama dengan kartu Cek harga; bisa diurutkan). Modal detail punya kotak **Harga (tier A)** dengan harga tier lain di bawahnya. Barang tanpa harga menampilkan "—" / "belum ada di daftar harga".
 - API: `price` di `GET /api/stock/products` dan `GET /api/stock/check`.

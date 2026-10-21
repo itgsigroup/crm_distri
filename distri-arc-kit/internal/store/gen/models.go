@@ -781,6 +781,15 @@ type ReplyAiDraft struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type ReplyAiMatch struct {
+	MessageID uuid.UUID       `json:"message_id"`
+	Items     json.RawMessage `json:"items"`
+	Note      string          `json:"note"`
+	Provider  string          `json:"provider"`
+	Model     string          `json:"model"`
+	CreatedAt time.Time       `json:"created_at"`
+}
+
 type ReplyRule struct {
 	ID            uuid.UUID `json:"id"`
 	Name          string    `json:"name"`

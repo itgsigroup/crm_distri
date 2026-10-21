@@ -27,6 +27,19 @@ export function TriggerCard({ s, asOf, onUse, onAI, aiBusy }: {
         {s.product && <span>{s.product}</span>}
       </div>
       {s.from_history && <div className="sug-hist">Produk dari riwayat chat: <q>{s.from_history}</q></div>}
+      {s.items && s.items.length > 0 && (
+        <ul className="sug-items">
+          {s.items.map((it) => (
+            <li key={it.sku} className={`tone-${it.tone}`}>
+              <div className="sug-it-h"><b>{it.product}</b><span>{it.headline}</span></div>
+              <div className="sug-o">
+                {[it.price && `Harga ${it.price}`, it.others.length > 0 && `Cabang lain: ${it.others.slice(0, 3).map((o) => `${o.branch} ${o.qty.toLocaleString('id-ID')}`).join(' · ')}`].filter(Boolean).join(' · ')}
+              </div>
+              {it.note && <div className="sug-n">{it.note}</div>}
+            </li>
+          ))}
+        </ul>
+      )}
       {stock && s.others.length > 0 && <div className="sug-o">Cabang lain: {s.others.slice(0, 4).map((o) => `${o.branch} ${o.qty.toLocaleString('id-ID')}`).join(' · ')}</div>}
       {s.facts.length > 0 && (
         <dl className="sug-f">
@@ -42,7 +55,7 @@ export function TriggerCard({ s, asOf, onUse, onAI, aiBusy }: {
           {onAI && <AIButtons again onAI={onAI} aiBusy={aiBusy} />}
         </div>
       )}
-      {!s.ai && s.ai_pending && <div className="sug-n sug-wait"><Icon name="spark" />ChatGPT / Claude sedang menulis jawaban…</div>}
+      {!s.ai && s.ai_pending && (s.product || s.items?.length) && <div className="sug-n sug-wait"><Icon name="spark" />ChatGPT / Claude sedang menulis jawaban…</div>}
       {!s.ai && !s.ai_pending && s.ai_error && (
         <div className="sug-d sug-noai">
           <span><Icon name="alert" />{s.ai_error}</span>
@@ -50,7 +63,7 @@ export function TriggerCard({ s, asOf, onUse, onAI, aiBusy }: {
         </div>
       )}
       <small>
-        Trigger “{s.rule}” · kata “{s.keyword}”{stock && asOf ? ` · stok sinkron ${shortDate(asOf)} ${hhmm(asOf)}` : ''}
+        Trigger “{s.rule}” · kata “{s.keyword}”{s.matched_by && s.matched_by !== 'system' ? ` · barang dicari Claude` : ''}{stock && asOf ? ` · stok sinkron ${shortDate(asOf)} ${hhmm(asOf)}` : ''}
         {s.ai && s.ai_model ? ` · ditulis ${s.ai_model}` : ''} · dikirim hanya bila Anda menekan kirim
       </small>
     </div>
