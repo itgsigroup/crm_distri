@@ -44,7 +44,6 @@ function RuleSheet({ rule, aiReady }: { rule?: ReplyRule; aiReady: boolean }) {
   const [empty, setEmpty] = useState(rule?.template_empty ?? d.template_empty)
   const [showQty, setShowQty] = useState(rule?.show_qty ?? true)
   const [enabled, setEnabled] = useState(rule?.enabled ?? true)
-  const [aiPhrase, setAIPhrase] = useState(rule?.ai_phrase ?? false)
   const [instr, setInstr] = useState(rule?.ai_instruction ?? '')
   const info = ACTIONS[action]
   const pickAction = (a: ReplyAction) => {
@@ -63,7 +62,7 @@ function RuleSheet({ rule, aiReady }: { rule?: ReplyRule; aiReady: boolean }) {
   const unknown = [...new Set([...unknownPlaceholders(ready, action), ...unknownPlaceholders(empty, action)])]
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    save.mutate({ id: rule?.id, body: { name, action, keywords: parseKeywords(keywords), template_ready: ready, template_empty: empty, show_qty: showQty, enabled, ai_phrase: aiPhrase, ai_instruction: instr } })
+    save.mutate({ id: rule?.id, body: { name, action, keywords: parseKeywords(keywords), template_ready: ready, template_empty: empty, show_qty: showQty, enabled, ai_phrase: true, ai_instruction: instr } })
   }
   return (
     <form onSubmit={submit}>
@@ -84,10 +83,10 @@ function RuleSheet({ rule, aiReady }: { rule?: ReplyRule; aiReady: boolean }) {
         {unknown.length > 0 && <small className="full at-warn"><Icon name="alert" />Tidak diisi untuk jenis ini: {unknown.map((u) => `{${u}}`).join(', ')}</small>}
         {action === 'stock' && <label className="chk full"><input type="checkbox" checked={showQty} onChange={(e) => setShowQty(e.target.checked)} />Sebutkan jumlah stok di draf ke pelanggan (bila tidak: cukup "ready"). Sales tetap melihat jumlahnya.</label>}
         {action === 'credit' && <small className="full at-warn"><Icon name="lock" />Data kredit bersifat internal: kartu hanya tampil untuk dealer yang tertaut di Chat, dan sales memeriksa sebelum mengirim.</small>}
-        <label className="chk full"><input type="checkbox" checked={aiPhrase} onChange={(e) => setAIPhrase(e.target.checked)} />
-          <span><b>Jawaban ditulis AI</b> — AI merangkai draf yang luwes dari angka yang sama (angka tetap dihitung sistem; draf yang mengubah angka ditolak).{!aiReady && ' AI belum aktif: isi kunci di API & model AI.'}</span>
-        </label>
-        {aiPhrase && <label className="full">Instruksi untuk AI (opsional)<textarea rows={2} maxLength={500} value={instr} onChange={(e) => setInstr(e.target.value)} placeholder='Mis. "Sapa dengan Pak/Bu, tawarkan cek cabang lain bila kosong, tutup dengan terima kasih."' /></label>}
+        <div className="full at-aireq"><Icon name="spark" />
+          <span><b>Jawaban ditulis ChatGPT atau Claude · wajib</b> — draf di atas hanya kerangka fakta untuk AI; yang tampil di Chat selalu tulisan AI dengan angka yang sama (angka dihitung sistem; draf yang mengubah angka ditolak, lalu AI lain mencoba).{!aiReady && ' AI belum aktif: isi kunci di API & model AI — tanpa kunci, kartu tidak memberi draf.'}</span>
+        </div>
+        <label className="full">Instruksi untuk AI (opsional)<textarea rows={2} maxLength={500} value={instr} onChange={(e) => setInstr(e.target.value)} placeholder='Mis. "Sapa dengan Pak/Bu, tawarkan cek cabang lain bila kosong, tutup dengan terima kasih."' /></label>
         <label className="chk full"><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />Aktif</label>
       </div>
       <div className="ft">
@@ -106,11 +105,10 @@ function TryIt({ aiReady }: { aiReady: boolean }) {
   const [before, setBefore] = useState('')
   const [branch, setBranch] = useState('')
   const [dealerQ, setDealerQ] = useState('')
-  const [ai, setAI] = useState(false)
   const { data: dealers = [] } = useDealers(dealerQ.length >= 2 ? dealerQ : '')
   const dealer = useMemo(() => dealers.find((x) => x.name.toLowerCase() === dealerQ.trim().toLowerCase()), [dealers, dealerQ])
   const run = useMutation({
-    mutationFn: () => api.post<{ suggestions: ReplySuggestion[]; dealer: string; branch: string; ai_error: string }>('/reply-rules/test', { text, branch, dealer: dealer?.id ?? '', ai, history: before.split('\n').map((l) => l.trim()).filter(Boolean) }),
+    mutationFn: () => api.post<{ suggestions: ReplySuggestion[]; dealer: string; branch: string; ai_error: string }>('/reply-rules/test', { text, branch, dealer: dealer?.id ?? '', history: before.split('\n').map((l) => l.trim()).filter(Boolean) }),
   })
   const res = run.data
   return (
@@ -125,7 +123,7 @@ function TryIt({ aiReady }: { aiReady: boolean }) {
           <input value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="Cabang (opsional)" aria-label="Cabang" style={{ maxWidth: 170 }} />
         </div>
         <div className="rr-try-row">
-          <label className="at-chk"><input type="checkbox" checked={ai} disabled={!aiReady} onChange={(e) => setAI(e.target.checked)} />Pakai AI untuk trigger yang mengaktifkan "Jawaban ditulis AI"</label>
+          <small className="muted">{aiReady ? 'Draf ditulis ChatGPT atau Claude, sama seperti di Chat.' : 'AI belum aktif: kartu tampil tanpa draf.'}</small>
           <span className="spacer" />
           <button className="btn primary" type="button" onClick={() => run.mutate()} disabled={run.isPending || !text.trim()}><Icon name="search" />{run.isPending ? 'Mencoba…' : 'Coba'}</button>
         </div>

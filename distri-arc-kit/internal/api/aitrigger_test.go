@@ -34,7 +34,8 @@ func (m *stubModel) Complete(_ context.Context, r llm.Request) (llm.Response, er
 }
 
 // ADR 0041: AI Trigger — kinds of answer beyond stock (price, credit, order), several cards on one message, and an
-// AI draft that keeps the numbers: one that adds a number is rejected and the template draft stays. Nothing is sent.
+// AI draft that keeps the numbers: one that adds a number is rejected, and no template draft is ever shown in its
+// place (Sam 21 Oct). Nothing is sent.
 func TestAITrigger(t *testing.T) {
 	st := testdb.New(t)
 	ctx := context.Background()
@@ -122,8 +123,10 @@ func TestAITrigger(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, th = get(t, srv, "/api/chat/threads/"+tid, ceo)
-	if c := th["messages"].([]any)[0].(map[string]any)["suggest"].([]any)[0].(map[string]any); c["ai"] == true || c["ready"] == true {
-		t.Fatalf("stale AI draft shown: %v", c)
+	if c := th["messages"].([]any)[0].(map[string]any)["suggest"].([]any)[0].(map[string]any); c["ai"] == true || c["ready"] == true ||
+		c["draft"] != nil || c["ai_error"] == nil {
+		// nor the template in its place: the AI writes again (here no job queue, so the card says the AI did not write)
+		t.Fatalf("stale AI draft or the template shown: %v", c)
 	}
 
 	// "stoknya ada?" names no product: the card and the AI read the chat before it

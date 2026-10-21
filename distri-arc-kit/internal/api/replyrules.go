@@ -10,9 +10,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/riverqueue/river/rivertype"
 
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/importer"
+	"distri-arc/internal/jobs"
 	"distri-arc/internal/replyai"
 	"distri-arc/internal/replyrule"
 	"distri-arc/internal/store/gen"
@@ -122,10 +124,10 @@ func (s *Server) saveReplyRule(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		row, err = s.st.Q.UpdateReplyRule(r.Context(), gen.UpdateReplyRuleParams{ID: rid, Name: in.Name, Action: in.Action, Keywords: kws, TemplateReady: in.TemplateReady,
-			TemplateEmpty: in.TemplateEmpty, ShowQty: in.ShowQty, Enabled: in.Enabled, UpdatedBy: u.Email, AiPhrase: in.AIPhrase, AiInstruction: in.AIInstruction})
+			TemplateEmpty: in.TemplateEmpty, ShowQty: in.ShowQty, Enabled: in.Enabled, UpdatedBy: u.Email, AiPhrase: true, AiInstruction: in.AIInstruction})
 	} else {
 		row, err = s.st.Q.InsertReplyRule(r.Context(), gen.InsertReplyRuleParams{Name: in.Name, Action: in.Action, Keywords: kws, TemplateReady: in.TemplateReady,
-			TemplateEmpty: in.TemplateEmpty, ShowQty: in.ShowQty, Enabled: in.Enabled, UpdatedBy: u.Email, AiPhrase: in.AIPhrase, AiInstruction: in.AIInstruction})
+			TemplateEmpty: in.TemplateEmpty, ShowQty: in.ShowQty, Enabled: in.Enabled, UpdatedBy: u.Email, AiPhrase: true, AiInstruction: in.AIInstruction})
 	}
 	if err != nil {
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Trigger tidak ditemukan")
@@ -152,13 +154,12 @@ func (s *Server) deleteReplyRule(w http.ResponseWriter, r *http.Request) {
 }
 
 // testReplyRule tries a sentence against the enabled rules (AI Trigger → Coba kalimat), for a branch and a dealer
-// (slug or id, optional); with ai the AI writes the drafts of the rules that ask for it (nothing is stored).
+// (slug or id, optional); ChatGPT or Claude writes every draft, as in Chat (nothing is stored).
 func (s *Server) testReplyRule(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Text   string   `json:"text"`
 		Branch string   `json:"branch"`
 		Dealer string   `json:"dealer"`
-		AI     bool     `json:"ai"`
 		Before []string `json:"history"` // earlier messages of the customer, oldest first
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&in); err != nil {
@@ -201,10 +202,18 @@ func (s *Server) testReplyRule(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	cards := replyrule.Suggest(rules, in.Text, history, data)
+	// every recommendation is written by ChatGPT or Claude (Sam 21 Oct): a draft no AI wrote is not shown
 	aiErr := ""
-	if in.AI {
-		if err := s.replyAI.Preview(ctx, rules, cards, in.Text, history, data); err != nil {
-			aiErr = err.Error()
+	if err := s.replyAI.Preview(ctx, rules, cards, in.Text, history, data); err != nil {
+		aiErr = err.Error()
+	}
+	for _, c := range cards {
+		if c.Draft != "" && !c.AI {
+			c.Draft = ""
+			if aiErr == "" {
+				aiErr = replyai.ErrNoDraft.Error()
+			}
+			c.AIError = aiErr
 		}
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"suggestions": nonNil(cards), "dealer": dealerName, "branch": in.Branch, "ai_error": aiErr})
@@ -309,23 +318,59 @@ func (s *Server) attachSuggestions(ctx context.Context, msgs []MessageView, bran
 	for _, d := range drafts {
 		byKey[key{d.MessageID, d.RuleID.String()}] = d
 	}
+	// The recommendation is always ChatGPT's or Claude's (Sam 21 Oct): the template draft is only the AI's input and
+	// is never shown. A card without an AI draft for its current facts waits for the AI (a new message; facts that
+	// changed since, e.g. a stock sync, get their own reply.ai job) or says the AI did not manage, with the buttons
+	// to ask ChatGPT or Claude again.
 	var model *bool
 	for _, i := range recent {
+		var missing []*replyrule.Suggestion
 		for _, c := range msgs[i].Suggest {
-			if d, ok := byKey[key{msgs[i].ID, c.RuleID}]; ok && c.Draft != "" && d.FactsHash == replyai.FactsHash(c) {
+			if c.Draft == "" {
+				continue
+			}
+			if d, ok := byKey[key{msgs[i].ID, c.RuleID}]; ok && d.FactsHash == replyai.FactsHash(c) {
 				c.Draft, c.AI, c.AIModel = d.Draft, true, d.Model
 				continue
 			}
-			if c.AIPhrase && c.Draft != "" && now.Sub(msgs[i].SentAt) < aiPendingFor {
-				if model == nil {
-					has := s.replyAI.HasModel(ctx)
-					model = &has
-				}
-				c.AIPending = *model
-			}
+			missing = append(missing, c)
+		}
+		if len(missing) == 0 {
+			continue
+		}
+		if model == nil {
+			has := s.replyAI.HasModel(ctx)
+			model = &has
+		}
+		pending, failed := *model, ""
+		switch {
+		case !*model:
+			failed = replyai.ErrNoModel.Error()
+		case now.Sub(msgs[i].SentAt) >= aiPendingFor: // the job of the incoming message is done: facts changed or it failed
+			pending, failed = s.rewriteDrafts(ctx, msgs[i].ID, replyai.CardsHash(missing))
+		}
+		for _, c := range missing {
+			c.Draft, c.AIPending, c.AIError = "", pending, failed
 		}
 	}
 	return nil
+}
+
+// rewriteDrafts asks the worker to write a message's drafts for these facts (one job per message and facts, whatever
+// its state): pending while it runs, else why no draft came.
+func (s *Server) rewriteDrafts(ctx context.Context, message uuid.UUID, facts string) (bool, string) {
+	if s.jobs == nil {
+		return false, replyai.ErrNoDraft.Error()
+	}
+	res, err := s.jobs.Insert(ctx, jobs.ReplyAIArgs{MessageID: message.String(), Facts: facts}, nil)
+	if err != nil || res == nil || res.Job == nil {
+		return false, replyai.ErrNoDraft.Error()
+	}
+	switch res.Job.State {
+	case rivertype.JobStateCompleted, rivertype.JobStateDiscarded, rivertype.JobStateCancelled:
+		return false, replyai.ErrNoDraft.Error()
+	}
+	return true, ""
 }
 
 // historyOf is the conversation before msgs[i] on this page, newest first: up to HistoryLines messages of the three

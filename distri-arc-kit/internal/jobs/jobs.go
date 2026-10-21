@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"github.com/riverqueue/river/rivertype"
 )
 
 // HeartbeatArgs is the periodic proof-of-life job.
@@ -73,14 +74,19 @@ func (CycleRunArgs) Kind() string { return "cycle.run" }
 // ReplyAIArgs: an AI writes the AI Trigger drafts of one customer message (ADR 0041).
 type ReplyAIArgs struct {
 	MessageID string `json:"message_id"`
+	// Facts: the cards' facts the drafts are for (replyai.CardsHash); "" when the message comes in. Facts that
+	// changed since (a stock sync) are a new job, so the drafts are written again from the new numbers (Sam 21 Oct).
+	Facts string `json:"facts,omitempty"`
 }
 
 func (ReplyAIArgs) Kind() string { return "reply.ai" }
 
-// InsertOpts: one job per message (a re-delivered message does not write again), one attempt (a late draft is
-// worthless; the sales can ask again from the card).
+// InsertOpts: one job per message and facts in any state, a failed one too (a re-delivered message or an open chat
+// does not write again); two attempts (each tries ChatGPT and Claude); the sales can ask again from the card.
 func (ReplyAIArgs) InsertOpts() river.InsertOpts {
-	return river.InsertOpts{MaxAttempts: 1, UniqueOpts: river.UniqueOpts{ByArgs: true}}
+	return river.InsertOpts{MaxAttempts: 2, UniqueOpts: river.UniqueOpts{ByArgs: true, ByState: []rivertype.JobState{
+		rivertype.JobStateAvailable, rivertype.JobStateCancelled, rivertype.JobStateCompleted, rivertype.JobStateDiscarded,
+		rivertype.JobStatePending, rivertype.JobStateRetryable, rivertype.JobStateRunning, rivertype.JobStateScheduled}}}
 }
 
 // IdentifyArgs identifies an inbound unknown number (AI Prospek): the worker can read its WhatsApp Business profile.

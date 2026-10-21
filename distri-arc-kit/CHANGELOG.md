@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · AI Trigger: jawaban di Chat wajib dari ChatGPT atau Claude, tidak pernah template · 2026-10-21
+- Kartu AI Trigger hanya menampilkan draf tulisan ChatGPT/Claude untuk fakta saat ini; draf template tidak lagi tampil atau bisa dipakai (ADR 0057).
+- Bila AI pilihan gagal (galat, atau draf mengubah angka), AI lainnya mencoba. Bila stok/fakta berubah setelah draf ditulis, draf ditulis ulang otomatis (job `reply.ai` per pesan + fakta).
+- Tanpa draf AI kartu menampilkan "ChatGPT / Claude sedang menulis…" atau alasannya, dengan tombol ChatGPT dan Claude.
+- Semua trigger wajib ditulis AI (migrasi 0058, `check (ai_phrase)`); halaman AI Trigger tidak lagi punya pilihan mematikan AI, dan *Coba kalimat* selalu memakai AI.
+
 ## Feat · Cek stok: datatable semua stok dengan pencarian & paginasi · 2026-10-21
 - Kartu **Data stok** di halaman Cek stok: semua barang yang dibaca AI, kolom Total dan satu kolom per cabang, **Cek terakhir** (Cocok / n selisih · waktu), pencarian (nama, kode, kategori), urut naik/turun tiap kolom, filter cabang, 10/25/50 baris per halaman. Klik baris atau **Cek** membuka pencocokan barang itu di bawah tabel (tombol **Tutup** kembali ke riwayat).
 - `GET /api/stock/products` kini mengembalikan semua barang dengan `by_branch` dan `last_check` (menggantikan pencarian `?q=`).

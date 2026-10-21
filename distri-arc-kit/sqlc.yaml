@@ -59,6 +59,7 @@ sql:
       - db/migrations/0055_message_sent_by.sql
       - db/migrations/0056_dealer_analyses.sql
       - db/migrations/0057_stock_checks.sql
+      - db/migrations/0058_ai_trigger_ai_required.sql
     queries: db/queries
     gen:
       go:

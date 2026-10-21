@@ -2038,3 +2038,9 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .sc-head h2{font-size:18px;font-weight:700}
 .sc-head small{color:var(--text-3)}
 .sc-head .btn{margin-left:auto}
+/* AI Trigger (21 Oct): no AI draft for the facts — why, and ChatGPT / Claude to write it */
+.sug-noai{border-style:solid;border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-soft)}
+.sug-noai>span{display:flex;align-items:center;gap:6px;color:var(--text-2);font-size:12.5px}
+.sug-noai>span svg.i{width:14px;height:14px;color:var(--warn);flex:none}
+.at-aireq{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--accent-soft);font-size:12.5px;line-height:1.5}
+.at-aireq svg.i{width:15px;height:15px;color:var(--accent);flex:none;margin-top:2px}

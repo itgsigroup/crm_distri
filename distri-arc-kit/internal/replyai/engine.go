@@ -86,6 +86,31 @@ func (s *Service) modelFor(ctx context.Context, provider string) llm.Provider {
 	return s.providerOf(ctx, e)
 }
 
+// modelsFor are the AIs to try for a draft, in order: modelFor(provider) first, then the other of ChatGPT and Claude
+// whose key is set — a draft that one AI fails to write (an error, a number not in the facts) is asked of the other,
+// never left as the template (Sam 21 Oct: the recommendation must come from ChatGPT or Claude).
+func (s *Service) modelsFor(ctx context.Context, provider string) []llm.Provider {
+	if s.Provider != nil {
+		return []llm.Provider{s.Provider}
+	}
+	first := provider
+	if first == "" {
+		first = LoadEngine(ctx, s.St.Q).Provider
+	}
+	var out []llm.Provider
+	if p := s.modelFor(ctx, provider); p != nil {
+		out = append(out, p)
+	}
+	for _, other := range []string{analyst.FallbackOpenAI, analyst.FallbackClaude} {
+		if other != first {
+			if p := s.modelFor(ctx, other); p != nil {
+				out = append(out, p)
+			}
+		}
+	}
+	return out
+}
+
 // providerOf is the provider of an engine when its key is set.
 func (s *Service) providerOf(ctx context.Context, e Engine) llm.Provider {
 	if e.Provider == analyst.FallbackOpenAI {

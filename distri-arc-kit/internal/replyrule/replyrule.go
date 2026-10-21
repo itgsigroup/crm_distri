@@ -84,7 +84,9 @@ type Suggestion struct {
 	AI        bool   `json:"ai,omitempty"`
 	AIModel   string `json:"ai_model,omitempty"`
 	AIPending bool   `json:"ai_pending,omitempty"`
-	AIPhrase  bool   `json:"ai_phrase,omitempty"` // the rule asks an AI to write the draft
+	// AIError: no AI draft for these facts — why (no key, or ChatGPT and Claude did not keep to the facts)
+	AIError  string `json:"ai_error,omitempty"`
+	AIPhrase bool   `json:"ai_phrase,omitempty"` // the rule asks an AI to write the draft
 
 	vars map[string]string // template values, for the AI's input
 }

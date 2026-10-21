@@ -691,6 +691,8 @@ export interface ReplySuggestion {
   from_history?: string
   /** the draft was written by an AI from the same facts; ai_pending: it is still being written */
   ai?: boolean; ai_model?: string; ai_pending?: boolean; ai_phrase?: boolean
+  /** no AI draft for these facts: why (no key, or ChatGPT and Claude did not keep to the facts) */
+  ai_error?: string
 }
 export interface ReplyRule {
   id: string; name: string; action: ReplyAction; keywords: string[]; template_ready: string; template_empty: string

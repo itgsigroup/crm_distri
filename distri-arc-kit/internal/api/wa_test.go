@@ -2,10 +2,12 @@ package api_test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -469,7 +471,8 @@ func TestReplyRules(t *testing.T) {
 		t.Fatalf("test: %v", res)
 	}
 	sg, ok := cards[0].(map[string]any)
-	if !ok || sg["ready"] != true || sg["qty"].(float64) != 9 || sg["draft"] != "Ready 9 pcs untuk NVR Uji 32ch di Semarang." {
+	// the recommendation is always ChatGPT's or Claude's (Sam 21 Oct): without a key no template draft is offered
+	if !ok || sg["ready"] != true || sg["qty"].(float64) != 9 || sg["draft"] != nil || !strings.Contains(fmt.Sprint(sg["ai_error"]), "AI belum aktif") {
 		t.Fatalf("test: %v", res)
 	}
 	if code, _ := post(t, srv.URL+"/api/reply-rules", "andi@gsi.co.id", map[string]any{"name": "x", "keywords": []string{"x"}, "template_ready": "a", "template_empty": "b"}); code != http.StatusForbidden {
@@ -485,7 +488,8 @@ func TestReplyRules(t *testing.T) {
 	_, th := get(t, srv, "/api/chat/threads/"+tid, "sam@gsi.co.id")
 	msgs := th["messages"].([]any)
 	first, second := msgs[0].(map[string]any), msgs[1].(map[string]any)
-	if cs, ok := first["suggest"].([]any); !ok || len(cs) != 1 || cs[0].(map[string]any)["product"] != "NVR Uji 32ch" || cs[0].(map[string]any)["ready"] != true {
+	if cs, ok := first["suggest"].([]any); !ok || len(cs) != 1 || cs[0].(map[string]any)["product"] != "NVR Uji 32ch" || cs[0].(map[string]any)["ready"] != true ||
+		cs[0].(map[string]any)["draft"] != nil || cs[0].(map[string]any)["ai_error"] == nil {
 		t.Fatalf("suggestion on the stock question: %v", first["suggest"])
 	}
 	if second["suggest"] != nil {

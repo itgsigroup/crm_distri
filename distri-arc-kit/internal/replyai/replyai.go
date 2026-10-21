@@ -61,7 +61,7 @@ func (s *Service) Wants(ctx context.Context, text string) bool {
 	rules := s.rules
 	s.mu.Unlock()
 	for _, r := range rules {
-		if r.AIPhrase && replyrule.Matches(r, text) != "" {
+		if replyrule.Matches(r, text) != "" { // every trigger is written by AI (Sam 21 Oct)
 			return true
 		}
 	}
@@ -158,11 +158,11 @@ func (s *Service) model(ctx context.Context) llm.Provider {
 // HasModel reports whether an AI can write drafts (a key is set).
 func (s *Service) HasModel(ctx context.Context) bool { return s.model(ctx) != nil }
 
-// ErrNoModel: no API key — drafts stay the template.
+// ErrNoModel: no API key — no recommendation can be written (the card shows the facts and says so).
 var ErrNoModel = errors.New("AI belum aktif — isi kunci ChatGPT atau Claude di Pengaturan → API & model AI")
 
-// ErrNoDraft: the message has no card with a draft to rewrite.
-var ErrNoDraft = errors.New("tidak ada rekomendasi dengan draf untuk pesan ini")
+// ErrNoDraft: no AI wrote a draft that keeps to the facts (or the message has no card with a draft to rewrite).
+var ErrNoDraft = errors.New("ChatGPT dan Claude belum berhasil menulis rekomendasi yang sesuai fakta untuk pesan ini")
 
 // Write has the AI write the drafts of one customer message: the rules asking for it (ruleID nil), or one rule on
 // request from the card (ruleID set). Drafts already written from the same facts are kept. Returns how many it wrote.
@@ -180,7 +180,7 @@ func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string
 	}
 	var want []replyrule.Rule
 	for _, r := range rules {
-		if (ruleID == nil && r.AIPhrase) || (ruleID != nil && r.ID == *ruleID) {
+		if ruleID == nil || r.ID == *ruleID {
 			want = append(want, r)
 		}
 	}
@@ -208,8 +208,8 @@ func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string
 	for _, x := range existing {
 		have[x.RuleID] = x.FactsHash
 	}
-	var model llm.Provider
-	n := 0
+	var models []llm.Provider
+	n, failed := 0, 0
 	for _, c := range cards {
 		if c.Draft == "" || !wanted(want, c.RuleID) {
 			continue
@@ -222,13 +222,23 @@ func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string
 		if have[rid] == hash && ruleID == nil {
 			continue
 		}
-		if model == nil {
-			if model = s.modelFor(ctx, provider); model == nil {
+		if models == nil {
+			if models = s.modelsFor(ctx, provider); len(models) == 0 {
 				return n, ErrNoModel
 			}
 		}
-		draft, res, ok := s.phrase(ctx, model, ruleOf(want, c.RuleID), c, m.Body, history, data)
+		var (
+			draft string
+			res   llm.Response
+			ok    bool
+		)
+		for _, model := range models { // the other AI when one fails
+			if draft, res, ok = s.phrase(ctx, model, ruleOf(want, c.RuleID), c, m.Body, history, data); ok {
+				break
+			}
+		}
 		if !ok {
+			failed++
 			continue
 		}
 		if err := s.St.Q.UpsertReplyAIDraft(ctx, gen.UpsertReplyAIDraftParams{MessageID: messageID, RuleID: rid, Draft: draft,
@@ -240,7 +250,7 @@ func (s *Service) Write(ctx context.Context, messageID uuid.UUID, ruleID *string
 	if n > 0 {
 		_ = events.Notify(ctx, s.St.Pool, "chat_message", map[string]string{"thread_id": m.ThreadID.String()})
 	}
-	if n == 0 && ruleID != nil {
+	if n == 0 && (ruleID != nil || failed > 0) {
 		return 0, ErrNoDraft
 	}
 	return n, nil
@@ -262,19 +272,22 @@ func (s *Service) History(ctx context.Context, thread uuid.UUID, before time.Tim
 // Preview has the AI write the drafts of the cards whose rule asks for it, in place (AI Trigger → Coba kalimat;
 // nothing is stored).
 func (s *Service) Preview(ctx context.Context, rules []replyrule.Rule, cards []*replyrule.Suggestion, text string, history []replyrule.Line, d replyrule.Data) error {
-	var model llm.Provider
+	var models []llm.Provider
 	for _, c := range cards {
 		r := ruleOf(rules, c.RuleID)
-		if !r.AIPhrase || c.Draft == "" {
+		if c.Draft == "" {
 			continue
 		}
-		if model == nil {
-			if model = s.model(ctx); model == nil {
+		if models == nil {
+			if models = s.modelsFor(ctx, ""); len(models) == 0 {
 				return ErrNoModel
 			}
 		}
-		if draft, res, ok := s.phrase(ctx, model, r, c, text, history, d); ok {
-			c.Draft, c.AI, c.AIModel = draft, true, res.Model
+		for _, model := range models {
+			if draft, res, ok := s.phrase(ctx, model, r, c, text, history, d); ok {
+				c.Draft, c.AI, c.AIModel = draft, true, res.Model
+				break
+			}
 		}
 	}
 	return nil
@@ -304,6 +317,17 @@ func FactsHash(c *replyrule.Suggestion) string {
 		_, _ = fmt.Fprintf(h, "\x00%s=%s", k, c.Vars()[k])
 	}
 	return hex.EncodeToString(h.Sum(nil))[:16]
+}
+
+// CardsHash identifies the facts of several cards (a message's cards still without their AI draft).
+func CardsHash(cards []*replyrule.Suggestion) string {
+	hs := make([]string, 0, len(cards))
+	for _, c := range cards {
+		hs = append(hs, c.RuleID+":"+FactsHash(c))
+	}
+	sort.Strings(hs)
+	sum := sha256.Sum256([]byte(strings.Join(hs, ",")))
+	return hex.EncodeToString(sum[:])[:16]
 }
 
 var draftSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []string{"draft"},
