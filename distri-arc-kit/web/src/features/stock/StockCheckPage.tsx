@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
@@ -6,9 +6,12 @@ import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
 import { fmtNum, hhmm, shortDate } from '../../lib/format'
 import { StockSource } from './StockPage'
-import { diffText, parseQty, verdict, VERDICT, type StockCheck, type StockProduct } from './check'
+import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
+import { diffText, parseQty, productCompare, productText, verdict, VERDICT, type StockCheck, type StockProduct } from './check'
 
 const ALL = 'Semua cabang'
+// a stable empty list while loading: a new [] each render would reset the table every render (useDataTable)
+const NONE: StockProduct[] = []
 const when = (d: string) => `${shortDate(d)} ${hhmm(d)}`
 
 // Cek stok (21 Oct): find a product, see what GSI Orbit and the AI Trigger read for it (per branch, and the BigQuery
@@ -17,53 +20,74 @@ const when = (d: string) => `${shortDate(d)} ${hhmm(d)}`
 export function StockCheckPage() {
   const [params, setParams] = useSearchParams()
   const sku = params.get('sku') ?? ''
-  const pick = (next: string) => setParams(next ? { sku: next } : {}, { replace: false })
+  const detail = useRef<HTMLDivElement>(null)
+  const pick = (next: string) => {
+    setParams(next ? { sku: next } : {}, { replace: false })
+    if (next) setTimeout(() => detail.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
   return (
     <>
       <StockSource />
-      <ProductSearch current={sku} onPick={pick} />
-      {sku ? <ProductCheck key={sku} sku={sku} /> : <RecentChecks onPick={pick} />}
+      <StockTable current={sku} onPick={pick} />
+      <div ref={detail} className="sc-detail">
+        {sku ? <ProductCheck key={sku} sku={sku} onClose={() => pick('')} /> : <RecentChecks onPick={pick} />}
+      </div>
     </>
   )
 }
 
-function ProductSearch({ current, onPick }: { current: string; onPick: (sku: string) => void }) {
-  const [q, setQ] = useState('')
-  const [term, setTerm] = useState('')
-  useEffect(() => {
-    const t = setTimeout(() => setTerm(q.trim()), 250)
-    return () => clearTimeout(t)
-  }, [q])
-  const { data: found = [], isFetching } = useQuery({
-    queryKey: ['stock', 'products', term],
-    enabled: term.length >= 2,
-    queryFn: () => api.get<StockProduct[]>('/stock/products?q=' + encodeURIComponent(term)),
-  })
+/** Every product in the stock as a data table: search, sort every column both ways, pages of 10/25/50, a branch
+ * filter; a row opens the product's check below. */
+function StockTable({ current, onPick }: { current: string; onPick: (sku: string) => void }) {
+  const { data: rows = NONE, isLoading } = useQuery({ queryKey: ['stock', 'products'], queryFn: () => api.get<StockProduct[]>('/stock/products') })
+  const [branch, setBranch] = useState('')
+  const branches = useMemo(() => [...new Set(rows.flatMap((r) => Object.keys(r.by_branch)))].sort((a, b) => a.localeCompare(b, 'id')), [rows])
+  const list = useMemo(() => (branch ? rows.filter((r) => (r.by_branch[branch] ?? 0) !== 0) : rows), [rows, branch])
+  const compare = useMemo(() => productCompare(branches), [branches])
+  const t = useDataTable<StockProduct, string>({ rows: list, text: productText, compare, tie: (a, b) => a.name.localeCompare(b.name, 'id'), initial: { column: 'produk', dir: 'asc' }, firstDir: (c) => (c === 'produk' ? 'asc' : 'desc') })
+  const total = t.matches.reduce((a, r) => a + (branch ? r.by_branch[branch] ?? 0 : r.qty), 0)
   return (
     <div className="card sc-search">
-      <div className="card-h"><h2>Cek stok</h2><span className="meta">Cocokkan stok yang dibaca AI dengan stok real di Accurate / gudang</span></div>
-      <div className="search odl-q sc-q">
-        <Icon name="search" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama barang atau kode (mis. X5S 8W)…" aria-label="Cari produk" autoFocus={!current} />
-      </div>
-      {term.length >= 2 && (
-        <ul className="sc-found">
-          {!isFetching && found.length === 0 && <li className="muted">Tidak ada barang dengan “{term}” di data stok.</li>}
-          {found.map((p) => (
-            <li key={p.sku}>
-              <button className={p.sku === current ? 'is-active' : ''} onClick={() => { onPick(p.sku); setQ('') }}>
-                <b>{p.name}</b><small>{p.sku}</small>
-                <span className="num">{fmtNum(p.qty)} <small>di {p.branches} cabang</small></span>
-              </button>
-            </li>
-          ))}
-        </ul>
+      <div className="card-h"><h2>Data stok</h2><span className="meta">Yang dibaca AI per cabang · klik barang untuk mencocokkan dengan stok real</span></div>
+      {branches.length > 1 && (
+        <div className="chips" style={{ marginBottom: 10 }}>
+          {['', ...branches].map((b) => <button key={b || 'all'} className={`chip ${branch === b ? 'is-active' : ''}`} onClick={() => setBranch(b)}>{b || ALL}</button>)}
+        </div>
       )}
+      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari nama barang, kode, kategori…" label="Cari stok"
+        meta={`${t.matches.length.toLocaleString('id-ID')} barang · ${fmtNum(total)} unit${t.matches.length !== list.length ? ` · dari ${list.length.toLocaleString('id-ID')}` : ''}`} />
+      {isLoading ? <p className="sg-hint">Memuat data stok…</p> : t.matches.length === 0 ? (
+        <p className="sg-hint">{rows.length ? 'Tidak ada barang yang cocok dengan pencarian ini.' : 'Belum ada data stok.'}</p>
+      ) : (
+        <div className="odl-wrap">
+          <table className="odl sc-table sc-stock">
+            <thead><tr>
+              <SortTh t={t} c="produk">Produk</SortTh>
+              <SortTh t={t} c="total" right>Total</SortTh>
+              {branches.map((b) => <SortTh key={b} t={t} c={'b:' + b} right>{b}</SortTh>)}
+              <SortTh t={t} c="cek">Cek terakhir</SortTh>
+              <th aria-label="Aksi" />
+            </tr></thead>
+            <tbody>
+              {t.shown.map((r) => (
+                <tr key={r.sku} className={r.sku === current ? 'is-active' : undefined} onClick={() => onPick(r.sku)}>
+                  <td className="odl-name"><b>{r.name}</b><small>{r.sku}{r.category ? ` · ${r.category}` : ''}</small></td>
+                  <td className="r num"><b>{fmtNum(r.qty)}</b></td>
+                  {branches.map((b) => <td key={b} className={`r num${r.by_branch[b] ? '' : ' muted'}`}>{r.by_branch[b] != null ? fmtNum(r.by_branch[b]) : '—'}</td>)}
+                  <td className="sc-last">{r.last_check ? <><span className={`sc-tag ${r.last_check.off ? 'bad' : 'good'}`}>{r.last_check.off ? `${r.last_check.off} selisih` : 'Cocok'}</span><small>{when(r.last_check.at)} · {r.last_check.branches} cabang</small></> : <span className="muted">Belum dicek</span>}</td>
+                  <td className="odl-act"><button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={(e) => { e.stopPropagation(); onPick(r.sku) }}><Icon name="check" />Cek</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <TablePager t={t} noun="barang" />
     </div>
   )
 }
 
-function ProductCheck({ sku }: { sku: string }) {
+function ProductCheck({ sku, onClose }: { sku: string; onClose: () => void }) {
   const { toast } = useFeedback()
   const qc = useQueryClient()
   const [branch, setBranch] = useState(ALL)
@@ -106,6 +130,7 @@ function ProductCheck({ sku }: { sku: string }) {
   const a = c.answer
   return (
     <>
+      <div className="sc-head"><h2>{c.product}</h2><small>{c.sku}</small><button className="btn quiet" onClick={onClose}><Icon name="x" />Tutup</button></div>
       <div className="kpis">
         <div className="kpi-t"><small>Dibaca AI (GSI Orbit)</small><b className="num">{fmtNum(totals.arc)}</b><span className="dl n">semua cabang · {c.sku}</span></div>
         <div className="kpi-t"><small>Baris BigQuery</small><b className="num">{hasSource ? fmtNum(totals.src) : '—'}</b><span className={`dl ${hasSource && totals.src !== totals.arc ? 'bad' : 'n'}`}>{hasSource ? `${c.source_rows.length} baris gudang` : 'tidak ada baris sumber'}</span></div>

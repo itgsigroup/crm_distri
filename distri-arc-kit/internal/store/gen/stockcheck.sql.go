@@ -47,6 +47,47 @@ func (q *Queries) InsertStockCheck(ctx context.Context, arg InsertStockCheckPara
 	return id, err
 }
 
+const lastStockChecks = `-- name: LastStockChecks :many
+select lower(c.sku)::text as sku, c.checked_at, count(*)::bigint as branches, count(*) filter (where c.real_qty <> c.arc_qty)::bigint as off
+from stock_checks c
+where c.checked_at = (select max(x.checked_at) from stock_checks x where lower(x.sku) = lower(c.sku))
+group by lower(c.sku), c.checked_at
+`
+
+type LastStockChecksRow struct {
+	Sku       string    `json:"sku"`
+	CheckedAt time.Time `json:"checked_at"`
+	Branches  int64     `json:"branches"`
+	Off       int64     `json:"off"`
+}
+
+// The last saved check per product (one save is one transaction, so its rows share checked_at) and how many of its
+// branches differed.
+func (q *Queries) LastStockChecks(ctx context.Context) ([]LastStockChecksRow, error) {
+	rows, err := q.db.Query(ctx, lastStockChecks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LastStockChecksRow{}
+	for rows.Next() {
+		var i LastStockChecksRow
+		if err := rows.Scan(
+			&i.Sku,
+			&i.CheckedAt,
+			&i.Branches,
+			&i.Off,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listStockChecks = `-- name: ListStockChecks :many
 select id, sku, product, branch, arc_qty, real_qty, note, synced_at, checked_by, checked_by_name, checked_at from stock_checks
 where $1::text = '' or lower(sku) = lower($1::text)
@@ -91,44 +132,36 @@ func (q *Queries) ListStockChecks(ctx context.Context, arg ListStockChecksParams
 	return items, nil
 }
 
-const searchStockProducts = `-- name: SearchStockProducts :many
-
-select sku, max(name)::text as name, sum(qty)::bigint as qty, count(*)::bigint as branches
-from stock_items
-where $1::text = '' or name ilike '%' || $1::text || '%' or sku ilike '%' || $1::text || '%'
-group by sku
-order by (lower(sku) = lower($1::text)) desc, max(name)
-limit $2
+const listStockProducts = `-- name: ListStockProducts :many
+select sku, max(name)::text as name, max(category)::text as category, sum(qty)::bigint as qty,
+  jsonb_object_agg(branch, qty) as by_branch
+from stock_items group by sku order by max(name)
 `
 
-type SearchStockProductsParams struct {
-	Q   string `json:"q"`
-	Lim int32  `json:"lim"`
+type ListStockProductsRow struct {
+	Sku      string          `json:"sku"`
+	Name     string          `json:"name"`
+	Category string          `json:"category"`
+	Qty      int64           `json:"qty"`
+	ByBranch json.RawMessage `json:"by_branch"`
 }
 
-type SearchStockProductsRow struct {
-	Sku      string `json:"sku"`
-	Name     string `json:"name"`
-	Qty      int64  `json:"qty"`
-	Branches int64  `json:"branches"`
-}
-
-// Cek stok: what GSI Orbit reads for one product next to the real stock a user counted.
-// Products in the stock by name or SKU, with their total over every branch.
-func (q *Queries) SearchStockProducts(ctx context.Context, arg SearchStockProductsParams) ([]SearchStockProductsRow, error) {
-	rows, err := q.db.Query(ctx, searchStockProducts, arg.Q, arg.Lim)
+// Every product in the stock (Cek stok's table): total and quantity per branch.
+func (q *Queries) ListStockProducts(ctx context.Context) ([]ListStockProductsRow, error) {
+	rows, err := q.db.Query(ctx, listStockProducts)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []SearchStockProductsRow{}
+	items := []ListStockProductsRow{}
 	for rows.Next() {
-		var i SearchStockProductsRow
+		var i ListStockProductsRow
 		if err := rows.Scan(
 			&i.Sku,
 			&i.Name,
+			&i.Category,
 			&i.Qty,
-			&i.Branches,
+			&i.ByBranch,
 		); err != nil {
 			return nil, err
 		}
@@ -141,9 +174,11 @@ func (q *Queries) SearchStockProducts(ctx context.Context, arg SearchStockProduc
 }
 
 const stockItemsBySKU = `-- name: StockItemsBySKU :many
+
 select id, branch, sku, name, category, qty, unit_cost, value, age_days, weekly_velocity, source_system, source_id, source_write_date from stock_items where lower(sku) = lower($1::text) order by qty desc, branch
 `
 
+// Cek stok: what GSI Orbit reads for one product next to the real stock a user counted.
 func (q *Queries) StockItemsBySKU(ctx context.Context, sku string) ([]StockItem, error) {
 	rows, err := q.db.Query(ctx, stockItemsBySKU, sku)
 	if err != nil {

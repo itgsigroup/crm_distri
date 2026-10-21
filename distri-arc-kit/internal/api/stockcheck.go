@@ -29,15 +29,46 @@ func (s *Server) stockCheckRoutes(r chi.Router) {
 	r.Post("/stock/checks", s.stockCheckSave)
 }
 
-// stockProducts finds products in the stock by name or SKU (?q=).
+// StockProduct is one row of Cek stok's table: a product's stock in total and per branch, and its last real count.
+type StockProduct struct {
+	SKU       string           `json:"sku"`
+	Name      string           `json:"name"`
+	Category  string           `json:"category"`
+	Qty       int64            `json:"qty"`
+	ByBranch  map[string]int64 `json:"by_branch"`
+	LastCheck *LastStockCheck  `json:"last_check"`
+}
+
+// LastStockCheck is a product's last saved count: when, how many branches, how many differed.
+type LastStockCheck struct {
+	At       time.Time `json:"at"`
+	Branches int64     `json:"branches"`
+	Off      int64     `json:"off"`
+}
+
+// stockProducts is every product in the stock (search, sort and pages are the table's, in the browser).
 func (s *Server) stockProducts(w http.ResponseWriter, r *http.Request) {
-	q := strings.TrimSpace(r.URL.Query().Get("q"))
-	rows, err := s.st.Q.SearchStockProducts(r.Context(), gen.SearchStockProductsParams{Q: q, Lim: 30})
+	rows, err := s.st.Q.ListStockProducts(r.Context())
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, rows)
+	checks, err := s.st.Q.LastStockChecks(r.Context())
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	last := map[string]*LastStockCheck{}
+	for _, c := range checks {
+		last[c.Sku] = &LastStockCheck{At: c.CheckedAt, Branches: c.Branches, Off: c.Off}
+	}
+	out := make([]StockProduct, 0, len(rows))
+	for _, x := range rows {
+		p := StockProduct{SKU: x.Sku, Name: x.Name, Category: x.Category, Qty: x.Qty, ByBranch: map[string]int64{}, LastCheck: last[strings.ToLower(x.Sku)]}
+		_ = json.Unmarshal(x.ByBranch, &p.ByBranch)
+		out = append(out, p)
+	}
+	httpx.JSON(w, http.StatusOK, out)
 }
 
 // StockCheckBranch is one branch of the product: what GSI Orbit reads, what the source rows mapped to it add up to,

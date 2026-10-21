@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Cek stok: datatable semua stok dengan pencarian & paginasi · 2026-10-21
+- Kartu **Data stok** di halaman Cek stok: semua barang yang dibaca AI, kolom Total dan satu kolom per cabang, **Cek terakhir** (Cocok / n selisih · waktu), pencarian (nama, kode, kategori), urut naik/turun tiap kolom, filter cabang, 10/25/50 baris per halaman. Klik baris atau **Cek** membuka pencocokan barang itu di bawah tabel (tombol **Tutup** kembali ke riwayat).
+- `GET /api/stock/products` kini mengembalikan semua barang dengan `by_branch` dan `last_check` (menggantikan pencarian `?q=`).
+
 ## Feat · Halaman Cek stok: cocokkan stok yang dibaca AI dengan stok real · 2026-10-21
 - Menu **Operasi → Cek stok** (`/stok/cek`, terlihat bagi pemegang Push stok atau Chat). Cari barang (nama/kode) lalu lihat per cabang: **Dibaca AI** (`stock_items`, yang dipakai AI Trigger, Push stok, Orchestrator), **Baris BigQuery** (baris sumber per gudang yang dipetakan ke cabang itu), isi **Stok real** dari Accurate/gudang → **Selisih** dan **Hasil**: *Cocok*, *AI ≠ BigQuery* (sinkron / mapping gudang) atau *BigQuery ≠ real* (query / data sumber).
 - **Jawaban AI Trigger** untuk barang itu per cabang percakapan (termasuk "Semua cabang"), dihitung dengan fungsi yang sama dengan kartu di Chat.

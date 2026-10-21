@@ -2,7 +2,9 @@ package api_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -75,8 +77,35 @@ func TestStockCheck(t *testing.T) {
 			}
 		}
 	}
-	code, out = get(t, srv, "/api/stock/products?q=x5s", "sam@gsi.co.id")
-	if code != http.StatusOK {
-		t.Fatalf("search %d %v", code, out)
+	var list []map[string]any
+	if code := getJSON(t, srv, "/api/stock/products", "sam@gsi.co.id", &list); code != http.StatusOK {
+		t.Fatalf("products %d", code)
 	}
+	found := false
+	for _, p := range list {
+		if p["sku"] == "X5S_8W" {
+			found = true
+			by, last := p["by_branch"].(map[string]any), p["last_check"].(map[string]any)
+			if p["qty"] != float64(67) || by["Jakarta"] != float64(24) || last["branches"] != float64(2) || last["off"] != float64(1) {
+				t.Fatalf("product row: %v", p)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("X5S_8W not listed")
+	}
+}
+
+// getJSON decodes any JSON body (a list) into out.
+func getJSON(t *testing.T, srv *httptest.Server, path, user string, out any) int {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+path, nil)
+	req.Header.Set("X-Dev-User", user)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	_ = json.NewDecoder(res.Body).Decode(out)
+	return res.StatusCode
 }

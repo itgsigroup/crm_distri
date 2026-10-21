@@ -53,7 +53,29 @@ export interface StockCheck {
   checks: StockCheckRow[]
 }
 
-export interface StockProduct { sku: string; name: string; qty: number; branches: number }
+export interface StockProduct {
+  sku: string
+  name: string
+  category: string
+  qty: number
+  by_branch: Record<string, number>
+  last_check: { at: string; branches: number; off: number } | null
+}
+
+/** Name, SKU and category: what the stock table is searched in. */
+export const productText = (r: StockProduct) => `${r.name} ${r.sku} ${r.category}`
+
+/** Compare functions of the stock table: produk, total, cek (last check; never checked counts as oldest) and one
+ * "b:<branch>" per branch. */
+export function productCompare(branches: string[]): Record<string, (a: StockProduct, b: StockProduct) => number> {
+  const out: Record<string, (a: StockProduct, b: StockProduct) => number> = {
+    produk: (a, b) => a.name.localeCompare(b.name, 'id'),
+    total: (a, b) => a.qty - b.qty,
+    cek: (a, b) => (a.last_check ? Date.parse(a.last_check.at) : 0) - (b.last_check ? Date.parse(b.last_check.at) : 0),
+  }
+  for (const br of branches) out['b:' + br] = (a, b) => (a.by_branch[br] ?? 0) - (b.by_branch[br] ?? 0)
+  return out
+}
 
 /** What a branch's difference says: which side is wrong, in words for the user. */
 export type Verdict = 'cocok' | 'sinkron' | 'sumber' | 'belum'
