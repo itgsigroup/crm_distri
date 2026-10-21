@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
@@ -14,25 +15,53 @@ const ALL = 'Semua cabang'
 const NONE: StockProduct[] = []
 const when = (d: string) => `${shortDate(d)} ${hhmm(d)}`
 
-// Cek stok (21 Oct): find a product, see what GSI Orbit and the AI Trigger read for it (per branch, and the BigQuery
+// Cek stok (21 Oct): find a product in the table, open its check in a modal, see what GSI Orbit and the AI Trigger read for it (per branch, and the BigQuery
 // rows per warehouse behind it), type the real stock from Accurate / the warehouse, and keep the count. The verdict
 // says which side is wrong: GSI Orbit against its BigQuery rows (sync, Gudang mapping) or BigQuery against real.
 export function StockCheckPage() {
   const [params, setParams] = useSearchParams()
   const sku = params.get('sku') ?? ''
-  const detail = useRef<HTMLDivElement>(null)
-  const pick = (next: string) => {
-    setParams(next ? { sku: next } : {}, { replace: false })
-    if (next) setTimeout(() => detail.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
-  }
+  const pick = (next: string) => setParams(next ? { sku: next } : {}, { replace: false })
   return (
     <>
       <StockSource />
       <StockTable current={sku} onPick={pick} />
-      <div ref={detail} className="sc-detail">
-        {sku ? <ProductCheck key={sku} sku={sku} onClose={() => pick('')} /> : <RecentChecks onPick={pick} />}
-      </div>
+      <RecentChecks onPick={pick} />
+      {sku && <StockModal key={sku} sku={sku} onClose={() => pick('')} />}
     </>
+  )
+}
+
+/** A product's check as a wide modal over the table (Sam 21 Oct): Esc, the backdrop or × close it — after asking
+ * when real counts are typed but not saved. ?sku= keeps it linkable. */
+function StockModal({ sku, onClose }: { sku: string; onClose: () => void }) {
+  const guard = useRef<() => boolean>(() => true)
+  const close = useCallback(() => { if (guard.current()) onClose() }, [onClose])
+  const setGuard = useCallback((g: () => boolean) => { guard.current = g }, [])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    document.addEventListener('keydown', onKey)
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = overflow }
+  }, [close])
+  return createPortal(
+    <div className="sc-modal-bg" onMouseDown={(e) => { if (e.target === e.currentTarget) close() }}>
+      <div className="sc-modal" role="dialog" aria-modal="true" aria-labelledby="sc-modal-title">
+        <ProductCheck sku={sku} onClose={close} setGuard={setGuard} />
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+function ModalHead({ title, sub, onClose }: { title: string; sub?: string; onClose: () => void }) {
+  return (
+    <div className="sc-modal-h">
+      <span className="ni"><Icon name="box" /></span>
+      <div><h2 id="sc-modal-title">{title}</h2>{sub && <small>{sub}</small>}</div>
+      <button className="close" onClick={onClose} aria-label="Tutup"><Icon name="x" /></button>
+    </div>
   )
 }
 
@@ -87,7 +116,7 @@ function StockTable({ current, onPick }: { current: string; onPick: (sku: string
   )
 }
 
-function ProductCheck({ sku, onClose }: { sku: string; onClose: () => void }) {
+function ProductCheck({ sku, onClose, setGuard }: { sku: string; onClose: () => void; setGuard: (g: () => boolean) => void }) {
   const { toast } = useFeedback()
   const qc = useQueryClient()
   const [branch, setBranch] = useState(ALL)
@@ -122,15 +151,17 @@ function ProductCheck({ sku, onClose }: { sku: string; onClose: () => void }) {
     if (v != null) { totals.realSum += v; totals.counted++ }
   }
 
-  if (isLoading) return <div className="card"><p className="sg-hint">Memuat…</p></div>
-  if (error || !c) return <div className="card"><p className="sg-hint">{(error as Error)?.message ?? 'Produk tidak ditemukan'}</p></div>
-
   const typed = Object.values(real).some((v) => parseQty(v) != null)
+  useEffect(() => setGuard(() => !typed || window.confirm('Stok real yang diisi belum disimpan. Tutup tanpa menyimpan?')), [typed, setGuard])
+  if (isLoading) return <><ModalHead title="Memuat…" sub={sku} onClose={onClose} /><div className="sc-modal-b"><p className="sg-hint">Memuat data stok…</p></div></>
+  if (error || !c) return <><ModalHead title={sku} onClose={onClose} /><div className="sc-modal-b"><p className="sg-hint">{(error as Error)?.message ?? 'Produk tidak ditemukan'}</p></div></>
+
   const withStock = rows.filter((b) => b.arc_qty > 0 || b.source_qty > 0).map((b) => b.branch)
   const a = c.answer
   return (
     <>
-      <div className="sc-head"><h2>{c.product}</h2><small>{c.sku}</small><button className="btn quiet" onClick={onClose}><Icon name="x" />Tutup</button></div>
+      <ModalHead title={c.product} sub={`${c.sku} · ${c.source}${c.synced_at ? ` · sinkron ${when(c.synced_at)}` : ''}`} onClose={onClose} />
+      <div className="sc-modal-b">
       <div className="kpis">
         <div className="kpi-t"><small>Dibaca AI (GSI Orbit)</small><b className="num">{fmtNum(totals.arc)}</b><span className="dl n">semua cabang · {c.sku}</span></div>
         <div className="kpi-t"><small>Baris BigQuery</small><b className="num">{hasSource ? fmtNum(totals.src) : '—'}</b><span className={`dl ${hasSource && totals.src !== totals.arc ? 'bad' : 'n'}`}>{hasSource ? `${c.source_rows.length} baris gudang` : 'tidak ada baris sumber'}</span></div>
@@ -210,6 +241,7 @@ function ProductCheck({ sku, onClose }: { sku: string; onClose: () => void }) {
       </div>
 
       <ChecksTable title={`Riwayat cek · ${c.product}`} rows={c.checks} />
+      </div>
     </>
   )
 }

@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Cek stok: detail barang dalam modal · 2026-10-21
+- Klik barang di tabel **Data stok** membuka detailnya dalam **modal** lebar di atas tabel (jawaban AI Trigger, cocokkan per cabang, data mentah BigQuery, riwayat cek), bukan lagi di bawah tabel. Tutup dengan ×, Esc, atau klik di luar; bila stok real sudah diisi tetapi belum disimpan, ada konfirmasi dulu. Link `?sku=` tetap membuka modal barang itu.
+- "Cek stok terakhir" selalu tampil di bawah tabel.
+
 ## Feat · AI Trigger: kartu stok menampilkan harga · 2026-10-21
 - Kartu **Cek stok** di Chat kini juga menampilkan **Harga** dan **Dasar**-nya (harga tier dealer yang tertaut, atau harga list tier A) — angka yang sama dengan kartu Cek harga. Barang tanpa harga di daftar harga tidak menampilkan harga.
 - Placeholder `{harga}` tersedia untuk template stok, dan harga ikut menjadi fakta yang boleh dipakai ChatGPT/Claude di draf.
