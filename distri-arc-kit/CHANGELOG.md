@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Cek stok: harga tampil di tabel dan modal · 2026-10-21
+- Tabel **Data stok** punya kolom **Harga** (harga list tier A dari daftar harga yang sama dengan kartu Cek harga; bisa diurutkan). Modal detail punya kotak **Harga (tier A)** dengan harga tier lain di bawahnya. Barang tanpa harga menampilkan "—" / "belum ada di daftar harga".
+- API: `price` di `GET /api/stock/products` dan `GET /api/stock/check`.
+
 ## Feat · Cek stok: detail barang dalam modal · 2026-10-21
 - Klik barang di tabel **Data stok** membuka detailnya dalam **modal** lebar di atas tabel (jawaban AI Trigger, cocokkan per cabang, data mentah BigQuery, riwayat cek), bukan lagi di bawah tabel. Tutup dengan ×, Esc, atau klik di luar; bila stok real sudah diisi tetapi belum disimpan, ada konfirmasi dulu. Link `?sku=` tetap membuka modal barang itu.
 - "Cek stok terakhir" selalu tampil di bawah tabel.

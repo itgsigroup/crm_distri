@@ -21,6 +21,7 @@ func TestStockCheck(t *testing.T) {
 		   ('stock', 'X5S_8W|gudang sby', '{"sku":"X5S_8W","product":"Ezviz NVR 8Ch X5S 8W","warehouse":"Gudang SBY","qty":"43"}', 'bigquery'),
 		   ('stock', 'X5S_8W|soetta', '{"sku":"X5S_8W","product":"Ezviz NVR 8Ch X5S 8W","warehouse":"Soetta","qty":"24"}', 'bigquery')`,
 		`insert into data_mappings (kind, source_value, target) values ('warehouse', 'Gudang SBY', 'Surabaya')`,
+		`insert into products (sku, name, list_price, prices) values ('X5S_8W', 'Ezviz NVR 8Ch X5S 8W', 865000, '{"A":865000,"B":900000}')`,
 	} {
 		if _, err := st.Pool.Exec(ctx, q); err != nil {
 			t.Fatal(err)
@@ -30,6 +31,9 @@ func TestStockCheck(t *testing.T) {
 	code, out := get(t, srv, "/api/stock/check?sku=x5s_8w&branch=Semua+cabang", "sam@gsi.co.id")
 	if code != http.StatusOK || out["product"] != "Ezviz NVR 8Ch X5S 8W" {
 		t.Fatalf("check %d %v", code, out)
+	}
+	if pr := out["price"].(map[string]any); pr["list"] != float64(865000) || pr["tiers"].(map[string]any)["B"] != float64(900000) {
+		t.Fatalf("price: %v", out["price"])
 	}
 	a := out["answer"].(map[string]any)
 	if a["ready"] != true || a["qty"] != float64(67) || a["headline"] != "Ready · 67 di semua cabang" {
@@ -86,7 +90,7 @@ func TestStockCheck(t *testing.T) {
 		if p["sku"] == "X5S_8W" {
 			found = true
 			by, last := p["by_branch"].(map[string]any), p["last_check"].(map[string]any)
-			if p["qty"] != float64(67) || by["Jakarta"] != float64(24) || last["branches"] != float64(2) || last["off"] != float64(1) {
+			if p["qty"] != float64(67) || p["price"] != float64(865000) || by["Jakarta"] != float64(24) || last["branches"] != float64(2) || last["off"] != float64(1) {
 				t.Fatalf("product row: %v", p)
 			}
 		}

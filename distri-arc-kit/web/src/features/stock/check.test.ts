@@ -25,7 +25,7 @@ test('parseQty and diffText', () => {
 
 test('stock table search and sort', () => {
   const p = (sku: string, name: string, by: Record<string, number>, at?: string): StockProduct =>
-    ({ sku, name, category: 'Kamera & NVR', qty: Object.values(by).reduce((a, b) => a + b, 0), by_branch: by, last_check: at ? { at, branches: 1, off: 0 } : null })
+    ({ sku, name, category: 'Kamera & NVR', price: 0, qty: Object.values(by).reduce((a, b) => a + b, 0), by_branch: by, last_check: at ? { at, branches: 1, off: 0 } : null })
   const a = p('X5S_8W', 'Ezviz NVR 8Ch X5S 8W', { Surabaya: 43, Jakarta: 24 }, '2026-10-21T03:00:00Z')
   const b = p('H8C', 'Ezviz H8c 2MP', { Surabaya: 5 })
   const c = productCompare(['Jakarta', 'Surabaya'])

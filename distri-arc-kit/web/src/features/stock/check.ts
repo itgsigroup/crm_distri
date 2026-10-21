@@ -49,6 +49,7 @@ export interface StockCheck {
   branches: StockCheckBranch[]
   source_rows: SourceStock[]
   answer: StockAnswer | null
+  price: { list: number; tiers: Record<string, number> | null }
   source: string
   synced_at: string | null
   checks: StockCheckRow[]
@@ -59,6 +60,8 @@ export interface StockProduct {
   name: string
   category: string
   qty: number
+  /** list price (tier A) from the price list the price card reads; 0 = none */
+  price: number
   by_branch: Record<string, number>
   last_check: { at: string; branches: number; off: number } | null
 }
@@ -66,12 +69,13 @@ export interface StockProduct {
 /** Name, SKU and category: what the stock table is searched in. */
 export const productText = (r: StockProduct) => `${r.name} ${r.sku} ${r.category}`
 
-/** Compare functions of the stock table: produk, total, cek (last check; never checked counts as oldest) and one
+/** Compare functions of the stock table: produk, total, harga, cek (last check; never checked counts as oldest) and one
  * "b:<branch>" per branch. */
 export function productCompare(branches: string[]): Record<string, (a: StockProduct, b: StockProduct) => number> {
   const out: Record<string, (a: StockProduct, b: StockProduct) => number> = {
     produk: (a, b) => a.name.localeCompare(b.name, 'id'),
     total: (a, b) => a.qty - b.qty,
+    harga: (a, b) => a.price - b.price,
     cek: (a, b) => (a.last_check ? Date.parse(a.last_check.at) : 0) - (b.last_check ? Date.parse(b.last_check.at) : 0),
   }
   for (const br of branches) out['b:' + br] = (a, b) => (a.by_branch[br] ?? 0) - (b.by_branch[br] ?? 0)
@@ -112,3 +116,6 @@ export function diffText(arc: number, real: number): string {
   const d = arc - real
   return d > 0 ? `+${d.toLocaleString('id-ID')}` : d < 0 ? `−${(-d).toLocaleString('id-ID')}` : '0'
 }
+
+/** Rupiah in full: 865000 → "Rp 865.000"; 0 → "—". */
+export const rpFull = (v: number) => (v > 0 ? `Rp ${v.toLocaleString('id-ID')}` : '—')

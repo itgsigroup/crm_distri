@@ -2054,3 +2054,6 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .sug-noai>span svg.i{width:14px;height:14px;color:var(--warn);flex:none}
 .at-aireq{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--accent-soft);font-size:12.5px;line-height:1.5}
 .at-aireq svg.i{width:15px;height:15px;color:var(--accent);flex:none;margin-top:2px}
+.sc-kpis{grid-template-columns:repeat(5,1fr)}
+.sc-kpis .kpi-t b{font-size:22px}
+@media (max-width:900px){.sc-kpis{grid-template-columns:repeat(2,1fr)}}

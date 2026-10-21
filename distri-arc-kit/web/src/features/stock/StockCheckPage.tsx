@@ -8,7 +8,7 @@ import { useFeedback } from '../../components/feedback'
 import { fmtNum, hhmm, shortDate } from '../../lib/format'
 import { StockSource } from './StockPage'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
-import { diffText, parseQty, productCompare, productText, verdict, VERDICT, type StockCheck, type StockProduct } from './check'
+import { diffText, parseQty, productCompare, productText, rpFull, verdict, VERDICT, type StockCheck, type StockProduct } from './check'
 
 const ALL = 'Semua cabang'
 // a stable empty list while loading: a new [] each render would reset the table every render (useDataTable)
@@ -93,6 +93,7 @@ function StockTable({ current, onPick }: { current: string; onPick: (sku: string
             <thead><tr>
               <SortTh t={t} c="produk">Produk</SortTh>
               <SortTh t={t} c="total" right>Total</SortTh>
+              <SortTh t={t} c="harga" right>Harga</SortTh>
               {branches.map((b) => <SortTh key={b} t={t} c={'b:' + b} right>{b}</SortTh>)}
               <SortTh t={t} c="cek">Cek terakhir</SortTh>
               <th aria-label="Aksi" />
@@ -102,6 +103,7 @@ function StockTable({ current, onPick }: { current: string; onPick: (sku: string
                 <tr key={r.sku} className={r.sku === current ? 'is-active' : undefined} onClick={() => onPick(r.sku)}>
                   <td className="odl-name"><b>{r.name}</b><small>{r.sku}{r.category ? ` · ${r.category}` : ''}</small></td>
                   <td className="r num"><b>{fmtNum(r.qty)}</b></td>
+                  <td className={`r num${r.price ? '' : ' muted'}`}>{rpFull(r.price)}</td>
                   {branches.map((b) => <td key={b} className={`r num${r.by_branch[b] ? '' : ' muted'}`}>{r.by_branch[b] != null ? fmtNum(r.by_branch[b]) : '—'}</td>)}
                   <td className="sc-last">{r.last_check ? <><span className={`sc-tag ${r.last_check.off ? 'bad' : 'good'}`}>{r.last_check.off ? `${r.last_check.off} selisih` : 'Cocok'}</span><small>{when(r.last_check.at)} · {r.last_check.branches} cabang</small></> : <span className="muted">Belum dicek</span>}</td>
                   <td className="odl-act"><button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={(e) => { e.stopPropagation(); onPick(r.sku) }}><Icon name="check" />Cek</button></td>
@@ -162,7 +164,8 @@ function ProductCheck({ sku, onClose, setGuard }: { sku: string; onClose: () => 
     <>
       <ModalHead title={c.product} sub={`${c.sku} · ${c.source}${c.synced_at ? ` · sinkron ${when(c.synced_at)}` : ''}`} onClose={onClose} />
       <div className="sc-modal-b">
-      <div className="kpis">
+      <div className="kpis sc-kpis">
+        <div className="kpi-t"><small>Harga (tier A)</small><b className="num">{rpFull(c.price.list)}</b><span className="dl n">{c.price.list ? (Object.entries(c.price.tiers ?? {}).filter(([k, v]) => k !== 'A' && v > 0).sort().map(([k, v]) => `Tier ${k} ${rpFull(v)}`).join(' · ') || 'harga list') : 'belum ada di daftar harga'}</span></div>
         <div className="kpi-t"><small>Dibaca AI (GSI Orbit)</small><b className="num">{fmtNum(totals.arc)}</b><span className="dl n">semua cabang · {c.sku}</span></div>
         <div className="kpi-t"><small>Baris BigQuery</small><b className="num">{hasSource ? fmtNum(totals.src) : '—'}</b><span className={`dl ${hasSource && totals.src !== totals.arc ? 'bad' : 'n'}`}>{hasSource ? `${c.source_rows.length} baris gudang` : 'tidak ada baris sumber'}</span></div>
         <div className="kpi-t"><small>Stok real diisi</small><b className="num">{totals.counted ? fmtNum(totals.realSum) : '—'}</b><span className="dl n">{totals.counted} cabang diisi</span></div>

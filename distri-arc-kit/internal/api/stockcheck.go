@@ -35,6 +35,7 @@ type StockProduct struct {
 	Name      string           `json:"name"`
 	Category  string           `json:"category"`
 	Qty       int64            `json:"qty"`
+	Price     int64            `json:"price"` // list price (tier A) of the price list the price card reads; 0 = none
 	ByBranch  map[string]int64 `json:"by_branch"`
 	LastCheck *LastStockCheck  `json:"last_check"`
 }
@@ -58,17 +59,58 @@ func (s *Server) stockProducts(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	prices, err := s.listPrices(r)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
 	last := map[string]*LastStockCheck{}
 	for _, c := range checks {
 		last[c.Sku] = &LastStockCheck{At: c.CheckedAt, Branches: c.Branches, Off: c.Off}
 	}
 	out := make([]StockProduct, 0, len(rows))
 	for _, x := range rows {
-		p := StockProduct{SKU: x.Sku, Name: x.Name, Category: x.Category, Qty: x.Qty, ByBranch: map[string]int64{}, LastCheck: last[strings.ToLower(x.Sku)]}
+		p := StockProduct{SKU: x.Sku, Name: x.Name, Category: x.Category, Qty: x.Qty, Price: prices.of(x.Sku, x.Name), ByBranch: map[string]int64{},
+			LastCheck: last[strings.ToLower(x.Sku)]}
 		_ = json.Unmarshal(x.ByBranch, &p.ByBranch)
 		out = append(out, p)
 	}
 	httpx.JSON(w, http.StatusOK, out)
+}
+
+// priceList finds a product's price by SKU, else by name (as the AI Trigger cards do).
+type priceList struct{ bySKU, byName map[string]replyrule.Product }
+
+func (s *Server) listPrices(r *http.Request) (priceList, error) {
+	ps, err := s.replyAI.Products(r.Context())
+	l := priceList{bySKU: map[string]replyrule.Product{}, byName: map[string]replyrule.Product{}}
+	for _, p := range ps {
+		if p.SKU != "" {
+			l.bySKU[strings.ToLower(p.SKU)] = p
+		}
+		l.byName[strings.ToLower(p.Name)] = p
+	}
+	return l, err
+}
+
+func (l priceList) get(sku, name string) (replyrule.Product, bool) {
+	if p, ok := l.bySKU[strings.ToLower(sku)]; ok {
+		return p, true
+	}
+	p, ok := l.byName[strings.ToLower(name)]
+	return p, ok
+}
+
+// of is the list price (tier A): the list price, else tier A's.
+func (l priceList) of(sku, name string) int64 {
+	p, ok := l.get(sku, name)
+	if !ok {
+		return 0
+	}
+	if p.ListPrice > 0 {
+		return p.ListPrice
+	}
+	return p.Prices["A"]
 }
 
 // StockCheckBranch is one branch of the product: what GSI Orbit reads, what the source rows mapped to it add up to,
@@ -156,12 +198,19 @@ func (s *Server) stockCheck(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	prices, err := s.listPrices(r)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	pp, _ := prices.get(sku, product)
+	price := map[string]any{"list": prices.of(sku, product), "tiers": pp.Prices}
 	p := importer.ProvenanceOf(ctx, s.st)
 	if len(checks) > 30 {
 		checks = checks[:30]
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"sku": sku, "product": product, "branch": branch, "branches": branches,
-		"source_rows": src, "answer": answer, "source": p.Label, "synced_at": p.SyncedAt, "checks": checks})
+		"source_rows": src, "answer": answer, "price": price, "source": p.Label, "synced_at": p.SyncedAt, "checks": checks})
 }
 
 // stockAnswer is the "Tanya stok" card for sku in a conversation of branch, from the same rule and data as Chat.
