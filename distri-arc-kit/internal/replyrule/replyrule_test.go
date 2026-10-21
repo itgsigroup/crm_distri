@@ -59,6 +59,11 @@ func TestSuggest(t *testing.T) {
 	if s := one(t, []Rule{rule}, "kamera 4mp ready?", Data{Stock: stock}); s == nil || s.Qty != 25 || s.Draft != "Ready 25 pcs untuk Kamera IP 4MP di gudang kami." {
 		t.Fatalf("no branch: %+v", s)
 	}
+	// a sales covering every branch: the thread branch "Semua cabang" is no stock branch → every branch counts
+	if s := one(t, []Rule{rule}, "NVR 16ch ready?", Data{Branch: "Semua cabang", Stock: stock}); s == nil || !s.Ready || s.Qty != 7 ||
+		s.Headline != "Ready · 7 di semua cabang" || s.Branch != "" {
+		t.Fatalf("all-branches sales: %+v", s)
+	}
 	if Matches(rule, "readymix beton") != "" || Matches(rule, "Ada barang nya?") != "ada barang" || Matches(rule, "stoknya ada?") != "stok" ||
 		Matches(rule, "stokis") != "" {
 		t.Fatal("whole-word keywords")

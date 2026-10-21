@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · AI Trigger Cek stok tidak lagi menjawab "Kosong di Semua cabang" · 2026-10-21
+- Percakapan sales yang memegang semua cabang (mis. Granike, cabang "Semua cabang") membaca stok cabang bernama "Semua cabang" — yang tidak ada — sehingga stok selalu 0 dan kartu menulis "Kosong di Semua cabang" padahal Ezviz NVR X5S 8W ada di Surabaya, Semarang, Soetta, Jakarta. Cabang percakapan yang tidak dimiliki baris stok mana pun kini dianggap "tanpa cabang": stok semua cabang dijumlah ("Ready · 151 di semua cabang").
+
 ## Perf · Semua halaman lebih cepat: JIT PostgreSQL dimatikan, halaman dimuat per kebutuhan, refetch berlebihan dihapus · 2026-10-20
 - **JIT PostgreSQL dimatikan** untuk setiap koneksi aplikasi (API dan worker). Daftar chat 2,1 dtk → ~0,4 dtk: 1,9 dtk di antaranya kompilasi JIT untuk ~240 ms kerja (EXPLAIN ANALYZE di produksi). Berlaku untuk semua query dengan estimasi biaya tinggi (Orbit, brief, kredit, health).
 - **Halaman dimuat per kebutuhan**: setiap halaman kecuali Pusat kendali jadi chunk sendiri, diunduh di latar belakang saat browser idle. Muatan awal 1,6 MB → 327 KB (gzip 452 → 102 KB); three.js hanya untuk Dashboard dan Relasi. Tab lama yang meminta chunk yang sudah diganti deploy dimuat ulang sekali otomatis.

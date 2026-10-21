@@ -235,7 +235,8 @@ func stockCard(s *Suggestion, r Rule, text string, history []Line, d Data) {
 		unknownProduct(s, cands, "data stok")
 		return
 	}
-	branch := d.Branch
+	branch := stockBranch(d.Branch, d.Stock)
+	s.Branch = branch
 	s.Product, s.SKU = p.name, p.sku
 	s.Qty = max(p.byBranch[branch], 0)
 	for b, q := range p.byBranch {
@@ -273,6 +274,17 @@ func stockCard(s *Suggestion, r Rule, text string, history []Line, d Data) {
 	if !s.Ready && len(s.Others) > 0 {
 		s.Note = fmt.Sprintf("Kosong di %s, ada di %s (%d) — bisa ditawarkan mutasi.", where, s.Others[0].Branch, s.Others[0].Qty)
 	}
+}
+
+// stockBranch is the conversation's branch as a stock branch: a branch no stock row has ("Semua cabang", the
+// branch of a sales who covers every branch) is no branch, so every branch counts instead of reading 0.
+func stockBranch(branch string, stock []domain.StockItem) string {
+	for _, x := range stock {
+		if strings.EqualFold(x.Branch, branch) {
+			return x.Branch
+		}
+	}
+	return ""
 }
 
 func priceCard(s *Suggestion, r Rule, text string, history []Line, d Data) {
