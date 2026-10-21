@@ -4,32 +4,18 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
-import { AGENT_COLOR, AGENT_NAME, type AgentKey, type Comet, type FlyKind, type Planet, type StationPlan } from './station'
+import { CREW, CREW_OF, type CrewKey, type CrewMember, type CrewState, type CrewStatus } from './station'
 
-// Stasiun Orbit: a space miniature in three.js, rendered HD (MSAA, ACES tone mapping, bloom, PBR with an environment
-// map). The AI core (the Orchestrator) burns in the middle inside the station ring; dealers are planets on orbits
-// (the nearer the jadwal order, the closer to the core); the six agents are astronauts. Four of them fly out to
-// planets for their tasks and bring a proposal capsule back to the Dek Keputusan, where only the human commander
-// decides. AI Stok works the cargo bay, AI Prospek the passive radar that scans comets — new numbers that wrote in
-// first (the system never hunts for leads). While an Orchestrator cycle runs, every astronaut gathers at the core and
-// the six stage arcs light up in turn. Everything comes from the plan (real data); clicking opens the screen.
+// Stasiun Orbit: a space station in three.js, rendered HD (MSAA, ACES tone mapping, bloom, PBR with an environment
+// map). The AI core (the Orchestrator) burns in the middle inside the station ring; corridors lead out to ten rooms
+// under glass domes, one astronaut each at a console with a hologram of its work: 1 Analisa sales, 2 Analisa
+// WhatsApp, 3 Analisa dealer, 4 Eksekusi order, 5 Follow-up, 6 Cek stok, 7 Cek kredit, 8 Cek penagihan, 9 Prospek,
+// 10 Data siap. Data runs from the rooms to the core and from the core to Data siap. No customer is ever drawn —
+// the rooms say what the astronaut does and counts only. Clicking a room opens its screen.
 
-export type StationTarget =
-  | { kind: 'planet'; planet: Planet }
-  | { kind: 'core' }
-  | { kind: 'dock' }
-  | { kind: 'cargo' }
-  | { kind: 'comms' }
-  | { kind: 'comet'; comet: Comet }
-  | { kind: 'agent'; agent: AgentKey; status: string }
-  | { kind: 'commander' }
+export type StationTarget = { kind: 'core' } | { kind: 'room'; key: CrewKey }
 
 export interface CycleState { running: boolean; stage: number; hasCycle: boolean }
-
-/** One agent's part in the cycle being followed (GET /cycles/{id}/progress): the astronaut acts it out. */
-export type WorkState = 'waiting' | 'reading' | 'done' | 'failed'
-export interface AgentWork { state: WorkState; text: string }
-export type Work = Partial<Record<AgentKey, AgentWork>>
 
 export interface StationOptions {
   stage: HTMLElement
@@ -43,39 +29,28 @@ export const STATION_H = 540
 // world layout (units)
 const CORE_R = 1.3
 const ARC_R = 2.05 // the six stage arcs
-const GATHER_R = 2.75 // astronauts during a cycle
-const RING_R = 3.7 // the station ring
-const ORBIT_IN = 6.1
-const ORBIT_OUT = 12.4
+const RING_R = 3.7 // the station ring around the core
+const ROOM_R = 6.7 // the ring of rooms
+const DOME = 1.18 // room (dome) radius
+const FLOOR = 0.1 // top of a room's floor
+const ASTRO_S = 1.4
 const BELT_IN = 13.6
-const BELT_OUT = 14.6
-const COMET_A = 16.2
-const COMET_B = 10.5
-const ASTRO_S = 1.55
-const SPIN = 0.028 // planets turn around the core together (rad/s), so they never run into each other
-const PITCH0 = 0.46
+const BELT_OUT = 14.8
+const PITCH0 = 0.62
 
-const ANG = { radar: 0, dock: Math.PI / 2, cargo: Math.PI, comms: -Math.PI / 2 }
-const onRing = (a: number, r = RING_R, y = 0) => new THREE.Vector3(r * Math.cos(a), y, r * Math.sin(a))
-const HOME: Record<AgentKey, number> = { order: Math.PI / 4, collect: (3 * Math.PI) / 4, credit: -(3 * Math.PI) / 4, followup: -Math.PI / 4, stock: ANG.cargo, prospect: ANG.radar }
-
-const TONE_GLOW: Record<Planet['tone'], string> = { good: '#4fd6ff', warn: '#ffb547', bad: '#ff4d4d', neutral: '#b6c1d6' }
+const onRing = (a: number, r: number, y = 0) => new THREE.Vector3(r * Math.cos(a), y, r * Math.sin(a))
+/** Room i: 1 at the back left, round the front, 10 (Data siap) at the back in the middle. */
+const roomAngle = (i: number) => -Math.PI / 2 - ((i + 1) * Math.PI * 2) / CREW.length
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
-const smooth = (v: number) => { const x = clamp01(v); return x * x * (3 - 2 * x) }
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k
 
 function rng(seed: number) {
   let s = seed >>> 0 || 1
   return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296 }
 }
-function hash(str: string) {
-  let h = 2166136261
-  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) }
-  return h >>> 0
-}
 
-// ---------- procedural planet surfaces ----------
+// ---------- a far planet for the backdrop (no data: scenery) ----------
 
 /** 3D value noise with a seeded lattice, for seamless sphere textures. */
 function noise3(seed: number) {
@@ -97,44 +72,23 @@ function noise3(seed: number) {
   }
 }
 
-type Style = 'ocean' | 'bands' | 'rock' | 'ice' | 'gold'
-const PALETTE: Record<Style, string[]> = {
-  ocean: ['#06224f', '#0b4d8c', '#1f8fc9', '#3aa86b', '#8a9a4e', '#e9f1f4'],
-  bands: ['#5a3412', '#b8742e', '#e8b46a', '#f5dcaa', '#c98a3f', '#7d4a1c'],
-  rock: ['#2a0d08', '#6b1f12', '#a8402a', '#d9774f', '#f0b08a'],
-  ice: ['#8aa4c4', '#b9cde3', '#e4eef8', '#ffffff'],
-  gold: ['#4a2f05', '#a8741a', '#f2c14e', '#fff0bf', '#d49b2c', '#7a5210'],
-}
-const NEUTRAL_BANDS = ['#3c4256', '#6c7591', '#a8b0c7', '#d9deea', '#8a93ad', '#4d556d']
-
-function styleOf(p: Planet): Style {
-  if (p.look === 'closed') return 'ice'
-  if (p.look === 'key') return 'gold'
-  return p.tone === 'good' ? 'ocean' : p.tone === 'bad' ? 'rock' : 'bands'
-}
-
 function ramp(cols: THREE.Color[], t: number, out: THREE.Color) {
   const x = clamp01(t) * (cols.length - 1)
   const i = Math.min(cols.length - 2, Math.floor(x))
   return out.copy(cols[i]).lerp(cols[i + 1], x - i)
 }
 
-function planetMaps(p: Planet): { map: THREE.CanvasTexture; clouds: THREE.CanvasTexture | null } {
-  const style = styleOf(p)
-  const seed = hash(p.id)
+function giantMap(seed: number, palette: string[]): THREE.CanvasTexture {
   const n = noise3(seed)
-  const W = p.size > 0.55 ? 384 : 256
-  const H = W / 2
+  const W = 512
+  const H = 256
   const c = document.createElement('canvas')
   c.width = W; c.height = H
   const g = c.getContext('2d')!
   const img = g.createImageData(W, H)
-  const cols = (style === 'bands' && p.tone === 'neutral' ? NEUTRAL_BANDS : PALETTE[style]).map((h) => new THREE.Color(h))
+  const cols = palette.map((h) => new THREE.Color(h))
   const out = new THREE.Color()
-  const r = rng(seed)
-  const off = r() * 50
-  const bands = 5 + Math.floor(r() * 6)
-  const fbm = (x: number, y: number, z: number, o: number) => { let a = 0.5; let s = 0; let f = 1; for (let i = 0; i < o; i++) { s += a * n(x * f + off, y * f, z * f); f *= 2.03; a *= 0.5 } return s / (1 - Math.pow(0.5, o)) }
+  const fbm = (x: number, y: number, z: number, o: number) => { let a = 0.5; let s = 0; let f = 1; for (let i = 0; i < o; i++) { s += a * n(x * f, y * f, z * f); f *= 2.03; a *= 0.5 } return s / (1 - Math.pow(0.5, o)) }
   for (let y = 0; y < H; y++) {
     const th = (y / H) * Math.PI
     const sy = Math.cos(th)
@@ -142,67 +96,17 @@ function planetMaps(p: Planet): { map: THREE.CanvasTexture; clouds: THREE.Canvas
     for (let x = 0; x < W; x++) {
       const ph = (x / W) * Math.PI * 2
       const px = Math.cos(ph) * st; const pz = Math.sin(ph) * st
-      if (style === 'ocean') {
-        const h = fbm(px * 1.8, sy * 1.8, pz * 1.8, 5)
-        const pole = Math.abs(sy)
-        if (pole > 0.86 - h * 0.12) out.copy(cols[5])
-        else if (h > 0.53) ramp([cols[3], cols[4], cols[5]], (h - 0.53) * 3.2, out)
-        else ramp([cols[0], cols[1], cols[2]], h / 0.53, out)
-      } else if (style === 'bands' || style === 'gold') {
-        const t = fbm(px * 2.5, sy * 2.5, pz * 2.5, 4)
-        const v = (sy * 0.5 + 0.5) * bands + t * 1.4
-        const k = (Math.sin(v * Math.PI) * 0.5 + 0.5) * 0.7 + fbm(px * 6, sy * 18, pz * 6, 3) * 0.3
-        ramp(cols, k, out)
-      } else if (style === 'rock') {
-        const h = fbm(px * 2.2, sy * 2.2, pz * 2.2, 5)
-        ramp(cols, h * 1.15 - 0.08, out)
-      } else {
-        const h = fbm(px * 3, sy * 3, pz * 3, 4)
-        ramp(cols, 0.35 + h * 0.65, out)
-      }
+      const t = fbm(px * 2.5, sy * 2.5, pz * 2.5, 4)
+      const v = (sy * 0.5 + 0.5) * 8 + t * 1.4
+      ramp(cols, (Math.sin(v * Math.PI) * 0.5 + 0.5) * 0.7 + fbm(px * 6, sy * 18, pz * 6, 3) * 0.3, out)
       const i = (y * W + x) * 4
       img.data[i] = out.r * 255; img.data[i + 1] = out.g * 255; img.data[i + 2] = out.b * 255; img.data[i + 3] = 255
     }
   }
   g.putImageData(img, 0, 0)
-  if (style === 'rock' || style === 'ice') { // craters / cracks
-    for (let k = 0; k < (style === 'rock' ? 26 : 18); k++) {
-      const x = r() * W; const y = H * (0.15 + r() * 0.7); const rad = 2 + r() * (W / 40)
-      if (style === 'rock') {
-        g.fillStyle = 'rgba(20,4,2,0.35)'; g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill()
-        g.strokeStyle = 'rgba(255,200,170,0.25)'; g.lineWidth = 1; g.beginPath(); g.arc(x - 0.6, y - 0.6, rad, Math.PI, Math.PI * 1.8); g.stroke()
-      } else {
-        g.strokeStyle = 'rgba(70,110,160,0.35)'; g.lineWidth = 1
-        g.beginPath(); g.moveTo(x, y)
-        for (let s = 0; s < 6; s++) g.lineTo(x + (r() - 0.5) * 60, y + (r() - 0.5) * 20)
-        g.stroke()
-      }
-    }
-  }
   const map = new THREE.CanvasTexture(c)
   map.colorSpace = THREE.SRGBColorSpace
-  map.anisotropy = 4
-  let clouds: THREE.CanvasTexture | null = null
-  if (style === 'ocean') {
-    const cc = document.createElement('canvas')
-    cc.width = W; cc.height = H
-    const cg = cc.getContext('2d')!
-    const ci = cg.createImageData(W, H)
-    for (let y = 0; y < H; y++) {
-      const th = (y / H) * Math.PI
-      for (let x = 0; x < W; x++) {
-        const ph = (x / W) * Math.PI * 2
-        const v = fbm(Math.cos(ph) * Math.sin(th) * 3 + 9, Math.cos(th) * 3, Math.sin(ph) * Math.sin(th) * 3, 5)
-        const a = smooth((v - 0.52) * 4)
-        const i = (y * W + x) * 4
-        ci.data[i] = 255; ci.data[i + 1] = 255; ci.data[i + 2] = 255; ci.data[i + 3] = a * 235
-      }
-    }
-    cg.putImageData(ci, 0, 0)
-    clouds = new THREE.CanvasTexture(cc)
-    clouds.colorSpace = THREE.SRGBColorSpace
-  }
-  return { map, clouds }
+  return map
 }
 
 // ---------- shaders ----------
@@ -234,48 +138,30 @@ void main(){
   gl_FragColor = vec4(c * (0.8 + uBoost * 0.6), 1.0);
 }`
 
-const TAIL_V = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`
-const TAIL_F = `uniform vec3 uColor; uniform float uAlpha; varying vec2 vUv;
-void main(){ float a = pow(vUv.y, 1.8) * (0.55 + 0.45 * sin(vUv.x * 6.2832 * 3.0 + vUv.y * 9.0)); gl_FragColor = vec4(uColor, a * uAlpha); }`
-
 // ---------- view types ----------
 
 interface Astro { root: THREE.Group; body: THREE.Group; arms: [THREE.Group, THREE.Group]; legs: [THREE.Group, THREE.Group]; flames: THREE.Mesh[]; hand: THREE.Group }
-interface PlanetView {
-  planet: Planet
+interface Room {
+  m: CrewMember
+  i: number
   g: THREE.Group
-  mesh: THREE.Mesh
-  r: number
-  clouds?: THREE.Mesh
-  warn?: THREE.Mesh
-  ring: THREE.Mesh // hover
-  hit: THREE.Mesh
-  orbit: THREE.LineLoop
-  label: THREE.Sprite
-  maps: THREE.Texture[]
-}
-type AgentState = 'home' | 'out' | 'act' | 'back' | 'return' | 'togather' | 'gather'
-interface Agent {
-  key: AgentKey
   a: Astro
-  tasks: string[]
-  next: number
-  state: AgentState
-  u: number
-  dur: number
-  from: THREE.Vector3
-  timer: number
-  planet: string
-  carry: THREE.Object3D | null
-  fx: THREE.Object3D | null
+  holo: THREE.Group
+  screen: THREE.MeshBasicMaterial
+  status: THREE.MeshBasicMaterial
+  lamp: THREE.Sprite
+  ring: THREE.Mesh // hover
   label: THREE.Sprite | null
-  target: StationTarget & { kind: 'agent' }
-  inWork: boolean
-  workText: string
+  labelText: string
+  beam: THREE.Line
+  carry: THREE.Object3D | null
+  work: { state: CrewState; text: string }
+  was: CrewState
 }
-interface CometView { comet: Comet; g: THREE.Group; head: THREE.Mesh; tail: THREE.Mesh; hit: THREE.Mesh; label: THREE.Sprite; phase: number; incl: number; enter: number; seed: number }
 interface Pulse { s: THREE.Sprite; from: () => THREE.Vector3; to: () => THREE.Vector3; t: number; dur: number; lift: number }
-interface Bit { m: THREE.Object3D; v: THREE.Vector3; life: number; max: number; fall: boolean }
+interface Bit { m: THREE.Object3D; v: THREE.Vector3; life: number; max: number }
+
+const STATE_WORD: Record<CrewState, string> = { idle: '', waiting: 'antri', reading: 'menganalisa', done: 'selesai', failed: 'gagal' }
 
 function webgl(canvas: HTMLCanvasElement): THREE.WebGLRenderer | null {
   try {
@@ -294,11 +180,11 @@ export class StationView {
   private scene = new THREE.Scene()
   private overlay = new THREE.Scene() // labels: drawn after bloom, always readable
   private camera = new THREE.PerspectiveCamera(32, 2, 0.3, 900)
-  private target = new THREE.Vector3(0, -0.4, 2.4)
+  private target = new THREE.Vector3(0, 0.2, 0.9)
   private yaw = 0
   private pitch = PITCH0
   private zoom = 1
-  private dist = 34
+  private dist = 30
   private moved = false
   private geos = new Map<string, THREE.BufferGeometry>()
   private mats = new Map<string, THREE.Material>()
@@ -306,33 +192,23 @@ export class StationView {
   private glowTex: THREE.Texture
   private hits: THREE.Object3D[] = []
   private hover: string | null = null
-  private planetGroup = new THREE.Group()
-  private planets = new Map<string, PlanetView>()
-  private pending: { p: Planet; R: number; r: number }[] = [] // built one per frame: a planet texture takes tens of ms
-  private mapCache = new Map<string, { map: THREE.CanvasTexture; clouds: THREE.CanvasTexture | null }>()
-  private agents: Agent[] = []
-  private commander: Astro | null = null
-  private comets = new Map<string, CometView>()
+  private rooms: Room[] = []
+  private roomBy = new Map<CrewKey, Room>()
+  private caps = new THREE.Group() // proposals waiting, as capsules on the Data siap floor
   private pulses: Pulse[] = []
   private bits: Bit[] = []
   private core = { mat: null as THREE.ShaderMaterial | null, mesh: null as THREE.Mesh | null, corona: null as THREE.Sprite | null, wire: null as THREE.Mesh | null, rings: [] as THREE.Mesh[], arcs: [] as THREE.Mesh[], ring: null as THREE.Mesh | null, light: null as THREE.PointLight | null, conduits: [] as THREE.Mesh[], wave: null as THREE.Mesh | null, waveT: 99 }
-  private dock = { pos: new THREE.Vector3(), caps: new THREE.Group(), holo: null as THREE.Sprite | null, holoText: '', ring: null as THREE.Mesh | null, count: 0 }
-  private cargo = { pos: new THREE.Vector3(), crates: new THREE.Group(), beacon: null as THREE.Mesh | null, ring: null as THREE.Mesh | null, aging: 0, critical: false }
-  private comms = { pos: new THREE.Vector3(), tip: null as THREE.Mesh | null, bubble: null as THREE.Sprite | null, bubbleText: '', ring: null as THREE.Mesh | null, unread: 0 }
-  private radar = { pivot: new THREE.Group(), dish: new THREE.Group(), line: null as THREE.Line | null, focus: null as string | null, timer: 0, ping: 0 }
+  private giant: THREE.Mesh | null = null
   private belt: THREE.InstancedMesh | null = null
   private stars: THREE.Points[] = []
-  private beams: THREE.Line[] = []
-  private bolt: THREE.Line | null = null
-  private boltT = 0
   private cycle: CycleState = { running: false, stage: 0, hasCycle: false }
   private t = 0
   private last = 0
   private raf = 0
   private w = 0
   private h = 0
-  private work: Work | null = null
   private pulseClock = 0
+  private readyClock = 0
   private perf = { n: 0, sum: 0, level: 2 }
   // the HD path (bloom on an MSAA render target) draws nothing on some GPUs/browsers: checked on the first frames,
   // then the scene renders straight to the canvas (still PBR, ACES and MSAA, without bloom)
@@ -369,9 +245,8 @@ export class StationView {
     this.buildSky()
     this.buildCore()
     this.buildStation()
-    this.buildCrew()
+    CREW.forEach((m, i) => this.buildRoom(m, i))
     this.buildBelt()
-    this.scene.add(this.planetGroup)
     this.bind()
   }
 
@@ -400,6 +275,12 @@ export class StationView {
     return m as THREE.MeshBasicMaterial
   }
   private hdr(hex: string, k: number) { const c = new THREE.Color(hex); return this.glow(c.r * k, c.g * k, c.b * k) }
+  /** A glowing material of one room that changes colour with its state (not shared). */
+  private own(key: string, opacity = 1, additive = false) {
+    const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 1, 1), transparent: opacity < 1 || additive, opacity, blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending, depthWrite: !additive, toneMapped: false })
+    this.mats.set(key, m)
+    return m
+  }
   private fresnel(color: string, power: number, alpha: number) {
     return new THREE.ShaderMaterial({
       vertexShader: FRESNEL_V, fragmentShader: FRESNEL_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -414,7 +295,7 @@ export class StationView {
   private sphere(r: number, seg = 24) { return this.geo(`s${r},${seg}`, () => new THREE.SphereGeometry(r, seg, Math.max(8, Math.round(seg * 0.7)))) }
   private capsule(r: number, l: number) { return this.geo(`cap${r},${l}`, () => new THREE.CapsuleGeometry(r, l, 6, 14)) }
   private boxG(w: number, h: number, d: number) { return this.geo(`b${w},${h},${d}`, () => new THREE.BoxGeometry(w, h, d)) }
-  private cylG(rt: number, rb: number, h: number, seg = 20) { return this.geo(`c${rt},${rb},${h},${seg}`, () => new THREE.CylinderGeometry(rt, rb, h, seg)) }
+  private cylG(rt: number, rb: number, h: number, seg = 20, open = false) { return this.geo(`c${rt},${rb},${h},${seg},${open}`, () => new THREE.CylinderGeometry(rt, rb, h, seg, 1, open)) }
   private torusG(r: number, tube: number, arc = Math.PI * 2, seg = 96) { return this.geo(`t${r},${tube},${arc},${seg}`, () => new THREE.TorusGeometry(r, tube, 12, seg, arc)) }
 
   private makeGlow() {
@@ -438,30 +319,54 @@ export class StationView {
     return s
   }
 
-  private label(text: string, bg: string, fg = '#ffffff', h = 0.5, border = '') {
+  /** A room sign: a number badge in the room colour, the title, and under it what the astronaut is doing. */
+  private sign(m: CrewMember, state: CrewState, text: string) {
     const c = document.createElement('canvas')
     const g = c.getContext('2d')!
-    const font = '700 54px "Plus Jakarta Sans", "Instrument Sans", system-ui, sans-serif'
-    g.font = font
-    const W = Math.ceil(g.measureText(text).width + 56)
-    const H = 84
+    const fTitle = '800 50px "Plus Jakarta Sans", "Instrument Sans", system-ui, sans-serif'
+    const fSub = '600 38px "Plus Jakarta Sans", "Instrument Sans", system-ui, sans-serif'
+    const sub = (STATE_WORD[state] && !text.startsWith(STATE_WORD[state]) && state !== 'reading' ? STATE_WORD[state] + ' · ' : '') + text
+    const subT = sub.length > 36 ? sub.slice(0, 35) + '…' : sub
+    const badge = 64
+    g.font = fTitle
+    const wT = g.measureText(m.title).width + badge + 18
+    g.font = fSub
+    const wS = g.measureText((state === 'done' ? '✓ ' : state === 'failed' ? '✕ ' : '') + subT).width
+    const W = Math.ceil(Math.max(wT, wS) + 48)
+    const H = 150
     c.width = W
     c.height = H
-    g.font = font
+    const bg = state === 'failed' ? 'rgba(90,14,20,0.9)' : state === 'reading' ? 'rgba(10,48,92,0.92)' : 'rgba(8,12,28,0.86)'
     g.fillStyle = bg
     g.beginPath()
-    if (g.roundRect) g.roundRect(3, 3, W - 6, H - 6, 22)
+    if (g.roundRect) g.roundRect(3, 3, W - 6, H - 6, 26)
     else g.rect(3, 3, W - 6, H - 6)
     g.fill()
-    if (border) { g.strokeStyle = border; g.lineWidth = 4; g.stroke() }
-    g.fillStyle = fg
+    g.strokeStyle = state === 'reading' ? '#8fd8ff' : state === 'done' ? 'rgba(127,240,210,0.8)' : 'rgba(255,255,255,0.22)'
+    g.lineWidth = 4
+    g.stroke()
+    // number badge
+    g.fillStyle = m.color
+    g.beginPath()
+    g.arc(24 + badge / 2, 16 + badge / 2, badge / 2, 0, Math.PI * 2)
+    g.fill()
+    g.fillStyle = m.key === 'prospect' || m.key === 'ready' || m.key === 'followup' ? '#161200' : '#ffffff'
+    g.font = '800 38px "Plus Jakarta Sans", system-ui, sans-serif'
     g.textAlign = 'center'
     g.textBaseline = 'middle'
-    g.fillText(text, W / 2, H / 2 + 3)
+    g.fillText(String(m.n), 24 + badge / 2, 16 + badge / 2 + 2)
+    g.textAlign = 'left'
+    g.fillStyle = '#ffffff'
+    g.font = fTitle
+    g.fillText(m.title, 24 + badge + 16, 16 + badge / 2 + 3)
+    g.font = fSub
+    g.fillStyle = state === 'done' ? '#7ff0d2' : state === 'failed' ? '#ff9a9a' : state === 'reading' ? '#bfe9ff' : state === 'waiting' ? '#ffd27a' : 'rgba(214,224,245,0.82)'
+    g.fillText((state === 'done' ? '✓ ' : state === 'failed' ? '✕ ' : '') + subT, 24, 118)
     const tex = new THREE.CanvasTexture(c)
     tex.colorSpace = THREE.SRGBColorSpace
     tex.anisotropy = 4
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, toneMapped: false }))
+    const h = 0.86
     s.scale.set((h * W) / H, h, 1)
     s.center.set(0.5, 0)
     s.renderOrder = 10
@@ -484,7 +389,7 @@ export class StationView {
     return m
   }
 
-  // ---------- sky: nebula, stars ----------
+  // ---------- sky: nebula, stars, a far planet ----------
 
   private buildSky() {
     const c = document.createElement('canvas')
@@ -547,6 +452,19 @@ export class StationView {
     }
     layer(4200, 2.2, 1, 21)
     layer(260, 5, 2.4, 22)
+    // a gas giant far behind the station, with a thin atmosphere and a moon
+    const map = giantMap(7, ['#5a3412', '#b8742e', '#e8b46a', '#f5dcaa', '#c98a3f', '#7d4a1c'])
+    this.texs.push(map)
+    const gmat = new THREE.MeshStandardMaterial({ map, roughness: 0.85, metalness: 0, envMapIntensity: 0.3 })
+    this.mats.set('giant', gmat)
+    const giant = this.mesh(this.sphere(16, 64), gmat, 70, -34, -120)
+    giant.rotation.z = 0.35
+    this.scene.add(giant)
+    this.giant = giant
+    const atmo = this.mesh(this.sphere(16.6, 48), this.fresnel('#ffb46a', 3, 0.7), 70, -34, -120)
+    this.scene.add(atmo)
+    const moon = this.mesh(this.sphere(2.2, 32), this.std('#9aa3b8', 0.95, 0, 0.3), -48, -20, -90)
+    this.scene.add(moon)
   }
 
   // ---------- the AI core ----------
@@ -588,8 +506,8 @@ export class StationView {
     const light = new THREE.PointLight('#bfe6ff', 34, 0, 1)
     sc.add(light)
     this.core.light = light
-    sc.add(new THREE.HemisphereLight('#7f95c9', '#140d22', 0.42))
-    const rim = new THREE.DirectionalLight('#8fb3ff', 0.55)
+    sc.add(new THREE.HemisphereLight('#7f95c9', '#140d22', 0.5))
+    const rim = new THREE.DirectionalLight('#8fb3ff', 0.7)
     rim.position.set(-20, 14, 30)
     sc.add(rim)
     const ring = this.hoverRing(CORE_R * 1.95)
@@ -601,7 +519,7 @@ export class StationView {
     this.core.wave = wave
   }
 
-  // ---------- the station ring and its modules ----------
+  // ---------- the station ring, corridors and the ring of rooms ----------
 
   private buildStation() {
     const sc = this.scene
@@ -639,124 +557,40 @@ export class StationView {
       strut.rotation.copy(c.rotation)
       sc.add(strut)
     }
-    // solar arrays at the back
-    const panelTex = (() => {
-      const cv = document.createElement('canvas')
-      cv.width = 256; cv.height = 64
-      const g = cv.getContext('2d')!
-      const gr = g.createLinearGradient(0, 0, 256, 64)
-      gr.addColorStop(0, '#0a1f4d'); gr.addColorStop(1, '#173a86')
-      g.fillStyle = gr; g.fillRect(0, 0, 256, 64)
-      g.strokeStyle = 'rgba(140,180,255,0.55)'; g.lineWidth = 1.5
-      for (let x = 0; x <= 256; x += 16) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 64); g.stroke() }
-      for (let y = 0; y <= 64; y += 16) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke() }
-      const t = new THREE.CanvasTexture(cv)
-      t.colorSpace = THREE.SRGBColorSpace
-      t.anisotropy = 8
-      this.texs.push(t)
-      return t
-    })()
-    const panelMat = new THREE.MeshStandardMaterial({ map: panelTex, roughness: 0.25, metalness: 0.9, envMapIntensity: 1.3 })
-    this.mats.set('panel', panelMat)
-    for (const a of [-(3 * Math.PI) / 4, -Math.PI / 4]) {
-      const arm = this.mesh(this.cylG(0.04, 0.04, 2.1, 8), hull)
-      arm.position.copy(onRing(a, RING_R + 1.25, 0))
-      arm.rotation.z = Math.PI / 2
-      arm.rotation.y = -a
-      sc.add(arm)
-      for (const k of [0.75, 1.55]) {
-        const p = this.mesh(this.boxG(0.72, 0.02, 1.25), panelMat)
-        p.position.copy(onRing(a, RING_R + 0.25 + k, 0.02))
-        p.rotation.y = -a
-        p.rotation.x = 0.35
-        sc.add(p)
+    // the outer ring that links the rooms to each other, with running lights
+    const outer = this.mesh(this.torusG(ROOM_R, 0.09, Math.PI * 2, 200), hull)
+    outer.rotation.x = Math.PI / 2
+    outer.position.y = -0.04
+    sc.add(outer)
+    const lights = this.mesh(this.torusG(ROOM_R, 0.022, Math.PI * 2, 200), this.glow(0.5, 1.2, 1.8))
+    lights.rotation.x = Math.PI / 2
+    lights.position.y = 0.05
+    sc.add(lights)
+    // a corridor from the station ring to every room
+    const len = ROOM_R - DOME - RING_R - 0.1
+    for (let i = 0; i < CREW.length; i++) {
+      const a = roomAngle(i)
+      const mid = RING_R + 0.15 + len / 2
+      const tube = this.mesh(this.cylG(0.15, 0.15, len, 16), hull)
+      tube.position.copy(onRing(a, mid, 0.06))
+      tube.rotation.z = Math.PI / 2
+      tube.rotation.y = -a
+      sc.add(tube)
+      const strip = this.mesh(this.boxG(len, 0.03, 0.05), this.glow(0.5, 1.3, 1.9))
+      strip.position.copy(onRing(a, mid, 0.22))
+      strip.rotation.y = -a
+      sc.add(strip)
+      for (const k of [-0.42, 0, 0.42]) { // ribs
+        const rib = this.mesh(this.cylG(0.18, 0.18, 0.06, 16), dark)
+        rib.position.copy(onRing(a, mid + k * len, 0.06))
+        rib.rotation.z = Math.PI / 2
+        rib.rotation.y = -a
+        sc.add(rib)
       }
     }
-    // Dek Keputusan (front): the deck, the capsules waiting, the commander and a hologram
-    const dp = onRing(ANG.dock, RING_R + 0.55, 0.28)
-    this.dock.pos.copy(dp)
-    const deck = this.mesh(this.cylG(0.95, 1.02, 0.14, 48), hull, dp.x, dp.y, dp.z)
-    sc.add(deck)
-    const rim = this.mesh(this.torusG(0.98, 0.03, Math.PI * 2, 64), this.glow(1.8, 1.4, 0.4), dp.x, dp.y + 0.08, dp.z)
-    rim.rotation.x = Math.PI / 2
-    sc.add(rim)
-    this.dock.caps.position.copy(dp).setY(dp.y + 0.07)
-    sc.add(this.dock.caps)
-    const dockHit = this.mesh(this.cylG(1.05, 1.05, 0.5, 16), new THREE.MeshBasicMaterial({ visible: false }), dp.x, dp.y + 0.2, dp.z)
-    sc.add(dockHit)
-    this.hit(dockHit, { kind: 'dock' })
-    const dr = this.hoverRing(1.18)
-    dr.position.copy(dp).setY(dp.y + 0.08)
-    sc.add(dr)
-    this.dock.ring = dr
-    // cargo bay (AI Stok)
-    const cp = onRing(ANG.cargo, RING_R + 0.35, 0.3)
-    this.cargo.pos.copy(cp)
-    const bay = this.mesh(this.boxG(1.1, 0.42, 1.3), hull, cp.x, cp.y, cp.z)
-    sc.add(bay)
-    const bayDoor = this.mesh(this.boxG(0.02, 0.28, 0.9), this.glow(1.5, 1.1, 0.4), cp.x - 0.56, cp.y, cp.z)
-    sc.add(bayDoor)
-    this.cargo.crates.position.copy(cp).setY(cp.y + 0.21)
-    sc.add(this.cargo.crates)
-    const beacon = this.mesh(this.sphere(0.07, 16), this.glow(4, 0.4, 0.3), cp.x + 0.4, cp.y + 0.33, cp.z - 0.5)
-    sc.add(beacon)
-    this.cargo.beacon = beacon
-    const cargoHit = this.mesh(this.boxG(1.4, 1, 1.6), new THREE.MeshBasicMaterial({ visible: false }), cp.x, cp.y + 0.3, cp.z)
-    sc.add(cargoHit)
-    this.hit(cargoHit, { kind: 'cargo' })
-    const cr = this.hoverRing(1.05)
-    cr.position.copy(cp).setY(cp.y - 0.15)
-    sc.add(cr)
-    this.cargo.ring = cr
-    // radar (AI Prospek): a dish on a mast that turns to the comets
-    const rp = onRing(ANG.radar, RING_R + 0.3, 0.2)
-    sc.add(this.mesh(this.cylG(0.62, 0.66, 0.08, 40), hull, rp.x, rp.y, rp.z + 0.2))
-    const mast = this.mesh(this.cylG(0.05, 0.08, 0.7, 12), dark, rp.x, rp.y + 0.35, rp.z)
-    sc.add(mast)
-    this.radar.pivot.position.set(rp.x, rp.y + 0.75, rp.z)
-    sc.add(this.radar.pivot)
-    this.radar.pivot.add(this.radar.dish)
-    const dishGeo = this.geo('dish', () => {
-      const pts: THREE.Vector2[] = []
-      for (let i = 0; i <= 16; i++) { const x = (i / 16) * 0.42; pts.push(new THREE.Vector2(x, x * x * 1.4)) }
-      return new THREE.LatheGeometry(pts, 40)
-    })
-    const dishMat = new THREE.MeshStandardMaterial({ color: '#e8edf5', roughness: 0.3, metalness: 0.6, side: THREE.DoubleSide, envMapIntensity: 1 })
-    this.mats.set('dish', dishMat)
-    const dish = this.mesh(dishGeo, dishMat)
-    dish.rotation.x = Math.PI / 2 // opens to +z of the pivot
-    this.radar.dish.add(dish)
-    const feed = this.mesh(this.cylG(0.012, 0.012, 0.32, 6), dark, 0, 0, 0.16)
-    feed.rotation.x = Math.PI / 2
-    this.radar.dish.add(feed)
-    this.radar.dish.add(this.mesh(this.sphere(0.035, 12), this.glow(0.8, 3, 1.4), 0, 0, 0.33))
-    // the scan: a faint line from the dish to the comet, with pings running along it
-    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineDashedMaterial({ color: new THREE.Color(0.45, 1.3, 0.95), dashSize: 0.35, gapSize: 0.25, transparent: true, opacity: 0.55, depthWrite: false, toneMapped: false }))
-    line.visible = false
-    sc.add(line)
-    this.radar.line = line
-    // comms antenna (chat)
-    const mp = onRing(ANG.comms, RING_R + 0.25, 0.2)
-    this.comms.pos.copy(mp)
-    sc.add(this.mesh(this.cylG(0.025, 0.07, 1.7, 10), hull, mp.x, mp.y + 0.85, mp.z))
-    for (const [y, l] of [[0.9, 0.55], [1.3, 0.38]] as const) {
-      const bar = this.mesh(this.cylG(0.015, 0.015, l, 6), hull, mp.x, mp.y + y, mp.z)
-      bar.rotation.z = Math.PI / 2
-      sc.add(bar)
-    }
-    const tip = this.mesh(this.sphere(0.06, 14), this.glow(3.5, 0.6, 0.5), mp.x, mp.y + 1.75, mp.z)
-    sc.add(tip)
-    this.comms.tip = tip
-    const commsHit = this.mesh(this.cylG(0.4, 0.4, 2.2, 8), new THREE.MeshBasicMaterial({ visible: false }), mp.x, mp.y + 1, mp.z)
-    sc.add(commsHit)
-    this.hit(commsHit, { kind: 'comms' })
-    const mr = this.hoverRing(0.55)
-    mr.position.copy(mp)
-    sc.add(mr)
-    this.comms.ring = mr
   }
 
-  // ---------- astronauts ----------
+  // ---------- rooms and astronauts ----------
 
   private astronaut(accent: string, visor: string, suit = '#eef1f6'): Astro {
     const root = new THREE.Group()
@@ -773,8 +607,8 @@ export class StationView {
     body.add(this.mesh(this.sphere(0.128, 32), white, 0, 0.585, 0))
     body.add(this.mesh(this.cylG(0.1, 0.11, 0.04, 20), grey, 0, 0.47, 0))
     const visorGeo = this.geo('visor', () => new THREE.SphereGeometry(0.131, 32, 16, Math.PI / 2 - 0.95, 1.9, 0.82, 1.15))
-    const visorMat = new THREE.MeshStandardMaterial({ color: visor, roughness: 0.08, metalness: 1, envMapIntensity: 1.8 })
-    this.mats.set('visor' + visor, visorMat)
+    let visorMat = this.mats.get('visor' + visor)
+    if (!visorMat) { visorMat = new THREE.MeshStandardMaterial({ color: visor, roughness: 0.08, metalness: 1, envMapIntensity: 1.8 }); this.mats.set('visor' + visor, visorMat) }
     body.add(this.mesh(visorGeo, visorMat, 0, 0.585, 0)) // opens to +z: the front
     body.add(this.mesh(this.sphere(0.022, 10), this.hdr(accent, 3.2), 0.105, 0.64, 0.05))
     body.add(this.mesh(this.boxG(0.21, 0.25, 0.1), grey, 0, 0.38, -0.16))
@@ -811,40 +645,148 @@ export class StationView {
     return { root, body, arms, legs, flames, hand }
   }
 
-  private buildCrew() {
-    const keys: AgentKey[] = ['order', 'collect', 'credit', 'followup', 'stock', 'prospect']
-    for (const key of keys) {
-      const a = this.astronaut(AGENT_COLOR[key], key === 'prospect' ? '#3a6fd8' : '#1c2a48')
-      const target = { kind: 'agent' as const, agent: key, status: '' }
-      const hitM = this.mesh(this.sphere(0.36, 8), new THREE.MeshBasicMaterial({ visible: false }), 0, 0.15, 0)
-      hitM.scale.setScalar(1 / ASTRO_S)
-      a.root.add(hitM)
-      this.hit(hitM, target)
-      this.scene.add(a.root)
-      const ag: Agent = { key, a, tasks: [], next: 0, state: 'home', u: 0, dur: 1, from: new THREE.Vector3(), timer: 0.5 + keys.indexOf(key) * 0.7, planet: '', carry: null, fx: null, label: null, target, inWork: false, workText: '' }
-      a.root.position.copy(this.homeOf(key))
-      this.agents.push(ag)
+  /** The hologram over a room's console: what the astronaut works on, in the room colour. */
+  private hologram(key: CrewKey, color: string): THREE.Group {
+    const g = new THREE.Group()
+    const solid = this.hdr(color, 2.2)
+    const c = new THREE.Color(color)
+    const wire = this.mats.get('holoW' + key) as THREE.MeshBasicMaterial | undefined
+      ?? (() => { const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(c.r * 2, c.g * 2, c.b * 2), wireframe: true, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }); this.mats.set('holoW' + key, m); return m })()
+    const add = (o: THREE.Object3D) => { g.add(o); return o }
+    switch (key) {
+      case 'sales': // a rising bar chart
+        ;[0.12, 0.2, 0.3].forEach((h, i) => add(this.mesh(this.boxG(0.07, h, 0.07), solid, (i - 1) * 0.11, h / 2 - 0.12, 0)))
+        break
+      case 'wa': { // a chat bubble
+        const b = add(this.mesh(this.sphere(0.14, 24), solid))
+        b.scale.set(1.25, 0.9, 0.45)
+        const tail = add(this.mesh(this.geo('tail', () => new THREE.ConeGeometry(0.05, 0.1, 10)), solid, -0.1, -0.12, 0))
+        tail.rotation.z = -0.6
+        break
+      }
+      case 'dealer': // a globe with an orbit
+        add(this.mesh(this.sphere(0.13, 18), wire))
+        add(this.mesh(this.torusG(0.2, 0.008, Math.PI * 2, 48), solid)).rotation.x = 1.2
+        add(this.mesh(this.sphere(0.03, 10), solid, 0.2, 0, 0))
+        break
+      case 'order': // a crate with an arrow
+        add(this.mesh(this.boxG(0.18, 0.18, 0.18), wire, 0, -0.04, 0))
+        add(this.mesh(this.geo('arrow', () => new THREE.ConeGeometry(0.07, 0.12, 4)), solid, 0, 0.14, 0))
+        break
+      case 'followup': // a call: a ring and a dot with waves
+        add(this.mesh(this.torusG(0.11, 0.012, Math.PI * 2, 40), solid))
+        add(this.mesh(this.torusG(0.18, 0.008, Math.PI, 40), solid)).rotation.z = -Math.PI / 2
+        add(this.mesh(this.sphere(0.045, 12), solid))
+        break
+      case 'stock': // stacked crates
+        add(this.mesh(this.boxG(0.13, 0.11, 0.13), wire, -0.08, -0.08, 0))
+        add(this.mesh(this.boxG(0.13, 0.11, 0.13), wire, 0.08, -0.08, 0))
+        add(this.mesh(this.boxG(0.13, 0.11, 0.13), wire, 0, 0.04, 0))
+        break
+      case 'credit': // a shield
+        add(this.mesh(this.geo('shield', () => new THREE.IcosahedronGeometry(0.16, 1)), wire))
+        add(this.mesh(this.sphere(0.05, 12), solid))
+        break
+      case 'collect': // a stack of coins
+        for (let i = 0; i < 4; i++) add(this.mesh(this.cylG(0.09, 0.09, 0.035, 20), this.glow(2.6, 1.9, 0.5), (i % 2) * 0.02, -0.1 + i * 0.05, 0))
+        break
+      case 'prospect': { // a radar dish
+        const dish = add(this.mesh(this.geo('dishS', () => {
+          const pts: THREE.Vector2[] = []
+          for (let i = 0; i <= 10; i++) { const x = (i / 10) * 0.17; pts.push(new THREE.Vector2(x, x * x * 3)) }
+          return new THREE.LatheGeometry(pts, 24)
+        }), wire))
+        dish.rotation.x = Math.PI / 2.6
+        add(this.mesh(this.torusG(0.24, 0.006, Math.PI * 2, 48), solid)).rotation.x = Math.PI / 2
+        break
+      }
+      case 'ready': // the data put together: a cube of cubes
+        for (let x = -1; x <= 1; x += 2) for (let y = -1; y <= 1; y += 2) for (let z = -1; z <= 1; z += 2) add(this.mesh(this.boxG(0.08, 0.08, 0.08), solid, x * 0.06, y * 0.06, z * 0.06))
+        add(this.mesh(this.boxG(0.26, 0.26, 0.26), wire))
+        break
     }
-    // the commander: the human who decides, on the Dek Keputusan, gold visor
-    const c = this.astronaut('#f2c14e', '#e3b04b', '#ffffff')
-    c.root.position.copy(this.dock.pos).setY(this.dock.pos.y + 0.07 + 0.3 * ASTRO_S)
-    c.root.rotation.y = 0 // faces outward (+z)
-    const tablet = this.mesh(this.boxG(0.16, 0.11, 0.012), this.glow(0.5, 1.4, 2.2))
-    tablet.position.set(0, 0.03, 0.06)
-    tablet.rotation.x = -0.9
-    c.hand.add(tablet)
-    const hitM = this.mesh(this.sphere(0.36, 8), new THREE.MeshBasicMaterial({ visible: false }), 0, 0.15, 0)
-    hitM.scale.setScalar(1 / ASTRO_S)
-    c.root.add(hitM)
-    this.hit(hitM, { kind: 'commander' })
-    this.scene.add(c.root)
-    this.commander = c
+    return g
   }
 
-  private homeOf(key: AgentKey) {
-    if (key === 'stock') return this.cargo.pos.clone().add(new THREE.Vector3(0.15, 0.21 + 0.3 * ASTRO_S, 0.35))
-    if (key === 'prospect') return onRing(ANG.radar, RING_R + 0.3, 0.24 + 0.3 * ASTRO_S).add(new THREE.Vector3(-0.05, 0, 0.5))
-    return onRing(HOME[key], RING_R, 0.75)
+  private buildRoom(m: CrewMember, i: number) {
+    const sc = this.scene
+    const a = roomAngle(i)
+    const g = new THREE.Group()
+    g.position.copy(onRing(a, ROOM_R, 0))
+    g.lookAt(0, 0, 0) // local +z faces the core
+    sc.add(g)
+    g.updateMatrixWorld()
+    const hull = this.std('#c7cfdc', 0.32, 0.85, 1)
+    const dark = this.std('#2c3445', 0.45, 0.7, 0.8)
+    const big = m.key === 'ready' ? 1.12 : 1
+    g.scale.setScalar(big)
+    // floor, deck plate and wall
+    g.add(this.mesh(this.cylG(DOME, DOME + 0.08, 0.2, 48), hull, 0, 0, 0))
+    g.add(this.mesh(this.cylG(DOME - 0.12, DOME - 0.12, 0.02, 48), this.std('#1a2232', 0.55, 0.6, 0.6), 0, FLOOR, 0))
+    const wallMat = this.mats.get('wall') ?? (() => { const w = new THREE.MeshStandardMaterial({ color: '#3a4458', roughness: 0.4, metalness: 0.75, envMapIntensity: 0.9, side: THREE.DoubleSide }); this.mats.set('wall', w); return w })()
+    g.add(this.mesh(this.cylG(DOME, DOME, 0.32, 48, true), wallMat, 0, FLOOR + 0.16, 0))
+    // windows round the wall
+    const win = this.glow(0.9, 1.15, 1.5)
+    for (let k = 0; k < 12; k++) {
+      const wa = (k / 12) * Math.PI * 2
+      const w = this.mesh(this.boxG(0.16, 0.05, 0.02), win, (DOME + 0.005) * Math.cos(wa), FLOOR + 0.2, (DOME + 0.005) * Math.sin(wa))
+      w.rotation.y = Math.PI / 2 - wa // faces out
+      g.add(w)
+    }
+    // status light round the floor: its colour is the astronaut's state
+    const status = this.own('status' + m.key)
+    const ringM = this.mesh(this.torusG(DOME + 0.02, 0.035, Math.PI * 2, 72), status, 0, 0.1, 0)
+    ringM.rotation.x = Math.PI / 2
+    g.add(ringM)
+    // the glass dome with its frame and a rim glow in the room colour
+    const domeGeo = this.geo('dome', () => new THREE.SphereGeometry(DOME, 48, 20, 0, Math.PI * 2, 0, Math.PI / 2))
+    const glass = this.mats.get('glass') ?? (() => { const gm = new THREE.MeshStandardMaterial({ color: '#a8d4ff', roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.05, depthWrite: false, envMapIntensity: 0.7 }); this.mats.set('glass', gm); return gm })()
+    g.add(this.mesh(domeGeo, glass, 0, FLOOR + 0.32, 0))
+    const rimMat = this.fresnel(m.color, 3.2, 0.32)
+    this.mats.set('rim' + m.key, rimMat)
+    g.add(this.mesh(domeGeo, rimMat, 0, FLOOR + 0.32, 0))
+    for (let k = 0; k < 3; k++) {
+      const rib = this.mesh(this.torusG(DOME, 0.018, Math.PI, 48), hull, 0, FLOOR + 0.32, 0)
+      rib.rotation.y = (k * Math.PI) / 3
+      g.add(rib)
+    }
+    const cap = this.mesh(this.cylG(0.14, 0.18, 0.08, 20), hull, 0, FLOOR + 0.32 + DOME, 0)
+    g.add(cap)
+    g.add(this.mesh(this.sphere(0.04, 12), this.hdr(m.color, 3), 0, FLOOR + 0.4 + DOME, 0))
+    // console towards the core, a screen and the hologram over it
+    g.add(this.mesh(this.boxG(0.66, 0.36, 0.22), dark, 0, FLOOR + 0.18, 0.62))
+    const screen = this.own('screen' + m.key)
+    const scr = this.mesh(this.boxG(0.58, 0.02, 0.26), screen, 0, FLOOR + 0.38, 0.6)
+    scr.rotation.x = -0.55
+    g.add(scr)
+    const holo = this.hologram(m.key, m.color)
+    holo.position.set(0, FLOOR + 0.92, 0.6)
+    g.add(holo)
+    const cone = this.mesh(this.geo('holoCone', () => new THREE.ConeGeometry(0.22, 0.42, 24, 1, true)), this.fresnel(m.color, 1.2, 0.35), 0, FLOOR + 0.62, 0.6)
+    cone.rotation.x = Math.PI
+    g.add(cone)
+    // the room's light
+    const lamp = this.glowSprite(m.color, 1.8, 0.1)
+    lamp.position.set(0, FLOOR + 0.9, 0)
+    g.add(lamp)
+    // the astronaut, at the console
+    const astro = this.astronaut(m.color, m.key === 'ready' ? '#e3b04b' : '#1c2a48', m.key === 'ready' ? '#ffffff' : '#eef1f6')
+    astro.root.position.set(0, FLOOR + 0.3 * ASTRO_S, -0.16)
+    g.add(astro.root)
+    // hit area and hover ring
+    const hitM = this.mesh(this.cylG(DOME + 0.1, DOME + 0.1, 1.7, 12), new THREE.MeshBasicMaterial({ visible: false }), 0, 0.75, 0)
+    g.add(hitM)
+    this.hit(hitM, { kind: 'room', key: m.key })
+    const ring = this.hoverRing(DOME + 0.22)
+    ring.position.y = 0.04
+    g.add(ring)
+    if (m.key === 'ready') { this.caps.position.set(0.55, FLOOR + 0.05, -0.35); g.add(this.caps) }
+    const beam = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: new THREE.Color(0.6, 1.8, 2.4), transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }))
+    beam.visible = false
+    sc.add(beam)
+    const room: Room = { m, i, g, a: astro, holo, screen, status, lamp, ring, label: null, labelText: '', beam, carry: null, work: { state: 'idle', text: m.does }, was: 'idle' }
+    this.rooms.push(room)
+    this.roomBy.set(m.key, room)
   }
 
   private buildBelt() {
@@ -875,212 +817,27 @@ export class StationView {
 
   // ---------- data in ----------
 
-  setPlan(plan: StationPlan) {
+  /** What every astronaut is doing (station.ts crewStatus). */
+  setCrew(s: CrewStatus) {
+    for (const r of this.rooms) r.work = s[r.m.key] ?? r.work
+  }
+
+  /** The proposals waiting for a decision → a capsule each on the Data siap floor (max 12), in the colour of the
+   * astronaut that made it. */
+  setDock(keys: CrewKey[]) {
     if (!this.renderer) return
-    const keep = new Set(plan.planets.map((p) => p.id))
-    for (const [id, v] of this.planets) if (!keep.has(id)) this.dropPlanet(id, v)
-    this.pending = []
-    // place planets: radius from the jadwal order, pushed out a little when two would touch
-    const placed: { x: number; z: number; r: number }[] = []
-    for (const p of plan.planets) {
-      const r = 0.42 + p.size * 0.8
-      let R = ORBIT_IN + p.orbit * (ORBIT_OUT - ORBIT_IN)
-      for (let k = 0; k < 8; k++) {
-        const x = R * Math.cos(p.angle); const z = R * Math.sin(p.angle)
-        if (!placed.some((q) => Math.hypot(q.x - x, q.z - z) < q.r + r + 0.45)) break
-        R += 0.95
-      }
-      placed.push({ x: R * Math.cos(p.angle), z: R * Math.sin(p.angle), r })
-      const v = this.planets.get(p.id)
-      if (v && v.planet.look === p.look && v.planet.tone === p.tone && Math.abs(v.r - r) < 0.01) {
-        v.planet = p
-        v.g.position.set(R * Math.cos(p.angle), 0, R * Math.sin(p.angle))
-        this.setOrbitLine(v, R)
-        v.hit.userData.target = { kind: 'planet', planet: p }
-      } else {
-        if (v) this.dropPlanet(p.id, v)
-        this.pending.push({ p, R, r })
-      }
-    }
-    const comets = new Set(plan.comets.map((c) => c.id))
-    for (const [id, v] of this.comets) if (!comets.has(id)) this.dropComet(id, v)
-    plan.comets.forEach((c, i) => { if (!this.comets.has(c.id)) this.addComet(c, i) })
-    for (const a of this.agents) {
-      if (a.key === 'stock' || a.key === 'prospect') continue
-      a.tasks = plan.tasks[a.key as FlyKind]
-    }
-  }
-
-  private setOrbitLine(v: PlanetView, R: number) {
-    const pts: THREE.Vector3[] = []
-    for (let i = 0; i <= 160; i++) { const a = (i / 160) * Math.PI * 2; pts.push(new THREE.Vector3(R * Math.cos(a), 0, R * Math.sin(a))) }
-    v.orbit.geometry.dispose()
-    v.orbit.geometry = new THREE.BufferGeometry().setFromPoints(pts)
-  }
-
-  private addPlanet(p: Planet, R: number, r: number) {
-    let maps = this.mapCache.get(p.id + p.look + p.tone)
-    if (!maps) { maps = planetMaps(p); this.mapCache.set(p.id + p.look + p.tone, maps) }
-    const g = new THREE.Group()
-    g.position.set(R * Math.cos(p.angle), 0, R * Math.sin(p.angle))
-    g.scale.setScalar(0.01) // grows in (step)
-    const style = styleOf(p)
-    const mat = new THREE.MeshStandardMaterial({
-      map: maps.map, roughness: style === 'ocean' ? 0.55 : style === 'ice' ? 0.35 : 0.85, metalness: 0,
-      bumpMap: style === 'rock' || style === 'ice' ? maps.map : null, bumpScale: 2, envMapIntensity: 0.12,
+    const list = keys.slice(0, 12)
+    const sig = list.join('|')
+    if (sig === this.caps.userData.sig) return
+    this.caps.userData.sig = sig
+    this.caps.clear()
+    list.forEach((k, i) => {
+      const c = this.mesh(this.capsule(0.045, 0.08), this.hdr(CREW_OF[k].color, 1.8))
+      c.position.set((i % 4) * 0.14 - 0.2, 0.12, Math.floor(i / 4) * 0.14)
+      c.rotation.z = Math.PI / 2
+      c.userData.phase = i * 0.7
+      this.caps.add(c)
     })
-    const mesh = this.mesh(this.sphere(r, 64), mat)
-    mesh.rotation.z = 0.35 * ((hash(p.id) % 100) / 100 - 0.5)
-    g.add(mesh)
-    const bg = p.look === 'risk' ? 'rgba(160,24,30,0.86)' : p.look === 'key' ? 'rgba(122,82,8,0.88)' : p.look === 'closed' ? 'rgba(60,70,90,0.8)' : 'rgba(10,16,34,0.78)'
-    const label = this.label(p.name.length > 22 ? p.name.slice(0, 21) + '…' : p.name, bg, '#ffffff', 0.42, 'rgba(255,255,255,0.18)')
-    const hitM = this.mesh(this.sphere(Math.max(0.75, r * 1.25), 10), new THREE.MeshBasicMaterial({ visible: false }))
-    const orbit = new THREE.LineLoop(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: '#6f84b8', transparent: true, opacity: 0.16, depthWrite: false }))
-    const v: PlanetView = { planet: p, g, mesh, r, ring: this.hoverRing(r * 1.55), hit: hitM, orbit, label, maps: [] }
-    if (maps.clouds) {
-      const cm = new THREE.MeshStandardMaterial({ map: maps.clouds, transparent: true, depthWrite: false, roughness: 1, envMapIntensity: 0.1 })
-      v.clouds = this.mesh(this.sphere(r * 1.025, 48), cm)
-      g.add(v.clouds)
-    }
-    if (p.look !== 'closed') g.add(this.mesh(this.sphere(r * 1.05, 48), this.fresnel(TONE_GLOW[p.tone], 3.2, p.look === 'risk' ? 0.95 : 0.6)))
-    if (p.look === 'key') { // golden rings
-      const ringGeo = new THREE.RingGeometry(r * 1.45, r * 2.25, 96, 1)
-      const pos = ringGeo.attributes.position as THREE.BufferAttribute
-      const uv = ringGeo.attributes.uv as THREE.BufferAttribute
-      for (let i = 0; i < pos.count; i++) { const d = Math.hypot(pos.getX(i), pos.getY(i)); uv.setXY(i, (d - r * 1.45) / (r * 0.8), 0.5) }
-      const rc = document.createElement('canvas')
-      rc.width = 256; rc.height = 4
-      const rg = rc.getContext('2d')!
-      const rr = rng(hash(p.id))
-      for (let x = 0; x < 256; x++) { const k = 0.35 + rr() * 0.65; rg.fillStyle = `rgba(${230 + rr() * 25},${180 + rr() * 40},${90 + rr() * 60},${(x < 8 || x > 248 ? 0.2 : 0.75) * k})`; rg.fillRect(x, 0, 1, 4) }
-      const rt = new THREE.CanvasTexture(rc)
-      rt.colorSpace = THREE.SRGBColorSpace
-      v.maps.push(rt)
-      const ring = this.mesh(ringGeo, new THREE.MeshStandardMaterial({ map: rt, transparent: true, side: THREE.DoubleSide, roughness: 0.7, depthWrite: false, envMapIntensity: 0.3 }))
-      ring.rotation.x = Math.PI / 2 - 0.42
-      ring.rotation.y = 0.3
-      g.add(ring)
-    }
-    if (p.look === 'risk') { // a red warning ring that pulses
-      v.warn = this.mesh(this.torusG(r * 1.38, 0.02, Math.PI * 2, 72), this.glow(1.5, 0.18, 0.15, true, 0.9))
-      v.warn.rotation.x = Math.PI / 2
-      g.add(v.warn)
-    }
-    g.add(v.ring, hitM)
-    this.hit(hitM, { kind: 'planet', planet: p })
-    this.setOrbitLine(v, R)
-    this.planetGroup.add(g, v.orbit)
-    this.overlay.add(label)
-    this.planets.set(p.id, v)
-  }
-
-  private dropPlanet(id: string, v: PlanetView) {
-    v.g.removeFromParent()
-    v.orbit.removeFromParent()
-    v.orbit.geometry.dispose()
-    ;(v.orbit.material as THREE.Material).dispose()
-    this.dropSprite(v.label)
-    this.hits = this.hits.filter((h) => h !== v.hit)
-    v.g.traverse((o) => {
-      if (o instanceof THREE.Mesh) {
-        const m = o.material as THREE.Material
-        if (![...this.mats.values()].includes(m)) m.dispose()
-        if (o.geometry instanceof THREE.RingGeometry) o.geometry.dispose()
-      }
-    })
-    v.maps.forEach((t) => t.dispose())
-    this.planets.delete(id)
-  }
-
-  private addComet(c: Comet, i: number) {
-    const seed = hash(c.id)
-    const g = new THREE.Group()
-    const head = this.mesh(this.sphere(0.13, 16), this.glow(2.2, 2.6, 3))
-    g.add(head)
-    g.add(this.glowSprite('#9fd8ff', 1.4, 0.9))
-    const L = 3.2
-    const tailMat = new THREE.ShaderMaterial({
-      vertexShader: TAIL_V, fragmentShader: TAIL_F, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-      uniforms: { uColor: { value: new THREE.Color(0.5, 1.2, 2) }, uAlpha: { value: 0.85 } },
-    })
-    const tail = this.mesh(this.geo('tail', () => new THREE.CylinderGeometry(0.06, 0.42, L, 24, 1, true).translate(0, -L / 2, 0)), tailMat)
-    this.scene.add(tail)
-    const hitM = this.mesh(this.sphere(0.6, 8), new THREE.MeshBasicMaterial({ visible: false }))
-    g.add(hitM)
-    this.hit(hitM, { kind: 'comet', comet: c })
-    this.scene.add(g)
-    const name = c.name.length > 20 ? c.name.slice(0, 19) + '…' : c.name
-    const label = this.label('Nomor baru · ' + name, 'rgba(14,60,96,0.86)', '#dff3ff', 0.4, 'rgba(140,210,255,0.5)')
-    this.overlay.add(label)
-    this.comets.set(c.id, { comet: c, g, head, tail, hit: hitM, label, phase: (i * 2.1 + (seed % 100) / 50) % (Math.PI * 2), incl: ((seed % 60) / 60 - 0.5) * 0.5, enter: 0, seed })
-  }
-
-  private dropComet(id: string, v: CometView) {
-    v.g.removeFromParent()
-    v.tail.removeFromParent()
-    ;(v.tail.material as THREE.Material).dispose()
-    this.dropSprite(v.label)
-    this.hits = this.hits.filter((h) => h !== v.hit)
-    v.g.traverse((o) => { if (o instanceof THREE.Sprite) o.material.dispose() })
-    this.comets.delete(id)
-    if (this.radar.focus === id) this.radar.focus = null
-  }
-
-  /** The proposals waiting for a decision: one capsule each on the deck, in the agent's colour. */
-  setDock(caps: AgentKey[]) {
-    if (!this.renderer) return
-    const key = caps.join(',')
-    if (this.dock.caps.userData.key === key) return
-    this.dock.caps.userData.key = key
-    this.dock.caps.clear()
-    caps.forEach((k, i) => {
-      const a = Math.PI + 0.35 + (i / Math.max(1, 11)) * (Math.PI - 0.7) // an arc behind the commander
-      const ring = i < 6 ? 0.66 : 0.4
-      const m = this.mesh(this.capsule(0.055, 0.1), this.hdr(AGENT_COLOR[k], 1.6))
-      m.position.set(Math.cos(a + (i >= 6 ? 0.25 : 0)) * ring, 0.12, Math.sin(a + (i >= 6 ? 0.25 : 0)) * ring)
-      m.userData.phase = i * 0.7
-      this.dock.caps.add(m)
-    })
-    this.dock.count = caps.length
-    const text = caps.length ? `Keputusan · ${caps.length} menunggu` : 'Keputusan · antrean kosong'
-    if (text !== this.dock.holoText) {
-      this.dock.holoText = text
-      this.dropSprite(this.dock.holo)
-      this.dock.holo = this.label(text, caps.length ? 'rgba(90,62,6,0.9)' : 'rgba(12,40,60,0.85)', caps.length ? '#ffe7a8' : '#bfe9ff', 0.46, caps.length ? 'rgba(255,205,90,0.7)' : 'rgba(140,210,255,0.5)')
-      this.dock.holo.center.set(0.5, 1) // hangs under the deck, never over the core
-      this.dock.holo.position.copy(this.dock.pos).add(new THREE.Vector3(0, -0.3, 1.2))
-      this.overlay.add(this.dock.holo)
-    }
-  }
-
-  setStock(aging: number, critical: boolean) {
-    this.cargo.aging = aging
-    this.cargo.critical = critical
-    if (!this.renderer) return
-    const n = Math.min(9, aging)
-    if (this.cargo.crates.children.length === n) return
-    this.cargo.crates.clear()
-    const mat = this.std('#c98a2b', 0.6, 0.2, 0.6)
-    const band = this.std('#4b3210', 0.6, 0.3, 0.5)
-    for (let i = 0; i < n; i++) {
-      const c = new THREE.Group()
-      c.add(this.mesh(this.boxG(0.2, 0.18, 0.2), mat))
-      c.add(this.mesh(this.boxG(0.205, 0.035, 0.205), band))
-      c.position.set(-0.32 + (i % 3) * 0.24, 0.09 + Math.floor(i / 6) * 0.19, -0.42 + (Math.floor(i / 3) % 2) * 0.24)
-      this.cargo.crates.add(c)
-    }
-  }
-
-  setUnread(n: number) {
-    this.comms.unread = n
-    if (!this.renderer) return
-    const text = n > 0 ? `${n > 999 ? '999+' : n} chat belum dibaca` : 'Chat terbaca semua'
-    if (text === this.comms.bubbleText) return
-    this.comms.bubbleText = text
-    this.dropSprite(this.comms.bubble)
-    this.comms.bubble = this.label(text, n > 0 ? 'rgba(18,110,72,0.9)' : 'rgba(20,30,50,0.8)', '#ffffff', 0.4, 'rgba(255,255,255,0.25)')
-    this.comms.bubble.position.copy(this.comms.pos).setY(this.comms.pos.y + 1.95)
-    this.overlay.add(this.comms.bubble)
   }
 
   setCycle(c: CycleState) {
@@ -1088,319 +845,91 @@ export class StationView {
     const stageWas = this.cycle.stage
     this.cycle = c
     if (!this.renderer) return
-    if (c.running && !was) {
-      for (const a of this.agents) if (!this.work?.[a.key]) this.fly(a, 'togather', a.a.root.position.clone())
-    } else if (!c.running && was) {
-      this.core.waveT = 0 // learn: a shock wave from the core
-      for (const a of this.agents) if (a.state === 'gather' || a.state === 'togather') this.fly(a, 'return', a.a.root.position.clone())
-    }
+    if (!c.running && was) this.core.waveT = 0 // learn: a shock wave from the core
     if (c.running && c.stage === 5 && stageWas !== 5) this.core.waveT = 0
-  }
-
-  /** The cycle being followed: each astronaut shows its agent's state (antri, menganalisa, selesai with the result,
-   * gagal); null sends them home. */
-  setWork(w: Work | null) {
-    this.work = w
   }
 
   // ---------- animation ----------
 
-  private planetPos(id: string, out = new THREE.Vector3()) {
-    const v = this.planets.get(id)
-    return v ? v.g.getWorldPosition(out) : out.set(0, 0, 0)
+  private holoPos(r: Room, out = new THREE.Vector3()) { return r.holo.getWorldPosition(out) }
+
+  private setCarry(r: Room, on: boolean) {
+    if (r.carry) { r.carry.removeFromParent(); r.carry = null }
+    if (!on) return
+    const m = this.mesh(this.capsule(0.045, 0.08), this.hdr(r.m.color, 1.8))
+    r.a.hand.add(m)
+    r.carry = m
   }
 
-  /** Where an astronaut hovers to work a planet: on the core side, a little above. */
-  private workSpot(id: string) {
-    const p = this.planetPos(id)
-    const v = this.planets.get(id)
-    const toCore = p.clone().multiplyScalar(-1).setY(0).normalize()
-    return p.addScaledVector(toCore, (v?.r ?? 0.6) + 0.55).setY(0.45)
-  }
-  private gatherSpot(a: Agent) {
-    const i = this.agents.indexOf(a)
-    const ang = this.t * 0.35 + (i / this.agents.length) * Math.PI * 2
-    return new THREE.Vector3(GATHER_R * Math.cos(ang), 0.95 + Math.sin(this.t * 1.3 + i) * 0.08, GATHER_R * Math.sin(ang))
-  }
-  private dockSpot() { return this.dock.pos.clone().add(new THREE.Vector3(0.55, 0.6, 0.25)) }
-
-  private goal(a: Agent): THREE.Vector3 {
-    switch (a.state) {
-      case 'out': return this.workSpot(a.planet)
-      case 'back': return this.dockSpot()
-      case 'togather': return this.gatherSpot(a)
-      default: return this.homeOf(a.key)
+  private stepRoom(r: Room, dt: number) {
+    const { state, text } = r.work
+    const A = r.a
+    const i = r.i
+    const t = this.t
+    // status light, screen and lamp
+    const c = new THREE.Color(r.m.color)
+    const pulse = 0.5 + 0.5 * Math.sin(t * 5 + i)
+    if (state === 'reading') r.status.color.setRGB(c.r * (1.6 + pulse * 1.4), c.g * (1.6 + pulse * 1.4), c.b * (1.6 + pulse * 1.4))
+    else if (state === 'done') r.status.color.setRGB(0.3, 2, 1.25)
+    else if (state === 'failed') r.status.color.setRGB(2.4 * (0.5 + pulse * 0.5), 0.25, 0.25)
+    else if (state === 'waiting') r.status.color.setRGB(1.6 * (0.6 + 0.4 * Math.sin(t * 2 + i)), 1.05 * (0.6 + 0.4 * Math.sin(t * 2 + i)), 0.25)
+    else r.status.color.setRGB(c.r * 0.9, c.g * 0.9, c.b * 0.9)
+    const flick = state === 'reading' ? 1.4 + Math.random() * 0.6 : state === 'waiting' ? 0.45 : 0.9 + Math.sin(t * 1.5 + i) * 0.1
+    r.screen.color.setRGB(c.r * flick, c.g * flick, c.b * flick)
+    r.lamp.material.opacity = state === 'reading' ? 0.22 + pulse * 0.1 : state === 'waiting' ? 0.05 : 0.1
+    // hologram
+    const fast = state === 'reading'
+    r.holo.rotation.y += dt * (fast ? 2.6 : state === 'waiting' ? 0.2 : 0.7)
+    r.holo.position.y = FLOOR + 0.92 + Math.sin(t * 1.8 + i) * 0.03
+    r.holo.scale.setScalar(fast ? 1.15 + Math.sin(t * 6) * 0.06 : state === 'waiting' ? 0.8 : 1)
+    // the astronaut floats a little in the room and works the console
+    A.root.position.y = FLOOR + 0.3 * ASTRO_S + 0.03 + Math.sin(t * 1.4 + i) * 0.025
+    A.body.rotation.y = state === 'waiting' ? Math.sin(t * 0.7 + i) * 0.6 : state === 'done' ? Math.PI * 0.85 : Math.sin(t * 0.5 + i) * 0.12
+    A.body.rotation.x = lerp(A.body.rotation.x, state === 'failed' ? 0.25 : state === 'reading' ? 0.12 : 0.04, 1 - Math.exp(-dt * 4))
+    if (state === 'done') { // turns to the room door holding the result up
+      A.arms[1].rotation.x = -2.7 + Math.sin(t * 2 + i) * 0.1
+      A.arms[0].rotation.x = Math.sin(t * 2) * 0.1
+    } else if (state === 'failed') A.arms[0].rotation.x = A.arms[1].rotation.x = 0.15
+    else if (state === 'waiting') A.arms[0].rotation.x = A.arms[1].rotation.x = Math.sin(t * 1.2 + i) * 0.15
+    else { // typing: fast while reading
+      const sp = fast ? 14 : 5
+      A.arms[0].rotation.x = -1.15 + Math.sin(t * sp + i) * (fast ? 0.12 : 0.06)
+      A.arms[1].rotation.x = -1.15 + Math.sin(t * sp + i + 1.7) * (fast ? 0.12 : 0.06)
     }
-  }
-
-  private fly(a: Agent, state: AgentState, from: THREE.Vector3) {
-    this.endAct(a)
-    a.state = state
-    a.from.copy(from)
-    a.u = 0
-    const d = from.distanceTo(this.goal(a))
-    a.dur = 0.8 + d / 3.4
-    a.a.flames.forEach((f) => (f.visible = true))
-  }
-
-  private say(a: Agent) {
-    const name = this.planets.get(a.planet)?.planet.name ?? ''
-    const busy: Record<FlyKind, [string, string, string]> = {
-      order: ['Terbang ke ' + name + ' — jadwal order dekat', 'Menyiapkan usulan order ' + name, 'Membawa usulan order ke Dek Keputusan'],
-      collect: ['Terbang ke ' + name + ' — over limit / overdue', 'Menghitung tagihan ' + name, 'Membawa usulan penagihan ke Dek Keputusan'],
-      credit: ['Terbang ke ' + name + ' — sisa limit tipis', 'Memasang perisai kredit ' + name, 'Membawa usulan kredit ke Dek Keputusan'],
-      followup: ['Spacewalk ke ' + name + ' — At risk', 'Menyiapkan follow-up ' + name, 'Membawa usulan follow-up ke Dek Keputusan'],
+    A.legs[0].rotation.x = Math.sin(t * 1.6 + i) * 0.08
+    A.legs[1].rotation.x = -Math.sin(t * 1.6 + i) * 0.08
+    if (state === 'done' && !r.carry) this.setCarry(r, true)
+    if (state !== 'done' && r.carry) this.setCarry(r, false)
+    // a room that just finished: sparks, and its result flies to Data siap
+    if (state !== r.was) {
+      if (state === 'done' && r.m.key !== 'ready') {
+        const at = r.g.localToWorld(new THREE.Vector3(0, 1.2, 0))
+        this.spawnBits(at, 10, r.m.color, 0.3)
+        const ready = this.roomBy.get('ready')!
+        this.spawnPulse(() => this.holoPos(r), () => this.holoPos(ready), r.m.color, 1.6, 0.55, 2.2)
+      } else if (state === 'done') this.spawnBits(r.g.localToWorld(new THREE.Vector3(0, 1.2, 0)), 24, '#ffcf5a', 0.5)
+      r.was = state
     }
-    const t = a.target
-    if (this.cycle.running && (a.state === 'gather' || a.state === 'togather')) { t.status = 'Menganalisa bersama Inti AI (siklus Orchestrator berjalan)'; return }
-    if (a.key === 'stock') { t.status = this.cargo.aging ? `Merapikan ${this.cargo.aging} stok menua di cargo bay${this.cargo.critical ? ' · ada stok kritis' : ''}` : 'Cargo bay rapi — tidak ada stok menua'; return }
-    if (a.key === 'prospect') {
-      const c = this.radar.focus ? this.comets.get(this.radar.focus)?.comet.name : null
-      t.status = c ? `Memindai nomor baru: ${c} (WA Business · Truecaller · Odoo)` : 'Radar pasif — menunggu nomor baru yang menghubungi lebih dulu'
-      return
+    // the reading beam to the core
+    r.beam.visible = state === 'reading'
+    if (r.beam.visible) {
+      const h = this.holoPos(r)
+      const at = (r.beam.geometry as THREE.BufferGeometry).attributes.position as THREE.BufferAttribute
+      at.setXYZ(0, h.x, h.y, h.z)
+      const k = CORE_R / Math.max(0.01, h.length())
+      at.setXYZ(1, h.x * k, h.y * k, h.z * k)
+      at.needsUpdate = true
+      ;(r.beam.material as THREE.LineBasicMaterial).opacity = 0.35 + Math.random() * 0.5
     }
-    const k = a.key as FlyKind
-    if (a.state === 'out') t.status = busy[k][0]
-    else if (a.state === 'act') t.status = busy[k][1]
-    else if (a.state === 'back') t.status = busy[k][2]
-    else t.status = a.tasks.length ? `Siaga · ${a.tasks.length} dealer menunggu` : 'Siaga — tidak ada dealer yang perlu ditangani'
-  }
-
-  private endAct(a: Agent) {
-    if (a.fx) { a.fx.removeFromParent(); a.fx.traverse((o) => { if (o instanceof THREE.Line) { o.geometry.dispose(); (o.material as THREE.Material).dispose() } else if (o instanceof THREE.Mesh && o.userData.own) (o.material as THREE.Material).dispose() }); a.fx = null }
-    this.dropSprite(a.label)
-    a.label = null
-  }
-
-  private setCarry(a: Agent, what: 'crate' | 'capsule' | null) {
-    if (a.carry) { a.carry.removeFromParent(); a.carry = null }
-    if (!what) return
-    const m = what === 'crate'
-      ? this.mesh(this.boxG(0.13, 0.11, 0.13), this.std('#d9a441', 0.5, 0.3, 0.7))
-      : this.mesh(this.capsule(0.045, 0.08), this.hdr(AGENT_COLOR[a.key], 1.8))
-    a.a.hand.add(m)
-    a.carry = m
-  }
-
-  private startAct(a: Agent) {
-    a.state = 'act'
-    a.timer = 3.2
-    a.a.flames.forEach((f) => (f.visible = false))
-    const v = this.planets.get(a.planet)
-    const name = v?.planet.name ?? ''
-    const word: Record<FlyKind, string> = { order: 'Order', collect: 'Tagih', credit: 'Kredit', followup: 'Follow-up' }
-    const text = word[a.key as FlyKind] + ' · ' + name
-    a.label = this.label(text.length > 28 ? text.slice(0, 27) + '…' : text, AGENT_COLOR[a.key], a.key === 'followup' ? '#2b1600' : '#ffffff', 0.4)
-    this.overlay.add(a.label)
-    if (!v) return
-    if (a.key === 'credit') { // a hex shield around the planet
-      const g = new THREE.Group()
-      const wire = this.mesh(this.geo('shield', () => new THREE.IcosahedronGeometry(1, 2)), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.2, 0.7, 2.6), wireframe: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }))
-      wire.userData.own = true
-      const bub = this.mesh(this.sphere(1, 32), this.fresnel('#a26bff', 2, 0))
-      bub.userData.own = true
-      g.add(wire, bub)
-      g.scale.setScalar(v.r * 1.7)
-      v.g.add(g)
-      a.fx = g
-    } else if (a.key === 'followup') { // a tether from the astronaut to the planet
-      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: new THREE.Color(2.4, 1.3, 0.4), transparent: true, opacity: 0.9, toneMapped: false }))
-      this.scene.add(line)
-      a.fx = line
-    } else if (a.key === 'order') {
-      this.setCarry(a, null)
-      const crate = this.mesh(this.boxG(0.13, 0.11, 0.13), this.std('#d9a441', 0.5, 0.3, 0.7))
-      crate.position.copy(a.a.hand.getWorldPosition(new THREE.Vector3()))
-      this.scene.add(crate)
-      a.fx = crate
+    // the sign
+    const sig = state + '|' + text
+    if (sig !== r.labelText) {
+      r.labelText = sig
+      this.dropSprite(r.label)
+      r.label = this.sign(r.m, state, text)
+      this.overlay.add(r.label)
     }
-  }
-
-  private stepWork(a: Agent, w: AgentWork, dt: number) {
-    const A = a.a
-    const pos = A.root.position
-    if (!a.inWork) {
-      this.endAct(a)
-      this.setCarry(a, null)
-      a.inWork = true
-      a.workText = ''
-      a.state = 'home'
-    }
-    const i = this.agents.indexOf(a)
-    const finished = w.state === 'done' || w.state === 'failed'
-    let goal: THREE.Vector3
-    if (finished) { // in a row in front of the Dek Keputusan, showing the result
-      const k = i - (this.agents.length - 1) / 2
-      goal = this.dock.pos.clone().add(new THREE.Vector3(k * 0.85, 0.95 + Math.sin(this.t * 1.5 + i) * 0.04, 1.8 - Math.abs(k) * 0.18))
-    } else { // around the core: reading close with a beam, waiting a little further out
-      const reading = w.state === 'reading'
-      const ang = this.t * (reading ? 0.35 : 0.12) + (i / this.agents.length) * Math.PI * 2
-      const r = reading ? GATHER_R : GATHER_R + 0.6
-      goal = new THREE.Vector3(r * Math.cos(ang), (reading ? 0.95 : 1.4) + Math.sin(this.t * 1.3 + i) * 0.08, r * Math.sin(ang))
-    }
-    const prev = pos.clone()
-    const moving = pos.distanceTo(goal) > 0.3
-    pos.lerp(goal, 1 - Math.exp(-dt * 2.2))
-    A.flames.forEach((f) => { f.visible = moving; if (moving) f.scale.set(1, 0.8 + Math.random() * 0.5, 1) })
-    const dir = pos.clone().sub(prev).setY(0)
-    if (moving && dir.lengthSq() > 1e-8) { const l = pos.clone().add(dir); A.root.lookAt(l.x, pos.y, l.z) }
-    else if (finished) A.root.rotation.set(0, lerp(A.root.rotation.y, 0, 0.1), 0) // faces the camera
-    else A.root.lookAt(0, pos.y, 0)
-    A.body.rotation.x = lerp(A.body.rotation.x, moving ? 0.9 : 0.1, 1 - Math.exp(-dt * 5))
-    if (moving) { A.arms[1].rotation.x = -2.5; A.arms[0].rotation.x = -0.35 }
-    else if (w.state === 'reading') A.arms[0].rotation.x = A.arms[1].rotation.x = -1.35 + Math.sin(this.t * 3 + i) * 0.12
-    else if (w.state === 'done') { A.arms[1].rotation.x = -2.7 + Math.sin(this.t * 2 + i) * 0.1; A.arms[0].rotation.x = Math.sin(this.t * 2) * 0.1 } // holds the capsule up
-    else if (w.state === 'failed') A.arms[0].rotation.x = A.arms[1].rotation.x = 0.15
-    else A.arms[0].rotation.x = A.arms[1].rotation.x = Math.sin(this.t * 1.2 + i) * 0.15
-    A.legs[0].rotation.x = Math.sin(this.t * 1.6 + i) * 0.12
-    A.legs[1].rotation.x = -Math.sin(this.t * 1.6 + i) * 0.12
-    if (w.state === 'done' && !a.carry) { this.setCarry(a, 'capsule'); this.spawnBits(pos.clone(), 10, AGENT_COLOR[a.key], 0.3) }
-    if (w.state !== 'done' && a.carry) this.setCarry(a, null)
-    const text = w.state === 'waiting' ? 'antri' : w.state === 'reading' ? 'menganalisa…' : w.state === 'failed' ? '✕ gagal' : '✓ ' + (w.text || 'selesai')
-    if (text !== a.workText) {
-      a.workText = text
-      this.dropSprite(a.label)
-      const bg = w.state === 'failed' ? 'rgba(170,30,36,0.92)' : w.state === 'done' ? AGENT_COLOR[a.key] : w.state === 'reading' ? 'rgba(20,70,120,0.9)' : 'rgba(10,16,34,0.82)'
-      const fg = w.state === 'done' && (a.key === 'prospect' || a.key === 'followup') ? '#1a1300' : '#ffffff'
-      a.label = this.label(AGENT_NAME[a.key].replace('AI ', '') + ' · ' + text, bg, fg, 0.36, 'rgba(255,255,255,0.25)')
-      this.overlay.add(a.label)
-    }
-    // results in a row: labels on three steps so neighbours never cover each other
-    a.label?.position.copy(pos).setY(pos.y + 0.85 + (finished ? (i % 3) * 0.42 : 0))
-    a.target.status = w.state === 'waiting' ? 'Antri — menunggu giliran dianalisa'
-      : w.state === 'reading' ? 'Sedang menganalisa' + (w.text ? ` (${w.text})` : '')
-      : w.state === 'failed' ? 'Gagal' + (w.text ? `: ${w.text}` : '')
-      : 'Selesai · ' + (w.text || 'tanpa saran baru') + ' — kapsul dibawa ke Dek Keputusan'
-  }
-
-  private stepAgent(a: Agent, dt: number) {
-    const w = this.work?.[a.key]
-    if (w) { this.stepWork(a, w, dt); return }
-    if (a.inWork) { // the followed cycle was closed: back to the usual work
-      a.inWork = false
-      this.dropSprite(a.label)
-      a.label = null
-      this.setCarry(a, null)
-      this.fly(a, this.cycle.running ? 'togather' : 'return', a.a.root.position.clone())
-      return
-    }
-    const A = a.a
-    const pos = A.root.position
-    if (a.state === 'home') {
-      const h = this.homeOf(a.key)
-      pos.lerp(h, 1 - Math.exp(-dt * 3))
-      pos.y = h.y + Math.sin(this.t * 1.6 + a.next) * 0.05
-      A.body.rotation.x = lerp(A.body.rotation.x, 0, 1 - Math.exp(-dt * 4))
-      if (a.key === 'stock') {
-        A.root.rotation.y = Math.sin(this.t * 0.5) * 1.2 - Math.PI / 2
-        A.arms[0].rotation.x = A.arms[1].rotation.x = this.cargo.aging ? -0.9 + Math.sin(this.t * 2.4) * 0.35 : Math.sin(this.t * 1.2) * 0.1
-        if (this.cargo.aging && !a.carry) this.setCarry(a, 'crate')
-        if (!this.cargo.aging && a.carry) this.setCarry(a, null)
-      } else if (a.key === 'prospect') {
-        const c = this.radar.focus ? this.comets.get(this.radar.focus) : null
-        if (c) { const p = c.g.position; A.root.lookAt(p.x, pos.y, p.z) } else A.root.rotation.y = lerp(A.root.rotation.y, -Math.PI / 2, 0.02)
-        A.arms[1].rotation.x = c ? -1.6 : Math.sin(this.t) * 0.1
-        A.arms[0].rotation.x = Math.sin(this.t * 1.1) * 0.1
-      } else {
-        A.root.lookAt(0, pos.y, 0)
-        A.root.rotateY(Math.PI) // face outward, ready to go
-        A.arms[0].rotation.x = Math.sin(this.t * 1.4 + 1) * 0.15
-        A.arms[1].rotation.x = Math.sin(this.t * 1.4) * 0.15
-        a.timer -= dt
-        const ready = a.tasks.filter((id) => this.planets.has(id))
-        if (a.timer <= 0 && ready.length && !this.cycle.running) {
-          a.planet = ready[a.next % ready.length]
-          a.next += 1
-          if (a.key === 'order') this.setCarry(a, 'crate')
-          this.fly(a, 'out', pos.clone())
-        } else if (a.timer <= 0) a.timer = 1.5
-      }
-      A.legs[0].rotation.x = Math.sin(this.t * 1.6) * 0.12
-      A.legs[1].rotation.x = -Math.sin(this.t * 1.6) * 0.12
-    } else if (a.state === 'gather') {
-      const s = this.gatherSpot(a)
-      pos.lerp(s, 1 - Math.exp(-dt * 5))
-      A.root.lookAt(0, pos.y, 0)
-      A.body.rotation.x = lerp(A.body.rotation.x, 0.15, 0.1)
-      A.arms[0].rotation.x = A.arms[1].rotation.x = -1.35 + Math.sin(this.t * 3 + a.next) * 0.12
-      A.flames.forEach((f) => (f.visible = false))
-    } else if (a.state === 'act') {
-      a.timer -= dt
-      const spot = this.workSpot(a.planet)
-      pos.lerp(spot, 1 - Math.exp(-dt * 4))
-      pos.y += Math.sin(this.t * 2) * 0.004
-      const pp = this.planetPos(a.planet)
-      A.root.lookAt(pp.x, pos.y, pp.z)
-      A.body.rotation.x = lerp(A.body.rotation.x, 0.2, 0.1)
-      const k = 1 - a.timer / 3.2
-      const v = this.planets.get(a.planet)
-      if (a.key === 'credit' && a.fx) {
-        const op = Math.sin(Math.PI * clamp01(k * 1.1))
-        const [wire, bub] = a.fx.children as THREE.Mesh[]
-        ;(wire.material as THREE.MeshBasicMaterial).opacity = op * 0.55
-        ;(bub.material as THREE.ShaderMaterial).uniforms.uAlpha.value = op * 1.4
-        a.fx.rotation.y += dt * 0.6
-        A.arms[1].rotation.x = -1.5
-      } else if (a.key === 'followup' && a.fx instanceof THREE.Line) {
-        const hand = A.hand.getWorldPosition(new THREE.Vector3())
-        const surf = pp.clone().add(hand.clone().sub(pp).normalize().multiplyScalar(v?.r ?? 0.6))
-        const g = a.fx.geometry as THREE.BufferGeometry
-        const at = g.attributes.position as THREE.BufferAttribute
-        at.setXYZ(0, hand.x, hand.y, hand.z)
-        at.setXYZ(1, surf.x, surf.y, surf.z)
-        at.needsUpdate = true
-        A.arms[1].rotation.x = -1.4 + Math.sin(this.t * 3) * 0.1
-      } else if (a.key === 'order' && a.fx) {
-        const from = A.hand.getWorldPosition(new THREE.Vector3())
-        const kk = smooth(clamp01((k - 0.15) / 0.6))
-        a.fx.position.lerpVectors(from, pp, kk)
-        a.fx.scale.setScalar(1 - kk * 0.85)
-        a.fx.rotation.y += dt * 3
-        if (kk >= 1 && a.fx.visible) { a.fx.visible = false; this.spawnBits(pp, 10, '#ffd36b', v?.r ?? 0.6) }
-        A.arms[1].rotation.x = -1.2 * (1 - kk)
-      } else if (a.key === 'collect') {
-        A.arms[1].rotation.x = -1.4
-        if (Math.floor((k - dt / 3.2) * 10) !== Math.floor(k * 10) && k < 0.85) this.spawnCoin(pp, A.hand.getWorldPosition(new THREE.Vector3()), v?.r ?? 0.6)
-      }
-      A.arms[0].rotation.x = Math.sin(this.t * 2) * 0.2
-      if (a.label) a.label.position.copy(pos).setY(pos.y + 0.95)
-      if (a.timer <= 0) {
-        this.setCarry(a, 'capsule')
-        this.fly(a, 'back', pos.clone())
-      }
-    } else { // flying: out | back | return | togather
-      a.u = Math.min(1, a.u + dt / a.dur)
-      const to = this.goal(a)
-      const e = smooth(a.u)
-      const mid = a.from.clone().lerp(to, 0.5)
-      mid.y += Math.min(3, a.from.distanceTo(to) * 0.22) + 0.4
-      const p = a.from.clone().multiplyScalar((1 - e) ** 2).addScaledVector(mid, 2 * (1 - e) * e).addScaledVector(to, e * e)
-      const dir = p.clone().sub(pos)
-      if (dir.lengthSq() > 1e-6) { const look = pos.clone().add(dir.setY(0)); A.root.lookAt(look.x, pos.y, look.z) }
-      pos.copy(p)
-      A.body.rotation.x = lerp(A.body.rotation.x, a.state === 'togather' || a.u > 0.85 ? 0.2 : 1.05, 1 - Math.exp(-dt * 5))
-      A.arms[1].rotation.x = a.carry ? -0.9 : -2.5
-      A.arms[0].rotation.x = -0.35
-      A.legs[0].rotation.x = 0.15 + Math.sin(this.t * 8) * 0.05
-      A.legs[1].rotation.x = -0.05 - Math.sin(this.t * 8) * 0.05
-      for (const f of A.flames) f.scale.set(1, 0.8 + Math.random() * 0.5, 1)
-      if (a.u >= 1) {
-        if (a.state === 'out') this.startAct(a)
-        else if (a.state === 'back') {
-          this.spawnBits(this.dockSpot(), 8, AGENT_COLOR[a.key], 0.2)
-          this.setCarry(a, null)
-          this.fly(a, 'return', pos.clone())
-        } else if (a.state === 'togather') {
-          a.state = this.cycle.running ? 'gather' : 'home'
-          A.flames.forEach((f) => (f.visible = false))
-        } else {
-          a.state = 'home'
-          a.timer = 2 + Math.random() * 2
-          A.flames.forEach((f) => (f.visible = false))
-          if (a.key === 'order') this.setCarry(a, null)
-        }
-      }
-    }
+    if (r.label) r.label.position.copy(r.g.localToWorld(new THREE.Vector3(0, FLOOR + 0.5 + DOME, 0)))
   }
 
   private spawnBits(at: THREE.Vector3, n: number, color: string, r: number) {
@@ -1410,18 +939,9 @@ export class StationView {
       const v = new THREE.Vector3(Math.random() - 0.5, Math.random() * 0.8 + 0.2, Math.random() - 0.5).normalize()
       m.position.copy(at).addScaledVector(v, r * 0.9)
       this.scene.add(m)
-      this.bits.push({ m, v: v.multiplyScalar(0.9 + Math.random() * 0.9), life: 0, max: 0.9 + Math.random() * 0.5, fall: true })
+      this.bits.push({ m, v: v.multiplyScalar(0.9 + Math.random() * 0.9), life: 0, max: 0.9 + Math.random() * 0.5 })
     }
   }
-  private spawnCoin(from: THREE.Vector3, to: THREE.Vector3, r: number) {
-    const m = this.mesh(this.cylG(0.05, 0.05, 0.015, 16), this.glow(2.6, 1.9, 0.5))
-    m.rotation.x = Math.PI / 2
-    const start = from.clone().add(to.clone().sub(from).normalize().multiplyScalar(r))
-    m.position.copy(start)
-    this.scene.add(m)
-    this.bits.push({ m, v: to.clone().sub(start).divideScalar(0.7), life: 0, max: 0.7, fall: false })
-  }
-  private dishTip() { return this.radar.dish.localToWorld(new THREE.Vector3(0, 0, 0.33)) }
 
   private spawnPulse(from: () => THREE.Vector3, to: () => THREE.Vector3, color: string, dur: number, size = 0.45, lift = -1) {
     let p = this.pulses.find((q) => !q.s.visible)
@@ -1442,7 +962,7 @@ export class StationView {
     this.bits = this.bits.filter((b) => {
       b.life += dt
       b.m.position.addScaledVector(b.v, dt)
-      if (b.fall) b.v.addScaledVector(g, dt)
+      b.v.addScaledVector(g, dt)
       b.m.scale.setScalar(Math.max(0.05, 1 - b.life / b.max))
       if (b.life >= b.max) { b.m.removeFromParent(); return false }
       return true
@@ -1458,11 +978,6 @@ export class StationView {
     }
   }
 
-  private randomPlanet(): string | null {
-    const ids = [...this.planets.keys()]
-    return ids.length ? ids[Math.floor(Math.random() * ids.length)] : null
-  }
-
   private stepCycle(dt: number) {
     const c = this.cycle
     const core = () => new THREE.Vector3(0, 0, 0)
@@ -1473,173 +988,52 @@ export class StationView {
       else if (c.running ? i < c.stage : c.hasCycle) m.color.setRGB(0.25, 1.5, 1.15)
       else m.color.set('#1d2a44')
     })
+    // data: from the rooms to the core (fast from rooms that read), from the core to Data siap
+    const workers = this.rooms.filter((r) => r.m.key !== 'ready')
+    const reading = workers.filter((r) => r.work.state === 'reading')
     this.pulseClock -= dt
     if (this.pulseClock <= 0 && dt > 0) {
-      if (!c.running) {
-        this.pulseClock = 1.4
-        const id = this.randomPlanet()
-        if (id) this.spawnPulse(() => this.planetPos(id), core, '#5fc8ff', 2.2, 0.35)
-      } else if (c.stage === 0) {
-        this.pulseClock = 0.12
-        const id = this.randomPlanet()
-        if (id) this.spawnPulse(() => this.planetPos(id), core, '#7fe0ff', 1.2, 0.5)
-      } else if (c.stage === 3) {
-        this.pulseClock = 0.25
-        this.spawnPulse(core, () => this.dock.pos.clone().setY(this.dock.pos.y + 0.3), '#ffcf5a', 1, 0.5)
-      } else if (c.stage === 4) {
-        this.pulseClock = 0.2
-        const id = this.randomPlanet()
-        if (id) this.spawnPulse(() => this.dock.pos.clone().setY(this.dock.pos.y + 0.3), () => this.planetPos(id), '#5cf2a0', 1.4, 0.45)
-      } else this.pulseClock = 0.3
+      const busy = reading.length > 0
+      this.pulseClock = busy ? 0.16 : c.running ? 0.35 : 0.9
+      const pool = busy ? reading : workers.filter((r) => r.work.state !== 'waiting')
+      const r = pool[Math.floor(Math.random() * pool.length)]
+      if (r) this.spawnPulse(() => this.holoPos(r), core, r.m.color, busy ? 1.1 : 1.9, busy ? 0.45 : 0.32)
     }
-    // analysis beams from every gathered astronaut to the core
-    const reads = (a: Agent) => a.inWork && this.work?.[a.key]?.state === 'reading'
-    const gathered = this.agents.filter((a) => a.state === 'gather' || reads(a))
-    while (this.beams.length < this.agents.length) {
-      const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: new THREE.Color(0.6, 1.8, 2.4), transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }))
-      l.visible = false
-      this.scene.add(l)
-      this.beams.push(l)
+    this.readyClock -= dt
+    const ready = this.roomBy.get('ready')!
+    if (this.readyClock <= 0 && dt > 0 && ready.work.state !== 'waiting') {
+      this.readyClock = ready.work.state === 'reading' ? 0.3 : 2.4
+      this.spawnPulse(core, () => this.holoPos(ready), '#ffcf5a', 1.3, 0.42, 1.2)
     }
-    this.beams.forEach((l, i) => {
-      const a = gathered[i]
-      l.visible = !!a && ((c.running && (c.stage === 1 || c.stage === 2)) || reads(a))
-      if (!l.visible) return
-      const at = (l.geometry as THREE.BufferGeometry).attributes.position as THREE.BufferAttribute
-      const h = a.a.hand.getWorldPosition(new THREE.Vector3())
-      at.setXYZ(0, h.x, h.y, h.z)
-      const k = CORE_R / Math.max(0.01, h.length())
-      at.setXYZ(1, h.x * k, h.y * k, h.z * k)
-      at.needsUpdate = true
-      ;(l.material as THREE.LineBasicMaterial).opacity = 0.35 + Math.random() * 0.5
-    })
-    // Sintesis & konflik: a lightning bolt between two astronauts
-    if (!this.bolt) {
-      this.bolt = new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 10 }, () => new THREE.Vector3())), new THREE.LineBasicMaterial({ color: new THREE.Color(2.2, 1.4, 3), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }))
-      this.scene.add(this.bolt)
-    }
-    this.boltT -= dt
-    if (c.running && c.stage === 2 && gathered.length > 1 && this.boltT <= 0) {
-      this.boltT = 0.35
-      const i = Math.floor(Math.random() * gathered.length)
-      const j = (i + 1 + Math.floor(Math.random() * (gathered.length - 1))) % gathered.length
-      const a = gathered[i].a.hand.getWorldPosition(new THREE.Vector3())
-      const b = gathered[j].a.hand.getWorldPosition(new THREE.Vector3())
-      const at = (this.bolt.geometry as THREE.BufferGeometry).attributes.position as THREE.BufferAttribute
-      for (let k = 0; k < 10; k++) {
-        const p = a.clone().lerp(b, k / 9)
-        if (k > 0 && k < 9) p.add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(0.35))
-        at.setXYZ(k, p.x, p.y, p.z)
-      }
-      at.needsUpdate = true
-    }
-    this.bolt.visible = c.running && c.stage === 2 && this.boltT > 0.18
     // shock wave (Belajar)
     const w = this.core.wave!
     this.core.waveT += dt
     const wk = this.core.waveT / 1.6
     w.visible = wk < 1
-    if (wk < 1) { w.scale.setScalar(CORE_R + wk * 9); (w.material as THREE.MeshBasicMaterial).opacity = (1 - wk) * 0.9 }
-  }
-
-  private stepComets(dt: number) {
-    const ids = [...this.comets.keys()]
-    // the radar scans the comets in turn
-    this.radar.timer -= dt
-    if (this.radar.timer <= 0 || (this.radar.focus && !this.comets.has(this.radar.focus))) {
-      this.radar.timer = 6
-      const i = this.radar.focus ? ids.indexOf(this.radar.focus) : -1
-      this.radar.focus = ids.length ? ids[(i + 1) % ids.length] : null
-    }
-    for (const v of this.comets.values()) {
-      v.phase += dt * 0.045
-      v.enter = this.reduced ? 1 : Math.min(1, v.enter + dt / 4)
-      const e = smooth(v.enter)
-      const k = 1 + (1 - e) * 0.9 // comes in from deep space
-      const x = COMET_A * Math.cos(v.phase) * k
-      const z = COMET_B * Math.sin(v.phase) * k
-      const y = Math.sin(v.phase) * COMET_B * Math.sin(v.incl) * k + 2.2
-      v.g.position.set(x, y, z)
-      const away = v.g.position.clone().normalize()
-      v.tail.position.copy(v.g.position)
-      v.tail.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), away)
-      const scanned = this.radar.focus === v.comet.id
-      ;(v.tail.material as THREE.ShaderMaterial).uniforms.uAlpha.value = 0.65 + (scanned ? 0.35 + Math.sin(this.t * 6) * 0.2 : 0)
-      v.head.scale.setScalar(scanned ? 1.25 + Math.sin(this.t * 8) * 0.15 : 1)
-      v.label.position.set(x, y + 0.45, z)
-    }
-    // dish, scan line and pings
-    const f = this.radar.focus ? this.comets.get(this.radar.focus) : null
-    const line = this.radar.line!
-    line.visible = !!f && !this.cycle.running
-    if (f) {
-      const target = f.g.position
-      const piv = this.radar.pivot
-      const m = new THREE.Matrix4().lookAt(target, piv.position, new THREE.Vector3(0, 1, 0))
-      const q = new THREE.Quaternion().setFromRotationMatrix(m)
-      piv.quaternion.slerp(q, 1 - Math.exp(-dt * 2.5))
-      const from = this.dishTip()
-      const at = (line.geometry as THREE.BufferGeometry).attributes.position as THREE.BufferAttribute
-      at.setXYZ(0, from.x, from.y, from.z)
-      at.setXYZ(1, target.x, target.y, target.z)
-      at.needsUpdate = true
-      line.computeLineDistances()
-      ;(line.material as THREE.LineDashedMaterial).opacity = 0.35 + Math.abs(Math.sin(this.t * 3)) * 0.25
-      this.radar.ping -= dt
-      if (this.radar.ping <= 0 && !this.cycle.running) {
-        this.radar.ping = 0.45
-        const id = f.comet.id
-        this.spawnPulse(() => this.dishTip(), () => this.comets.get(id)?.g.position.clone() ?? this.dishTip(), '#7dffc8', 1.3, 0.32, 0)
-      }
-    } else this.radar.pivot.rotation.y += dt * 0.25
+    if (wk < 1) { w.scale.setScalar(CORE_R + wk * 7); (w.material as THREE.MeshBasicMaterial).opacity = (1 - wk) * 0.9 }
   }
 
   private step(dt: number) {
     this.t += dt
     const mat = this.core.mat!
     mat.uniforms.uTime.value = this.t
-    const boost = this.cycle.running ? 0.6 + Math.sin(this.t * 5) * 0.25 : 0.1 + Math.sin(this.t * 1.2) * 0.06
+    const busy = this.cycle.running || this.rooms.some((r) => r.work.state === 'reading')
+    const boost = busy ? 0.6 + Math.sin(this.t * 5) * 0.25 : 0.1 + Math.sin(this.t * 1.2) * 0.06
     mat.uniforms.uBoost.value = boost
     this.core.mesh!.scale.setScalar(1 + boost * 0.04)
     this.core.corona!.material.opacity = 0.22 + boost * 0.25
     this.core.light!.intensity = 26 + boost * 14
-    this.core.wire!.rotation.y += dt * (this.cycle.running ? 0.5 : 0.12)
+    this.core.wire!.rotation.y += dt * (busy ? 0.5 : 0.12)
     this.core.wire!.rotation.x += dt * 0.05
-    this.core.rings.forEach((r, i) => { r.rotation.z += dt * (0.3 + i * 0.17) * (i % 2 ? -1 : 1) * (this.cycle.running ? 3 : 1) })
+    this.core.rings.forEach((r, i) => { r.rotation.z += dt * (0.3 + i * 0.17) * (i % 2 ? -1 : 1) * (busy ? 3 : 1) })
     this.core.conduits.forEach((c, i) => { (c.material as THREE.MeshBasicMaterial).color.setRGB(0.3 + boost * 0.6, 0.9 + boost + Math.sin(this.t * 4 + i) * 0.15, 1.3 + boost * 0.6) })
-    this.planetGroup.rotation.y -= dt * SPIN
-    for (const v of this.planets.values()) {
-      if (v.g.scale.x < 1) v.g.scale.setScalar(Math.min(1, v.g.scale.x + dt * 1.8))
-      v.mesh.rotation.y += dt * 0.12
-      if (v.clouds) v.clouds.rotation.y += dt * 0.16
-      if (v.warn) { const s = 1 + Math.sin(this.t * 3) * 0.08; v.warn.scale.setScalar(s); (v.warn.material as THREE.MeshBasicMaterial).opacity = 0.55 + Math.sin(this.t * 3) * 0.35 }
-    }
+    if (this.giant) this.giant.rotation.y += dt * 0.01
     if (this.belt) this.belt.rotation.y -= dt * 0.008
     this.stars[0].rotation.y += dt * 0.002
-    for (const a of this.agents) { this.stepAgent(a, dt); if (!a.inWork) this.say(a) }
-    // the commander taps the tablet while capsules wait
-    const cm = this.commander
-    if (cm) {
-      const busy = this.dock.count > 0
-      cm.arms[1].rotation.x = busy ? -1.15 + Math.sin(this.t * 6) * 0.05 : -0.2 + Math.sin(this.t * 0.8) * 0.05
-      cm.arms[0].rotation.x = busy ? -0.9 + Math.sin(this.t * 3) * 0.12 : Math.sin(this.t * 0.8 + 1) * 0.08
-      cm.body.rotation.y = Math.sin(this.t * 0.4) * 0.25
-    }
-    this.dock.caps.children.forEach((m) => { m.position.y = 0.12 + Math.sin(this.t * 2 + (m.userData.phase as number)) * 0.03; m.rotation.y += dt })
-    if (this.cargo.beacon) { this.cargo.beacon.visible = this.cargo.critical && Math.sin(this.t * 6) > -0.2; }
-    if (this.comms.tip) (this.comms.tip.material as THREE.MeshBasicMaterial).color.setRGB(this.comms.unread > 0 && Math.sin(this.t * 4) > 0 ? 4 : 0.8, this.comms.unread > 0 ? 0.6 : 0.8, 0.5)
-    if (this.comms.bubble) this.comms.bubble.position.y = this.comms.pos.y + 1.95 + Math.sin(this.t * 2.5) * 0.05
+    for (const r of this.rooms) this.stepRoom(r, dt)
+    this.caps.children.forEach((m) => { m.position.y = 0.12 + Math.sin(this.t * 2 + (m.userData.phase as number)) * 0.03; m.rotation.y += dt })
     this.stepCycle(dt)
-    this.stepComets(dt)
     this.stepFx(dt)
-  }
-
-  private place() {
-    const v3 = new THREE.Vector3()
-    for (const v of this.planets.values()) {
-      v.g.getWorldPosition(v3)
-      v.label.position.set(v3.x, v3.y - v.r - 0.5, v3.z)
-    }
   }
 
   private frame = (now: number) => {
@@ -1653,13 +1047,7 @@ export class StationView {
     const dt = this.last ? Math.min(0.05, (now - this.last) / 1000) : 0
     this.last = now
     this.adapt(dt)
-    const next = this.pending.shift()
-    if (next) {
-      this.addPlanet(next.p, next.R, next.r)
-      if (this.reduced) this.planets.get(next.p.id)!.g.scale.setScalar(1)
-    }
     this.step(this.reduced ? 0 : dt) // reduced motion: everything placed, nothing moves
-    this.place()
     const yaw = this.yaw + this.sway()
     const d = this.dist * this.zoom
     this.camera.position.set(
@@ -1725,7 +1113,7 @@ export class StationView {
     const aspect = w / h
     this.camera.aspect = aspect
     const tan = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))
-    this.dist = Math.min(80, Math.max(9.2 / tan, 18.5 / (tan * aspect)))
+    this.dist = Math.min(80, Math.max(6.6 / tan, 9.4 / (tan * aspect)))
     this.camera.updateProjectionMatrix()
   }
 
@@ -1746,7 +1134,7 @@ export class StationView {
   }
 
   /** The camera drifts a little until someone turns it. */
-  private sway() { return this.moved || this.reduced ? 0 : Math.sin(this.t * 0.06) * 0.35 }
+  private sway() { return this.moved || this.reduced ? 0 : Math.sin(this.t * 0.06) * 0.3 }
 
   // ---------- pointer ----------
 
@@ -1762,18 +1150,12 @@ export class StationView {
       const hit = ray.intersectObjects(this.hits, false)[0]
       return (hit?.object.userData.target as StationTarget | undefined) ?? null
     }
-    const keyOf = (t: StationTarget | null) => (!t ? null : t.kind === 'planet' ? 'p:' + t.planet.id : t.kind === 'comet' ? 'c:' + t.comet.id : t.kind === 'agent' ? 'a:' + t.agent : t.kind)
+    const keyOf = (t: StationTarget | null) => (!t ? null : t.kind === 'room' ? 'r:' + t.key : t.kind)
     const highlight = (k: string | null) => {
       if (k === this.hover) return
       this.hover = k
-      for (const [id, v] of this.planets) {
-        v.ring.visible = 'p:' + id === k
-        ;(v.orbit.material as THREE.LineBasicMaterial).opacity = 'p:' + id === k ? 0.55 : 0.16
-      }
+      for (const r of this.rooms) r.ring.visible = 'r:' + r.m.key === k
       this.core.ring!.visible = k === 'core'
-      this.dock.ring!.visible = k === 'dock' || k === 'commander'
-      this.cargo.ring!.visible = k === 'cargo'
-      this.comms.ring!.visible = k === 'comms'
     }
     let down: { x: number; y: number; yaw: number; pitch: number } | null = null
     let dragged = false
@@ -1796,7 +1178,7 @@ export class StationView {
       const t = pick(e)
       highlight(keyOf(t))
       cv.style.cursor = t ? 'pointer' : 'grab'
-      this.o.onHover(t ? (t.kind === 'agent' ? { ...t } : t) : null, e.clientX - r.left, e.clientY - r.top)
+      this.o.onHover(t, e.clientX - r.left, e.clientY - r.top)
     }
     const pup = (e: PointerEvent) => {
       if (down && !dragged) { const t = pick(e); if (t) this.o.onPick(t) }
@@ -1809,7 +1191,7 @@ export class StationView {
     const wheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return
       e.preventDefault()
-      this.zoom = Math.max(0.4, Math.min(1.5, this.zoom * Math.exp(e.deltaY * 0.004)))
+      this.zoom = Math.max(0.35, Math.min(1.5, this.zoom * Math.exp(e.deltaY * 0.004)))
     }
     cv.addEventListener('pointerdown', pdown)
     cv.addEventListener('pointermove', pmove)
@@ -1828,7 +1210,7 @@ export class StationView {
   }
 
   /** Zoom from the buttons: k < 1 closer. */
-  zoomBy(k: number) { this.zoom = Math.max(0.4, Math.min(1.5, this.zoom * k)) }
+  zoomBy(k: number) { this.zoom = Math.max(0.35, Math.min(1.5, this.zoom * k)) }
   resetView() { this.yaw = 0; this.pitch = PITCH0; this.zoom = 1; this.moved = false }
 
   start() {
@@ -1850,13 +1232,10 @@ export class StationView {
         }
       })
     }
-    this.mapCache.forEach((m) => { m.map.dispose(); m.clouds?.dispose() })
     this.geos.forEach((g) => g.dispose())
     this.mats.forEach((m) => m.dispose())
     this.texs.forEach((t) => t.dispose())
     this.composer?.dispose()
     this.renderer?.dispose()
   }
-
 }
-

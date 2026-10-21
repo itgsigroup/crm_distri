@@ -7,7 +7,9 @@ import { fmtNum, fmtRp, hhmm, shortDate } from '../../lib/format'
 import { KUAD } from '../../lib/i18n/id'
 import type { BoardItem, Segment, Trend, TrendKey } from '../../api/types'
 import { dueSoon } from '../orbit/filters'
+import { AiOverview } from './AiOverview'
 import { DashboardStation } from './DashboardStation'
+import { useCrew } from './useCrew'
 import { TrendChart } from './TrendChart'
 import { TREND_BETTER, TREND_FMT, trendHeads } from './trend'
 import './dashboard.css'
@@ -119,6 +121,7 @@ export function DashboardPage() {
   const srcText = src ? `${src.label}${src.synced_at ? ` · sinkron ${shortDate(src.synced_at)} ${hhmm(src.synced_at)} WIB` : ''}` : ''
   const can = (screen: string) => me?.screens.includes(screen) ?? false
   const dealers = board ?? []
+  const crew = useCrew(dealers, kpi, can)
   const active = dealers.filter((d) => d.metrics.segment !== 'Prospek')
   const omzet = active.reduce((sum, d) => sum + d.metrics.omzet_bln, 0)
   const atRisk = active.filter((d) => d.metrics.status === 'At risk' || d.metrics.status === 'Churn').length
@@ -151,7 +154,9 @@ export function DashboardPage() {
       <div className="db-hero-meta"><span>Dealer dalam cakupan Anda</span><b>{board?.[0]?.metrics.as_of ? `Data dealer ${shortDate(board[0].metrics.as_of)}` : 'Data terbaru'}</b>{srcText && <small title={src?.basis}>Sumber {srcText}</small>}{brief?.generated_at && <small>Ringkasan AI diperbarui {hhmm(brief.generated_at)} WIB</small>}</div>
     </div>
 
-    <DashboardStation board={dealers} kpi={kpi} can={can} />
+    <DashboardStation crew={crew} kpi={kpi} can={can} />
+
+    <AiOverview crew={crew} can={can} />
 
     {(boardError || kpiError || pushError) && <div className="db-error" role="alert">Sebagian data gagal dimuat. Muat ulang halaman untuk mencoba lagi.</div>}
 

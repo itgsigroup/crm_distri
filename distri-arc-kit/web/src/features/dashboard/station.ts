@@ -1,111 +1,156 @@
-import type { BoardItem, ThreadView } from '../../api/types'
+import type { BoardItem } from '../../api/types'
+import { fmtNum, fmtRp } from '../../lib/format'
 import { dueSoon, mustCollect } from '../orbit/filters'
+import type { ProgressAgent } from '../control/progress'
 
-// Stasiun Orbit (dashboard game scene): a space miniature with the AI core (the Orchestrator) in the middle, dealers
-// as planets around it and the six agents as astronauts. Which dealers get a planet, how far out they orbit and what
-// each astronaut is busy with all come from real data. The system does not hunt for leads: the only thing that comes
-// in from deep space is a comet — a new number that wrote to a sales number first. Pure, so it is tested.
+// Stasiun Orbit (dashboard game scene): a space station around the AI core (the Orchestrator) with ten rooms, one
+// astronaut each, worked in order — sales, WhatsApp and dealers are read first, the six agents then propose, and the
+// last room puts the data together ("Data siap"). The scene never shows a customer: no dealer or contact names, only
+// what each astronaut is doing and counts. The same lines fill the "Hasil overview AI" card. Pure, so it is tested.
 
-export type PlanetLook = 'key' | 'normal' | 'risk' | 'closed'
-export type Tone = 'good' | 'warn' | 'bad' | 'neutral'
-/** the four agents that fly out to planets; AI Stok works the cargo bay and AI Prospek the radar */
-export type FlyKind = 'order' | 'collect' | 'credit' | 'followup'
-export type AgentKey = FlyKind | 'stock' | 'prospect'
+export type CrewKey = 'sales' | 'wa' | 'dealer' | 'order' | 'followup' | 'stock' | 'credit' | 'collect' | 'prospect' | 'ready'
+export type CrewState = 'idle' | 'waiting' | 'reading' | 'done' | 'failed'
+export interface CrewWork { state: CrewState; text: string }
+export type CrewStatus = Record<CrewKey, CrewWork>
+export const CREW_STATE_LABEL: Record<CrewState, string> = { idle: 'siaga', waiting: 'antri', reading: 'menganalisa', done: 'selesai', failed: 'gagal' }
 
-export interface Planet {
-  id: string
-  name: string
-  look: PlanetLook
-  tone: Tone
-  omzet: number
-  dueIn: number | null
-  /** orbit radius, 0 (next to the core: jadwal order now or late) … 1 (far out: no jadwal or far away) */
-  orbit: number
-  /** planet size, 0 (smallest omzet) … 1 (biggest) */
-  size: number
-  /** starting angle on the orbit (radians) */
-  angle: number
+export interface CrewMember {
+  key: CrewKey
+  n: number
+  title: string
+  /** what the astronaut does, for the tooltip and the legend */
+  does: string
+  color: string
+  /** the server agent (proposals.agent) this astronaut acts out; the first three and the last follow the cycle stages */
+  agent?: string
+  /** screen permission and route a click opens */
+  screen: string
+  to: string
 }
 
-export interface Comet { id: string; name: string; at: string | null }
+export const CREW: CrewMember[] = [
+  { key: 'sales', n: 1, title: 'Analisa sales', does: 'Membaca omzet, SO, dan pembayaran dari Odoo', color: '#36b8ff', screen: 'kuad', to: '/orbit/segmen' },
+  { key: 'wa', n: 2, title: 'Analisa WhatsApp', does: 'Membaca chat masuk dan pesan yang belum dibalas', color: '#25d366', screen: 'chat', to: '/chat' },
+  { key: 'dealer', n: 3, title: 'Analisa dealer', does: 'Menghitung jadwal order, status, dan segmen dealer', color: '#4fd6ff', screen: 'orbit', to: '/orbit' },
+  { key: 'order', n: 4, title: 'Eksekusi order', does: 'Menyiapkan usulan order untuk jadwal order yang dekat', color: '#3b8cff', agent: 'AI Order', screen: 'today', to: '/' },
+  { key: 'followup', n: 5, title: 'Follow-up', does: 'Menyusun follow-up untuk dealer At risk', color: '#ff9a2e', agent: 'AI Follow-up', screen: 'today', to: '/' },
+  { key: 'stock', n: 6, title: 'Cek stok', does: 'Memeriksa stok menua dan stok kritis', color: '#2fd17a', agent: 'AI Stok', screen: 'stock', to: '/stok' },
+  { key: 'credit', n: 7, title: 'Cek kredit', does: 'Memeriksa sisa limit kredit dealer', color: '#a26bff', agent: 'AI Kredit', screen: 'ar', to: '/kredit' },
+  { key: 'collect', n: 8, title: 'Cek penagihan', does: 'Memeriksa invoice lewat tempo dan over limit', color: '#ff4d5e', agent: 'AI Penagihan', screen: 'ar', to: '/kredit' },
+  { key: 'prospect', n: 9, title: 'Prospek', does: 'Memindai nomor baru yang menghubungi lebih dulu', color: '#e9eef7', agent: 'AI Prospek', screen: 'chat', to: '/chat' },
+  { key: 'ready', n: 10, title: 'Data siap', does: 'Menyatukan hasil semua astronot jadi usulan untuk diputuskan', color: '#ffcf5a', screen: 'today', to: '/' },
+]
+export const CREW_OF: Record<CrewKey, CrewMember> = Object.fromEntries(CREW.map((c) => [c.key, c])) as Record<CrewKey, CrewMember>
+/** proposals.agent → the astronaut that made it */
+export const CREW_BY_AGENT: Record<string, CrewKey> = Object.fromEntries(CREW.filter((c) => c.agent).map((c) => [c.agent!, c.key]))
 
-export interface StationPlan {
-  planets: Planet[]
-  tasks: Record<FlyKind, string[]>
-  comets: Comet[]
+/** Aggregates only — never a customer's name. Undefined = not loaded (or not allowed). */
+export interface CrewFacts {
+  omzetMonth?: number | null
+  omzetPrev?: number | null
+  so?: number
+  payments?: number
+  waMessages?: number
+  unread?: number
+  newNumbers?: number
+  dealers?: number
+  atRisk?: number
+  due?: number
+  tight?: number
+  collect?: number
+  overdue?: number
+  overdueDealers?: number
+  aging?: number
+  agingValue?: number
+  critical?: number
+  waiting?: number
+  /** proposals waiting per crew member */
+  waitingBy?: Partial<Record<CrewKey, number>>
 }
 
-/** The agents as the server names them (proposals.agent) → astronaut. */
-export const AGENT_OF: Record<string, AgentKey> = {
-  'AI Order': 'order', 'AI Penagihan': 'collect', 'AI Kredit': 'credit', 'AI Follow-up': 'followup', 'AI Stok': 'stock', 'AI Prospek': 'prospect',
-}
-export const AGENT_NAME: Record<AgentKey, string> = {
-  order: 'AI Order', collect: 'AI Penagihan', credit: 'AI Kredit', followup: 'AI Follow-up', stock: 'AI Stok', prospect: 'AI Prospek',
-}
-export const AGENT_COLOR: Record<AgentKey, string> = {
-  order: '#3b8cff', collect: '#ff4d5e', credit: '#a26bff', followup: '#ff9a2e', stock: '#2fd17a', prospect: '#e9eef7',
-}
-
-// days of jadwal order that map onto the orbit radius; further (or no jadwal) = the outer orbit
-const FAR_DAYS = 45
-const GOLDEN = Math.PI * (3 - Math.sqrt(5))
-
-const short = (s: string) => s.replace(/^(PT|CV|UD|Toko|TB)\.?\s+/i, '').trim()
-const toneOf = (d: BoardItem): Tone => {
-  const s = d.metrics.credit.state
-  return s === 'aman' ? 'good' : s === 'tipis' ? 'warn' : s === 'cash' ? 'neutral' : 'bad'
-}
-const lookOf = (d: BoardItem): PlanetLook =>
-  d.metrics.status === 'Churn' ? 'closed' : d.metrics.status === 'At risk' ? 'risk' : d.metrics.status === 'Key account' ? 'key' : 'normal'
-
-/** Orbit radius from the days to the next jadwal order: late or due today next to the core, none at the edge. */
-export function orbitOf(dueIn: number | null, churn = false): number {
-  if (churn || dueIn == null) return 1
-  return Math.max(0, Math.min(1, dueIn / FAR_DAYS)) * 0.92
-}
-
-/** Pick up to `max` dealers: first some with a task (so the astronauts have work), then the biggest by omzet. */
-export function planStation(board: BoardItem[], threads: ThreadView[], max: number, maxComets = 4): StationPlan {
+/** Counts from the dealer board (no names leave this function). */
+export function boardFacts(board: BoardItem[]): Pick<CrewFacts, 'dealers' | 'atRisk' | 'due' | 'tight' | 'collect'> {
   const active = board.filter((d) => d.metrics.segment !== 'Prospek' && d.metrics.status !== 'Prospek')
-  const byOmzet = [...active].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln || a.name.localeCompare(b.name))
-  const picked = new Map<string, BoardItem>()
-  const take = (list: BoardItem[], n: number) => {
-    for (const d of list) {
-      if (picked.size >= max || n <= 0) break
-      if (!picked.has(d.id)) { picked.set(d.id, d); n-- }
-    }
+  return {
+    dealers: active.length,
+    atRisk: active.filter((d) => d.metrics.status === 'At risk' || d.metrics.status === 'Churn').length,
+    due: active.filter(dueSoon).length,
+    tight: active.filter((d) => d.metrics.credit.state === 'tipis').length,
+    collect: active.filter(mustCollect).length,
   }
-  const quota = Math.max(1, Math.floor(max / 5))
-  take(byOmzet.filter(dueSoon), quota)
-  take(byOmzet.filter(mustCollect), quota)
-  take(byOmzet.filter((d) => d.metrics.status === 'At risk'), quota)
-  take(byOmzet.filter((d) => d.metrics.credit.state === 'tipis'), quota)
-  take(byOmzet, max)
-  const chosen = [...picked.values()].sort((a, b) => b.metrics.omzet_bln - a.metrics.omzet_bln || a.name.localeCompare(b.name))
-  const top = Math.sqrt(Math.max(1, chosen[0]?.metrics.omzet_bln ?? 1))
-  const planets: Planet[] = chosen.map((d, i) => ({
-    id: d.id, name: short(d.short_name || d.name), look: lookOf(d), tone: toneOf(d), omzet: d.metrics.omzet_bln, dueIn: d.metrics.due_in ?? null,
-    orbit: orbitOf(d.metrics.due_in ?? null, d.metrics.status === 'Churn'),
-    size: Math.sqrt(Math.max(0, d.metrics.omzet_bln)) / top,
-    angle: (i * GOLDEN) % (Math.PI * 2),
-  }))
-  const tasks: Record<FlyKind, string[]> = { order: [], collect: [], credit: [], followup: [] }
-  for (const d of chosen) {
-    if (dueSoon(d)) tasks.order.push(d.id)
-    if (mustCollect(d)) tasks.collect.push(d.id)
-    if (d.metrics.credit.state === 'tipis') tasks.credit.push(d.id)
-    if (d.metrics.status === 'At risk') tasks.followup.push(d.id)
-  }
-  // comets: new numbers that wrote in first (never suppliers), newest first
-  const comets = threads
-    .filter((t) => t.kind === 'new' && t.contact_type !== 'supplier' && t.last_direction !== 'out')
-    .sort((a, b) => (b.last_message_at ?? '').localeCompare(a.last_message_at ?? ''))
-    .slice(0, maxComets)
-    .map((t) => ({ id: t.id, name: t.title, at: t.last_message_at }))
-  return { planets, tasks, comets }
 }
 
-/** The agents of the proposals waiting for a decision → one capsule each at the Dek Keputusan (max shown). */
-export function capsules(agents: string[], max = 12): AgentKey[] {
-  return agents.slice(0, max).map((a) => AGENT_OF[a] ?? 'order')
+/** Proposals waiting for a decision, per astronaut. */
+export function waitingBy(agents: string[]): Partial<Record<CrewKey, number>> {
+  const out: Partial<Record<CrewKey, number>> = {}
+  for (const a of agents) {
+    const k = CREW_BY_AGENT[a]
+    if (k) out[k] = (out[k] ?? 0) + 1
+  }
+  return out
+}
+
+const n = (v: number | undefined) => (v == null ? '—' : fmtNum(v))
+
+/** One line per astronaut: what its last look at the data found (the card), short enough for a room sign. */
+export function crewLines(f: CrewFacts): Record<CrewKey, string> {
+  const wb = f.waitingBy ?? {}
+  const prop = (k: CrewKey) => (wb[k] ? ` · ${fmtNum(wb[k]!)} usulan` : '')
+  const sales = f.omzetMonth != null
+    ? `Omzet bulan ini s.d. hari ini ${fmtRp(f.omzetMonth)}` + (f.omzetPrev ? ` · bulan lalu ${fmtRp(f.omzetPrev)}` : '')
+    : f.so != null ? `${n(f.so)} SO · ${n(f.payments)} pembayaran dibaca` : 'Menunggu data penjualan'
+  const wa = [f.unread != null && `${n(f.unread)} chat belum dibaca`, f.waMessages != null && `${n(f.waMessages)} pesan dianalisa`].filter(Boolean).join(' · ') || 'Tidak ada akses chat'
+  return {
+    sales,
+    wa,
+    dealer: `${n(f.dealers)} dealer di orbit · ${n(f.atRisk)} At risk/Churn`,
+    order: `${n(f.due)} jadwal order ≤ 14 hari${prop('order')}`,
+    followup: `${n(f.atRisk)} dealer perlu follow-up${prop('followup')}`,
+    stock: `${n(f.aging)} stok menua · ${n(f.critical)} SKU kritis`,
+    credit: `${n(f.tight)} dealer limit tipis${prop('credit')}`,
+    collect: f.overdue != null ? `${fmtRp(f.overdue)} lewat tempo · ${n(f.overdueDealers)} dealer` : `${n(f.collect)} dealer over limit / overdue${prop('collect')}`,
+    prospect: f.newNumbers != null ? `${n(f.newNumbers)} nomor baru masuk${prop('prospect')}` : 'Tidak ada akses chat',
+    ready: `${n(f.waiting)} usulan menunggu keputusan`,
+  }
+}
+
+export interface CrewCycle {
+  /** a cycle is running or being followed */
+  active: boolean
+  /** index into STAGES: ingest, analyze, synthesize, decide, execute, learn */
+  stage: number
+  ended: boolean
+  failed: boolean
+  agents: ProgressAgent[]
+  /** new proposals of the followed cycle */
+  fresh: number
+}
+
+/** What every astronaut does now. Outside a cycle each works its own room (idle, with its line); in a cycle the
+ * rooms follow the stages: 1–3 read in Ingest/Analisis, 4–9 act out their agents, 10 puts it together. */
+export function crewStatus(lines: Record<CrewKey, string>, c: CrewCycle | null): CrewStatus {
+  const out = {} as CrewStatus
+  for (const m of CREW) out[m.key] = { state: 'idle', text: lines[m.key] }
+  if (!c?.active) return out
+  const end = (k: CrewKey, text: string) => { out[k] = { state: c.failed ? 'failed' : 'done', text: c.failed ? 'gagal' : text } }
+  const byStage = (k: CrewKey, from: number, to: number, doneText: string) => {
+    if (c.ended || c.stage > to) end(k, doneText)
+    else if (c.stage >= from) out[k] = { state: 'reading', text: 'menganalisa…' }
+    else out[k] = { state: 'waiting', text: 'antri' }
+  }
+  byStage('sales', 0, 0, 'data penjualan terbaca')
+  byStage('wa', 0, 0, 'chat terbaca')
+  byStage('dealer', 1, 1, 'orbit dealer dihitung')
+  for (const m of CREW) {
+    if (!m.agent) continue
+    const a = c.agents.find((x) => x.agent === m.agent)
+    if (!a) { byStage(m.key, 1, 3, 'tanpa saran baru'); continue }
+    const state = c.ended && (a.state === 'waiting' || a.state === 'reading') ? (c.failed ? 'failed' : 'done') : a.state
+    const text = state === 'reading' ? (a.covers ? `membaca ${a.covers}` : 'menganalisa…') : state === 'waiting' ? 'antri' : state === 'failed' ? 'gagal' : a.summary || 'selesai'
+    out[m.key] = { state, text }
+  }
+  if (c.ended) end('ready', c.fresh ? `${fmtNum(c.fresh)} usulan baru siap` : 'data siap · tanpa usulan baru')
+  else if (c.stage >= 2) out.ready = { state: 'reading', text: 'menyatukan hasil…' }
+  else out.ready = { state: 'waiting', text: 'menunggu hasil' }
+  return out
 }

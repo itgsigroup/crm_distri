@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Dashboard: Stasiun Orbit jadi 10 ruangan kru AI + kartu Hasil overview AI · 2026-10-21
+- **Stasiun Orbit** tidak lagi menampilkan data pelanggan: planet dealer, nama dealer, dan komet "Nomor baru · nama" dihapus. Gantinya stasiun luar angkasa dengan **10 ruangan berkubah kaca** di sekeliling Inti AI, satu astronot per ruangan di konsol dengan hologram kerjanya: 1 Analisa sales, 2 Analisa WhatsApp, 3 Analisa dealer, 4 Eksekusi order, 5 Follow-up, 6 Cek stok, 7 Cek kredit, 8 Cek penagihan, 9 Prospek, 10 **Data siap**.
+- Saat siklus Orchestrator berjalan, ruangan bekerja berurutan: 1–3 di tahap Ingest/Analisis, 4–9 mengikuti agennya (antri, menganalisa dengan sinar ke Inti AI, selesai, gagal), hasilnya terbang ke ruangan Data siap. Papan nama ruangan hanya berisi tugas dan angka; klik ruangan membuka layar terkait.
+- Kartu baru **Hasil overview AI** di bawah stasiun: 10 kotak hasil per astronot (omzet bulan ini, chat belum dibaca, dealer At risk, jadwal order, stok menua/kritis, limit tipis, lewat tempo, nomor baru, usulan menunggu) plus status langsung saat siklus berjalan dan jumlah saran dari siklus terakhir.
+
 ## Feat · AI Trigger: Claude mencari barang di pesan; beberapa barang dan jumlah diminta · 2026-10-21
 - Barang di pesan pelanggan kini dicari **Claude** dari kandidat katalog stok, bukan pencocokan kata (ADR 0058). Semua barang di satu pesan terbaca (mis. "H8c 2mp : 8 … sekalian X5S-8W 1 unit" → dua barang), dengan jumlah yang diminta.
 - Kartu stok: satu baris per barang (stok, harga, cabang lain) dan **cukup / kurang** terhadap jumlah diminta ("Kurang · 5 dari 8 diminta" + saran mutasi). Angka tetap dihitung sistem; ChatGPT/Claude menulis draf yang menjawab semua barang.
