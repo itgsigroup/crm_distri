@@ -22,7 +22,7 @@ const unit = (name: string) => (/modul|detektor|kabel|power/i.test(name) ? 'pcs'
 const num = (v: number) => String(v).replace('.', ',')
 
 /** Where the stock comes from and how fresh it is: BigQuery, the stock alone every few minutes (Sam 19 Oct). */
-function StockSource() {
+export function StockSource() {
   const { toast } = useFeedback()
   const { data: st } = useStockStatus()
   const now = useNow()

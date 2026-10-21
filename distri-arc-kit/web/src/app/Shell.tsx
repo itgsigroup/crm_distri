@@ -27,6 +27,7 @@ export const ROUTES: Record<ScreenKey, string> = {
   net: '/orbit/relasi',
   dealer: '/dealer',
   stock: '/stok',
+  stockcheck: '/stok/cek',
   ar: '/kredit',
   users: '/pengguna',
   roles: '/peran',
@@ -49,6 +50,7 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/orbit/relasi')) return 'net'
   if (path.startsWith('/orbit')) return 'orbit'
   if (path.startsWith('/dealer')) return 'dealer'
+  if (path.startsWith('/stok/cek')) return 'stockcheck'
   if (path.startsWith('/stok')) return 'stock'
   if (path.startsWith('/kredit')) return 'ar'
   if (path.startsWith('/pengguna')) return 'users'
@@ -68,6 +70,7 @@ export function canSee(screens: string[], key: ScreenKey): boolean {
   if (key === 'salesmap') return screens.includes('users') || screens.includes('conn')
   if (key === 'aiapi') return screens.includes('conn') || screens.includes('mcp')
   if (key === 'aitrigger') return screens.includes('conn') || screens.includes('chat')
+  if (key === 'stockcheck') return screens.includes('stock') || screens.includes('chat') // who answers stock questions
   return screens.includes(key === 'dashboard' ? 'today' : key)
 }
 
@@ -158,6 +161,7 @@ export function Shell() {
             <NavBtn to="dealer" cur={cur} icon="building">Dealer</NavBtn>
             <div className="nav-sec">Operasi</div>
             <NavBtn to="stock" cur={cur} icon="box">Push stok</NavBtn>
+            <NavBtn to="stockcheck" cur={cur} icon="check">Cek stok</NavBtn>
             <NavBtn to="ar" cur={cur} icon="cash" badge={<Badge n={creditBad} color="var(--bad)" />}>Kredit · kas</NavBtn>
             {me && ['users', 'roles', 'branches', 'conn'].some((k) => me.screens.includes(k)) && <div className="nav-sec">Master data</div>}
             <NavBtn to="users" cur={cur} icon="people">Pengguna</NavBtn>

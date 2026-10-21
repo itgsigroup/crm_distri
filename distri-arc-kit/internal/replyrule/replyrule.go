@@ -235,6 +235,23 @@ func stockCard(s *Suggestion, r Rule, text string, history []Line, d Data) {
 		unknownProduct(s, cands, "data stok")
 		return
 	}
+	stockAnswer(s, r, p, d)
+}
+
+// StockFor is the stock card of rule r for one SKU, as Chat would show it in a conversation of d.Branch (Cek stok:
+// what the AI Trigger answers, to check against the real stock). Nil when no stock row has the SKU.
+func StockFor(r Rule, sku string, d Data) *Suggestion {
+	for _, p := range catalog(d.Stock) {
+		if strings.EqualFold(p.sku, sku) {
+			s := &Suggestion{RuleID: r.ID, Rule: r.Name, Action: ActionStock, Others: []BranchQty{}, Facts: []Fact{}, Tone: "neutral"}
+			stockAnswer(s, r, p, d)
+			return s
+		}
+	}
+	return nil
+}
+
+func stockAnswer(s *Suggestion, r Rule, p *product, d Data) {
 	branch := stockBranch(d.Branch, d.Stock)
 	s.Branch = branch
 	s.Product, s.SKU = p.name, p.sku

@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Halaman Cek stok: cocokkan stok yang dibaca AI dengan stok real · 2026-10-21
+- Menu **Operasi → Cek stok** (`/stok/cek`, terlihat bagi pemegang Push stok atau Chat). Cari barang (nama/kode) lalu lihat per cabang: **Dibaca AI** (`stock_items`, yang dipakai AI Trigger, Push stok, Orchestrator), **Baris BigQuery** (baris sumber per gudang yang dipetakan ke cabang itu), isi **Stok real** dari Accurate/gudang → **Selisih** dan **Hasil**: *Cocok*, *AI ≠ BigQuery* (sinkron / mapping gudang) atau *BigQuery ≠ real* (query / data sumber).
+- **Jawaban AI Trigger** untuk barang itu per cabang percakapan (termasuk "Semua cabang"), dihitung dengan fungsi yang sama dengan kartu di Chat.
+- **Data mentah BigQuery per gudang** dengan cabang hasil mapping; gudang yang belum dipetakan ditandai.
+- **Simpan hasil cek** menyimpan hitungan real per cabang bersama angka yang dibaca AI saat itu (tabel `stock_checks`, migrasi 0057); riwayat per barang dan "Cek stok terakhir" untuk semua barang.
+- API: `GET /api/stock/products?q=`, `GET /api/stock/check?sku=&branch=`, `GET/POST /api/stock/checks`.
+
 ## Fix · AI Trigger Cek stok tidak lagi menjawab "Kosong di Semua cabang" · 2026-10-21
 - Percakapan sales yang memegang semua cabang (mis. Granike, cabang "Semua cabang") membaca stok cabang bernama "Semua cabang" — yang tidak ada — sehingga stok selalu 0 dan kartu menulis "Kosong di Semua cabang" padahal Ezviz NVR X5S 8W ada di Surabaya, Semarang, Soetta, Jakarta. Cabang percakapan yang tidak dimiliki baris stok mana pun kini dianggap "tanpa cabang": stok semua cabang dijumlah ("Ready · 151 di semua cabang").
 

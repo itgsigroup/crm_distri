@@ -1998,3 +1998,33 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 /* while a page's chunk loads on the first visit (router lazy routes) */
 .boot-fallback{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg)}
 .boot-fallback::after{content:"";width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
+
+/* Cek stok (21 Oct): the stock the AI reads next to the real count, per branch */
+.sc-search{margin-bottom:16px}
+.sc-q{max-width:520px}
+.sc-found{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:320px;overflow:auto}
+.sc-found li.muted{font-size:13px;padding:6px 2px}
+.sc-found button{width:100%;display:flex;align-items:baseline;gap:10px;padding:8px 12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);text-align:left;font:inherit;font-size:13px;color:var(--text);cursor:pointer}
+.sc-found button:hover,.sc-found button.is-active{border-color:var(--accent);background:var(--accent-soft)}
+.sc-found button small{color:var(--text-3);font-size:11.5px}
+.sc-found button .num{margin-left:auto;font-weight:700;white-space:nowrap}
+.sc-answer{padding:12px 14px;border-radius:12px;background:var(--surface-2);border-left:3px solid var(--text-3);display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+.sc-answer.good{border-left-color:var(--good)}.sc-answer.bad{border-left-color:var(--bad)}.sc-answer.warn{border-left-color:var(--warn)}
+.sc-answer>b{font-size:15px}
+.sc-answer.good>b{color:var(--good)}.sc-answer.bad>b{color:var(--bad)}
+.sc-draft{margin-top:4px;font-style:italic;color:var(--text-2)}
+.sc-hint{font-size:12px;color:var(--text-3);margin:10px 0 0}
+.sc-table{min-width:720px}
+.sc-table td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.sc-table td.r{text-align:right}
+.sc-in{width:90px;height:30px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--text);font:inherit;text-align:right;padding:0 8px}
+.sc-in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.sc-tag{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surface-3);color:var(--text-2);white-space:nowrap}
+.sc-tag.good{background:var(--good-soft);color:var(--good)}.sc-tag.bad{background:var(--bad-soft);color:var(--bad)}.sc-tag.warn{background:var(--warn-soft);color:var(--warn)}
+.sc-last{font-size:12.5px}
+.sc-last small{display:block;color:var(--text-3);font-size:11px}
+.sc-save{display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.sc-note{flex:1;min-width:220px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);font:inherit;font-size:13px;padding:0 12px}
+.sc-link{background:none;border:0;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-align:left}
+@media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.sc-table .muted,.sc-answer .muted,.sc-found .muted,.sc-last .muted{color:var(--text-3)}

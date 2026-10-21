@@ -2,7 +2,7 @@
 // Terms follow docs/design/01-glossary.md exactly.
 import type { RootCause, Segment } from '../../api/types'
 
-export type ScreenKey = 'today' | 'dashboard' | 'orch' | 'chat' | 'reportwa' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'ar' | 'users' | 'roles' | 'branches' | 'salesmap' | 'mcp' | 'aiapi' | 'aitrigger' | 'conn' | 'konsep'
+export type ScreenKey = 'today' | 'dashboard' | 'orch' | 'chat' | 'reportwa' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'stockcheck' | 'ar' | 'users' | 'roles' | 'branches' | 'salesmap' | 'mcp' | 'aiapi' | 'aitrigger' | 'conn' | 'konsep'
 
 export const TITLES: Record<ScreenKey, [string, string]> = {
   today: ['Pusat kendali', ''],
@@ -14,6 +14,7 @@ export const TITLES: Record<ScreenKey, [string, string]> = {
   net: ['Orbit', 'Peta relasi: kedekatan nomor sales ↔ dealer dalam 3D'],
   kuad: ['Orbit', 'Segmen: dealer dikelompokkan menurut seberapa sering dan seberapa besar ordernya'],
   dealer: ['Dealer', 'Frekuensi order, order-to-cash, share of wallet, product mix, sisa limit, PIC aktif — satu halaman per dealer'],
+  stockcheck: ['Cek stok', 'Cocokkan stok yang dibaca AI (dari BigQuery) dengan stok real di Accurate atau gudang, per cabang'],
   stock: ['Push stok', 'Perputaran stok: stok yang menua menjadi alasan follow-up dealer yang jadwal order'],
   ar: ['Sisa limit', 'DSO (order → bayar): ruang kredit tiap dealer, pola bayar, prediksi kas masuk'],
   users: ['Pengguna', 'Master pengguna: akun login, peran, dan cabang · nomor WhatsApp ditautkan di Chat'],

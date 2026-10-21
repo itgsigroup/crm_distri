@@ -54,6 +54,10 @@ Setiap angka di halaman Push stok dihitung dari rumus `01-glossary.md` atas data
 
 Gudang dipetakan ke cabang (Pengaturan → Data & master → Mapping → Gudang) — stok dijumlah per SKU × cabang.
 
+**Cek stok** (`/stok/cek`) menampilkan untuk satu barang: angka yang dibaca AI per cabang, baris BigQuery per gudang di
+baliknya, dan stok real yang diisi pengguna. Selisih AI ≠ BigQuery → sinkron/mapping gudang; BigQuery ≠ real → query
+atau tabel sumber.
+
 ## Contoh query BigQuery
 Setiap query cukup memberi nama kolom sesuai kontrak (`AS …`). Contoh untuk tabel hasil ekspor Accurate:
 ```sql

@@ -923,6 +923,20 @@ type SignalsDefault struct {
 	CreatedAt   time.Time       `json:"created_at"`
 }
 
+type StockCheck struct {
+	ID            uuid.UUID  `json:"id"`
+	Sku           string     `json:"sku"`
+	Product       string     `json:"product"`
+	Branch        string     `json:"branch"`
+	ArcQty        int32      `json:"arc_qty"`
+	RealQty       int32      `json:"real_qty"`
+	Note          string     `json:"note"`
+	SyncedAt      *time.Time `json:"synced_at"`
+	CheckedBy     *uuid.UUID `json:"checked_by"`
+	CheckedByName string     `json:"checked_by_name"`
+	CheckedAt     time.Time  `json:"checked_at"`
+}
+
 type StockItem struct {
 	ID              uuid.UUID  `json:"id"`
 	Branch          string     `json:"branch"`

@@ -47,6 +47,7 @@ func (s *Server) readRoutes(r chi.Router) {
 	r.Get("/stock/sales-by-product", s.stockSales)
 	r.Get("/stock/status", s.stockStatus)
 	r.Post("/stock/sync", s.stockSync)
+	s.stockCheckRoutes(r)
 	r.Get("/policies", s.policies)
 	r.Get("/credit/overview", s.creditPart("overview"))
 	r.Get("/credit/dealers", s.creditPart("dealers"))

@@ -64,6 +64,12 @@ func TestSuggest(t *testing.T) {
 		s.Headline != "Ready · 7 di semua cabang" || s.Branch != "" {
 		t.Fatalf("all-branches sales: %+v", s)
 	}
+	if s := StockFor(rule, "n16", Data{Branch: "Semarang", Stock: stock}); s == nil || s.Ready || s.Headline != "Kosong di Semarang" || s.Others[0].Qty != 7 {
+		t.Fatalf("stock for a SKU: %+v", s)
+	}
+	if StockFor(rule, "nope", Data{Stock: stock}) != nil {
+		t.Fatal("unknown SKU")
+	}
 	if Matches(rule, "readymix beton") != "" || Matches(rule, "Ada barang nya?") != "ada barang" || Matches(rule, "stoknya ada?") != "stok" ||
 		Matches(rule, "stokis") != "" {
 		t.Fatal("whole-word keywords")
