@@ -164,3 +164,24 @@ func TestProductFromHistory(t *testing.T) {
 		t.Fatalf("no product anywhere: %+v", cs[0])
 	}
 }
+
+// The stock card shows the price as the price card does (Sam 21 Oct): the dealer's tier, else the list price; a
+// product without a price shows none.
+func TestStockWithPrice(t *testing.T) {
+	d := Data{Branch: "Semarang", Stock: stock, Products: products, Dealer: &Dealer{Name: "Mitra", Tier: "B"}}
+	s := one(t, []Rule{rule}, "kamera 4mp ready?", d)
+	facts := map[string]string{}
+	for _, f := range s.Facts {
+		facts[f.Label] = f.Value
+	}
+	if s == nil || facts["Harga"] != "Rp 472.500" || facts["Dasar"] != "harga tier B" || s.Vars()["harga"] != "472.500" {
+		t.Fatalf("stock with tier price: %+v", s)
+	}
+	d.Dealer = nil
+	if s := one(t, []Rule{rule}, "kamera 4mp ready?", d); s.Vars()["harga"] != "450.000" {
+		t.Fatalf("list price without a dealer: %v", s.Vars())
+	}
+	if s := one(t, []Rule{rule}, "NVR 16ch ready?", d); len(s.Facts) != 0 || s.Vars()["harga"] != "" {
+		t.Fatalf("no price: %+v", s)
+	}
+}

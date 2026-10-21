@@ -16,7 +16,7 @@ export const ACTIONS: Record<ReplyAction, ActionInfo> = {
   stock: {
     label: 'Cek stok', icon: 'box', what: 'Stok produk yang disebut di pesan, per cabang',
     ready: 'Draf bila stok ready', empty: 'Draf bila stok kosong',
-    placeholders: { produk: 'nama produk', jumlah: 'stok di cabang chat', cabang: 'cabang chat', cabang_lain: 'cabang lain yang ada stoknya' },
+    placeholders: { produk: 'nama produk', jumlah: 'stok di cabang chat', cabang: 'cabang chat', cabang_lain: 'cabang lain yang ada stoknya', harga: 'harga sesuai tier dealer (tanpa "Rp"; kosong bila belum ada)' },
     defaults: { name: 'Tanya stok', keywords: ['stok', 'ready', 'ada barang', 'tersedia'], template_ready: 'Ready {jumlah} pcs untuk {produk} di {cabang}.', template_empty: 'Mohon maaf, {produk} di {cabang} sedang kosong.' },
   },
   price: {

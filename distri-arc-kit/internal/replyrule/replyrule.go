@@ -289,7 +289,9 @@ func stockAnswer(s *Suggestion, r Rule, p *product, d Data) {
 	if len(s.Others) > 0 {
 		other = s.Others[0].Branch
 	}
-	s.draft(r, map[string]string{"produk": p.name, "jumlah": qty, "cabang": where, "cabang_lain": other})
+	v := map[string]string{"produk": p.name, "jumlah": qty, "cabang": where, "cabang_lain": other}
+	stockPrice(s, p, d, v)
+	s.draft(r, v)
 	if !s.Ready && len(s.Others) > 0 {
 		s.Note = fmt.Sprintf("Kosong di %s, ada di %s (%d) — bisa ditawarkan mutasi.", where, s.Others[0].Branch, s.Others[0].Qty)
 	}
@@ -320,17 +322,7 @@ func priceCard(s *Suggestion, r Rule, text string, history []Line, d Data) {
 		return
 	}
 	s.Product, s.SKU = p.name, p.sku
-	tier := ""
-	if d.Dealer != nil {
-		tier = strings.ToUpper(strings.TrimSpace(d.Dealer.Tier))
-	}
-	price, label := p.list, "harga list (tier A)"
-	if v, ok := p.prices[tier]; ok && v > 0 {
-		price, label = v, "harga tier "+tier
-	}
-	if price <= 0 && p.prices["A"] > 0 {
-		price = p.prices["A"]
-	}
+	price, label, tier := tierPrice(p.list, p.prices, d.Dealer)
 	s.Ready = price > 0
 	if s.Ready {
 		s.Headline, s.Tone = rupiah(price)+" · "+label, "good"
@@ -347,6 +339,43 @@ func priceCard(s *Suggestion, r Rule, text string, history []Line, d Data) {
 		s.Note = strings.TrimSpace(s.Note + " Percakapan belum tertaut ke dealer — memakai harga list.")
 	}
 	s.draft(r, map[string]string{"produk": p.name, "harga": rupiahPlain(price)})
+}
+
+// tierPrice is a product's price for the dealer: its tier's price, else the list price (tier A).
+func tierPrice(list int64, prices map[string]int64, dl *Dealer) (int64, string, string) {
+	tier := ""
+	if dl != nil {
+		tier = strings.ToUpper(strings.TrimSpace(dl.Tier))
+	}
+	price, label := list, "harga list (tier A)"
+	if v, ok := prices[tier]; ok && v > 0 {
+		price, label = v, "harga tier "+tier
+	}
+	if price <= 0 && prices["A"] > 0 {
+		price = prices["A"]
+	}
+	return price, label, tier
+}
+
+// stockPrice adds the product's price to a stock card (Sam 21 Oct): the same price as the price card — the dealer's
+// tier, else the list price — as facts for the sales and {harga} for the draft.
+func stockPrice(s *Suggestion, p *product, d Data, v map[string]string) {
+	var x *Product
+	for i := range d.Products {
+		if (p.sku != "" && strings.EqualFold(d.Products[i].SKU, p.sku)) || strings.EqualFold(d.Products[i].Name, p.name) {
+			x = &d.Products[i]
+			break
+		}
+	}
+	if x == nil {
+		return
+	}
+	price, label, _ := tierPrice(x.ListPrice, x.Prices, d.Dealer)
+	if price <= 0 {
+		return
+	}
+	s.Facts = append(s.Facts, Fact{"Harga", rupiah(price)}, Fact{"Dasar", label})
+	v["harga"] = rupiahPlain(price)
 }
 
 func creditCard(s *Suggestion, r Rule, d Data) {
@@ -549,7 +578,7 @@ func fill(tpl string, v map[string]string) string {
 
 // Placeholders lists the {placeholders} each action fills (shown on the settings page).
 var Placeholders = map[string][]string{
-	ActionStock:  {"produk", "jumlah", "cabang", "cabang_lain"},
+	ActionStock:  {"produk", "jumlah", "cabang", "cabang_lain", "harga"},
 	ActionPrice:  {"produk", "harga"},
 	ActionCredit: {"limit", "sisa_limit", "tagihan", "jumlah_tagihan", "jatuh_tempo"},
 	ActionOrder:  {"nomor", "tanggal", "status", "total"},

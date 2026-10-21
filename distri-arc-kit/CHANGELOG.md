@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · AI Trigger: kartu stok menampilkan harga · 2026-10-21
+- Kartu **Cek stok** di Chat kini juga menampilkan **Harga** dan **Dasar**-nya (harga tier dealer yang tertaut, atau harga list tier A) — angka yang sama dengan kartu Cek harga. Barang tanpa harga di daftar harga tidak menampilkan harga.
+- Placeholder `{harga}` tersedia untuk template stok, dan harga ikut menjadi fakta yang boleh dipakai ChatGPT/Claude di draf.
+- Jawaban AI Trigger di halaman Cek stok ikut menampilkan harga.
+
 ## Fix · AI Trigger: jawaban di Chat wajib dari ChatGPT atau Claude, tidak pernah template · 2026-10-21
 - Kartu AI Trigger hanya menampilkan draf tulisan ChatGPT/Claude untuk fakta saat ini; draf template tidak lagi tampil atau bisa dipakai (ADR 0057).
 - Bila AI pilihan gagal (galat, atau draf mengubah angka), AI lainnya mencoba. Bila stok/fakta berubah setelah draf ditulis, draf ditulis ulang otomatis (job `reply.ai` per pesan + fakta).

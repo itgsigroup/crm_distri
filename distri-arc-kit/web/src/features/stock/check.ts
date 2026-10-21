@@ -39,6 +39,7 @@ export interface StockAnswer {
   note?: string
   branch?: string
   others: { branch: string; qty: number }[]
+  facts: { label: string; value: string }[]
 }
 
 export interface StockCheck {

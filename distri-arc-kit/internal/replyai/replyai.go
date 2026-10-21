@@ -106,21 +106,14 @@ func (s *Service) Data(ctx context.Context, rules []replyrule.Rule, texts []stri
 		}
 		d.Stock = views.StockItems(st)
 	}
-	if need[replyrule.ActionPrice] {
-		ps, err := s.St.Q.ListProducts(ctx)
+	if need[replyrule.ActionPrice] || need[replyrule.ActionStock] { // the stock card shows the price too (Sam 21 Oct)
+		ps, err := s.Products(ctx)
 		if err != nil {
 			return d, err
 		}
-		for _, p := range ps {
-			x := replyrule.Product{Name: p.Name, ListPrice: p.ListPrice, Prices: map[string]int64{}}
-			if p.Sku != nil {
-				x.SKU = *p.Sku
-			}
-			_ = json.Unmarshal(p.Prices, &x.Prices)
-			d.Products = append(d.Products, x)
-		}
+		d.Products = ps
 	}
-	if dealerID != nil && (need[replyrule.ActionPrice] || need[replyrule.ActionCredit] || need[replyrule.ActionOrder]) && s.Views != nil {
+	if dealerID != nil && (need[replyrule.ActionPrice] || need[replyrule.ActionStock] || need[replyrule.ActionCredit] || need[replyrule.ActionOrder]) && s.Views != nil {
 		b, err := s.Views.Metrics(ctx)
 		if err != nil {
 			return d, err
@@ -138,6 +131,24 @@ func (s *Service) Data(ctx context.Context, rules []replyrule.Rule, texts []stri
 		}
 	}
 	return d, nil
+}
+
+// Products is the price list the cards read (Odoo / import), list price and tier prices.
+func (s *Service) Products(ctx context.Context) ([]replyrule.Product, error) {
+	ps, err := s.St.Q.ListProducts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]replyrule.Product, 0, len(ps))
+	for _, p := range ps {
+		x := replyrule.Product{Name: p.Name, ListPrice: p.ListPrice, Prices: map[string]int64{}}
+		if p.Sku != nil {
+			x.SKU = *p.Sku
+		}
+		_ = json.Unmarshal(p.Prices, &x.Prices)
+		out = append(out, x)
+	}
+	return out, nil
 }
 
 // model is the provider AI drafts are written with: the AI Trigger engine (ChatGPT or Claude, ADR 0051) and its

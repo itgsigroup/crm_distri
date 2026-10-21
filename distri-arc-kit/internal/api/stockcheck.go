@@ -181,7 +181,12 @@ func (s *Server) stockAnswer(r *http.Request, sku, branch string) (*replyrule.Su
 	if err != nil {
 		return nil, err
 	}
-	return replyrule.StockFor(rule, sku, replyrule.Data{Branch: branch, Stock: views.StockItems(all)}), nil
+	products, err := s.replyAI.Products(ctx)
+	if err != nil {
+		return nil, err
+	}
+	d := replyrule.Data{Branch: branch, Stock: views.StockItems(all), Products: products}
+	return replyrule.StockFor(rule, sku, d), nil
 }
 
 // stockChecks is the history of real counts (?sku= one product; ?limit=, 100 by default).

@@ -147,6 +147,7 @@ function ProductCheck({ sku, onClose }: { sku: string; onClose: () => void }) {
           <div className={`sc-answer ${a.tone}`}>
             <b>{a.headline}</b>
             {a.others.length > 0 && <div className="muted">Cabang lain: {a.others.slice(0, 5).map((o) => `${o.branch} ${fmtNum(o.qty)}`).join(' · ')}</div>}
+            {a.facts.length > 0 && <div className="muted">{a.facts.map((f) => `${f.label}: ${f.value}`).join(' · ')}</div>}
             {a.note && <div>{a.note}</div>}
             {a.draft && <div className="sc-draft">“{a.draft}”</div>}
           </div>
