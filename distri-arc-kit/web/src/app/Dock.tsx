@@ -142,7 +142,11 @@ export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?
     ask(v)
   }
   const scope = screenScope(screen, pathname)
-  const run = (sc: string) => reanalyze(sc, engine, engine === 'system' ? SYSTEM_LABEL : 'Claude lewat MCP')
+  // one pop-up at a time (Sam 22 Oct): the dock closes as the analysis pop-up opens
+  const run = (sc: string) => {
+    setOpen(false)
+    reanalyze(sc, engine, engine === 'system' ? SYSTEM_LABEL : 'Claude lewat MCP')
+  }
   const status = st.running ? `menganalisis ${st.scope} · ${st.stage}` : st.run ? `siap · siklus #${st.run.toLocaleString('id-ID')} · ${st.last}` : 'siap · belum ada siklus'
   const inner = (
     <div className="dk-body">
