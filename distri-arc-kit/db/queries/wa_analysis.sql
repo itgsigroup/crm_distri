@@ -158,3 +158,33 @@ from orders o
 where o.dealer_id = any(sqlc.arg(dealer_ids)::uuid[]) and o.state <> 'cancel'
   and coalesce(o.confirmed_at, o.ordered_at) >= sqlc.arg(since)
 order by 2;
+
+-- name: ThreadAISummaries :many
+-- The tab Main's Analisa Claude, start to end (Sam 22 Oct): every line Claude wrote on this conversation through the
+-- Orchestrator (Analisa WhatsApp), oldest first; a group reads the threads of every GSI number in it. A line carried
+-- to later cycles keeps its summary_at, so it is listed once (the cycle that wrote it).
+select distinct on (coalesce(i.summary_at, c.started_at)) i.cycle_id, c.number as cycle_number,
+  coalesce(i.summary_at, c.started_at)::timestamptz as at, i.intent, i.items, coalesce(i.summary, '')::text as summary, i.confidence
+from wa_insights i join cycles c on c.id = i.cycle_id
+where i.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
+                      where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+  and coalesce(i.summary, '') <> ''
+order by coalesce(i.summary_at, c.started_at), c.number;
+
+-- name: ThreadAIFacts :one
+-- The conversation from its first stored message to its last, and how many messages carry a Claude note.
+with th as (select x.id from chat_threads x join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
+            where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+select count(*)::int as messages, count(*) filter (where m.direction = 'in')::int as inbound,
+  coalesce(min(m.sent_at), 'epoch')::timestamptz as first_at, coalesce(max(m.sent_at), 'epoch')::timestamptz as last_at,
+  (select count(*) from wa_message_insights w where w.thread_id in (select id from th) and w.note is not null)::int as notes
+from chat_messages m
+where m.deleted_at is null and m.thread_id in (select id from th);
+
+-- name: DealerClaudeProposals :many
+-- Kerjasama: what Claude proposed for this dealer through the Orchestrator (cycles via MCP) and what a person decided.
+select p.id, p.agent, p.kind, p.title, p.why, p.status, p.created_at, p.decided_at, coalesce(u.name, '')::text as decided_by_name,
+  c.number as cycle_number
+from proposals p join cycles c on c.id = p.cycle_id left join sales_users u on u.id = p.decided_by
+where p.dealer_id = sqlc.arg(dealer_id)::uuid and c.via = 'mcp' and p.status <> 'suppressed'
+order by p.created_at desc limit 12;

@@ -25,6 +25,7 @@ import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type M
 import { linkParts } from './links'
 import { formatParts, quoteLines, shortcutMark, wrapSelection, type Mark } from './format'
 import { MembersSheet, openMemberChat, useMembers } from './Members'
+import { AIOverview } from './AIOverview'
 import { Dock } from '../../app/Dock'
 import { OrchPill } from '../../app/orch'
 import type { ShellContext } from '../../app/Shell'
@@ -1249,6 +1250,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
             {warn && <div className="ibp-warn"><b>{warn.h}</b><span>{warn.t}</span></div>}
             {recommendation && <div className="ibp-rec"><b><span className="ai" style={{ fontSize: 0 }} />USULAN CLAUDE (MCP)</b><span>{recommendation}</span></div>}
             {d?.next && <ActBtn next={d.next} />}
+            {(!group || customerGroup) && <AIOverview thread={id} group={group} />}
             {t.kind === 'new' && (
               <div className="ibp-row">
                 <ActBtn next={ctx.proposals?.new_dealer} label="Buat dealer tier C" icon="building" small />

@@ -1,6 +1,14 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: Analisa Claude dari awal sampai akhir di tab Main · 2026-10-22
+- Panel lead tab **Main** punya kartu **Analisa Claude · dari awal sampai akhir**, hanya berisi hasil Claude lewat Orchestrator:
+  - **Overview perusahaan**: Analisa Dealer terbaru (Aman / Perlu perhatian / Bermasalah, ringkasan, alasan).
+  - **Perjalanan percakapan / grup**: sejak pesan pertama sampai terakhir (jumlah pesan, berapa dicatat Claude) dan garis waktu setiap ringkasan Analisa WhatsApp, terlama dulu, dengan permintaan dan barangnya. Grup pelanggan membaca thread semua nomor GSI di grup itu.
+  - **Kerjasama**: usulan Claude untuk dealer (siklus via MCP) dan keputusan tim (menunggu, disetujui, ditolak, dijalankan, oleh siapa).
+- Setiap baris membawa provenance: nomor siklus, tanggal, tingkat yakin. Grup internal tidak ditampilkan (tidak dianalisa). Kartu diperbarui saat siklus Orchestrator selesai.
+- API: `GET /api/chat/threads/{id}/ai-overview`.
+
 ## Feat · Chat: tombol Ringkas header · 2026-10-22
 - Header percakapan punya tombol **Ringkas header** (ikon panah, di samping ikon cari). Saat aktif header menjadi satu baris tipis: nama chat, tombol Orchestrator (ikon saja), dan ikon aksi; avatar, baris nomor, pill Analisa WhatsApp, dan label tombol disembunyikan agar ruang pesan lebih luas. Klik lagi untuk header lengkap; pilihan diingat di browser.
 

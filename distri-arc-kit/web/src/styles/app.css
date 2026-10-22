@@ -802,6 +802,31 @@ body.map-maximized{overflow:hidden}
 .ibp-ext li.muted{color:var(--text-3)}
 .ibp-ext .i{flex:none;width:14px;height:14px;margin-top:2px;color:var(--accent)}
 .ibp-ext small{display:block;font-size:11px;color:var(--text-3)}
+/* Analisa Claude on the tab Main: the company, the conversation start to end, the cooperation (Sam 22 Oct) */
+.aio{display:flex;flex-direction:column;gap:10px}
+.aio-sec{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:10px;background:var(--kp-ai-soft);border:1px solid color-mix(in srgb,var(--kp-ai) 22%,transparent);font-size:12.5px;line-height:1.5}
+.aio-sec p{margin:0;color:var(--text)}
+.aio-sec small{font-size:11px;color:var(--text-3)}
+.aio-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.aio-h b{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--kp-ai)}
+.aio-h span{margin-left:auto;font-size:11px;color:var(--text-3)}
+.aio em,.aio-tl-h em{font-style:normal;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--surface-3);color:var(--text-2);white-space:nowrap}
+.aio em.good{background:var(--good-soft);color:var(--good)}
+.aio em.warn{background:var(--warn-soft);color:var(--warn)}
+.aio em.bad{background:var(--bad-soft);color:var(--bad)}
+.aio em.accent,.aio em.indigo{background:var(--accent-soft);color:var(--accent)}
+.aio-list{margin:0;padding-left:18px;color:var(--text-2)}
+.aio-facts{color:var(--text-2)!important}
+.aio-tl{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column}
+.aio-tl li{position:relative;display:flex;gap:10px;padding:0 0 10px}
+.aio-tl li:not(:last-child)::before{content:"";position:absolute;left:4px;top:12px;bottom:0;width:1.5px;background:color-mix(in srgb,var(--kp-ai) 30%,transparent)}
+.aio-dot{flex:none;width:10px;height:10px;margin-top:4px;border-radius:50%;background:var(--kp-ai)}
+.aio-tl li>div{min-width:0;display:flex;flex-direction:column;gap:2px}
+.aio-tl-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--text-2)}
+.aio-props{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.aio-props li{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-top:1px solid color-mix(in srgb,var(--kp-ai) 18%,transparent)}
+.aio-props li:first-child{border-top:0;padding-top:0}
+.aio-props .aio-tl-h b{font-size:12.5px;color:var(--text);margin-right:auto}
 .ibp-note{margin:0;font-size:11.5px;line-height:1.5;color:var(--text-3)}
 /* conversation */
 .ibc-h{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface)}

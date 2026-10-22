@@ -58,6 +58,7 @@ export function refreshPages(qc: ReturnType<typeof useQueryClient>) {
   for (const k of ['cycle', 'cycles', 'plan', 'proposals', 'agents', 'brief', 'dealers', 'dealer', 'orbit', 'segmen', 'relasi', 'kpi', 'agenda', 'stock', 'credit', 'trend'])
     qc.invalidateQueries({ queryKey: [k] })
   qc.invalidateQueries({ queryKey: ['chat', 'wa-analysis'] })
+  qc.invalidateQueries({ queryKey: ['chat', 'ai-overview'] })
 }
 
 /** Owns the live cycle state of the tab: POST /cycles, SSE events, a polling fallback and the finishing toast. */

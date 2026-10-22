@@ -52,6 +52,59 @@ func (q *Queries) ConversationOf(ctx context.Context, id uuid.UUID) (uuid.UUID, 
 	return column_1, err
 }
 
+const dealerClaudeProposals = `-- name: DealerClaudeProposals :many
+select p.id, p.agent, p.kind, p.title, p.why, p.status, p.created_at, p.decided_at, coalesce(u.name, '')::text as decided_by_name,
+  c.number as cycle_number
+from proposals p join cycles c on c.id = p.cycle_id left join sales_users u on u.id = p.decided_by
+where p.dealer_id = $1::uuid and c.via = 'mcp' and p.status <> 'suppressed'
+order by p.created_at desc limit 12
+`
+
+type DealerClaudeProposalsRow struct {
+	ID            uuid.UUID  `json:"id"`
+	Agent         string     `json:"agent"`
+	Kind          string     `json:"kind"`
+	Title         string     `json:"title"`
+	Why           string     `json:"why"`
+	Status        string     `json:"status"`
+	CreatedAt     time.Time  `json:"created_at"`
+	DecidedAt     *time.Time `json:"decided_at"`
+	DecidedByName string     `json:"decided_by_name"`
+	CycleNumber   *int64     `json:"cycle_number"`
+}
+
+// Kerjasama: what Claude proposed for this dealer through the Orchestrator (cycles via MCP) and what a person decided.
+func (q *Queries) DealerClaudeProposals(ctx context.Context, dealerID uuid.UUID) ([]DealerClaudeProposalsRow, error) {
+	rows, err := q.db.Query(ctx, dealerClaudeProposals, dealerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DealerClaudeProposalsRow{}
+	for rows.Next() {
+		var i DealerClaudeProposalsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Agent,
+			&i.Kind,
+			&i.Title,
+			&i.Why,
+			&i.Status,
+			&i.CreatedAt,
+			&i.DecidedAt,
+			&i.DecidedByName,
+			&i.CycleNumber,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const deleteChatPlanItems = `-- name: DeleteChatPlanItems :exec
 delete from plan_items where plan_date = $1 and link like 'chat:%'
 `
@@ -452,6 +505,89 @@ type SetWAOverviewParams struct {
 func (q *Queries) SetWAOverview(ctx context.Context, arg SetWAOverviewParams) error {
 	_, err := q.db.Exec(ctx, setWAOverview, arg.CycleID, arg.Overview, arg.Source)
 	return err
+}
+
+const threadAIFacts = `-- name: ThreadAIFacts :one
+with th as (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
+            where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+select count(*)::int as messages, count(*) filter (where m.direction = 'in')::int as inbound,
+  coalesce(min(m.sent_at), 'epoch')::timestamptz as first_at, coalesce(max(m.sent_at), 'epoch')::timestamptz as last_at,
+  (select count(*) from wa_message_insights w where w.thread_id in (select id from th) and w.note is not null)::int as notes
+from chat_messages m
+where m.deleted_at is null and m.thread_id in (select id from th)
+`
+
+type ThreadAIFactsRow struct {
+	Messages int32     `json:"messages"`
+	Inbound  int32     `json:"inbound"`
+	FirstAt  time.Time `json:"first_at"`
+	LastAt   time.Time `json:"last_at"`
+	Notes    int32     `json:"notes"`
+}
+
+// The conversation from its first stored message to its last, and how many messages carry a Claude note.
+func (q *Queries) ThreadAIFacts(ctx context.Context, threadID uuid.UUID) (ThreadAIFactsRow, error) {
+	row := q.db.QueryRow(ctx, threadAIFacts, threadID)
+	var i ThreadAIFactsRow
+	err := row.Scan(
+		&i.Messages,
+		&i.Inbound,
+		&i.FirstAt,
+		&i.LastAt,
+		&i.Notes,
+	)
+	return i, err
+}
+
+const threadAISummaries = `-- name: ThreadAISummaries :many
+select distinct on (coalesce(i.summary_at, c.started_at)) i.cycle_id, c.number as cycle_number,
+  coalesce(i.summary_at, c.started_at)::timestamptz as at, i.intent, i.items, coalesce(i.summary, '')::text as summary, i.confidence
+from wa_insights i join cycles c on c.id = i.cycle_id
+where i.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
+                      where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+  and coalesce(i.summary, '') <> ''
+order by coalesce(i.summary_at, c.started_at), c.number
+`
+
+type ThreadAISummariesRow struct {
+	CycleID     uuid.UUID       `json:"cycle_id"`
+	CycleNumber *int64          `json:"cycle_number"`
+	At          time.Time       `json:"at"`
+	Intent      string          `json:"intent"`
+	Items       json.RawMessage `json:"items"`
+	Summary     string          `json:"summary"`
+	Confidence  *int16          `json:"confidence"`
+}
+
+// The tab Main's Analisa Claude, start to end (Sam 22 Oct): every line Claude wrote on this conversation through the
+// Orchestrator (Analisa WhatsApp), oldest first; a group reads the threads of every GSI number in it. A line carried
+// to later cycles keeps its summary_at, so it is listed once (the cycle that wrote it).
+func (q *Queries) ThreadAISummaries(ctx context.Context, threadID uuid.UUID) ([]ThreadAISummariesRow, error) {
+	rows, err := q.db.Query(ctx, threadAISummaries, threadID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ThreadAISummariesRow{}
+	for rows.Next() {
+		var i ThreadAISummariesRow
+		if err := rows.Scan(
+			&i.CycleID,
+			&i.CycleNumber,
+			&i.At,
+			&i.Intent,
+			&i.Items,
+			&i.Summary,
+			&i.Confidence,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const threadsWaitingSince = `-- name: ThreadsWaitingSince :many
