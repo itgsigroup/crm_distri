@@ -17,8 +17,10 @@ export function parseCommand(text: string, dealers: BoardItem[]):
     const scope = d ? 'dealer:' + d.id : /semua|seluruh/.test(ql) ? 'all' : /stok/.test(ql) ? 'screen:stock' : /kredit|limit|kas/.test(ql) ? 'screen:credit' : /orbit/.test(ql) ? 'screen:orbit' : /segmen/.test(ql) ? 'screen:segmen' : 'all'
     return { kind: 'reanalyze', scope, via: /mcp/.test(ql) ? 'mcp' : 'auto' }
   }
-  const d = dealers.find((x) => x.name.toLowerCase().includes(ql))
-  if (d && !/\?/.test(text)) return { kind: 'dealer', id: d.id, name: d.name }
+  // a dealer's name opens its page — not a question about a topic (Sam 22 Oct: "stok …" opened a dealer)
+  const topic = /\?|stok|stock|barang|produk|laris|moving|dead|reorder|mutasi|gudang|kas|piutang|tagih|bayar|limit|jadwal|order|risiko|follow/.test(ql)
+  const d = ql.length >= 3 && !topic ? dealers.find((x) => x.name.toLowerCase().includes(ql)) : undefined
+  if (d) return { kind: 'dealer', id: d.id, name: d.name }
   return { kind: 'ask', q: text }
 }
 

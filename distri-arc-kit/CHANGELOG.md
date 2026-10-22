@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Tanya Orchestrator: pertanyaan stok dijawab sesuai pertanyaan, bukan daftar dealer · 2026-10-22
+- Sebelumnya semua pertanyaan berisi "stok" dijawab dengan template stok menua + dealer kandidat push. Kini jawabannya mengikuti maksud: **nama/kode barang** → stok per cabang, kecepatan jual, cukup berapa hari, kelas; **fast moving**, **dead stock**, **slow moving**, **reorder/habis/kritis**, **mutasi**, **umur stok** → daftar itu; **nama cabang** atau **kategori** → ringkasannya; barang tidak dikenal → "tidak ditemukan"; pertanyaan stok umum → ringkasan stok. Hanya pertanyaan **push / didorong / bundle** yang menyebut dealer kandidat. Angka sama dengan Analisa stok di Cek stok.
+- Kotak perintah tidak lagi membuka halaman dealer bila kalimatnya menanyakan topik (stok, barang, tagihan, jadwal, …) walau kata itu ada di nama dealer.
+- Buku manual (bab Orchestrator) memuat contoh pertanyaan stok.
+
 ## Change · Cek stok: Analisa stok jadi satu kartu dengan filter · 2026-10-22
 - Kartu Analisa stok tidak lagi berupa banyak panel. Satu kartu dengan **filter**: **Ringkasan** (komposisi FSN, ABC, insight) · **Fast moving** · **Umur stok** · **Per cabang** · **Per kategori** · **Reorder segera** · **Dead stock** · **Slow moving** · **Mutasi antar cabang** — tiap chip dengan jumlahnya.
 - Umur stok, per cabang, dan per kategori: klik batang grafik (mis. 91–180 hari, Jakarta, Modul LED) untuk menampilkan barangnya di tabel; tabel bisa dicari dan ditambah halaman; klik baris membuka cek barang. Kotak KPI Dead stock, Stok menua, dan Reorder segera membuka filternya.

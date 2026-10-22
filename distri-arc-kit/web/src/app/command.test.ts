@@ -10,4 +10,8 @@ test('command bar parser', () => {
   expect(parseCommand('hitung ulang semua', dealers)).toEqual({ kind: 'reanalyze', scope: 'all', via: 'auto' })
   expect(parseCommand('sinar', dealers)).toEqual({ kind: 'dealer', id: 'sinar', name: 'Toko Sinar Elektronik' })
   expect(parseCommand('dealer mana yang berisiko?', dealers)).toEqual({ kind: 'ask', q: 'dealer mana yang berisiko?' })
+  // a question about a topic is asked, never a dealer's page — even when a dealer's name holds the words
+  const stokindo = [...dealers, { id: 'stokindo', name: 'Stokindo Elektronik' }] as BoardItem[]
+  expect(parseCommand('stok', stokindo)).toEqual({ kind: 'ask', q: 'stok' })
+  expect(parseCommand('barang fast moving', stokindo)).toEqual({ kind: 'ask', q: 'barang fast moving' })
 })

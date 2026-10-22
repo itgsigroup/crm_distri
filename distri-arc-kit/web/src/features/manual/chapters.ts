@@ -315,6 +315,20 @@ Jika **Routine Claude** sudah diisi di halaman **MCP Claude**, Claude bekerja ot
 ## Tanya Orchestrator
 
 Ketik pertanyaan atau perintah di kotak **Tanya atau perintahkan Orchestrator**, misalnya "dealer mana yang lewat jadwal?" atau "analisis ulang stok".
+
+Jawaban mengikuti pertanyaan. Contoh untuk stok:
+
+| Pertanyaan | Jawaban |
+|---|---|
+| "stok kamera ip 4mp dome berapa?" | Stok barang itu per cabang, kecepatan jual, cukup berapa hari |
+| "barang apa yang fast moving?" | Daftar fast moving |
+| "dead stock apa saja" / "slow moving" | Daftar barang yang tidak atau lambat terjual |
+| "barang yang perlu reorder" | Barang yang akan habis dengan saran jumlah pesan |
+| "mutasi stok" | Peluang mutasi antar cabang |
+| "umur stok" / "stok di jakarta" | Umur stok, atau ringkasan stok satu cabang |
+| "stok apa yang harus didorong" | Stok menua beserta dealer yang cocok untuk push |
+
+Pertanyaan lain: risiko dealer, prediksi kas atau tagihan, jadwal order, dealer yang lewat jadwal. Menulis nama dealer saja (tanpa pertanyaan) membuka halaman dealernya.
 `,
   },
   {

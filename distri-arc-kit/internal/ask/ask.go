@@ -41,7 +41,7 @@ var routes = []struct {
 	{IntentRisk, regexp.MustCompile(`(?i)berisiko|risiko|bahaya|rawan|masalah`)},
 	{IntentDrift, regexp.MustCompile(`(?i)lewat jadwal|menjauh|churn|tidak order|berhenti order|hilang`)},
 	{IntentCash, regexp.MustCompile(`(?i)kas|piutang|tagih|bayar|dso|invoice|lewat tempo`)},
-	{IntentStock, regexp.MustCompile(`(?i)stok|push|menua|didorong|bundle|gudang`)},
+	{IntentStock, regexp.MustCompile(`(?i)stok|stock|push|menua|didorong|bundle|gudang|fast ?moving|slow ?moving|laris|tidak laku|re-?order|restock|mutasi|perputaran|barang|produk`)},
 	{IntentSchedule, regexp.MustCompile(`(?i)jadwal|siapa (yang )?order|order minggu|rekomendasi order|follow-?up`)},
 }
 
@@ -148,7 +148,7 @@ func (s *Service) Ask(ctx context.Context, q string) (Answer, error) {
 		if err != nil {
 			return a, err
 		}
-		a.Text, quoted = stock(b, views.StockItems(st))
+		a.Text, quoted = s.stockAnswer(q, b, views.StockItems(st))
 		kinds = []string{"stock", "so"}
 	case IntentSchedule:
 		a.Text, quoted = schedule(b)
