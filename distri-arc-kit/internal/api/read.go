@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"distri-arc/internal/jobs"
+	"distri-arc/internal/stockanalysis"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -46,6 +47,7 @@ func (s *Server) readRoutes(r chi.Router) {
 	r.Get("/stock/push", s.stockPush)
 	r.Get("/stock/sales-by-product", s.stockSales)
 	r.Get("/stock/status", s.stockStatus)
+	r.Get("/stock/analysis", s.stockAnalysis)
 	r.Post("/stock/sync", s.stockSync)
 	s.stockCheckRoutes(r)
 	r.Get("/policies", s.policies)
@@ -485,6 +487,25 @@ func (s *Server) stockPush(w http.ResponseWriter, r *http.Request) {
 
 // pushTop is the size of Pusat kendali's push list.
 const pushTop = 10
+
+// stockAnalysis is Analisa stok on Cek stok (Sam 22 Oct): FSN, ABC, aging, cover, turnover, reorder and transfers
+// for every branch or one (?branch=), with the owner's insight lines — numbers from formulas (stockanalysis).
+func (s *Server) stockAnalysis(w http.ResponseWriter, r *http.Request) {
+	b, ok := s.board(w, r)
+	if !ok {
+		return
+	}
+	st, ok := s.stock(w, r)
+	if !ok {
+		return
+	}
+	prices, err := s.listPrices(r)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusOK, withProvenance(r.Context(), s, stockanalysis.Compute(st, r.URL.Query().Get("branch"), prices.of, b.Policies.Stock)))
+}
 
 func (s *Server) stockSales(w http.ResponseWriter, r *http.Request) {
 	if b, ok := s.board(w, r); ok {

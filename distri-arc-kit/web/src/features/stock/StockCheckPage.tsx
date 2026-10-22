@@ -8,6 +8,7 @@ import { useFeedback } from '../../components/feedback'
 import { fmtNum, hhmm, shortDate } from '../../lib/format'
 import { StockSource } from './StockPage'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
+import { StockAnalysis } from './StockAnalysis'
 import { diffText, parseQty, productCompare, productText, rpFull, verdict, VERDICT, type StockCheck, type StockProduct } from './check'
 
 const ALL = 'Semua cabang'
@@ -25,6 +26,7 @@ export function StockCheckPage() {
   return (
     <>
       <StockSource />
+      <StockAnalysis onPick={pick} />
       <StockTable current={sku} onPick={pick} />
       <RecentChecks onPick={pick} />
       {sku && <StockModal key={sku} sku={sku} onClose={() => pick('')} />}

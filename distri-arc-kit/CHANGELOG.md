@@ -1,6 +1,14 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Cek stok: Analisa stok (fast / slow moving, dead stock, perputaran, reorder) dengan grafik · 2026-10-22
+- Kartu **Analisa stok** di atas Data stok, dari sudut pandang owner, per semua cabang atau satu cabang:
+  - KPI: nilai stok, perkiraan penjualan per bulan, **perputaran stok** (nilai stok ÷ HPP harian, target ≤ 40 hari — glosarium), dead stock, stok menua (> 90 hari), reorder segera (habis < 10 hari).
+  - **Insight** otomatis: modal tertahan di dead/slow stock, fast moving yang harus dijaga, barang yang akan habis, ABC, kategori paling lambat berputar, peluang mutasi antar cabang.
+  - Grafik: komposisi stok **FSN** (Fast moving · Normal · Slow moving · Dead stock) dengan nilai & porsi penjualan, umur stok, **analisa ABC** (nilai penjualan), nilai stok per kategori dan per cabang dengan hari perputaran.
+  - Daftar: Fast moving, **Reorder segera** (saran unit untuk 30 hari), Dead stock terbesar, Slow moving, **Mutasi antar cabang** (barang diam di satu cabang yang dibutuhkan cabang lain). Klik barang membuka cek barangnya.
+- Semua angka dihitung dari stok dan penjualan 90 hari (`internal/stockanalysis`, diuji); warna grafik divalidasi untuk buta warna, terang & gelap. API: `GET /api/stock/analysis?branch=`.
+
 ## Feat · Chat: label admin pengirim di setiap bubble · 2026-10-22
 - Satu nomor sales biasanya dipegang beberapa admin (mis. nomor Granike: Tantri, Sekar, …). Setiap bubble keluar kini punya **label kecil nama pengirim** di atasnya (inisial + nama), diambil dari **user yang login** saat pesan dikirim dari GSI Orbit — balas, file/foto, suara, polling, kontak, teruskan, maupun persetujuan usulan. Pesan yang diketik langsung di HP berlabel **dari HP**.
 - Label kini tampil untuk **semua yang bisa membuka chat itu** (sebelumnya hanya admin/manajer yang melihat semua chat), dan pindah dari baris jam ke atas bubble agar mudah dibaca.

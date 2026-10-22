@@ -2162,3 +2162,75 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .sug-it-h{display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
 .sug-it-h span{font-size:12px;font-weight:600}
 .sug-items li.tone-good .sug-it-h span{color:var(--good)}.sug-items li.tone-warn .sug-it-h span{color:var(--warn)}.sug-items li.tone-bad .sug-it-h span{color:var(--bad)}
+
+/* Analisa stok on Cek stok (Sam 22 Oct, owner view). FSN colours: validated set (dataviz validator, adjacent order
+   fast → normal → slow → dead), its own steps for the dark surface */
+.sa{--fsn-fast:#1baf7a;--fsn-normal:#2a78d6;--fsn-slow:#eb6834;--fsn-dead:#6250d6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .sa{--fsn-fast:#199e70;--fsn-normal:#3987e5;--fsn-slow:#d95926;--fsn-dead:#9085e9}}
+:root[data-theme="dark"] .sa{--fsn-fast:#199e70;--fsn-normal:#3987e5;--fsn-slow:#d95926;--fsn-dead:#9085e9}
+.sa .card-h{align-items:center}
+.sa-toggle{margin-left:auto;height:28px;font-size:12px}
+.sa-body{display:flex;flex-direction:column;gap:16px}
+.sa-kpi{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+@media (max-width:1200px){.sa-kpi{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){.sa-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sa-tile{display:flex;flex-direction:column;gap:2px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);min-width:0}
+.sa-tile span{font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--text-3)}
+.sa-tile b{font-size:20px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sa-tile small{font-size:11.5px;color:var(--text-3)}
+.sa-tile.good{border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+.sa-tile.warn{border-color:color-mix(in srgb,var(--warn) 50%,var(--line));background:var(--warn-soft)}
+.sa-tile.bad{border-color:color-mix(in srgb,var(--bad) 50%,var(--line));background:var(--bad-soft)}
+.sa-ins{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+@media (max-width:900px){.sa-ins{grid-template-columns:1fr}}
+.sa-ins li{display:flex;gap:8px;padding:9px 11px;border-radius:10px;font-size:12.5px;line-height:1.45;background:var(--surface-2);color:var(--text)}
+.sa-ins li .i{flex:none;width:14px;height:14px;margin-top:2px}
+.sa-ins li.good{background:var(--good-soft)}.sa-ins li.good .i{color:var(--good)}
+.sa-ins li.warn{background:var(--warn-soft)}.sa-ins li.warn .i{color:var(--warn)}
+.sa-ins li.bad{background:var(--bad-soft)}.sa-ins li.bad .i{color:var(--bad)}
+.sa-ins li.info .i{color:var(--accent)}
+.sa-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.sa-grid{grid-template-columns:1fr}}
+.sa-panel,.sa-list{padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);min-width:0}
+.sa h3{margin:0 0 10px;font-size:13px;font-weight:700;color:var(--text)}
+.sa h3 small{font-weight:500;font-size:11.5px;color:var(--text-3);margin-left:4px}
+.sa-stack{display:flex;gap:2px;height:22px;border-radius:6px;overflow:hidden;margin-bottom:10px}
+.sa-stack i{display:block;min-width:3px}
+.fsn-fast{background:var(--fsn-fast)}.fsn-normal{background:var(--fsn-normal)}.fsn-slow{background:var(--fsn-slow)}.fsn-dead{background:var(--fsn-dead)}
+.sa-legend{width:100%;border-collapse:collapse;font-size:12.5px}
+.sa-legend th{font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:0 0 6px}
+.sa-legend td{padding:6px 0;border-top:1px solid var(--line);color:var(--text)}
+.sa-cls{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.sa-legend td small{display:block;font-size:11px;color:var(--text-3);margin-left:16px}
+.sa-legend td.r small{display:inline;margin:0}
+.sa-legend .r{text-align:right}
+.sa-legend .sa-sw{flex:none;display:block;width:10px;height:10px;border-radius:3px}
+.sa-bars{display:flex;flex-direction:column;gap:7px}
+.sa-bars>div{display:grid;grid-template-columns:110px minmax(0,1fr) 150px;align-items:center;gap:10px;font-size:12px}
+.sa-bars .k{color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sa-bars .t{height:10px;border-radius:5px;background:var(--surface-3);overflow:hidden}
+.sa-bars .t i{display:block;height:100%;border-radius:5px;background:var(--accent)}
+.sa-bars .t i.warn{background:color-mix(in srgb,var(--accent) 55%,var(--surface-3))}
+.sa-bars .v{text-align:right;color:var(--text);font-weight:600}
+.sa-bars .v small{display:block;font-weight:500;font-size:10.5px;color:var(--text-3)}
+.sa-bars .v small.warn{color:var(--warn)}
+.sa-abc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.sa-abc>div{display:flex;flex-direction:column;gap:1px;padding:9px 10px;border-radius:10px;background:var(--surface-2)}
+.sa-abc b{font-size:18px;color:var(--accent)}
+.sa-abc span{font-size:12.5px;font-weight:600;color:var(--text)}
+.sa-abc small{font-size:11px;color:var(--text-3)}
+.sa-lists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.sa-lists{grid-template-columns:1fr}}
+.sa-list ol{list-style:none;margin:0;padding:0;counter-reset:sa}
+.sa-list li{counter-increment:sa;display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 4px;border-top:1px solid var(--line);font-size:12.5px;cursor:pointer;border-radius:6px}
+.sa-list li:first-child{border-top:0}
+.sa-list li:hover{background:var(--surface-2)}
+.sa-list li::before{content:counter(sa);font-size:11px;color:var(--text-3)}
+.sa-list li>span{display:flex;flex-direction:column;min-width:0}
+.sa-list li>span b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.sa-list li>span small{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sa-list li>span.r{text-align:right;align-items:flex-end}
+.sa-list li>span.r b{font-variant-numeric:tabular-nums}
+.sa-list .bad{color:var(--bad)}
+.sa-empty{margin:0;font-size:12.5px;color:var(--text-3)}
+.sa-note{margin:0;font-size:11.5px;color:var(--text-3);line-height:1.5}
