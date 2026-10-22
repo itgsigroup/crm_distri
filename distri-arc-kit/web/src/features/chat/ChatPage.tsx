@@ -61,7 +61,7 @@ function BubbleText({ text, mentions, mark }: { text: string; mentions?: Mention
 }
 
 
-function initials(t: ThreadView | ThreadDetail['thread']) {
+function initials(t: Pick<ThreadView, 'kind' | 'title'>) {
   if (t.kind === 'group') return '#'
   if (t.kind === 'new' && !/[a-z]/i.test(t.title)) return '?'
   return t.title.replace(/^(Pak|Bu|Mbak|Mas)\s+/, '').split(/\s+/).filter((w) => /^[\p{L}\d]/u.test(w)).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '#'
@@ -107,9 +107,12 @@ function readCompact(): boolean {
   try { return localStorage.getItem(COMPACT_KEY) === 'on' } catch { return false }
 }
 
-function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, onLeave }: {
+/** A message found by Cari chat in any conversation (GET /chat/messages/search). */
+type MessageHit = ChatHit & { thread_id: string; kind: ThreadView['kind']; group_kind?: string; title: string; phone_name?: string }
+
+function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, onHit, onLeave }: {
   list: ThreadView[]; loaded: boolean; filter: Filter; setFilter: (f: Filter) => void; account: string; active?: string; onPick: (id: string) => void
-  onLeave: () => void
+  onHit: (h: MessageHit) => void; onLeave: () => void
 }) {
   const [menu, setMenu] = useState<string | null>(null)
   const [compact, setCompact] = useState(readCompact)
@@ -140,14 +143,15 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
   const team = account.startsWith('team:') ? (account.slice(5) as WATeam) : undefined
   const nums = (wa?.items ?? []).filter((x) => !team || (x.team ?? 'sales') === team)
   const counts = useMemo(() => countFilters(list), [list])
-  // the list holds the chat window (14 days); a search of 3+ letters asks the server across every stored
-  // conversation, by name (spellings forgiven) or number
+  // the list holds the chat window (14 days); a search of 2+ letters asks the server across every stored
+  // conversation, by name (spellings forgiven) or number — and, like WhatsApp, the words of every stored message
+  // (the "Pesan" results under the chats, Sam 22 Oct)
   const [dq, setDq] = useState('')
   useEffect(() => {
     const h = setTimeout(() => setDq(q.trim()), 350)
     return () => clearTimeout(h)
   }, [q])
-  const deep = dq.length >= 3
+  const deep = dq.length >= 2
   const { data: found, isFetching: searching } = useQuery({
     queryKey: ['chat', 'search', dq, account],
     enabled: deep,
@@ -159,6 +163,18 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
       return api.get<Items<ThreadView>>('/chat/threads?' + p.toString()).then((r) => r.items)
     },
   })
+  const { data: hits, isFetching: searchingMsgs } = useQuery({
+    queryKey: ['chat', 'search-messages', dq, account],
+    enabled: deep,
+    staleTime: 30_000,
+    queryFn: () => {
+      const p = new URLSearchParams({ q: dq })
+      if (team) p.set('team', team)
+      else if (account) p.set('account', account)
+      return api.get<Items<MessageHit>>('/chat/messages/search?' + p.toString()).then((r) => r.items)
+    },
+  })
+  const msgs = deep && q.trim() ? hits ?? [] : []
   const base = deep && found ? found : list
   // the open conversation stays in "Belum dibaca" / "Belum dibalas" after reading or answering it, as in WhatsApp
   const shown = pinnedFirst(base).filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && (deep && found ? true : matchThread(t, q)) && hasLabel(t, label))
@@ -197,8 +213,9 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
         )}
       </div>
       <div className="chat-list ibl-list">
-        {deep && searching && <div className="chat-none">Mencari di semua chat…</div>}
-        {loaded && shown.length === 0 && !(deep && searching) && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"${deep ? ' di semua chat Orbit — chat lama di HP yang belum pernah berbalas pesan sejak nomor ditautkan belum ada di sini' : ''}` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
+        {deep && (searching || searchingMsgs) && <div className="chat-none">Mencari di semua chat dan pesan…</div>}
+        {msgs.length > 0 && shown.length > 0 && <div className="ibl-sec">Chat</div>}
+        {loaded && shown.length === 0 && msgs.length === 0 && !(deep && (searching || searchingMsgs)) && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"${deep ? ' di semua chat Orbit — chat lama di HP yang belum pernah berbalas pesan sejak nomor ditautkan belum ada di sini' : ''}` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
         {shown.map((c) => (
           <div key={c.id} className={`ibr-w${menu === c.id ? ' menu-open' : ''}`} onContextMenu={(e) => { e.preventDefault(); setMenu(c.id) }}>
           <button className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
@@ -227,6 +244,17 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
           </button>
           <ChatRowMenu t={c} open={menu === c.id} setOpen={(v) => setMenu(v ? c.id : null)} onLeave={() => { if (c.id === active) onLeave() }} />
           </div>
+        ))}
+        {msgs.length > 0 && <div className="ibl-sec">Pesan</div>}
+        {msgs.map((h) => (
+          <button key={h.id} className="ibr ibr-hit" onClick={() => onHit(h)} title="Buka chat di pesan ini">
+            <span className={`av ${h.kind === 'group' ? 'grp' : ''}`}>{h.kind === 'group' ? <Icon name="people" /> : initials(h)}</span>
+            <div className="ibr-m">
+              <div className="ibr-top"><b>{displayTitle(h)}</b></div>
+              <span className="ibr-lm"><Marked text={(h.direction === 'out' ? 'Anda: ' : h.kind === 'group' && h.from_name ? h.from_name + ': ' : '') + h.snippet} q={dq} /></span>
+            </div>
+            <div className="ibr-rt"><span>{timeLabel(h.sent_at, now)}</span></div>
+          </button>
         ))}
       </div>
     </div>
@@ -771,6 +799,19 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   useEffect(() => {
     if (body.current && older.length === 0) body.current.scrollTop = body.current.scrollHeight
   }, [data, older.length])
+  // a message picked in Cari chat's "Pesan" results (?m=&at=): go to it once the chat is loaded
+  const hitParam = params.get('m')
+  const hitAt = params.get('at') ?? ''
+  const jumpRef = useRef(jumpToHit)
+  useEffect(() => { jumpRef.current = jumpToHit })
+  useEffect(() => {
+    if (!hitParam || !data) return
+    jumpRef.current({ id: hitParam, sent_at: hitAt })
+    const p = new URLSearchParams(params)
+    p.delete('m')
+    p.delete('at')
+    setParams(p, { replace: true })
+  }, [hitParam, hitAt, data, params, setParams])
   const keepOffset = useRef<number | null>(null)
   useLayoutEffect(() => {
     // after older bubbles are prepended, keep the bubble the user was reading in place — or go to the search result
@@ -1402,7 +1443,8 @@ export function ChatPage() {
   return (
     <div className={`chat multi komo ${slot ? 'rail-out' : ''} ${threadId ? 'show-thread' : ''} ${active ? 'with-lead' : ''} ${active && !lead ? 'lead-mini' : ''}`}>
       {rail}
-      <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)} onLeave={leave} />
+      <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)}
+        onHit={(h) => nav(`/chat/${h.thread_id}?${new URLSearchParams({ m: h.id, at: h.sent_at })}`)} onLeave={leave} />
       {active && <LeadPane key={'l' + active} id={active} mini={!lead} setMini={(v) => setLead(!v)} onAccurate={accurate} />}
       {active ? <ThreadPane key={active} id={active} picked={!!threadId} onBack={() => nav('/chat')} lead={lead} setLead={setLead} onAccurate={accurate} /> : (
         <div className="pane th-pane th-none"><Icon name="chat" /><b>Pilih chat</b><span>Klik salah satu percakapan di daftar untuk membukanya.</span></div>

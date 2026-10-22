@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat: Cari chat mencari isi pesan di semua chat, seperti WhatsApp · 2026-10-22
+- Sebelumnya **Cari chat** hanya mencocokkan nama, nomor, dan pesan terakhir tiap chat — kata di pesan lain tidak ketemu. Kini hasilnya dua bagian seperti WhatsApp: **Chat** (nama/nomor) dan **Pesan** (isi semua pesan tersimpan, terbaru dulu, kata yang dicari ditandai). Klik hasil pesan membuka chat itu dan langsung lompat ke pesannya, termasuk pesan lama di luar 14 hari.
+- Pencarian ke server mulai dari 2 huruf (sebelumnya 3). Sales hanya menemukan pesan di chat nomor yang boleh dibacanya; filter nomor/tim tetap berlaku.
+- API: `GET /api/chat/messages/search?q=&account=&team=`; migrasi 0060 menambah index trigram pada isi pesan agar pencarian tetap cepat.
+
 ## Feat · Analisis ulang: game dihapus, pop-up bisa diperkecil · 2026-10-22
 - Game **Lompat!** saat Orchestrator menganalisa dihapus (komponen, logika, test, CSS) — di CRM waktu adalah segalanya.
 - **Analisis ulang** tetap membuka pop-up seperti sebelumnya, kini dengan tombol **Perkecil · jalan di belakang layar**: pop-up menjadi bar kecil di pojok kiri bawah (tahap yang berjalan + durasi), analisis tetap berjalan dan Anda bisa lanjut bekerja. Klik bar untuk membuka pop-up lagi; saat selesai, hasilnya (berhasil / sebagian / gagal) muncul sendiri.

@@ -2719,6 +2719,76 @@ func (q *Queries) ReplyTriggerMessage(ctx context.Context, id uuid.UUID) (ReplyT
 	return i, err
 }
 
+const searchAllMessages = `-- name: SearchAllMessages :many
+select m.id, m.thread_id, m.sent_at, coalesce(m.direction, '')::text as direction, coalesce(m.from_name, '')::text as from_name,
+  coalesce(m.body, '')::text as body, coalesce(t.kind, '')::text as kind, coalesce(t.title, '')::text as title,
+  coalesce(t.phone_name, '')::text as phone_name, t.sales_id, t.account, coalesce(n.team, 'sales')::text as account_team,
+  coalesce(g.kind, '')::text as group_kind
+from chat_messages m
+join chat_threads t on t.id = m.thread_id
+left join wa_numbers n on n.wa_number = t.account
+left join wa_groups g on g.id = t.group_id
+where m.deleted_at is null and m.body ~* $1::text
+order by m.sent_at desc limit $2
+`
+
+type SearchAllMessagesParams struct {
+	Pattern string `json:"pattern"`
+	Lim     int32  `json:"lim"`
+}
+
+type SearchAllMessagesRow struct {
+	ID          uuid.UUID  `json:"id"`
+	ThreadID    *uuid.UUID `json:"thread_id"`
+	SentAt      time.Time  `json:"sent_at"`
+	Direction   string     `json:"direction"`
+	FromName    string     `json:"from_name"`
+	Body        string     `json:"body"`
+	Kind        string     `json:"kind"`
+	Title       string     `json:"title"`
+	PhoneName   string     `json:"phone_name"`
+	SalesID     *uuid.UUID `json:"sales_id"`
+	Account     *string    `json:"account"`
+	AccountTeam string     `json:"account_team"`
+	GroupKind   string     `json:"group_kind"`
+}
+
+// Cari chat over every conversation (the "Pesan" results under the chats, like WhatsApp): the stored messages whose
+// text holds the words, newest first, with their conversation; who may read which conversation is checked by the API.
+func (q *Queries) SearchAllMessages(ctx context.Context, arg SearchAllMessagesParams) ([]SearchAllMessagesRow, error) {
+	rows, err := q.db.Query(ctx, searchAllMessages, arg.Pattern, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchAllMessagesRow{}
+	for rows.Next() {
+		var i SearchAllMessagesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ThreadID,
+			&i.SentAt,
+			&i.Direction,
+			&i.FromName,
+			&i.Body,
+			&i.Kind,
+			&i.Title,
+			&i.PhoneName,
+			&i.SalesID,
+			&i.Account,
+			&i.AccountTeam,
+			&i.GroupKind,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchThreadMessages = `-- name: SearchThreadMessages :many
 select m.id, m.sent_at, coalesce(m.direction, '')::text as direction, coalesce(m.from_name, '')::text as from_name, coalesce(m.body, '')::text as body
 from chat_messages m

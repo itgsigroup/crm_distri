@@ -40,6 +40,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Post("/chat/threads/{id}/read", s.chatRead)
 	r.Get("/chat/threads/{id}/context", s.chatContext)
 	r.Get("/chat/threads/{id}/search", s.chatSearch)
+	r.Get("/chat/messages/search", s.searchMessages)
 	r.Get("/chat/threads/{id}/members", s.chatMembers)
 	r.Post("/chat/threads/{id}/members/{number}/open", s.chatOpenMember)
 	r.Post("/chat/threads/{id}/messages", s.chatSend)

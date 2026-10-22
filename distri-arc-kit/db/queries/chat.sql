@@ -632,6 +632,20 @@ where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.i
   and m.deleted_at is null and m.body ~* sqlc.arg(pattern)::text
 order by m.sent_at desc limit sqlc.arg(lim);
 
+-- name: SearchAllMessages :many
+-- Cari chat over every conversation (the "Pesan" results under the chats, like WhatsApp): the stored messages whose
+-- text holds the words, newest first, with their conversation; who may read which conversation is checked by the API.
+select m.id, m.thread_id, m.sent_at, coalesce(m.direction, '')::text as direction, coalesce(m.from_name, '')::text as from_name,
+  coalesce(m.body, '')::text as body, coalesce(t.kind, '')::text as kind, coalesce(t.title, '')::text as title,
+  coalesce(t.phone_name, '')::text as phone_name, t.sales_id, t.account, coalesce(n.team, 'sales')::text as account_team,
+  coalesce(g.kind, '')::text as group_kind
+from chat_messages m
+join chat_threads t on t.id = m.thread_id
+left join wa_numbers n on n.wa_number = t.account
+left join wa_groups g on g.id = t.group_id
+where m.deleted_at is null and m.body ~* sqlc.arg(pattern)::text
+order by m.sent_at desc limit sqlc.arg(lim);
+
 -- name: MarkThreadUnread :exec
 -- "Tandai belum dibaca": the chat shows a count again until it is opened.
 update chat_threads set unread = greatest(unread, 1) where id = $1;
