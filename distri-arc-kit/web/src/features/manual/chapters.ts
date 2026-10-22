@@ -369,7 +369,7 @@ Semua nomor WhatsApp GSI dalam satu layar: chat pribadi pelanggan, grup pelangga
 
 ## Tutorial: membalas pelanggan
 
-1. Buka chat, ketik di kolom bawah. **Enter** mengirim, **Shift+Enter** baris baru.
+1. Buka chat, ketik di kolom bawah. **Enter** mengirim, **Shift+Enter** baris baru. Teks yang belum dikirim tersimpan sebagai **draf** per chat — tetap ada saat pindah chat atau memuat ulang halaman, dan daftar chat menandainya **Draf: …**.
 2. Format teks seperti WhatsApp: pilih teks untuk tebal, miring, coret, atau monospace.
 3. Lampiran lewat 📎: **Dokumen**, **Foto & video**, **Polling**, **Kontak**. Tempel gambar langsung dengan Ctrl+V. Maksimal 25 MB.
 4. **Pesan suara**: tekan ikon mikrofon saat kolom kosong.

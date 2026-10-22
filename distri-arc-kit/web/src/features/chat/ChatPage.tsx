@@ -26,6 +26,7 @@ import { linkParts } from './links'
 import { formatParts, quoteLines, shortcutMark, wrapSelection, type Mark } from './format'
 import { MembersSheet, openMemberChat, useMembers } from './Members'
 import { ListResizer, listWidthStyle, savedListWidth } from './ListResizer'
+import { getDraft, setDraft, useDrafts } from './drafts'
 import { AIOverview } from './AIOverview'
 import { ChatStats } from './ChatStats'
 import { Dock } from '../../app/Dock'
@@ -131,6 +132,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
   onHit: (h: MessageHit) => void; onLeave: () => void
 }) {
   const [menu, setMenu] = useState<string | null>(null)
+  const drafts = useDrafts() // a chat with an unsent draft shows "Draf: …" (WhatsApp)
   const [compact, setCompact] = useState(readCompact)
   const toggleCompact = useCallback(() => setCompact((v) => {
     try { localStorage.setItem(COMPACT_KEY, v ? 'off' : 'on') } catch { /* not remembered */ }
@@ -262,7 +264,9 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
               </div>
               {c.kind !== 'group' && c.subtitle && <span className="ibr-src">≈ {c.subtitle}</span>}
               <LabelChips ids={c.labels} className="ibr-lbls" />
-              <span className="ibr-lm">{c.last_direction === 'out' ? 'Anda: ' : c.last_from ? c.last_from + ': ' : ''}{c.last_body}</span>
+              {drafts[c.id] && c.id !== active
+                ? <span className="ibr-lm"><b className="ibr-draft">Draf:</b> {drafts[c.id].replace(/\s+/g, ' ')}</span>
+                : <span className="ibr-lm">{c.last_direction === 'out' ? 'Anda: ' : c.last_from ? c.last_from + ': ' : ''}{c.last_body}</span>}
             </div>
             <div className="ibr-rt">
               <span>{timeLabel(c.last_message_at, now)}</span>
@@ -633,7 +637,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   // a draft handed over in the address (?draft=, the dealer page's Analisa Dealer button) fills the reply box once;
   // the sales reads, edits and sends it (19 Oct)
   const [params, setParams] = useSearchParams()
-  const [text, setText] = useState(() => params.get('draft') ?? '')
+  // the chat's own draft stays when another chat is opened (Sam 22 Oct): restored here, kept as it is typed
+  const [text, setText] = useState(() => params.get('draft') ?? getDraft(id))
   useEffect(() => {
     if (params.has('draft')) {
       const p = new URLSearchParams(params)
@@ -854,8 +859,12 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   }
   const cancelEdit = () => {
     setEditing(null)
-    setText('')
+    setText(getDraft(id)) // back to the draft that was there before the edit
   }
+  // keep the draft as it is typed — not while the box holds a message being edited
+  useEffect(() => {
+    if (!editing) setDraft(id, text)
+  }, [id, text, editing])
   useEffect(() => {
     const el = body.current
     if (!el || !data) return
@@ -989,12 +998,13 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       return
     }
     if (!v) return
-    setText('')
     if (editing) {
+      setText(getDraft(id)) // the draft typed before the edit comes back
       setEditing(null)
       if (v !== editing.body) edit.mutate({ id: editing.id, body: v })
       return
     }
+    setText('')
     send.mutate(replying ? { body: v, reply_to: replying.id } : { body: v })
     setReplying(null)
   }

@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat: draf balasan tidak hilang saat pindah chat · 2026-10-22
+- Teks yang diketik di kolom balasan kini tersimpan sebagai **draf per chat** (seperti WhatsApp): tetap ada saat membuka chat lain dan setelah halaman dimuat ulang, sampai dikirim atau dikosongkan. Daftar chat menampilkan **Draf: …** (hijau) untuk chat yang punya draf. Mengedit pesan tidak menimpa draf — setelah edit selesai atau dibatalkan, draf kembali. Disimpan per browser.
+
 ## Fix · Chat: membaca chat lama tidak lagi terlempar ke bawah saat pesan baru masuk · 2026-10-22
 - Sebelumnya setiap pesan baru (sering di grup) menggulir percakapan ke paling bawah walau sedang membaca pesan di atas. Kini seperti WhatsApp: bila sedang di bawah, pesan baru tetap diikuti; bila sedang menggulir ke atas, posisi baca **tetap** dan muncul tombol **↓ N pesan baru** untuk turun ke pesan terbaru. Mengirim pesan sendiri membawa ke bawah; membuka chat tetap mulai dari pesan terakhir.
 

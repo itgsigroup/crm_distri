@@ -2321,3 +2321,6 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;user-select:no
 .th-pane.ibc{position:relative}
 .ibc-new{position:absolute;right:22px;bottom:110px;z-index:4;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border:0;border-radius:999px;background:var(--wa-green,#25a35a);color:#fff;font:inherit;font-size:12.5px;font-weight:700;box-shadow:var(--shadow-lift);cursor:pointer}
 .ibc-new .i{width:14px;height:14px}
+
+/* a chat with an unsent draft (Sam 22 Oct, like WhatsApp) */
+.ibr-lm .ibr-draft{color:var(--wa-green,#25a35a);font-weight:700}
