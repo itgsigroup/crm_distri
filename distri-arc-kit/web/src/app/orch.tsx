@@ -152,7 +152,11 @@ export function OrchProvider({ children }: { children: ReactNode }) {
             : c.mcp ? `MCP Claude · ${c.mcp.model_label || 'Claude'} · ${eff}` : v === 'system' ? SYSTEM_LABEL : label || 'API'
           dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by, at: Date.now() })
           setQueued(c)
-          if (!inline) openSheet(<AnalysisSheet cycle={c} />) // "AI sedang membaca data…" with the game, then berhasil / gagal
+          // Sam 22 Oct: no waiting screen — the analysis runs in the background (topbar pill, Orchestrator page) and the
+          // result pops up when done; the pop-up opens only when Claude must be opened by hand to start it
+          if (inline) return
+          if (c.mcp?.engine === 'claude_ai' && !c.mcp.routine) openSheet(<AnalysisSheet cycle={c} />)
+          else toast('Analisis berjalan di belakang layar — hasilnya muncul saat selesai')
         })
         .catch((e: unknown) =>
           e instanceof ApiError && e.code === 'no_api'

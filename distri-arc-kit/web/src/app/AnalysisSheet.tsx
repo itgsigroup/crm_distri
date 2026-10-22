@@ -14,8 +14,8 @@ export type QueuedCycle = Cycle & { mcp?: CycleMCP }
 
 interface InputState { agent: string; submitted_at: string | null }
 
-/** The live part of an analysis started with "Analisis ulang": "AI sedang membaca data…" with the progress and the
- * game while it runs (through claude.ai with one button to open Claude — Claude only works when someone sends it
+/** The live part of an analysis started with "Analisis ulang": "AI sedang membaca data…" with the progress while it
+ * runs (through claude.ai with one button to open Claude — Claude only works when someone sends it
  * there), then berhasil / gagal. Shown in the pop-up and inline on the Orchestrator page. */
 export function AnalysisLive({ cycle }: { cycle: QueuedCycle }) {
   const { s, showPanel } = useOrch()
@@ -56,11 +56,11 @@ export function AnalysisLive({ cycle }: { cycle: QueuedCycle }) {
       {byHand && <a className="btn primary" href={m.claude_url} target="_blank" rel="noopener noreferrer"><Icon name="plug" />Buka Claude</a>}
     </div>
   )
-  return last ? <AnalysisResult last={last} /> : <AnalysisRunning extra={hint} focusGame={!byHand} />
+  return last ? <AnalysisResult last={last} /> : <AnalysisRunning extra={hint} />
 }
 
 /** The analysis on the page itself (Orchestrator, Dealer — Sam 17 Oct): while a cycle runs, what the AI analyses with
- * the progress and the game; after the one asked here, berhasil / gagal until closed. onlyMine: a page that shows only
+ * the progress; after the one asked here, berhasil / gagal until closed. onlyMine: a page that shows only
  * the analysis it asked for (the dealer page), not the hourly cycle. */
 export function InlineAnalysis({ onlyMine = false }: { onlyMine?: boolean }) {
   const { s, queued } = useOrch()
