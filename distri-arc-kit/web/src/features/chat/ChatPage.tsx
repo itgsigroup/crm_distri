@@ -26,6 +26,7 @@ import { linkParts } from './links'
 import { formatParts, quoteLines, shortcutMark, wrapSelection, type Mark } from './format'
 import { MembersSheet, openMemberChat, useMembers } from './Members'
 import { AIOverview } from './AIOverview'
+import { ChatStats } from './ChatStats'
 import { Dock } from '../../app/Dock'
 import { OrchPill } from '../../app/orch'
 import type { ShellContext } from '../../app/Shell'
@@ -1193,7 +1194,6 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
       ))}
     </ul>
   )
-  const ins = th.messages.filter((m) => m.direction === 'in').length
   const name = d?.name ?? idf?.best_name ?? t.title
   if (mini) {
     const open = (k: LeadTab) => {
@@ -1327,9 +1327,9 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
         )}
         {tab === 'stats' && (
           <>
-            <Kv rows={[
-              ['Pesan dimuat', `${th.messages.length} · ${ins} masuk · ${th.messages.length - ins} keluar`],
-              ['Belum dibaca', String(t.unread)],
+            <ChatStats thread={id} group={group} />
+            {d && <h4>Dealer</h4>}
+            {d && <Kv rows={[
               ...(d ? ([
                 ['Skor dealer', `${d.metrics.score}/100`],
                 ['Omzet / bulan', fmtRp(d.metrics.omzet_bln)],
@@ -1337,7 +1337,7 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
                 ['Ritme order', d.metrics.rhythm_days ? `${d.metrics.rhythm_days} hari` : null],
                 ['Share of wallet', sowText(d.metrics)],
               ] as [string, ReactNode][]) : []),
-            ]} />
+            ]} />}
             {d && d.composition.length > 0 && (
               <>
                 <h4>Produk favorit</h4>

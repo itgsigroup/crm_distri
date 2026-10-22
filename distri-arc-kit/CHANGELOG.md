@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: Statistik lebih jelas, detail, dan penuh insight · 2026-10-22
+- Tab **Statistik** di panel lead kini dihitung dari **seluruh riwayat** chat/grup (bukan hanya pesan yang dimuat):
+  - **Insight** otomatis: pesan belum dibalas, kecepatan balasan tim, tren 30 hari, pelanggan lama tidak menghubungi, hari & jam paling aktif (waktu terbaik menghubungi), porsi pesan di luar jam kerja, siapa yang memulai percakapan, barang dan permintaan terbanyak, anggota grup paling aktif.
+  - **Ringkasan**: total pesan (masuk/keluar), 30 hari terakhir dengan tren, median balasan & 10% terlambat, % dibalas < 1 jam, yang belum dibalas, hari aktif sejak pesan pertama, jumlah media.
+  - Grafik: aktivitas 6 bulan (masuk vs keluar), jam pelanggan menulis (WIB), hari dalam seminggu, siapa memulai percakapan; daftar barang paling sering disebut (frekuensi & unit), permintaan pelanggan, anggota pelanggan paling aktif di grup. Data dealer tetap di bawahnya.
+- Semua angka dihitung sistem (`internal/chatstats`, rumus diuji); permintaan & barang dari bacaan Analisa WhatsApp. API: `GET /api/chat/threads/{id}/stats`.
+
 ## Fix · Chat: Analisa Claude di tab Main menampilkan hasil Orchestrator chat/grup · 2026-10-22
 - Kartu **Analisa Claude** di tab Main kosong ("Belum ada analisa") padahal Claude sudah menganalisa grup/chat: hasil **Analisis ulang chat ini** hanya tersimpan di jawaban MCP Claude, dan catatan per pesan cuma dihitung. Kini garis waktunya mengumpulkan semua yang ditulis Claude lewat Orchestrator, terlama dulu dan tanpa duplikat: ringkasan chat tiap siklus, analisa siklus khusus chat ini, dan catatan Claude per pesan pelanggan.
 - Paling atas tampil **Bacaan Claude terakhir**; tiap baris dengan permintaan pelanggan (mis. Tanya stok), barang, siklus, tanggal, dan tingkat yakin.

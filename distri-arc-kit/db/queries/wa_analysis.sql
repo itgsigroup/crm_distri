@@ -225,3 +225,20 @@ where ci.agent = 'Analisa WhatsApp' and ci.submitted is not null and coalesce(ci
   and c.scope in (select 'thread:' || x.id::text from chat_threads x join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
                   where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
 order by at;
+
+-- name: ThreadStatsMessages :many
+-- Statistik: every stored message of the conversation (a group: of every GSI number's thread of it), oldest first.
+select m.sent_at, coalesce(m.direction, '')::text as direction, m.internal, coalesce(m.holding, false)::bool as holding,
+  coalesce(m.closing, false)::bool as closing, coalesce(m.auto_reply, false)::bool as auto_reply, m.status,
+  (m.media is not null and m.media <> 'null'::jsonb)::bool as has_media, coalesce(m.from_name, '')::text as from_name
+from chat_messages m
+where m.deleted_at is null and m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
+                      where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+order by m.sent_at;
+
+-- name: ThreadStatsAsks :many
+-- What Analisa WhatsApp read on each customer message of the conversation: intent and items.
+select w.intent, w.items
+from wa_message_insights w
+where w.direction = 'in' and w.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
+                      where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid));
