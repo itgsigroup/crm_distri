@@ -199,7 +199,7 @@ func DefaultPolicies() PolicySet {
 	p.Guard = AutonomyGuard{MinConfidence: 0.8, DealerMessages: "confirm"}
 	p.MCP = MCPPermissions{AllowReanalyze: true, AllowPlanUpdateProposal: true, MaskPIIInRead: true, MaxCyclesPerHour: 6}
 	p.LLM = LLMRouting{Mode: "mcp", Provider: "anthropic", Model: "claude-sonnet-5-5", Fallback: "openai:gpt-4.1", BatchHours: []int{6, 20}, Timezone: "Asia/Jakarta", RequireAI: true}
-	p.Retention = Retention{ChatDays: 365, SignalsMonths: 24, LLMCallsDays: 180}
+	p.Retention = Retention{ChatDays: 90, SignalsMonths: 24, LLMCallsDays: 180}
 	p.Chat = ChatPolicy{WorkDays: []int{1, 2, 3, 4, 5, 6}, WorkStart: "08:00", WorkEnd: "17:00", ReplySLAMin: 30, EscalateHours: 24}
 	p.Pilot = PilotPolicy{Mode: "off", Branch: "Semarang", ShadowDays: 14, UnlockConfidence: 80, UnlockWeeks: 2, MinDecisionsPerWeek: 5, Unlocked: []string{}}
 	return p

@@ -675,6 +675,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const stick = useRef(true)
   const lastSeen = useRef<string | null>(null)
   const [unseen, setUnseen] = useState(0)
+  const [fromPhone, setFromPhone] = useState(false) // asking the phone for older messages
   const input = useRef<HTMLTextAreaElement>(null)
   // who a reply goes out as: the holder of the number (sender_name), not the chat's sales
   const from = (data?.thread.sender_name || data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
@@ -942,6 +943,30 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       setOlderMore(!!r.has_more)
     }, (e: Error) => toast(e.message)).finally(() => setLoading(false))
   }
+  // "Muat pesan lama dari HP" (chats kept 90 days, Sam 22 Oct): the phone sends the 50 messages before the oldest one
+  // shown within seconds; they are fetched then (a few tries) and put on top, the place kept
+  const askPhone = () => {
+    const first = messages[0]
+    if (!first || fromPhone) return
+    setFromPhone(true)
+    api.post<{ requested: number }>(`/chat/threads/${id}/history`, {}).then(() => {
+      toast('Diminta ke HP — pesan lama muncul dalam beberapa detik')
+      let tries = 0
+      const pull = () => {
+        tries++
+        api.get<ThreadDetail>(`/chat/threads/${id}?before=${encodeURIComponent(first.sent_at)}`).then((r) => {
+          if (r.messages.length) {
+            if (body.current) keepOffset.current = body.current.scrollHeight - body.current.scrollTop
+            setOlder((o) => [...r.messages.filter((m) => !o.some((x) => x.id === m.id)), ...o])
+            setOlderMore(!!r.has_more)
+            setFromPhone(false)
+          } else if (tries < 6) setTimeout(pull, 2500)
+          else { setFromPhone(false); toast('HP tidak mengirim pesan yang lebih lama — mungkin memang awal percakapan') }
+        }, () => setFromPhone(false))
+      }
+      setTimeout(pull, 2500)
+    }, (e: Error) => { setFromPhone(false); toast(e.message) })
+  }
   const onScroll = () => {
     const el = body.current
     if (!el) return
@@ -1080,7 +1105,14 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         <div className="ibc-start">
           {more
             ? <span className="ibc-pill dark"><Icon name="refresh" />{loading ? 'Memuat pesan sebelumnya…' : 'Gulir ke atas untuk pesan sebelumnya'}</span>
-            : <span className="ibc-pill" title="Pesan yang lebih lama tidak ada di HP atau sudah lewat masa simpan">{data.history_from ? `Riwayat sejak ${shortDate(data.history_from)}` : 'Awal percakapan'} · chat disimpan {data.history_days || 365} hari</span>}
+            : (
+              <span className="ibc-start-old">
+                <span className="ibc-pill" title="GSI Orbit menyimpan chat selama masa simpan; yang lebih lama masih ada di HP pemegang nomor">{data.history_from ? `Riwayat sejak ${shortDate(data.history_from)}` : 'Awal percakapan'} · chat disimpan {data.history_days || 90} hari</span>
+                <button type="button" className="ibc-pill dark ibc-fromphone" disabled={fromPhone} onClick={askPhone} title="Minta 50 pesan sebelumnya ke HP pemegang nomor, seperti WhatsApp Web">
+                  <Icon name="phone" />{fromPhone ? 'Meminta ke HP…' : 'Muat pesan lama dari HP'}
+                </button>
+              </span>
+            )}
         </div>
         {messages.map((m, i) => {
           const sep = i === 0 || dayKey(messages[i - 1].sent_at) !== dayKey(m.sent_at) ? <div className="day">{dayLabel(m.sent_at, now)}</div> : null

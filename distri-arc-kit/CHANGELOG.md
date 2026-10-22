@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Chat disimpan 90 hari; "Muat pesan lama dari HP" seperti WhatsApp Web · 2026-10-22
+- Masa simpan chat **365 → 90 hari** (migrasi 0062, versi kebijakan baru). Pembersihan malam (02.30 WIB, setelah backup 02.00) menghapus pesan lebih tua dari 90 hari — pada malam pertama ±636 ribu pesan (68%); tetap ada di backup terenkripsi 30 hari dan di HP masing-masing.
+- Baru: di puncak percakapan tombol **Muat pesan lama dari HP** — GSI Orbit meminta 50 pesan sebelumnya ke HP pemegang nomor (seperti WhatsApp Web menggulir ke atas), lalu menampilkannya di atas; bisa diulang sampai 1 tahun ke belakang. API `POST /api/chat/threads/{id}/history`. ADR 0060.
+
 ## Fix · Chat realtime: koneksi yang mati diam-diam tersambung ulang dan mengejar pesan yang terlewat · 2026-10-22
 - Diukur di produksi: server menyimpan pesan WhatsApp dalam **median 0,7 detik** (95% ≤ 1,1 detik, 0 pesan > 60 detik dari 3.299 pesan/24 jam) — yang tertinggal adalah tab browser: koneksi realtime (SSE) bisa mati tanpa error (laptop tidur, Wi-Fi berganti, koneksi diam diputus), pesan selama putus tidak pernah diambil, dan tidak ada pengganti.
 - Kini: **watchdog** atas heartbeat server (25 detik) — 70 detik tanpa sinyal = sambung ulang; setiap tersambung ulang, kembali ke tab (> 10 detik), atau jaringan kembali → chat, daftar chat, status nomor, dan usulan langsung dimuat ulang; selama terputus, chat diperbarui **tiap 10 detik** dan daftar chat menampilkan "Menyambung ulang ke server…". Antrean event per tab di server dinaikkan (32 → 256) agar lonjakan pesan grup tidak membuang event.

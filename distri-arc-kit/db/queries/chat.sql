@@ -749,3 +749,11 @@ select * from reply_ai_matches where message_id = any(sqlc.arg(ids)::uuid[]);
 insert into reply_ai_matches (message_id, items, note, provider, model) values ($1, $2, $3, $4, $5)
 on conflict (message_id) do update set items = excluded.items, note = excluded.note, provider = excluded.provider,
   model = excluded.model, created_at = now();
+
+-- name: OldestThreadMessage :one
+-- The oldest WhatsApp message kept of a conversation: the phone is asked for the messages before it ("Muat pesan
+-- lama dari HP", like WhatsApp Web scrolling up).
+select m.wa_msg_id::text as wa_msg_id, coalesce(m.direction, '')::text as direction, m.sent_at
+from chat_messages m
+where m.thread_id = sqlc.arg(thread_id)::uuid and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%'
+order by m.sent_at, m.id limit 1;

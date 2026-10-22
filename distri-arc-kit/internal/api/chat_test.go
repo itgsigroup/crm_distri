@@ -167,7 +167,7 @@ func TestThreadBubbleAnalysis(t *testing.T) {
 		t.Error("thread without analyzed_at")
 	}
 	// the whole conversation kept (a year) in one page: nothing more to load, the oldest message named
-	if out["has_more"] != false || out["history_days"] != float64(365) || out["history_from"] == nil {
+	if out["has_more"] != false || out["history_days"] != float64(90) || out["history_from"] == nil {
 		t.Errorf("history window has_more=%v days=%v from=%v", out["has_more"], out["history_days"], out["history_from"])
 	}
 	var po map[string]any

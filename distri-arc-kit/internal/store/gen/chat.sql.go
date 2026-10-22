@@ -2386,6 +2386,28 @@ func (q *Queries) NumberName(ctx context.Context, waNumber string) (string, erro
 	return column_1, err
 }
 
+const oldestThreadMessage = `-- name: OldestThreadMessage :one
+select m.wa_msg_id::text as wa_msg_id, coalesce(m.direction, '')::text as direction, m.sent_at
+from chat_messages m
+where m.thread_id = $1::uuid and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%'
+order by m.sent_at, m.id limit 1
+`
+
+type OldestThreadMessageRow struct {
+	WaMsgID   string    `json:"wa_msg_id"`
+	Direction string    `json:"direction"`
+	SentAt    time.Time `json:"sent_at"`
+}
+
+// The oldest WhatsApp message kept of a conversation: the phone is asked for the messages before it ("Muat pesan
+// lama dari HP", like WhatsApp Web scrolling up).
+func (q *Queries) OldestThreadMessage(ctx context.Context, threadID uuid.UUID) (OldestThreadMessageRow, error) {
+	row := q.db.QueryRow(ctx, oldestThreadMessage, threadID)
+	var i OldestThreadMessageRow
+	err := row.Scan(&i.WaMsgID, &i.Direction, &i.SentAt)
+	return i, err
+}
+
 const openCommitments = `-- name: OpenCommitments :many
 select c.id, c.dealer_id, c.side, c.title, c.detail, c.status, c.due_at, c.late_label, c.invoice_id, c.proposal_id, c.signal_ids, c.source_key, c.created_at, i.number as invoice_number from commitments c left join invoices i on i.id = c.invoice_id
 where c.dealer_id = $1 and c.status <> 'done' order by c.due_at nulls last

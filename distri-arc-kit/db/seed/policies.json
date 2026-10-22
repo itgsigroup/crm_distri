@@ -32,6 +32,6 @@
  "autonomy.guard": {"min_confidence": 0.8, "dealer_messages": "confirm"},
  "mcp.permissions": {"allow_reanalyze": true, "allow_plan_update_proposal": true, "allow_send": false, "mask_pii_in_read": true, "max_cycles_per_hour": 6},
  "llm.routing": {"mode": "both", "provider": "anthropic", "model": "claude-sonnet-5-5", "fallback": "openai:gpt-4.1", "batch_hours": [6, 20], "timezone": "Asia/Jakarta"},
- "retention": {"chat_days": 365, "signals_months": 24, "llm_calls_days": 180},
+ "retention": {"chat_days": 90, "signals_months": 24, "llm_calls_days": 180},
  "chat.rules": {"work_days": [0,1,2,3,4,5,6], "work_start": "06:00", "work_end": "22:00", "reply_sla_min": 30, "escalate_hours": 24}
 }

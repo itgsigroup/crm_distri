@@ -70,7 +70,7 @@ func TestPartitionedIngestIsIdempotent(t *testing.T) {
 	}
 }
 
-// docs/stages/13 acceptance: purge removes chat older than retention.chat_days (365, ADR 0028) without touching
+// docs/stages/13 acceptance: purge removes chat older than retention.chat_days (90 since 22 Oct, migration 0062) without touching
 // aggregates.
 func TestPurgeKeepsAggregates(t *testing.T) {
 	st := setup(t)
@@ -82,7 +82,7 @@ func TestPurgeKeepsAggregates(t *testing.T) {
 	if _, err := svc.Snapshot(ctx); err != nil {
 		t.Fatal(err)
 	}
-	old := now.AddDate(0, 0, -380) // September 2025: the only whole month before the cutoff
+	old := now.AddDate(0, 0, -100) // June 2026: the only whole month before the 90-day cutoff
 	if _, err := st.Q.EnsurePartitions(ctx, gen.EnsurePartitionsParams{Tbl: "chat_messages", Col: "sent_at", FromMonth: old, NowAt: now, MonthsAhead: 1}); err != nil {
 		t.Fatal(err)
 	}
@@ -95,17 +95,17 @@ func TestPurgeKeepsAggregates(t *testing.T) {
 	_ = st.Pool.QueryRow(ctx, "select md5(string_agg(slug || metrics_current::text, ',' order by slug)) from dealers").Scan(&fp1)
 	daily := count(t, st, "select count(*) from dealer_metrics_daily")
 	orders := count(t, st, "select count(*) from orders")
-	recent := count(t, st, "select count(*) from chat_messages where sent_at >= $1", now.AddDate(0, 0, -365))
+	recent := count(t, st, "select count(*) from chat_messages where sent_at >= $1", now.AddDate(0, 0, -90))
 	signals := count(t, st, "select count(*) from signals")
 
 	r, err := ops.Purge(ctx, st, now)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.PartitionsDropped != 1 || count(t, st, "select count(*) from pg_class where relname = 'chat_messages_y2025m09'") != 0 {
-		t.Fatalf("September 2025 chat partition not dropped: %+v", r)
+	if r.PartitionsDropped != 1 || count(t, st, "select count(*) from pg_class where relname = 'chat_messages_y2026m06'") != 0 {
+		t.Fatalf("June 2026 chat partition not dropped: %+v", r)
 	}
-	if r.ChatMessages != 1 || count(t, st, "select count(*) from chat_messages where sent_at < $1", now.AddDate(0, 0, -365)) != 0 {
+	if r.ChatMessages != 1 || count(t, st, "select count(*) from chat_messages where sent_at < $1", now.AddDate(0, 0, -90)) != 0 {
 		t.Fatalf("purge %+v", r)
 	}
 	if count(t, st, "select count(*) from chat_message_keys where wa_msg_id = 'OLD1'") != 0 {

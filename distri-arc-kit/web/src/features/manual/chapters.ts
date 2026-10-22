@@ -355,9 +355,13 @@ Semua nomor WhatsApp GSI dalam satu layar: chat pribadi pelanggan, grup pelangga
 ## Tutorial: mencari chat dan pesan
 
 1. Ketik di **Cari chat** (minimal 2 huruf).
-2. Hasil terbagi dua seperti WhatsApp: **Chat** (cocok dari nama atau nomor) dan **Pesan** (isi pesan di semua chat, termasuk yang lebih lama dari 14 hari).
+2. Hasil terbagi dua seperti WhatsApp: **Chat** (cocok dari nama atau nomor) dan **Pesan** (isi pesan di semua chat yang tersimpan — 90 hari terakhir, termasuk yang lebih lama dari 14 hari).
 3. Klik hasil di bagian Pesan untuk membuka chat dan langsung melompat ke pesannya.
 4. Untuk mencari di dalam satu percakapan, klik ikon 🔍 di header chat. Gunakan **Enter** / **Shift+Enter** untuk berpindah hasil.
+
+## Pesan lama (lebih dari 90 hari)
+
+GSI Orbit menyimpan chat **90 hari**. Untuk melihat yang lebih lama, gulir ke puncak percakapan lalu tekan **Muat pesan lama dari HP**: GSI Orbit meminta 50 pesan sebelumnya ke HP pemegang nomor — seperti WhatsApp Web saat digulir ke atas — dan pesan muncul dalam beberapa detik. Tekan lagi untuk 50 berikutnya (sampai 1 tahun ke belakang). HP pemegang nomor harus menyala dan tersambung internet. Pesan yang dimuat ulang ini dibersihkan lagi pada malam berikutnya.
 
 ## Filter dan label
 
@@ -771,7 +775,7 @@ Menu mengikuti peran. Minta admin menambahkan halaman di **Peran & akses**.
 - Chat pribadi antar karyawan tampil di Chat tetapi **tidak** dianalisa AI.
 - Grup internal hanya dipakai untuk stok, jadwal, dan tugas.
 - Nama dan nomor pelanggan disamarkan sebelum dibaca AI.
-- Chat disimpan 365 hari.
+- Chat disimpan **90 hari** di server GSI Orbit; pesan yang lebih lama dihapus otomatis tiap malam (masih ada di HP masing-masing dan di backup terenkripsi 30 hari).
 - Chat yang ditandai **Obrolan pribadi** dihapus dari CRM dan pesan berikutnya tidak disimpan.
 - Setiap keputusan, pengiriman, label, dan sematan tercatat di audit.
 `,

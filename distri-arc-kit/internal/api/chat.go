@@ -43,6 +43,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Get("/chat/messages/search", s.searchMessages)
 	r.Get("/chat/threads/{id}/ai-overview", s.chatAIOverview)
 	r.Get("/chat/threads/{id}/stats", s.chatStats)
+	r.Post("/chat/threads/{id}/history", s.chatHistory)
 	r.Get("/chat/threads/{id}/members", s.chatMembers)
 	r.Post("/chat/threads/{id}/members/{number}/open", s.chatOpenMember)
 	r.Post("/chat/threads/{id}/messages", s.chatSend)
@@ -1824,4 +1825,37 @@ func (s *Server) attachSentFiles(ctx context.Context, msgs []MessageView) error 
 		}
 	}
 	return nil
+}
+
+// chatHistory is "Muat pesan lama dari HP" (Sam 22 Oct: chats are kept 90 days, older ones load again from the phone
+// like WhatsApp Web scrolling up): the linked phone is asked for the 50 messages before the oldest one kept. They come
+// back within seconds as history events and show in the chat; the nightly purge removes them again past retention.
+func (s *Server) chatHistory(w http.ResponseWriter, r *http.Request) {
+	t, ok := s.threadParam(w, r)
+	if !ok {
+		return
+	}
+	b := s.bridge()
+	if b == nil || t.Account == nil || t.WaJid == nil {
+		httpx.Fail(w, http.StatusConflict, "no_history", "Pesan lama hanya bisa dimuat dari HP untuk nomor yang ditautkan ke GSI Orbit")
+		return
+	}
+	o, err := s.st.Q.OldestThreadMessage(r.Context(), t.ID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.Fail(w, http.StatusConflict, "no_history", "Belum ada pesan WhatsApp di chat ini untuk dijadikan titik awal")
+		return
+	} else if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	anchor := wa.HistoryAnchor{ID: o.WaMsgID, FromMe: o.Direction == "out", At: o.SentAt}
+	if err := b.FetchHistory(r.Context(), *t.Account, *t.WaJid, anchor, wa.HistoryBatch); err != nil {
+		if errors.Is(err, wa.ErrHistoryUnavailable) {
+			httpx.Fail(w, http.StatusTooManyRequests, "history_busy", "HP pemegang nomor belum bisa dimintai riwayat (belum terhubung atau terlalu cepat) — coba lagi sebentar")
+			return
+		}
+		httpx.Fail(w, http.StatusBadGateway, "bridge", err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusAccepted, map[string]any{"requested": wa.HistoryBatch, "before": o.SentAt})
 }

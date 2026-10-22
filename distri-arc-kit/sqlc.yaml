@@ -63,6 +63,7 @@ sql:
       - db/migrations/0059_reply_ai_matches.sql
       - db/migrations/0060_chat_messages_body_trgm.sql
       - db/migrations/0061_chat_message_stars.sql
+      - db/migrations/0062_chat_retention_90.sql
     queries: db/queries
     gen:
       go:
