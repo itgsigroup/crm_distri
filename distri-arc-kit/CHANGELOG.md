@@ -1,9 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
-## Feat · Analisis ulang: game dihapus, analisis jalan di belakang layar · 2026-10-22
+## Feat · Analisis ulang: game dihapus, pop-up bisa diperkecil · 2026-10-22
 - Game **Lompat!** saat Orchestrator menganalisa dihapus (komponen, logika, test, CSS) — di CRM waktu adalah segalanya.
-- **Analisis ulang** tidak lagi membuka pop-up tunggu: analisis berjalan di belakang layar (status di pill atas dan halaman Orchestrator), muncul toast singkat, dan hasilnya (berhasil / sebagian / gagal) tampil saat selesai. Pop-up hanya dibuka bila Claude harus dibuka manual untuk memulai (claude.ai tanpa routine); pop-up itu kini lebih ringkas.
+- **Analisis ulang** tetap membuka pop-up seperti sebelumnya, kini dengan tombol **Perkecil · jalan di belakang layar**: pop-up menjadi bar kecil di pojok kiri bawah (tahap yang berjalan + durasi), analisis tetap berjalan dan Anda bisa lanjut bekerja. Klik bar untuk membuka pop-up lagi; saat selesai, hasilnya (berhasil / sebagian / gagal) muncul sendiri.
 
 ## Feat · Dashboard: Stasiun Orbit jadi 10 ruangan kru AI + kartu Hasil overview AI · 2026-10-21
 - **Stasiun Orbit** tidak lagi menampilkan data pelanggan: planet dealer, nama dealer, dan komet "Nomor baru · nama" dihapus. Gantinya stasiun luar angkasa dengan **10 ruangan berkubah kaca** di sekeliling Inti AI, satu astronot per ruangan di konsol dengan hologram kerjanya: 1 Analisa sales, 2 Analisa WhatsApp, 3 Analisa dealer, 4 Eksekusi order, 5 Follow-up, 6 Cek stok, 7 Cek kredit, 8 Cek penagihan, 9 Prospek, 10 **Data siap**.

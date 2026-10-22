@@ -1583,7 +1583,15 @@ body.map-maximized{overflow:hidden}
 
 
 /* the analysis view: the stage running, six chips with icons */
-.sheet:has(.an-sheet){width:min(720px,calc(100vw - 32px))}
+.sheet:has(.an-sheet){width:min(900px,calc(100vw - 32px))}
+/* the minimized analysis (Perkecil): a small bar bottom-left, clear of the dock */
+.an-mini{position:fixed;left:calc(var(--rail-w) + 20px);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:26;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);padding:9px 12px;border-radius:14px;border:1.5px solid color-mix(in srgb,var(--accent) 45%,var(--line-strong));background:var(--surface);box-shadow:var(--shadow-lift);font:inherit;color:var(--text);cursor:pointer;text-align:left}
+.an-mini .an-pulse{margin-top:0}
+.an-mini-t{display:flex;flex-direction:column;min-width:0}
+.an-mini-t b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.an-mini-t small{font-size:11px;color:var(--text-3)}
+.an-mini-o{flex:none;font-size:12px;font-weight:700;color:var(--accent)}
+@media (max-width:900px){.an-mini{left:16px;bottom:calc(140px + env(safe-area-inset-bottom,0px))}}
 .an-run{display:flex;flex-direction:column;gap:12px}
 .an-head{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
 .an-head>div:nth-child(2){flex:1;min-width:220px}

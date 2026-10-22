@@ -35,8 +35,10 @@ interface OrchCtx {
   queued: QueuedCycle | null
   /** an analysis panel is on screen and announces the result itself (no pop-up); returns the unregister */
   showPanel: () => () => void
+  /** "Perkecil" (Sam 22 Oct): the pop-up becomes a small bar in the corner, the analysis runs on in the background */
+  minimize: (c: QueuedCycle) => void
 }
-const NONE: OrchCtx = { s: initialCycle, reanalyze: () => {}, queued: null, showPanel: () => () => {} }
+const NONE: OrchCtx = { s: initialCycle, reanalyze: () => {}, queued: null, showPanel: () => () => {}, minimize: () => {} }
 const Ctx = createContext<OrchCtx>(NONE)
 
 // The analysis pop-up is rendered by FeedbackProvider, which sits above OrchProvider (OrchProvider needs its toast and
@@ -62,6 +64,7 @@ export function refreshPages(qc: ReturnType<typeof useQueryClient>) {
 export function OrchProvider({ children }: { children: ReactNode }) {
   const [s, dispatch] = useReducer(cycleReducer, initialCycle)
   const [queued, setQueued] = useState<QueuedCycle | null>(null)
+  const [mini, setMini] = useState<QueuedCycle | null>(null)
   const panels = useRef(0) // analysis panels on screen (they announce the result instead of the pop-up)
   const showPanel = useCallback(() => {
     panels.current++
@@ -152,11 +155,8 @@ export function OrchProvider({ children }: { children: ReactNode }) {
             : c.mcp ? `MCP Claude · ${c.mcp.model_label || 'Claude'} · ${eff}` : v === 'system' ? SYSTEM_LABEL : label || 'API'
           dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by, at: Date.now() })
           setQueued(c)
-          // Sam 22 Oct: no waiting screen — the analysis runs in the background (topbar pill, Orchestrator page) and the
-          // result pops up when done; the pop-up opens only when Claude must be opened by hand to start it
-          if (inline) return
-          if (c.mcp?.engine === 'claude_ai' && !c.mcp.routine) openSheet(<AnalysisSheet cycle={c} />)
-          else toast('Analisis berjalan di belakang layar — hasilnya muncul saat selesai')
+          setMini(null)
+          if (!inline) openSheet(<AnalysisSheet cycle={c} />) // "AI sedang membaca data…", then berhasil / gagal
         })
         .catch((e: unknown) =>
           e instanceof ApiError && e.code === 'no_api'
@@ -169,7 +169,14 @@ export function OrchProvider({ children }: { children: ReactNode }) {
     [s.running, toast, alert, openSheet],
   )
 
-  const value = useMemo(() => ({ s, reanalyze, queued, showPanel }), [s, reanalyze, queued, showPanel])
+  const minimize = useCallback((c: QueuedCycle) => setMini(c), [])
+  const restore = useCallback(() => {
+    if (!mini) return
+    openSheet(<AnalysisSheet cycle={mini} />)
+    setMini(null)
+  }, [mini, openSheet])
+
+  const value = useMemo(() => ({ s, reanalyze, queued, showPanel, minimize }), [s, reanalyze, queued, showPanel, minimize])
   useEffect(() => {
     live = value
     listeners.forEach((l) => l())
@@ -178,7 +185,33 @@ export function OrchProvider({ children }: { children: ReactNode }) {
     live = NONE
     listeners.forEach((l) => l())
   }, [])
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+      {/* gone when the cycle ends: the result pops up as for a closed pop-up */}
+      {mini && s.running && s.cycleId === mini.id && <MiniAnalysis s={s} onOpen={restore} />}
+    </Ctx.Provider>
+  )
+}
+
+/** The minimized analysis: a small bar in the corner with the stage and the time; a click opens the pop-up again. */
+function MiniAnalysis({ s, onOpen }: { s: CycleUI; onOpen: () => void }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const stage = STAGES[Math.min(s.shown, STAGES.length - 1)]
+  return (
+    <button className="an-mini" onClick={onOpen} title="Buka lagi detail analisis" role="status" aria-live="polite">
+      <span className="an-pulse" />
+      <span className="an-mini-t">
+        <b>{s.via === SYSTEM_LABEL ? 'Sistem' : 'AI'} menganalisa · {STAGE_LABEL[stage] ?? stage}</b>
+        <small>{s.startedAt ? duration(now - s.startedAt) : '—'} · berjalan di belakang layar</small>
+      </span>
+      <span className="an-mini-o">Buka</span>
+    </button>
+  )
 }
 
 /** The live Orchestrator state: from the provider, or — in the pop-up above it — from what the provider published. */

@@ -82,7 +82,7 @@ export function InlineAnalysis({ onlyMine = false }: { onlyMine?: boolean }) {
  * result itself (no alert). */
 export function AnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
   const { closeSheet } = useFeedback()
-  const { s } = useOrch()
+  const { s, minimize } = useOrch()
   const running = s.cycleId === cycle.id && s.running
   const done = s.last?.cycleId === cycle.id
   const title = cycle.number ? `Analisis ulang ${cycle.label} · siklus #${cycle.number.toLocaleString('id-ID')}` : `Analisis ulang ${cycle.label}`
@@ -92,7 +92,11 @@ export function AnalysisSheet({ cycle }: { cycle: QueuedCycle }) {
       <div className="sec an-sheet">
         <AnalysisLive cycle={cycle} />
       </div>
-      <div className="ft"><button className="btn quiet" onClick={closeSheet}>Tutup</button><span className="spacer" /><span className="pol"><Icon name="lock" />AI hanya mengusulkan · keputusan tetap di aplikasi</span></div>
+      <div className="ft">
+        {running
+          ? <button className="btn ghost" onClick={() => { minimize(cycle); closeSheet() }} title="Pop-up jadi bar kecil di pojok; analisis tetap berjalan"><Icon name="chev" style={{ transform: 'rotate(90deg)' }} />Perkecil · jalan di belakang layar</button>
+          : <button className="btn quiet" onClick={closeSheet}>Tutup</button>}
+        <span className="spacer" /><span className="pol"><Icon name="lock" />AI hanya mengusulkan · keputusan tetap di aplikasi</span></div>
     </>
   )
 }
