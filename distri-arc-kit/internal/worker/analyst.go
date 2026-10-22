@@ -119,6 +119,10 @@ func (w *CycleMCPWorker) Work(ctx context.Context, job *river.Job[jobs.CycleMCPA
 			if cyc.Effort != nil {
 				rn.Effort = *cyc.Effort
 			}
+			if cyc.EngineModel != nil && analyst.IsOpenAIModel(*cyc.EngineModel) {
+				m := *cyc.EngineModel // "ChatGPT" chosen on the dock (ADR 0059)
+				rn.Provider, rn.Model = analyst.FallbackOpenAI, m
+			}
 			if _, err := rn.Run(ctx, id, nil, "manual", job.Args.By); err != nil {
 				return river.JobCancel(err)
 			}

@@ -4,9 +4,9 @@ import { useLocation } from 'react-router'
 import { Icon } from '../components/Icon'
 import { PIPELINE_STAGES, type ScreenKey } from '../lib/i18n/id'
 import { chipState, progress } from './cycle'
-import { SYSTEM_LABEL, scopeLabel, useOrch, useOrchStatus } from './orch'
+import { scopeLabel, useOrch, useOrchStatus } from './orch'
 import { useCommand } from './command'
-import { EFFORTS, MCP_MODELS, effort, mcpModel, setEffort, setMcpModel, shortModel, type Effort } from './enginePrefs'
+import { EngineChoice, useEngine } from './EngineChoice'
 import { AnalysisCompact } from './AnalysisSheet'
 
 /** Pipeline chips (mockup pipeHtml compact): done / run per stage. */
@@ -69,12 +69,6 @@ export function scopeAgents(scope: string): string[] {
   return out
 }
 
-// no API key, no ChatGPT (Sam 19 Oct): Sistem (rules, no AI) or MCP Claude
-export type Engine = 'system' | 'mcp'
-const ENGINE_KEY = 'orch-engine'
-function savedEngine(): Engine | null {
-  try { const v = localStorage.getItem(ENGINE_KEY); return v === 'system' ? 'system' : v === 'mcp' || v === 'model' ? 'mcp' : null } catch { return null }
-}
 const MINI_KEY = 'orch-dock-mini'
 function savedMini(): boolean {
   try { return localStorage.getItem(MINI_KEY) === '1' } catch { return false }
@@ -95,13 +89,8 @@ export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?
   const { s, reanalyze, queued } = useOrch()
   const st = useOrchStatus()
   const { pathname } = useLocation()
-  const [pick, setPick] = useState<Engine | null>(savedEngine)
-  const [model, setModel] = useState(mcpModel)
-  const [eff, setEff] = useState<Effort>(effort)
-  const chooseModel = (id: string) => { setModel(id); setMcpModel(id) }
-  const chooseEffort = (e: Effort) => { setEff(e); setEffort(e) }
-  const engine: Engine = pick ?? 'mcp'
-  const choose = (e: Engine) => { setPick(e); try { localStorage.setItem(ENGINE_KEY, e) } catch { /* private mode */ } }
+  // MCP Claude or ChatGPT (Sam 22 Oct, ADR 0059), with the model and effort — shared with the Orchestrator page
+  const eng = useEngine()
   // "Tanya atau perintahkan Orchestrator" lives here (19 Oct, out of the top bar); ⌘K opens the dock on it
   const ask = useCommand()
   const [q, setQ] = useState('')
@@ -149,7 +138,7 @@ export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?
   const [asked, setAsked] = useState(false)
   const run = (sc: string) => {
     setAsked(true)
-    reanalyze(sc, engine, engine === 'system' ? SYSTEM_LABEL : 'Claude lewat MCP', true)
+    reanalyze(sc, eng.engine, eng.engine === 'chatgpt' ? 'ChatGPT' : 'Claude lewat MCP', true)
   }
   const live = open && asked && queued && (s.running ? s.cycleId === queued.id : s.last?.cycleId === queued.id) ? queued : null
   const status = st.running ? `menganalisis ${st.scope} · ${st.stage}` : st.run ? `siap · siklus #${st.run.toLocaleString('id-ID')} · ${st.last}` : 'siap · belum ada siklus'
@@ -168,34 +157,7 @@ export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?
         <span>Layar ini: <b>{scopeLabel(scope)}</b></span>
         <small>{scopeAgents(scope).join(' · ')}</small>
       </div>
-      <div className="dk-eng" role="radiogroup" aria-label="Dianalisis oleh">
-        <button type="button" role="radio" aria-checked={engine === 'system'} className={engine === 'system' ? 'on' : ''} disabled={st.running} title="Aturan agen dan rumus GSI Orbit di server — langsung jalan, tanpa Claude dan tanpa biaya AI" onClick={() => choose('system')}>
-          <Icon name="gear" /><span><b>Sistem</b><small>tanpa AI · langsung</small></span>
-        </button>
-        <button type="button" role="radio" aria-checked={engine === 'mcp'} className={engine === 'mcp' ? 'on' : ''} disabled={st.running} onClick={() => choose('mcp')}>
-          <Icon name="plug" /><span><b>MCP Claude</b><small>{shortModel(model)} · {eff}</small></span>
-        </button>
-      </div>
-      <div className="dk-tune">
-        {engine === 'system' ? (
-          <span className="dk-model"><span>Mesin</span><b>Aturan &amp; rumus GSI Orbit · tanpa AI</b></span>
-        ) : (
-          <>
-            <label className="dk-model">
-              <span>Model</span>
-              <select value={model} disabled={st.running} onChange={(e) => chooseModel(e.target.value)} title="Pilih model yang sama di claude.ai / Desktop — perintahnya menyebut model ini">
-                {MCP_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-              </select>
-            </label>
-          </>
-        )}
-        {engine !== 'system' && <div className="dk-effort" role="radiogroup" aria-label="Effort">
-          <span>Effort</span>
-          {EFFORTS.map((x) => (
-            <button key={x.id} type="button" role="radio" aria-checked={eff === x.id} className={eff === x.id ? 'on' : ''} disabled={st.running} title={x.hint} onClick={() => chooseEffort(x.id)}>{x.label}</button>
-          ))}
-        </div>}
-      </div>
+      <EngineChoice e={eng} disabled={st.running} />
       <div className="dk-acts">
         <button className="btn primary" disabled={st.running} onClick={() => run(scope)}><Icon name="refresh" />{scope === 'all' ? 'Analisis ulang' : 'Analisis ulang layar ini'}</button>
         {scope !== 'all' && <button className="btn ghost" disabled={st.running} onClick={() => run('all')}>Semua</button>}

@@ -69,6 +69,37 @@ func LoadOpenAIKeyAITrigger(ctx context.Context, q *gen.Queries, sessionKey []by
 	return "", ""
 }
 
+// LoadOpenAIKeyChosen is the ChatGPT key for an Orchestrator analysis a person chose to run on ChatGPT (Sam 22 Oct,
+// ADR 0059): the dock's "ChatGPT" engine. ChatGPT still never steps in on its own — no second option, no Analisa
+// WhatsApp otomatis (LoadOpenAIKey stays off).
+func LoadOpenAIKeyChosen(ctx context.Context, q *gen.Queries, sessionKey []byte, envKey string) (string, string) {
+	return LoadOpenAIKeyAITrigger(ctx, q, sessionKey, envKey)
+}
+
+// IsOpenAIModel reports whether a model id is one of ChatGPT's.
+func IsOpenAIModel(id string) bool {
+	for _, m := range OpenAIModels {
+		if m.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// ChatGPTReady: whether an analysis may run on ChatGPT now — the key is set and today's analysis budget is not spent.
+func ChatGPTReady(ctx context.Context, q *gen.Queries, now time.Time, sessionKey []byte, envOpenAI string) (bool, string) {
+	if key, _ := LoadOpenAIKeyChosen(ctx, q, sessionKey, envOpenAI); key == "" {
+		return false, "Kunci ChatGPT API belum diisi (Pengaturan → API & model AI)"
+	}
+	cfg := LoadConfig(ctx, q)
+	if cfg.DailyBudgetIDR > 0 {
+		if spent, err := q.AnalystCostSince(ctx, clock.Today(now)); err == nil && spent.Cost >= cfg.DailyBudgetIDR {
+			return false, "Anggaran harian analisis AI sudah terpakai (Pengaturan → API & model AI)"
+		}
+	}
+	return true, ""
+}
+
 // ErrOpenAIKeyRejected means OpenAI answered 401/403 for the key.
 var ErrOpenAIKeyRejected = errors.New("kunci ChatGPT API ditolak OpenAI — periksa kuncinya (platform.openai.com → API keys)")
 

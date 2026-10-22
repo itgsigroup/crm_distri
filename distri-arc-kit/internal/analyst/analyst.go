@@ -250,6 +250,9 @@ type Runner struct {
 	NewChat    func(key string) ChatModel // default NewOpenAIChat
 	// Effort: low | medium | high for this run ("" = the model's default) — chosen on the Orchestrator dock (16 Oct)
 	Effort string
+	// Provider / Model: the engine a person chose for this run on the dock ("openai" = ChatGPT, ADR 0059); "" = the
+	// API & model AI page's
+	Provider, Model string
 }
 
 // Step is one tool call of a run (shown under the report).
@@ -345,10 +348,21 @@ func (r *Runner) execute(ctx context.Context, sch gen.McpSchedule) outcome {
 			cfg.Model = a.Model
 		}
 	}
+	if r.Provider != "" { // chosen on the dock for this analysis
+		prov = r.Provider
+		if prov == FallbackOpenAI {
+			cfg.OpenAIModel = r.Model
+		} else if r.Model != "" {
+			cfg.Model = r.Model
+		}
+	}
 	var key string
-	if prov == FallbackOpenAI {
+	switch {
+	case prov == FallbackOpenAI && r.Provider == FallbackOpenAI:
+		key, _ = LoadOpenAIKeyChosen(ctx, r.St.Q, r.SessionKey, r.EnvOpenAI)
+	case prov == FallbackOpenAI:
 		key, _ = LoadOpenAIKey(ctx, r.St.Q, r.SessionKey, r.EnvOpenAI)
-	} else {
+	default:
 		key, _ = LoadKey(ctx, r.St.Q, r.SessionKey, r.EnvKey)
 	}
 	label := ProviderLabel(prov)

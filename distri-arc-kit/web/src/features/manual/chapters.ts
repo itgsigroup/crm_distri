@@ -98,7 +98,7 @@ Dari data itu, sistem menghitung untuk setiap dealer: **siklus order**, **jadwal
 | **AI Penagihan** | Pengingat faktur dengan nada sesuai pola bayar dealer |
 | **AI Prospek** | Mengenali nomor baru, mengusulkan dealer baru dan kirim daftar harga |
 
-Orchestrator berjalan **otomatis tiap jam** pada jam kerja, dan bisa dijalankan kapan saja lewat tombol **Analisis ulang**. Analisa AI dikerjakan oleh **Claude** lewat koneksi MCP; pilihan **Sistem** menjalankan aturan dan rumus GSI Orbit saja, tanpa AI.
+Orchestrator berjalan **otomatis tiap jam** pada jam kerja, dan bisa dijalankan kapan saja lewat tombol **Analisis ulang**. Analisa AI dikerjakan oleh **MCP Claude** (routine claude.ai) atau **ChatGPT** (ChatGPT API di server) — Anda yang memilih mesinnya setiap kali menjalankan Analisis ulang.
 
 ## 4. Manusia memutuskan
 
@@ -298,8 +298,9 @@ Halaman **Orchestrator** menampilkan status siklus, enam tahap, riwayat siklus, 
 1. Klik kotak **Orchestrator** (kanan bawah), atau tombol **Orchestrator** di samping nama chat di halaman Chat.
 2. Lihat **Layar ini**: analisis akan dibatasi pada halaman yang sedang dibuka (misalnya hanya stok, hanya satu dealer, atau hanya chat yang terbuka). Tekan **Semua** untuk menganalisa seluruh data.
 3. Pilih mesin:
-   - **Sistem** — aturan dan rumus GSI Orbit, langsung jalan, tanpa AI dan tanpa biaya.
-   - **MCP Claude** — Claude membaca data dan menulis analisa. Pilih **Model** dan **Effort** (semakin tinggi semakin teliti, semakin lama).
+   - **MCP Claude** — Claude membaca data lewat MCP dan menulis analisa (routine claude.ai, tanpa kunci API).
+   - **ChatGPT** — ChatGPT API menganalisa langsung di server, tanpa membuka apa pun. Biaya token tercatat di **API & model AI** dan dibatasi anggaran harian; kunci ChatGPT harus sudah diisi di halaman itu.
+   - Pilih **Model** mesin itu dan **Effort** (semakin tinggi semakin teliti, semakin lama). Pilihan diingat di browser Anda dan dipakai juga di halaman Orchestrator dan Dashboard.
 4. Tekan **Analisis ulang**.
 5. Pop-up analisis menampilkan tahap yang sedang berjalan, agen yang sudah selesai, dan durasinya.
    - Tekan **Perkecil · jalan di belakang layar** untuk lanjut bekerja. Pop-up menjadi bar kecil di pojok kiri bawah; klik bar itu untuk membukanya lagi.
@@ -742,6 +743,9 @@ Data stok disinkron tiap 5 menit, data lain sesuai jadwal sinkron. Lihat jam sin
 
 **Analisis ulang tidak selesai.**
 Lihat pop-up analisis. Jika menunggu Claude, buka Claude dengan tombol **Buka Claude** atau minta CEO mengisi **Routine Claude**. Tekan **Batalkan analisis** untuk menghentikannya; data dan saran sebelumnya tetap dipakai.
+
+**Pilih ChatGPT tetapi muncul "Kunci ChatGPT API belum diisi".**
+Minta CEO mengisi kunci ChatGPT di **API & model AI**, atau pilih **MCP Claude**. Pesan "anggaran harian sudah terpakai" berarti batas biaya AI hari ini tercapai.
 
 **Tombol Analisis ulang tidak bisa ditekan.**
 Hanya satu siklus yang bisa berjalan pada satu waktu. Tunggu siklus yang sedang berjalan selesai (lihat pill Orchestrator di kanan atas).

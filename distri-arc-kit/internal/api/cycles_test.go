@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -149,5 +150,29 @@ func TestPostCyclesClaudeOnly(t *testing.T) {
 	if code != http.StatusAccepted || out["engine_model"] != "claude-opus-5-5" || m == nil || m["engine"] != "claude_ai" ||
 		!strings.HasPrefix(m["claude_url"].(string), "https://claude.ai/new?q=") || m["fallback"] != "" {
 		t.Fatalf("claude only: %d %v", code, out)
+	}
+}
+
+// ADR 0059: "ChatGPT" chosen on the dock runs the analysis on ChatGPT API on the server (nobody opens anything), with
+// the ChatGPT model picked (else GPT-5 mini); without a ChatGPT key it says so and nothing is queued.
+func TestPostCyclesChatGPT(t *testing.T) {
+	srv, st := chatServer(t)
+	code, out := post(t, srv.URL+"/api/cycles", "sam@gsi.co.id", map[string]string{"scope": "all", "via": "chatgpt", "model": "gpt-4.1"})
+	if code != http.StatusConflict || !strings.Contains(fmt.Sprint(out), "Kunci ChatGPT API belum diisi") {
+		t.Fatalf("no key: %d %v", code, out)
+	}
+	h := api.New(config.Config{Env: "dev", OpenAIKey: "sk-test"}, st, clock.Fixed(time.Date(2026, 10, 5, 9, 0, 0, 0, clock.WIB)), slog.New(slog.NewTextHandler(io.Discard, nil))).Handler()
+	keyed := httptest.NewServer(h)
+	t.Cleanup(keyed.Close)
+	code, out = post(t, keyed.URL+"/api/cycles", "sam@gsi.co.id", map[string]string{"scope": "all", "via": "chatgpt", "model": "gpt-4.1", "effort": "high"})
+	m, _ := out["mcp"].(map[string]any)
+	if code != http.StatusAccepted || out["engine_model"] != "gpt-4.1" || m == nil || m["engine"] != "chatgpt_api" || m["model"] != "ChatGPT API · GPT-4.1" {
+		t.Fatalf("chatgpt: %d %v", code, out)
+	}
+	if _, err := st.Pool.Exec(context.Background(), "update cycles set status = 'done'"); err != nil {
+		t.Fatal(err)
+	}
+	if code, out = post(t, keyed.URL+"/api/cycles", "sam@gsi.co.id", map[string]string{"scope": "all", "via": "chatgpt", "model": "claude-opus-5-5"}); code != http.StatusAccepted || out["engine_model"] != "gpt-5-mini" {
+		t.Fatalf("default model: %d %v", code, out)
 	}
 }

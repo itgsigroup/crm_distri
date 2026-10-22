@@ -11,7 +11,7 @@ import { duration, useOrch } from './orch'
 import { useSse } from './SseProvider'
 
 /** How a cycle asked from the "Analisis ulang" button is analysed by Claude through MCP (POST /cycles → mcp). */
-export interface CycleMCP { engine: 'claude_api' | 'claude_ai'; /** the Claude routine on claude.ai runs it (ADR 0049) */ routine?: boolean; /** claude_api: "Claude API · Claude Opus 5.5" */ model?: string; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string; /** the model and effort asked for */ model_label?: string; effort?: string }
+export interface CycleMCP { engine: 'claude_api' | 'claude_ai' | 'chatgpt_api'; /** the Claude routine on claude.ai runs it (ADR 0049) */ routine?: boolean; /** claude_api: "Claude API · Claude Opus 5.5" */ model?: string; prompt: string; claude_url: string; wait_sec: number; agents: string[]; /** the API second option (ADR 0040), "" when off */ fallback?: string; /** the model and effort asked for */ model_label?: string; effort?: string }
 export type QueuedCycle = Cycle & { mcp?: CycleMCP }
 
 interface InputState { agent: string; submitted_at: string | null }

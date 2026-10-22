@@ -153,6 +153,15 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, 
 			return
 		}
 		useModel = true
+	case "chatgpt": // ChatGPT API, chosen on the dock (Sam 22 Oct, ADR 0059): the server runs it now, nobody opens anything
+		if ready, why := analyst.ChatGPTReady(r.Context(), s.st.Q, s.clock.Now(), s.secret(), s.cfg.OpenAIKey); !ready {
+			httpx.Fail(w, http.StatusConflict, "no_api", why)
+			return
+		}
+		useModel, prov, model = true, analyst.FallbackOpenAI, wantModel
+		if !analyst.IsOpenAIModel(model) {
+			model = DefaultChatGPTModel
+		}
 	default:
 		switch {
 		case serverModel && !pol.LLM.MCPOnly():
@@ -223,6 +232,9 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, 
 				ModelLabel: analyst.ModelLabel(deref(cyc.EngineModel)), Effort: effort}
 			if useModel {
 				m.Engine, m.Model = "claude_api", analyst.ProviderLabel(prov)+" · "+analyst.ModelLabel(model)
+				if prov == analyst.FallbackOpenAI {
+					m.Engine = "chatgpt_api"
+				}
 			} else if id, _ := analyst.LoadRoutine(r.Context(), s.st.Q, s.secret()); id != "" {
 				m.Routine = true // the worker fires the Claude routine when Analisis starts waiting (ADR 0049)
 			}
@@ -232,6 +244,9 @@ func (s *Server) queueCycle(w http.ResponseWriter, r *http.Request, scope, via, 
 	}
 }
 
+// DefaultChatGPTModel is the ChatGPT model of an analysis when none of ChatGPT's was picked.
+const DefaultChatGPTModel = "gpt-5-mini"
+
 // cycleQueued is POST /cycles: the cycle, and how it is analysed when it goes to Claude through MCP.
 type cycleQueued struct {
 	CycleView
@@ -239,7 +254,7 @@ type cycleQueued struct {
 }
 
 type cycleMCP struct {
-	Engine string `json:"engine"`          // claude_ai: Claude through MCP (claude.ai, Desktop, a routine); claude_api: the chosen API
+	Engine string `json:"engine"`          // claude_ai: Claude through MCP (claude.ai, Desktop, a routine); claude_api: the chosen API; chatgpt_api: ChatGPT API chosen on the dock
 	Model  string `json:"model,omitempty"` // claude_api: "Claude API · Claude Opus 5.5"
 	// ModelLabel / Effort: the model and effort asked for ("Claude Opus 5.5", "high")
 	ModelLabel string `json:"model_label"`

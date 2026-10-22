@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Orchestrator: pilihan mesin MCP Claude atau ChatGPT · 2026-10-22
+- Pilihan **Dianalisis oleh** di dock Orchestrator, halaman Orchestrator, dan Stasiun Orbit (Dashboard) kini **MCP Claude** atau **ChatGPT**, masing-masing dengan modelnya (ChatGPT: GPT-5 mini, GPT-5, GPT-4.1, GPT-4.1 mini, o4-mini) dan effort. Pilihan **Sistem (tanpa AI)** dihapus; pilihan lama "Sistem" terbaca sebagai MCP Claude.
+- **ChatGPT** berjalan lewat **ChatGPT API di server** — langsung, tanpa membuka apa pun — memakai kunci OpenAI yang sama dengan AI Trigger; biaya tercatat dan dibatasi anggaran harian di API & model AI. Tanpa kunci, tombol memberi tahu dan tidak ada analisa yang diantre.
+- ChatGPT tetap tidak pernah mengambil alih sendiri (opsi kedua API, Analisa WhatsApp otomatis tetap tanpa ChatGPT). ADR 0059 (mencabut sebagian ADR 0048). Buku manual diperbarui.
+
 ## Fix · Tanya Orchestrator: pertanyaan stok dijawab sesuai pertanyaan, bukan daftar dealer · 2026-10-22
 - Sebelumnya semua pertanyaan berisi "stok" dijawab dengan template stok menua + dealer kandidat push. Kini jawabannya mengikuti maksud: **nama/kode barang** → stok per cabang, kecepatan jual, cukup berapa hari, kelas; **fast moving**, **dead stock**, **slow moving**, **reorder/habis/kritis**, **mutasi**, **umur stok** → daftar itu; **nama cabang** atau **kategori** → ringkasannya; barang tidak dikenal → "tidak ditemukan"; pertanyaan stok umum → ringkasan stok. Hanya pertanyaan **push / didorong / bundle** yang menyebut dealer kandidat. Angka sama dengan Analisa stok di Cek stok.
 - Kotak perintah tidak lagi membuka halaman dealer bila kalimatnya menanyakan topik (stok, barang, tagihan, jadwal, …) walau kata itu ada di nama dealer.

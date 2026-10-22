@@ -4,6 +4,7 @@ import type { KPI } from '../../api/types'
 import { fmtNum, fmtRp, hhmm } from '../../lib/format'
 import { STAGE_LABEL } from '../../lib/i18n/id'
 import { useOrch } from '../../app/orch'
+import { useEngine } from '../../app/EngineChoice'
 import { STAGES } from '../../app/cycle'
 import { summarize } from '../control/progress'
 import { CREW, CREW_BY_AGENT, CREW_OF, CREW_STATE_LABEL, type CrewKey } from './station'
@@ -11,16 +12,6 @@ import { STATION_H, StationView, type StationTarget } from './StationView'
 import type { Crew } from './useCrew'
 
 const KEY = 'dashboard.station'
-// the engine the Orchestrator dock remembers (Sistem = GSI Orbit rules, no AI; MCP Claude), shared with it
-const ENGINE_KEY = 'orch-engine'
-type Engine = 'system' | 'mcp'
-const savedEngine = (): Engine => {
-  try {
-    return localStorage.getItem(ENGINE_KEY) === 'system' ? 'system' : 'mcp'
-  } catch {
-    return 'mcp'
-  }
-}
 const read = () => {
   try {
     return localStorage.getItem(KEY) !== 'off'
@@ -43,19 +34,12 @@ export function DashboardStation({ crew, kpi, can }: { crew: Crew; kpi: KPI | un
     }
   }
   const { reanalyze, showPanel } = useOrch()
-  const [engine, setEngineState] = useState(savedEngine)
-  const setEngine = (e: Engine) => {
-    setEngineState(e)
-    try {
-      localStorage.setItem(ENGINE_KEY, e)
-    } catch {
-      /* private window */
-    }
-  }
+  // MCP Claude or ChatGPT (Sam 22 Oct, ADR 0059), shared with the Orchestrator dock
+  const eng = useEngine()
   const { facts, status, running, stage, lastDone, latest, follow, setFollow, prog, ended, fresh, waiting } = crew
   // the scene shows the result itself: no pop-up while it is on screen
   useEffect(() => (on ? showPanel() : undefined), [on, showPanel])
-  const run = () => reanalyze('all', engine, engine === 'system' ? 'Sistem GSI Orbit' : 'Claude lewat MCP', true)
+  const run = () => reanalyze('all', eng.engine, eng.engine === 'chatgpt' ? 'ChatGPT' : 'Claude lewat MCP', true)
 
   // Perbesar: a taller scene; Layar penuh: the card fills the screen (CSS keeps it full window where the API is missing)
   const card = useRef<HTMLDivElement>(null)
@@ -178,8 +162,8 @@ export function DashboardStation({ crew, kpi, can }: { crew: Crew; kpi: KPI | un
           {facts.newNumbers != null && <span className="hud-chip cyan" title="Nomor baru yang menghubungi lebih dulu — Prospek"><i>☄</i>{fmtNum(facts.newNumbers)} nomor baru</span>}
           <span className="hud-level" title={`Order tepat jadwal ${score}% · target ${target}%`}>Level {level}<b><em style={{ width: `${Math.min(100, (score / Math.max(1, target)) * 100)}%` }} /></b><small>{score}% tepat jadwal</small></span>
           <span className="station-engine" role="radiogroup" aria-label="Dianalisis oleh">
-            <button type="button" role="radio" aria-checked={engine === 'system'} className={engine === 'system' ? 'on' : ''} disabled={running} onClick={() => setEngine('system')} title="Aturan agen dan rumus GSI Orbit di server — langsung jalan, tanpa biaya AI">Sistem</button>
-            <button type="button" role="radio" aria-checked={engine === 'mcp'} className={engine === 'mcp' ? 'on' : ''} disabled={running} onClick={() => setEngine('mcp')} title="Claude menganalisa lewat MCP">MCP Claude</button>
+            <button type="button" role="radio" aria-checked={eng.engine === 'mcp'} className={eng.engine === 'mcp' ? 'on' : ''} disabled={running} onClick={() => eng.choose('mcp')} title="Claude menganalisa lewat MCP (routine claude.ai)">MCP Claude</button>
+            <button type="button" role="radio" aria-checked={eng.engine === 'chatgpt'} className={eng.engine === 'chatgpt' ? 'on' : ''} disabled={running} onClick={() => eng.choose('chatgpt')} title="ChatGPT API menganalisa di server — langsung jalan">ChatGPT</button>
           </span>
           <button type="button" className="btn primary station-run" disabled={running} onClick={run} title="Jalankan Orchestrator: kesepuluh astronot bekerja berurutan sampai data siap, hasilnya jadi usulan untuk diputuskan">
             {running ? 'AI agent bekerja…' : '🚀 AI Agent bekerja'}

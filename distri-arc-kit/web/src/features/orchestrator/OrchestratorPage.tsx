@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { AgentInfo, Conflict, CycleStage, WAAnalysis, WAHistoryRow } from '../../api/types'
 import { Icon } from '../../components/Icon'
@@ -8,7 +7,8 @@ import { hhmm, shortDate } from '../../lib/format'
 import { PIPELINE_STAGES } from '../../lib/i18n/id'
 import { STAGES, chipState } from '../../app/cycle'
 import { useOrch, useOrchStatus } from '../../app/orch'
-import { EFFORTS, MCP_MODELS, effort, mcpModel, setEffort, setMcpModel, type Effort } from '../../app/enginePrefs'
+import { ENGINE_LABEL } from '../../app/enginePrefs'
+import { EngineChoice, useEngine } from '../../app/EngineChoice'
 import { useAgents, useConflicts, useCycleLatest, useMCPCalls, useMCPInfo, useQueue, useWAAnalysis } from '../../app/queries'
 import { SalesBanner, SalesPicker, useSalesPage } from '../../components/SalesPicker'
 import { ColumnTable, type Column } from '../../components/DataTable'
@@ -132,11 +132,9 @@ export function OrchestratorPage() {
   const { data: calls = [] } = useMCPCalls()
   const canWA = useCanWA()
   const { data: wa } = useWAAnalysis(sales, canWA)
-  // Claude through MCP like the Orchestrator dock (Sam 19 Oct) — no API key, no ChatGPT; model and effort shared with
-  // the dock
-  const [model, setModel] = useState(mcpModel)
-  const [eff, setEff] = useState<Effort>(effort)
-  const run = (scope: string) => reanalyze(scope, 'mcp', 'Claude lewat MCP')
+  // MCP Claude or ChatGPT like the Orchestrator dock (Sam 22 Oct, ADR 0059); engine, model and effort shared with it
+  const eng = useEngine()
+  const run = (scope: string) => reanalyze(scope, eng.engine, eng.engine === 'chatgpt' ? 'ChatGPT' : 'Claude lewat MCP')
   const shown = st.running && latest?.cycle ? latest.cycle : (latest?.last_full ?? latest?.last_done)
   const meta = st.run ? `siklus #${st.run.toLocaleString('id-ID')} · ${st.last} · ${st.dur}` : 'belum ada siklus'
   // WhatsApp only: the proposals tied to a conversation, the conflicts on dealers that wrote
@@ -152,16 +150,9 @@ export function OrchestratorPage() {
       <SalesBanner page={page} />
       <div className="card orch-head">
         <div className="oh-l">
-          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca chat WhatsApp (dan stok BigQuery untuk push stok), membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda. Analisanya ditulis Claude lewat MCP — tanpa kunci API, tanpa ChatGPT.</p></div></div>
+          <div className="oh-title"><span className="brand-mark sm" /><div><h2>Orchestrator</h2><p>Satu pengatur untuk enam agen: membaca chat WhatsApp (dan stok BigQuery untuk push stok), membagi tugas, menyelesaikan konflik antar agen, lalu menyerahkan keputusan yang di luar batas otonomi kepada Anda. Analisanya ditulis MCP Claude (routine claude.ai, tanpa kunci API) atau ChatGPT (API di server) — pilih di bawah.</p></div></div>
           <div className="oh-eng">
-            <label className="dk-model"><span>Model</span>
-              <select value={model} disabled={st.running} onChange={(e) => { setModel(e.target.value); setMcpModel(e.target.value) }} title="Pilih model yang sama di claude.ai / Desktop — perintahnya menyebut model ini">
-                {MCP_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-              </select>
-            </label>
-            <div className="dk-effort" role="radiogroup" aria-label="Effort"><span>Effort</span>
-              {EFFORTS.map((x) => <button key={x.id} type="button" role="radio" aria-checked={eff === x.id} className={eff === x.id ? 'on' : ''} disabled={st.running} title={x.hint} onClick={() => { setEff(x.id); setEffort(x.id) }}>{x.label}</button>)}
-            </div>
+            <EngineChoice e={eng} disabled={st.running} />
           </div>
         </div>
         <div className="oh-r">
@@ -170,7 +161,7 @@ export function OrchestratorPage() {
           {canWA && <div className="oh-kv"><small>WhatsApp terakhir dibaca</small><b>{wa?.generated_at ? `#${fmt(wa.cycle_number)} · ${shortDate(wa.generated_at)} · ${hhmm(wa.generated_at)}` : 'belum ada'}</b></div>}
           <div className="oh-kv"><small>Model AI terakhir</small><b>{lastModel}</b></div>
           <div className="oh-btns">
-            <button className="btn primary" disabled={st.running} onClick={() => run('all')} title="Claude membaca chat WhatsApp lewat MCP — tanpa kunci API, tanpa ChatGPT"><Icon name="plug" />Analisis ulang · MCP Claude</button>
+            <button className="btn primary" disabled={st.running} onClick={() => run('all')} title={eng.engine === 'chatgpt' ? 'ChatGPT API menganalisa di server — langsung jalan' : 'Claude membaca chat WhatsApp lewat MCP — tanpa kunci API'}><Icon name={eng.engine === 'chatgpt' ? 'spark' : 'plug'} />Analisis ulang · {ENGINE_LABEL[eng.engine]}</button>
           </div>
         </div>
       </div>

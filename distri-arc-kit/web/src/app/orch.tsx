@@ -10,7 +10,7 @@ import { useSse } from './SseProvider'
 import { useCycleLatest, useMe, useNow, useQueue, useWAAnalysis } from './queries'
 import { STAGES, TICK_MS, cycleReducer, initialCycle, type CycleUI } from './cycle'
 import { AnalysisSheet, type QueuedCycle } from './AnalysisSheet'
-import { effort, mcpModel } from './enginePrefs'
+import { chatgptModel, effort, mcpModel } from './enginePrefs'
 
 /** Label of a scope string, as the API's domain.Scope.Label ("screen:orbit" → "orbit"). */
 export function scopeLabel(scope: string): string {
@@ -25,7 +25,7 @@ export function scopeLabel(scope: string): string {
 /** The engine label of a cycle run by GSI Orbit itself: rules and formulas, no AI (ADR 0046). */
 export const SYSTEM_LABEL = 'Sistem GSI Orbit'
 
-type Via = 'auto' | 'api' | 'mcp' | 'model' | 'system'
+type Via = 'auto' | 'api' | 'mcp' | 'model' | 'system' | 'chatgpt'
 interface OrchCtx {
   s: CycleUI
   /** engine: who analyses ('mcp' Claude through MCP, 'model' the API & model AI choice); label names it in the result;
@@ -150,13 +150,14 @@ export function OrchProvider({ children }: { children: ReactNode }) {
         toast('Orchestrator sedang berjalan')
         return
       }
-      const v = via === 'mcp' || via === 'model' || via === 'system' ? via : 'api'
-      // the model (for claude.ai) and effort chosen on the dock, the same for every "Analisis ulang"
+      const v = via === 'mcp' || via === 'model' || via === 'system' || via === 'chatgpt' ? via : 'api'
+      // the model (Claude for claude.ai, or ChatGPT's — ADR 0059) and effort chosen on the dock, the same for every
+      // "Analisis ulang"
       api
-        .post<QueuedCycle>('/cycles', { scope, via: v, model: mcpModel(), effort: effort() })
+        .post<QueuedCycle>('/cycles', { scope, via: v, model: v === 'chatgpt' ? chatgptModel() : mcpModel(), effort: effort() })
         .then((c) => {
           const eff = c.mcp?.effort || c.effort || effort()
-          const by = c.mcp?.engine === 'claude_api' ? `${c.mcp.model || label || 'API'} · ${eff}`
+          const by = c.mcp?.engine === 'claude_api' || c.mcp?.engine === 'chatgpt_api' ? `${c.mcp.model || label || 'API'} · ${eff}`
             : c.mcp ? `MCP Claude · ${c.mcp.model_label || 'Claude'} · ${eff}` : v === 'system' ? SYSTEM_LABEL : label || 'API'
           dispatch({ type: 'start', cycleId: c.id, label: c.label, via: by, at: Date.now() })
           setQueued(c)
