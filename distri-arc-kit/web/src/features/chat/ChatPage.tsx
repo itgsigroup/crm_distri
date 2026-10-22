@@ -107,6 +107,19 @@ function readCompact(): boolean {
   try { return localStorage.getItem(COMPACT_KEY) === 'on' } catch { return false }
 }
 
+// the slim chat header (Sam 22 Oct): one short line — name and the action icons — so the messages get the room
+const HEAD_KEY = 'chat.head-compact'
+function useCompactHead(): [boolean, () => void] {
+  const [on, setOn] = useState(() => {
+    try { return localStorage.getItem(HEAD_KEY) === 'on' } catch { return false }
+  })
+  const toggle = useCallback(() => setOn((v) => {
+    try { localStorage.setItem(HEAD_KEY, v ? 'off' : 'on') } catch { /* not remembered */ }
+    return !v
+  }), [])
+  return [on, toggle]
+}
+
 /** A message found by Cari chat in any conversation (GET /chat/messages/search). */
 type MessageHit = ChatHit & { thread_id: string; kind: ThreadView['kind']; group_kind?: string; title: string; phone_name?: string }
 
@@ -617,6 +630,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const [zoom, setZoom] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
   const [zoom2, zoomStep, zoomReset] = useChatZoom()
+  const [slim, toggleSlim] = useCompactHead()
   const [mark, setMark] = useState('')
   const pendingJump = useRef<string | null>(null)
   const body = useRef<HTMLDivElement>(null)
@@ -935,7 +949,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const readable = t.kind !== 'group' || t.group_kind === 'external'
   return (
     <div className="pane th-pane ibc">
-      <div className="ibc-h">
+      <div className={`ibc-h${slim ? ' slim' : ''}`}>
         <button className="back" onClick={onBack} aria-label="Kembali"><Icon name="arrow" /></button>
         <span className={`av ${t.kind === 'group' ? 'grp' : ''}`}>{t.kind === 'group' ? <Icon name="people" /> : initials(t)}</span>
         <div className="ibc-who">
@@ -975,6 +989,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
             </button>
           )}
           {t.kind !== 'group' && <button className="btn ibc-acc" onClick={onAccurate}><Icon name="send" />Accurate</button>}
+          <button type="button" className={`ibl-btn ibc-find ibc-slim${slim ? ' on' : ''}`} onClick={toggleSlim} aria-pressed={slim}
+            title={slim ? 'Tampilkan header lengkap' : 'Ringkas header'} aria-label="Ringkas header"><Icon name="chev" /></button>
           {!lead && <button className="ibl-btn ibc-lead-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
         </div>
       </div>

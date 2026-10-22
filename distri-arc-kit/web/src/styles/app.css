@@ -814,6 +814,19 @@ body.map-maximized{overflow:hidden}
 .ibc-link{padding:1px 7px;border-radius:5px;border:1px solid var(--line-strong);font-size:10.5px;color:var(--text-2);text-decoration:none}
 .ibc-link:hover{color:var(--accent);border-color:var(--accent)}
 .ibc-acts{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;flex:0 1 auto;min-width:0;margin-left:auto}
+/* Ringkas header (Sam 22 Oct): one slim line — the name, the Orchestrator icon and the action icons; the avatar,
+   number line, analysis pill and button labels go */
+.ibc-slim .i{transform:rotate(-90deg);transition:transform .15s}
+.ibc-slim.on .i{transform:rotate(90deg)}
+.ibc-h.slim{flex-wrap:nowrap;gap:8px;padding:4px 12px}
+.ibc-h.slim .av,.ibc-h.slim .ibc-sub,.ibc-h.slim .orch-pill,.ibc-h.slim .ibc-alias,.ibc-h.slim .ibr-src,.ibc-h.slim .ibc-orch span,.ibc-h.slim .ibc-an-l{display:none}
+.ibc-h.slim .ibc-who{flex:1 1 auto}
+.ibc-h.slim .ibc-name b{font-size:13.5px}
+.ibc-h.slim .ibc-acts{flex-wrap:nowrap;gap:4px}
+.ibc-h.slim .ibl-btn{width:28px;height:28px}
+.ibc-h.slim .ibc-an-tg,.ibc-h.slim .ibc-acc{height:28px;padding:0 8px}
+.ibc-h.slim .ibc-orch{padding:0 7px}
+.ibc-h.slim .ibc-zoom{transform:scale(.88);transform-origin:right center}
 .ibc-acts .btn{height:34px;font-size:12.5px;border-radius:9px;padding:0 12px;gap:6px}
 .ibc-ai{background:var(--kp-ai);color:#fff}
 .ibc-ai:disabled{opacity:.6}

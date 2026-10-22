@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: tombol Ringkas header · 2026-10-22
+- Header percakapan punya tombol **Ringkas header** (ikon panah, di samping ikon cari). Saat aktif header menjadi satu baris tipis: nama chat, tombol Orchestrator (ikon saja), dan ikon aksi; avatar, baris nomor, pill Analisa WhatsApp, dan label tombol disembunyikan agar ruang pesan lebih luas. Klik lagi untuk header lengkap; pilihan diingat di browser.
+
 ## Fix · Chat: Cari chat mencari isi pesan di semua chat, seperti WhatsApp · 2026-10-22
 - Sebelumnya **Cari chat** hanya mencocokkan nama, nomor, dan pesan terakhir tiap chat — kata di pesan lain tidak ketemu. Kini hasilnya dua bagian seperti WhatsApp: **Chat** (nama/nomor) dan **Pesan** (isi semua pesan tersimpan, terbaru dulu, kata yang dicari ditandai). Klik hasil pesan membuka chat itu dan langsung lompat ke pesannya, termasuk pesan lama di luar 14 hari.
 - Pencarian ke server mulai dari 2 huruf (sebelumnya 3). Sales hanya menemukan pesan di chat nomor yang boleh dibacanya; filter nomor/tim tetap berlaku.
