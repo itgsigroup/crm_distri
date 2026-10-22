@@ -61,6 +61,8 @@ sql:
       - db/migrations/0057_stock_checks.sql
       - db/migrations/0058_ai_trigger_ai_required.sql
       - db/migrations/0059_reply_ai_matches.sql
+      - db/migrations/0060_chat_messages_body_trgm.sql
+      - db/migrations/0061_chat_message_stars.sql
     queries: db/queries
     gen:
       go:

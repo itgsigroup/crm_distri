@@ -416,6 +416,8 @@ type MessageView struct {
 	Suggest []*replyrule.Suggestion `json:"suggest,omitempty"`
 	Labels  []uuid.UUID             `json:"labels,omitempty"`
 	Pinned  bool                    `json:"pinned,omitempty"`
+	// Starred: the person viewing starred it (Pesan berbintang — each person's own, Sam 22 Oct)
+	Starred bool `json:"starred,omitempty"`
 	// Mentions: the members the text tags — "@<token>" in Body is shown as "@<name>"
 	Mentions json.RawMessage `json:"mentions,omitempty"`
 }
@@ -679,6 +681,9 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	if err := s.attachLabelsPins(r.Context(), out, pins); err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
+	}
+	if err := s.attachStars(r, out); err != nil {
+		s.log.Warn("message stars", "err", err) // a star never stops the chat from loading
 	}
 	if err := s.attachSuggestions(r.Context(), out, t.ThreadBranch, t.DealerID, now); err != nil {
 		s.log.Warn("reply suggestions", "err", err) // a suggestion never stops the chat from loading

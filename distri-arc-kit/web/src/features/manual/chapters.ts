@@ -361,7 +361,8 @@ Semua nomor WhatsApp GSI dalam satu layar: chat pribadi pelanggan, grup pelangga
 
 ## Filter dan label
 
-- Chip filter: **Semua, Belum dibaca, Belum dibalas, Dealer, Grup internal, Grup pelanggan, Nomor baru, Internal, Pemasok**.
+- Chip filter: **Semua, Belum dibaca, Belum dibalas, Berbintang, Dealer, Grup internal, Grup pelanggan, Nomor baru, Internal, Pemasok**.
+- **Pesan berbintang**: menu **⌄** di bubble → **Beri bintang** (bubble mendapat ★). Bintang bersifat pribadi — hanya Anda yang melihatnya. Filter **Berbintang** menampilkan semua pesan berbintang Anda di nomor yang dipilih, terbaru dulu; kotak cari menyaring daftar itu, dan klik pesan membuka chat tepat di pesannya. **Hapus bintang** dari menu yang sama.
 - **Label** seperti WhatsApp Business (Pelanggan baru, Pesanan baru, Menunggu pembayaran, Sudah dibayar, Pesanan selesai, atau buat sendiri). Pasang di chat lewat ikon label di header, atau di pesan lewat menu bubble.
 - Menu **⌄** di kartu chat (atau klik kanan): **Sematkan chat**, **Label**, **Tandai belum dibaca**, **Tandai belum dibalas / sudah dibalas**.
 - **Ringkas tampilan daftar**: tombol di atas daftar atau **Alt+R**.
@@ -373,7 +374,7 @@ Semua nomor WhatsApp GSI dalam satu layar: chat pribadi pelanggan, grup pelangga
 3. Lampiran lewat 📎: **Dokumen**, **Foto & video**, **Polling**, **Kontak**. Tempel gambar langsung dengan Ctrl+V. Maksimal 25 MB.
 4. **Pesan suara**: tekan ikon mikrofon saat kolom kosong.
 5. Di grup, ketik **@** untuk menandai anggota.
-6. Menu **⌄** di bubble: **Balas**, **Salin**, **Teruskan**, **Sematkan**, **Label**, **Edit** (≤ 15 menit), **Hapus untuk semua orang** (≤ 48 jam).
+6. Menu **⌄** di bubble: **Balas**, **Salin**, **Teruskan**, **Beri bintang**, **Sematkan**, **Label**, **Edit** (≤ 15 menit), **Hapus untuk semua orang** (≤ 48 jam).
 
 Setiap pesan keluar menampilkan **label nama pengirim** (akun yang login saat mengirim), misalnya **Tantri** atau **Sekar**. Pesan yang diketik langsung di HP berlabel **dari HP**. Pesan dikirim lewat penjaga anti-blokir (ada jeda dan "mengetik…" seperti manusia).
 

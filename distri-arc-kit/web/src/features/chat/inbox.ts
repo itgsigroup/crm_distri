@@ -3,11 +3,11 @@ import type { ThreadView } from '../../api/types'
 // Chat inbox helpers (pure, tested): conversation filters with counts, the "waiting for a reply" timer and the
 // lookup links shown next to a contact's number.
 
-export type Filter = 'all' | 'unread' | 'unreplied' | 'dealer' | 'group_internal' | 'group_external' | 'new' | 'internal' | 'supplier'
+export type Filter = 'all' | 'unread' | 'unreplied' | 'starred' | 'dealer' | 'group_internal' | 'group_external' | 'new' | 'internal' | 'supplier'
 
 // "Belum dibaca" and "Belum dibalas" cut across the kinds, like WhatsApp's Unread chip.
 export const FILTERS: [Filter, string][] = [
-  ['all', 'Semua'], ['unread', 'Belum dibaca'], ['unreplied', 'Belum dibalas'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['group_external', 'Grup pelanggan'], ['new', 'Nomor baru'], ['internal', 'Internal'], ['supplier', 'Pemasok'],
+  ['all', 'Semua'], ['unread', 'Belum dibaca'], ['unreplied', 'Belum dibalas'], ['starred', 'Berbintang'], ['dealer', 'Dealer'], ['group_internal', 'Grup internal'], ['group_external', 'Grup pelanggan'], ['new', 'Nomor baru'], ['internal', 'Internal'], ['supplier', 'Pemasok'],
 ]
 
 type Filtered = Pick<ThreadView, 'kind' | 'group_kind' | 'unread' | 'waiting_since' | 'contact_type'>
@@ -29,11 +29,12 @@ export function inFilter(t: Filtered, f: Filter): boolean {
   if (f === 'all') return true
   if (f === 'unread') return t.unread > 0
   if (f === 'unreplied') return unreplied(t)
+  if (f === 'starred') return false // starred messages, not chats: listed apart (Pesan berbintang)
   return filterOf(t) === f
 }
 
 export function countFilters(list: Filtered[]): Record<Filter, number> {
-  const c: Record<Filter, number> = { all: list.length, unread: 0, unreplied: 0, dealer: 0, group_internal: 0, group_external: 0, new: 0, internal: 0, supplier: 0 }
+  const c: Record<Filter, number> = { all: list.length, unread: 0, unreplied: 0, starred: 0, dealer: 0, group_internal: 0, group_external: 0, new: 0, internal: 0, supplier: 0 }
   for (const t of list) {
     c[filterOf(t)]++
     if (t.unread > 0) c.unread++

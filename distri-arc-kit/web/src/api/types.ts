@@ -357,6 +357,8 @@ export interface MessageView {
   can_delete?: boolean
   labels?: string[]
   pinned?: boolean
+  /** the person viewing starred it (Pesan berbintang, each person's own) */
+  starred?: boolean
 }
 
 /** A label of the team (WhatsApp Business), on chats and on messages. */

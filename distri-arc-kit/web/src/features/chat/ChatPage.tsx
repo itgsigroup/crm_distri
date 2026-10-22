@@ -10,7 +10,7 @@ import { SheetHead, useFeedback } from '../../components/feedback'
 import { fmtRp, hhmm, shortDate, wib, sowText } from '../../lib/format'
 import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf, teamName } from './Connect'
-import { countFilters, displayTitle, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, waitLabel, type Filter } from './inbox'
+import { countFilters, displayTitle, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, searchKey, waitLabel, type Filter } from './inbox'
 import { AttachMenu, ContactSheet, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
 import { bubbleLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 import { ForwardSheet } from './Forward'
@@ -100,7 +100,7 @@ function Waiting({ since, now }: { since?: string | null; now: Date }) {
 
 // Compact filter chips: an icon and the count; the active chip also shows its name, every chip names itself on hover.
 const FILTER_ICONS: Record<Filter, string> = {
-  all: 'chat', unread: 'bell', unreplied: 'send', dealer: 'building', group_internal: 'people', group_external: 'net', new: 'spark', internal: 'lock', supplier: 'box',
+  all: 'chat', unread: 'bell', unreplied: 'send', starred: 'star', dealer: 'building', group_internal: 'people', group_external: 'net', new: 'spark', internal: 'lock', supplier: 'box',
 }
 
 // the short chat list (one line of name, one of message), remembered in this browser
@@ -157,7 +157,18 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
   const n = wa?.items.find((x) => x.wa_number === account)
   const team = account.startsWith('team:') ? (account.slice(5) as WATeam) : undefined
   const nums = (wa?.items ?? []).filter((x) => !team || (x.team ?? 'sales') === team)
-  const counts = useMemo(() => countFilters(list), [list])
+  // Pesan berbintang (Sam 22 Oct): the person's starred messages of this number or team — the "Berbintang" filter
+  const { data: starred = [] } = useQuery({
+    queryKey: ['chat', 'starred', account],
+    staleTime: 15_000,
+    queryFn: () => {
+      const p = new URLSearchParams()
+      if (team) p.set('team', team)
+      else if (account) p.set('account', account)
+      return api.get<Items<MessageHit>>('/chat/starred?' + p.toString()).then((r) => r.items)
+    },
+  })
+  const counts = useMemo(() => ({ ...countFilters(list), starred: starred.length }), [list, starred.length])
   // the list holds the chat window (14 days); a search of 2+ letters asks the server across every stored
   // conversation, by name (spellings forgiven) or number — and, like WhatsApp, the words of every stored message
   // (the "Pesan" results under the chats, Sam 22 Oct)
@@ -189,7 +200,11 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
       return api.get<Items<MessageHit>>('/chat/messages/search?' + p.toString()).then((r) => r.items)
     },
   })
-  const msgs = deep && q.trim() ? hits ?? [] : []
+  const starring = filter === 'starred'
+  const starKey = searchKey(q)
+  const msgs = starring
+    ? starred.filter((h) => !starKey || searchKey(`${displayTitle(h)} ${h.from_name} ${h.snippet}`).includes(starKey))
+    : deep && q.trim() ? hits ?? [] : []
   const base = deep && found ? found : list
   // the open conversation stays in "Belum dibaca" / "Belum dibalas" after reading or answering it, as in WhatsApp
   const shown = pinnedFirst(base).filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && (deep && found ? true : matchThread(t, q)) && hasLabel(t, label))
@@ -228,9 +243,10 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
         )}
       </div>
       <div className="chat-list ibl-list">
-        {deep && (searching || searchingMsgs) && <div className="chat-none">Mencari di semua chat dan pesan…</div>}
+        {deep && !starring && (searching || searchingMsgs) && <div className="chat-none">Mencari di semua chat dan pesan…</div>}
+        {starring && msgs.length === 0 && <div className="chat-none">{q ? `Tidak ada pesan berbintang yang cocok dengan "${q}"` : 'Belum ada pesan berbintang. Beri bintang lewat menu ⌄ di bubble pesan — hanya Anda yang melihatnya.'}</div>}
         {msgs.length > 0 && shown.length > 0 && <div className="ibl-sec">Chat</div>}
-        {loaded && shown.length === 0 && msgs.length === 0 && !(deep && (searching || searchingMsgs)) && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"${deep ? ' di semua chat Orbit — chat lama di HP yang belum pernah berbalas pesan sejak nomor ditautkan belum ada di sini' : ''}` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
+        {loaded && !starring && shown.length === 0 && msgs.length === 0 && !(deep && (searching || searchingMsgs)) && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"${deep ? ' di semua chat Orbit — chat lama di HP yang belum pernah berbalas pesan sejak nomor ditautkan belum ada di sini' : ''}` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
         {shown.map((c) => (
           <div key={c.id} className={`ibr-w${menu === c.id ? ' menu-open' : ''}`} onContextMenu={(e) => { e.preventDefault(); setMenu(c.id) }}>
           <button className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
@@ -260,15 +276,15 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
           <ChatRowMenu t={c} open={menu === c.id} setOpen={(v) => setMenu(v ? c.id : null)} onLeave={() => { if (c.id === active) onLeave() }} />
           </div>
         ))}
-        {msgs.length > 0 && <div className="ibl-sec">Pesan</div>}
+        {msgs.length > 0 && <div className="ibl-sec">{starring ? 'Pesan berbintang' : 'Pesan'}</div>}
         {msgs.map((h) => (
           <button key={h.id} className="ibr ibr-hit" onClick={() => onHit(h)} title="Buka chat di pesan ini">
             <span className={`av ${h.kind === 'group' ? 'grp' : ''}`}>{h.kind === 'group' ? <Icon name="people" /> : initials(h)}</span>
             <div className="ibr-m">
               <div className="ibr-top"><b>{displayTitle(h)}</b></div>
-              <span className="ibr-lm"><Marked text={(h.direction === 'out' ? 'Anda: ' : h.kind === 'group' && h.from_name ? h.from_name + ': ' : '') + h.snippet} q={dq} /></span>
+              <span className="ibr-lm"><Marked text={(h.direction === 'out' ? 'Anda: ' : h.kind === 'group' && h.from_name ? h.from_name + ': ' : '') + h.snippet} q={starring ? q.trim() : dq} /></span>
             </div>
-            <div className="ibr-rt"><span>{timeLabel(h.sent_at, now)}</span></div>
+            <div className="ibr-rt"><span>{timeLabel(h.sent_at, now)}</span>{starring && <Icon name="star" className="i ibr-star" />}</div>
           </button>
         ))}
       </div>
@@ -313,9 +329,9 @@ function ReplyIcon() {
 }
 
 /** WhatsApp-style menu of one bubble (⌄ in its corner): Balas, Salin, Edit, Hapus untuk semua orang. */
-function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward, onPin, onLabel }: {
+function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward, onPin, onStar, onLabel }: {
   m: MessageView; edit: boolean; del: boolean; onReply: () => void; onEdit: () => void; onDelete: () => void; onForward?: () => void
-  onPin?: () => void; onLabel?: () => void
+  onPin?: () => void; onStar?: () => void; onLabel?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
@@ -339,6 +355,7 @@ function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward, onPin,
           {m.can_reply && <button type="button" role="menuitem" onClick={pick(onReply)}><ReplyIcon />Balas</button>}
           {text && <button type="button" role="menuitem" onClick={pick(copy)}><Icon name="doc" />Salin</button>}
           {onForward && <button type="button" role="menuitem" onClick={pick(onForward)}><Icon name="send" />Teruskan</button>}
+          {onStar && <button type="button" role="menuitem" onClick={pick(onStar)}><Icon name="star" />{m.starred ? 'Hapus bintang' : 'Beri bintang'}</button>}
           {onPin && <button type="button" role="menuitem" onClick={pick(onPin)}><Icon name="pin" />{m.pinned ? 'Lepas sematan' : 'Sematkan'}</button>}
           {onLabel && <button type="button" role="menuitem" onClick={pick(onLabel)}><Icon name="tag" />Label</button>}
           {edit && <button type="button" role="menuitem" onClick={pick(onEdit)}><Icon name="edit" />Edit</button>}
@@ -429,9 +446,9 @@ function TriggerCards({ m, thread, asOf, onUse }: { m: MessageView; thread: stri
 /** The first letter of the admin who sent a message: the small round chip on the label. */
 export const senderInitial = (name: string) => (name.trim().replace(/^(Pak|Bu|Mbak|Mas)\s+/i, '')[0] ?? '?').toUpperCase()
 
-function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark, onPin, onLabel, onMember }: {
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark, onPin, onStar, onLabel, onMember }: {
   m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date; mark?: string
-  onPin?: (m: MessageView) => void; onLabel?: (m: MessageView) => void; onMember?: (number: string) => void
+  onPin?: (m: MessageView) => void; onStar?: (m: MessageView) => void; onLabel?: (m: MessageView) => void; onMember?: (number: string) => void
   onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
   onUse?: (m: MessageView, text: string) => void; asOf?: string | null
 }) {
@@ -467,9 +484,9 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
         {m.quote && <QuoteBlock q={m.quote} mine={via} onJump={onJump} />}
         {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
         {m.media?.kind === 'poll' ? <PollBody text={caption} /> : m.media?.kind === 'contact' ? <ContactBody text={caption} /> : <BubbleText text={caption} mentions={m.mentions} mark={mark} />}
-        <span className="tm">{m.pinned && <Icon name="pin" className="i tm-pin" />}{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
+        <span className="tm">{m.starred && <Icon name="star" className="i tm-star" />}{m.pinned && <Icon name="pin" className="i tm-pin" />}{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
         <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined}
-          onPin={onPin && m.status !== 'pending' && m.status !== 'failed' ? () => onPin(m) : undefined} onLabel={onLabel ? () => onLabel(m) : undefined} />
+          onPin={onPin && m.status !== 'pending' && m.status !== 'failed' ? () => onPin(m) : undefined} onStar={onStar ? () => onStar(m) : undefined} onLabel={onLabel ? () => onLabel(m) : undefined} />
         {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
       </div>
       <LabelChips ids={m.labels} className="bub-lbls" />
@@ -803,6 +820,18 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     },
     onError: (e: Error) => toast(e.message),
   })
+  // Pesan berbintang (Sam 22 Oct): the person's own star — shown at once, then the chat and the Berbintang list
+  const star = useMutation({
+    mutationFn: (m: MessageView) => api.put(`/chat/threads/${id}/messages/${m.id}/star`, { starred: !m.starred }),
+    onSuccess: (_, m) => {
+      const flip = (x: MessageView) => (x.id === m.id ? { ...x, starred: !m.starred } : x)
+      setOlder((o) => o.map(flip))
+      qc.setQueryData<ThreadDetail>(['chat', 'thread', id], (d) => (d ? { ...d, messages: d.messages.map(flip) } : d))
+      qc.invalidateQueries({ queryKey: ['chat', 'starred'] })
+      toast(m.starred ? 'Bintang dihapus' : 'Pesan diberi bintang — lihat di filter Berbintang')
+    },
+    onError: (e: Error) => toast(e.message),
+  })
   const unpin = (mid: string) => api.put(`/chat/threads/${id}/messages/${mid}/pin`, { pinned: false }).then(() => {
     setOlder((o) => o.map((x) => (x.id === mid ? { ...x, pinned: false } : x)))
     qc.invalidateQueries({ queryKey: ['chat', 'thread', id] })
@@ -1017,7 +1046,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           return (
             <div key={m.id} style={{ display: 'contents' }}>
               {sep}
-              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} onUse={useSuggestion} asOf={data?.stock_as_of} mark={mark} onPin={(x) => pin.mutate(x)} onLabel={labelMsg} onMember={(n) => { openMember(n).catch(() => {}) }} />
+              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} onUse={useSuggestion} asOf={data?.stock_as_of} mark={mark} onPin={(x) => pin.mutate(x)} onStar={(x) => star.mutate(x)} onLabel={labelMsg} onMember={(n) => { openMember(n).catch(() => {}) }} />
             </div>
           )
         })}

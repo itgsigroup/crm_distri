@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: Pesan berbintang dan filter Berbintang · 2026-10-22
+- Menu **⌄** di bubble punya **Beri bintang / Hapus bintang** (seperti WhatsApp). Bubble berbintang bertanda ★. Bintang bersifat **pribadi per pengguna** (berbeda dengan Sematkan yang untuk tim) dan tidak dikirim ke WhatsApp.
+- Filter baru **Berbintang** (ikon ★ dengan jumlahnya) di daftar chat: semua pesan berbintang Anda di nomor/tim yang dipilih, terbaru dulu, bisa dicari; klik membuka chat tepat di pesannya. Hanya chat yang boleh Anda baca yang tampil; pesan yang dihapus keluar dari daftar.
+- API: `PUT /api/chat/threads/{id}/messages/{mid}/star {starred}`, `GET /api/chat/starred?account=&team=`; `starred` pada pesan. Migrasi 0061 (`chat_message_stars`). Penanda bintang tidak pernah menghalangi chat terbuka.
+
 ## Feat · Tanya Orchestrator: pertanyaan stok membuka tabel Cek stok yang terfilter + kartu Hasil AI · 2026-10-22
 - Pertanyaan stok di kotak Orchestrator (mis. **"stok jakarta"**) kini langsung membuka **Cek stok**: tabel **Data stok** terfilter cabang/barang yang disebut, kartu **Analisa stok** membuka filter yang sesuai (Per cabang dengan Jakarta terpilih dan daftar barangnya; Fast moving, Dead stock, Reorder, Mutasi, Umur stok, Per kategori), dan di atasnya kartu **Hasil AI · Orchestrator** berisi pertanyaan dan jawabannya (× menutup dan melepas filter). Alamatnya bisa dibagikan (`/stok/cek?tanya=…&cabang=…&cari=…&filter=…`).
 - Pertanyaan push/bundle tetap menjawab dengan dealer kandidat di pop-up. Dock Orchestrator menutup setelah pertanyaan dikirim agar tidak menutupi tabel; di halaman Cek stok, "Layar ini" kini **push stok** (sebelumnya "semua").

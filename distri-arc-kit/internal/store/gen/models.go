@@ -199,6 +199,13 @@ type ChatMessageLabel struct {
 	AddedAt   time.Time `json:"added_at"`
 }
 
+type ChatMessageStar struct {
+	UserID    uuid.UUID `json:"user_id"`
+	MessageID uuid.UUID `json:"message_id"`
+	ThreadID  uuid.UUID `json:"thread_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type ChatMessagesDefault struct {
 	ID         uuid.UUID       `json:"id"`
 	ThreadID   *uuid.UUID      `json:"thread_id"`

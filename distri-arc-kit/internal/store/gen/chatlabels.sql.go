@@ -305,6 +305,76 @@ func (q *Queries) ListPins(ctx context.Context, conv string) ([]ListPinsRow, err
 	return items, nil
 }
 
+const listStarred = `-- name: ListStarred :many
+select s.message_id, s.created_at as starred_at, m.thread_id, m.sent_at, coalesce(m.direction, '')::text as direction,
+  coalesce(m.from_name, '')::text as from_name, coalesce(m.body, '')::text as body, (m.media is not null and m.media <> 'null'::jsonb)::bool as has_media,
+  coalesce(t.kind, '')::text as kind, coalesce(t.title, '')::text as title, coalesce(t.phone_name, '')::text as phone_name,
+  t.sales_id, t.account, coalesce(n.team, 'sales')::text as account_team, coalesce(g.kind, '')::text as group_kind
+from chat_message_stars s
+join chat_messages m on m.id = s.message_id
+join chat_threads t on t.id = m.thread_id
+left join wa_numbers n on n.wa_number = t.account
+left join wa_groups g on g.id = t.group_id
+where s.user_id = $1::uuid and m.deleted_at is null
+order by m.sent_at desc
+limit 500
+`
+
+type ListStarredRow struct {
+	MessageID   uuid.UUID  `json:"message_id"`
+	StarredAt   time.Time  `json:"starred_at"`
+	ThreadID    *uuid.UUID `json:"thread_id"`
+	SentAt      time.Time  `json:"sent_at"`
+	Direction   string     `json:"direction"`
+	FromName    string     `json:"from_name"`
+	Body        string     `json:"body"`
+	HasMedia    bool       `json:"has_media"`
+	Kind        string     `json:"kind"`
+	Title       string     `json:"title"`
+	PhoneName   string     `json:"phone_name"`
+	SalesID     *uuid.UUID `json:"sales_id"`
+	Account     *string    `json:"account"`
+	AccountTeam string     `json:"account_team"`
+	GroupKind   string     `json:"group_kind"`
+}
+
+// The person's starred messages, newest message first, with their conversation; the API checks who may read which.
+func (q *Queries) ListStarred(ctx context.Context, userID uuid.UUID) ([]ListStarredRow, error) {
+	rows, err := q.db.Query(ctx, listStarred, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListStarredRow{}
+	for rows.Next() {
+		var i ListStarredRow
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.StarredAt,
+			&i.ThreadID,
+			&i.SentAt,
+			&i.Direction,
+			&i.FromName,
+			&i.Body,
+			&i.HasMedia,
+			&i.Kind,
+			&i.Title,
+			&i.PhoneName,
+			&i.SalesID,
+			&i.Account,
+			&i.AccountTeam,
+			&i.GroupKind,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const messageLabels = `-- name: MessageLabels :many
 select message_id, label_id from chat_message_labels where message_id = any($1::uuid[]) order by added_at
 `
@@ -334,6 +404,37 @@ func (q *Queries) MessageLabels(ctx context.Context, ids []uuid.UUID) ([]Message
 	return items, nil
 }
 
+const starMessage = `-- name: StarMessage :exec
+insert into chat_message_stars (user_id, message_id, thread_id) values ($1::uuid, $2::uuid, $3::uuid)
+on conflict (user_id, message_id) do nothing
+`
+
+type StarMessageParams struct {
+	UserID    uuid.UUID `json:"user_id"`
+	MessageID uuid.UUID `json:"message_id"`
+	ThreadID  uuid.UUID `json:"thread_id"`
+}
+
+// Pesan berbintang: one person's star on a message (again = nothing).
+func (q *Queries) StarMessage(ctx context.Context, arg StarMessageParams) error {
+	_, err := q.db.Exec(ctx, starMessage, arg.UserID, arg.MessageID, arg.ThreadID)
+	return err
+}
+
+const unstarMessage = `-- name: UnstarMessage :exec
+delete from chat_message_stars where user_id = $1::uuid and message_id = $2::uuid
+`
+
+type UnstarMessageParams struct {
+	UserID    uuid.UUID `json:"user_id"`
+	MessageID uuid.UUID `json:"message_id"`
+}
+
+func (q *Queries) UnstarMessage(ctx context.Context, arg UnstarMessageParams) error {
+	_, err := q.db.Exec(ctx, unstarMessage, arg.UserID, arg.MessageID)
+	return err
+}
+
 const updateChatLabel = `-- name: UpdateChatLabel :execrows
 update chat_labels set name = $1::text, color = $2::text where id = $3::uuid
 `
@@ -350,4 +451,34 @@ func (q *Queries) UpdateChatLabel(ctx context.Context, arg UpdateChatLabelParams
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const userStarsIn = `-- name: UserStarsIn :many
+select message_id from chat_message_stars where user_id = $1::uuid and message_id = any($2::uuid[])
+`
+
+type UserStarsInParams struct {
+	UserID uuid.UUID   `json:"user_id"`
+	Ids    []uuid.UUID `json:"ids"`
+}
+
+// Which of these messages the person starred (the bubbles of an open chat).
+func (q *Queries) UserStarsIn(ctx context.Context, arg UserStarsInParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, userStarsIn, arg.UserID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var message_id uuid.UUID
+		if err := rows.Scan(&message_id); err != nil {
+			return nil, err
+		}
+		items = append(items, message_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

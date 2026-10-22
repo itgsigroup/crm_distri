@@ -16,7 +16,9 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"distri-arc/internal/httpx"
+	"distri-arc/internal/llm"
 	"distri-arc/internal/store/gen"
+	"distri-arc/internal/wa"
 )
 
 // Pinned messages and labels in Chat, like WhatsApp Business (migration 0039). A pin or a label belongs to the
@@ -32,6 +34,8 @@ func (s *Server) chatLabelRoutes(r chi.Router) {
 	r.Put("/chat/threads/{id}/labels", s.setThreadLabels)
 	r.Put("/chat/threads/{id}/messages/{mid}/labels", s.setMessageLabels)
 	r.Put("/chat/threads/{id}/messages/{mid}/pin", s.pinMessage)
+	r.Put("/chat/threads/{id}/messages/{mid}/star", s.starMessage)
+	r.Get("/chat/starred", s.listStarred)
 }
 
 // convKey is the conversation a thread shows: a group's jid (every GSI number's thread of it), else the thread.
@@ -364,4 +368,111 @@ func (s *Server) attachLabelsPins(ctx context.Context, msgs []MessageView, pins 
 		msgs[i].Labels, msgs[i].Pinned = by[msgs[i].ID], pinned[msgs[i].ID]
 	}
 	return nil
+}
+
+// Pesan berbintang (Sam 22 Oct, like WhatsApp): a person stars a message for themself — the menu of a bubble — and
+// finds every starred message under the chat list's "Berbintang" filter. Not the team's (that is Sematkan).
+
+func (s *Server) starMessage(w http.ResponseWriter, r *http.Request) {
+	t, ok := s.threadParam(w, r)
+	if !ok {
+		return
+	}
+	m, ok := s.threadMessage(w, r, t)
+	if !ok {
+		return
+	}
+	var b struct {
+		Starred bool `json:"starred"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&b); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Format tidak valid")
+		return
+	}
+	if b.Starred && m.DeletedAt != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Pesan yang dihapus tidak bisa diberi bintang")
+		return
+	}
+	u, _ := CurrentUser(r.Context())
+	var err error
+	if b.Starred {
+		err = s.st.Q.StarMessage(r.Context(), gen.StarMessageParams{UserID: u.ID, MessageID: m.ID, ThreadID: t.ID})
+	} else {
+		err = s.st.Q.UnstarMessage(r.Context(), gen.UnstarMessageParams{UserID: u.ID, MessageID: m.ID})
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"starred": b.Starred})
+}
+
+// attachStars marks the bubbles the person viewing starred.
+func (s *Server) attachStars(r *http.Request, msgs []MessageView) error {
+	if len(msgs) == 0 {
+		return nil
+	}
+	u, _ := CurrentUser(r.Context())
+	ids := make([]uuid.UUID, len(msgs))
+	for i, m := range msgs {
+		ids[i] = m.ID
+	}
+	rows, err := s.st.Q.UserStarsIn(r.Context(), gen.UserStarsInParams{UserID: u.ID, Ids: ids})
+	if err != nil {
+		return err
+	}
+	starred := map[uuid.UUID]bool{}
+	for _, id := range rows {
+		starred[id] = true
+	}
+	for i := range msgs {
+		msgs[i].Starred = starred[msgs[i].ID]
+	}
+	return nil
+}
+
+// StarredView is one starred message with its conversation (the "Berbintang" filter).
+type StarredView struct {
+	MessageHit
+	StarredAt time.Time `json:"starred_at"`
+}
+
+// listStarred: the person's starred messages, newest first, in the conversations they may still read, of one
+// number (account) or one team's numbers (team) when asked.
+func (s *Server) listStarred(w http.ResponseWriter, r *http.Request) {
+	u, _ := CurrentUser(r.Context())
+	rows, err := s.st.Q.ListStarred(r.Context(), u.ID)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	viewer, err := s.chatViewerOf(r.Context(), u)
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	account, team := wa.Digits(r.URL.Query().Get("account")), r.URL.Query().Get("team")
+	out := []StarredView{}
+	for _, m := range rows {
+		if m.ThreadID == nil || !viewer.sees(m.SalesID, m.Account) ||
+			(account != "" && deref(m.Account) != account) || (team != "" && m.AccountTeam != team) {
+			continue
+		}
+		text := strings.Join(strings.Fields(m.Body), " ")
+		if text == "" && m.HasMedia {
+			text = "Lampiran"
+		}
+		if r := []rune(text); len(r) > 160 {
+			text = string(r[:160]) + "…"
+		}
+		h := MessageHit{ChatHit: ChatHit{ID: m.MessageID, SentAt: m.SentAt, Direction: m.Direction, FromName: m.FromName, Snippet: llm.MaskCredentials(text)},
+			ThreadID: *m.ThreadID, Kind: m.Kind, Title: m.Title}
+		if m.Kind == "group" {
+			h.GroupKind = m.GroupKind
+		} else {
+			h.PhoneName = m.PhoneName
+		}
+		out = append(out, StarredView{MessageHit: h, StarredAt: m.StarredAt})
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": out})
 }
