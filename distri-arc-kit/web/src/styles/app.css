@@ -668,9 +668,9 @@ body.map-maximized{overflow:hidden}
 .assign-warn .i{color:var(--warn)}
 
 /* Chat (Komo-style inbox): list · lead panel · conversation */
-.chat.komo{--wa-bg:#efeae2;--wa-out:#d9fdd3;--wa-in:#fff;--wa-green:#25a35a;--kp-dark:#263840;--kp-ai:#7c3aed;--kp-ai-soft:rgba(124,58,237,.08);grid-template-columns:330px minmax(0,1fr);position:relative}
-.chat.komo.with-lead{grid-template-columns:320px 320px minmax(0,1fr)}
-.chat.komo.with-lead.lead-mini{grid-template-columns:320px 56px minmax(0,1fr)}
+.chat.komo{--wa-bg:#efeae2;--wa-out:#d9fdd3;--wa-in:#fff;--wa-green:#25a35a;--kp-dark:#263840;--kp-ai:#7c3aed;--kp-ai-soft:rgba(124,58,237,.08);grid-template-columns:var(--list-w,330px) minmax(0,1fr);position:relative}
+.chat.komo.with-lead{grid-template-columns:var(--list-w,320px) 320px minmax(0,1fr)}
+.chat.komo.with-lead.lead-mini{grid-template-columns:var(--list-w,320px) 56px minmax(0,1fr)}
 /* lead panel, ringkas: a slim strip that stays visible — who, stage, warnings, the tabs as icons */
 .ibp.mini{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 0 12px;overflow:hidden auto}
 .ibp-mini-open{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:0;background:var(--kp-dark);color:#fff;cursor:pointer}
@@ -1008,16 +1008,16 @@ body.map-maximized{overflow:hidden}
 .ibc-c .send{width:44px;height:44px;background:var(--wa-green)}
 /* the lead panel keeps its own middle column on laptop widths; only below 1100px it floats over the thread */
 @media (max-width:1280px){
-  .chat.komo.with-lead{grid-template-columns:280px 290px minmax(0,1fr)}
-  .chat.komo.with-lead.lead-mini{grid-template-columns:280px 56px minmax(0,1fr)}
+  .chat.komo.with-lead{grid-template-columns:var(--list-w,280px) 290px minmax(0,1fr)}
+  .chat.komo.with-lead.lead-mini{grid-template-columns:var(--list-w,280px) 56px minmax(0,1fr)}
 }
 @media (max-width:1100px){
-  .chat.komo.with-lead{grid-template-columns:280px minmax(0,1fr)}
+  .chat.komo.with-lead{grid-template-columns:var(--list-w,280px) minmax(0,1fr)}
   .chat.komo .ibp{position:absolute;right:0;top:var(--rail-off);bottom:0;width:320px;z-index:6;box-shadow:var(--shadow-lift)}
   .chat.komo .ibp.mini{width:56px;box-shadow:var(--shadow)}
   .chat.komo.lead-mini .th-pane{margin-right:56px}
 }
-@media (max-width:1100px){.chat.komo,.chat.komo.with-lead{grid-template-columns:280px minmax(0,1fr)}}
+@media (max-width:1100px){.chat.komo,.chat.komo.with-lead{grid-template-columns:var(--list-w,280px) minmax(0,1fr)}}
 @media (max-width:900px){
   .chat.komo .ibp{position:fixed;inset:auto 0 0 0;top:15vh;width:auto;border-radius:16px 16px 0 0;z-index:40}
   .chat.komo .list-pane{display:flex}.chat.komo .th-pane{display:none}
@@ -2309,3 +2309,10 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 /* Pesan berbintang (Sam 22 Oct): the star on a bubble and on a row of the Berbintang filter */
 .tm .tm-star{width:11px;height:11px;margin-right:3px;vertical-align:-1px;color:#e0a100;fill:#f5b400;stroke:#c98a00}
 .ibr-rt .ibr-star{width:13px;height:13px;margin-top:4px;color:#e0a100;fill:#f5b400;stroke:#c98a00}
+
+/* the chat list widens like a VS Code panel (Sam 22 Oct): a handle in the gap right of the list, ↔ on hover */
+.list-resizer{position:absolute;z-index:5;width:12px;margin-left:2px;cursor:col-resize;touch-action:none;outline:none}
+.list-resizer::after{content:"";position:absolute;left:5px;top:12px;bottom:12px;width:2px;border-radius:2px;background:transparent;transition:background .12s}
+.list-resizer:hover::after,.list-resizer:focus-visible::after,.list-resizer.on::after{background:var(--accent)}
+body.col-resizing,body.col-resizing *{cursor:col-resize!important;user-select:none!important}
+@media (max-width:900px){.list-resizer{display:none}}

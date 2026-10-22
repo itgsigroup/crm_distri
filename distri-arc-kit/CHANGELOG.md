@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: lebar daftar chat bisa ditarik seperti VS Code · 2026-10-22
+- Di garis antara daftar chat dan percakapan kursor berubah menjadi ↔; tarik untuk memperlebar atau mempersempit daftar (240–640 px, percakapan tetap mendapat minimal 420 px). Lebar diingat per browser; klik dua kali garis untuk kembali ke lebar awal; bisa juga dengan ← → saat garis difokus. Tidak tampil di layar HP.
+
 ## Feat · Chat: Pesan berbintang dan filter Berbintang · 2026-10-22
 - Menu **⌄** di bubble punya **Beri bintang / Hapus bintang** (seperti WhatsApp). Bubble berbintang bertanda ★. Bintang bersifat **pribadi per pengguna** (berbeda dengan Sematkan yang untuk tim) dan tidak dikirim ke WhatsApp.
 - Filter baru **Berbintang** (ikon ★ dengan jumlahnya) di daftar chat: semua pesan berbintang Anda di nomor/tim yang dipilih, terbaru dulu, bisa dicari; klik membuka chat tepat di pesannya. Hanya chat yang boleh Anda baca yang tampil; pesan yang dihapus keluar dari daftar.

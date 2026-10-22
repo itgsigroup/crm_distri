@@ -401,6 +401,7 @@ Tombol **Kirim ke Accurate** menyalin data pelanggan untuk dibuat atau diperbaru
 
 ## Tampilan
 
+- **Lebar daftar chat**: arahkan kursor ke garis antara daftar chat dan percakapan sampai berubah menjadi ↔, lalu tarik ke kanan atau kiri (seperti VS Code). Lebarnya diingat di browser; klik dua kali garis itu untuk kembali ke lebar awal.
 - Ikon panah di header chat: **Ringkas header** menjadi satu baris tipis.
 - Tombol **− / +**: zoom percakapan.
 - **Per pesan**: tampilkan analisa AI per bubble.

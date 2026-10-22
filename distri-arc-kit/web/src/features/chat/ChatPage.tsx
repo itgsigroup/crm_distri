@@ -25,6 +25,7 @@ import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type M
 import { linkParts } from './links'
 import { formatParts, quoteLines, shortcutMark, wrapSelection, type Mark } from './format'
 import { MembersSheet, openMemberChat, useMembers } from './Members'
+import { ListResizer, listWidthStyle, savedListWidth } from './ListResizer'
 import { AIOverview } from './AIOverview'
 import { ChatStats } from './ChatStats'
 import { Dock } from '../../app/Dock'
@@ -1455,6 +1456,9 @@ function defaultAccount(items: WANumber[]): string {
 export function ChatPage() {
   const { threadId } = useParams()
   const nav = useNavigate()
+  // the chat list's width, dragged like a VS Code panel (Sam 22 Oct); null = the layout's default
+  const [listW, setListW] = useState<number | null>(savedListWidth)
+  const chatBox = useRef<HTMLDivElement>(null)
   const [filter, setFilter] = useState<Filter>('all')
   // one number at a time (Sam 19 Oct: "Semua" loaded every number's chats and made Chat slow)
   const { data: wa } = useWAStatus()
@@ -1496,7 +1500,8 @@ export function ChatPage() {
   }
   const accurate = () => active && openSheet(<AccurateSheet id={active} />)
   return (
-    <div className={`chat multi komo ${slot ? 'rail-out' : ''} ${threadId ? 'show-thread' : ''} ${active ? 'with-lead' : ''} ${active && !lead ? 'lead-mini' : ''}`}>
+    <div ref={chatBox} style={listWidthStyle(listW)} className={`chat multi komo ${slot ? 'rail-out' : ''} ${threadId ? 'show-thread' : ''} ${active ? 'with-lead' : ''} ${active && !lead ? 'lead-mini' : ''}`}>
+      <ListResizer box={chatBox} width={listW} onWidth={setListW} />
       {rail}
       <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)}
         onHit={(h) => nav(`/chat/${h.thread_id}?${new URLSearchParams({ m: h.id, at: h.sent_at })}`)} onLeave={leave} />
