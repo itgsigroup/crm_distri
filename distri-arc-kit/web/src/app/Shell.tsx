@@ -38,6 +38,7 @@ export const ROUTES: Record<ScreenKey, string> = {
   aitrigger: '/pengaturan/ai-trigger',
   conn: '/pengaturan',
   konsep: '/panduan',
+  manual: '/manual',
 }
 
 export function screenOf(path: string): ScreenKey {
@@ -62,11 +63,13 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/pengaturan/ai-trigger')) return 'aitrigger'
   if (path.startsWith('/pengaturan')) return 'conn'
   if (path.startsWith('/panduan')) return 'konsep'
+  if (path.startsWith('/manual')) return 'manual'
   return 'today'
 }
 
 /** A screen the user may open: Mapping sales goes with the Pengguna or Pengaturan menu (no role setting of its own). */
 export function canSee(screens: string[], key: ScreenKey): boolean {
+  if (key === 'manual') return true // the user book is for everyone who logs in
   if (key === 'salesmap') return screens.includes('users') || screens.includes('conn')
   if (key === 'aiapi') return screens.includes('conn') || screens.includes('mcp')
   if (key === 'aitrigger') return screens.includes('conn') || screens.includes('chat')
@@ -168,11 +171,12 @@ export function Shell() {
             <NavBtn to="roles" cur={cur} icon="shield">Peran &amp; akses</NavBtn>
             <NavBtn to="branches" cur={cur} icon="building">Cabang</NavBtn>
             <NavBtn to="salesmap" cur={cur} icon="net">Mapping sales</NavBtn>
-            {me && (['mcp', 'aiapi', 'aitrigger', 'konsep', 'conn'] as ScreenKey[]).some((k) => canSee(me.screens, k)) && <div className="nav-sec">Pengaturan</div>}
+            {me && (['mcp', 'aiapi', 'aitrigger', 'konsep', 'manual', 'conn'] as ScreenKey[]).some((k) => canSee(me.screens, k)) && <div className="nav-sec">Pengaturan</div>}
             <NavBtn to="mcp" cur={cur} icon="spark">MCP Claude</NavBtn>
             <NavBtn to="aiapi" cur={cur} icon="plug">API &amp; model AI</NavBtn>
             <NavBtn to="aitrigger" cur={cur} icon="spark">AI Trigger</NavBtn>
             <NavBtn to="konsep" cur={cur} icon="doc">Panduan</NavBtn>
+            <NavBtn to="manual" cur={cur} icon="form">Buku manual</NavBtn>
             <NavBtn to="conn" cur={cur} icon="gear">Pengaturan</NavBtn>
           </nav>
           <div className="rail-sec">

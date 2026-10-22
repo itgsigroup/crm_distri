@@ -2,7 +2,7 @@
 // Terms follow docs/design/01-glossary.md exactly.
 import type { RootCause, Segment } from '../../api/types'
 
-export type ScreenKey = 'today' | 'dashboard' | 'orch' | 'chat' | 'reportwa' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'stockcheck' | 'ar' | 'users' | 'roles' | 'branches' | 'salesmap' | 'mcp' | 'aiapi' | 'aitrigger' | 'conn' | 'konsep'
+export type ScreenKey = 'today' | 'dashboard' | 'orch' | 'chat' | 'reportwa' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'stockcheck' | 'ar' | 'users' | 'roles' | 'branches' | 'salesmap' | 'mcp' | 'aiapi' | 'aitrigger' | 'conn' | 'konsep' | 'manual'
 
 export const TITLES: Record<ScreenKey, [string, string]> = {
   today: ['Pusat kendali', ''],
@@ -26,6 +26,7 @@ export const TITLES: Record<ScreenKey, [string, string]> = {
   aitrigger: ['AI Trigger', 'Kata kunci di pesan pelanggan memunculkan data stok, harga, limit & tagihan, atau status order di Chat — dengan draf jawaban dari template atau AI'],
   conn: ['Pengaturan', 'Kebijakan orbit, sumber sinyal, koneksi AI (API & MCP), kalibrasi agen'],
   konsep: ['Konsep orbit', 'Panduan Orbit: satu gambar, 14 istilah, cara baca papan'],
+  manual: ['Buku manual', 'Cara kerja sistem, tutorial tiap menu, rutinitas per peran, dan tanya-jawab'],
 }
 
 

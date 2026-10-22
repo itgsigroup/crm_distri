@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Buku manual: menu baru dengan tutorial dan penjelasan sistem · 2026-10-22
+- Menu **Buku manual** (grup Pengaturan, juga di Jelajahi fitur Dashboard) terbuka untuk **semua pengguna** tanpa perlu diatur di Peran & akses.
+- 18 bab dalam 4 bagian: **Mengenal sistem** (selamat datang, cara kerja sistem & enam agen, istilah & rumus, masuk & navigasi), **Tutorial per menu** (Pusat kendali, Dashboard, Orchestrator & Analisis ulang, Chat WhatsApp, Report WhatsApp, Orbit/Segmen/Peta relasi, Dealer, Push stok, Cek stok & Analisa stok, Kredit · kas, Master data, Pengaturan/MCP Claude/AI Trigger), **Alur kerja harian** per peran (Sales, Admin, Penagihan, Gudang, Manajer & CEO), dan **Bantuan** (tanya-jawab, pemecahan masalah, privasi).
+- Daftar isi dengan **Cari di manual**, tombol **Buka halaman …** ke menu yang dijelaskan, navigasi bab sebelumnya/berikutnya, tautan per bab (`/manual?bab=chat`), dan **Cetak / simpan PDF** seluruh buku. Di HP, bab dipilih dari dropdown.
+
 ## Feat · Cek stok: Analisa stok (fast / slow moving, dead stock, perputaran, reorder) dengan grafik · 2026-10-22
 - Kartu **Analisa stok** di atas Data stok, dari sudut pandang owner, per semua cabang atau satu cabang:
   - KPI: nilai stok, perkiraan penjualan per bulan, **perputaran stok** (nilai stok ÷ HPP harian, target ≤ 40 hari — glosarium), dead stock, stok menua (> 90 hari), reorder segera (habis < 10 hari).

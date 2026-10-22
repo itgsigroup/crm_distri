@@ -119,7 +119,7 @@ export function DashboardPage() {
   const prevLabel = lastIdx >= 1 ? monthly.data!.labels[lastIdx - 1] : ''
   const src = kpi?.data
   const srcText = src ? `${src.label}${src.synced_at ? ` · sinkron ${shortDate(src.synced_at)} ${hhmm(src.synced_at)} WIB` : ''}` : ''
-  const can = (screen: string) => me?.screens.includes(screen) ?? false
+  const can = (screen: string) => screen === 'manual' || (me?.screens.includes(screen) ?? false) // the user book is for everyone
   const dealers = board ?? []
   const crew = useCrew(dealers, kpi, can)
   const active = dealers.filter((d) => d.metrics.segment !== 'Prospek')
@@ -146,6 +146,7 @@ export function DashboardPage() {
     ['mcp', '/claude', 'spark', 'MCP Claude', 'Koneksi asisten AI'],
     ['conn', '/pengaturan', 'gear', 'Pengaturan', 'Koneksi data dan kebijakan'],
     ['konsep', '/panduan', 'doc', 'Panduan', 'Cara membaca data dan fitur'],
+    ['manual', '/manual', 'form', 'Buku manual', 'Tutorial tiap menu dan cara kerja sistem'],
   ] as const
 
   return <div className="db-page">

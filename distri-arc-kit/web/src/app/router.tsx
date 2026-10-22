@@ -34,6 +34,7 @@ const PAGES: Record<string, Loader> = {
   aiapi: () => import('../features/aiapi/AIAPIPage').then((m) => m.AIAPIPage),
   aitrigger: () => import('../features/aitrigger/AITriggerPage').then((m) => m.AITriggerPage),
   guide: () => import('../features/guide/GuidePage').then((m) => m.GuidePage),
+  manual: () => import('../features/manual/ManualPage').then((m) => m.ManualPage),
 }
 
 // After a deploy an open tab still asks for the old chunk names, which are gone: reload once to get the new ones.
@@ -101,6 +102,7 @@ export const router = createBrowserRouter([
       { path: 'pengaturan/api-ai', ...page('aiapi') },
       { path: 'pengaturan/ai-trigger', ...page('aitrigger') },
       { path: 'panduan', ...page('guide') },
+      { path: 'manual', ...page('manual') },
     ],
   },
 ])
