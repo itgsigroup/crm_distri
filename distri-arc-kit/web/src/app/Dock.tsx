@@ -7,6 +7,7 @@ import { chipState, progress } from './cycle'
 import { SYSTEM_LABEL, scopeLabel, useOrch, useOrchStatus } from './orch'
 import { useCommand } from './command'
 import { EFFORTS, MCP_MODELS, effort, mcpModel, setEffort, setMcpModel, shortModel, type Effort } from './enginePrefs'
+import { AnalysisLive } from './AnalysisSheet'
 
 /** Pipeline chips (mockup pipeHtml compact): done / run per stage. */
 export function PipeChips() {
@@ -91,7 +92,7 @@ export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?
   // on Chat it starts as the round icon above the reply box (19 Oct): the open dock must not cover the composer
   const [mini, setMiniState] = useState(() => screen === 'chat' || savedMini())
   const setMini = (m: boolean) => { setMiniState(m); if (m) setOpen(false); try { localStorage.setItem(MINI_KEY, m ? '1' : '0') } catch { /* private mode */ } }
-  const { s, reanalyze } = useOrch()
+  const { s, reanalyze, queued } = useOrch()
   const st = useOrchStatus()
   const { pathname } = useLocation()
   const [pick, setPick] = useState<Engine | null>(savedEngine)
@@ -142,13 +143,25 @@ export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?
     ask(v)
   }
   const scope = screenScope(screen, pathname)
-  // one pop-up at a time (Sam 22 Oct): the dock closes as the analysis pop-up opens
+  // one pop-up (Sam 22 Oct): "Analisis ulang" opens no second pop-up — this dock shows the analysis itself (what the
+  // AI reads, then berhasil / gagal); closing it lets the analysis run on, the result pops up when done
+  const [asked, setAsked] = useState(false)
   const run = (sc: string) => {
-    setOpen(false)
-    reanalyze(sc, engine, engine === 'system' ? SYSTEM_LABEL : 'Claude lewat MCP')
+    setAsked(true)
+    reanalyze(sc, engine, engine === 'system' ? SYSTEM_LABEL : 'Claude lewat MCP', true)
   }
+  const live = open && asked && queued && (s.running ? s.cycleId === queued.id : s.last?.cycleId === queued.id) ? queued : null
   const status = st.running ? `menganalisis ${st.scope} · ${st.stage}` : st.run ? `siap · siklus #${st.run.toLocaleString('id-ID')} · ${st.last}` : 'siap · belum ada siklus'
-  const inner = (
+  const inner = live ? (
+    <div className="dk-body dk-live">
+      <AnalysisLive cycle={live} />
+      <div className="dk-acts">
+        {s.running
+          ? <button className="btn ghost" onClick={() => setOpen(false)} title="Analisis tetap berjalan; hasilnya muncul saat selesai"><Icon name="chev" style={{ transform: 'rotate(90deg)' }} />Perkecil · jalan di belakang layar</button>
+          : <button className="btn quiet" onClick={() => setAsked(false)}><Icon name="refresh" />Analisis lagi</button>}
+      </div>
+    </div>
+  ) : (
     <div className="dk-body">
       <form className="dk-ask" autoComplete="off" onSubmit={submitAsk}>
         <Icon name="spark" />
@@ -205,7 +218,7 @@ export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?
           <Icon name="spark" /><span>Orchestrator</span>
         </button>
         {open && at && createPortal(
-          <div ref={panel} className={`dock dock-head open ${st.running ? 'running' : ''}`} style={{ top: at.top, right: at.right }}>{inner}</div>,
+          <div ref={panel} className={`dock dock-head open ${st.running ? 'running' : ''}${live ? ' live' : ''}`} style={{ top: at.top, right: at.right }}>{inner}</div>,
           document.body,
         )}
       </>
@@ -222,7 +235,7 @@ export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?
     )
   }
   return createPortal(
-    <div className={`dock dock-at-${screen} ${open ? 'open' : ''} ${st.running ? 'running' : ''}`}>
+    <div className={`dock dock-at-${screen} ${open ? 'open' : ''} ${st.running ? 'running' : ''}${live ? ' live' : ''}`}>
       <div className="dk-head">
         <button className="dk-main" onClick={() => setOpen(!open)} aria-label="Orchestrator">
           <span className="dk-dot" />

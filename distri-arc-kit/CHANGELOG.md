@@ -2,7 +2,7 @@
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
 ## Fix · Orchestrator: satu pop-up saat Analisis ulang · 2026-10-22
-- Di halaman Chat, menekan **Analisis ulang** dari panel Orchestrator di header membuat dua pop-up bertumpuk (panel Orchestrator + pop-up analisis). Kini panel Orchestrator menutup saat analisis dimulai; yang tampil hanya pop-up analisis (tetap bisa **Perkecil**). Berlaku juga untuk dock Orchestrator di halaman lain.
+- Panel Orchestrator (mesin, model, effort, **Analisis ulang**) dan pop-up progres analisis digabung jadi satu: setelah Analisis ulang ditekan, panel yang sama berubah menampilkan progres (tahap, agen, Claude/routine, Batalkan analisis) lalu hasilnya (berhasil / sebagian / gagal) — tidak ada pop-up kedua. **Perkecil · jalan di belakang layar** menutup panel, analisis tetap berjalan dan hasilnya muncul sebagai notifikasi; **Analisis lagi** kembali ke pilihan mesin. Berlaku di header Chat dan dock Orchestrator di halaman lain.
 
 ## Feat · Chat: Analisa Claude dari awal sampai akhir di tab Main · 2026-10-22
 - Panel lead tab **Main** punya kartu **Analisa Claude · dari awal sampai akhir**, hanya berisi hasil Claude lewat Orchestrator:

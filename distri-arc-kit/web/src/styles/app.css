@@ -1954,6 +1954,14 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .ibc-orch:hover,.ibc-orch.on{filter:brightness(1.08);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
 .ibc-orch.running .i{animation:pulse .9s infinite}
 .dock.dock-head{bottom:auto;max-height:calc(100vh - 100px);overflow:auto}
+/* the dock showing the analysis it started (one pop-up, Sam 22 Oct): wider, the stages in two rows */
+.dock.live{width:min(480px,calc(100vw - 24px))}
+.dk-live{padding-top:14px}
+.dk-live .an-chips{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dk-live .an-head h2{font-size:14.5px}
+.dk-live .an-head p{font-size:12px}
+.dk-live .an-meta{margin-left:0;flex-wrap:wrap;gap:8px;font-size:11.5px}
+.dk-live .an-mcp{margin:0;font-size:12px}
 @media (max-width:900px){.dock.dock-head{left:12px;right:12px!important;width:auto}.ibc-orch span{display:none}.ibc-orch{padding:0 7px}}
 
 /* Chat zoom (20 Oct): − / % / + in the conversation header scales the messages */
