@@ -560,12 +560,6 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 			lim, since = jumpPageSize, x
 		}
 	}
-	// "dikirim oleh <nama>" for those who see every chat (admin, manager — Sam 19 Oct)
-	u, _ := CurrentUser(r.Context())
-	showSender := false
-	if v, err := s.chatViewerOf(r.Context(), u); err == nil {
-		showSender = v.all
-	}
 	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Since: since, Lim: lim})
 	if err == nil && len(msgs) == 0 && !since.IsZero() {
 		// nothing in the window (a chat opened from a link): its last messages, not an empty page
@@ -637,7 +631,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	now := s.clock.Now()
 	for _, m := range msgs {
 		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName),
-			SentBy: map[bool]string{true: deref(m.SentByName)}[showSender], FromPhone: showSender && deref(m.Direction) == "out" && m.ProposalID == nil && !m.Internal, Body: llm.MaskCredentials(deref(m.Body)), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Holding: deref(m.Holding), AutoReply: deref(m.AutoReply), closing: deref(m.Closing), Annotation: m.Annotation, SignalID: m.SignalID,
+			SentBy: deref(m.SentByName), FromPhone: deref(m.Direction) == "out" && m.ProposalID == nil && !m.Internal, Body: llm.MaskCredentials(deref(m.Body)), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Holding: deref(m.Holding), AutoReply: deref(m.AutoReply), closing: deref(m.Closing), Annotation: m.Annotation, SignalID: m.SignalID,
 			Media: mediaView(m.Media), EditedAt: m.EditedAt, Mentions: m.Mentions}
 		if deref(t.Kind) == "group" && v.Direction == "in" {
 			v.FromNumber = deref(m.FromNumber)

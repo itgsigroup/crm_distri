@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat: label admin pengirim di setiap bubble · 2026-10-22
+- Satu nomor sales biasanya dipegang beberapa admin (mis. nomor Granike: Tantri, Sekar, …). Setiap bubble keluar kini punya **label kecil nama pengirim** di atasnya (inisial + nama), diambil dari **user yang login** saat pesan dikirim dari GSI Orbit — balas, file/foto, suara, polling, kontak, teruskan, maupun persetujuan usulan. Pesan yang diketik langsung di HP berlabel **dari HP**.
+- Label kini tampil untuk **semua yang bisa membuka chat itu** (sebelumnya hanya admin/manajer yang melihat semua chat), dan pindah dari baris jam ke atas bubble agar mudah dibaca.
+
 ## Feat · Chat: Statistik lebih jelas, detail, dan penuh insight · 2026-10-22
 - Tab **Statistik** di panel lead kini dihitung dari **seluruh riwayat** chat/grup (bukan hanya pesan yang dimuat):
   - **Insight** otomatis: pesan belum dibalas, kecepatan balasan tim, tren 30 hari, pelanggan lama tidak menghubungi, hari & jam paling aktif (waktu terbaik menghubungi), porsi pesan di luar jam kerja, siapa yang memulai percakapan, barang dan permintaan terbanyak, anggota grup paling aktif.

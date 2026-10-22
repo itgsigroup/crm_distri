@@ -426,6 +426,9 @@ function TriggerCards({ m, thread, asOf, onUse }: { m: MessageView; thread: stri
   ))}</>
 }
 
+/** The first letter of the admin who sent a message: the small round chip on the label. */
+export const senderInitial = (name: string) => (name.trim().replace(/^(Pak|Bu|Mbak|Mas)\s+/i, '')[0] ?? '?').toUpperCase()
+
 function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark, onPin, onLabel, onMember }: {
   m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date; mark?: string
   onPin?: (m: MessageView) => void; onLabel?: (m: MessageView) => void; onMember?: (number: string) => void
@@ -455,11 +458,16 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
           <span className={`pill ${m.internal ? 'neutral' : 'accent'}`}>{m.internal ? 'internal' : 'eksternal'}</span>
         </span>
       )}
+      {m.direction === 'out' && !m.internal && (m.sent_by || m.from_phone) && (
+        <span className={`who out-by${m.sent_by ? '' : ' phone'}`} title={m.sent_by ? `Dikirim dari GSI Orbit oleh ${m.sent_by} (user yang login)` : 'Dikirim langsung dari HP pemegang nomor, bukan dari GSI Orbit'}>
+          {m.sent_by ? <i className="out-by-av">{senderInitial(m.sent_by)}</i> : <Icon name="phone" />}{m.sent_by || 'dari HP'}
+        </span>
+      )}
       <div className="bb">
         {m.quote && <QuoteBlock q={m.quote} mine={via} onJump={onJump} />}
         {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
         {m.media?.kind === 'poll' ? <PollBody text={caption} /> : m.media?.kind === 'contact' ? <ContactBody text={caption} /> : <BubbleText text={caption} mentions={m.mentions} mark={mark} />}
-        <span className="tm">{m.pinned && <Icon name="pin" className="i tm-pin" />}{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' && (m.sent_by || m.from_phone) && <b className="tm-by" title={m.sent_by ? `Dikirim dari GSI Orbit oleh ${m.sent_by}` : 'Dikirim langsung dari HP pemegang nomor'}>{m.sent_by ? `oleh ${m.sent_by}` : 'dari HP'} · </b>}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
+        <span className="tm">{m.pinned && <Icon name="pin" className="i tm-pin" />}{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
         <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined}
           onPin={onPin && m.status !== 'pending' && m.status !== 'failed' ? () => onPin(m) : undefined} onLabel={onLabel ? () => onLabel(m) : undefined} />
         {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}

@@ -1488,6 +1488,11 @@ body.map-maximized{overflow:hidden}
 .ibc-lbls{margin-left:2px}
 .bub-lbls{margin-top:3px}
 .m.out .bub-lbls{justify-content:flex-end}
+/* who sent it (Sam 22 Oct): the admin logged in when it was sent — one sales number, several admins */
+.m .who.out-by{padding:0 4px 0 0;gap:5px;color:var(--accent);font-weight:700}
+.m .who.out-by.phone{color:var(--text-3);font-weight:600}
+.m .who.out-by .i{width:12px;height:12px}
+.out-by-av{display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-style:normal;font-size:9.5px;font-weight:800}
 .tm .tm-pin{width:11px;height:11px;vertical-align:-1px;margin-right:3px;opacity:.75}
 .ibl-lbl{height:28px;max-width:150px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text-2);font:inherit;font-size:12px;padding:0 8px}
 .ibl-lbl.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
