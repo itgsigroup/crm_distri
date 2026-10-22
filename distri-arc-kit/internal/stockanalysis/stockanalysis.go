@@ -116,6 +116,9 @@ type Analysis struct {
 	SlowList     []Product  `json:"slow"`
 	Transfers    []Transfer `json:"transfers"`
 	Insights     []Insight  `json:"insights"`
+	// Products: every product read, largest stock value first — the filters of the card (age, branch, category,
+	// class) list from here
+	Products []Product `json:"products"`
 }
 
 // Compute reads the stock items (one row per product and branch). branch "" reads every branch. price gives a
@@ -123,7 +126,7 @@ type Analysis struct {
 func Compute(items []domain.StockItem, branch string, price func(sku, name string) int64, p domain.StockPolicy) Analysis {
 	a := Analysis{Branch: branch, TurnoverGoal: TurnoverTargetDays, AgingDays: p.AgingDays, CriticalDays: p.CriticalDays,
 		Classes: []Share{}, ABC: []Share{}, Categories: []Share{}, Branches: []Share{}, AgeBuckets: []Share{},
-		FastList: []Product{}, Reorder: []Product{}, DeadList: []Product{}, SlowList: []Product{}, Transfers: []Transfer{}, Insights: []Insight{}}
+		FastList: []Product{}, Reorder: []Product{}, DeadList: []Product{}, SlowList: []Product{}, Transfers: []Transfer{}, Insights: []Insight{}, Products: []Product{}}
 	bySKU := map[string]*Product{}
 	cost := map[string]int64{}
 	var cogsWeek float64
@@ -347,6 +350,12 @@ func Compute(items []domain.StockItem, branch string, price func(sku, name strin
 	if branch == "" {
 		a.Transfers = transfers(prods, cost)
 	}
+	all := slices.Clone(prods)
+	slices.SortStableFunc(all, func(x, y *Product) int { return cmpDesc(x.Value, y.Value) })
+	a.Products = make([]Product, 0, len(all))
+	for _, x := range all {
+		a.Products = append(a.Products, *x)
+	}
 	a.Insights = insights(a, classes, abc)
 	return a
 }
@@ -375,7 +384,7 @@ func transfers(prods []*Product, cost map[string]int64) []Transfer {
 		}
 	}
 	slices.SortStableFunc(out, func(a, b Transfer) int { return cmpDesc(a.Value, b.Value) })
-	return out[:min(len(out), listTop)]
+	return out
 }
 
 func insights(a Analysis, classes map[Class]*Share, abc map[string]*Share) []Insight {

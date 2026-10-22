@@ -524,25 +524,26 @@ Mengubah **stok yang menua** menjadi alasan follow-up ke dealer yang jadwal orde
 
 ## Analisa stok (kartu paling atas)
 
-Analisa untuk owner dan manajer: di mana uang tertahan dan apa yang harus dilakukan. Pilih **Semua cabang** atau satu cabang.
+Analisa untuk owner dan manajer dalam **satu kartu**: di mana uang tertahan dan apa yang harus dilakukan. Pilih **Semua cabang** atau satu cabang, lalu pilih **filter**:
 
-| Bagian | Isi |
+| Filter | Menjawab |
 |---|---|
-| **KPI** | Nilai stok, perkiraan penjualan per bulan, perputaran stok (target ≤ 40 hari), dead stock, stok menua, reorder segera |
-| **Insight** | Modal tertahan, fast moving yang harus dijaga, barang yang akan habis, ABC, kategori paling lambat, peluang mutasi |
-| **Komposisi stok (FSN)** | Nilai stok dan porsi penjualan per kelas: Fast moving, Normal, Slow moving, Dead stock |
-| **Umur stok** | Nilai stok per kelompok umur: 0–30, 31–60, 61–90, 91–180, > 180 hari |
-| **Analisa ABC** | Barang kelas A, B, C menurut nilai penjualan |
-| **Per kategori / per cabang** | Nilai stok dan hari perputaran |
-| **Daftar** | Fast moving, **Reorder segera** (saran unit untuk 30 hari), Dead stock terbesar, Slow moving, **Mutasi antar cabang** |
+| **Ringkasan** | Komposisi stok FSN (Fast moving, Normal, Slow moving, Dead stock), analisa ABC, dan insight |
+| **Fast moving** | Barang paling cepat terjual, berapa hari stoknya cukup |
+| **Umur stok** | Nilai stok per periode umur (0–30, 31–60, 61–90, 91–180, > 180 hari) |
+| **Per cabang** | Nilai stok, dead stock, dan hari perputaran tiap cabang |
+| **Per kategori** | Nilai stok dan hari perputaran tiap kategori |
+| **Reorder segera** | Barang yang habis kurang dari 10 hari, dengan saran unit untuk 30 hari |
+| **Dead stock** | Barang tidak terjual 90 hari dan di cabang mana ia diam |
+| **Slow moving** | Barang yang stoknya cukup lebih dari 90 hari |
+| **Mutasi antar cabang** | Barang yang diam di satu cabang dan dibutuhkan cabang lain |
 
-Cara membaca:
-- **Reorder segera**: pesan sejumlah unit yang disarankan agar stok cukup 30 hari.
-- **Dead stock**: dorong lewat push stok atau bundle, atau retur ke pemasok.
-- **Slow moving**: tahan pembelian ulang.
-- **Mutasi antar cabang**: pindahkan barang yang diam di satu cabang ke cabang yang membutuhkan, tanpa pembelian baru.
-
-Klik barang di daftar mana pun untuk membuka cek barangnya.
+Cara memakai:
+1. Klik chip filter. Angka di chip = jumlah barang (atau cabang/kategori).
+2. Pada **Umur stok**, **Per cabang**, dan **Per kategori**, klik batang grafik untuk melihat barang di kelompok itu. **Lepas pilihan** untuk kembali.
+3. Cari barang di tabel, tekan **Tampilkan … lagi** untuk baris berikutnya.
+4. Klik baris untuk membuka cek barangnya.
+5. Kotak KPI **Dead stock**, **Stok menua**, dan **Reorder segera** langsung membuka filternya.
 
 ## Data stok dan cek barang
 

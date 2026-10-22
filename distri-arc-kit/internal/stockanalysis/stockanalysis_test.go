@@ -34,6 +34,9 @@ func TestClasses(t *testing.T) {
 			got[p.SKU] = p
 		}
 	}
+	if len(a.Products) != 6 || a.Products[0].SKU != "D1" || a.Products[1].SKU != "S1" || a.Products[5].SKU != "F1" {
+		t.Fatalf("products by value: %+v", a.Products)
+	}
 	if a.SKUs != 6 || a.Value != 10*100+20*100+30*100+20*100+100*100+50*200 {
 		t.Fatalf("skus %d value %d", a.SKUs, a.Value)
 	}

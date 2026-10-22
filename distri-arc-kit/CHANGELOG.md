@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Cek stok: Analisa stok jadi satu kartu dengan filter · 2026-10-22
+- Kartu Analisa stok tidak lagi berupa banyak panel. Satu kartu dengan **filter**: **Ringkasan** (komposisi FSN, ABC, insight) · **Fast moving** · **Umur stok** · **Per cabang** · **Per kategori** · **Reorder segera** · **Dead stock** · **Slow moving** · **Mutasi antar cabang** — tiap chip dengan jumlahnya.
+- Umur stok, per cabang, dan per kategori: klik batang grafik (mis. 91–180 hari, Jakarta, Modul LED) untuk menampilkan barangnya di tabel; tabel bisa dicari dan ditambah halaman; klik baris membuka cek barang. Kotak KPI Dead stock, Stok menua, dan Reorder segera membuka filternya.
+- API `GET /api/stock/analysis` kini menyertakan semua barang (`products`) dan semua peluang mutasi, bukan hanya 10 teratas.
+
 ## Feat · Buku manual: menu baru dengan tutorial dan penjelasan sistem · 2026-10-22
 - Menu **Buku manual** (grup Pengaturan, juga di Jelajahi fitur Dashboard) terbuka untuk **semua pengguna** tanpa perlu diatur di Peran & akses.
 - 18 bab dalam 4 bagian: **Mengenal sistem** (selamat datang, cara kerja sistem & enam agen, istilah & rumus, masuk & navigasi), **Tutorial per menu** (Pusat kendali, Dashboard, Orchestrator & Analisis ulang, Chat WhatsApp, Report WhatsApp, Orbit/Segmen/Peta relasi, Dealer, Push stok, Cek stok & Analisa stok, Kredit · kas, Master data, Pengaturan/MCP Claude/AI Trigger), **Alur kerja harian** per peran (Sales, Admin, Penagihan, Gudang, Manajer & CEO), dan **Bantuan** (tanya-jawab, pemecahan masalah, privasi).
