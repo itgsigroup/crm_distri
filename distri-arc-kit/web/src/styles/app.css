@@ -2316,3 +2316,8 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .list-resizer:hover::after,.list-resizer:focus-visible::after,.list-resizer.on::after{background:var(--accent)}
 body.col-resizing,body.col-resizing *{cursor:col-resize!important;user-select:none!important}
 @media (max-width:900px){.list-resizer{display:none}}
+
+/* a new message while reading older ones (Sam 22 Oct): the place is kept, this takes the reader down */
+.th-pane.ibc{position:relative}
+.ibc-new{position:absolute;right:22px;bottom:110px;z-index:4;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border:0;border-radius:999px;background:var(--wa-green,#25a35a);color:#fff;font:inherit;font-size:12.5px;font-weight:700;box-shadow:var(--shadow-lift);cursor:pointer}
+.ibc-new .i{width:14px;height:14px}

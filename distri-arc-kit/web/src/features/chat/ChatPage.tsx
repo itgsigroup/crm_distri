@@ -662,6 +662,11 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const [mark, setMark] = useState('')
   const pendingJump = useRef<string | null>(null)
   const body = useRef<HTMLDivElement>(null)
+  // follow the newest message only while the reader is at the bottom (Sam 22 Oct, like WhatsApp): scrolled up to
+  // read, a new message keeps the place and shows "↓ N pesan baru"; sending goes back down
+  const stick = useRef(true)
+  const lastSeen = useRef<string | null>(null)
+  const [unseen, setUnseen] = useState(0)
   const input = useRef<HTMLTextAreaElement>(null)
   // who a reply goes out as: the holder of the number (sender_name), not the chat's sales
   const from = (data?.thread.sender_name || data?.thread.account_label || data?.thread.sales || '').replace(/^Nomor\s+/, '')
@@ -703,6 +708,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   }
   const send = useMutation({
     mutationFn: (v: { body: string; reply_to?: string }) => api.post(`/chat/threads/${id}/messages`, v),
+    onMutate: () => { stick.current = true }, // my own message: show it
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['chat'] })
       toast(`Masuk antrean kirim ke ${data?.thread.title} dari ${from} · lewat penjaga anti-blokir`)
@@ -851,8 +857,19 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     setText('')
   }
   useEffect(() => {
-    if (body.current && older.length === 0) body.current.scrollTop = body.current.scrollHeight
-  }, [data, older.length])
+    const el = body.current
+    if (!el || !data) return
+    const last = data.messages[data.messages.length - 1]?.id ?? null
+    const first = lastSeen.current === null
+    const arrived = !first && last !== lastSeen.current
+    lastSeen.current = last
+    if (first || stick.current) { // opened, or reading the newest: follow it
+      el.scrollTop = el.scrollHeight
+      setUnseen(0)
+    } else if (arrived) { // reading older messages: keep the place, count what came
+      setUnseen((n) => n + 1)
+    }
+  }, [data])
   // a message picked in Cari chat's "Pesan" results (?m=&at=): go to it once the chat is loaded
   const hitParam = params.get('m')
   const hitAt = params.get('at') ?? ''
@@ -914,7 +931,16 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     }, (e: Error) => toast(e.message)).finally(() => setLoading(false))
   }
   const onScroll = () => {
-    if (body.current && body.current.scrollTop < 200) loadOlder()
+    const el = body.current
+    if (!el) return
+    if (el.scrollTop < 200) loadOlder()
+    stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    if (stick.current && unseen) setUnseen(0)
+  }
+  const toNewest = () => {
+    stick.current = true
+    setUnseen(0)
+    body.current?.scrollTo({ top: body.current.scrollHeight, behavior: 'smooth' })
   }
   // Enter sends, Shift+Enter starts a new line (WhatsApp Web); Enter while an IME is composing a word does neither
   const composerKey = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
@@ -1036,6 +1062,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       </div>
       <PinnedBar pins={data.pins ?? []} who={displayTitle(t)} onJump={(p) => jumpToHit({ id: p.message_id, sent_at: p.sent_at })} onUnpin={(p) => unpin(p.message_id)} />
       {searching && <ChatSearch thread={id} onJump={jumpToHit} onQuery={setMark} onClose={() => { setSearching(false); setMark('') }} />}
+      {unseen > 0 && <button type="button" className="ibc-new" onClick={toNewest} title="Ke pesan terbaru"><Icon name="arrow" style={{ transform: 'rotate(90deg)' }} />{unseen} pesan baru</button>}
       <div className="th-body ibc-body" ref={body} onScroll={onScroll} style={zoom2 !== 1 ? { zoom: zoom2 } : undefined}>
         <div className="ibc-start">
           {more

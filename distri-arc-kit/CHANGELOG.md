@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat: membaca chat lama tidak lagi terlempar ke bawah saat pesan baru masuk · 2026-10-22
+- Sebelumnya setiap pesan baru (sering di grup) menggulir percakapan ke paling bawah walau sedang membaca pesan di atas. Kini seperti WhatsApp: bila sedang di bawah, pesan baru tetap diikuti; bila sedang menggulir ke atas, posisi baca **tetap** dan muncul tombol **↓ N pesan baru** untuk turun ke pesan terbaru. Mengirim pesan sendiri membawa ke bawah; membuka chat tetap mulai dari pesan terakhir.
+
 ## Feat · Chat: lebar daftar chat bisa ditarik seperti VS Code · 2026-10-22
 - Di garis antara daftar chat dan percakapan kursor berubah menjadi ↔; tarik untuk memperlebar atau mempersempit daftar (240–640 px, percakapan tetap mendapat minimal 420 px). Lebar diingat per browser; klik dua kali garis untuk kembali ke lebar awal; bisa juga dengan ← → saat garis difokus. Tidak tampil di layar HP.
 
