@@ -34,7 +34,7 @@ func NewHub() *Hub { return &Hub{subs: map[chan Event]struct{}{}} }
 
 // Subscribe returns a channel of events and its cancel function.
 func (h *Hub) Subscribe() (<-chan Event, func()) {
-	ch := make(chan Event, 32)
+	ch := make(chan Event, 256) // a burst (a group's history) must not drop a busy tab's events; the tab catches up anyway
 	h.mu.Lock()
 	h.subs[ch] = struct{}{}
 	h.mu.Unlock()

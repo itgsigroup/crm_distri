@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 // One EventSource('/api/events') per tab; each event invalidates the queries it affects (08-frontend).
-const CHAT_LIVE = [['chat', 'threads'], ['chat', 'thread'], ['chat', 'context']]
+export const CHAT_LIVE = [['chat', 'threads'], ['chat', 'thread'], ['chat', 'context']]
 const INVALIDATES: Record<string, string[][]> = {
   cycle_stage: [['cycle']],
   cycle_done: [['cycle'], ['cycles'], ['plan'], ['proposals'], ['brief'], ['orbit'], ['segmen'], ['dealers'], ['dealer'], ['kpi'], ['agenda'], ['agents'], ['stock'], ['credit'], ['chat', 'wa-analysis']],
@@ -57,44 +57,125 @@ export class InvalidationQueue {
 }
 
 type Listener = (event: string, data: unknown) => void
-const Ctx = createContext<{ connected: boolean; subscribe: (l: Listener) => () => void }>({ connected: false, subscribe: () => () => {} })
+interface SseState { connected: boolean; stale: boolean; subscribe: (l: Listener) => () => void }
+const Ctx = createContext<SseState>({ connected: false, stale: false, subscribe: () => () => {} })
 
 export const useSse = () => useContext(Ctx)
+
+// Realtime as far as it goes (Sam 22 Oct: "beberapa chat tidak sinkron dan tidak realtime"). The server stores a
+// WhatsApp message within a second (median 0.7 s, 24 h), so what fell behind was the tab: an EventSource that died
+// silently (sleep, Wi-Fi change, an idle connection cut), the events missed while it was down, and nothing in their
+// place. Now: a watchdog on the server's 25 s heartbeat reconnects a silent stream; every (re)connect, a tab coming
+// back and the network coming back refetch what may have changed; while the stream is down the chats poll.
+/** No event at all for this long (heartbeat every 25 s): the stream is dead — reconnect. */
+export const SILENT_MS = 70_000
+/** Polling of the chats while the stream is down. */
+export const POLL_MS = 10_000
+/** A stream down this long shows "Menyambung ulang…". */
+const STALE_MS = 5_000
+/** What a reconnect or a tab coming back refetches: what a missed event would have. */
+export const CATCH_UP: string[][] = [...CHAT_LIVE, ['chat', 'search'], ['chat', 'starred'], ['wa', 'status'], ['proposals'], ['plan'], ['cycle']]
 
 export function SseProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient()
   const [connected, setConnected] = useState(false)
+  const [stale, setStale] = useState(false)
   const [listeners] = useState(() => new Set<Listener>())
   useEffect(() => {
     if (typeof EventSource === 'undefined') return
-    const es = new EventSource('/api/events')
     // a burst of events (a number's history arriving: dozens a minute) refetches each affected query once per
     // second, not once per event: the chat list, thread and context were fetched ~5×/s per tab
     const queue = new InvalidationQueue((queryKey) => qc.invalidateQueries({ queryKey }), 1500)
-    es.addEventListener('hello', () => setConnected(true))
-    es.onerror = () => setConnected(false)
-    const handlers = Object.keys(INVALIDATES).map((name) => {
-      const h = (e: MessageEvent) => {
-        let data: unknown = null
-        try {
-          data = JSON.parse(e.data)
-        } catch {
-          data = e.data
-        }
-        INVALIDATES[name].forEach((queryKey) => queue.add(queryKey))
-        listeners.forEach((l) => l(name, data))
+    const catchUp = () => CATCH_UP.forEach((k) => queue.add(k))
+    let es: EventSource | null = null
+    let lastSeen = Date.now()
+    let downSince: number | null = Date.now()
+    let everConnected = false
+    let closed = false
+    const seen = () => { lastSeen = Date.now() }
+    const handlers = Object.keys(INVALIDATES).map((name) => [name, (e: MessageEvent) => {
+      seen()
+      let data: unknown = null
+      try {
+        data = JSON.parse(e.data)
+      } catch {
+        data = e.data
       }
-      es.addEventListener(name, h)
-      return [name, h] as const
-    })
+      INVALIDATES[name].forEach((queryKey) => queue.add(queryKey))
+      listeners.forEach((l) => l(name, data))
+    }] as const)
+    const onHello = () => {
+      seen()
+      if (everConnected) catchUp() // reconnected: fetch what was missed while down
+      everConnected = true
+      downSince = null
+      setConnected(true)
+      setStale(false)
+    }
+    const down = () => {
+      if (downSince === null) downSince = Date.now()
+      setConnected(false)
+    }
+    const open = () => {
+      if (closed) return
+      es?.close()
+      const s = new EventSource('/api/events')
+      es = s
+      seen()
+      s.addEventListener('hello', onHello)
+      s.addEventListener('heartbeat', seen)
+      s.onerror = () => {
+        down()
+        // the browser retries by itself unless the stream is closed for good (an HTTP error): then we do
+        if (s.readyState === EventSource.CLOSED && es === s) setTimeout(open, 3000)
+      }
+      handlers.forEach(([n, h]) => s.addEventListener(n, h))
+    }
+    open()
+    // the watchdog: a stream silent past the heartbeat is dead even when the browser thinks it is open; while
+    // down, the chats poll and the "Menyambung ulang…" hint shows
+    let lastPoll = 0
+    const tick = setInterval(() => {
+      const now = Date.now()
+      if (now - lastSeen > SILENT_MS) {
+        down()
+        open()
+      }
+      if (downSince !== null) {
+        if (now - downSince > STALE_MS) setStale(true)
+        if (now - lastPoll >= POLL_MS) {
+          lastPoll = now
+          CHAT_LIVE.forEach((k) => queue.add(k))
+        }
+      }
+    }, 5000)
+    // a tab coming back (sleep, another app) or the network coming back: refetch, and reconnect a silent stream
+    let hiddenAt: number | null = null
+    const back = () => {
+      if (Date.now() - lastSeen > 30_000 || (es && es.readyState === EventSource.CLOSED)) open()
+      catchUp()
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now()
+        return
+      }
+      if (hiddenAt !== null && Date.now() - hiddenAt > 10_000) back()
+      hiddenAt = null
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('online', back)
     return () => {
-      handlers.forEach(([n, h]) => es.removeEventListener(n, h))
-      es.close()
+      closed = true
+      clearInterval(tick)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('online', back)
+      es?.close()
       queue.dispose()
     }
   }, [qc, listeners])
   return (
-    <Ctx.Provider value={{ connected, subscribe: (l) => { listeners.add(l); return () => listeners.delete(l) } }}>
+    <Ctx.Provider value={{ connected, stale, subscribe: (l) => { listeners.add(l); return () => listeners.delete(l) } }}>
       {children}
     </Ctx.Provider>
   )

@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat realtime: koneksi yang mati diam-diam tersambung ulang dan mengejar pesan yang terlewat · 2026-10-22
+- Diukur di produksi: server menyimpan pesan WhatsApp dalam **median 0,7 detik** (95% ≤ 1,1 detik, 0 pesan > 60 detik dari 3.299 pesan/24 jam) — yang tertinggal adalah tab browser: koneksi realtime (SSE) bisa mati tanpa error (laptop tidur, Wi-Fi berganti, koneksi diam diputus), pesan selama putus tidak pernah diambil, dan tidak ada pengganti.
+- Kini: **watchdog** atas heartbeat server (25 detik) — 70 detik tanpa sinyal = sambung ulang; setiap tersambung ulang, kembali ke tab (> 10 detik), atau jaringan kembali → chat, daftar chat, status nomor, dan usulan langsung dimuat ulang; selama terputus, chat diperbarui **tiap 10 detik** dan daftar chat menampilkan "Menyambung ulang ke server…". Antrean event per tab di server dinaikkan (32 → 256) agar lonjakan pesan grup tidak membuang event.
+- Catatan: pesan grup yang gagal didekripsi WhatsApp (Bad MAC, beberapa per jam di log bridge) diminta ulang otomatis ke pengirim oleh Baileys; yang tidak pernah dikirim ulang HP pengirim memang tidak bisa diambil.
+
 ## Fix · Chat: draf balasan tidak hilang saat pindah chat · 2026-10-22
 - Teks yang diketik di kolom balasan kini tersimpan sebagai **draf per chat** (seperti WhatsApp): tetap ada saat membuka chat lain dan setelah halaman dimuat ulang, sampai dikirim atau dikosongkan. Daftar chat menampilkan **Draf: …** (hijau) untuk chat yang punya draf. Mengedit pesan tidak menimpa draf — setelah edit selesai atau dibatalkan, draf kembali. Disimpan per browser.
 

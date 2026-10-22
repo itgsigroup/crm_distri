@@ -27,6 +27,7 @@ import { formatParts, quoteLines, shortcutMark, wrapSelection, type Mark } from 
 import { MembersSheet, openMemberChat, useMembers } from './Members'
 import { ListResizer, listWidthStyle, savedListWidth } from './ListResizer'
 import { getDraft, setDraft, useDrafts } from './drafts'
+import { useSse } from '../../app/SseProvider'
 import { AIOverview } from './AIOverview'
 import { ChatStats } from './ChatStats'
 import { Dock } from '../../app/Dock'
@@ -133,6 +134,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
 }) {
   const [menu, setMenu] = useState<string | null>(null)
   const drafts = useDrafts() // a chat with an unsent draft shows "Draf: …" (WhatsApp)
+  const { stale } = useSse() // the realtime stream down: say so (the chats poll meanwhile)
   const [compact, setCompact] = useState(readCompact)
   const toggleCompact = useCallback(() => setCompact((v) => {
     try { localStorage.setItem(COMPACT_KEY, v ? 'off' : 'on') } catch { /* not remembered */ }
@@ -232,6 +234,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
         <button type="button" className="ibl-btn" onClick={refresh} title="Muat ulang" aria-label="Muat ulang"><Icon name="refresh" /></button>
       </div>
       <div className="ibl-search"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari chat" aria-label="Cari chat" /></div>
+      {stale && <div className="ibl-live" role="status"><i />Menyambung ulang ke server… chat tetap diperbarui tiap 10 detik</div>}
       <div className="ibl-chips" role="tablist">
         {FILTERS.map(([k, l]) => (
           <button key={k} role="tab" aria-selected={filter === k} aria-label={l} title={l} className={filter === k ? 'is-active' : ''} onClick={() => setFilter(k)}>
