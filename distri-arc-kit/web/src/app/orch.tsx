@@ -82,12 +82,16 @@ export function OrchProvider({ children }: { children: ReactNode }) {
         if (name === 'cycle_stage') {
           dispatch({ type: 'stage', cycleId: String(d.cycle_id), stage: d.stage as StageName, status: String(d.status), label: scopeLabel(String(d.scope ?? 'all')), at: Date.now() })
         } else if (name === 'cycle_done') {
-          // a page reading or Analisa WhatsApp sent through MCP (source mcp, agent set) is not the end of the cycle
-          if (d.agent) return
+          // a page reading or Analisa WhatsApp sent through MCP (source mcp, agent set) is not the end of the cycle —
+          // but Claude's lines are stored: the chat's Analisa Claude (tab Main) shows them now
+          if (d.agent) {
+            qc.invalidateQueries({ queryKey: ['chat', 'ai-overview'] })
+            return
+          }
           dispatch({ type: 'done', cycleId: String(d.id), result: { number: (d.number as number) ?? null, note: String(d.note ?? ''), updated: Number(d.updated ?? 0), label: String(d.label ?? 'semua'), via: String(d.via ?? 'api'), status: String(d.status ?? 'done') } })
         }
       }),
-    [subscribe],
+    [subscribe, qc],
   )
 
   useEffect(() => {

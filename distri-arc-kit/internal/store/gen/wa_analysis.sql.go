@@ -539,6 +539,154 @@ func (q *Queries) ThreadAIFacts(ctx context.Context, threadID uuid.UUID) (Thread
 	return i, err
 }
 
+const threadAINotes = `-- name: ThreadAINotes :many
+select w.message_id, w.sent_at, coalesce(w.note, '')::text as note, w.confidence, w.intent, w.items, c.number as cycle_number
+from wa_message_insights w left join cycles c on c.id = coalesce(w.note_cycle_id, w.cycle_id)
+where w.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
+                      where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+  and coalesce(w.note, '') <> ''
+order by w.sent_at
+`
+
+type ThreadAINotesRow struct {
+	MessageID   uuid.UUID       `json:"message_id"`
+	SentAt      time.Time       `json:"sent_at"`
+	Note        string          `json:"note"`
+	Confidence  *int16          `json:"confidence"`
+	Intent      string          `json:"intent"`
+	Items       json.RawMessage `json:"items"`
+	CycleNumber *int64          `json:"cycle_number"`
+}
+
+// Claude's note on each customer message of the conversation (Analisa WhatsApp per bubble), oldest first.
+func (q *Queries) ThreadAINotes(ctx context.Context, threadID uuid.UUID) ([]ThreadAINotesRow, error) {
+	rows, err := q.db.Query(ctx, threadAINotes, threadID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ThreadAINotesRow{}
+	for rows.Next() {
+		var i ThreadAINotesRow
+		if err := rows.Scan(
+			&i.MessageID,
+			&i.SentAt,
+			&i.Note,
+			&i.Confidence,
+			&i.Intent,
+			&i.Items,
+			&i.CycleNumber,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const threadAIOverviews = `-- name: ThreadAIOverviews :many
+select ci.cycle_id, c.number as cycle_number, coalesce(ci.submitted_at, ci.created_at)::timestamptz as at,
+  coalesce(ci.submitted->>'overview', '')::text as overview
+from cycle_inputs ci join cycles c on c.id = ci.cycle_id
+where ci.agent = 'Analisa WhatsApp' and ci.submitted is not null and coalesce(ci.submitted->>'overview', '') <> ''
+  and c.scope in (select 'thread:' || x.id::text from chat_threads x join chat_threads t on t.id = $1::uuid
+                  where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+order by at
+`
+
+type ThreadAIOverviewsRow struct {
+	CycleID     uuid.UUID `json:"cycle_id"`
+	CycleNumber *int64    `json:"cycle_number"`
+	At          time.Time `json:"at"`
+	Overview    string    `json:"overview"`
+}
+
+// The overview Claude wrote for a cycle scoped to this conversation ("Analisis ulang chat ini"): it is about this
+// chat or group alone.
+func (q *Queries) ThreadAIOverviews(ctx context.Context, threadID uuid.UUID) ([]ThreadAIOverviewsRow, error) {
+	rows, err := q.db.Query(ctx, threadAIOverviews, threadID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ThreadAIOverviewsRow{}
+	for rows.Next() {
+		var i ThreadAIOverviewsRow
+		if err := rows.Scan(
+			&i.CycleID,
+			&i.CycleNumber,
+			&i.At,
+			&i.Overview,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const threadAISubmitted = `-- name: ThreadAISubmitted :many
+with th as (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
+            where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+select ci.cycle_id, c.number as cycle_number, coalesce(ci.submitted_at, ci.created_at)::timestamptz as at,
+  coalesce(l.v->>'summary', '')::text as summary, coalesce((l.v->>'confidence')::float8, 0)::float8 as confidence,
+  coalesce(i.v->>'intent', '')::text as intent_label, coalesce(i.v->'items', '[]'::jsonb)::jsonb as items
+from cycle_inputs ci
+join cycles c on c.id = ci.cycle_id
+cross join lateral jsonb_array_elements(case when jsonb_typeof(ci.submitted->'threads') = 'array' then ci.submitted->'threads' else '[]'::jsonb end) l(v)
+left join lateral (select x.v from jsonb_array_elements(case when jsonb_typeof(ci.input->'threads') = 'array' then ci.input->'threads' else '[]'::jsonb end) x(v)
+                   where x.v->>'id' = l.v->>'id' limit 1) i on true
+where ci.agent = 'Analisa WhatsApp' and ci.submitted is not null and (l.v->>'id') in (select id::text from th)
+order by at
+`
+
+type ThreadAISubmittedRow struct {
+	CycleID     uuid.UUID       `json:"cycle_id"`
+	CycleNumber *int64          `json:"cycle_number"`
+	At          time.Time       `json:"at"`
+	Summary     string          `json:"summary"`
+	Confidence  float64         `json:"confidence"`
+	IntentLabel string          `json:"intent_label"`
+	Items       json.RawMessage `json:"items"`
+}
+
+// Claude's Analisa WhatsApp answers through MCP (orchestrator_submit) that speak of this conversation: its line (an
+// "Analisis ulang chat ini" cycle has no wa_insights rows, so its line lives only in the answer). The intent and
+// items are what Claude was given for the conversation.
+func (q *Queries) ThreadAISubmitted(ctx context.Context, threadID uuid.UUID) ([]ThreadAISubmittedRow, error) {
+	rows, err := q.db.Query(ctx, threadAISubmitted, threadID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ThreadAISubmittedRow{}
+	for rows.Next() {
+		var i ThreadAISubmittedRow
+		if err := rows.Scan(
+			&i.CycleID,
+			&i.CycleNumber,
+			&i.At,
+			&i.Summary,
+			&i.Confidence,
+			&i.IntentLabel,
+			&i.Items,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const threadAISummaries = `-- name: ThreadAISummaries :many
 select distinct on (coalesce(i.summary_at, c.started_at)) i.cycle_id, c.number as cycle_number,
   coalesce(i.summary_at, c.started_at)::timestamptz as at, i.intent, i.items, coalesce(i.summary, '')::text as summary, i.confidence

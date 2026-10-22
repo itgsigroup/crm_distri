@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat: Analisa Claude di tab Main menampilkan hasil Orchestrator chat/grup · 2026-10-22
+- Kartu **Analisa Claude** di tab Main kosong ("Belum ada analisa") padahal Claude sudah menganalisa grup/chat: hasil **Analisis ulang chat ini** hanya tersimpan di jawaban MCP Claude, dan catatan per pesan cuma dihitung. Kini garis waktunya mengumpulkan semua yang ditulis Claude lewat Orchestrator, terlama dulu dan tanpa duplikat: ringkasan chat tiap siklus, analisa siklus khusus chat ini, dan catatan Claude per pesan pelanggan.
+- Paling atas tampil **Bacaan Claude terakhir**; tiap baris dengan permintaan pelanggan (mis. Tanya stok), barang, siklus, tanggal, dan tingkat yakin.
+- Kartu langsung diperbarui saat Claude mengirim Analisa WhatsApp, tanpa menunggu siklus selesai.
+
 ## Fix · Orchestrator: tampilan analisis besar di dock dihapus, progres ringkas di panel pertama · 2026-10-22
 - Setelah **Analisis ulang**, panel Orchestrator tidak lagi berganti ke tampilan analisis besar (enam kotak tahap). Panel tetap seperti biasa; di bawah garis tahap muncul blok kecil: tahap yang berjalan + durasi, agen yang sudah selesai, info Claude (routine / **Buka Claude**), dan **Batalkan analisis** — lalu satu baris hasil (berhasil / sebagian / gagal, siklus, durasi, saran diperbarui).
 - Tutup panel = analisis tetap jalan di belakang layar; hasilnya muncul sendiri saat selesai.

@@ -11,7 +11,8 @@ import { intentLabel, intentTone, itemsText } from '../wa/wa'
 export interface AIOverviewData {
   company: { status: 'bermasalah' | 'perlu_perhatian' | 'aman'; overview: string; reasons: string[]; confidence: number | null; cycle_number: number | null; at: string } | null
   chat: { messages: number; inbound: number; first_at: string | null; last_at: string | null; notes: number }
-  timeline: { cycle_number: number | null; at: string; intent: WAIntent; items: WAItem[] | null; summary: string; confidence: number | null }[]
+  /** summary: Claude's line on the chat in a cycle · overview: a cycle run for this chat alone · note: on one message */
+  timeline: { kind: 'summary' | 'overview' | 'note'; cycle_number: number | null; at: string; intent?: WAIntent; intent_label?: string; items?: WAItem[] | null; summary: string; confidence: number | null }[]
   proposals: { id: string; agent: string; title: string; why: string; status: string; created_at: string; decided_at?: string; decided_by?: string; cycle_number: number | null }[]
 }
 
@@ -26,6 +27,22 @@ export function provenance(cycle: number | null, at: string, confidence: number 
   return [cycle ? `Siklus #${cycle.toLocaleString('id-ID')}` : null, shortDate(at), confidence != null ? `yakin ${confidence}%` : null].filter(Boolean).join(' · ')
 }
 
+type Line = AIOverviewData['timeline'][number]
+const KIND: Record<Line['kind'], string> = { summary: 'Ringkasan chat', overview: 'Analisa chat ini', note: 'Catatan pesan' }
+
+/** The chip of a line: what the customer asked when Claude was given it, else what kind of reading it is. */
+export function lineChip(l: Line): [string, string] {
+  if (l.intent_label) return [l.intent_label, 'accent']
+  if (l.intent && l.intent !== 'none' && l.kind !== 'overview') return [intentLabel(l.intent), intentTone(l.intent)]
+  return [KIND[l.kind], 'neutral']
+}
+
+/** The latest reading to lead with: the newest overview of this chat, else the newest line. */
+export function latestReading(tl: Line[]): Line | null {
+  const lines = tl.filter((l) => l.kind !== 'note')
+  return lines.length ? lines[lines.length - 1] : tl.length ? tl[tl.length - 1] : null
+}
+
 export function AIOverview({ thread, group }: { thread: string; group: boolean }) {
   const { data: a, isLoading } = useQuery({
     queryKey: ['chat', 'ai-overview', thread],
@@ -36,6 +53,7 @@ export function AIOverview({ thread, group }: { thread: string; group: boolean }
   const empty = !a.company && a.timeline.length === 0 && a.proposals.length === 0
   const c = a.chat
   const decided = a.proposals.filter((p) => p.status !== 'proposed').length
+  const latest = latestReading(a.timeline)
   return (
     <div className="aio">
       <h4>Analisa Claude · dari awal sampai akhir <span className="ai" style={{ marginLeft: 4, fontSize: 0 }} /></h4>
@@ -53,6 +71,13 @@ export function AIOverview({ thread, group }: { thread: string; group: boolean }
       {(a.timeline.length > 0 || c.messages > 0) && (
         <section className="aio-sec">
           <div className="aio-h"><b>{group ? 'Perjalanan grup' : 'Perjalanan percakapan'}</b></div>
+          {latest && (
+            <div className="aio-latest">
+              <span>Bacaan Claude terakhir</span>
+              <p>{latest.summary}</p>
+              <small>{provenance(latest.cycle_number, latest.at, latest.confidence)}</small>
+            </div>
+          )}
           {c.first_at && c.last_at && (
             <p className="aio-facts">
               Sejak <b>{shortDate(c.first_at)}</b> sampai <b>{shortDate(c.last_at)}</b> · {c.messages.toLocaleString('id-ID')} pesan ({c.inbound.toLocaleString('id-ID')} masuk)
@@ -61,16 +86,19 @@ export function AIOverview({ thread, group }: { thread: string; group: boolean }
           )}
           {a.timeline.length > 0 && (
             <ol className="aio-tl">
-              {a.timeline.map((l, i) => (
-                <li key={l.at + i}>
+              {a.timeline.map((l, i) => {
+                const [chip, tone] = lineChip(l)
+                return (
+                <li key={l.at + i} className={l.kind}>
                   <span className="aio-dot" />
                   <div>
-                    <span className="aio-tl-h"><em className={intentTone(l.intent)}>{intentLabel(l.intent)}</em>{l.items && l.items.length > 0 && <span>{itemsText(l.items)}</span>}</span>
+                    <span className="aio-tl-h"><em className={tone}>{chip}</em>{l.items && l.items.length > 0 && <span>{itemsText(l.items)}</span>}{l.kind === 'note' && chip !== KIND.note && <span>{KIND.note}</span>}</span>
                     <p>{l.summary}</p>
                     <small>{provenance(l.cycle_number, l.at, l.confidence)}</small>
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ol>
           )}
         </section>

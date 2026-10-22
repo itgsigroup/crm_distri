@@ -821,6 +821,11 @@ body.map-maximized{overflow:hidden}
 .aio-tl li{position:relative;display:flex;gap:10px;padding:0 0 10px}
 .aio-tl li:not(:last-child)::before{content:"";position:absolute;left:4px;top:12px;bottom:0;width:1.5px;background:color-mix(in srgb,var(--kp-ai) 30%,transparent)}
 .aio-dot{flex:none;width:10px;height:10px;margin-top:4px;border-radius:50%;background:var(--kp-ai)}
+.aio-tl li.note .aio-dot{width:8px;height:8px;margin:5px 1px 0;background:var(--surface);border:1.5px solid var(--kp-ai)}
+.aio-tl li.note p{color:var(--text-2)}
+.aio-latest{display:flex;flex-direction:column;gap:3px;padding:9px 10px;border-radius:8px;background:var(--surface);border:1px solid color-mix(in srgb,var(--kp-ai) 22%,transparent)}
+.aio-latest>span{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3)}
+.aio-latest p{font-weight:600}
 .aio-tl li>div{min-width:0;display:flex;flex-direction:column;gap:2px}
 .aio-tl-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--text-2)}
 .aio-props{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}

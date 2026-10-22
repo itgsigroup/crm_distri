@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
@@ -48,6 +49,23 @@ func TestChatAIOverview(t *testing.T) {
 	prop(c2, "Follow-up order kamera")
 	prop(c3, "Usulan aturan sistem")
 
+	// "Analisis ulang chat ini": a cycle for this chat alone has no wa_insights rows — Claude's line and overview live
+	// in its MCP answer; and Claude's note on one customer message
+	var c4 string
+	if err := st.Pool.QueryRow(ctx, "insert into cycles (trigger, via, status, scope, started_at) values ('manual', 'mcp', 'done', 'thread:'||$1, '2026-10-10T09:00:00Z') returning id", thread).Scan(&c4); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into cycle_inputs (cycle_id, agent, input, signal_ids, submitted, submitted_at) values ($1, 'Analisa WhatsApp',
+		jsonb_build_object('threads', jsonb_build_array(jsonb_build_object('id', $2::text, 'intent', 'Tanya stok', 'items', '[{"name":"NVR 8ch","qty":2}]'::jsonb))), '{}',
+		jsonb_build_object('overview', 'Grup aktif, minta stok NVR untuk proyek berikutnya.', 'threads', jsonb_build_array(jsonb_build_object('id', $2::text, 'summary', 'Tanya stok NVR 8ch 2 unit, belum dijawab.', 'confidence', 0.7))),
+		'2026-10-10T09:10:00Z')`, c4, thread); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into wa_message_insights (message_id, thread_id, sent_at, direction, state, intent, analyzed_at, note, confidence, note_cycle_id)
+		values (gen_random_uuid(), $1, '2026-10-10T08:00:00Z', 'in', 'needs_reply', 'ask_stock', now(), 'Pelanggan menanyakan NVR 8ch.', 90, $2)`, thread, c4); err != nil {
+		t.Fatal(err)
+	}
+
 	code, out := get(t, srv, "/api/chat/threads/"+thread+"/ai-overview", "sam@gsi.co.id")
 	if code != 200 {
 		t.Fatalf("%d %v", code, out)
@@ -57,8 +75,23 @@ func TestChatAIOverview(t *testing.T) {
 		t.Fatalf("company: %v", out["company"])
 	}
 	tl := out["timeline"].([]any)
-	if len(tl) != 2 || tl[0].(map[string]any)["intent"] != "ask_price" || tl[1].(map[string]any)["intent"] != "order" {
-		t.Fatalf("timeline: %v", tl)
+	kinds := []string{}
+	for _, x := range tl {
+		l := x.(map[string]any)
+		kinds = append(kinds, l["kind"].(string)+":"+l["summary"].(string))
+	}
+	want := []string{
+		"summary:Tanya harga kamera IP untuk proyek gudang.",
+		"summary:Sepakat order 10 kamera, minta kirim minggu depan.", // once, though carried to cycle 3
+		"note:Pelanggan menanyakan NVR 8ch.",
+		"summary:Tanya stok NVR 8ch 2 unit, belum dijawab.",
+		"overview:Grup aktif, minta stok NVR untuk proyek berikutnya.",
+	}
+	if strings.Join(kinds, "|") != strings.Join(want, "|") {
+		t.Fatalf("timeline:\n%s", strings.Join(kinds, "\n"))
+	}
+	if l := tl[3].(map[string]any); l["intent_label"] != "Tanya stok" || l["confidence"] != float64(70) {
+		t.Fatalf("Claude's answer line: %v", l)
 	}
 	ps := out["proposals"].([]any)
 	if len(ps) != 1 || ps[0].(map[string]any)["title"] != "Follow-up order kamera" || ps[0].(map[string]any)["status"] != "proposed" {

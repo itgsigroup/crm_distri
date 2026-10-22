@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,12 +46,15 @@ type AIChatFacts struct {
 	Notes    int        `json:"notes"` // messages with a Claude note
 }
 
-// AILine is one line Claude wrote on the conversation in a cycle.
+// AILine is one thing Claude wrote on the conversation: its line in a cycle (summary), the overview of a cycle run
+// for this chat alone (overview), or its note on one customer message (note).
 type AILine struct {
+	Kind        string          `json:"kind"` // summary | overview | note
 	CycleNumber *int64          `json:"cycle_number"`
 	At          time.Time       `json:"at"`
-	Intent      string          `json:"intent"`
-	Items       json.RawMessage `json:"items"`
+	Intent      string          `json:"intent,omitempty"`       // key (order, ask_price…)
+	IntentLabel string          `json:"intent_label,omitempty"` // as Claude was given it ("Minta order")
+	Items       json.RawMessage `json:"items,omitempty"`
 	Summary     string          `json:"summary"`
 	Confidence  *int16          `json:"confidence"`
 }
@@ -69,7 +74,7 @@ type AIProposal struct {
 }
 
 // maxAILines keeps the timeline readable: the first line (the start) and the latest ones.
-const maxAILines = 20
+const maxAILines = 30
 
 func (s *Server) chatAIOverview(w http.ResponseWriter, r *http.Request) {
 	t, ok := s.threadParam(w, r)
@@ -90,21 +95,12 @@ func (s *Server) chatAIOverview(w http.ResponseWriter, r *http.Request) {
 		out.Chat.FirstAt, out.Chat.LastAt = &f.FirstAt, &f.LastAt
 	}
 
-	rows, err := s.st.Q.ThreadAISummaries(ctx, t.ID)
+	lines, err := s.threadAILines(r, t.ID)
 	if err != nil {
 		fail(err)
 		return
 	}
-	for _, x := range rows {
-		// a line copied unchanged to a later cycle (written before summary_at was kept) is the same reading
-		if n := len(out.Timeline); n > 0 && out.Timeline[n-1].Summary == x.Summary {
-			continue
-		}
-		out.Timeline = append(out.Timeline, AILine{CycleNumber: x.CycleNumber, At: x.At, Intent: x.Intent, Items: x.Items, Summary: x.Summary, Confidence: x.Confidence})
-	}
-	if n := len(out.Timeline); n > maxAILines {
-		out.Timeline = append(out.Timeline[:1], out.Timeline[n-maxAILines+1:]...)
-	}
+	out.Timeline = lines
 
 	if t.DealerID != nil {
 		a, err := s.st.Q.LatestDealerAnalysis(ctx, *t.DealerID)
@@ -131,4 +127,67 @@ func (s *Server) chatAIOverview(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	httpx.JSON(w, http.StatusOK, out)
+}
+
+// threadAILines gathers what Claude wrote on a conversation, oldest first, each text once: the lines kept on
+// Analisa WhatsApp (wa_insights), the lines and overviews of Claude's MCP answers (a cycle for this chat alone keeps
+// them only there) and the notes per customer message. Long histories keep the first (the start) and the latest.
+func (s *Server) threadAILines(r *http.Request, thread uuid.UUID) ([]AILine, error) {
+	ctx := r.Context()
+	var all []AILine
+	rows, err := s.st.Q.ThreadAISummaries(ctx, thread)
+	if err != nil {
+		return nil, err
+	}
+	for _, x := range rows {
+		all = append(all, AILine{Kind: "summary", CycleNumber: x.CycleNumber, At: x.At, Intent: x.Intent, Items: x.Items, Summary: x.Summary, Confidence: x.Confidence})
+	}
+	sub, err := s.st.Q.ThreadAISubmitted(ctx, thread)
+	if err != nil {
+		return nil, err
+	}
+	for _, x := range sub {
+		all = append(all, AILine{Kind: "summary", CycleNumber: x.CycleNumber, At: x.At, IntentLabel: x.IntentLabel, Items: x.Items, Summary: x.Summary, Confidence: pct(x.Confidence)})
+	}
+	ovs, err := s.st.Q.ThreadAIOverviews(ctx, thread)
+	if err != nil {
+		return nil, err
+	}
+	for _, x := range ovs {
+		all = append(all, AILine{Kind: "overview", CycleNumber: x.CycleNumber, At: x.At, Summary: x.Overview})
+	}
+	notes, err := s.st.Q.ThreadAINotes(ctx, thread)
+	if err != nil {
+		return nil, err
+	}
+	for _, x := range notes {
+		all = append(all, AILine{Kind: "note", CycleNumber: x.CycleNumber, At: x.SentAt, Intent: x.Intent, Items: x.Items, Summary: x.Note, Confidence: x.Confidence})
+	}
+	slices.SortStableFunc(all, func(a, b AILine) int { return a.At.Compare(b.At) })
+	out := []AILine{}
+	seen := map[string]bool{}
+	for _, l := range all {
+		k := strings.ToLower(strings.Join(strings.Fields(l.Summary), " "))
+		if k == "" || seen[k] { // a line carried to later cycles, or stored both on wa_insights and in the answer
+			continue
+		}
+		seen[k] = true
+		if string(l.Items) == "[]" || string(l.Items) == "null" {
+			l.Items = nil
+		}
+		out = append(out, l)
+	}
+	if n := len(out); n > maxAILines {
+		out = append(out[:1], out[n-maxAILines+1:]...)
+	}
+	return out, nil
+}
+
+// pct is a 0–1 confidence as 0–100.
+func pct(c float64) *int16 {
+	if c <= 0 {
+		return nil
+	}
+	v := int16(max(0, min(100, c*100+0.5)))
+	return &v
 }

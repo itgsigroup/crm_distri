@@ -188,3 +188,40 @@ select p.id, p.agent, p.kind, p.title, p.why, p.status, p.created_at, p.decided_
 from proposals p join cycles c on c.id = p.cycle_id left join sales_users u on u.id = p.decided_by
 where p.dealer_id = sqlc.arg(dealer_id)::uuid and c.via = 'mcp' and p.status <> 'suppressed'
 order by p.created_at desc limit 12;
+
+-- name: ThreadAISubmitted :many
+-- Claude's Analisa WhatsApp answers through MCP (orchestrator_submit) that speak of this conversation: its line (an
+-- "Analisis ulang chat ini" cycle has no wa_insights rows, so its line lives only in the answer). The intent and
+-- items are what Claude was given for the conversation.
+with th as (select x.id from chat_threads x join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
+            where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+select ci.cycle_id, c.number as cycle_number, coalesce(ci.submitted_at, ci.created_at)::timestamptz as at,
+  coalesce(l.v->>'summary', '')::text as summary, coalesce((l.v->>'confidence')::float8, 0)::float8 as confidence,
+  coalesce(i.v->>'intent', '')::text as intent_label, coalesce(i.v->'items', '[]'::jsonb)::jsonb as items
+from cycle_inputs ci
+join cycles c on c.id = ci.cycle_id
+cross join lateral jsonb_array_elements(case when jsonb_typeof(ci.submitted->'threads') = 'array' then ci.submitted->'threads' else '[]'::jsonb end) l(v)
+left join lateral (select x.v from jsonb_array_elements(case when jsonb_typeof(ci.input->'threads') = 'array' then ci.input->'threads' else '[]'::jsonb end) x(v)
+                   where x.v->>'id' = l.v->>'id' limit 1) i on true
+where ci.agent = 'Analisa WhatsApp' and ci.submitted is not null and (l.v->>'id') in (select id::text from th)
+order by at;
+
+-- name: ThreadAINotes :many
+-- Claude's note on each customer message of the conversation (Analisa WhatsApp per bubble), oldest first.
+select w.message_id, w.sent_at, coalesce(w.note, '')::text as note, w.confidence, w.intent, w.items, c.number as cycle_number
+from wa_message_insights w left join cycles c on c.id = coalesce(w.note_cycle_id, w.cycle_id)
+where w.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
+                      where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+  and coalesce(w.note, '') <> ''
+order by w.sent_at;
+
+-- name: ThreadAIOverviews :many
+-- The overview Claude wrote for a cycle scoped to this conversation ("Analisis ulang chat ini"): it is about this
+-- chat or group alone.
+select ci.cycle_id, c.number as cycle_number, coalesce(ci.submitted_at, ci.created_at)::timestamptz as at,
+  coalesce(ci.submitted->>'overview', '')::text as overview
+from cycle_inputs ci join cycles c on c.id = ci.cycle_id
+where ci.agent = 'Analisa WhatsApp' and ci.submitted is not null and coalesce(ci.submitted->>'overview', '') <> ''
+  and c.scope in (select 'thread:' || x.id::text from chat_threads x join chat_threads t on t.id = sqlc.arg(thread_id)::uuid
+                  where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+order by at;
