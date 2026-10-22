@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Orchestrator: tampilan analisis besar di dock dihapus, progres ringkas di panel pertama · 2026-10-22
+- Setelah **Analisis ulang**, panel Orchestrator tidak lagi berganti ke tampilan analisis besar (enam kotak tahap). Panel tetap seperti biasa; di bawah garis tahap muncul blok kecil: tahap yang berjalan + durasi, agen yang sudah selesai, info Claude (routine / **Buka Claude**), dan **Batalkan analisis** — lalu satu baris hasil (berhasil / sebagian / gagal, siklus, durasi, saran diperbarui).
+- Tutup panel = analisis tetap jalan di belakang layar; hasilnya muncul sendiri saat selesai.
+
 ## Fix · Orchestrator: satu pop-up saat Analisis ulang · 2026-10-22
 - Panel Orchestrator (mesin, model, effort, **Analisis ulang**) dan pop-up progres analisis digabung jadi satu: setelah Analisis ulang ditekan, panel yang sama berubah menampilkan progres (tahap, agen, Claude/routine, Batalkan analisis) lalu hasilnya (berhasil / sebagian / gagal) — tidak ada pop-up kedua. **Perkecil · jalan di belakang layar** menutup panel, analisis tetap berjalan dan hasilnya muncul sebagai notifikasi; **Analisis lagi** kembali ke pilihan mesin. Berlaku di header Chat dan dock Orchestrator di halaman lain.
 

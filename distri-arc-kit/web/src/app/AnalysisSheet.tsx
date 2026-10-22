@@ -4,8 +4,10 @@ import { api } from '../api/client'
 import type { Cycle } from '../api/types'
 import { Icon } from '../components/Icon'
 import { SheetHead, useFeedback } from '../components/feedback'
-import { AnalysisResult, AnalysisRunning } from '../features/control/AnalysisPanel'
-import { useOrch } from './orch'
+import { AnalysisResult, AnalysisRunning, CancelButton, READING } from '../features/control/AnalysisPanel'
+import { summarize, type CycleProgress } from '../features/control/progress'
+import { STAGES } from './cycle'
+import { duration, useOrch } from './orch'
 import { useSse } from './SseProvider'
 
 /** How a cycle asked from the "Analisis ulang" button is analysed by Claude through MCP (POST /cycles → mcp). */
@@ -20,10 +22,67 @@ interface InputState { agent: string; submitted_at: string | null }
 export function AnalysisLive({ cycle }: { cycle: QueuedCycle }) {
   const { s, showPanel } = useOrch()
   useEffect(() => showPanel(), [showPanel])
+  const last = s.last?.cycleId === cycle.id ? s.last : null
+  const hint = useClaudeHint(cycle)
+  return last ? <AnalysisResult last={last} /> : <AnalysisRunning extra={hint} />
+}
+
+/** The analysis inside the Orchestrator dock (Sam 22 Oct: no second pop-up, the progress in the first): the stage
+ * running with its time, the agents done, Claude's hint and Batalkan — then one line berhasil / gagal. */
+export function AnalysisCompact({ cycle }: { cycle: QueuedCycle }) {
+  const { s, showPanel } = useOrch()
+  useEffect(() => showPanel(), [showPanel])
+  const [now, setNow] = useState(() => Date.now())
+  const running = s.cycleId === cycle.id && s.running
+  useEffect(() => {
+    if (!running) return
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [running])
+  const { data: p } = useQuery({
+    queryKey: ['cycle-progress', cycle.id],
+    queryFn: () => api.get<CycleProgress>(`/cycles/${cycle.id}/progress`),
+    refetchInterval: running ? 2500 : false,
+  })
+  const hint = useClaudeHint(cycle)
+  const last = s.last?.cycleId === cycle.id ? s.last : null
+  if (last) {
+    const failed = last.status === 'failed'
+    const partial = last.status === 'partial'
+    return (
+      <div className={`dk-prog ${failed ? 'bad' : partial ? 'warn' : 'good'}`} role="status">
+        <div className="dk-prog-h">
+          <Icon name={failed ? 'alert' : 'check'} />
+          <b>{failed ? 'Analisis gagal' : partial ? 'Analisis selesai sebagian' : 'Analisis berhasil'}</b>
+          <span>{last.number ? `#${last.number.toLocaleString('id-ID')} · ` : ''}{last.startedAt ? duration(last.endedAt - last.startedAt) : ''}</span>
+        </div>
+        {last.note && <small>{failed ? 'Penyebab' : 'Catatan'}: {last.note}</small>}
+        {!failed && <small>{last.updated} saran diperbarui · halaman sudah memakai hasilnya</small>}
+      </div>
+    )
+  }
+  const cur = READING[STAGES[Math.min(s.shown, STAGES.length - 1)]]
+  const sum = p ? summarize(p) : null
+  return (
+    <div className="dk-prog run" role="status" aria-live="polite">
+      <div className="dk-prog-h">
+        <i className="an-spin" />
+        <b>{cur.name}</b>
+        <span>{s.startedAt ? duration(now - s.startedAt) : ''}</span>
+      </div>
+      <small>{sum?.now || cur.line}{sum && sum.total > 0 ? ` · ${sum.done}/${sum.total} agen selesai` : ''}</small>
+      {hint}
+      {s.cycleId && <CancelButton cycleId={s.cycleId} />}
+    </div>
+  )
+}
+
+/** How Claude takes the cycle: routine, by hand (with "Buka Claude"), or the API — and how many agents it sent. */
+function useClaudeHint(cycle: QueuedCycle) {
+  const { s } = useOrch()
   const m = cycle.mcp
   const mine = s.cycleId === cycle.id
   const running = mine && s.running
-  const last = s.last?.cycleId === cycle.id ? s.last : null
   const { data: inputs = [] } = useQuery({
     queryKey: ['cycle', cycle.id, 'inputs'],
     queryFn: () => api.get<{ items: InputState[] }>(`/cycles/${cycle.id}/inputs`).then((r) => r.items),
@@ -56,7 +115,7 @@ export function AnalysisLive({ cycle }: { cycle: QueuedCycle }) {
       {byHand && <a className="btn primary" href={m.claude_url} target="_blank" rel="noopener noreferrer"><Icon name="plug" />Buka Claude</a>}
     </div>
   )
-  return last ? <AnalysisResult last={last} /> : <AnalysisRunning extra={hint} />
+  return hint
 }
 
 /** The analysis on the page itself (Orchestrator, Dealer — Sam 17 Oct): while a cycle runs, what the AI analyses with

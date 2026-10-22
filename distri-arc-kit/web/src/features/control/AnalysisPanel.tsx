@@ -12,7 +12,7 @@ import { STATE_LABEL, ordered, summarize, type CycleProgress } from './progress'
 // (Sam 22 Oct: in a CRM time is everything). Used by the analysis pop-up and by Pusat kendali.
 
 // each stage in short: its icon, its name, and the one line shown while it runs
-const READING: Record<string, { icon: string; name: string; line: string }> = {
+export const READING: Record<string, { icon: string; name: string; line: string }> = {
   ingest: { icon: 'chat', name: 'Baca data', line: 'chat WhatsApp hari ini, order, invoice & stok' },
   analyze: { icon: 'spark', name: 'Analisa', line: '6 agen AI menganalisa dealer' },
   synthesize: { icon: 'net', name: 'Gabungkan', line: 'menggabungkan temuan agen' },
@@ -66,7 +66,7 @@ export function AnalysisRunning({ extra }: { extra?: ReactNode }) {
 
 /** "Batalkan analisis" (Sam 17 Oct): stops a cycle that waits — e.g. Claude was never opened — so Analisis ulang is
  * free again; the cycle ends as failed with who cancelled it. */
-function CancelButton({ cycleId }: { cycleId: string }) {
+export function CancelButton({ cycleId }: { cycleId: string }) {
   const { toast } = useFeedback()
   const cancel = useMutation({
     mutationFn: () => api.post(`/cycles/${cycleId}/cancel`, {}),
