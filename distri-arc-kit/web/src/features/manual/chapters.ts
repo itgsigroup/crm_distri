@@ -329,6 +329,8 @@ Jawaban mengikuti pertanyaan. Contoh untuk stok:
 | "umur stok" / "stok di jakarta" | Umur stok, atau ringkasan stok satu cabang |
 | "stok apa yang harus didorong" | Stok menua beserta dealer yang cocok untuk push |
 
+Untuk pertanyaan stok, Orchestrator langsung membuka **Cek stok** dengan tabelnya sudah terfilter: cabang yang disebut (misalnya "stok jakarta" → Data stok cabang Jakarta dan daftar barangnya di Analisa stok), barang yang dicari, atau filter yang ditanya (fast moving, dead stock, reorder, dan seterusnya). Di atasnya tampil kartu **Hasil AI · Orchestrator** berisi pertanyaan dan jawabannya; tekan × untuk menutup dan melepas filter.
+
 Pertanyaan lain: risiko dealer, prediksi kas atau tagihan, jadwal order, dealer yang lewat jadwal. Menulis nama dealer saja (tanpa pertanyaan) membuka halaman dealernya.
 `,
   },

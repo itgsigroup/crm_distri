@@ -90,6 +90,16 @@ type Answer struct {
 	Confidence float64   `json:"confidence"`
 	Via        string    `json:"via"` // template | llm
 	At         time.Time `json:"at"`
+	// Show: the page that answers it as a table (Sam 22 Oct: "stok jakarta" → Cek stok filtered to Jakarta)
+	Show *Show `json:"show,omitempty"`
+}
+
+// Show opens a page with its filters set: Cek stok's Data stok table (branch, search) and Analisa stok (view).
+type Show struct {
+	Page   string `json:"page"`             // stockcheck
+	Branch string `json:"branch,omitempty"` // a branch, "" = every branch
+	Search string `json:"search,omitempty"` // the product or category words
+	View   string `json:"view,omitempty"`   // Analisa stok filter: fast | umur | cabang | kategori | reorder | dead | slow | mutasi
 }
 
 // Service answers questions.
@@ -148,7 +158,7 @@ func (s *Service) Ask(ctx context.Context, q string) (Answer, error) {
 		if err != nil {
 			return a, err
 		}
-		a.Text, quoted = s.stockAnswer(q, b, views.StockItems(st))
+		a.Text, quoted, a.Show = s.stockAnswer(q, b, views.StockItems(st))
 		kinds = []string{"stock", "so"}
 	case IntentSchedule:
 		a.Text, quoted = schedule(b)

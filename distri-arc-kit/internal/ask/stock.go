@@ -40,7 +40,48 @@ func init() {
 
 const stockTop = 8
 
-func (s *Service) stockAnswer(q string, b *views.Board, items []domain.StockItem) (string, []views.BoardItem) {
+func (s *Service) stockAnswer(q string, b *views.Board, items []domain.StockItem) (string, []views.BoardItem, *Show) {
+	text, quoted := s.stockText(q, b, items)
+	return text, quoted, stockShow(q, b, items)
+}
+
+// stockShow: Cek stok with the filters that answer the question as a table — the branch named, the product or
+// category words in the search, and the Analisa stok view asked (fast, dead, slow, reorder, transfers, age). Push /
+// bundle answers with dealers, not a table.
+func stockShow(q string, b *views.Board, items []domain.StockItem) *Show {
+	ql := strings.ToLower(q)
+	if rePush.MatchString(ql) {
+		return nil
+	}
+	branch := branchIn(ql, items)
+	sh := &Show{Page: "stockcheck", Branch: branch}
+	switch {
+	case reFast.MatchString(ql):
+		sh.View = "fast"
+	case reDead.MatchString(ql):
+		sh.View = "dead"
+	case reSlow.MatchString(ql):
+		sh.View = "slow"
+	case reTransfer.MatchString(ql):
+		sh.View, sh.Branch = "mutasi", ""
+	case reReorder.MatchString(ql):
+		sh.View = "reorder"
+	case reAge.MatchString(ql):
+		sh.View = "umur"
+	default:
+		a := stockanalysis.Compute(items, branch, func(string, string) int64 { return 0 }, b.Policies.Stock)
+		if len(products(ql, branch, a.Products)) > 0 {
+			sh.Search = strings.Join(questionWords(ql, branch), " ")
+		} else if cat := categoryIn(ql, a.Categories); cat != nil {
+			sh.Search, sh.View = cat.Key, "kategori"
+		} else if branch != "" {
+			sh.View = "cabang"
+		}
+	}
+	return sh
+}
+
+func (s *Service) stockText(q string, b *views.Board, items []domain.StockItem) (string, []views.BoardItem) {
 	ql := strings.ToLower(q)
 	if rePush.MatchString(ql) {
 		return stock(b, items)

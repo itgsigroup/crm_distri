@@ -38,6 +38,8 @@ export function screenScope(screen: ScreenKey, path: string): string {
       return 'screen:stock'
     case 'ar':
       return 'screen:credit'
+    case 'stockcheck':
+      return 'screen:stock'
     case 'dealer': {
       const id = path.split('/')[2]
       return id ? 'dealer:' + id : 'screen:dealer'
@@ -129,6 +131,7 @@ export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?
     const v = q.trim()
     if (!v) return
     setQ('')
+    setOpen(false) // the answer shows on its page (Cek stok's table, a dealer) — the dock must not cover it
     ask(v)
   }
   const scope = screenScope(screen, pathname)

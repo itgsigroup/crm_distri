@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Tanya Orchestrator: pertanyaan stok membuka tabel Cek stok yang terfilter + kartu Hasil AI · 2026-10-22
+- Pertanyaan stok di kotak Orchestrator (mis. **"stok jakarta"**) kini langsung membuka **Cek stok**: tabel **Data stok** terfilter cabang/barang yang disebut, kartu **Analisa stok** membuka filter yang sesuai (Per cabang dengan Jakarta terpilih dan daftar barangnya; Fast moving, Dead stock, Reorder, Mutasi, Umur stok, Per kategori), dan di atasnya kartu **Hasil AI · Orchestrator** berisi pertanyaan dan jawabannya (× menutup dan melepas filter). Alamatnya bisa dibagikan (`/stok/cek?tanya=…&cabang=…&cari=…&filter=…`).
+- Pertanyaan push/bundle tetap menjawab dengan dealer kandidat di pop-up. Dock Orchestrator menutup setelah pertanyaan dikirim agar tidak menutupi tabel; di halaman Cek stok, "Layar ini" kini **push stok** (sebelumnya "semua").
+- API `POST /api/ask`: `show` {page, branch, search, view} untuk jawaban stok.
+
 ## Change · Orchestrator: pilihan mesin MCP Claude atau ChatGPT · 2026-10-22
 - Pilihan **Dianalisis oleh** di dock Orchestrator, halaman Orchestrator, dan Stasiun Orbit (Dashboard) kini **MCP Claude** atau **ChatGPT**, masing-masing dengan modelnya (ChatGPT: GPT-5 mini, GPT-5, GPT-4.1, GPT-4.1 mini, o4-mini) dan effort. Pilihan **Sistem (tanpa AI)** dihapus; pilihan lama "Sistem" terbaca sebagai MCP Claude.
 - **ChatGPT** berjalan lewat **ChatGPT API di server** — langsung, tanpa membuka apa pun — memakai kunci OpenAI yang sama dengan AI Trigger; biaya tercatat dan dibatasi anggaran harian di API & model AI. Tanpa kunci, tombol memberi tahu dan tidak ada analisa yang diantre.

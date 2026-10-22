@@ -8,7 +8,21 @@ import { PlanText } from '../features/control/Plan'
 import { hhmm, shortDate } from '../lib/format'
 
 interface AskSource { id: string; kind: string; at: string; text: string; dealer?: string }
-interface AskAnswer { q: string; intent: string; text: string; dealer?: string; sources: AskSource[] | null; confidence: number; via: string; at: string }
+/** The page that answers a question as a table (Sam 22 Oct): Cek stok with its branch, search and Analisa stok view. */
+export interface AskShow { page: 'stockcheck'; branch?: string; search?: string; view?: string }
+export interface AskAnswer { q: string; intent: string; text: string; dealer?: string; sources: AskSource[] | null; confidence: number; via: string; at: string; show?: AskShow }
+
+/** The address of Cek stok answering a question: ?cabang=&cari=&filter=&tanya= */
+export function showURL(s: AskShow, q: string): string {
+  const p = new URLSearchParams({ tanya: q })
+  if (s.branch) p.set('cabang', s.branch)
+  if (s.search) p.set('cari', s.search)
+  if (s.view) p.set('filter', s.view)
+  return '/stok/cek?' + p.toString()
+}
+
+/** The question asked to the Orchestrator, answered from the cache the command bar filled (or asked again). */
+export const askQuery = (q: string) => ({ queryKey: ['ask', q], queryFn: () => api.post<AskAnswer>('/ask', { q }), staleTime: 60_000 })
 
 const ICON: Record<string, string> = { wa: 'chat', so: 'doc', invoice: 'doc', payment: 'cash', stock: 'box' }
 
@@ -16,13 +30,16 @@ const ICON: Record<string, string> = { wa: 'chat', so: 'doc', invoice: 'doc', pa
 export function AskSheet({ q }: { q: string }) {
   const { closeSheet } = useFeedback()
   const nav = useNavigate()
-  const { data: a, error } = useQuery({ queryKey: ['ask', q], queryFn: () => api.post<AskAnswer>('/ask', { q }), staleTime: 60_000 })
+  const { data: a, error } = useQuery(askQuery(q))
   useEffect(() => {
     if (a?.dealer) {
       closeSheet()
       nav('/dealer/' + a.dealer)
+    } else if (a?.show) { // the answer is a table: open it with its filters and the answer on top
+      closeSheet()
+      nav(showURL(a.show, q))
     }
-  }, [a?.dealer, closeSheet, nav])
+  }, [a, q, closeSheet, nav])
   return (
     <>
       <SheetHead icon="spark" title={q} sub={`GSI Orbit · ${a ? hhmm(a.at) : 'menjawab…'}`} onClose={closeSheet} />

@@ -9,6 +9,7 @@ import { fmtNum, hhmm, shortDate } from '../../lib/format'
 import { StockSource } from './StockPage'
 import { SortTh, TablePager, TableSearch, useDataTable } from '../../components/DataTable'
 import { StockAnalysis } from './StockAnalysis'
+import { AskResult } from './AskResult'
 import { diffText, parseQty, productCompare, productText, rpFull, verdict, VERDICT, type StockCheck, type StockProduct } from './check'
 
 const ALL = 'Semua cabang'
@@ -22,12 +23,25 @@ const when = (d: string) => `${shortDate(d)} ${hhmm(d)}`
 export function StockCheckPage() {
   const [params, setParams] = useSearchParams()
   const sku = params.get('sku') ?? ''
-  const pick = (next: string) => setParams(next ? { sku: next } : {}, { replace: false })
+  // a question to the Orchestrator answered here (Sam 22 Oct): ?tanya= the question, ?cabang= ?cari= ?filter= its table
+  const ask = params.get('tanya') ?? ''
+  const branch = params.get('cabang') ?? ''
+  const search = params.get('cari') ?? ''
+  const view = params.get('filter') ?? ''
+  const pick = (next: string) => {
+    const p = new URLSearchParams(params)
+    if (next) p.set('sku', next)
+    else p.delete('sku')
+    setParams(p, { replace: false })
+  }
+  const closeAsk = () => setParams(sku ? { sku } : {}, { replace: false })
+  const k = `${ask}|${branch}|${search}|${view}` // a new question resets the filters it sets
   return (
     <>
       <StockSource />
-      <StockAnalysis onPick={pick} />
-      <StockTable current={sku} onPick={pick} />
+      {ask && <AskResult q={ask} onClose={closeAsk} />}
+      <StockAnalysis key={'a' + k} onPick={pick} initialBranch={branch} initialView={view} initialGroup={view === 'cabang' ? branch : view === 'kategori' ? search : ''} />
+      <StockTable key={'t' + k} current={sku} onPick={pick} initialBranch={branch} initialQuery={search} />
       <RecentChecks onPick={pick} />
       {sku && <StockModal key={sku} sku={sku} onClose={() => pick('')} />}
     </>
@@ -69,13 +83,13 @@ function ModalHead({ title, sub, onClose }: { title: string; sub?: string; onClo
 
 /** Every product in the stock as a data table: search, sort every column both ways, pages of 10/25/50, a branch
  * filter; a row opens the product's check below. */
-function StockTable({ current, onPick }: { current: string; onPick: (sku: string) => void }) {
+function StockTable({ current, onPick, initialBranch = '', initialQuery = '' }: { current: string; onPick: (sku: string) => void; initialBranch?: string; initialQuery?: string }) {
   const { data: rows = NONE, isLoading } = useQuery({ queryKey: ['stock', 'products'], queryFn: () => api.get<StockProduct[]>('/stock/products') })
-  const [branch, setBranch] = useState('')
+  const [branch, setBranch] = useState(initialBranch)
   const branches = useMemo(() => [...new Set(rows.flatMap((r) => Object.keys(r.by_branch)))].sort((a, b) => a.localeCompare(b, 'id')), [rows])
   const list = useMemo(() => (branch ? rows.filter((r) => (r.by_branch[branch] ?? 0) !== 0) : rows), [rows, branch])
   const compare = useMemo(() => productCompare(branches), [branches])
-  const t = useDataTable<StockProduct, string>({ rows: list, text: productText, compare, tie: (a, b) => a.name.localeCompare(b.name, 'id'), initial: { column: 'produk', dir: 'asc' }, firstDir: (c) => (c === 'produk' ? 'asc' : 'desc') })
+  const t = useDataTable<StockProduct, string>({ rows: list, text: productText, compare, tie: (a, b) => a.name.localeCompare(b.name, 'id'), initial: { column: 'produk', dir: 'asc' }, firstDir: (c) => (c === 'produk' ? 'asc' : 'desc'), initialQuery })
   const total = t.matches.reduce((a, r) => a + (branch ? r.by_branch[branch] ?? 0 : r.qty), 0)
   return (
     <div className="card sc-search">

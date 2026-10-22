@@ -7,6 +7,8 @@ import { Icon } from './Icon'
 export type Dir = 'asc' | 'desc'
 
 export interface TableSpec<T, C extends string> {
+  /** the search the table opens with (a question to the Orchestrator, Sam 22 Oct) */
+  initialQuery?: string
   rows: T[]
   /** lower-cased text a row is searched in */
   text: (row: T) => string
@@ -20,7 +22,7 @@ export interface TableSpec<T, C extends string> {
 
 export function useDataTable<T, C extends string>(spec: TableSpec<T, C>) {
   const { rows, text, compare, tie, initial, firstDir } = spec
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(spec.initialQuery ?? '')
   const [column, setColumn] = useState<C>(initial.column)
   const [dir, setDir] = useState<Dir>(initial.dir)
   const [page, setPage] = useState(1)

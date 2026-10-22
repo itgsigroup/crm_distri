@@ -71,8 +71,8 @@ export function ageBucket(days: number): string {
   return '> 180'
 }
 
-export function StockAnalysis({ onPick }: { onPick: (sku: string) => void }) {
-  const [branch, setBranch] = useState('')
+export function StockAnalysis({ onPick, initialBranch = '', initialView = '', initialGroup = '' }: { onPick: (sku: string) => void; initialBranch?: string; initialView?: string; initialGroup?: string }) {
+  const [branch, setBranch] = useState(initialBranch)
   const [open, setOpen] = useState(true)
   const { data: a, isLoading } = useQuery({
     queryKey: ['stock', 'analysis', branch],
@@ -95,16 +95,16 @@ export function StockAnalysis({ onPick }: { onPick: (sku: string) => void }) {
               {['', ...branches].map((b) => <button key={b || 'all'} className={`chip ${branch === b ? 'is-active' : ''}`} onClick={() => setBranch(b)}>{b || 'Semua cabang'}</button>)}
             </div>
           )}
-          {isLoading || !a ? <p className="sg-hint">Menghitung analisa stok…</p> : a.skus === 0 ? <p className="sg-hint">Belum ada data stok untuk dianalisa.</p> : <Body a={a} onPick={onPick} />}
+          {isLoading || !a ? <p className="sg-hint">Menghitung analisa stok…</p> : a.skus === 0 ? <p className="sg-hint">Belum ada data stok untuk dianalisa.</p> : <Body a={a} onPick={onPick} initialView={initialView} initialGroup={initialGroup} />}
         </>
       )}
     </div>
   )
 }
 
-function Body({ a, onPick }: { a: StockAnalysisData; onPick: (sku: string) => void }) {
-  const [view, setView] = useState<View>('ringkasan')
-  const [group, setGroup] = useState('') // the age period, branch or category picked in its chart
+function Body({ a, onPick, initialView = '', initialGroup = '' }: { a: StockAnalysisData; onPick: (sku: string) => void; initialView?: string; initialGroup?: string }) {
+  const [view, setView] = useState<View>(() => (VIEWS.some(([k]) => k === initialView) ? (initialView as View) : 'ringkasan'))
+  const [group, setGroup] = useState(initialGroup) // the age period, branch or category picked in its chart
   const cls = Object.fromEntries(a.classes.map((c) => [c.key, c])) as Record<Class, Share>
   const p = a.products
   const lists = useMemo(() => ({

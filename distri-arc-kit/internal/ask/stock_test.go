@@ -50,7 +50,20 @@ func TestAskStockAsAsked(t *testing.T) {
 			t.Errorf("%q names dealers: %q", q, a.Text)
 		}
 	}
-	if a := askq("stok apa yang harus didorong"); !strings.Contains(a.Text, "[[dealer:") {
-		t.Errorf("push lists the candidate dealers: %q", a.Text)
+	if a := askq("stok apa yang harus didorong"); !strings.Contains(a.Text, "[[dealer:") || a.Show != nil {
+		t.Errorf("push lists the candidate dealers, no table: %q %+v", a.Text, a.Show)
+	}
+	// the table that answers it: Cek stok with the branch, the search and the Analisa stok view
+	shows := map[string]ask.Show{
+		"stok di jakarta":                 {Page: "stockcheck", Branch: "Jakarta", View: "cabang"},
+		"stok kamera ip 4mp dome berapa?": {Page: "stockcheck", Search: "kamera ip 4mp dome"},
+		"barang fast moving di semarang":  {Page: "stockcheck", Branch: "Semarang", View: "fast"},
+		"mutasi stok jakarta":             {Page: "stockcheck", View: "mutasi"},
+		"dead stock":                      {Page: "stockcheck", View: "dead"},
+	}
+	for q, want := range shows {
+		if a := askq(q); a.Show == nil || *a.Show != want {
+			t.Errorf("%q show %+v, want %+v", q, a.Show, want)
+		}
 	}
 }
