@@ -129,7 +129,7 @@ func QuoteFrom(ctx context.Context) *Quote {
 // Media describes a message's photo, video, voice note, document or sticker. The content is never stored: Ref is
 // the transport's reference to fetch it from WhatsApp when a person opens it (ADR 0029).
 type Media struct {
-	Kind     string `json:"kind"` // image | video | gif | audio | document | sticker | location | contact | call
+	Kind     string `json:"kind"` // image | video | gif | audio | document | sticker | location | contact | call | system
 	Mime     string `json:"mime,omitempty"`
 	FileName string `json:"file_name,omitempty"`
 	Size     int64  `json:"size,omitempty"`
@@ -139,10 +139,16 @@ type Media struct {
 	// Call: how a WhatsApp call (kind "call", ADR 0062) ended — missed | answered | rejected; Seconds is the talk
 	Call  string `json:"call,omitempty"`
 	Video bool   `json:"video,omitempty"`
+	// System: a group's own line (kind "system", ADR 0063) — create | subject | icon | description | add | join |
+	// remove | leave | promote | demote; the Text says it as WhatsApp does ("Anda menambahkan Budi")
+	System string `json:"system,omitempty"`
 }
 
 // IsCall reports a WhatsApp call record (no file; the phone carried the call).
 func (m *Media) IsCall() bool { return m != nil && m.Kind == "call" }
+
+// IsSystem reports a group's own line (ADR 0063): nobody wrote it, so it is no message to answer, read or analyse.
+func (m *Media) IsSystem() bool { return m != nil && m.Kind == "system" }
 
 // Viewable reports whether the file can be fetched to show in Chat.
 func (m *Media) Viewable() bool {

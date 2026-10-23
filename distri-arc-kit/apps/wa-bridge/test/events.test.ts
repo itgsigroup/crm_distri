@@ -1,6 +1,6 @@
 import type { WAMessage } from 'baileys'
 import { describe, expect, it } from 'vitest'
-import { decodeMediaRef, messageText, toGroupMeta, toWaEvent, type Resolver } from '../src/events.js'
+import { decodeMediaRef, groupStubLine, messageText, stubParticipants, toGroupMeta, toWaEvent, type Resolver } from '../src/events.js'
 
 const r: Resolver = {
   ownPhone: '6281200000001',
@@ -12,6 +12,27 @@ const msg = (key: WAMessage['key'], message: WAMessage['message'], extra: Partia
   ({ key, message, messageTimestamp: 1_790_000_000, pushName: 'Budi Santoso', ...extra }) as WAMessage
 
 describe('Baileys → WaEvent', () => {
+  it('turns a group stub (created, member added) into a system line so the chat exists before its first text', async () => {
+    const created = await toWaEvent('s-andi', msg({ id: 'G1', remoteJid: '1203@g.us', participant: '6281200000001@s.whatsapp.net', fromMe: false },
+      null, { messageStubType: 20, messageStubParameters: ['Proyek RSUD'], pushName: '' }), r, false)
+    expect(created).toMatchObject({ wamid: 'G1', chat_id: '1203@g.us', is_group: true, from_me: true, from: '6281200000001', sender_name: '',
+      text: 'Anda membuat grup "Proyek RSUD"', media_meta: { kind: 'system', system: 'create' }, group_meta: { name: 'Proyek RSUD' } })
+    const added = await toWaEvent('s-andi', msg({ id: 'G2', remoteJid: '1203@g.us', participant: '111@lid', fromMe: false },
+      null, { messageStubType: 27, messageStubParameters: ['{"id":"6281200000001@s.whatsapp.net"}', '{"id":"555@lid","phoneNumber":"6285500001111@s.whatsapp.net"}'] }), r, false)
+    expect(added).toMatchObject({ from: '6281299887766', from_me: false, text: 'Budi menambahkan Anda, +6285500001111', media_meta: { kind: 'system', system: 'add' } })
+    // history has them by the hundred: the group is known by then
+    expect(await toWaEvent('s-andi', msg({ id: 'G3', remoteJid: '1203@g.us', fromMe: false }, null, { messageStubType: 20, messageStubParameters: ['X'] }), r, true)).toBeNull()
+    // other stubs (e2e notices, ephemeral settings) and 1:1 stubs stay out
+    expect(await toWaEvent('s-andi', msg({ id: 'G4', remoteJid: '1203@g.us', fromMe: false }, null, { messageStubType: 2 }), r, false)).toBeNull()
+    expect(await toWaEvent('s-andi', msg({ id: 'G5', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, null, { messageStubType: 20 }), r, false)).toBeNull()
+  })
+  it('words group changes as WhatsApp does and reads participants from JSON or bare JIDs', () => {
+    expect(groupStubLine('leave', 'Anda', ['Budi'], [])).toBe('Budi keluar')
+    expect(groupStubLine('subject', 'Rina', [], ['Tim Baru'])).toBe('Rina mengubah nama grup menjadi "Tim Baru"')
+    expect(groupStubLine('create', 'Anda', [], [])).toBe('Anda membuat grup')
+    expect(stubParticipants(['6281200000001@s.whatsapp.net', '{"id":"555@lid"}', 'junk'])).toEqual([
+      { jid: '6281200000001@s.whatsapp.net', phone: '6281200000001' }, { jid: '555@lid', phone: '' }])
+  })
   it('maps a customer 1:1 message, resolving LID chats to phone numbers', async () => {
     const ev = await toWaEvent('s-andi', msg({ id: 'A1', remoteJid: '111@lid', fromMe: false }, { conversation: 'Minta penawaran 16 kamera' }), r, false)
     expect(ev).toMatchObject({ wamid: 'A1', session: 's-andi', chat_id: '6281299887766@s.whatsapp.net', from: '6281299887766', to: '6281200000001',

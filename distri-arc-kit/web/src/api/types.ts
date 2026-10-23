@@ -377,6 +377,8 @@ export interface MediaView {
   /** a WhatsApp call record (kind "call", ADR 0062): how it ended; seconds = the talk */
   call?: 'missed' | 'answered' | 'rejected'
   video?: boolean
+  /** a group's own line (kind "system", ADR 0063): what changed — create | subject | add | leave … */
+  system?: string
   /** false: stored before media was kept viewable — open it on the phone */
   viewable: boolean
 }

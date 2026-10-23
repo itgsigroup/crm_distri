@@ -59,7 +59,7 @@ export function contactCard(caption: string): { name: string; phone: string } {
   return m ? { name: m[1].trim(), phone: m[2].replace(/[^\d+]/g, '') } : { name: caption.trim(), phone: '' }
 }
 
-const KIND_LABEL: Record<string, string> = { image: 'Foto', video: 'Video', gif: 'GIF', audio: 'Audio', document: 'Dokumen', sticker: 'Stiker', location: 'Lokasi', contact: 'Kontak', poll: 'Polling', call: 'Panggilan' }
+const KIND_LABEL: Record<string, string> = { image: 'Foto', video: 'Video', gif: 'GIF', audio: 'Audio', document: 'Dokumen', sticker: 'Stiker', location: 'Lokasi', contact: 'Kontak', poll: 'Polling', call: 'Panggilan', system: 'Info grup' }
 
 /** A call bubble (ADR 0062): its line and tone — a missed or rejected call is a customer still waiting. */
 export function callLine(md: MediaView): { text: string; tone: 'bad' | 'good' } {

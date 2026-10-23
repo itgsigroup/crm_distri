@@ -472,6 +472,10 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
   const edit = editableNow(m, now)
   const del = deletableNow(m, now)
   const forward = forwardable(m)
+  if (m.media?.kind === 'system') {
+    // a group's own line (ADR 0063): centred like WhatsApp, nobody's bubble, nothing to answer
+    return <div className="m sys" data-mid={m.id}><div className="bub-sys">{m.body}<span className="tm">{hhmm(m.sent_at)}</span></div></div>
+  }
   if (m.deleted) {
     return (
       <div className={`m ${m.direction}`} data-mid={m.id}>

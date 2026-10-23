@@ -203,8 +203,11 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			}
 		}
 		res.ThreadID = thread.ID
+		// a group's own line (ADR 0063) is nobody's message: stored on the inbound side, out of the waiting and answer
+		// counts (ListThreads skips kind "system"), unread to no one, no signal, no draft
+		system := m.Media.IsSystem()
 		dir := "in"
-		if m.FromMe {
+		if m.FromMe && !system {
 			dir = "out"
 		}
 		id := m.ID
@@ -214,7 +217,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		}
 		// a live message from someone else that tags this number: the chat row shows "@" until it is opened
 		tagged := !m.FromMe && !m.History && slices.ContainsFunc(m.Mentions, func(x Mention) bool { return x.Number == account || x.Token == account })
-		mp := gen.InsertChatMessageParams{Mentions: mentions, ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, QuotedWaID: strp(m.QuotedID), SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && (m.IsGroup || threadKind == "internal")}
+		mp := gen.InsertChatMessageParams{Mentions: mentions, ThreadID: &thread.ID, WaMsgID: &id, Direction: &dir, FromNumber: &m.FromNumber, FromName: &m.FromName, Body: &m.Text, Media: media, QuotedWaID: strp(m.QuotedID), SentAt: m.Time, Status: map[bool]string{true: "sent", false: "received"}[m.FromMe], Internal: fromInternal && (m.IsGroup || threadKind == "internal") && !system}
 		msgID, err := q.InsertChatMessage(ctx, mp)
 		if errors.Is(err, pgx.ErrNoRows) && !m.IsGroup {
 			// a 1:1 chat between two linked GSI numbers: both phones carry the same WhatsApp id (one sent it, the
@@ -241,7 +244,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 				// another GSI number in the group stored it first: this number's thread still moves (time, unread),
 				// its messages are read from every thread of the group
 				unread := int32(0)
-				if !m.FromMe && !m.History {
+				if !m.FromMe && !m.History && !system {
 					unread = 1
 				}
 				if tagged {
@@ -257,7 +260,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			return err
 		}
 		var sid uuid.UUID
-		if threadKind != "internal" { // a DM between employees is no signal: no analysis reads it
+		if threadKind != "internal" && !system { // a DM between employees, or a group's own line, is no signal: no analysis reads it
 			payload, _ := json.Marshal(map[string]any{"thread": thread.ID, "direction": dir, "text": m.Text, "from_name": m.FromName, "from_number": m.FromNumber, "account": account, "group": m.IsGroup, "internal": fromInternal})
 			summary := m.Text
 			sp := gen.UpsertSignalParams{Kind: kind, OccurredAt: m.Time, DedupeKey: "wa:" + m.ID, Summary: &summary, Payload: payload, SalesID: salesID}
@@ -272,7 +275,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			}
 		}
 		unread := int32(0)
-		if !m.FromMe && !m.History { // synced history arrives read: only live messages count as new
+		if !m.FromMe && !m.History && !system { // synced history arrives read: only live messages count as new
 			unread = 1
 		}
 		if err := q.TouchThread(ctx, gen.TouchThreadParams{ID: thread.ID, LastMessageAt: &m.Time, Unread: unread}); err != nil {
@@ -289,7 +292,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 				return err
 			}
 		}
-		if contactID != nil && !m.FromMe {
+		if contactID != nil && !m.FromMe && !system {
 			if err := q.TouchContact(ctx, gen.TouchContactParams{ID: *contactID, LastInteractionAt: &m.Time}); err != nil {
 				return err
 			}
@@ -301,7 +304,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 				return err
 			}
 		}
-		if threadKind == "dealer" && dir == "in" && dealerID != nil && !m.Media.IsCall() {
+		if threadKind == "dealer" && dir == "in" && dealerID != nil && !m.Media.IsCall() && !system {
 			if _, err := commitment.FromInbound(ctx, q, commitment.Inbound{DealerID: *dealerID, ThreadID: thread.ID, MessageID: msgID, SignalID: sid, Text: m.Text, At: m.Time}); err != nil {
 				return fmt.Errorf("commitment: %w", err)
 			}
@@ -314,7 +317,7 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 			res.DealerID = dealerID
 		}
 		// a call is no text to draft a reply to (AI Trigger reads messages only)
-		if dir == "in" && !m.History && !mp.Internal && msgID != uuid.Nil && strings.TrimSpace(m.Text) != "" && !m.Media.IsCall() {
+		if dir == "in" && !m.History && !mp.Internal && msgID != uuid.Nil && strings.TrimSpace(m.Text) != "" && !m.Media.IsCall() && !system {
 			res.Inbound, res.InboundText = msgID, m.Text
 		}
 		if threadKind == "new" && dir == "in" && !m.History { // no profile lookups for old chats right after linking

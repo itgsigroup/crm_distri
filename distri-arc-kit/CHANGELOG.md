@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Grup WhatsApp baru langsung muncul di Chat (baris sistem grup) · 2026-10-23
+- Kasus: Sam membuat grup WhatsApp baru dan "info terakhir grup" tidak masuk ke sistem. Grup baru tidak punya thread di Orbit sampai seseorang mengetik pesan teks pertama: bridge membuang stub grup (dibuat, ganti nama, anggota ditambah/keluar) karena tidak berisi pesan.
+- Kini stub grup live menjadi **baris sistem** di chat grup, seperti WhatsApp: "Anda membuat grup "X"", "Rina mengubah nama grup menjadi "Y"", "Anda menambahkan Budi, +6285…", "Budi keluar", "… sekarang admin", foto/deskripsi grup diubah. Chat grup ada di Orbit sejak grup dibuat, lewat jalur realtime yang sama (SSE), dengan nama dan anggotanya.
+- Baris sistem bukan pesan siapa pun: tidak unread, tidak masuk *Belum dibalas* dan tidak menjawabnya, tidak dibaca analisa, tidak memicu AI Trigger. Ditampilkan di tengah tanpa bubble. Stub dari history sync tidak diteruskan. ADR 0063.
+
 ## Fix · WhatsApp yang logout di HP tampil logout di Orbit · 2026-10-23
 - Kasus: perangkat tertaut nomor Granike Monica dihapus WhatsApp (10.33 WIB, `device_removed`); setelah restart worker nomor itu tampil **Belum dipasangkan** dan alert sempat berbunyi "✅ Pulih" padahal masih logout, sehingga chat bos ke nomor itu tidak masuk tanpa ada yang tahu.
 - Kini nomor yang pernah tertaut dan tidak lagi dipegang bridge tetap **Keluar dari perangkat** (`logged_out`) sampai ditautkan ulang — juga setelah restart; nomor yang dilepas sendiri di Orbit tetap *Belum dipasangkan*. Worker menunggu bridge siap sebelum mengumumkan status (tidak ada lagi "unpaired" sesaat saat deploy), jadi tidak ada "Pulih" palsu.

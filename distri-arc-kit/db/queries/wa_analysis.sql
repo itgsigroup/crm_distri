@@ -91,6 +91,7 @@ select t.id, t.dealer_id, s.name as sales_name,
   -- the marks made by hand in Chat (migration 0040) count here too, as in the chat list
   coalesce(
     (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
+       and coalesce(m.media->>'kind', '') <> 'system' -- a group's own line ("Anda menambahkan Budi", ADR 0063) waits for no answer
        and m.sent_at > greatest(coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
                                  and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz), coalesce(t.replied_mark, '-infinity'::timestamptz))),
     case when t.unreplied_mark is not null and t.unreplied_mark > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'

@@ -203,6 +203,7 @@ select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, 
   -- marked by hand (migration 0040): "sudah dibalas" answers what came before it; "belum dibalas" waits until a reply
   coalesce(
     (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
+       and coalesce(m.media->>'kind', '') <> 'system' -- a group's own line ("Anda menambahkan Budi", ADR 0063) waits for no answer
        and m.sent_at > greatest(coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
                                  and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz), coalesce(t.replied_mark, '-infinity'::timestamptz))),
     case when t.unreplied_mark is not null and t.unreplied_mark > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'
@@ -242,6 +243,7 @@ select t.*, d.slug as dealer_slug, d.name as dealer_name, s.name as sales_name, 
   -- marked by hand (migration 0040): "sudah dibalas" answers what came before it; "belum dibalas" waits until a reply
   coalesce(
     (select min(m.sent_at) from chat_messages m where m.thread_id = t.id and m.direction = 'in' and not m.internal and not m.closing and not m.auto_reply
+       and coalesce(m.media->>'kind', '') <> 'system' -- a group's own line ("Anda menambahkan Budi", ADR 0063) waits for no answer
        and m.sent_at > greatest(coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and (o.direction = 'out' or o.internal)
                                  and not o.holding and not o.auto_reply and o.status <> 'failed'), '-infinity'::timestamptz), coalesce(t.replied_mark, '-infinity'::timestamptz))),
     case when t.unreplied_mark is not null and t.unreplied_mark > coalesce((select max(o.sent_at) from chat_messages o where o.thread_id = t.id and o.direction = 'out'

@@ -1,4 +1,4 @@
-import { isJidBroadcast, isJidGroup, isJidNewsletter, isJidStatusBroadcast, isLidUser, normalizeMessageContent, proto, type WAMessage } from 'baileys'
+import { isJidBroadcast, isJidGroup, isJidNewsletter, isJidStatusBroadcast, isLidUser, normalizeMessageContent, proto, WAMessageStubType, type WAMessage } from 'baileys'
 
 // WaEvent is the bridge → worker contract; Go side: internal/wa/baileys.go (bridgeEvent).
 export interface GroupMember { jid: string; phone: string; name: string; admin?: boolean }
@@ -14,6 +14,8 @@ export interface MediaMeta {
   kind: string; mime: string; file_name: string; size: number; seconds?: number; ptt?: boolean; ref?: string
   /** a WhatsApp call (kind "call", calls.ts): how it ended, and whether it was a video call */
   call?: 'missed' | 'answered' | 'rejected'; video?: boolean
+  /** a group's own line (kind "system", groupStub): what changed, as WhatsApp words it */
+  system?: string
 }
 export interface WaEvent {
   wamid: string
@@ -154,10 +156,109 @@ async function toPhoneJid(r: Resolver, jid: string, alt?: string | null): Promis
   return (await r.pnForLid(jid)) ?? jid
 }
 
+/** The group changes WhatsApp shows as a line in the chat ("Grup dibuat", "Budi ditambahkan"): a stub message
+ * without content. Each gets a name GSI Orbit stores with the line (media_meta.system). */
+const GROUP_STUBS: Record<number, string> = {
+  [WAMessageStubType.GROUP_CREATE]: 'create',
+  [WAMessageStubType.GROUP_CHANGE_SUBJECT]: 'subject',
+  [WAMessageStubType.GROUP_CHANGE_ICON]: 'icon',
+  [WAMessageStubType.GROUP_CHANGE_DESCRIPTION]: 'description',
+  [WAMessageStubType.GROUP_PARTICIPANT_ADD]: 'add',
+  [WAMessageStubType.GROUP_PARTICIPANT_INVITE]: 'join',
+  [WAMessageStubType.GROUP_PARTICIPANT_ADD_REQUEST_JOIN]: 'join',
+  [WAMessageStubType.GROUP_PARTICIPANT_REMOVE]: 'remove',
+  [WAMessageStubType.GROUP_PARTICIPANT_LEAVE]: 'leave',
+  [WAMessageStubType.GROUP_PARTICIPANT_PROMOTE]: 'promote',
+  [WAMessageStubType.GROUP_PARTICIPANT_DEMOTE]: 'demote',
+}
+
+/** The members a participant stub names: Baileys gives JSON ({id, phoneNumber}) or bare JIDs. */
+export function stubParticipants(params: string[] | null | undefined): { jid: string; phone: string }[] {
+  return (params ?? []).flatMap((p) => {
+    if (p.startsWith('{')) {
+      try {
+        const o = JSON.parse(p) as { id?: string; phoneNumber?: string }
+        if (!o.id) return []
+        return [{ jid: o.id, phone: digits(o.phoneNumber ?? (isLidUser(o.id) ? '' : o.id)) }]
+      } catch {
+        return []
+      }
+    }
+    return p.includes('@') ? [{ jid: p, phone: isLidUser(p) ? '' : digits(p) }] : []
+  })
+}
+
+const fmtPhone = (d: string) => (d ? '+' + d : 'seseorang')
+
+/** The line of a group change, as WhatsApp words it in Indonesian ("Anda menambahkan Budi"). */
+export function groupStubLine(kind: string, who: string, names: string[], params: string[]): string {
+  const list = names.join(', ') || 'seseorang'
+  switch (kind) {
+    case 'create': return `${who} membuat grup "${params[0] ?? ''}"`.replace(' ""', '')
+    case 'subject': return `${who} mengubah nama grup menjadi "${params[0] ?? ''}"`
+    case 'icon': return `${who} mengubah foto grup`
+    case 'description': return `${who} mengubah deskripsi grup`
+    case 'add': return `${who} menambahkan ${list}`
+    case 'join': return `${list} bergabung`
+    case 'remove': return `${who} mengeluarkan ${list}`
+    case 'leave': return `${list} keluar`
+    case 'promote': return `${list} sekarang admin`
+    case 'demote': return `${list} bukan admin lagi`
+  }
+  return ''
+}
+
+/** A group stub (created, renamed, members added or gone) as a system line of the group's chat, so the chat exists
+ * in GSI Orbit from the moment the group does, not from its first text (23 Oct: a group made that day stayed unseen). */
+async function groupStub(session: string, msg: WAMessage, r: Resolver): Promise<WaEvent | null> {
+  const key = msg.key
+  const kind = GROUP_STUBS[msg.messageStubType ?? 0]
+  if (!kind || !key?.id || !key.remoteJid) return null
+  const chat = key.remoteJid
+  const params = [...(msg.messageStubParameters ?? [])]
+  const metaOf = (await r.groupMeta(chat)) ?? { name: '', members: [] }
+  if (kind === 'create' && !params[0] && metaOf.name) params[0] = metaOf.name
+  const actor = digits(await toPhoneJid(r, key.participant ?? '', key.participantAlt))
+  const fromMe = !!key.fromMe || (!!actor && actor === r.ownPhone)
+  const nameOf = (phone: string, jid: string) => {
+    if (phone && phone === r.ownPhone) return 'Anda'
+    const m = metaOf.members.find((x) => (phone && x.phone === phone) || x.jid === jid)
+    return m?.name || fmtPhone(phone || digits(jid))
+  }
+  const who = fromMe ? 'Anda' : (metaOf.members.find((x) => actor && x.phone === actor)?.name || msg.pushName || fmtPhone(actor))
+  const people = ['add', 'join', 'remove', 'leave', 'promote', 'demote'].includes(kind) ? stubParticipants(params) : []
+  const text = groupStubLine(kind, who, people.map((p) => nameOf(p.phone, p.jid)), params)
+  if (!text) return null
+  const ts = typeof msg.messageTimestamp === 'number' ? msg.messageTimestamp : Number(msg.messageTimestamp ?? 0)
+  return {
+    wamid: key.id,
+    session,
+    account: r.ownPhone,
+    from: fromMe ? r.ownPhone : actor,
+    to: fromMe ? '' : r.ownPhone,
+    chat_id: chat,
+    is_group: true,
+    group_meta: metaOf,
+    sender_name: '', // the line names who did it; the chat list must not prefix it with a name
+    text,
+    media_meta: { kind: 'system', mime: '', file_name: '', size: 0, system: kind },
+    timestamp: new Date((ts || Date.now() / 1000) * 1000).toISOString(),
+    from_me: fromMe,
+    is_history: false,
+    transport: 'bridge',
+  }
+}
+
 /** Maps a Baileys message to a WaEvent, or null for protocol messages, reactions and status updates. */
 export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, history: boolean): Promise<WaEvent | null> {
   const key = msg.key
-  if (!key?.id || !isConversation(key.remoteJid) || !msg.message) return null
+  if (!key?.id || !isConversation(key.remoteJid)) return null
+  if (!msg.message) {
+    // a group's own line (created, renamed, a member added or gone) — live only; a synced history has them by the
+    // hundred and the group is known by then
+    if (!history && isJidGroup(key.remoteJid) && msg.messageStubType) return groupStub(session, msg, r)
+    return null
+  }
   const edit = editOf(msg.message)
   const revoke = revokeOf(msg.message)
   const { text, media, quoted } = edit ? { text: edit.text, media: undefined, quoted: undefined } : revoke ? { text: '', media: undefined, quoted: undefined } : messageText(msg.message)
