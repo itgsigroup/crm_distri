@@ -214,3 +214,40 @@ func TestBridgeEventAccountNeverFromLinkID(t *testing.T) {
 		t.Fatalf("account = %q, want the phone's own number", m.Account)
 	}
 }
+
+// A bridge still starting (a deploy restarts both) is asked again: no number is announced "unpaired" because the
+// bridge did not answer yet.
+func TestStartWaitsForTheBridge(t *testing.T) {
+	up := make(chan struct{})
+	br := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-up:
+			_, _ = w.Write([]byte(`{"ok":true,"sessions":{"link-a":"connected"}}`))
+		default:
+			w.WriteHeader(http.StatusBadGateway)
+		}
+	}))
+	defer br.Close()
+	b := &Baileys{BridgeURL: br.URL, Secret: secret, Listen: "127.0.0.1:0", RetryEvery: 20 * time.Millisecond,
+		Approved: func(context.Context, string) (bool, error) { return false, nil },
+		Accounts: func(context.Context) []string { return []string{"link-a", "link-b"} }}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := b.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case e := <-b.Events():
+		t.Fatalf("announced before the bridge answered: %+v", e.Status)
+	case <-time.After(100 * time.Millisecond):
+	}
+	close(up)
+	seen := map[string]string{}
+	for range 2 {
+		e := <-b.Events()
+		seen[e.Status.Session] = e.Status.State
+	}
+	if seen["link-a"] != "connected" || seen["link-b"] != "unpaired" {
+		t.Fatalf("start statuses %v", seen)
+	}
+}

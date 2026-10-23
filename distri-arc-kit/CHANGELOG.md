@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · WhatsApp yang logout di HP tampil logout di Orbit · 2026-10-23
+- Kasus: perangkat tertaut nomor Granike Monica dihapus WhatsApp (10.33 WIB, `device_removed`); setelah restart worker nomor itu tampil **Belum dipasangkan** dan alert sempat berbunyi "✅ Pulih" padahal masih logout, sehingga chat bos ke nomor itu tidak masuk tanpa ada yang tahu.
+- Kini nomor yang pernah tertaut dan tidak lagi dipegang bridge tetap **Keluar dari perangkat** (`logged_out`) sampai ditautkan ulang — juga setelah restart; nomor yang dilepas sendiri di Orbit tetap *Belum dipasangkan*. Worker menunggu bridge siap sebelum mengumumkan status (tidak ada lagi "unpaired" sesaat saat deploy), jadi tidak ada "Pulih" palsu.
+- Di Chat, nomor yang dibuka dan tidak tersambung menampilkan banner merah "WhatsApp <nama> keluar dari perangkat tertaut sejak … — chat baru tidak masuk ke Orbit" dengan tombol **Tautkan ulang**.
+
 ## Feature · Panggilan WhatsApp tercatat di chat; tombol Telepon · 2026-10-23
 - Panggilan WhatsApp ke nomor GSI kini muncul sebagai bubble di chat: **Panggilan suara tak terjawab** (merah, masuk *Belum dibalas* dan unread), **Panggilan suara masuk · 3:12** (hijau, dihitung sudah dilayani), **ditolak**, termasuk panggilan video. Satu bubble per panggilan, dicatat saat panggilan selesai; GSI Orbit tidak pernah mengangkat atau menolak panggilan — HP tetap yang berdering.
 - Tombol **Telepon** (ikon telepon) di header chat 1-on-1: menelepon nomor itu dari perangkat Anda (`tel:`).

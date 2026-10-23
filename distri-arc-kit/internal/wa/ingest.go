@@ -637,6 +637,12 @@ func (in *Ingestor) ProcessStatus(ctx context.Context, s Status) error {
 		}
 	case known:
 		acc = row.WaNumber
+		if s.State == "unpaired" && row.PairedAt != nil {
+			// the bridge no longer holds a number that was linked: it was logged out on the phone (device_removed) —
+			// it stays "Keluar dari perangkat" until it is linked again, never "Belum dipasangkan" (Sam 23 Oct).
+			// A number a person unlinked here has no paired_at (SetWANumberUnpaired).
+			s.State = "logged_out"
+		}
 		if s.QR != "" {
 			if row.State == "connected" {
 				return nil // a late QR for a device that is already linked

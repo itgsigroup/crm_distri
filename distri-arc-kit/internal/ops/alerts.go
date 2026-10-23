@@ -25,7 +25,7 @@ func Alerts(h Health) []Alert {
 			who = w.Number
 		}
 		why := w.State
-		if why == "pairing" || why == "unpaired" {
+		if why == "pairing" || why == "unpaired" || why == "logged_out" {
 			why = "perangkat tertaut dihapus dari HP"
 		}
 		out = append(out, Alert{Key: "wa_disconnected:" + w.Number, Message: fmt.Sprintf("WhatsApp %s (%s) terputus — chat tidak sinkron; pindai QR ulang di Pengaturan → WhatsApp", who, why)})

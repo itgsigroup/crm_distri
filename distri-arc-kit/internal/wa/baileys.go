@@ -39,6 +39,8 @@ type Baileys struct {
 	// Session resolves a number to its bridge session id (numbers linked from Chat get a session id first).
 	Session func(ctx context.Context, account string) string
 	Log     *slog.Logger
+	// RetryEvery: how often Start asks a bridge that is not up yet for its sessions (default 5 s).
+	RetryEvery time.Duration
 
 	events chan Event
 	client *http.Client
@@ -209,8 +211,24 @@ func (b *Baileys) Start(ctx context.Context) error {
 		_ = b.srv.Shutdown(sh)
 	}()
 	go func() {
+		// the bridge may still be starting (a deploy restarts both): announce only what it answered. An unreachable
+		// bridge made every number "unpaired" for a moment, and a number logged out on the phone read as recovered
+		// (23 Oct: Granike Monica "✅ Pulih" while still logged out).
+		var held []Status
+		for {
+			var err error
+			if held, err = b.sessions(ctx); err == nil {
+				break
+			}
+			b.Log.Warn("wa-bridge health", "err", err)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(b.retry()):
+			}
+		}
 		live := map[string]bool{}
-		for _, s := range b.Status(ctx) {
+		for _, s := range held {
 			live[s.Session] = true
 			b.events <- Event{Status: &s}
 		}
@@ -402,18 +420,34 @@ func (b *Baileys) Link(ctx context.Context, session, phone string, code bool) (s
 
 // Status reads every session from the bridge's /health.
 func (b *Baileys) Status(ctx context.Context) []Status {
+	out, err := b.sessions(ctx)
+	if err != nil {
+		b.Log.Warn("wa-bridge health", "err", err)
+	}
+	return out
+}
+
+// sessions is the state of every session the bridge holds.
+func (b *Baileys) sessions(ctx context.Context) ([]Status, error) {
 	var h struct {
 		Sessions map[string]string `json:"sessions"`
 	}
 	if _, _, err := b.call(ctx, http.MethodGet, "/health", nil, &h); err != nil {
-		b.Log.Warn("wa-bridge health", "err", err)
-		return nil
+		return nil, err
 	}
 	out := make([]Status, 0, len(h.Sessions))
 	for id, st := range h.Sessions {
 		out = append(out, Status{Session: id, State: st})
 	}
-	return out
+	return out, nil
+}
+
+// retry is how long Start waits before asking an unreachable bridge again.
+func (b *Baileys) retry() time.Duration {
+	if b.RetryEvery > 0 {
+		return b.RetryEvery
+	}
+	return 5 * time.Second
 }
 
 // Health is the bridge's /health: sessions, forward queue and the anti-ban counters per number.

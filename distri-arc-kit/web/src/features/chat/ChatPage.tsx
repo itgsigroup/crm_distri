@@ -9,7 +9,7 @@ import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { fmtRp, hhmm, shortDate, wib, sowText } from '../../lib/format'
 import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
-import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf, teamName } from './Connect'
+import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, PairSheet, phoneOf, teamName } from './Connect'
 import { countFilters, displayTitle, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, searchKey, waitLabel, type Filter } from './inbox'
 import { AttachMenu, ContactSheet, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
 import { bubbleLine, callLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
@@ -235,6 +235,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
       </div>
       <div className="ibl-search"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari chat" aria-label="Cari chat" /></div>
       {stale && <div className="ibl-live" role="status"><i />Menyambung ulang ke server… chat tetap diperbarui tiap 10 detik</div>}
+      {n && <NumberDown n={n} />}
       <div className="ibl-chips" role="tablist">
         {FILTERS.map(([k, l]) => (
           <button key={k} role="tab" aria-selected={filter === k} aria-label={l} title={l} className={filter === k ? 'is-active' : ''} onClick={() => setFilter(k)}>
@@ -1590,6 +1591,24 @@ export function ChatPage() {
       {active ? <ThreadPane key={active} id={active} picked={!!threadId} onBack={() => nav('/chat')} lead={lead} setLead={setLead} onAccurate={accurate} /> : (
         <div className="pane th-pane th-none"><Icon name="chat" /><b>Pilih chat</b><span>Klik salah satu percakapan di daftar untuk membukanya.</span></div>
       )}
+    </div>
+  )
+}
+
+/** The open number does not sync: logged out on the phone (WhatsApp removed the linked device), never linked, or
+ * reconnecting. New chats do not arrive until it is linked again (Sam 23 Oct: Granike Monica logged out, the boss's
+ * chat never came in and nothing in Chat said so). */
+function NumberDown({ n }: { n: WANumber }) {
+  const { openSheet } = useFeedback()
+  if (n.state === 'connected' || n.state === 'pairing') return null
+  const since = n.last_seen_at ? ` sejak ${shortDate(n.last_seen_at)} ${hhmm(n.last_seen_at)}` : ''
+  const text = n.state === 'logged_out' ? `WhatsApp ${labelOf(n)} keluar dari perangkat tertaut${since} — chat baru tidak masuk ke Orbit`
+    : n.state === 'unpaired' ? `WhatsApp ${labelOf(n)} belum ditautkan — chat tidak masuk ke Orbit`
+    : `WhatsApp ${labelOf(n)} terputus${since} — menyambung ulang…`
+  return (
+    <div className={`ibl-down${n.state === 'disconnected' ? ' warn' : ''}`} role="alert">
+      <Icon name="alert" /><span>{text}</span>
+      {n.state !== 'disconnected' && <button type="button" className="btn ghost" onClick={() => openSheet(<PairSheet wa={n.wa_number} />)}><Icon name="qr" />Tautkan ulang</button>}
     </div>
   )
 }

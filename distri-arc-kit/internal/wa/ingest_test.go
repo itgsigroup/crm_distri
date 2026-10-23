@@ -711,3 +711,43 @@ func TestGroupTagMarksTheTaggedNumber(t *testing.T) {
 		t.Errorf("MentionTokens = %v", got)
 	}
 }
+
+// A number logged out on the phone (device_removed) stays "logged_out" after a restart: the bridge no longer holds
+// it and announces it "unpaired", which must not read as never linked — nor as recovered (Sam 23 Oct: Granike
+// Monica). A number a person unlinked here stays "unpaired".
+func TestLoggedOutStaysLoggedOutAfterRestart(t *testing.T) {
+	st, in := setup(t)
+	ctx := context.Background()
+	state := func(n string) string {
+		var s string
+		if err := st.Pool.QueryRow(ctx, "select state from wa_numbers where wa_number = $1", n).Scan(&s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	for _, l := range [][2]string{{"link-gm", "6281255550000"}, {"link-cs", "6281266660000"}} {
+		if _, err := st.Pool.Exec(ctx, "insert into wa_links (session_id) values ($1)", l[0]); err != nil {
+			t.Fatal(err)
+		}
+		if err := in.ProcessStatus(ctx, wa.Status{Session: l[0], Account: l[1], State: "connected"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := in.ProcessStatus(ctx, wa.Status{Session: "link-gm", State: "logged_out"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Q.SetWANumberUnpaired(ctx, "6281266660000"); err != nil {
+		t.Fatal(err)
+	}
+	for _, sid := range []string{"link-gm", "link-cs"} { // the worker restarted: the bridge holds neither
+		if err := in.ProcessStatus(ctx, wa.Status{Session: sid, State: "unpaired"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if s := state("6281255550000"); s != "logged_out" {
+		t.Fatalf("logged out on the phone, after restart: %s", s)
+	}
+	if s := state("6281266660000"); s != "unpaired" {
+		t.Fatalf("unlinked here: %s", s)
+	}
+}
