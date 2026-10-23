@@ -28,4 +28,5 @@ tidak lagi dipakai di aplikasi HP) atau penyedia VoIP/SIP — keputusan Sam, buk
 
 ## Konsekuensi
 - Perlu dibuktikan dengan HP sungguhan bahwa `accept` sampai ke perangkat tertaut saat HP mengangkat (OPEN-QUESTIONS).
-- Panggilan keluar dari HP belum tercatat. Telepon dari browser butuh keputusan layanan berbayar (OPEN-QUESTIONS).
+- Panggilan keluar dari HP belum tercatat.
+- Telepon dari browser tidak dibuat: Sam memilih hanya yang gratis (23 Okt) — tanpa Cloud API Calling atau VoIP berbayar.
