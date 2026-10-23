@@ -7,6 +7,7 @@ import (
 
 	"github.com/riverqueue/river"
 
+	"distri-arc/internal/chatbackup"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/ops"
@@ -47,6 +48,28 @@ func (w *RetentionWorker) Work(ctx context.Context, _ *river.Job[jobs.RetentionP
 	after, _ := json.Marshal(r)
 	actor, kind, action, entity := "worker", "system", "retention.purge", "retention"
 	return w.st.Q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, After: after})
+}
+
+// ChatBackupWorker handles chat.backup (Cadangan chat, ADR 0061).
+type ChatBackupWorker struct {
+	river.WorkerDefaults[jobs.ChatBackupArgs]
+	st         *store.Store
+	clock      clock.Clock
+	log        *slog.Logger
+	dir        string
+	keepMonths int
+}
+
+// Work writes this month's backup (and any stored month that has none yet).
+func (w *ChatBackupWorker) Work(ctx context.Context, _ *river.Job[jobs.ChatBackupArgs]) error {
+	if w.dir == "" {
+		return nil
+	}
+	files, err := chatbackup.Run(ctx, w.st.Pool, w.dir, w.clock.Now(), w.keepMonths)
+	for _, f := range files {
+		w.log.Info("chat backup", "month", f.Month, "chats", f.Chats, "messages", f.Messages, "bytes", f.Size)
+	}
+	return err
 }
 
 // AlertsWorker handles alerts.check: WA disconnected, cycles failing, queue backlog → alerts inside GSI Orbit.

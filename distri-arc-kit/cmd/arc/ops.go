@@ -11,11 +11,13 @@ import (
 	"os"
 
 	db2 "distri-arc/db"
+	"distri-arc/internal/chatbackup"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
 	"distri-arc/internal/ops"
 	"distri-arc/internal/seed"
 	"distri-arc/internal/store"
+	"distri-arc/internal/wa"
 )
 
 // runPDPCtl: arc ctl pdp export --dealer <slug> [--out file] | pdp delete --contact <wa> --by <email> --yes
@@ -55,12 +57,18 @@ func runPDPCtl(ctx context.Context, st *store.Store, args []string) error {
 			return errors.New("penghapusan tidak bisa dibatalkan: ulangi dengan --yes")
 		}
 		r, err := ops.DeleteContact(ctx, st, *contact, *by)
-		if err != nil {
-			return err
+		// Cadangan chat too (ADR 0061), also when the database no longer holds the number: its one-to-one chat goes
+		// from every month's zip
+		forgotten, ferr := 0, error(nil)
+		if dir := config.Load().ChatBackupDir; dir != "" {
+			forgotten, ferr = chatbackup.Forget(dir, wa.UserJID(wa.Digits(*contact)))
 		}
-		fmt.Printf("dihapus: %d kontak · %d thread · %d pesan · %d sinyal percakapan · %d identifikasi (order, invoice, metrik tetap)\n",
-			r.Contacts, r.Threads, r.Messages, r.Signals, r.Identifications)
-		return nil
+		if err != nil && (!errors.Is(err, ops.ErrUnknownNumber) || forgotten == 0) {
+			return errors.Join(err, ferr)
+		}
+		fmt.Printf("dihapus: %d kontak · %d thread · %d pesan · %d sinyal percakapan · %d identifikasi · %d chat di Cadangan chat (order, invoice, metrik tetap)\n",
+			r.Contacts, r.Threads, r.Messages, r.Signals, r.Identifications, forgotten)
+		return ferr
 	}
 	return fmt.Errorf("pdp %s: unknown", args[0])
 }

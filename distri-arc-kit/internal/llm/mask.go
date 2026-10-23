@@ -43,9 +43,26 @@ func (m *Masker) ph(kind, v string) string {
 	return p
 }
 
+// credHints: every credential the patterns mask starts with one of these words. Most messages hold none and skip
+// the regexps, which cost ~50 µs a message (a month's Cadangan chat of 150k messages spent 7 s in them).
+var credHints = []string{"pass", "pwd", "sandi", "pin", "otp", "kode", "token"}
+
+func credHint(s string) bool {
+	s = strings.ToLower(s)
+	for _, h := range credHints {
+		if strings.Contains(s, h) {
+			return true
+		}
+	}
+	return false
+}
+
 // MaskCredentials hides passwords, PINs and codes typed in a message ("password: ••••••") — in the CRM and
 // before any LLM. The words stay so the reader knows a credential was sent (and should be changed).
 func MaskCredentials(s string) string {
+	if !credHint(s) {
+		return s
+	}
 	s = reCredSep.ReplaceAllString(s, "$1$2••••••")
 	return reCredSp.ReplaceAllString(s, "$1$2••••••")
 }

@@ -82,3 +82,7 @@ Teruskan dari Chat mengirim pesan biasa: di HP penerima belum muncul label "Dite
 
 ## Dibaca di HP tanpa membalas (15 Okt 2026)
 Chat yang dibuka di HP tanpa dibalas masih terhitung belum dibaca di Orbit. Untuk menyelaraskannya, wa-bridge perlu meneruskan event baca Baileys (`chats.update` dengan `unreadCount: 0`, atau `messages.update` dengan status READ dari perangkat sendiri) ke API sebagai `read`, lalu API memanggil `MarkThreadRead`. Arah sebaliknya juga butuh bridge: membuka chat di Orbit belum mengirim centang biru ke pelanggan (Baileys `readMessages`). Kedua perubahan ini me-restart wa-bridge, jadi dijadwalkan bersama label "Diteruskan".
+
+## Cadangan chat (2026-10-23, ADR 0061)
+- Penghapusan UU PDP (`arc ctl pdp delete`) membuang chat satu-satu orang itu dari semua zip, tetapi baris pesannya di **grup** tetap ada di cadangan bulan lama sampai rotasi (12 bulan). Perlu dibuang juga per baris? · sekarang tidak · `chatbackup.Forget`
+- Cadangan hanya di server (`/var/lib/distri-arc/chat-backup`). Perlu salinan di luar server (rclone seperti backup DB) dan/atau dienkripsi? · sekarang tidak · ADR 0061

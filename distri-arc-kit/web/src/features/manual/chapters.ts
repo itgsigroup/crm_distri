@@ -363,6 +363,12 @@ Semua nomor WhatsApp GSI dalam satu layar: chat pribadi pelanggan, grup pelangga
 
 GSI Orbit menyimpan chat **90 hari**. Untuk melihat yang lebih lama, gulir ke puncak percakapan lalu tekan **Muat pesan lama dari HP**: GSI Orbit meminta 50 pesan sebelumnya ke HP pemegang nomor — seperti WhatsApp Web saat digulir ke atas — dan pesan muncul dalam beberapa detik. Tekan lagi untuk 50 berikutnya (sampai 1 tahun ke belakang). HP pemegang nomor harus menyala dan tersambung internet. Pesan yang dimuat ulang ini dibersihkan lagi pada malam berikutnya.
 
+## Ekspor dan cadangan chat
+
+- **Ekspor chat**: buka menu ⌄ chat di daftar (atau klik kanan) → **Ekspor chat**. Browser menyimpan \`Chat WhatsApp dengan <nama>.txt\` berisi semua pesan yang tersimpan, dalam format yang sama dengan Ekspor chat di HP WhatsApp (\`23/10/26 14.05 - Nama: pesan\`). Foto, video, dan file tidak ikut (\`<Media tidak disertakan>\`), jadi filenya kecil.
+- **Cadangan chat** (CEO/admin, di **Pengaturan**): setiap malam 02.15 WIB — sebelum chat di atas 90 hari dibersihkan — semua chat bulan berjalan disimpan sebagai satu file zip per bulan, isinya satu file .txt per chat. Cadangan bulan yang sudah lewat tetap ada walau pesannya sudah terhapus dari GSI Orbit, disimpan 12 bulan. Tekan **Cadangkan** untuk mencadangkan sekarang, **Unduh** untuk mengambil satu bulan.
+- Chat yang ditandai **Obrolan pribadi** ikut dihapus dari semua cadangan. Setiap ekspor dan unduhan tercatat di audit.
+
 ## Filter dan label
 
 - Chip filter: **Semua, Belum dibaca, Belum dibalas, Berbintang, Dealer, Grup internal, Grup pelanggan, Nomor baru, Internal, Pemasok**.
@@ -775,7 +781,7 @@ Menu mengikuti peran. Minta admin menambahkan halaman di **Peran & akses**.
 - Chat pribadi antar karyawan tampil di Chat tetapi **tidak** dianalisa AI.
 - Grup internal hanya dipakai untuk stok, jadwal, dan tugas.
 - Nama dan nomor pelanggan disamarkan sebelum dibaca AI.
-- Chat disimpan **90 hari** di server GSI Orbit; pesan yang lebih lama dihapus otomatis tiap malam (masih ada di HP masing-masing dan di backup terenkripsi 30 hari).
+- Chat disimpan **90 hari** di server GSI Orbit; pesan yang lebih lama dihapus otomatis tiap malam (masih ada di HP masing-masing, di backup terenkripsi 30 hari, dan sebagai teks di **Cadangan chat** 12 bulan).
 - Chat yang ditandai **Obrolan pribadi** dihapus dari CRM dan pesan berikutnya tidak disimpan.
 - Setiap keputusan, pengiriman, label, dan sematan tercatat di audit.
 `,

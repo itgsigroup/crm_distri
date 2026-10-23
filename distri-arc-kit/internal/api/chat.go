@@ -57,6 +57,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Delete("/internal-numbers/{wa}", s.deleteInternalNumber)
 	s.chatLabelRoutes(r)
 	s.chatListRoutes(r)
+	s.chatBackupRoutes(r)
 	r.Get("/wa/groups", s.waGroups)
 	r.Patch("/wa/groups/{id}", s.patchWAGroup)
 	r.Get("/wa/status", s.waStatus)
@@ -1630,6 +1631,9 @@ func (s *Server) setContactType(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
+	}
+	if in.Type == "personal" {
+		s.forgetInBackups(deref(t.WaJid)) // Cadangan chat keeps no copy of a private chat either (ADR 0061)
 	}
 	s.audit(r, "chat.contact_type", "chat_thread", &t.ID, map[string]any{"number": wa.MaskNumber(phone), "type": in.Type, "threads_removed": purged})
 	msg := map[string]string{"customer": "Ditandai pelanggan", "supplier": "Ditandai pemasok · tidak masuk antrean perlu dibalas",

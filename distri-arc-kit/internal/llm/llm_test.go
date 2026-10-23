@@ -68,6 +68,9 @@ func TestMaskCredentials(t *testing.T) {
 		"PIN 445566":                  "PIN ••••••",
 		"kode OTP 9911":               "kode OTP ••••••",
 		"pas kirim besok, pin lokasi": "pas kirim besok, pin lokasi",
+		"KODE VERIFIKASI: 551200":     "KODE VERIFIKASI: ••••••",
+		"Token=abc9":                  "Token=••••••",
+		"stok NVR 16ch ada 12":        "stok NVR 16ch ada 12", // no hint word: the regexps are skipped
 	} {
 		if got := MaskCredentials(in); got != want {
 			t.Errorf("%q → %q, want %q", in, got, want)

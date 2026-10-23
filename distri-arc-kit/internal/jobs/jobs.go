@@ -111,6 +111,12 @@ type RetentionPurgeArgs struct{}
 
 func (RetentionPurgeArgs) Kind() string { return "retention.purge" }
 
+// ChatBackupArgs writes Cadangan chat: this month's chats as WhatsApp-format text (daily 02.15 WIB, before the
+// 02.30 purge; ADR 0061).
+type ChatBackupArgs struct{}
+
+func (ChatBackupArgs) Kind() string { return "chat.backup" }
+
 // WABackfillArgs asks the linked phones for older chat history until a year back (every 2 minutes, ADR 0028).
 type WABackfillArgs struct{}
 

@@ -7,8 +7,18 @@ import { useFeedback } from '../../components/feedback'
 import { displayTitle, unreplied } from './inbox'
 import { LabelSheet } from './Labels'
 
+/** "Ekspor chat" (ADR 0061): the browser saves "Chat WhatsApp dengan <nama>.txt" — WhatsApp's own export text. */
+export function exportChat(id: string) {
+  const a = document.createElement('a')
+  a.href = `/api/chat/threads/${id}/export`
+  a.download = ''
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
 /** The menu of one chat in the list (⌄ or right click), like WhatsApp: pin to the top, label, mark unread / read,
- * mark unreplied / replied. */
+ * mark unreplied / replied, export the chat. */
 export function ChatRowMenu({ t, open, setOpen, onLeave }: { t: ThreadView; open: boolean; setOpen: (v: boolean) => void; onLeave: () => void }) {
   const qc = useQueryClient()
   const { toast, openSheet } = useFeedback()
@@ -46,6 +56,7 @@ export function ChatRowMenu({ t, open, setOpen, onLeave }: { t: ThreadView; open
           {person && (waiting
             ? <button type="button" role="menuitem" onClick={act(() => run(api.put(`/chat/threads/${t.id}/reply-state`, { state: 'replied' }), 'Ditandai sudah dibalas — keluar dari "Belum dibalas"'))}><Icon name="check" />Tandai sudah dibalas</button>
             : <button type="button" role="menuitem" onClick={act(() => run(api.put(`/chat/threads/${t.id}/reply-state`, { state: 'unreplied' }), 'Ditandai belum dibalas sampai ada balasan terkirim'))}><Icon name="send" />Tandai belum dibalas</button>)}
+          <button type="button" role="menuitem" onClick={act(() => { exportChat(t.id); toast('Mengekspor chat · format teks WhatsApp, tanpa media') })}><Icon name="doc" />Ekspor chat</button>
         </span>
       )}
     </span>

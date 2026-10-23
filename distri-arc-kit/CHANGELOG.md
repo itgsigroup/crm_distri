@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feature · Cadangan chat dan Ekspor chat dalam format WhatsApp · 2026-10-23
+- **Ekspor chat**: menu ⌄ chat di daftar Chat → *Ekspor chat* menyimpan `Chat WhatsApp dengan <nama>.txt` — format persis Ekspor chat WhatsApp di HP (`23/10/26 14.05 - Nama: pesan`, `<Media tidak disertakan>`, `Pesan ini telah dihapus`, `<Pesan ini diedit>`). API `GET /api/chat/threads/{id}/export`, diaudit.
+- **Cadangan chat** (Pengaturan, CEO/admin): setiap malam 02.15 WIB — sebelum chat di atas 90 hari dibersihkan — satu zip per bulan berisi satu .txt per chat; bulan yang sudah lewat tidak ditulis ulang, jadi chat lama tetap terbaca setelah dihapus dari database. Disimpan 12 bulan (`CHAT_BACKUP_KEEP_MONTHS`) di `CHAT_BACKUP_DIR`. Tombol **Cadangkan** dan **Unduh** per bulan.
+- Enteng: satu query per bulan, pesan dialirkan baris demi baris langsung ke zip, tanpa media, tanpa tabel baru — diukur 150 ribu pesan / 3.000 chat → zip 2,3 MB dalam 1,6 detik, memori ±10 MB. Penyamaran kredensial (`password: ••••••`) kini melewati regex untuk pesan tanpa kata kunci (52 → 0,8 µs per pesan), jadi Chat juga lebih ringan. Chat yang ditandai Obrolan pribadi dan penghapusan UU PDP ikut membuang chat itu dari semua cadangan. ADR 0061.
+
 ## Change · Chat disimpan 90 hari; "Muat pesan lama dari HP" seperti WhatsApp Web · 2026-10-22
 - Masa simpan chat **365 → 90 hari** (migrasi 0062, versi kebijakan baru). Pembersihan malam (02.30 WIB, setelah backup 02.00) menghapus pesan lebih tua dari 90 hari — pada malam pertama ±636 ribu pesan (68%); tetap ada di backup terenkripsi 30 hari dan di HP masing-masing.
 - Baru: di puncak percakapan tombol **Muat pesan lama dari HP** — GSI Orbit meminta 50 pesan sebelumnya ke HP pemegang nomor (seperti WhatsApp Web menggulir ke atas), lalu menampilkannya di atas; bisa diulang sampai 1 tahun ke belakang. API `POST /api/chat/threads/{id}/history`. ADR 0060.

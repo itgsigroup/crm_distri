@@ -59,6 +59,9 @@ type Config struct {
 	AlertWAGroup string // internal group JID for ops alerts (empty: the first internal group)
 	AlertWAFrom  string // number that sends ops alerts (empty: the first connected number)
 	BackupDir    string // where infra/backup.sh writes (shown in Status sistem)
+
+	ChatBackupDir        string // Cadangan chat (ADR 0061): a zip of WhatsApp-format .txt per month, written by api and worker
+	ChatBackupKeepMonths int    // months of Cadangan chat kept (0 = forever)
 }
 
 // Load reads .env (if present, without overriding real env vars) and returns the configuration.
@@ -103,7 +106,10 @@ func Load() Config {
 		AlertWAGroup:    get("ALERT_WA_GROUP", ""),
 		AlertWAFrom:     get("ALERT_WA_FROM", ""),
 		BackupDir:       get("BACKUP_DIR", "/var/backups/distri-arc"),
-		ChatWindowDays:  atoi(get("CHAT_WINDOW_DAYS", "14")),
+		// under /var/lib/distri-arc: the one folder api and worker may write (systemd ReadWritePaths)
+		ChatBackupDir:        get("CHAT_BACKUP_DIR", "/var/lib/distri-arc/chat-backup"),
+		ChatBackupKeepMonths: atoi(get("CHAT_BACKUP_KEEP_MONTHS", "12")),
+		ChatWindowDays:       atoi(get("CHAT_WINDOW_DAYS", "14")),
 	}
 	// the phones are asked for no more history than Chat shows (a year of backfill kept the server busy, 15 Oct)
 	if c.ChatWindowDays > 0 && (c.WABackfillDays <= 0 || c.WABackfillDays > c.ChatWindowDays) {

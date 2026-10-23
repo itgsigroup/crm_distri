@@ -301,6 +301,8 @@ type Deps struct {
 	Fallback     *Fallback        // the API second option (ADR 0040); nil: off
 	MCPWait      time.Duration    // how long a cycle waits for Claude through MCP (prompt text)
 	BackfillDays int              // WA_BACKFILL_DAYS: chat history asked from the phones (capped by retention.chat_days)
+	ChatBackup   string           // CHAT_BACKUP_DIR: Cadangan chat (ADR 0061); "" = off
+	ChatKeep     int              // CHAT_BACKUP_KEEP_MONTHS
 	ReplyAI      *replyai.Service // AI Trigger drafts (ADR 0041); nil: off
 }
 
@@ -313,6 +315,7 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	river.AddWorker(workers, &SnapshotWorker{svc: svc})
 	river.AddWorker(workers, &PartitionsWorker{st: st, clock: c})
 	river.AddWorker(workers, &RetentionWorker{st: st, clock: c, log: log})
+	river.AddWorker(workers, &ChatBackupWorker{st: st, clock: c, log: log, dir: deps.ChatBackup, keepMonths: deps.ChatKeep})
 	river.AddWorker(workers, &PilotWorker{st: st, clock: c})
 	river.AddWorker(workers, &DataSyncWorker{st: st, clock: c, log: log, secret: deps.SessionKey})
 	river.AddWorker(workers, &StockSyncWorker{st: st, clock: c, log: log, secret: deps.SessionKey})
@@ -392,6 +395,10 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 			}, &river.PeriodicJobOpts{RunOnStart: true}),
 			river.NewPeriodicJob(Weekly{Weekday: time.Monday, Hour: 0, Minute: 45}, func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.PilotSnapshotArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 24 * time.Hour}}
+			}, nil),
+			// Cadangan chat before the purge: the month a purge starts emptying was written whole long before
+			river.NewPeriodicJob(Daily{Hour: 2, Minute: 15}, func() (river.JobArgs, *river.InsertOpts) {
+				return jobs.ChatBackupArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 24 * time.Hour}}
 			}, nil),
 			river.NewPeriodicJob(Daily{Hour: 2, Minute: 30}, func() (river.JobArgs, *river.InsertOpts) {
 				return jobs.RetentionPurgeArgs{}, &river.InsertOpts{UniqueOpts: river.UniqueOpts{ByPeriod: 24 * time.Hour}}
