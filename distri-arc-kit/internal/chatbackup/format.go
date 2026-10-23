@@ -192,6 +192,7 @@ func text(m Msg) string {
 		body = "lokasi: " + nonEmpty(body, "(tanpa nama)")
 	case "contact":
 		body = "kartu kontak: " + nonEmpty(body, "(tanpa nama)")
+	case "call": // "Panggilan suara tak terjawab", as WhatsApp words it
 	default:
 		media := "<Media tidak disertakan>"
 		if m.Media == "document" && m.FileName != "" {

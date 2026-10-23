@@ -86,3 +86,8 @@ Chat yang dibuka di HP tanpa dibalas masih terhitung belum dibaca di Orbit. Untu
 ## Cadangan chat (2026-10-23, ADR 0061)
 - Penghapusan UU PDP (`arc ctl pdp delete`) membuang chat satu-satu orang itu dari semua zip, tetapi baris pesannya di **grup** tetap ada di cadangan bulan lama sampai rotasi (12 bulan). Perlu dibuang juga per baris? · sekarang tidak · `chatbackup.Forget`
 - Cadangan hanya di server (`/var/lib/distri-arc/chat-backup`). Perlu salinan di luar server (rclone seperti backup DB) dan/atau dienkripsi? · sekarang tidak · ADR 0061
+
+## Panggilan WhatsApp (2026-10-23, ADR 0062)
+- Uji dengan HP sungguhan: panggilan yang diangkat di HP harus tercatat "Panggilan suara masuk · durasi" (butuh sinyal `accept` di perangkat tertaut). Bila hanya `terminate` yang datang, yang > 60 detik tercatat "diangkat di HP" tanpa durasi, yang lebih pendek "tak terjawab".
+- Panggilan keluar dari HP pemegang nomor belum tercatat (perangkat tertaut tidak selalu menerima sinyalnya).
+- Menelepon langsung dari GSI Orbit (browser) butuh layanan berbayar — pilih: (a) WhatsApp Cloud API Calling (nomor bisnis resmi, nomor itu pindah dari aplikasi HP, biaya per menit untuk panggilan keluar), (b) VoIP/SIP (telepon biasa, bisa rekam), atau (c) tetap lewat HP + riwayat di chat (sekarang).

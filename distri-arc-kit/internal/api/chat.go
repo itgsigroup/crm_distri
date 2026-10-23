@@ -442,6 +442,9 @@ type MediaView struct {
 	Size     int64  `json:"size,omitempty"`
 	Seconds  int    `json:"seconds,omitempty"`
 	PTT      bool   `json:"ptt,omitempty"`
+	// Call, Video: a WhatsApp call record (kind "call", ADR 0062) — missed | answered | rejected
+	Call  string `json:"call,omitempty"`
+	Video bool   `json:"video,omitempty"`
 	// Viewable: the file can be fetched from WhatsApp (messages stored before ADR 0029 have no reference)
 	Viewable bool `json:"viewable"`
 }
@@ -451,7 +454,7 @@ func mediaView(raw json.RawMessage) *MediaView {
 	if len(raw) == 0 || json.Unmarshal(raw, &m) != nil || m.Kind == "" {
 		return nil
 	}
-	return &MediaView{Kind: m.Kind, Mime: m.Mime, FileName: m.FileName, Size: m.Size, Seconds: m.Seconds, PTT: m.PTT, Viewable: m.Viewable()}
+	return &MediaView{Kind: m.Kind, Mime: m.Mime, FileName: m.FileName, Size: m.Size, Seconds: m.Seconds, PTT: m.PTT, Call: m.Call, Video: m.Video, Viewable: m.Viewable()}
 }
 
 // quotesFor resolves the messages quoted by replies on a page: from the page itself, else from the database (an older
@@ -503,7 +506,7 @@ func (s *Server) quotesFor(ctx context.Context, msgs []gen.ChatMessage) (map[str
 
 // realWAID: the message has its WhatsApp id (not a reply still queued, not a local row).
 func realWAID(id *string) bool {
-	return id != nil && *id != "" && !strings.HasPrefix(*id, "outbox:") && !strings.HasPrefix(*id, "local:")
+	return id != nil && *id != "" && !strings.HasPrefix(*id, "outbox:") && !strings.HasPrefix(*id, "local:") && !strings.HasPrefix(*id, "call:")
 }
 
 // canDelete: an own bubble of this number's thread, queued or sent within DeleteWindow (delete for everyone).

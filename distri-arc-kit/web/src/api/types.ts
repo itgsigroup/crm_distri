@@ -374,6 +374,9 @@ export interface MediaView {
   seconds?: number
   /** a voice note recorded in WhatsApp */
   ptt?: boolean
+  /** a WhatsApp call record (kind "call", ADR 0062): how it ended; seconds = the talk */
+  call?: 'missed' | 'answered' | 'rejected'
+  video?: boolean
   /** false: stored before media was kept viewable — open it on the phone */
   viewable: boolean
 }

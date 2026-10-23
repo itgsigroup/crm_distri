@@ -294,7 +294,14 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 				return err
 			}
 		}
-		if threadKind == "dealer" && dir == "in" && dealerID != nil {
+		if m.Media.IsCall() && m.Media.Call == "answered" && !m.FromMe {
+			// a call picked up on the phone answered the customer: not "Belum dibalas" (ADR 0062)
+			end := m.Time.Add(time.Duration(m.Media.Seconds+1) * time.Second)
+			if err := q.MarkThreadCallAnswered(ctx, gen.MarkThreadCallAnsweredParams{ID: thread.ID, At: end}); err != nil {
+				return err
+			}
+		}
+		if threadKind == "dealer" && dir == "in" && dealerID != nil && !m.Media.IsCall() {
 			if _, err := commitment.FromInbound(ctx, q, commitment.Inbound{DealerID: *dealerID, ThreadID: thread.ID, MessageID: msgID, SignalID: sid, Text: m.Text, At: m.Time}); err != nil {
 				return fmt.Errorf("commitment: %w", err)
 			}
@@ -306,7 +313,8 @@ func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
 		if threadKind == "dealer" {
 			res.DealerID = dealerID
 		}
-		if dir == "in" && !m.History && !mp.Internal && msgID != uuid.Nil && strings.TrimSpace(m.Text) != "" {
+		// a call is no text to draft a reply to (AI Trigger reads messages only)
+		if dir == "in" && !m.History && !mp.Internal && msgID != uuid.Nil && strings.TrimSpace(m.Text) != "" && !m.Media.IsCall() {
 			res.Inbound, res.InboundText = msgID, m.Text
 		}
 		if threadKind == "new" && dir == "in" && !m.History { // no profile lookups for old chats right after linking

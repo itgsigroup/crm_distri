@@ -12,7 +12,7 @@ import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../.
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, phoneOf, teamName } from './Connect'
 import { countFilters, displayTitle, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, searchKey, waitLabel, type Filter } from './inbox'
 import { AttachMenu, ContactSheet, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
-import { bubbleLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
+import { bubbleLine, callLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 import { ForwardSheet } from './Forward'
 import { ChatSearch, Marked } from './ChatSearch'
 import { LabelChips, LabelSheet, PinnedBar, useChatLabels } from './Labels'
@@ -391,6 +391,12 @@ function Play() {
 }
 
 /** A bubble's photo, video, voice note or document, fetched from WhatsApp when shown (ADR 0029). */
+/** A WhatsApp call (ADR 0062): the phone rang and talked; GSI Orbit records how it ended. */
+function CallRow({ md }: { md: MediaView }) {
+  const l = callLine(md)
+  return <div className={`bub-call ${l.tone}`} title={l.tone === 'bad' ? 'Pelanggan menelepon dan belum terlayani — telepon balik atau balas chat' : 'Panggilan diangkat di HP pemegang nomor'}><Icon name="phone" />{l.text}</div>
+}
+
 function BubbleMedia({ md, url, pending, onZoom }: { md: MediaView; url: string; pending?: boolean; onZoom: (url: string) => void }) {
   const blob = useMediaBlob(url)
   const [imgFailed, setImgFailed] = useState(false)
@@ -490,8 +496,8 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       )}
       <div className="bb">
         {m.quote && <QuoteBlock q={m.quote} mine={via} onJump={onJump} />}
-        {m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
-        {m.media?.kind === 'poll' ? <PollBody text={caption} /> : m.media?.kind === 'contact' ? <ContactBody text={caption} /> : <BubbleText text={caption} mentions={m.mentions} mark={mark} />}
+        {m.media?.kind === 'call' ? <CallRow md={m.media} /> : m.media && <BubbleMedia md={m.media} url={`/api/chat/threads/${thread}/messages/${m.id}/media`} pending={m.status === 'pending'} onZoom={onZoom} />}
+        {m.media?.kind === 'call' ? null : m.media?.kind === 'poll' ? <PollBody text={caption} /> : m.media?.kind === 'contact' ? <ContactBody text={caption} /> : <BubbleText text={caption} mentions={m.mentions} mark={mark} />}
         <span className="tm">{m.starred && <Icon name="star" className="i tm-star" />}{m.pinned && <Icon name="pin" className="i tm-pin" />}{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? ' · mengirim…' : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
         <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined}
           onPin={onPin && m.status !== 'pending' && m.status !== 'failed' ? () => onPin(m) : undefined} onStar={onStar ? () => onStar(m) : undefined} onLabel={onLabel ? () => onLabel(m) : undefined} />
@@ -1077,6 +1083,9 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
             <button type="button" className="ibl-btn ibc-find ibc-mem" onClick={() => openSheet(<MembersSheet thread={id} group={displayTitle(t)} onOpen={(n) => openMember(n)} />)} title="Anggota grup — klik nama untuk chat" aria-label="Anggota grup">
               <Icon name="people" />{roster ? <span>{roster.items.length + roster.hidden}</span> : null}
             </button>
+          )}
+          {t.kind !== 'group' && t.phone && (
+            <a className="ibl-btn ibc-find" href={`tel:+${t.phone.replace(/\D/g, '')}`} title={`Telepon ${fmtPhone(t.phone)} dari perangkat ini (HP, atau laptop dengan aplikasi telepon). Panggilan WhatsApp: dari HP pemegang nomor.`} aria-label="Telepon"><Icon name="phone" /></a>
           )}
           <button type="button" className="ibl-btn ibc-find" onClick={() => openSheet(<LabelSheet title="Label chat" sub={displayTitle(t)} selected={t.labels ?? []}
             save={(ids) => api.put(`/chat/threads/${id}/labels`, { label_ids: ids })} />)} title="Label chat" aria-label="Label chat"><Icon name="tag" /></button>

@@ -434,7 +434,7 @@ from chat_threads t
 join wa_numbers n on n.wa_number = t.account and n.state = 'connected'
 cross join lateral (
   select m.wa_msg_id, m.direction, m.sent_at from chat_messages m
-  where m.thread_id = t.id and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%'
+  where m.thread_id = t.id and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%' and m.wa_msg_id not like 'call:%'
   order by m.sent_at, m.id limit 1
 ) o
 where t.history_done_at is null and t.wa_jid is not null and t.account is not null
@@ -656,6 +656,12 @@ update chat_threads set unreplied_mark = sqlc.arg(at)::timestamptz, replied_mark
 -- name: MarkThreadReplied :exec
 update chat_threads set replied_mark = sqlc.arg(at)::timestamptz, unreplied_mark = null where id = sqlc.arg(id)::uuid;
 
+-- name: MarkThreadCallAnswered :exec
+-- A customer's call picked up on the phone (ADR 0062) answers what came before its end, like "sudah dibalas".
+update chat_threads set replied_mark = greatest(coalesce(replied_mark, '-infinity'::timestamptz), sqlc.arg(at)::timestamptz),
+  unreplied_mark = case when unreplied_mark <= sqlc.arg(at)::timestamptz then null else unreplied_mark end
+where id = sqlc.arg(id)::uuid;
+
 -- name: UserThreadPins :many
 -- The chats a person pinned to the top of their list, last pinned first.
 select conv, pinned_at from chat_thread_pins where user_id = $1 order by pinned_at desc;
@@ -755,5 +761,5 @@ on conflict (message_id) do update set items = excluded.items, note = excluded.n
 -- lama dari HP", like WhatsApp Web scrolling up).
 select m.wa_msg_id::text as wa_msg_id, coalesce(m.direction, '')::text as direction, m.sent_at
 from chat_messages m
-where m.thread_id = sqlc.arg(thread_id)::uuid and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%'
+where m.thread_id = sqlc.arg(thread_id)::uuid and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%' and m.wa_msg_id not like 'call:%'
 order by m.sent_at, m.id limit 1;

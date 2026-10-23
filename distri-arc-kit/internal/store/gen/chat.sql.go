@@ -1056,7 +1056,7 @@ from chat_threads t
 join wa_numbers n on n.wa_number = t.account and n.state = 'connected'
 cross join lateral (
   select m.wa_msg_id, m.direction, m.sent_at from chat_messages m
-  where m.thread_id = t.id and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%'
+  where m.thread_id = t.id and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%' and m.wa_msg_id not like 'call:%'
   order by m.sent_at, m.id limit 1
 ) o
 where t.history_done_at is null and t.wa_jid is not null and t.account is not null
@@ -2163,6 +2163,23 @@ func (q *Queries) MarkLateCommitments(ctx context.Context, dueAt *time.Time) ([]
 	return items, nil
 }
 
+const markThreadCallAnswered = `-- name: MarkThreadCallAnswered :exec
+update chat_threads set replied_mark = greatest(coalesce(replied_mark, '-infinity'::timestamptz), $1::timestamptz),
+  unreplied_mark = case when unreplied_mark <= $1::timestamptz then null else unreplied_mark end
+where id = $2::uuid
+`
+
+type MarkThreadCallAnsweredParams struct {
+	At time.Time `json:"at"`
+	ID uuid.UUID `json:"id"`
+}
+
+// A customer's call picked up on the phone (ADR 0062) answers what came before its end, like "sudah dibalas".
+func (q *Queries) MarkThreadCallAnswered(ctx context.Context, arg MarkThreadCallAnsweredParams) error {
+	_, err := q.db.Exec(ctx, markThreadCallAnswered, arg.At, arg.ID)
+	return err
+}
+
 const markThreadRead = `-- name: MarkThreadRead :exec
 update chat_threads x set unread = 0, mentioned = case when x.id = t.id then 0 else x.mentioned end
 from chat_threads t
@@ -2389,7 +2406,7 @@ func (q *Queries) NumberName(ctx context.Context, waNumber string) (string, erro
 const oldestThreadMessage = `-- name: OldestThreadMessage :one
 select m.wa_msg_id::text as wa_msg_id, coalesce(m.direction, '')::text as direction, m.sent_at
 from chat_messages m
-where m.thread_id = $1::uuid and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%'
+where m.thread_id = $1::uuid and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%' and m.wa_msg_id not like 'call:%'
 order by m.sent_at, m.id limit 1
 `
 

@@ -959,6 +959,10 @@ body.map-maximized{overflow:hidden}
 .bub-media.doc small{display:block;font-size:11px;color:var(--text-3)}
 .bub-media.none{display:flex;align-items:center;gap:6px;padding:8px 10px;font-size:12px;color:var(--text-3);background:color-mix(in srgb,var(--text) 5%,transparent)}
 .bub-media.none .i{width:14px;height:14px}
+.bub-call{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;padding:2px 0}
+.bub-call .i{width:15px;height:15px;flex:none}
+.bub-call.bad .i{color:var(--bad)}
+.bub-call.good .i{color:var(--good)}
 .bub-acts{position:absolute;top:2px;display:flex;gap:4px;opacity:0;transition:opacity .15s}
 .m.in .bub-acts{left:100%;margin-left:6px}.m.out .bub-acts{right:100%;margin-right:6px}
 .bub-acts button{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:0;background:var(--surface);box-shadow:var(--shadow);color:var(--text-2);cursor:pointer}

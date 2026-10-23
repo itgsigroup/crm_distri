@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feature · Panggilan WhatsApp tercatat di chat; tombol Telepon · 2026-10-23
+- Panggilan WhatsApp ke nomor GSI kini muncul sebagai bubble di chat: **Panggilan suara tak terjawab** (merah, masuk *Belum dibalas* dan unread), **Panggilan suara masuk · 3:12** (hijau, dihitung sudah dilayani), **ditolak**, termasuk panggilan video. Satu bubble per panggilan, dicatat saat panggilan selesai; GSI Orbit tidak pernah mengangkat atau menolak panggilan — HP tetap yang berdering.
+- Tombol **Telepon** (ikon telepon) di header chat 1-on-1: menelepon nomor itu dari perangkat Anda (`tel:`).
+- Belum bisa: menelepon/bicara langsung dari browser — WhatsApp lewat perangkat tertaut tidak membawa suara; butuh layanan berbayar (WhatsApp Cloud API Calling atau VoIP), menunggu keputusan. Panggilan grup dan panggilan keluar dari HP belum tercatat. ADR 0062.
+
 ## Feature · Cadangan chat dan Ekspor chat dalam format WhatsApp · 2026-10-23
 - **Ekspor chat**: menu ⌄ chat di daftar Chat → *Ekspor chat* menyimpan `Chat WhatsApp dengan <nama>.txt` — format persis Ekspor chat WhatsApp di HP (`23/10/26 14.05 - Nama: pesan`, `<Media tidak disertakan>`, `Pesan ini telah dihapus`, `<Pesan ini diedit>`). API `GET /api/chat/threads/{id}/export`, diaudit.
 - **Cadangan chat** (Pengaturan, CEO/admin): setiap malam 02.15 WIB — sebelum chat di atas 90 hari dibersihkan — satu zip per bulan berisi satu .txt per chat; bulan yang sudah lewat tidak ditulis ulang, jadi chat lama tetap terbaca setelah dihapus dari database. Disimpan 12 bulan (`CHAT_BACKUP_KEEP_MONTHS`) di `CHAT_BACKUP_DIR`. Tombol **Cadangkan** dan **Unduh** per bulan.

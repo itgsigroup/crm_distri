@@ -363,6 +363,12 @@ Semua nomor WhatsApp GSI dalam satu layar: chat pribadi pelanggan, grup pelangga
 
 GSI Orbit menyimpan chat **90 hari**. Untuk melihat yang lebih lama, gulir ke puncak percakapan lalu tekan **Muat pesan lama dari HP**: GSI Orbit meminta 50 pesan sebelumnya ke HP pemegang nomor — seperti WhatsApp Web saat digulir ke atas — dan pesan muncul dalam beberapa detik. Tekan lagi untuk 50 berikutnya (sampai 1 tahun ke belakang). HP pemegang nomor harus menyala dan tersambung internet. Pesan yang dimuat ulang ini dibersihkan lagi pada malam berikutnya.
 
+## Panggilan dan telepon
+
+- Panggilan WhatsApp ke nomor GSI tercatat sebagai bubble di chat setelah panggilan selesai: **Panggilan suara tak terjawab** (merah — pelanggan menunggu, chat masuk *Belum dibalas*), **Panggilan suara masuk · 3:12** (hijau — sudah dilayani), atau **ditolak**. HP pemegang nomor tetap yang berdering dan dipakai bicara; GSI Orbit tidak mengangkat atau menolak panggilan.
+- Tombol ikon telepon di header chat menelepon nomor pelanggan dari perangkat Anda (HP, atau laptop yang punya aplikasi telepon).
+- Panggilan grup dan panggilan yang Anda buat dari HP belum tercatat.
+
 ## Ekspor dan cadangan chat
 
 - **Ekspor chat**: buka menu ⌄ chat di daftar (atau klik kanan) → **Ekspor chat**. Browser menyimpan \`Chat WhatsApp dengan <nama>.txt\` berisi semua pesan yang tersimpan, dalam format yang sama dengan Ekspor chat di HP WhatsApp (\`23/10/26 14.05 - Nama: pesan\`). Foto, video, dan file tidak ikut (\`<Media tidak disertakan>\`), jadi filenya kecil.

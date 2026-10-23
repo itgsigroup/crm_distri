@@ -4,6 +4,7 @@ import makeWASocket, {
 } from 'baileys'
 import type { Logger } from 'pino'
 import type { Policy } from './config.js'
+import { CallTracker, callEvent } from './calls.js'
 import { ffmpegToOgg, toMessage, type AudioConverter, type Content } from './content.js'
 import { decodeMediaRef, isConversation, mediaRef, toGroupMeta, toWaEvent, type GroupMeta, type Resolver, type WaEvent } from './events.js'
 import type { Forwarder } from './forward.js'
@@ -89,6 +90,7 @@ export class Session implements SendTarget {
   private contacts = new Map<string, Partial<Contact>>()
   private recent = new Map<string, proto.IMessage>() // for retry receipts (getMessage)
   private unread = new Map<string, WAMessageKey[]>() // inbound not yet read, per chat: read before replying
+  private callTracker = new CallTracker() // calls from offer to their end (ADR 0062)
   private waiters: ((s: Snapshot) => void)[] = []
   /** Link with a code typed on the phone instead of a QR scan. */
   codeMode = false
@@ -171,6 +173,24 @@ export class Session implements SendTarget {
     sock.ev.on('contacts.update', cs => { for (const c of cs) if (c.id) this.contacts.set(c.id, { ...this.contacts.get(c.id), ...c }) })
     sock.ev.on('groups.update', gs => { for (const g of gs) if (g.id) this.groups.delete(g.id); this.groupList = undefined })
     sock.ev.on('group-participants.update', g => { this.groups.delete(g.id); this.groupList = undefined })
+    sock.ev.on('call', calls => { for (const c of calls) void this.forwardCall(c) })
+  }
+
+  /** A one-to-one call that just ended goes to Distri ARC as a call bubble; the call itself is left to the phone
+   * (never answered or rejected here). A call is inbound contact: the chat counts as known, an opt-out stays. */
+  private async forwardCall(update: import('baileys').WACallEvent) {
+    const ended = this.callTracker.update(update)
+    if (!ended) return
+    try {
+      const ev = await callEvent(this.id, ended, this.resolver())
+      if (!ev) return
+      const name = contactName(this.contacts.get(ev.chat_id))
+      if (name) ev.chat_name = name
+      await this.store.markInbound(this.id, ev.chat_id, new Date(ev.timestamp), null) // known chat; a STOP stays
+      await this.fwd.send({ event: ev })
+    } catch (err) {
+      this.log.warn({ session: this.id, err: String(err) }, 'forward call failed')
+    }
   }
 
   private async onConnection(u: Partial<import('baileys').ConnectionState>, wasRegistered: boolean) {

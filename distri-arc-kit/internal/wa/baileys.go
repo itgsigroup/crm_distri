@@ -134,7 +134,7 @@ func MediaLabel(kind, fileName string) string {
 // analysis, which reads text only) stays readable. The media's download reference is kept, never its content.
 func (e bridgeEvent) message() Message {
 	text := strings.TrimSpace(e.Text)
-	if e.MediaMeta != nil && e.EditOf == "" {
+	if e.MediaMeta != nil && e.EditOf == "" && !e.MediaMeta.IsCall() { // a call's text is its own line
 		label := MediaLabel(e.MediaMeta.Kind, e.MediaMeta.FileName)
 		if text == "" {
 			text = label

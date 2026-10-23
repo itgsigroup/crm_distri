@@ -129,14 +129,20 @@ func QuoteFrom(ctx context.Context) *Quote {
 // Media describes a message's photo, video, voice note, document or sticker. The content is never stored: Ref is
 // the transport's reference to fetch it from WhatsApp when a person opens it (ADR 0029).
 type Media struct {
-	Kind     string `json:"kind"` // image | video | gif | audio | document | sticker | location | contact
+	Kind     string `json:"kind"` // image | video | gif | audio | document | sticker | location | contact | call
 	Mime     string `json:"mime,omitempty"`
 	FileName string `json:"file_name,omitempty"`
 	Size     int64  `json:"size,omitempty"`
 	Seconds  int    `json:"seconds,omitempty"`
 	PTT      bool   `json:"ptt,omitempty"` // a voice note recorded in WhatsApp (not an audio file)
 	Ref      string `json:"ref,omitempty"`
+	// Call: how a WhatsApp call (kind "call", ADR 0062) ended — missed | answered | rejected; Seconds is the talk
+	Call  string `json:"call,omitempty"`
+	Video bool   `json:"video,omitempty"`
 }
+
+// IsCall reports a WhatsApp call record (no file; the phone carried the call).
+func (m *Media) IsCall() bool { return m != nil && m.Kind == "call" }
 
 // Viewable reports whether the file can be fetched to show in Chat.
 func (m *Media) Viewable() bool {

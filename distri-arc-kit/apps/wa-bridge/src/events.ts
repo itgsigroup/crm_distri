@@ -10,7 +10,11 @@ export interface GroupMeta { name: string; members: GroupMember[] }
 /** A member tagged in a message ("@Budi"): the digits the text carries after "@" (a number or a LID), the member's
  * phone number when known, and the name the group knows them by. */
 export interface Mention { token: string; phone: string; name: string }
-export interface MediaMeta { kind: string; mime: string; file_name: string; size: number; seconds?: number; ptt?: boolean; ref?: string }
+export interface MediaMeta {
+  kind: string; mime: string; file_name: string; size: number; seconds?: number; ptt?: boolean; ref?: string
+  /** a WhatsApp call (kind "call", calls.ts): how it ended, and whether it was a video call */
+  call?: 'missed' | 'answered' | 'rejected'; video?: boolean
+}
 export interface WaEvent {
   wamid: string
   session: string

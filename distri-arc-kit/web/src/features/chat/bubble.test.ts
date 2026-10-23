@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bubbleLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
+import { bubbleLine, callLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 
 describe('bubbleLine', () => {
   it('a customer order waiting too long', () => {
@@ -71,5 +71,14 @@ describe('contact card', () => {
   it('reads the name and number of a card bubble', () => {
     expect(contactCard('Pak Budi · +6281234567890')).toEqual({ name: 'Pak Budi', phone: '+6281234567890' })
     expect(contactCard('Bu Sari')).toEqual({ name: 'Bu Sari', phone: '' })
+  })
+})
+
+describe('callLine', () => {
+  it('words a call bubble and marks a missed one (ADR 0062)', () => {
+    expect(callLine({ kind: 'call', call: 'missed', viewable: false })).toEqual({ text: 'Panggilan suara tak terjawab', tone: 'bad' })
+    expect(callLine({ kind: 'call', call: 'rejected', video: true, viewable: false })).toEqual({ text: 'Panggilan video ditolak', tone: 'bad' })
+    expect(callLine({ kind: 'call', call: 'answered', seconds: 192, viewable: false })).toEqual({ text: 'Panggilan suara · 3:12', tone: 'good' })
+    expect(callLine({ kind: 'call', call: 'answered', viewable: false }).text).toBe('Panggilan suara · diangkat di HP')
   })
 })
