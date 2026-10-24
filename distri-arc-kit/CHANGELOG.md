@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Balasan cepat di Chat (seperti WhatsApp Business) · 2026-10-24
+- Simpan teks yang sering dikirim dengan pintasan, mis. `/rekening`, `/alamat`, `/salam`. Ketik **/** di kolom chat: daftar yang cocok muncul (paling sering dipakai di atas). Pilih dengan ↑ ↓ + Enter/Tab atau klik, maka teks mengisi kolom dan Anda tetap menekan **Kirim**.
+- Kelola lewat 📎 → **Balasan cepat**, atau *Kelola balasan cepat* di bawah daftar: tambah, ubah, hapus. Milik tim: siapa pun bisa menambah; pembuat atau admin yang bisa mengubah/menghapus. Pintasan unik, maksimal 200 per tim.
+- Migrasi 0063 `quick_replies`, API `/chat/quick-replies`, test Go + vitest + e2e Playwright (`e2e/quick-replies.spec.ts`). ADR 0065.
+
 ## Fix · Chat grup (dan semua chat) tidak lagi tertahan "mengirim…" · 2026-10-24
 - Kasus: Sam mengirim di grup dari Orbit, tetapi pesan hanya menampilkan "mengirim…" dan tidak sampai ke HP. Penyebabnya bukan grup: nomor 6289506401111 mengirim ±22 balasan dalam 20 menit, lalu penjaga anti-blokir menahan **semua** kiriman berikutnya dari nomor itu (grup dan pribadi) dengan "Batas 20 pesan/jam". Batas itu dibuat untuk follow-up, bukan untuk orang yang sedang chat.
 - Kini balasan yang diketik di Chat dikirim sebagai **live**: tidak ditahan batas 20/jam, 120/hari, 6/chat/jam, masa pemanasan, maupun jam tenang. Yang tetap berlaku: opt-out, kontak dingin, broadcast teks panjang, jeda 20 detik per chat, dan "mengetik…". Ada plafon pengaman 100 pesan/jam per nomor (`BRIDGE_MAX_LIVE_PER_HOUR`). Batas follow-up hanya menghitung kiriman non-live.

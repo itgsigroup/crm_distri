@@ -56,6 +56,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Post("/internal-numbers", s.addInternalNumber)
 	r.Delete("/internal-numbers/{wa}", s.deleteInternalNumber)
 	s.chatLabelRoutes(r)
+	s.quickReplyRoutes(r)
 	s.chatListRoutes(r)
 	s.chatBackupRoutes(r)
 	r.Get("/wa/groups", s.waGroups)

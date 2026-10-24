@@ -778,6 +778,18 @@ type Proposal struct {
 	DealerIds      []uuid.UUID     `json:"dealer_ids"`
 }
 
+type QuickReply struct {
+	ID            uuid.UUID  `json:"id"`
+	Shortcut      string     `json:"shortcut"`
+	Body          string     `json:"body"`
+	CreatedBy     *uuid.UUID `json:"created_by"`
+	CreatedByName string     `json:"created_by_name"`
+	Uses          int32      `json:"uses"`
+	LastUsedAt    *time.Time `json:"last_used_at"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+}
+
 type ReplyAiDraft struct {
 	MessageID uuid.UUID `json:"message_id"`
 	RuleID    uuid.UUID `json:"rule_id"`

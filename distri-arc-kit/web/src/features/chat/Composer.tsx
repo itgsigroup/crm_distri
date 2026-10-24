@@ -16,8 +16,8 @@ function PollIcon() {
   return <svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
 }
 
-/** 📎: Dokumen, Foto & video, Polling. */
-export function AttachMenu({ onFile, onPoll, onContact, disabled }: { onFile: (f: File) => void; onPoll: () => void; onContact?: () => void; disabled?: boolean }) {
+/** 📎: Dokumen, Foto & video, Polling, Kontak, Balasan cepat. */
+export function AttachMenu({ onFile, onPoll, onContact, onQuick, disabled }: { onFile: (f: File) => void; onPoll: () => void; onContact?: () => void; onQuick?: () => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
   const doc = useRef<HTMLInputElement>(null)
@@ -43,6 +43,7 @@ export function AttachMenu({ onFile, onPoll, onContact, disabled }: { onFile: (f
           <button type="button" role="menuitem" onClick={() => media.current?.click()}><span className="cmp-dot media"><Icon name="box" /></span>Foto &amp; video</button>
           <button type="button" role="menuitem" onClick={() => { setOpen(false); onPoll() }}><span className="cmp-dot poll"><PollIcon /></span>Polling</button>
           {onContact && <button type="button" role="menuitem" onClick={() => { setOpen(false); onContact() }}><span className="cmp-dot contact"><Icon name="people" /></span>Kontak</button>}
+          {onQuick && <button type="button" role="menuitem" onClick={() => { setOpen(false); onQuick() }}><span className="cmp-dot quick"><Icon name="send" /></span>Balasan cepat</button>}
         </span>
       )}
       <input ref={doc} type="file" hidden onChange={picked} />

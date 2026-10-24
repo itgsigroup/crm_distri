@@ -1234,7 +1234,7 @@ body.map-maximized{overflow:hidden}
 .cmp-menu button:hover{background:var(--surface-2)}
 .cmp-dot{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;color:#fff}
 .cmp-dot .i{width:15px;height:15px}
-.cmp-dot.doc{background:#7f66ff}.cmp-dot.media{background:#007bfc}.cmp-dot.poll{background:#ffb938}.cmp-dot.contact{background:#009de2}
+.cmp-dot.doc{background:#7f66ff}.cmp-dot.media{background:#007bfc}.cmp-dot.poll{background:#ffb938}.cmp-dot.contact{background:#009de2}.cmp-dot.quick{background:#25d366}
 .cmp-file{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)}
 .cmp-file img,.cmp-file video{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:none;background:#000}
 .cmp-file-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:8px;background:color-mix(in srgb,#7f66ff 14%,transparent);color:#7f66ff;flex:none}
@@ -1591,6 +1591,32 @@ body.map-maximized{overflow:hidden}
 .cmp-tags button{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:8px;background:none;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
 .cmp-tags button.on{background:var(--accent-soft)}
 .cmp-tags small{color:var(--text-3);font-size:11px}
+/* balasan cepat ("/", ADR 0065) */
+.cmp-quick button b{flex:none;font-weight:600}
+.cmp-quick button small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmp-quick .cmp-quick-manage{align-items:center;gap:6px;color:var(--accent);font-size:12px;border-top:1px solid var(--line);border-radius:0 0 8px 8px;margin-top:2px}
+.cmp-quick .cmp-quick-manage .i{width:13px;height:13px}
+.cmp-quick-empty{margin:0;padding:8px 10px;font-size:12px;color:var(--text-3);line-height:1.4}
+.qr-sheet{display:flex;flex-direction:column;gap:12px}
+.qr-form{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2,var(--surface))}
+.qr-sc{display:flex;align-items:center;gap:2px;border:1px solid var(--line-strong);border-radius:8px;padding:0 8px;background:var(--surface)}
+.qr-sc span{color:var(--text-3);font-weight:600}
+.qr-sc input{flex:1;min-width:0;border:0;background:none;padding:8px 0;font:inherit;color:var(--text);outline:none}
+.qr-form textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:64px;border:1px solid var(--line-strong);border-radius:8px;padding:8px;font:inherit;font-size:13px;color:var(--text);background:var(--surface)}
+.qr-form-ft{display:flex;align-items:center;gap:8px}
+.qr-form-ft small{color:var(--text-3);font-size:11px}
+.qr-form-ft .spacer{flex:1}
+.qr-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.qr-list li{display:flex;align-items:flex-start;gap:4px;border-bottom:1px solid var(--line);padding:2px 0}
+.qr-list li>.qr-form{flex:1}
+.qr-item{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left;border:0;background:none;padding:8px 6px;border-radius:8px;font:inherit;color:var(--text);cursor:pointer}
+.qr-item:disabled{cursor:default}
+.qr-item:not(:disabled):hover{background:var(--accent-soft)}
+.qr-item b{font-size:13px}
+.qr-item span{font-size:13px;color:var(--text-2,var(--text));white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.qr-item small{font-size:11px;color:var(--text-3)}
+.qr-acts{display:flex;gap:2px;padding-top:6px}
+.qr-empty{margin:0;font-size:13px;color:var(--text-3);line-height:1.45}
 
 /* Pinned messages without a limit: "Semua" lists every pin under the bar */
 .pin-wrap{flex:none;position:relative}

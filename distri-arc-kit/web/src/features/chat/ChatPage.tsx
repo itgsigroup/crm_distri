@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Items } from '../../api/client'
-import type { MediaView, Mention, MessageView, ThreadDetail, ThreadView, WANumber, WATeam } from '../../api/types'
+import type { MediaView, Mention, MessageView, QuickReply, ThreadDetail, ThreadView, WANumber, WATeam } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
@@ -22,6 +22,8 @@ import { pastedImage } from './paste'
 import { TriggerCard, type DraftAI } from '../aitrigger/TriggerCard'
 import type { ChatHit } from './findInChat'
 import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type Member } from './mentions'
+import { insertQuick, matchQuick, slashQuery } from './quickReplyText'
+import { countQuickUse, QuickReplySheet, useQuickReplies } from './QuickReplies'
 import { linkParts } from './links'
 import { formatParts, quoteLines, shortcutMark, wrapSelection, type Mark } from './format'
 import { MembersSheet, openMemberChat, useMembers } from './Members'
@@ -672,6 +674,9 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const [picks, setPicks] = useState<Member[]>([])
   const [tagging, setTagging] = useState<{ start: number; q: string } | null>(null)
   const [tagSel, setTagSel] = useState(0)
+  // balasan cepat ("/", ADR 0065): the "/…" being typed and the highlighted choice
+  const [slash, setSlash] = useState<{ start: number; q: string } | null>(null)
+  const [quickSel, setQuickSel] = useState(0)
   // the composer's selection: the format bar (B I S </>) shows while some text is selected
   const [sel, setSel] = useState<[number, number]>([0, 0])
   const { openSheet } = useFeedback()
@@ -695,6 +700,10 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const { data: roster } = useMembers(id, group)
   const members = roster?.items
   const tagOptions = tagging && members ? matchMembers(members, tagging.q) : []
+  const { data: quick } = useQuickReplies()
+  const quickOptions = slash && quick ? matchQuick(quick.items, slash.q) : []
+  // "/" shows the list while something matches; with no quick reply saved yet, a hint to make one
+  const quickOpen = !!slash && !!quick && tagOptions.length === 0 && (quickOptions.length > 0 || quick.items.length === 0)
   const navigate = useNavigate()
   // a group member's name or number: their one-to-one chat from this group's number (made when there is none yet)
   const openMember = (number: string) => openMemberChat(id, number).then((tid) => { navigate('/chat/' + tid) }, (e: Error) => { toast(e.message); throw e })
@@ -703,6 +712,9 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     const at = group && !editing ? mentionQuery(value, caret) : null
     setTagging(at)
     if (at?.q !== tagging?.q) setTagSel(0)
+    const sl = !editing ? slashQuery(value, caret) : null
+    setSlash(sl)
+    if (sl?.q !== slash?.q) setQuickSel(0)
   }
   // WhatsApp formatting: the selection wrapped in *, _, ~ or ``` (again: unwrapped); the selection is kept
   const applyMark = (mk: Mark) => {
@@ -716,6 +728,25 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       el.setSelectionRange(r.start, r.end)
     })
   }
+  // a quick reply in place of the "/…" typed — it only fills the box, the person still presses Kirim
+  const pickQuick = (q: QuickReply) => {
+    if (!slash) return
+    const r = insertQuick(text, slash, q.body)
+    setText(r.text)
+    setSlash(null)
+    countQuickUse(q.id)
+    requestAnimationFrame(() => {
+      input.current?.focus()
+      input.current?.setSelectionRange(r.caret, r.caret)
+    })
+  }
+  // picked in the Balasan cepat sheet: added to what is already typed
+  const addQuick = (q: QuickReply) => {
+    setText((cur) => (cur && !/\s$/.test(cur) ? cur + ' ' : cur) + q.body)
+    countQuickUse(q.id)
+    requestAnimationFrame(() => input.current?.focus())
+  }
+  const openQuick = () => openSheet(<QuickReplySheet onPick={addQuick} />)
   const pickTag = (m: Member) => {
     if (!tagging) return
     const r = insertMention(text, tagging, m)
@@ -999,6 +1030,23 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       applyMark(mk)
       return
     }
+    if (quickOpen) {
+      // choosing a quick reply, like WhatsApp Business: ↑ ↓, Enter or Tab puts it in the box, Esc closes the list
+      if (quickOptions.length > 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault()
+        setQuickSel((i) => (i + (e.key === 'ArrowDown' ? 1 : quickOptions.length - 1)) % quickOptions.length)
+        return
+      }
+      if (quickOptions.length > 0 && ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab')) {
+        e.preventDefault()
+        pickQuick(quickOptions[Math.min(quickSel, quickOptions.length - 1)])
+        return
+      }
+      if (e.key === 'Escape') {
+        setSlash(null)
+        return
+      }
+    }
     if (tagOptions.length > 0) {
       // choosing whom to tag, like WhatsApp: ↑ ↓, Enter or Tab picks, Esc closes the list
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -1031,6 +1079,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     const v = editing ? text.trim() : toWire(text.trim(), picks) // tags go to WhatsApp as "@<number>"
     setPicks([])
     setTagging(null)
+    setSlash(null)
     if (file && !editing) {
       setText('')
       sendForm(file, file.name, { body: v })
@@ -1159,12 +1208,24 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           <RecordingBar secs={voice.secs} onCancel={voice.cancel} onSend={voice.send} />
         ) : (
           <form onSubmit={submit}>
-            {!editing && <AttachMenu onFile={pickFile} onPoll={openPoll} onContact={openContact} disabled={upload.isPending} />}
+            {!editing && <AttachMenu onFile={pickFile} onPoll={openPoll} onContact={openContact} onQuick={openQuick} disabled={upload.isPending} />}
             {tagOptions.length === 0 && sel[1] > sel[0] && (
               <div className="cmp-fmt" role="toolbar" aria-label="Format teks">
                 {([['*', 'B', 'Tebal (Ctrl/⌘+B)'], ['_', 'I', 'Miring (Ctrl/⌘+I)'], ['~', 'S', 'Coret (Ctrl/⌘+Shift+X)'], ['```', '</>', 'Monospace (Ctrl/⌘+Shift+M)']] as [Mark, string, string][]).map(([mk, label, title]) => (
                   <button key={mk} type="button" className={`fmt-${label === '</>' ? 'm' : label.toLowerCase()}`} title={title} aria-label={title} onMouseDown={(e) => { e.preventDefault(); applyMark(mk) }}>{label}</button>
                 ))}
+              </div>
+            )}
+            {quickOpen && quick && (
+              <div className="cmp-tags cmp-quick" role="listbox" aria-label="Balasan cepat">
+                {quickOptions.map((q, i) => (
+                  <button key={q.id} type="button" role="option" aria-selected={i === quickSel} className={i === quickSel ? 'on' : ''}
+                    onMouseDown={(e) => { e.preventDefault(); pickQuick(q) }} onMouseEnter={() => setQuickSel(i)}>
+                    <b>/{q.shortcut}</b><small>{q.body}</small>
+                  </button>
+                ))}
+                {quick.items.length === 0 && <p className="cmp-quick-empty">Belum ada balasan cepat — simpan teks yang sering dikirim (rekening, alamat, salam) lalu ketik / untuk memakainya.</p>}
+                <button type="button" className="cmp-quick-manage" onMouseDown={(e) => { e.preventDefault(); setSlash(null); openQuick() }}><Icon name="gear" />Kelola balasan cepat</button>
               </div>
             )}
             {tagOptions.length > 0 && (
@@ -1178,14 +1239,14 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
               </div>
             )}
             <textarea ref={input} rows={1} value={text} onChange={(e) => typed(e.target.value, e.target.selectionStart ?? e.target.value.length)} onKeyDown={composerKey}
-              onBlur={() => { setTagging(null); setSel([0, 0]) }}
+              onBlur={() => { setTagging(null); setSlash(null); setSel([0, 0]) }}
               onSelect={(e) => setSel([e.currentTarget.selectionStart, e.currentTarget.selectionEnd])}
               onPaste={(e) => {
                 // a copied screenshot or picture: it becomes the file to send, the box takes its caption (WhatsApp Web)
                 const img = !editing && pastedImage(e.clipboardData.files, e.clipboardData.getData('text/plain'))
                 if (img) { e.preventDefault(); pickFile(img) }
               }}
-              placeholder={editing ? 'Ubah pesan…' : file ? 'Tambahkan keterangan…' : group ? 'Tulis balasan… (@ untuk menandai, Shift+Enter: baris baru)' : 'Tulis balasan… (Shift+Enter: baris baru)'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : file ? 'Keterangan file' : 'Tulis balasan'} />
+              placeholder={editing ? 'Ubah pesan…' : file ? 'Tambahkan keterangan…' : group ? 'Tulis balasan… (@ menandai, / balasan cepat, Shift+Enter: baris baru)' : 'Tulis balasan… (/ balasan cepat, Shift+Enter: baris baru)'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : file ? 'Keterangan file' : 'Tulis balasan'} />
             {text.trim() || file || editing
               ? <button type="submit" className="send" aria-label={editing ? 'Simpan edit' : 'Kirim'} disabled={send.isPending || edit.isPending || upload.isPending}><Icon name={editing ? 'check' : 'send'} /></button>
               : <button type="button" className="send" onClick={voice.start} aria-label="Rekam pesan suara" title="Rekam pesan suara"><Mic /></button>}

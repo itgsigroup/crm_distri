@@ -742,3 +742,7 @@ export interface WAReport {
 // ---------- Analisa Dealer (ADR 0055) ----------
 export type DealerHealth = 'bermasalah' | 'perlu_perhatian' | 'aman'
 export interface DealerAnalysis { status: DealerHealth; overview: string; reasons: string[]; wa_draft: string; confidence: number | null; generated_at: string; cycle_number: number | null }
+
+// GET /chat/quick-replies -> {items} · POST {shortcut, body} · PUT/DELETE /chat/quick-replies/{id} · POST …/{id}/use
+/** Balasan cepat (ADR 0065): a team text typed with "/shortcut" in Chat. */
+export interface QuickReply { id: string; shortcut: string; body: string; by: string; uses: number; updated_at: string; can_edit: boolean }
