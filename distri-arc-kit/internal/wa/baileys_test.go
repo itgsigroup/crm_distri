@@ -34,6 +34,7 @@ func fakeBridge(t *testing.T, worker func() string, refuse map[string][2]string)
 			var in struct {
 				ChatID   string `json:"chat_id"`
 				ActionID string `json:"action_id"`
+				Live     bool   `json:"live"`
 			}
 			_ = json.Unmarshal(body, &in)
 			if rf, ok := refuse[in.ChatID]; ok {
@@ -52,6 +53,10 @@ func fakeBridge(t *testing.T, worker func() string, refuse map[string][2]string)
 			if err != nil || res.StatusCode != 200 {
 				w.WriteHeader(403)
 				_, _ = w.Write([]byte(`{"error":"kirim ditolak — action belum disetujui manusia","code":"not_approved"}`))
+				return
+			}
+			if in.Live {
+				_, _ = w.Write([]byte(`{"wamid":"WAMID-LIVE","duplicate":false}`)) // a person chatting (ADR 0064)
 				return
 			}
 			_, _ = w.Write([]byte(`{"wamid":"WAMID-1","duplicate":false}`))
@@ -91,6 +96,9 @@ func TestBaileysSendNeedsApprovedOutbox(t *testing.T) {
 	id, err := b.Send(WithAction(ctx, "ob-1"), "6281234504471", "62811@s.whatsapp.net", "halo")
 	if err != nil || id != "WAMID-1" {
 		t.Fatalf("approved send: %q %v", id, err)
+	}
+	if id, err := b.Send(WithLive(WithAction(ctx, "ob-1")), "6281234504471", "62811@s.whatsapp.net", "halo"); err != nil || id != "WAMID-LIVE" {
+		t.Fatalf("a reply typed in Chat reaches the bridge as live: %q %v", id, err)
 	}
 	if _, err := b.Send(WithAction(ctx, "ob-1"), "6281234504471", "night@s.whatsapp.net", "halo"); !errors.As(err, &refused) || !refused.Temporary() || refused.RetryAfter != time.Hour {
 		t.Fatalf("quiet hours: %+v", refused)

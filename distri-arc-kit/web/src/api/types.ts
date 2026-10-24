@@ -359,6 +359,8 @@ export interface MessageView {
   pinned?: boolean
   /** the person viewing starred it (Pesan berbintang, each person's own) */
   starred?: boolean
+  /** why a queued message has not gone out yet (anti-ban guard), instead of a bare "mengirim…" (ADR 0064) */
+  held?: string
 }
 
 /** A label of the team (WhatsApp Business), on chats and on messages. */

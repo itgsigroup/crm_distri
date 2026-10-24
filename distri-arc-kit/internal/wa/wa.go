@@ -110,6 +110,18 @@ func MentionTokens(text string) []string {
 	return out
 }
 
+type liveKey struct{}
+
+// WithLive marks the send as a person typing in Chat right now (ADR 0064): the bridge counts it against its live
+// ceiling, not the volume caps meant for follow-ups.
+func WithLive(ctx context.Context) context.Context { return context.WithValue(ctx, liveKey{}, true) }
+
+// LiveFrom reports WithLive.
+func LiveFrom(ctx context.Context) bool {
+	v, _ := ctx.Value(liveKey{}).(bool)
+	return v
+}
+
 type quoteKey struct{}
 
 // WithQuote makes the send a reply to q (the transport shows it quoted, like WhatsApp "Balas").

@@ -1,7 +1,8 @@
 // Bridge settings from the environment. Anti-ban limits are conservative by
 // default and can only be loosened deliberately (docs/adr/0017).
 export interface Policy {
-  maxPerHour: number        // sends per session in a sliding hour
+  maxPerHour: number        // non-live sends per session in a sliding hour
+  maxLivePerHour: number    // every send per session in a sliding hour, the ceiling for live replies (ADR 0064)
   maxPerDay: number         // sends per session per calendar day (WIB)
   maxPerChatPerHour: number // sends to one chat in a sliding hour
   minGapSameChatMs: number  // minimum spacing between two sends to the same chat
@@ -40,6 +41,7 @@ const str = (k: string, def: string): string => (process.env[k]?.trim() ? proces
 
 export const defaultPolicy: Policy = {
   maxPerHour: 20,
+  maxLivePerHour: 100,
   maxPerDay: 120,
   maxPerChatPerHour: 6,
   minGapSameChatMs: 20_000,
@@ -70,6 +72,7 @@ export function loadConfig(): Config {
     historyDays: num('BRIDGE_HISTORY_DAYS', 365),
     policy: {
       maxPerHour: num('BRIDGE_MAX_SEND_PER_HOUR', defaultPolicy.maxPerHour),
+      maxLivePerHour: num('BRIDGE_MAX_LIVE_PER_HOUR', defaultPolicy.maxLivePerHour),
       maxPerDay: num('BRIDGE_MAX_SEND_PER_DAY', defaultPolicy.maxPerDay),
       maxPerChatPerHour: num('BRIDGE_MAX_SEND_PER_CHAT_HOUR', defaultPolicy.maxPerChatPerHour),
       minGapSameChatMs: num('BRIDGE_MIN_GAP_SAME_CHAT_SEC', defaultPolicy.minGapSameChatMs / 1000) * 1000,

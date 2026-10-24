@@ -16,6 +16,7 @@ export interface SentRecord {
   wamid: string
   at: Date
   hash: string
+  live?: boolean // a person typing in Chat (ADR 0064): counted only against the live ceiling
 }
 
 /** Persistence for sessions, send log, known chats and opt-outs (content is never stored). */
@@ -27,7 +28,7 @@ export interface Store {
   markInbound(session: string, chat: string, at: Date, optOut: boolean | null): Promise<void>
   sentForAction(session: string, actionId: string): Promise<SentRecord | null>
   recordSend(r: SentRecord): Promise<void>
-  facts(session: string, chat: string, text: string, now: Date): Promise<SendFacts>
+  facts(session: string, chat: string, text: string, now: Date, live?: boolean): Promise<SendFacts>
   stats(session: string, now: Date): Promise<{ lastHour: number; today: number }>
 }
 
@@ -56,11 +57,13 @@ export class MemoryStore implements Store {
 
   async recordSend(r: SentRecord): Promise<void> { this.sent.push(r) }
 
-  async facts(session: string, chat: string, text: string, now: Date): Promise<SendFacts> {
+  async facts(session: string, chat: string, text: string, now: Date, live = false): Promise<SendFacts> {
     const hourAgo = now.getTime() - 3_600_000
     const day = startOfWibDay(now).getTime()
-    const mine = this.sent.filter(s => s.session === session)
-    const toChat = mine.filter(s => s.chat === chat)
+    const all = this.sent.filter(s => s.session === session)
+    const mine = all.filter(s => !s.live) // the volume caps count what is not a person chatting
+    const toChat = all.filter(s => s.chat === chat)
+    const bulkToChat = toChat.filter(s => !s.live)
     const h = textHash(text)
     const st = this.chats.get(session + '|' + chat)
     const last = toChat.reduce<Date | null>((m, s) => (!m || s.at > m ? s.at : m), null)
@@ -69,9 +72,11 @@ export class MemoryStore implements Store {
       pairedAt: this.meta.get(session)?.pairedAt ?? null,
       sentLastHour: mine.filter(s => s.at.getTime() > hourAgo).length,
       sentToday: mine.filter(s => s.at.getTime() >= day).length,
-      sentToChatLastHour: toChat.filter(s => s.at.getTime() > hourAgo).length,
+      sentToChatLastHour: bulkToChat.filter(s => s.at.getTime() > hourAgo).length,
+      allSentLastHour: all.filter(s => s.at.getTime() > hourAgo).length,
+      live,
       lastSentToChatAt: last,
-      sameTextChatsLastHour: new Set(mine.filter(s => s.hash === h && s.chat !== chat && s.at.getTime() > hourAgo).map(s => s.chat)).size,
+      sameTextChatsLastHour: new Set(all.filter(s => s.hash === h && s.chat !== chat && s.at.getTime() > hourAgo).map(s => s.chat)).size,
       knownChat: !!st || chat.endsWith('@g.us'),
       optedOut: st?.optedOut ?? false,
     }

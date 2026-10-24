@@ -70,6 +70,7 @@ async function readBody(req: IncomingMessage, limit = 1 << 20): Promise<string> 
  *   POST   /sessions/{id}/send            {chat_id, text, action_id, quote?: {id, from_me, participant?, text}, mentions?: [jid],
  *                                          content?: {kind: image|video|document|audio|poll, mime, file_name, data (base64),
  *                                          ptt, seconds, poll: {name, options, multi}}} → {wamid, ref?}
+ *                                          live?: a person typing in Chat — skips the volume caps (ADR 0064)
  *   POST   /sessions/{id}/edit            {chat_id, wamid, text, action_id} → {wamid}: edit a sent text (approved action)
  *   POST   /sessions/{id}/delete          {chat_id, wamid, action_id} → {wamid}: delete a sent message for everyone (approved action)
  *   POST   /sessions/{id}/media           {ref, mime} → the file (streamed, never stored); 409 not connected,
@@ -136,9 +137,9 @@ export function handler(d: Deps) {
         return json(res, 200, { ok: true })
       }
       if (method === 'POST' && parts[2] === 'send') {
-        const inp = JSON.parse(body || '{}') as { chat_id?: string; text?: string; action_id?: string; quote?: Quote; content?: Content; mentions?: string[] }
+        const inp = JSON.parse(body || '{}') as { chat_id?: string; text?: string; action_id?: string; quote?: Quote; content?: Content; mentions?: string[]; live?: boolean }
         try {
-          const out = await d.sender.send(s, inp.chat_id ?? '', inp.text ?? '', inp.action_id ?? '', inp.quote?.id ? inp.quote : undefined, inp.content?.kind ? inp.content : undefined, mentionJids(inp.mentions))
+          const out = await d.sender.send(s, inp.chat_id ?? '', inp.text ?? '', inp.action_id ?? '', inp.quote?.id ? inp.quote : undefined, inp.content?.kind ? inp.content : undefined, mentionJids(inp.mentions), inp.live === true)
           return json(res, 200, out)
         } catch (e) {
           if (e instanceof ContentError) return json(res, 400, { error: e.message, code: 'bad_content' })

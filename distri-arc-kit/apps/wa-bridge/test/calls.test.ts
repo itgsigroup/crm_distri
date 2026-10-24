@@ -8,10 +8,13 @@ const ev = (status: WACallEvent['status'], s: number, x: Partial<WACallEvent> = 
   ({ id: 'C1', chatId: '628111@s.whatsapp.net', from: '628111@s.whatsapp.net', date: at(s), offline: false, status, ...x })
 const r: Resolver = { ownPhone: '62800', pnForLid: async (lid) => (lid === '99@lid' ? '628222@s.whatsapp.net' : null), groupMeta: async () => undefined }
 
+// The tracker sweeps by the clock; the events here are dated 23 Oct, so it runs on their time (not today's).
+const tracker = () => { const t = new CallTracker(); return { update: (e: WACallEvent) => t.update(e, e.date ?? undefined) } }
+
 // ADR 0062: a call is recorded once, when it ends, with how it ended.
 describe('CallTracker', () => {
   it('answered: the talk is timed from accept to terminate', () => {
-    const t = new CallTracker()
+    const t = tracker()
     expect(t.update(ev('offer', 0, { isVideo: true }))).toBeUndefined()
     expect(t.update(ev('accept', 8))).toBeUndefined()
     const c = t.update(ev('terminate', 200))
@@ -19,21 +22,21 @@ describe('CallTracker', () => {
     expect(t.update(ev('terminate', 201))).toMatchObject({ outcome: 'missed' }) // a repeat is a new, unknown call
   })
   it('missed: timeout, or the caller hangs up while it rings', () => {
-    const t = new CallTracker()
+    const t = tracker()
     t.update(ev('offer', 0))
     expect(t.update(ev('timeout', 45))).toMatchObject({ outcome: 'missed', seconds: 0 })
     t.update(ev('offer', 0, { id: 'C2' }))
     expect(t.update(ev('terminate', 12, { id: 'C2' }))).toMatchObject({ outcome: 'missed' })
   })
   it('rejected, and picked up on the phone without an accept seen here', () => {
-    const t = new CallTracker()
+    const t = tracker()
     t.update(ev('offer', 0))
     expect(t.update(ev('reject', 5))).toMatchObject({ outcome: 'rejected' })
     t.update(ev('offer', 0, { id: 'C3' }))
     expect(t.update(ev('terminate', 300, { id: 'C3' }))).toMatchObject({ outcome: 'answered', seconds: 0 })
   })
   it('group calls are not recorded', () => {
-    const t = new CallTracker()
+    const t = tracker()
     t.update(ev('offer', 0, { isGroup: true }))
     expect(t.update(ev('timeout', 40, { isGroup: true }))).toBeUndefined()
   })

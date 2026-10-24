@@ -4,14 +4,19 @@ import type { Policy } from './config.js'
 // bursts, many messages to people who never wrote first, identical texts to many
 // chats, activity at night, and brand-new devices that suddenly send a lot.
 // Every outbound send — already approved by a human in ARC — must also pass here.
+// A live reply (a person typing in Chat, ADR 0064) is a person chatting, not a bulk sender: it skips the volume caps
+// and quiet hours, keeps the hard refusals and the same-chat spacing, and stops at a per-hour ceiling.
 
 /** Facts about the session and chat at the moment of sending (computed by the store). */
 export interface SendFacts {
   now: Date
   pairedAt: Date | null          // first successful link of this device
-  sentLastHour: number           // this session, sliding hour
-  sentToday: number              // this session, since 00:00 WIB
-  sentToChatLastHour: number
+  sentLastHour: number           // this session's non-live sends, sliding hour
+  sentToday: number              // this session's non-live sends, since 00:00 WIB
+  sentToChatLastHour: number     // non-live sends to this chat, sliding hour
+  allSentLastHour?: number       // every send of this session (live too), sliding hour — the live ceiling
+  live?: boolean                 // a person typing in Chat right now (ADR 0064)
+  shortText?: boolean            // under SHORT_TEXT characters ("ok", "terima kasih"): never a broadcast when live
   lastSentToChatAt: Date | null
   sameTextChatsLastHour: number  // other chats that received the same text in the last hour
   knownChat: boolean             // the chat wrote to this number before (or is a group we read)
@@ -20,11 +25,14 @@ export interface SendFacts {
 
 export type GuardCode =
   | 'quiet_hours' | 'hourly_limit' | 'daily_limit' | 'warmup_limit' | 'chat_limit'
-  | 'chat_gap' | 'first_contact' | 'broadcast' | 'opted_out'
+  | 'chat_gap' | 'first_contact' | 'broadcast' | 'opted_out' | 'live_limit'
 
 export type GuardResult = { ok: true } | { ok: false; code: GuardCode; reason: string; retryAfterSec?: number }
 
 const WIB_OFFSET_MIN = 7 * 60
+
+/** A live text shorter than this is a chat reply, not a broadcast, however many chats got the same words. */
+export const SHORT_TEXT = 30
 
 /** Hour of day in Asia/Jakarta (UTC+7, no DST). */
 export function wibHour(d: Date): number {
@@ -72,8 +80,15 @@ export function evaluate(p: Policy, f: SendFacts): GuardResult {
   if (p.requirePriorInbound && !f.knownChat) {
     return { ok: false, code: 'first_contact', reason: 'Kontak belum pernah mengirim pesan ke nomor ini — pesan pertama ke kontak dingin diblokir untuk mengurangi risiko blokir; hubungi lewat email/telepon atau minta kontak menyapa dulu' }
   }
-  if (f.sameTextChatsLastHour >= p.maxSameTextChats) {
+  if (f.sameTextChatsLastHour >= p.maxSameTextChats && !(f.live && f.shortText)) {
     return { ok: false, code: 'broadcast', reason: `Teks yang sama sudah dikirim ke ${f.sameTextChatsLastHour} chat dalam 1 jam — pola broadcast diblokir; personalisasi pesannya` }
+  }
+  if (f.live) {
+    const all = f.allSentLastHour ?? f.sentLastHour
+    if (all >= p.maxLivePerHour) {
+      return { ok: false, code: 'live_limit', reason: `Sudah ${all} pesan dari nomor ini dalam 1 jam — batas pengaman ${p.maxLivePerHour}/jam; kirim berikutnya beberapa menit lagi`, retryAfterSec: 300 }
+    }
+    return chatGap(p, f)
   }
   if (inQuietHours(p, f.now)) {
     return { ok: false, code: 'quiet_hours', reason: `Jam tenang ${p.quietStartHour}.00–${p.quietEndHour}.00 WIB — kirim besok pagi`, retryAfterSec: secondsUntilQuietEnds(p, f.now) }
@@ -90,6 +105,11 @@ export function evaluate(p: Policy, f: SendFacts): GuardResult {
   if (f.sentToChatLastHour >= p.maxPerChatPerHour) {
     return { ok: false, code: 'chat_limit', reason: `Sudah ${f.sentToChatLastHour} pesan ke chat ini dalam 1 jam — tunggu balasan dulu`, retryAfterSec: 900 }
   }
+  return chatGap(p, f)
+}
+
+/** Spacing between two sends to the same chat (pacing only: the message goes out a few seconds later). */
+function chatGap(p: Policy, f: SendFacts): GuardResult {
   if (f.lastSentToChatAt && f.now.getTime() - f.lastSentToChatAt.getTime() < p.minGapSameChatMs) {
     const wait = Math.ceil((p.minGapSameChatMs - (f.now.getTime() - f.lastSentToChatAt.getTime())) / 1000)
     return { ok: false, code: 'chat_gap', reason: `Terlalu cepat setelah pesan sebelumnya ke chat ini — coba lagi ${wait} detik lagi`, retryAfterSec: wait }

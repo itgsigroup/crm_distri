@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat grup (dan semua chat) tidak lagi tertahan "mengirim…" · 2026-10-24
+- Kasus: Sam mengirim di grup dari Orbit, tetapi pesan hanya menampilkan "mengirim…" dan tidak sampai ke HP. Penyebabnya bukan grup: nomor 6289506401111 mengirim ±22 balasan dalam 20 menit, lalu penjaga anti-blokir menahan **semua** kiriman berikutnya dari nomor itu (grup dan pribadi) dengan "Batas 20 pesan/jam". Batas itu dibuat untuk follow-up, bukan untuk orang yang sedang chat.
+- Kini balasan yang diketik di Chat dikirim sebagai **live**: tidak ditahan batas 20/jam, 120/hari, 6/chat/jam, masa pemanasan, maupun jam tenang. Yang tetap berlaku: opt-out, kontak dingin, broadcast teks panjang, jeda 20 detik per chat, dan "mengetik…". Ada plafon pengaman 100 pesan/jam per nomor (`BRIDGE_MAX_LIVE_PER_HOUR`). Batas follow-up hanya menghitung kiriman non-live.
+- Bubble yang masih tertahan menampilkan alasannya ("tertahan · Batas … · terkirim otomatis begitu diizinkan"), bukan "mengirim…" tanpa keterangan. ADR 0064.
+- Test panggilan WhatsApp (`calls.test.ts`) tidak lagi gagal setelah tanggal pembuatannya: tracker berjalan pada waktu event.
+
 ## Fix · Grup WhatsApp baru langsung muncul di Chat (baris sistem grup) · 2026-10-23
 - Kasus: Sam membuat grup WhatsApp baru dan "info terakhir grup" tidak masuk ke sistem. Grup baru tidak punya thread di Orbit sampai seseorang mengetik pesan teks pertama: bridge membuang stub grup (dibuat, ganti nama, anggota ditambah/keluar) karena tidak berisi pesan.
 - Kini stub grup live menjadi **baris sistem** di chat grup, seperti WhatsApp: "Anda membuat grup "X"", "Rina mengubah nama grup menjadi "Y"", "Anda menambahkan Budi, +6285…", "Budi keluar", "… sekarang admin", foto/deskripsi grup diubah. Chat grup ada di Orbit sejak grup dibuat, lewat jalur realtime yang sama (SSE), dengan nama dan anggotanya.

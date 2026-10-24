@@ -1050,6 +1050,37 @@ func (q *Queries) GroupThreadAccounts(ctx context.Context, id uuid.UUID) ([]Grou
 	return items, nil
 }
 
+const heldSendNotes = `-- name: HeldSendNotes :many
+select proposal_id, error from outbox
+where proposal_id = any($1::uuid[]) and channel = 'wa' and status = 'pending' and error is not null
+`
+
+type HeldSendNotesRow struct {
+	ProposalID *uuid.UUID `json:"proposal_id"`
+	Error      *string    `json:"error"`
+}
+
+// Why queued bubbles have not gone out yet: the anti-ban guard's last word on their outbox rows (ADR 0064).
+func (q *Queries) HeldSendNotes(ctx context.Context, ids []uuid.UUID) ([]HeldSendNotesRow, error) {
+	rows, err := q.db.Query(ctx, heldSendNotes, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []HeldSendNotesRow{}
+	for rows.Next() {
+		var i HeldSendNotesRow
+		if err := rows.Scan(&i.ProposalID, &i.Error); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const historyBackfillCandidates = `-- name: HistoryBackfillCandidates :many
 select t.id, t.account, t.wa_jid, t.history_req_oldest, t.history_tries,
   o.wa_msg_id as oldest_wa_id, o.direction as oldest_direction, o.sent_at as oldest_at

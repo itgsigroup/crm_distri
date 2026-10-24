@@ -467,6 +467,9 @@ func (b *Baileys) Send(ctx context.Context, account, chatJID, text string) (stri
 		WAMID string `json:"wamid"`
 	}
 	in := map[string]any{"chat_id": chatJID, "text": text, "action_id": action}
+	if LiveFrom(ctx) {
+		in["live"] = true
+	}
 	if q := QuoteFrom(ctx); q != nil {
 		in["quote"] = q
 	}
@@ -498,6 +501,9 @@ func (b *Baileys) SendContent(ctx context.Context, account, chatJID, text string
 		return "", "", &SendRefused{Code: "not_approved", Reason: "kirim tanpa outbox yang disetujui ditolak"}
 	}
 	in := map[string]any{"chat_id": chatJID, "text": text, "action_id": action, "content": c}
+	if LiveFrom(ctx) {
+		in["live"] = true
+	}
 	if q := QuoteFrom(ctx); q != nil {
 		in["quote"] = q
 	}

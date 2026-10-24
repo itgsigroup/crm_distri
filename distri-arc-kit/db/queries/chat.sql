@@ -765,3 +765,8 @@ select m.wa_msg_id::text as wa_msg_id, coalesce(m.direction, '')::text as direct
 from chat_messages m
 where m.thread_id = sqlc.arg(thread_id)::uuid and m.wa_msg_id is not null and m.wa_msg_id not like 'local:%' and m.wa_msg_id not like 'call:%'
 order by m.sent_at, m.id limit 1;
+
+-- name: HeldSendNotes :many
+-- Why queued bubbles have not gone out yet: the anti-ban guard's last word on their outbox rows (ADR 0064).
+select proposal_id, error from outbox
+where proposal_id = any(sqlc.arg(ids)::uuid[]) and channel = 'wa' and status = 'pending' and error is not null;

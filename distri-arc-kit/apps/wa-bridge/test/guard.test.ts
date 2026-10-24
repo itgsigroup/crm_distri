@@ -39,6 +39,25 @@ describe('anti-ban guard', () => {
     expect(evaluate(P, base({ sentToday: 120 }))).toMatchObject({ code: 'daily_limit' })
     expect(evaluate(P, base({ sentToChatLastHour: 6 }))).toMatchObject({ code: 'chat_limit' })
   })
+  it('lets a person chatting live past the volume caps and quiet hours, not past the hard refusals (ADR 0064)', () => {
+    const live = (over: Partial<SendFacts> = {}) => base({ live: true, ...over })
+    // 13 messages held on 24 Oct: one sales answering fast hit "Batas 20 pesan/jam" in a group and every chat
+    expect(evaluate(P, live({ sentLastHour: 20, allSentLastHour: 20 }))).toEqual({ ok: true })
+    expect(evaluate(P, live({ sentToday: 500, sentToChatLastHour: 30 }))).toEqual({ ok: true })
+    expect(evaluate(P, live({ pairedAt: at(9, 0, 5), now: at(11, 0, 5), sentToday: 15 }))).toEqual({ ok: true })
+    expect(evaluate(P, live({ now: at(22) }))).toEqual({ ok: true })
+    // a ceiling still stops a runaway
+    expect(evaluate(P, live({ allSentLastHour: P.maxLivePerHour }))).toMatchObject({ ok: false, code: 'live_limit', retryAfterSec: 300 })
+    // hard refusals and same-chat spacing stay
+    expect(evaluate(P, live({ optedOut: true }))).toMatchObject({ code: 'opted_out' })
+    expect(evaluate(P, live({ knownChat: false }))).toMatchObject({ code: 'first_contact' })
+    const now = at(10)
+    expect(evaluate(P, live({ now, lastSentToChatAt: new Date(now.getTime() - 5_000) }))).toMatchObject({ code: 'chat_gap' })
+    // "terima kasih" in many chats is a reply, a long identical text is still a broadcast
+    expect(evaluate(P, live({ sameTextChatsLastHour: 5, shortText: true }))).toEqual({ ok: true })
+    expect(evaluate(P, live({ sameTextChatsLastHour: 5 }))).toMatchObject({ code: 'broadcast' })
+    expect(evaluate(P, base({ sameTextChatsLastHour: 5, shortText: true }))).toMatchObject({ code: 'broadcast' })
+  })
   it('spaces messages to the same chat', () => {
     const now = at(10)
     expect(evaluate(P, base({ now, lastSentToChatAt: new Date(now.getTime() - 5_000) }))).toMatchObject({ code: 'chat_gap', retryAfterSec: 15 })

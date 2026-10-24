@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS wa_bridge.arc_sends (
   id bigserial PRIMARY KEY, session text NOT NULL, chat text NOT NULL, action_id text NOT NULL, wamid text NOT NULL,
   text_hash text NOT NULL, at timestamptz NOT NULL DEFAULT now(), UNIQUE (session, action_id));
 CREATE INDEX IF NOT EXISTS arc_sends_session_at ON wa_bridge.arc_sends (session, at);
+ALTER TABLE wa_bridge.arc_sends ADD COLUMN IF NOT EXISTS live boolean NOT NULL DEFAULT false;
 `
 
 export class PgStore implements Store {
@@ -57,17 +58,19 @@ export class PgStore implements Store {
   }
 
   async recordSend(s: SentRecord): Promise<void> {
-    await this.pool.query(`INSERT INTO wa_bridge.arc_sends(session,chat,action_id,wamid,text_hash,at) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING`,
-      [s.session, s.chat, s.actionId, s.wamid, s.hash, s.at])
+    await this.pool.query(`INSERT INTO wa_bridge.arc_sends(session,chat,action_id,wamid,text_hash,at,live) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING`,
+      [s.session, s.chat, s.actionId, s.wamid, s.hash, s.at, !!s.live])
   }
 
-  async facts(session: string, chat: string, text: string, now: Date): Promise<SendFacts> {
+  async facts(session: string, chat: string, text: string, now: Date, live = false): Promise<SendFacts> {
     const hourAgo = new Date(now.getTime() - 3_600_000)
+    // the volume caps count what is not a person chatting (live, ADR 0064); the live ceiling counts every send
     const r = await this.pool.query(`SELECT
         (SELECT paired_at FROM wa_bridge.arc_sessions WHERE id=$1) AS paired_at,
-        (SELECT count(*)::int FROM wa_bridge.arc_sends WHERE session=$1 AND at > $3) AS last_hour,
-        (SELECT count(*)::int FROM wa_bridge.arc_sends WHERE session=$1 AND at >= $4) AS today,
-        (SELECT count(*)::int FROM wa_bridge.arc_sends WHERE session=$1 AND chat=$2 AND at > $3) AS chat_hour,
+        (SELECT count(*)::int FROM wa_bridge.arc_sends WHERE session=$1 AND at > $3 AND NOT live) AS last_hour,
+        (SELECT count(*)::int FROM wa_bridge.arc_sends WHERE session=$1 AND at > $3) AS all_hour,
+        (SELECT count(*)::int FROM wa_bridge.arc_sends WHERE session=$1 AND at >= $4 AND NOT live) AS today,
+        (SELECT count(*)::int FROM wa_bridge.arc_sends WHERE session=$1 AND chat=$2 AND at > $3 AND NOT live) AS chat_hour,
         (SELECT max(at) FROM wa_bridge.arc_sends WHERE session=$1 AND chat=$2) AS last_chat,
         (SELECT count(DISTINCT chat)::int FROM wa_bridge.arc_sends WHERE session=$1 AND chat<>$2 AND text_hash=$5 AND at > $3) AS same_text,
         (SELECT opted_out FROM wa_bridge.arc_chats WHERE session=$1 AND chat=$2) AS opted_out`,
@@ -75,13 +78,13 @@ export class PgStore implements Store {
     const x = r.rows[0]
     return {
       now, pairedAt: x.paired_at, sentLastHour: x.last_hour, sentToday: x.today, sentToChatLastHour: x.chat_hour,
-      lastSentToChatAt: x.last_chat, sameTextChatsLastHour: x.same_text,
+      lastSentToChatAt: x.last_chat, sameTextChatsLastHour: x.same_text, allSentLastHour: x.all_hour, live,
       knownChat: x.opted_out !== null || chat.endsWith('@g.us'), optedOut: x.opted_out === true,
     }
   }
 
   async stats(session: string, now: Date): Promise<{ lastHour: number; today: number }> {
-    const r = await this.pool.query(`SELECT count(*) FILTER (WHERE at > $2)::int AS h, count(*) FILTER (WHERE at >= $3)::int AS d FROM wa_bridge.arc_sends WHERE session=$1`,
+    const r = await this.pool.query(`SELECT count(*) FILTER (WHERE at > $2)::int AS h, count(*) FILTER (WHERE at >= $3)::int AS d FROM wa_bridge.arc_sends WHERE session=$1 AND NOT live`,
       [session, new Date(now.getTime() - 3_600_000), startOfWibDay(now)])
     return { lastHour: r.rows[0].h, today: r.rows[0].d }
   }

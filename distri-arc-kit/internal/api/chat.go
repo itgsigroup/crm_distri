@@ -422,6 +422,10 @@ type MessageView struct {
 	Starred bool `json:"starred,omitempty"`
 	// Mentions: the members the text tags — "@<token>" in Body is shown as "@<name>"
 	Mentions json.RawMessage `json:"mentions,omitempty"`
+	// Held: why a queued message has not gone out yet (the anti-ban guard's reason), shown instead of a bare
+	// "mengirim…" (ADR 0064)
+	Held       string     `json:"held,omitempty"`
+	proposalID *uuid.UUID // the send's proposal (its outbox row)
 }
 
 // MsgQuote is the quoted bubble shown above a reply.
@@ -639,7 +643,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	for _, m := range msgs {
 		v := MessageView{ID: m.ID, Direction: deref(m.Direction), FromName: deref(m.FromName),
 			SentBy: deref(m.SentByName), FromPhone: deref(m.Direction) == "out" && m.ProposalID == nil && !m.Internal, Body: llm.MaskCredentials(deref(m.Body)), SentAt: m.SentAt, Status: m.Status, Internal: m.Internal, Holding: deref(m.Holding), AutoReply: deref(m.AutoReply), closing: deref(m.Closing), Annotation: m.Annotation, SignalID: m.SignalID,
-			Media: mediaView(m.Media), EditedAt: m.EditedAt, Mentions: m.Mentions}
+			Media: mediaView(m.Media), EditedAt: m.EditedAt, Mentions: m.Mentions, proposalID: m.ProposalID}
 		if deref(t.Kind) == "group" && v.Direction == "in" {
 			v.FromNumber = deref(m.FromNumber)
 			if n := senderNames[wa.Digits(v.FromNumber)]; n != "" {
@@ -670,6 +674,9 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	if err := s.attachSentFiles(r.Context(), out); err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
+	}
+	if err := s.attachHeld(r.Context(), out); err != nil {
+		s.log.Warn("held sends", "err", err) // the reason is a hint; the chat loads without it
 	}
 	// pins and labels of the conversation (a group: the same for every GSI number in it)
 	conv := convKey(t.Kind, t.WaJid, t.ID)
@@ -1805,6 +1812,35 @@ func deref[T any](p *T) T {
 		return z
 	}
 	return *p
+}
+
+// attachHeld tells why a queued message waits: the guard's reason on its outbox row ("Batas 20 pesan/jam …").
+func (s *Server) attachHeld(ctx context.Context, msgs []MessageView) error {
+	var ids []uuid.UUID
+	for _, m := range msgs {
+		if m.Status == "pending" && m.Direction == "out" && m.proposalID != nil {
+			ids = append(ids, *m.proposalID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	rows, err := s.st.Q.HeldSendNotes(ctx, ids)
+	if err != nil {
+		return err
+	}
+	why := map[uuid.UUID]string{}
+	for _, r := range rows {
+		if r.ProposalID != nil && r.Error != nil {
+			why[*r.ProposalID] = strings.TrimPrefix(*r.Error, "Penjaga anti-blokir: ")
+		}
+	}
+	for i := range msgs {
+		if p := msgs[i].proposalID; p != nil && msgs[i].Status == "pending" {
+			msgs[i].Held = why[*p]
+		}
+	}
+	return nil
 }
 
 // attachSentFiles: a file sent from Chat is shown from the copy kept with it — while it waits to be sent and after.

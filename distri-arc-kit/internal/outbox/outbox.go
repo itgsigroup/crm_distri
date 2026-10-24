@@ -175,6 +175,9 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 		}
 	}
 	sctx := wa.WithMentions(wa.WithQuote(wa.WithAction(ctx, id.String()), p.Quote), p.Mentions)
+	if p.Kind == "reply" {
+		sctx = wa.WithLive(sctx) // a person chatting: not held by the follow-up volume caps (ADR 0064)
+	}
 	var msgID, ref string
 	var sendErr error
 	if p.Content != nil {

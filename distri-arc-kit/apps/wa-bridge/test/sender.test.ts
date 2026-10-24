@@ -47,6 +47,20 @@ describe('sender', () => {
     expect(await sender.revoke(t, '6281@s.whatsapp.net', 'W9', 'a1')).toEqual({ wamid: 'W9', duplicate: true })
     expect(sent).toEqual([{ chat: '6281@s.whatsapp.net', text: '', edit: 'delete:W9' }])
   })
+  it('counts live replies only against the live ceiling, not the follow-up caps (ADR 0064)', async () => {
+    const ids = Array.from({ length: 25 }, (_, i) => 'l' + i)
+    const { sender, store } = await setup([...ids, 'f1'])
+    const { t, sent } = target()
+    for (const [i, id] of ids.entries()) {
+      const chat = `62${900 + i}@g.us` // a different group each time: no same-chat spacing in the way
+      expect(await code(sender.send(t, chat, 'Siap, saya cek dulu ya ' + i, id, undefined, undefined, undefined, true))).toBe('ok')
+    }
+    expect(sent).toHaveLength(25) // 25 > the 20/hour follow-up cap
+    expect(store.sent.every((s) => s.live)).toBe(true)
+    // a follow-up still has its own 20/hour, untouched by the person chatting
+    expect(await code(sender.send(t, '6281@s.whatsapp.net', 'Follow-up order', 'f1'))).toBe('ok')
+    expect(store.sent.at(-1)?.live).toBe(false)
+  })
   it('sends a file, voice note or poll as content and returns its media reference', async () => {
     const { sender, store } = await setup(['a1', 'a2'])
     const { t, sent } = target()
