@@ -217,10 +217,12 @@ export function Shell() {
               {cur !== 'chat' && <OrchPill />}
               {me?.pilot_mode === 'shadow' && <span className="chip-sample" title="Pilot: Orchestrator menganalisis, tidak ada yang dikirim ke dealer">Mode bayangan</span>}
               {health?.sample_data && <span className="chip-sample">Data contoh</span>}
-              <button className="icon-btn" aria-label="Notifikasi" onClick={() => toast('Semua yang butuh Anda ada di Pusat kendali.')}>
-                <Icon name="bell" />
-                <span className="nd" />
-              </button>
+              {cur !== 'chat' && (
+                <button className="icon-btn" aria-label="Notifikasi" onClick={() => toast('Semua yang butuh Anda ada di Pusat kendali.')}>
+                  <Icon name="bell" />
+                  <span className="nd" />
+                </button>
+              )}
             </div>
           </header>
           <section className="screen" key={cur}>
