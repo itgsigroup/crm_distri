@@ -691,8 +691,6 @@ body.map-maximized{overflow:hidden}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chat.komo{--wa-bg:#0b141a;--wa-out:#005c4b;--wa-in:#202c33;--kp-dark:#16232a;--kp-ai:#a78bfa;--kp-ai-soft:rgba(167,139,250,.12)}}
 :root[data-theme="dark"] .chat.komo{--wa-bg:#0b141a;--wa-out:#005c4b;--wa-in:#202c33;--kp-dark:#16232a;--kp-ai:#a78bfa;--kp-ai-soft:rgba(167,139,250,.12)}
 .chat.komo .pane{border-radius:14px}
-/* Keep the conversation toolbar at the top edge when a thread is open. The Chat header and account picker remain on the list screen. */
-.stage:has(.chat.komo.show-thread)>.topbar{display:none}
 /* list */
 .ibl-head{display:flex;align-items:center;gap:6px;padding:12px 12px 8px}
 .ibl-acc{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:4px 6px;border-radius:10px;text-align:left;color:var(--text)}
