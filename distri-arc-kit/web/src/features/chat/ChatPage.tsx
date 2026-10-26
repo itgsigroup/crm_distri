@@ -1611,7 +1611,12 @@ export function ChatPage() {
   const { data: wa } = useWAStatus()
   const [picked, setPicked] = useState('')
   const account = picked || defaultAccount(wa?.items ?? [])
+  const [kept, setKept] = useState<string | undefined>(undefined)
   const setAccount = (a: string) => {
+    if (a !== account) {
+      setKept(undefined)
+      if (threadId) nav('/chat', { replace: true })
+    }
     setPicked(a)
     try { localStorage.setItem(ACCOUNT_KEY, a) } catch { /* not remembered */ }
   }
@@ -1628,7 +1633,6 @@ export function ChatPage() {
   const { data: list, isSuccess } = useThreads('all', account, !!account)
   // no chat opens by itself (Sam 19 Oct): the conversation on screen is the one picked, and it stays while another
   // number or filter is shown or a new message lifts another chat — until another is picked
-  const [kept, setKept] = useState<string | undefined>(undefined)
   if (threadId && kept !== threadId) setKept(threadId)
   const active = threadId ?? kept
   const leave = () => { setKept(undefined); nav('/chat') }
