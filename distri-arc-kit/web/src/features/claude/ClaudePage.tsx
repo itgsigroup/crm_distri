@@ -18,6 +18,14 @@ function copy(text: string, toast: (m: string) => void) {
   void navigator.clipboard?.writeText(text).then(() => toast('Disalin'), () => toast(text))
 }
 
+function copySecret(text: string, toast: (m: string) => void) {
+  if (!navigator.clipboard?.writeText) {
+    toast('Clipboard tidak tersedia; salin dari blok secara manual')
+    return
+  }
+  void navigator.clipboard.writeText(text).then(() => toast('Disalin'), () => toast('Gagal menyalin; salin dari blok secara manual'))
+}
+
 function Code({ children, onCopy }: { children: string; onCopy: () => void }) {
   return (
     <div className="cl-code">
@@ -28,15 +36,16 @@ function Code({ children, onCopy }: { children: string; onCopy: () => void }) {
 }
 
 function Connect({ endpoint }: { endpoint: string }) {
-  const [tab, setTab] = useState<'web' | 'code' | 'token'>('web')
+  const [tab, setTab] = useState<'web' | 'code' | 'token' | 'hermes'>('web')
   const { toast } = useFeedback()
   return (
     <div className="card">
-      <div className="card-h"><h2>Hubungkan Claude</h2><span className="meta">Login GSI Orbit + izin, tanpa menyalin token</span></div>
+      <div className="card-h"><h2>Hubungkan klien MCP</h2><span className="meta">Claude lewat OAuth · Hermes dan agent lain lewat token</span></div>
       <div className="seg" style={{ marginBottom: 12 }}>
         <button className={tab === 'web' ? 'is-active' : ''} onClick={() => setTab('web')}>claude.ai &amp; Claude Desktop</button>
         <button className={tab === 'code' ? 'is-active' : ''} onClick={() => setTab('code')}>Claude Code</button>
         <button className={tab === 'token' ? 'is-active' : ''} onClick={() => setTab('token')}>Token manual</button>
+        <button className={tab === 'hermes' ? 'is-active' : ''} onClick={() => setTab('hermes')}>Hermes Agent</button>
       </div>
       {tab === 'web' && (
         <ol className="cl-steps">
@@ -58,6 +67,14 @@ function Connect({ endpoint }: { endpoint: string }) {
           <li>Untuk klien yang tidak mendukung login OAuth (agent sendiri, Claude API, ChatGPT): buat token di kartu <b>Token manual</b> di bawah (hanya CEO). Token ditampilkan sekali.</li>
           <li>Claude Code dengan token:<Code onCopy={() => copy(`claude mcp add --transport http distri-arc ${endpoint} --header "Authorization: Bearer <TOKEN>"`, toast)}>{`claude mcp add --transport http distri-arc ${endpoint} --header "Authorization: Bearer <TOKEN>"`}</Code></li>
           <li>Claude API (MCP connector): <code>{`mcp_servers: [{ type: "url", url: "${endpoint}", name: "distri-arc", authorization_token: "<TOKEN>" }]`}</code></li>
+        </ol>
+      )}
+      {tab === 'hermes' && (
+        <ol className="cl-steps">
+          <li>Hermes di device lain terhubung ke server MCP CRM ini melalui endpoint:<Code onCopy={() => copy(endpoint, toast)}>{endpoint}</Code></li>
+          <li>Di kartu <b>Token manual</b>, buat token bernama <code>Hermes Agent</code>. Izin awal <code>read</code> dan <code>analyze</code> cukup untuk membaca data dan meminta analisis.</li>
+          <li>Salin blok YAML Hermes yang muncul bersama token, lalu tambahkan ke <code>~/.hermes/config.yaml</code> di device Hermes di bawah <code>mcp_servers</code>. Gabungkan dengan server lain yang sudah ada.</li>
+          <li>Restart Hermes, lalu uji dengan <code>hermes mcp test distri_crm</code>. Contoh prompt: “gunakan data CRM untuk ringkas dealer yang perlu ditindaklanjuti.”</li>
         </ol>
       )}
     </div>
@@ -89,7 +106,7 @@ function Connections() {
       <div className="card-h"><h2>Koneksi</h2><span className="meta">{active.length} aktif · dicabut kapan saja</span></div>
       <ColumnTable rows={clients} columns={columns} rowKey={(c) => c.id} noun="koneksi" placeholder="Cari koneksi, pengguna, izin…"
         text={(c) => [c.name, c.user ?? '', c.kind === 'oauth' ? 'login oauth claude' : c.kind === 'schedule' ? 'analisis terjadwal' : 'token manual', c.scopes.map((s) => SCOPE[s]?.[0] ?? s).join(' '), c.active ? 'aktif' : 'dicabut'].join(' ')}
-        initial={{ column: 'status', dir: 'asc' }} empty="Belum ada Claude yang terhubung. Ikuti langkah di atas." rowClass={(c) => (c.active ? undefined : 'is-off')} />
+        initial={{ column: 'status', dir: 'asc' }} empty="Belum ada klien MCP yang terhubung. Ikuti langkah di atas." rowClass={(c) => (c.active ? undefined : 'is-off')} />
     </div>
   )
 }
@@ -109,6 +126,7 @@ function ManualToken({ endpoint }: { endpoint: string }) {
   if (!me?.edit_policies) return null
   const flip = (s: string) => setScopes(scopes.includes(s) ? scopes.filter((x) => x !== s) : [...scopes, s])
   const desktop = token ? JSON.stringify({ mcpServers: { 'distri-arc': { command: 'npx', args: ['-y', 'mcp-remote', endpoint, '--header', 'Authorization:Bearer ${ARC_TOKEN}'], env: { ARC_TOKEN: token } } } }, null, 2) : ''
+  const hermes = token ? `mcp_servers:\n  distri_crm:\n    url: ${JSON.stringify(endpoint)}\n    headers:\n      Authorization: ${JSON.stringify(`Bearer ${token}`)}\n    connect_timeout: 60\n    timeout: 180` : ''
   return (
     <div className="card">
       <div className="card-h"><h2>Token manual</h2><span className="meta">Untuk klien tanpa login OAuth</span></div>
@@ -122,9 +140,11 @@ function ManualToken({ endpoint }: { endpoint: string }) {
       {token && (
         <div className="cl-token">
           <b>Token (ditampilkan sekali — simpan sekarang)</b>
-          <Code onCopy={() => copy(token, toast)}>{token}</Code>
+          <Code onCopy={() => copySecret(token, toast)}>{token}</Code>
+          <span>Hermes Agent · <code>~/.hermes/config.yaml</code> (tambahkan di bawah <code>mcp_servers</code>)</span>
+          <Code onCopy={() => copySecret(hermes, toast)}>{hermes}</Code>
           <span>Claude Desktop lewat <code>mcp-remote</code> · <code>claude_desktop_config.json</code></span>
-          <Code onCopy={() => copy(desktop, toast)}>{desktop}</Code>
+          <Code onCopy={() => copySecret(desktop, toast)}>{desktop}</Code>
         </div>
       )}
     </div>
@@ -243,8 +263,8 @@ export function ClaudePage() {
       <div className="card cl-hero">
         <span className="cl-logo"><Icon name="spark" /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2>Claude menganalisis semua data GSI Orbit</h2>
-          <p>Lewat MCP, Claude membaca dealer, penjualan, piutang, stok, dan chat (nomor disamarkan) langsung dari server GSI — lalu menjawab, membandingkan, dan menyusun rencana. Claude <b>tidak pernah</b> memutuskan atau mengirim ke dealer.</p>
+          <h2>Hubungkan agent AI ke GSI Orbit</h2>
+          <p>Claude, Hermes Agent, dan klien MCP lain dapat membaca dealer, penjualan, piutang, stok, dan chat (nomor disamarkan) langsung dari server GSI. Agent dapat menganalisis dan mengusulkan; keputusan dan pengiriman ke dealer tetap dilakukan manusia di CRM.</p>
           <div className="cl-status">
             <Pill tone={info?.enabled ? 'good' : 'bad'} icon={info?.enabled ? 'check' : 'alert'}>{info?.enabled ? 'Server MCP aktif' : 'Server MCP mati'}</Pill>
             <Pill tone="good" icon="lock">Login OAuth 2.1 + PKCE</Pill>

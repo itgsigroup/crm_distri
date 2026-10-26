@@ -3,6 +3,17 @@
 Endpoint: `https://crm-distri.gsiindo.id/mcp` (Streamable HTTP). Semua langkah juga ada di aplikasi: **sidebar → MCP Claude**.
 Claude hanya membaca dan mengusulkan; setujui/tolak dan pengiriman ke dealer tetap di aplikasi (ADR 0004, 0021).
 
+## Hermes Agent pada device lain
+Hermes menjadi klien MCP dan memanggil tool CRM melalui HTTPS; Hermes tidak perlu dipasang di server CRM.
+
+1. Buka **MCP Claude → Token manual** di CRM, buat token bernama `Hermes Agent`, dan pilih izin `read` + `analyze`.
+2. Salin blok YAML **Hermes Agent** yang ditampilkan bersama token. URL dan header Bearer sudah diisi oleh CRM.
+3. Pada device Hermes, gabungkan konfigurasi itu ke `~/.hermes/config.yaml` di bawah `mcp_servers`. Jangan mengganti konfigurasi MCP lain yang sudah ada. Batasi akses file token dengan `chmod 600 ~/.hermes/config.yaml`.
+4. Lindungi file konfigurasi karena berisi token, restart Hermes, lalu jalankan `hermes mcp test distri_crm`.
+5. Minta Hermes memakai tool CRM, misalnya merangkum dealer yang perlu ditindaklanjuti. Tool `read` membaca data; `analyze` menghasilkan usulan. Persetujuan dan pengiriman ke dealer tetap dilakukan manusia di CRM.
+
+Token dapat dicabut kapan saja lewat kartu **Koneksi** di halaman MCP Claude. Jika dicabut, buat token baru dan perbarui konfigurasi di device Hermes.
+
 ## claude.ai dan Claude Desktop (disarankan, login OAuth)
 1. Settings → Connectors → **Add custom connector** (Team/Enterprise: owner di Admin settings → Connectors).
 2. Name `Distri ARC`, URL `https://crm-distri.gsiindo.id/mcp` → Add → **Connect**.

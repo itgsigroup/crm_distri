@@ -148,7 +148,7 @@ export function AIConnectionsCard() {
           <div className="cs"><span className={`dot ${apiOK ? 'good' : 'warn'}`} />{apiOK ? 'Terhubung · API key tersimpan di server' : 'Mode template · API key belum diisi'}</div>
         </button>
         <button className="cc" onClick={() => nav('/claude')}>
-          <div className="ch"><span className="lg" style={{ background: '#5E5CE6' }}>MCP</span><div><b>MCP · GSI Orbit sebagai server</b><small>Claude (claude.ai, Desktop, Code) membaca dan menganalisis semua data lewat tool MCP — atur di menu MCP Claude</small></div></div>
+          <div className="ch"><span className="lg" style={{ background: '#5E5CE6' }}>MCP</span><div><b>MCP · GSI Orbit sebagai server</b><small>Claude, Hermes Agent, dan klien MCP lain dapat memakai tool CRM — atur token dan koneksi di menu MCP Claude</small></div></div>
           <div className="cs"><span className={`dot ${active.length ? 'good' : 'warn'}`} />{active.length ? `Aktif · ${active.length} koneksi: ${active.map((c) => c.name).join(' · ')}` : 'Aktif · belum ada koneksi — buka MCP Claude'}</div>
         </button>
         <button className="cc" onClick={() => toast('GSI Orbit sebagai klien MCP (Odoo MCP) disiapkan di Stage 13')}>
