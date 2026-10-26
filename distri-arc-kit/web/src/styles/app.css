@@ -1760,6 +1760,9 @@ body.map-maximized{overflow:hidden}
   .stage:has(.chat.komo){display:flex;flex-direction:column;height:100dvh;min-height:0;padding:0}
   .stage:has(.chat.komo) .topbar{flex:none;padding:8px 32px}
   .stage:has(.chat.komo)>.screen{display:flex;flex:1;min-height:0}
+  .stage:has(.chat.komo.show-thread){position:relative}
+  .stage:has(.chat.komo.show-thread)>.topbar{position:absolute;top:0;left:0;right:0;padding:8px 32px}
+  .chat.komo.show-thread .list-pane{padding-top:50px}
   .stage:has(.chat.komo) .topbar h1{font-size:20px}
   .stage:has(.chat.komo) .topbar .sub{display:none}
   .chat.komo{flex:1;height:100%;min-height:0;gap:10px}
