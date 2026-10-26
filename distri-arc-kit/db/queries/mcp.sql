@@ -15,6 +15,16 @@ update mcp_clients set last_seen_at = $2 where id = $1;
 -- name: RevokeMCPClient :exec
 update mcp_clients set active = false where id = $1;
 
+-- name: UpdateMCPBearerClient :one
+update mcp_clients set name = $2, scopes = $3
+where id = $1 and kind = 'bearer'
+returning *;
+
+-- name: RotateMCPBearerToken :one
+update mcp_clients set token_hash = $2, token_prefix = $3
+where id = $1 and kind = 'bearer' and active = true
+returning *;
+
 -- name: InsertMCPCall :exec
 insert into mcp_calls (client_id, tool, args, result_summary, cycle_id, duration_ms, status, created_at) values ($1, $2, $3, $4, $5, $6, $7, $8);
 

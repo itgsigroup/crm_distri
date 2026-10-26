@@ -7,7 +7,7 @@ import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { Pill } from '../../components/ui'
 import { hhmm } from '../../lib/format'
-import { useMCPClients, useMCPInfo, useMCPPolicy } from '../../app/queries'
+import { useMCPClients, useMCPInfo, useMCPPolicy, useMe } from '../../app/queries'
 
 const MODES: [string, string][] = [['api', 'API AI'], ['mcp', 'MCP'], ['both', 'Keduanya']]
 
@@ -57,11 +57,85 @@ function copy(text: string, toast: (m: string) => void) {
   void navigator.clipboard?.writeText(text).then(() => toast('Disalin'), () => toast(text))
 }
 
+function copySecret(text: string, toast: (m: string) => void) {
+  if (!navigator.clipboard?.writeText) {
+    toast('Clipboard tidak tersedia; salin dari blok secara manual')
+    return
+  }
+  void navigator.clipboard.writeText(text).then(() => toast('Disalin'), () => toast('Gagal menyalin; salin dari blok secara manual'))
+}
+
+/** Manage a manual token connection: edit its label/scopes or rotate its secret. */
+export function MCPClientEditor({ client }: { client: MCPClient }) {
+  const { closeSheet, toast } = useFeedback()
+  const { data: info } = useMCPInfo()
+  const qc = useQueryClient()
+  const [name, setName] = useState(client.name)
+  const [scopes, setScopes] = useState<string[]>([...client.scopes])
+  const [token, setToken] = useState('')
+  const update = useMutation({
+    mutationFn: () => api.patch<{ client: MCPClient }>(`/mcp/clients/${client.id}`, { name, scopes }),
+    onSuccess: () => {
+      toast('Nama dan izin koneksi diperbarui')
+      qc.invalidateQueries({ queryKey: ['mcp'] })
+      closeSheet()
+    },
+    onError: (e: Error) => toast(e.message),
+  })
+  const rotate = useMutation({
+    mutationFn: () => api.post<{ token: string; client: MCPClient }>(`/mcp/clients/${client.id}/rotate`),
+    onSuccess: (r) => {
+      setToken(r.token)
+      qc.invalidateQueries({ queryKey: ['mcp'] })
+    },
+    onError: (e: Error) => toast(e.message),
+  })
+  const toggle = (scope: string) => setScopes((current) => current.includes(scope) ? current.filter((s) => s !== scope) : [...current, scope])
+  const hasEdits = name !== client.name || scopes.join('|') !== client.scopes.join('|')
+  const hermes = token && info ? `mcp_servers:\n  distri_crm:\n    url: ${JSON.stringify(info.endpoint)}\n    headers:\n      Authorization: ${JSON.stringify(`Bearer ${token}`)}\n    connect_timeout: 60\n    timeout: 180` : ''
+  return (
+    <>
+      <SheetHead icon="plug" title={`Edit · ${client.name}`} sub="Untuk koneksi token manual seperti Hermes Agent" onClose={closeSheet} />
+      <div className="sec">
+        <h4>Nama koneksi</h4>
+        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} placeholder="Nama koneksi" style={{ width: '100%', height: 36, borderRadius: 10, border: '1px solid var(--line)', padding: '0 12px', font: 'inherit', background: 'var(--surface)', color: 'var(--text)' }} />
+        <h4 style={{ marginTop: 16 }}>Izin token</h4>
+        <div className="chips">
+          {['read', 'analyze', 'orchestrate'].map((scope) => <button type="button" key={scope} className={`chip ${scopes.includes(scope) ? 'is-active' : ''}`} onClick={() => toggle(scope)}>{scope}</button>)}
+          <span className="chip" style={{ opacity: 0.5 }} title="Keputusan hanya oleh manusia"><Icon name="lock" style={{ width: 12, height: 12, marginRight: 4, verticalAlign: '-2px' }} />decide</span>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>Perubahan izin langsung berlaku pada token yang sama. Izin <code>decide</code> hanya dimiliki manusia.</p>
+      </div>
+      <div className="sec">
+        <h4>Ganti token rahasia</h4>
+        <p style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 }}>Rotasi langsung menonaktifkan token lama. Perbarui konfigurasi Hermes setelah token baru muncul.</p>
+        {hasEdits && <p style={{ fontSize: 12, color: 'var(--text-2)', margin: '0 0 8px' }}>Simpan perubahan nama atau izin sebelum merotasi token.</p>}
+        {!token ? <button className="btn ghost" disabled={rotate.isPending || !client.active || hasEdits} onClick={() => { if (window.confirm(`Rotasi token ${client.name}? Token lama langsung tidak berlaku.`)) rotate.mutate() }}>{rotate.isPending ? 'Merotasi…' : 'Rotasi token'}</button> : (
+          <div className="prev" style={{ marginTop: 10 }}>
+            <b>Token baru (ditampilkan sekali):</b>
+            <div className="ep" style={{ marginTop: 6 }}><span style={{ wordBreak: 'break-all' }}>{token}</span><button className="btn ghost" onClick={() => copySecret(token, toast)}>Salin</button></div>
+            <p style={{ fontSize: 12, color: 'var(--text-2)', margin: '12px 0 6px' }}>Perbarui <code>~/.hermes/config.yaml</code></p>
+            <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>{hermes}</pre>
+            <button className="btn ghost" style={{ marginTop: 8 }} onClick={() => copySecret(hermes, toast)}>Salin konfigurasi Hermes</button>
+          </div>
+        )}
+      </div>
+      <div className="ft">
+        <button className="btn primary" disabled={!name.trim() || scopes.length === 0 || update.isPending || (name === client.name && scopes.join('|') === client.scopes.join('|'))} onClick={() => update.mutate()}><Icon name="check" />Simpan perubahan</button>
+        <button className="btn quiet" onClick={closeSheet}>Tutup</button>
+        <span className="spacer" />
+        <span className="pol"><Icon name="lock" />Rahasia token hanya ditampilkan saat dibuat atau dirotasi</span>
+      </div>
+    </>
+  )
+}
+
 /** Sheet: MCP clients, create a token (shown once), revoke. */
 export function MCPClientsPanel() {
-  const { closeSheet, toast } = useFeedback()
+  const { closeSheet, openSheet, toast } = useFeedback()
   const { data: clients = [] } = useMCPClients()
   const { data: info } = useMCPInfo()
+  const { data: me } = useMe()
   const qc = useQueryClient()
   const [name, setName] = useState('')
   const [scopes, setScopes] = useState<string[]>(['read', 'analyze'])
@@ -95,7 +169,7 @@ export function MCPClientsPanel() {
           {clients.map((c) => (
             <li key={c.id}>
               <div><b>{c.name}</b><span>{c.scopes.join(' · ')} · {c.token_prefix} · {c.calls_today} panggilan hari ini{c.last_seen_at ? ` · terakhir ${hhmm(c.last_seen_at)}` : ''}</span></div>
-              {c.active ? <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => revoke.mutate(c.id)}>Cabut</button> : <Pill tone="neutral">dicabut</Pill>}
+              {c.active ? <span style={{ display: 'flex', gap: 6 }}>{c.kind === 'bearer' && me?.edit_policies && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<MCPClientEditor client={c} />)}>Edit</button>}<button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => revoke.mutate(c.id)}>Cabut</button></span> : <Pill tone="neutral">dicabut</Pill>}
             </li>
           ))}
         </ul>
@@ -110,7 +184,7 @@ export function MCPClientsPanel() {
         {token && (
           <div className="prev" style={{ marginTop: 12 }}>
             <b>Token (ditampilkan sekali):</b>
-            <div className="ep" style={{ marginTop: 6 }}><span style={{ wordBreak: 'break-all' }}>{token}</span><button className="btn ghost" onClick={() => copy(token, toast)}>Salin</button></div>
+            <div className="ep" style={{ marginTop: 6 }}><span style={{ wordBreak: 'break-all' }}>{token}</span><button className="btn ghost" onClick={() => copySecret(token, toast)}>Salin</button></div>
             <p style={{ fontSize: 12, color: 'var(--text-2)', margin: '10px 0 6px' }}>Claude Desktop · <code>claude_desktop_config.json</code></p>
             <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, whiteSpace: 'pre-wrap', margin: 0 }}>{config}</pre>
           </div>

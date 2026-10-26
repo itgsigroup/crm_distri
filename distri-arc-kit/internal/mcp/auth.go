@@ -77,6 +77,20 @@ func CreateToken(ctx context.Context, q *gen.Queries, name string, scopes []stri
 	return token, c, nil
 }
 
+// RotateBearerToken replaces a manual client's secret while retaining its identity, name, and scopes.
+// The new token is returned once and its secret is stored only as an argon2id hash.
+func RotateBearerToken(ctx context.Context, q *gen.Queries, id uuid.UUID) (string, gen.McpClient, error) {
+	token, hash, prefix, err := newSecret(id)
+	if err != nil {
+		return "", gen.McpClient{}, err
+	}
+	c, err := q.RotateMCPBearerToken(ctx, gen.RotateMCPBearerTokenParams{ID: id, TokenHash: &hash, TokenPrefix: &prefix})
+	if err != nil {
+		return "", gen.McpClient{}, err
+	}
+	return token, c, nil
+}
+
 // ErrInvalidToken means the bearer token is unknown, malformed or revoked.
 var ErrInvalidToken = errors.New("invalid token")
 

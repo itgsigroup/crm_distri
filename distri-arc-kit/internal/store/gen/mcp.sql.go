@@ -615,6 +615,41 @@ func (q *Queries) RevokeMCPClient(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const rotateMCPBearerToken = `-- name: RotateMCPBearerToken :one
+update mcp_clients set token_hash = $2, token_prefix = $3
+where id = $1 and kind = 'bearer' and active = true
+returning id, name, kind, token_hash, scopes, owner_id, last_seen_at, active, created_at, token_prefix, user_id, oauth_client_id, expires_at, refresh_hash, refresh_expires_at
+`
+
+type RotateMCPBearerTokenParams struct {
+	ID          uuid.UUID `json:"id"`
+	TokenHash   *string   `json:"token_hash"`
+	TokenPrefix *string   `json:"token_prefix"`
+}
+
+func (q *Queries) RotateMCPBearerToken(ctx context.Context, arg RotateMCPBearerTokenParams) (McpClient, error) {
+	row := q.db.QueryRow(ctx, rotateMCPBearerToken, arg.ID, arg.TokenHash, arg.TokenPrefix)
+	var i McpClient
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Kind,
+		&i.TokenHash,
+		&i.Scopes,
+		&i.OwnerID,
+		&i.LastSeenAt,
+		&i.Active,
+		&i.CreatedAt,
+		&i.TokenPrefix,
+		&i.UserID,
+		&i.OauthClientID,
+		&i.ExpiresAt,
+		&i.RefreshHash,
+		&i.RefreshExpiresAt,
+	)
+	return i, err
+}
+
 const rotateMCPToken = `-- name: RotateMCPToken :exec
 update mcp_clients set token_hash = $2, token_prefix = $3, expires_at = $4, refresh_hash = $5, refresh_expires_at = $6, last_seen_at = now()
 where id = $1
@@ -685,6 +720,41 @@ update oauth_clients set last_used_at = now() where client_id = $1
 func (q *Queries) TouchOAuthClient(ctx context.Context, clientID string) error {
 	_, err := q.db.Exec(ctx, touchOAuthClient, clientID)
 	return err
+}
+
+const updateMCPBearerClient = `-- name: UpdateMCPBearerClient :one
+update mcp_clients set name = $2, scopes = $3
+where id = $1 and kind = 'bearer'
+returning id, name, kind, token_hash, scopes, owner_id, last_seen_at, active, created_at, token_prefix, user_id, oauth_client_id, expires_at, refresh_hash, refresh_expires_at
+`
+
+type UpdateMCPBearerClientParams struct {
+	ID     uuid.UUID `json:"id"`
+	Name   *string   `json:"name"`
+	Scopes []string  `json:"scopes"`
+}
+
+func (q *Queries) UpdateMCPBearerClient(ctx context.Context, arg UpdateMCPBearerClientParams) (McpClient, error) {
+	row := q.db.QueryRow(ctx, updateMCPBearerClient, arg.ID, arg.Name, arg.Scopes)
+	var i McpClient
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Kind,
+		&i.TokenHash,
+		&i.Scopes,
+		&i.OwnerID,
+		&i.LastSeenAt,
+		&i.Active,
+		&i.CreatedAt,
+		&i.TokenPrefix,
+		&i.UserID,
+		&i.OauthClientID,
+		&i.ExpiresAt,
+		&i.RefreshHash,
+		&i.RefreshExpiresAt,
+	)
+	return i, err
 }
 
 const upsertCycleInput = `-- name: UpsertCycleInput :exec

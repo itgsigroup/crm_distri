@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 
 	"distri-arc/internal/clock"
 	"distri-arc/internal/domain"
@@ -22,6 +24,8 @@ func (s *Server) mcpRoutes(r chi.Router) {
 	r.Get("/mcp/info", s.mcpInfo)
 	r.Get("/mcp/clients", s.mcpClients)
 	r.Post("/mcp/clients", s.createMCPClient)
+	r.Patch("/mcp/clients/{id}", s.updateMCPClient)
+	r.Post("/mcp/clients/{id}/rotate", s.rotateMCPClient)
 	r.Delete("/mcp/clients/{id}", s.revokeMCPClient)
 	r.Get("/mcp/calls", s.mcpCalls)
 	r.Get("/mcp/usage", s.aiUsage)
@@ -119,6 +123,121 @@ func (s *Server) createMCPClient(w http.ResponseWriter, r *http.Request) {
 	}
 	s.auditUser(r, "mcp.token.create", "mcp_client:"+c.ID.String(), map[string]any{"name": body.Name, "scopes": body.Scopes})
 	httpx.JSON(w, http.StatusCreated, map[string]any{"token": token, "client": mcpClientView{ID: c.ID, Name: deref(c.Name), Scopes: c.Scopes, Prefix: deref(c.TokenPrefix), Active: true, CreatedAt: c.CreatedAt}})
+}
+
+// updateMCPClient changes a manual connection's name and scopes without revealing or changing its secret.
+func (s *Server) updateMCPClient(w http.ResponseWriter, r *http.Request) {
+	u, ok := ceo(r)
+	if !ok {
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO yang dapat mengubah klien MCP")
+		return
+	}
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Klien tidak ditemukan")
+		return
+	}
+	var body struct {
+		Name   string   `json:"name"`
+		Scopes []string `json:"scopes"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Format tidak valid")
+		return
+	}
+	body.Name = strings.TrimSpace(body.Name)
+	if body.Name == "" || len(body.Name) > 120 || len(body.Scopes) == 0 {
+		httpx.Fail(w, http.StatusBadRequest, "invalid", "Nama wajib diisi (maksimal 120 karakter) dan pilih minimal satu izin")
+		return
+	}
+	seen := make(map[string]bool, len(body.Scopes))
+	for _, scope := range body.Scopes {
+		if !containsMCPString(mcp.ValidScopes, scope) || seen[scope] {
+			httpx.Fail(w, http.StatusBadRequest, "invalid", "Izin MCP tidak valid")
+			return
+		}
+		seen[scope] = true
+	}
+	before, err := s.st.Q.GetMCPClient(r.Context(), id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Klien tidak ditemukan")
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	if deref(before.Kind) != "bearer" {
+		httpx.Fail(w, http.StatusBadRequest, "unsupported", "Hanya token manual yang dapat diedit")
+		return
+	}
+	c, err := s.st.Q.UpdateMCPBearerClient(r.Context(), gen.UpdateMCPBearerClientParams{ID: id, Name: &body.Name, Scopes: body.Scopes})
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Klien tidak ditemukan")
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	if s.mcp != nil {
+		s.mcp.Verifier().Forget()
+	}
+	s.auditUser(r, "mcp.client.update", "mcp_client:"+id.String(), map[string]any{"before": map[string]any{"name": deref(before.Name), "scopes": before.Scopes}, "after": map[string]any{"name": body.Name, "scopes": body.Scopes}, "actor": deref(u.Email)})
+	httpx.JSON(w, http.StatusOK, map[string]any{"client": mcpClientView{ID: c.ID, Name: deref(c.Name), Scopes: c.Scopes, Prefix: deref(c.TokenPrefix), Active: c.Active, LastSeenAt: c.LastSeenAt, CreatedAt: c.CreatedAt, Kind: deref(c.Kind)}})
+}
+
+// rotateMCPClient creates a replacement secret for an active manual token; the old token stops working immediately.
+func (s *Server) rotateMCPClient(w http.ResponseWriter, r *http.Request) {
+	if _, ok := ceo(r); !ok {
+		httpx.Fail(w, http.StatusForbidden, "forbidden", "Hanya CEO yang dapat merotasi token MCP")
+		return
+	}
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Klien tidak ditemukan")
+		return
+	}
+	before, err := s.st.Q.GetMCPClient(r.Context(), id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.Fail(w, http.StatusNotFound, "not_found", "Klien tidak ditemukan")
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	if deref(before.Kind) != "bearer" {
+		httpx.Fail(w, http.StatusBadRequest, "unsupported", "Hanya token manual yang dapat dirotasi")
+		return
+	}
+	if !before.Active {
+		httpx.Fail(w, http.StatusConflict, "inactive", "Token yang dicabut tidak dapat dirotasi")
+		return
+	}
+	token, c, err := mcp.RotateBearerToken(r.Context(), s.st.Q, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.Fail(w, http.StatusConflict, "inactive", "Token tidak lagi aktif")
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
+		return
+	}
+	if s.mcp != nil {
+		s.mcp.Verifier().Forget()
+	}
+	s.auditUser(r, "mcp.token.rotate", "mcp_client:"+id.String(), map[string]any{"name": deref(c.Name), "scopes": c.Scopes})
+	httpx.JSON(w, http.StatusOK, map[string]any{"token": token, "client": mcpClientView{ID: c.ID, Name: deref(c.Name), Scopes: c.Scopes, Prefix: deref(c.TokenPrefix), Active: c.Active, LastSeenAt: c.LastSeenAt, CreatedAt: c.CreatedAt, Kind: deref(c.Kind)}})
+}
+
+func containsMCPString(values []string, value string) bool {
+	for _, item := range values {
+		if item == value {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) revokeMCPClient(w http.ResponseWriter, r *http.Request) {

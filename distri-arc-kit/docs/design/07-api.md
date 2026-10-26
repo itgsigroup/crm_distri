@@ -23,7 +23,7 @@ Base `/api`. JSON `snake_case`. Auth: cookie sesi (JWT HttpOnly, 12 jam) dari `P
 - `GET /cycles?limit=` · `GET /cycles/{id}` → stages, agent_runs, conflicts, proposals
 - `GET /conflicts?cycle_id=` · `GET /agents` (state, confidence, last output) · `POST /agents/{name}/run {dealer_id?}`
 - `GET /policies/autonomy` · `PUT /policies/autonomy` (ceo)
-- `GET /mcp/clients` · `POST /mcp/clients` (admin; kembalikan token sekali) · `DELETE /mcp/clients/{id}` · `GET /mcp/calls?limit=`
+- `GET /mcp/clients` · `POST /mcp/clients` (admin; kembalikan token sekali) · `PATCH /mcp/clients/{id}` (edit nama/izin token manual) · `POST /mcp/clients/{id}/rotate` (ganti rahasia token, dikembalikan sekali) · `DELETE /mcp/clients/{id}` · `GET /mcp/calls?limit=`
 - `GET /policies/mcp` · `PUT /policies/mcp` (ceo; `allow_send` ditolak)
 - `GET /policies/llm` · `PUT /policies/llm {routing:'api'|'mcp'|'both', provider, model, fallback}`
 

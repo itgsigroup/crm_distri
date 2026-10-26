@@ -12,7 +12,9 @@ Hermes menjadi klien MCP dan memanggil tool CRM melalui HTTPS; Hermes tidak perl
 4. Lindungi file konfigurasi karena berisi token, restart Hermes, lalu jalankan `hermes mcp test distri_crm`.
 5. Minta Hermes memakai tool CRM, misalnya merangkum dealer yang perlu ditindaklanjuti. Tool `read` membaca data; `analyze` menghasilkan usulan. Persetujuan dan pengiriman ke dealer tetap dilakukan manusia di CRM.
 
-Token dapat dicabut kapan saja lewat kartu **Koneksi** di halaman MCP Claude. Jika dicabut, buat token baru dan perbarui konfigurasi di device Hermes.
+Nama koneksi dan izinnya dapat diedit lewat tombol **Edit** di daftar **Koneksi** pada halaman MCP Claude. Perubahan izin berlaku untuk token yang sama.
+
+Untuk mengganti rahasia token, pilih **Edit → Rotasi token**. Token lama langsung tidak berlaku. CRM menampilkan token baru dan YAML Hermes sekali; salin konfigurasi itu ke `~/.hermes/config.yaml` pada device Hermes. Token rahasia tidak dapat dilihat atau diedit kembali setelah sheet ditutup. Koneksi juga dapat dicabut kapan saja lewat tombol **Cabut**.
 
 ## claude.ai dan Claude Desktop (disarankan, login OAuth)
 1. Settings → Connectors → **Add custom connector** (Team/Enterprise: owner di Admin settings → Connectors).

@@ -13,6 +13,7 @@ import { AIUsage } from './AIUsage'
 import { ColumnTable, SortTh, TablePager, TableSearch, useDataTable, type Column } from '../../components/DataTable'
 import { CALL_COMPARE, KIND, argsText, callFirstDir, callText, type CallColumn } from './usage'
 import { PROMPTS, SCOPE } from './shared'
+import { MCPClientEditor } from '../settings/AIConnections'
 
 function copy(text: string, toast: (m: string) => void) {
   void navigator.clipboard?.writeText(text).then(() => toast('Disalin'), () => toast(text))
@@ -86,7 +87,7 @@ function Connections() {
   const clients = all.filter((c) => c.kind !== 'schedule') // scheduled analysis has its own card
   const { data: me } = useMe()
   const qc = useQueryClient()
-  const { toast } = useFeedback()
+  const { toast, openSheet } = useFeedback()
   const revoke = useMutation({
     mutationFn: (id: string) => api.del(`/mcp/clients/${id}`),
     onSuccess: () => { toast('Koneksi dicabut · Claude harus diizinkan ulang'); qc.invalidateQueries({ queryKey: ['mcp'] }) },
@@ -99,7 +100,10 @@ function Connections() {
     { key: 'calls', label: 'Panggilan hari ini', right: true, sort: (a, b) => a.calls_today - b.calls_today, first: 'desc', cell: (c) => <span className="num">{c.calls_today.toLocaleString('id-ID')}</span> },
     { key: 'seen', label: 'Terakhir dipakai', sort: (a, b) => (a.last_seen_at ?? '').localeCompare(b.last_seen_at ?? ''), first: 'desc', cell: (c) => (c.last_seen_at ? <span className="nowrap">{shortDate(c.last_seen_at)} · {hhmm(c.last_seen_at)}</span> : <span className="muted">belum dipakai</span>) },
     { key: 'status', label: 'Status', sort: (a, b) => Number(b.active) - Number(a.active), cell: (c) => <Pill tone={c.active ? (c.kind === 'oauth' ? 'accent' : 'good') : 'neutral'}>{c.active ? (c.kind === 'oauth' ? 'Claude' : c.token_prefix || 'Aktif') : 'Dicabut'}</Pill> },
-    { key: 'act', label: '', right: true, cell: (c) => c.active && me?.edit_policies && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => { if (window.confirm(`Cabut koneksi ${c.name}?`)) revoke.mutate(c.id) }}>Cabut</button> },
+    { key: 'act', label: '', right: true, cell: (c) => c.active && me?.edit_policies && <span style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+      {c.kind === 'bearer' && <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => openSheet(<MCPClientEditor client={c} />)}>Edit</button>}
+      <button className="btn ghost" style={{ height: 28, fontSize: 12 }} onClick={() => { if (window.confirm(`Cabut koneksi ${c.name}?`)) revoke.mutate(c.id) }}>Cabut</button>
+    </span> },
   ]
   return (
     <div className="card">
