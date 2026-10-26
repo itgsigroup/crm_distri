@@ -1612,8 +1612,10 @@ export function ChatPage() {
   const [picked, setPicked] = useState('')
   const account = picked || defaultAccount(wa?.items ?? [])
   const [kept, setKept] = useState<string | undefined>(undefined)
+  const accountChanged = useRef(false)
   const setAccount = (a: string) => {
     if (a !== account) {
+      accountChanged.current = true
       setKept(undefined)
       if (threadId) nav('/chat', { replace: true })
     }
@@ -1631,10 +1633,21 @@ export function ChatPage() {
   }
   const { openSheet } = useFeedback()
   const { data: list, isSuccess } = useThreads('all', account, !!account)
-  // no chat opens by itself (Sam 19 Oct): the conversation on screen is the one picked, and it stays while another
-  // number or filter is shown or a new message lifts another chat — until another is picked
-  if (threadId && kept !== threadId) setKept(threadId)
-  const active = threadId ?? kept
+  // Keep a selected chat while filters change, but never carry it over to another WhatsApp account.
+  if (threadId && kept !== threadId && !accountChanged.current) setKept(threadId)
+  const candidate = threadId ?? kept
+  const { data: selectedThread } = useThread(candidate)
+  const selectedTeam = account.startsWith('team:') ? account.slice(5) : ''
+  const accountMismatch = !!account && !!selectedThread && (selectedTeam
+    ? !!selectedThread.thread.account_team && selectedThread.thread.account_team !== selectedTeam
+    : !!selectedThread.thread.account && selectedThread.thread.account !== account)
+  const active = accountChanged.current || accountMismatch ? undefined : candidate
+  useEffect(() => {
+    if (!candidate || !accountMismatch) return
+    accountChanged.current = true
+    setKept(undefined)
+    if (threadId) nav('/chat', { replace: true })
+  }, [accountMismatch, candidate, nav, threadId])
   const leave = () => { setKept(undefined); nav('/chat') }
   // the account picker goes in the page header next to "Chat", when the header has its slot
   const slot = useOutletContext<ShellContext | undefined>()?.topbarSlot ?? null
@@ -1654,8 +1667,8 @@ export function ChatPage() {
     <div ref={chatBox} style={listWidthStyle(listW)} className={`chat multi komo ${slot ? 'rail-out' : ''} ${threadId ? 'show-thread' : ''} ${active ? 'with-lead' : ''} ${active && !lead ? 'lead-mini' : ''}`}>
       <ListResizer box={chatBox} width={listW} onWidth={setListW} />
       {rail}
-      <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => nav('/chat/' + id)}
-        onHit={(h) => nav(`/chat/${h.thread_id}?${new URLSearchParams({ m: h.id, at: h.sent_at })}`)} onLeave={leave} />
+      <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => { accountChanged.current = false; nav('/chat/' + id) }}
+        onHit={(h) => { accountChanged.current = false; nav(`/chat/${h.thread_id}?${new URLSearchParams({ m: h.id, at: h.sent_at })}`) }} onLeave={leave} />
       {active && <LeadPane key={'l' + active} id={active} mini={!lead} setMini={(v) => setLead(!v)} onAccurate={accurate} />}
       {active ? <ThreadPane key={active} id={active} picked={!!threadId} onBack={() => nav('/chat')} lead={lead} setLead={setLead} onAccurate={accurate} /> : (
         <div className="pane th-pane th-none"><Icon name="chat" /><b>Pilih chat</b><span>Klik salah satu percakapan di daftar untuk membukanya.</span></div>
