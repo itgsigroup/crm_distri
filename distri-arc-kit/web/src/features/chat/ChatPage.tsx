@@ -299,6 +299,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
           </button>
         ))}
       </div>
+      <footer className="ibl-footer">CRM GSI ORBIT</footer>
     </div>
   )
 }
