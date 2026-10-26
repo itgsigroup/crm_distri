@@ -454,7 +454,7 @@ func (s *Server) registerRead() {
 		if limit <= 0 || limit > 100 {
 			limit = 30
 		}
-		threads, err := s.St.Q.ListThreads(ctx, time.Time{}) // every conversation of the dealer, not only the chat window
+		threads, err := s.St.Q.ListThreads(ctx, gen.ListThreadsParams{Since: time.Time{}}) // every conversation of the dealer, not only the chat window
 		if err != nil {
 			return nil, result{}, err
 		}

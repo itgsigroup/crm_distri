@@ -65,6 +65,7 @@ sql:
       - db/migrations/0061_chat_message_stars.sql
       - db/migrations/0062_chat_retention_90.sql
       - db/migrations/0063_quick_replies.sql
+      - db/migrations/0064_chat_list_waiting_indexes.sql
     queries: db/queries
     gen:
       go:

@@ -1928,8 +1928,16 @@ left join lateral (
   ) u order by u.sent_at desc limit 1
 ) lm on true
 where t.last_message_at >= $1::timestamptz
+  and ($2::text is null or t.account = $2::text)
+  and ($3::text is null or coalesce(n.team, 'sales') = $3::text)
 order by t.last_message_at desc nulls last, t.id
 `
+
+type ListThreadsParams struct {
+	Since   time.Time `json:"since"`
+	Account *string   `json:"account"`
+	Team    *string   `json:"team"`
+}
 
 type ListThreadsRow struct {
 	ID               uuid.UUID       `json:"id"`
@@ -1972,8 +1980,8 @@ type ListThreadsRow struct {
 
 // only conversations active in the chat window (CHAT_WINDOW_DAYS, 14): older ones stay stored, not listed
 // newest conversation first, like WhatsApp (the kind tabs filter; ordering by kind buried today's chats)
-func (q *Queries) ListThreads(ctx context.Context, since time.Time) ([]ListThreadsRow, error) {
-	rows, err := q.db.Query(ctx, listThreads, since)
+func (q *Queries) ListThreads(ctx context.Context, arg ListThreadsParams) ([]ListThreadsRow, error) {
+	rows, err := q.db.Query(ctx, listThreads, arg.Since, arg.Account, arg.Team)
 	if err != nil {
 		return nil, err
 	}

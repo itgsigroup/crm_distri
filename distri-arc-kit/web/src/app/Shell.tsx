@@ -103,7 +103,8 @@ export function Shell() {
   const { data: me } = useMe()
   const { data: health } = useHealth()
   const now = useNow()
-  const { data: dealers } = useOrbit()
+  // Chat does not need the full dealer board; loading it here kept the global first-load popup on "Memuat orbit…".
+  const { data: dealers } = useOrbit(undefined, cur !== 'chat')
   // unread chats from the numbers' counts (/wa/status), never by loading every chat on every page (Sam 19 Oct: slow)
   const { data: wa } = useWAStatus()
   const unread = me?.screens.includes('chat') ? wa?.items.reduce((a, n) => a + (n.unread_count ?? 0), 0) : undefined

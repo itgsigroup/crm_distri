@@ -226,6 +226,8 @@ left join lateral (
 ) lm on true
 -- only conversations active in the chat window (CHAT_WINDOW_DAYS, 14): older ones stay stored, not listed
 where t.last_message_at >= sqlc.arg(since)::timestamptz
+  and (sqlc.narg(account)::text is null or t.account = sqlc.narg(account)::text)
+  and (sqlc.narg(team)::text is null or coalesce(n.team, 'sales') = sqlc.narg(team)::text)
 -- newest conversation first, like WhatsApp (the kind tabs filter; ordering by kind buried today's chats)
 order by t.last_message_at desc nulls last, t.id;
 

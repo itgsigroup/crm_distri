@@ -30,7 +30,7 @@ export const useDealers = (term = '', type = '') =>
   })
 export const useDealer = (id: string | undefined) =>
   useQuery({ queryKey: ['dealer', id], enabled: !!id, queryFn: () => api.get<DealerDetail>(`/dealers/${id}`) })
-export const useOrbit = (sales?: string) => useQuery({ queryKey: ['orbit', sales ?? 'all'], queryFn: () => api.get<Items<BoardItem>>('/orbit' + q(sales)).then((r) => r.items) })
+export const useOrbit = (sales?: string, enabled = true) => useQuery({ queryKey: ['orbit', sales ?? 'all'], enabled, queryFn: () => api.get<Items<BoardItem>>('/orbit' + q(sales)).then((r) => r.items) })
 export const useOrbitSummary = (sales?: string) =>
   useQuery({ queryKey: ['orbit', 'summary', sales ?? 'all'], queryFn: () => api.get<{ items: StatusSummary[]; prospects: number }>('/orbit/summary' + q(sales)) })
 export const useOrbitMovers = (sales?: string) =>

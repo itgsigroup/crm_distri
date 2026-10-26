@@ -200,14 +200,27 @@ func (s *Server) chatSince() time.Time {
 
 func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 	term := strings.TrimSpace(r.URL.Query().Get("q"))
+	account := wa.Digits(r.URL.Query().Get("account"))
+	team := strings.TrimSpace(r.URL.Query().Get("team"))
+	var accountFilter, teamFilter *string
+	if account != "" {
+		accountFilter = &account
+	}
+	if team != "" {
+		teamFilter = &team
+	}
+	query := func(ctx context.Context, since time.Time) ([]gen.ListThreadsRow, error) {
+		return s.st.Q.ListThreads(ctx, gen.ListThreadsParams{Since: since, Account: accountFilter, Team: teamFilter})
+	}
 	var rows []gen.ListThreadsRow
 	var err error
 	if r.URL.Query().Get("all") == "1" && len([]rune(term)) >= 2 {
 		// a search reaches every stored conversation, not only the chat window: an older customer is still found
-		rows, err = s.st.Q.ListThreads(r.Context(), time.Time{})
+		rows, err = query(r.Context(), time.Time{})
 	} else {
-		rows, err = s.threads.get(r.Context(), func(ctx context.Context) ([]gen.ListThreadsRow, error) {
-			return s.st.Q.ListThreads(ctx, s.chatSince())
+		key := account + "\x00" + team
+		rows, err = s.threads.getKey(r.Context(), key, func(ctx context.Context) ([]gen.ListThreadsRow, error) {
+			return query(ctx, s.chatSince())
 		})
 	}
 	if err != nil {
@@ -215,8 +228,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tab := r.URL.Query().Get("tab")
-	account := wa.Digits(r.URL.Query().Get("account"))
-	team := r.URL.Query().Get("team") // the conversations of one team's numbers
+	// Account/team already narrowed the database query; these checks remain as defense in depth.
 	match := threadMatcher(term)
 	u, _ := CurrentUser(r.Context())
 	viewer, err := s.chatViewerOf(r.Context(), u)
@@ -716,7 +728,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"thread": map[string]any{
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "phone_name": deref(t.PhoneName), "dealer_id": deref(t.DealerSlug),
 		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "sender_name": t.SenderName, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread, "mentioned": t.Mentioned,
-		"phone": phoneOfJID(t.WaJid), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
+		"phone": phoneOfJID(t.WaJid), "account": deref(t.Account), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
 		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "branch": t.ThreadBranch, "contact_type": t.ContactType, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),
 		"labels": convLabels,
 	}, "messages": out, "pins": pins, "stock_as_of": stockAsOf(r.Context(), s, out), "has_more": hasMore, "history_from": historyFrom, "history_days": keepDays})

@@ -10,15 +10,13 @@ import (
 	"distri-arc/internal/store/gen"
 )
 
-// threadList shares one ListThreads query among the chat lists asked for while it runs. The query costs ~1.7 s
-// (3,900 threads, each with its waiting-since and last message); every open Chat tab refetches the list on each
-// new message, and during a history sync those refetches piled up into 10–18 s responses on a 2-CPU server
-// (15 Oct). A request never joins a query that started before the latest chat change, so the list it gets is
-// never older than the event that made it ask; nothing is kept once the query is done.
+// threadList shares each filtered ListThreads query while it runs. A request never joins a query that started
+// before the latest chat change, so the list it gets is never older than the event that made it ask; nothing is
+// kept once the query is done.
 type threadList struct {
-	mu   sync.Mutex
-	gen  uint64 // bumped by every chat change the hub relays
-	call *threadCall
+	mu    sync.Mutex
+	gen   uint64 // bumped by every chat change the hub relays
+	calls map[string]*threadCall
 }
 
 type threadCall struct {
@@ -41,10 +39,11 @@ func (l *threadList) changed(e events.Event) {
 func (l *threadList) waiting() int {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.call == nil {
-		return 0
+	n := 0
+	for _, c := range l.calls {
+		n += c.waiters
 	}
-	return l.call.waiters
+	return n
 }
 
 // afterWrite: a change made through the API (read, send, contact type, …) also ends sharing, once it is stored —
@@ -61,23 +60,33 @@ func (l *threadList) afterWrite(next http.Handler) http.Handler {
 func (l *threadList) bump() {
 	l.mu.Lock()
 	l.gen++
+	l.calls = nil
 	l.mu.Unlock()
 }
 
 func (l *threadList) get(ctx context.Context, q func(context.Context) ([]gen.ListThreadsRow, error)) ([]gen.ListThreadsRow, error) {
+	return l.getKey(ctx, "", q)
+}
+
+// getKey shares a query only with requests for the same account/team filter. The full list used
+// to be loaded before those filters were applied, making one person's chat page pay for every thread.
+func (l *threadList) getKey(ctx context.Context, key string, q func(context.Context) ([]gen.ListThreadsRow, error)) ([]gen.ListThreadsRow, error) {
 	l.mu.Lock()
-	c := l.call
+	c := l.calls[key]
 	if c == nil || c.gen != l.gen {
 		c = &threadCall{gen: l.gen, done: make(chan struct{})}
-		l.call = c
+		if l.calls == nil {
+			l.calls = make(map[string]*threadCall)
+		}
+		l.calls[key] = c
 		go func() {
 			// not the asker's context: one tab closing must not fail the others waiting on the same query
 			qctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
 			defer cancel()
 			c.rows, c.err = q(qctx)
 			l.mu.Lock()
-			if l.call == c {
-				l.call = nil
+			if l.calls[key] == c {
+				delete(l.calls, key)
 			}
 			l.mu.Unlock()
 			close(c.done)

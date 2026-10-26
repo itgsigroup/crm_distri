@@ -1336,24 +1336,22 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
   const { data: ctx } = useChatContext(id)
   const { data: th } = useThread(id)
   const { data: wa } = useWAStatus()
-  const { data: list = [] } = useThreads('all')
   const qc = useQueryClient()
   const nav = useNavigate()
   const { openSheet, toast } = useFeedback()
   const [tab, setTab] = useState<LeadTab>('main')
   if (!ctx || !th) return <div className={`pane ibp${mini ? ' mini' : ''}`} />
   const t = th.thread
-  const tv = list.find((x) => x.id === id)
   const d = ctx.dealer
   const idf = ctx.identification
   const group = t.kind === 'group'
-  const customerGroup = (t.group_kind ?? tv?.group_kind) === 'external'
+  const customerGroup = t.group_kind === 'external'
   const groupLabel = customerGroup ? 'Grup pelanggan' : 'Grup internal'
   const kindLabel = t.kind === 'dealer' ? 'Dealer' : group ? groupLabel : 'Lead'
   const stage = d ? d.metrics.status : t.kind === 'new' ? (idf ? 'Teridentifikasi' : 'Lead baru') : groupLabel
   const tone = d ? STATUS_TONE[d.metrics.status] ?? 'accent' : t.kind === 'new' ? 'accent' : 'neutral'
   const filled = d ? Math.max(1, Math.round((d.metrics.score / 100) * 7)) : t.kind === 'new' ? (idf ? Math.max(2, Math.round((idf.score / 100) * 7)) : 1) : 0
-  const num = wa?.items.find((n) => n.wa_number === tv?.account)
+  const num = wa?.items.find((n) => n.wa_number === t.account)
   // only a proposal (written by Claude through MCP, ADR 0032) — no rule or template text
   const recommendation = d?.next?.title ?? null
   const warn = d
