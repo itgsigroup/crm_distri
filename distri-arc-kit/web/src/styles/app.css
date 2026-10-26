@@ -883,7 +883,7 @@ body.map-maximized{overflow:hidden}
 .aio-props .aio-tl-h b{font-size:12.5px;color:var(--text);margin-right:auto}
 .ibp-note{margin:0;font-size:11.5px;line-height:1.5;color:var(--text-3)}
 /* conversation */
-.ibc-h{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+.ibc-h{position:sticky;top:0;z-index:8;display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface)}
 .ibc-h .back{display:none}
 .ibc-who{min-width:0;flex:1 1 240px;display:flex;flex-direction:column;gap:3px}
 .ibc-name{display:flex;align-items:center;gap:8px;min-width:0}
@@ -1753,7 +1753,7 @@ body.map-maximized{overflow:hidden}
 .dk-effort button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .dk-effort button:disabled{opacity:.6;cursor:default}
 
-/* Chat fills the screen (Sam 17 Oct, laptop 1366×650): a compact page header, a slimmer numbers bar and composer, so
+/* Chat fills the screen (Sam 17 Oct, laptop 1366×650): a compact page header, a slim account picker and composer, so
  * the conversation gets the height — nothing is removed, only tightened */
 @media (min-width:901px){
   .stage:has(.chat.komo){padding-bottom:10px}
@@ -2074,17 +2074,38 @@ p.scr-ai.empty>.i{display:inline-block;vertical-align:-2px;margin-right:6px;widt
 .ibc-zoom button:disabled{opacity:.35;cursor:default}
 .ibc-zoom .ibc-zoom-pct{min-width:46px;padding:0 4px;font-size:12px;color:var(--text-2);font-variant-numeric:tabular-nums}
 
-/* Chat (20 Oct): the numbers bar sits in the page header next to "Chat"; Analisa WhatsApp · MCP sits next to the Orchestrator */
-.tb-chat{flex:1 1 auto;min-width:0;display:flex}
-.tb-chat .wa-rail{flex:1 1 auto;min-width:0;box-shadow:none;background:transparent;grid-column:auto}
+/* Chat (20 Oct): the account picker sits next to "Chat"; Analisa WhatsApp · MCP sits next to the Orchestrator */
+.tb-chat{position:relative;z-index:24;flex:0 0 auto;min-width:0;display:flex}
 .chat.multi.rail-out{grid-template-rows:minmax(0,1fr)}
 .topbar:has(.tb-chat){gap:14px}
+.wa-picker{position:relative;min-width:0}
+.wa-picker-trigger{display:inline-flex;align-items:center;gap:8px;max-width:min(260px,42vw);height:34px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text-2);box-shadow:var(--shadow);font-size:12px;cursor:pointer}
+.wa-picker-trigger:hover,.wa-picker.is-open .wa-picker-trigger{border-color:var(--accent);background:var(--accent-soft)}
+.wa-picker-trigger .dot{width:8px;height:8px}
+.wa-picker-label{color:var(--text-3);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.wa-picker-trigger b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:12px;font-weight:650}
+.wa-picker-chevron{width:13px;height:13px;transform:rotate(180deg);color:var(--text-3)}
+.wa-picker.is-open .wa-picker-chevron{transform:none}
+.wa-picker-unread{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--good);color:#fff;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}
+.wa-picker-menu{position:absolute;top:calc(100% + 8px);left:0;z-index:50;width:min(330px,calc(100vw - 28px));max-height:min(68dvh,540px);overflow:auto;padding:6px;border:1px solid var(--line);border-radius:13px;background:var(--surface);box-shadow:var(--shadow-lift)}
+.wa-picker-team+.wa-picker-team{margin-top:5px;padding-top:5px;border-top:1px solid var(--line)}
+.wa-picker-team-title{display:block;padding:5px 8px 4px;color:var(--text-3);font-size:9.5px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+.wa-picker-option{display:flex;align-items:center;gap:9px;width:100%;min-width:0;padding:7px 8px;border-radius:8px;text-align:left;color:var(--text-2)}
+.wa-picker-option:hover,.wa-picker-option.is-active{background:var(--accent-soft);color:var(--text)}
+.wa-picker-option.is-off{opacity:.68}
+.wa-picker-option .dot{width:8px;height:8px;flex:none}
+.wa-picker-option-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:1px}
+.wa-picker-option-copy b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:650}
+.wa-picker-option-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-3);font-size:10.5px}
+.wa-picker-add{display:flex;align-items:center;gap:8px;width:100%;margin-top:5px;padding:8px;border-top:1px solid var(--line);color:var(--accent);font-size:12px;font-weight:650;text-align:left}
+.wa-picker-add span{font-size:18px;line-height:1}
+.wa-picker-empty{padding:10px 8px;color:var(--text-3);font-size:12px}
 .ibc-name .orch-pill{height:26px;padding:0 10px 0 8px;font-size:11.5px;box-shadow:none;border:1px solid var(--line);flex:0 1 auto;min-width:0}
 .ibc-name .orch-pill .op-t{overflow:hidden;text-overflow:ellipsis;min-width:0}
-@media (min-width:901px){.chat.komo.rail-out{height:calc(100dvh - 88px)}}
+@media (min-width:901px){.chat.komo.rail-out{height:calc(100dvh - 98px)}}
 @media (max-width:900px){
-  .tb-chat{flex-basis:100%;order:2}
-  .stage:has(.chat.show-thread) .tb-chat{display:none}
+  .tb-chat{flex:0 0 auto;order:0}
+  .wa-picker-trigger{height:32px;max-width:min(220px,50vw);gap:6px;padding:0 8px}
   .ibc-name .orch-pill .op-next{display:none}
 }
 

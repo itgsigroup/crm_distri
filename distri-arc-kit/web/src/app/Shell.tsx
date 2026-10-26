@@ -119,7 +119,7 @@ export function Shell() {
     if (me && !canSee(me.screens, cur) && loc.pathname !== '/claude/izin') nav('/', { replace: true })
   }, [me, cur, nav, loc.pathname])
   const [menu, setMenu] = useState(false)
-  const [topbarSlot, setTopbarSlot] = useState<HTMLElement | null>(null) // Chat's numbers bar renders here
+  const [topbarSlot, setTopbarSlot] = useState<HTMLElement | null>(null) // Chat's account picker renders here
   const { collapsed, setCollapsed } = useAppearance()
   const { subscribe } = useSse()
   useEffect(

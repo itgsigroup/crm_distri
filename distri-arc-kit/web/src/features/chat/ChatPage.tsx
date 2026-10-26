@@ -1631,7 +1631,7 @@ export function ChatPage() {
   if (threadId && kept !== threadId) setKept(threadId)
   const active = threadId ?? kept
   const leave = () => { setKept(undefined); nav('/chat') }
-  // the numbers bar goes in the page header next to "Chat" (20 Oct), when the header has its slot
+  // the account picker goes in the page header next to "Chat", when the header has its slot
   const slot = useOutletContext<ShellContext | undefined>()?.topbarSlot ?? null
   const numbers = <NumberRail account={account} setAccount={setAccount} />
   const rail = slot ? createPortal(numbers, slot) : numbers

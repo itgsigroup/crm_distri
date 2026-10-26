@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { ApiError, api } from '../../api/client'
@@ -35,9 +35,6 @@ export const phoneOf = (n: WANumber) => {
   const r = d.slice(2)
   return `+62 ${r.slice(0, 3)}-${r.slice(3, 7)}-${r.slice(7)}`
 }
-
-/** Short name under the avatar in the number rail: the holder's first name, else the last digits. */
-const railName = (n: WANumber) => (n.user_name || n.label || n.sales ? labelOf(n).split(/\s+/)[0] : '…' + n.wa_number.slice(-4))
 
 /** "Sales Telemarketing · Semarang" — who holds the number, for subtitles and tooltips. */
 export const holderOf = (n: WANumber) => [n.user_role || (n.sales_id ? 'Sales' : ''), n.user_branch || n.branch].filter(Boolean).join(' · ')
@@ -312,52 +309,67 @@ export function ConnectPanel() {
   )
 }
 
-const HUES = [210, 152, 28, 280, 340, 190, 45, 120]
-const hueOf = (s: string) => HUES[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % HUES.length]
-const initialsOf = (n: WANumber) => !(n.user_name || n.label || n.sales) ? '?' : labelOf(n).replace(/^(Pak|Bu|Mbak|Mas)\s+/, '').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '#'
 const STATE_DOT: Record<string, string> = { connected: 'good', pairing: 'warn', disconnected: 'bad', logged_out: 'bad', unpaired: 'neutral' }
 
-/** The WhatsApp numbers of the team, like accounts in WhatsApp Business: pick one to see its chats, see which are
- * linked and their unread counts, link one that is not, add more. No "Semua" and no team totals (Sam 19 Oct): loading
- * every number's chats at once made Chat slow — the team names (Sales, Admin, Penagihan) only group the numbers. The
- * unread counts come with the numbers (/wa/status), never from loading the chats. */
+/** A compact selector for the team's WhatsApp accounts, grouped by team with connection state and unread counts. */
 export function NumberRail({ account, setAccount }: { account: string; setAccount: (a: string) => void }) {
   const { data } = useWAStatus()
   const { data: me } = useMe()
   const { openSheet } = useFeedback()
+  const [open, setOpen] = useState(false)
+  const picker = useRef<HTMLDivElement>(null)
   const canAdd = (!!me?.screens.includes('users') && me?.chat_scope !== 'own') || (me?.wa_allowed !== false && !(data?.items ?? []).some((n) => n.mine))
   const items = data?.items ?? []
+  const selected = items.find((n) => n.wa_number === account)
   const pick = (n: WANumber) => {
+    setOpen(false)
     if (n.state !== 'connected' && data?.transport !== 'fake') openSheet(<PairSheet wa={n.wa_number} />)
     else setAccount(n.wa_number)
   }
   const teams = TEAMS.map(([k, label]) => ({ k, label, nums: items.filter((n) => (n.team ?? 'sales') === k) })).filter((t) => t.nums.length > 0)
+  useEffect(() => {
+    if (!open) return
+    const outside = (e: PointerEvent) => { if (!picker.current?.contains(e.target as Node)) setOpen(false) }
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', outside)
+    window.addEventListener('keydown', key)
+    return () => {
+      document.removeEventListener('pointerdown', outside)
+      window.removeEventListener('keydown', key)
+    }
+  }, [open])
   return (
-    <nav className="wa-rail" aria-label="Nomor WhatsApp">
-      {teams.map((t, i) => (
-        <div key={t.k} className={`wr-team team-${t.k}`} role="group" aria-label={`Tim ${t.label}`}>
-          {i > 0 && <span className="wr-sep" />}
-          <span className="wr-th">{t.label}</span>
-          {t.nums.map((n) => {
-            const un = n.unread_count ?? 0
-            return (
-              <button key={n.wa_number} className={`wr-i ${account === n.wa_number ? 'is-active' : ''} ${n.state !== 'connected' ? 'off' : ''}`} onClick={() => pick(n)}
-                title={`${labelOf(n)} · Tim ${t.label}${holderOf(n) ? ` · ${holderOf(n)}` : ''} · ${phoneOf(n)} · ${STATE[n.state]?.[0] ?? n.state}${n.state !== 'connected' ? ' — klik untuk menautkan' : ''}`}>
-                <span className="wr-av" style={{ background: `hsl(${hueOf(n.wa_number)} 62% 46%)` }}>{initialsOf(n)}</span>
-                <span className={`dot ${STATE_DOT[n.state] ?? 'neutral'}`} />
-                {un > 0 && <span className="wr-un">{un > 99 ? '99+' : un}</span>}
-                <span className="wr-l">{railName(n)}</span>
-              </button>
-            )
-          })}
+    <div ref={picker} className={`wa-picker${open ? ' is-open' : ''}`}>
+      <button type="button" className="wa-picker-trigger" aria-label="Pilih pengguna WhatsApp" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <span className="wa-picker-label">Pengguna</span>
+        {selected && <span className={`dot ${STATE_DOT[selected.state] ?? 'neutral'}`} />}
+        <b>{selected ? labelOf(selected) : data ? 'Pilih nomor' : 'Memuat…'}</b>
+        {!!selected?.unread_count && <span className="wa-picker-unread">{selected.unread_count > 99 ? '99+' : selected.unread_count}</span>}
+        <Icon name="chev" className="i wa-picker-chevron" />
+      </button>
+      {open && (
+        <div className="wa-picker-menu" role="menu" aria-label="Pilih pengguna atau nomor WhatsApp">
+          {teams.map((t) => (
+            <div key={t.k} className="wa-picker-team" role="group" aria-label={`Tim ${t.label}`}>
+              <span className="wa-picker-team-title">{t.label}</span>
+              {t.nums.map((n) => {
+                const un = n.unread_count ?? 0
+                return (
+                  <button key={n.wa_number} type="button" role="menuitem" className={`wa-picker-option${account === n.wa_number ? ' is-active' : ''}${n.state !== 'connected' ? ' is-off' : ''}`} onClick={() => pick(n)}
+                    title={`${labelOf(n)} · ${phoneOf(n)}${holderOf(n) ? ` · ${holderOf(n)}` : ''}`}>
+                    <span className={`dot ${STATE_DOT[n.state] ?? 'neutral'}`} />
+                    <span className="wa-picker-option-copy"><b>{labelOf(n)}</b><small>{teamName(n.team)}{holderOf(n) ? ` · ${holderOf(n)}` : ''} · {STATE[n.state]?.[0] ?? n.state}</small></span>
+                    {un > 0 && <span className="wa-picker-unread">{un > 99 ? '99+' : un}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+          {canAdd && <button type="button" role="menuitem" className="wa-picker-add" onClick={() => { setOpen(false); openSheet(<LinkSheet />) }}><span>＋</span>Hubungkan nomor</button>}
+          {teams.length === 0 && <p className="wa-picker-empty">Belum ada nomor WhatsApp.</p>}
         </div>
-      ))}
-      {canAdd && (
-        <button className="wr-i add" onClick={() => openSheet(<LinkSheet />)} title="Hubungkan nomor WhatsApp baru (scan)">
-          <span className="wr-av">+</span><span className="wr-l">Nomor</span>
-        </button>
       )}
-    </nav>
+    </div>
   )
 }
 
