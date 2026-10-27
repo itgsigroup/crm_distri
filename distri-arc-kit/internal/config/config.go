@@ -30,6 +30,7 @@ type Config struct {
 	WAReplyDelay   string // "2s-6s"
 	WABackfillDays int
 	ChatWindowDays int // what Chat loads and what is downloaded from the phones; older chats stay stored
+	ChatOpenDays   int // what an opened chat loads at first (a month); older messages come on scrolling up
 	WACloudNumber  string
 	WACloudPhoneID string
 	WACloudToken   string
@@ -110,6 +111,7 @@ func Load() Config {
 		ChatBackupDir:        get("CHAT_BACKUP_DIR", "/var/lib/distri-arc/chat-backup"),
 		ChatBackupKeepMonths: atoi(get("CHAT_BACKUP_KEEP_MONTHS", "12")),
 		ChatWindowDays:       atoi(get("CHAT_WINDOW_DAYS", "14")),
+		ChatOpenDays:         atoi(get("CHAT_OPEN_DAYS", "30")),
 	}
 	// the phones are asked for no more history than Chat shows (a year of backfill kept the server busy, 15 Oct)
 	if c.ChatWindowDays > 0 && (c.WABackfillDays <= 0 || c.WABackfillDays > c.ChatWindowDays) {

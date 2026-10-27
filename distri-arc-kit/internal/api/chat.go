@@ -240,6 +240,19 @@ func (s *Server) chatSince() time.Time {
 	return s.clock.Now().AddDate(0, 0, -s.cfg.ChatWindowDays)
 }
 
+// chatOpenSince is where an opened conversation starts: the last CHAT_OPEN_DAYS (a month, Sam 27 Oct), within the
+// chat window — a year of bubbles at once made the chat slow on slower laptops.
+func (s *Server) chatOpenSince() time.Time {
+	since := s.chatSince()
+	if s.cfg.ChatOpenDays <= 0 {
+		return since
+	}
+	if open := s.clock.Now().AddDate(0, 0, -s.cfg.ChatOpenDays); open.After(since) {
+		return open
+	}
+	return since
+}
+
 func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 	term := strings.TrimSpace(r.URL.Query().Get("q"))
 	account := wa.Digits(r.URL.Query().Get("account"))
@@ -617,9 +630,9 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	// The first page is the chat window (CHAT_WINDOW_DAYS, 14): opening a chat loads two weeks, not a year of it.
+	// The first page is the last month (CHAT_OPEN_DAYS, within CHAT_WINDOW_DAYS), not everything stored.
 	// Older messages stay stored and come in pages of olderPageSize when the user scrolls up.
-	before, lim, since := s.clock.Now().Add(24*365*time.Hour), int32(threadPageSize), s.chatSince()
+	before, lim, since := s.clock.Now().Add(24*365*time.Hour), int32(threadPageSize), s.chatOpenSince()
 	if b := r.URL.Query().Get("before"); b != "" {
 		if x, err := time.Parse(time.RFC3339, b); err == nil {
 			before, lim, since = x, olderPageSize, time.Time{}

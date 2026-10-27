@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Perf · Chat yang dibuka memuat 1 bulan terakhir · 2026-10-27
+- Membuka chat kini hanya memuat pesan **30 hari terakhir**, bukan seluruh riwayat yang tersimpan. Pesan lebih lama muncul saat digulir ke atas. Chat yang sebulan terakhir sepi tetap terbuka dengan 30 pesan terakhirnya.
+- Daftar chat, Cari chat, Statistik, dan Report tidak berubah. Bisa diatur lewat `CHAT_OPEN_DAYS` (bawaan 30; ADR 0068).
+- Test: `TestChatOpensLastMonth`.
+
 ## Fix · Mengetik di Chat tidak lagi lambat di laptop yang lebih pelan · 2026-10-27
 - Pengguna laptop ThinkPad melaporkan ketikan terasa lambat di Chat; di MacBook tidak terasa. Penyebabnya, setiap huruf di kotak balasan menggambar ulang semua bubble chat yang terbuka (bisa setahun pesan) dan seluruh daftar chat di kiri (penanda "Draf: …").
 - Sekarang bubble tidak digambar ulang saat mengetik, draf disimpan setelah jeda 400 ms (tetap tersimpan saat pindah chat atau mulai edit), dan kotak "Cari chat" menampilkan huruf seketika sementara daftar menyusul.

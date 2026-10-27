@@ -1039,7 +1039,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const messages = useMemo(() => [...older, ...(data?.messages ?? [])], [older, data?.messages])
   if (!data) return <div className="pane th-pane ibc" />
   const t = data.thread
-  // The first page already holds the whole retention window (a year); a very busy chat pages on by itself.
+  // The first page holds the last month (CHAT_OPEN_DAYS); older messages come in pages on scrolling up.
   const more = (older.length ? olderMore : !!data.has_more) && messages.length > 0
   const loadOlder = () => {
     if (!more || loading) return

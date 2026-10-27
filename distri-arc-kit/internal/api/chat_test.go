@@ -247,6 +247,43 @@ func TestChatWindow(t *testing.T) {
 	}
 }
 
+// An opened chat loads its last month (CHAT_OPEN_DAYS), not the whole chat window; older messages come on scrolling
+// up, and the list still holds every conversation of the window.
+func TestChatOpensLastMonth(t *testing.T) {
+	st := testdb.New(t)
+	ctx := context.Background()
+	h := api.New(config.Config{Env: "dev", ChatWindowDays: 90, ChatOpenDays: 30}, st, clock.Fixed(time.Now()), slog.New(slog.NewTextHandler(io.Discard, nil))).Handler()
+	srv := httptest.NewServer(h)
+	t.Cleanup(srv.Close)
+	if _, err := seed.Run(ctx, st, db.Seed); err != nil {
+		t.Fatal(err)
+	}
+	var id string
+	if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('new', '6281300000301@s.whatsapp.net', 'Bulan', '6281234504471', now() - interval '1 day') returning id").Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	for wid, ago := range map[string]string{"M60": "60 days", "M20": "20 days", "M1": "1 day"} {
+		if _, err := st.Pool.Exec(ctx, "insert into chat_messages (thread_id, wa_msg_id, direction, body, sent_at, status) values ($1, $2, 'in', $2, now() - $3::interval, 'received')", id, wid, ago); err != nil {
+			t.Fatal(err)
+		}
+	}
+	bodies := func(out map[string]any) []string {
+		var b []string
+		for _, m := range out["messages"].([]any) {
+			b = append(b, m.(map[string]any)["body"].(string))
+		}
+		return b
+	}
+	_, page := get(t, srv, "/api/chat/threads/"+id, "sam@gsi.co.id")
+	if b := bodies(page); len(b) != 2 || b[0] != "M20" || b[1] != "M1" || page["has_more"] != true {
+		t.Fatalf("first page %v has_more %v (want the last month and more on scroll)", b, page["has_more"])
+	}
+	first := page["messages"].([]any)[0].(map[string]any)["sent_at"].(string)
+	if _, older := get(t, srv, "/api/chat/threads/"+id+"?before="+url.QueryEscape(first), "sam@gsi.co.id"); len(bodies(older)) != 1 || bodies(older)[0] != "M60" {
+		t.Fatalf("older page %v", bodies(older))
+	}
+}
+
 // A name given in Chat belongs to the number: every one-to-one conversation with it shows and finds it, and a name
 // the phone reports later does not overwrite it.
 func TestThreadAliasByNumber(t *testing.T) {
