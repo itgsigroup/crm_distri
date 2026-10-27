@@ -1690,6 +1690,9 @@ export function ChatPage() {
   const [picked, setPicked] = useState('')
   const account = picked || defaultAccount(wa?.items ?? [])
   const [kept, setKept] = useState<string | undefined>(undefined)
+  // the chat being closed (Esc, the back arrow): the address still names it for a render or two until the router
+  // moves to /chat — it is neither kept again nor shown meanwhile
+  const [closing, setClosing] = useState<string | undefined>(undefined)
   const accountChanged = useRef(false)
   const setAccount = (a: string) => {
     if (a !== account) {
@@ -1712,8 +1715,9 @@ export function ChatPage() {
   const { openSheet } = useFeedback()
   const { data: list, isSuccess } = useThreads('all', account, !!account)
   // Keep a selected chat while filters change, but never carry it over to another WhatsApp account.
-  if (threadId && kept !== threadId && !accountChanged.current) setKept(threadId)
-  const candidate = threadId ?? kept
+  if (closing && threadId !== closing) setClosing(undefined)
+  if (threadId && threadId !== closing && kept !== threadId && !accountChanged.current) setKept(threadId)
+  const candidate = threadId && threadId === closing ? undefined : threadId ?? kept
   const { data: selectedThread } = useThread(candidate)
   const selectedTeam = account.startsWith('team:') ? account.slice(5) : ''
   const accountMismatch = !!account && !!selectedThread && (selectedTeam
@@ -1726,7 +1730,12 @@ export function ChatPage() {
     setKept(undefined)
     if (threadId) nav('/chat', { replace: true })
   }, [accountMismatch, candidate, nav, threadId])
-  const leave = () => { setKept(undefined); nav('/chat') }
+  // closing the chat (Esc, the back arrow) forgets the kept one too, or it would stay open at /chat
+  const leave = () => {
+    setClosing(threadId)
+    setKept(undefined)
+    nav('/chat')
+  }
   // the account picker goes in the page header next to "Chat", when the header has its slot
   const slot = useOutletContext<ShellContext | undefined>()?.topbarSlot ?? null
   const numbers = <NumberRail account={account} setAccount={setAccount} />
@@ -1758,7 +1767,7 @@ export function ChatPage() {
       <ThreadList list={list ?? []} loaded={isSuccess} filter={filter} setFilter={setFilter} account={account} active={active} onPick={(id) => { accountChanged.current = false; nav('/chat/' + id) }}
         onHit={(h) => { accountChanged.current = false; nav(`/chat/${h.thread_id}?${new URLSearchParams({ m: h.id, at: h.sent_at })}`) }} onLeave={leave} />
       {active && <LeadPane key={'l' + active} id={active} mini={!lead} setMini={(v) => setLead(!v)} onAccurate={accurate} />}
-      {active ? <ThreadPane key={active} id={active} picked={!!threadId} onBack={() => nav('/chat')} lead={lead} setLead={setLead} onAccurate={accurate} /> : (
+      {active ? <ThreadPane key={active} id={active} picked={!!threadId} onBack={leave} lead={lead} setLead={setLead} onAccurate={accurate} /> : (
         <div className="pane th-pane th-none"><Icon name="chat" /><b>Pilih chat</b><span>Klik salah satu percakapan di daftar untuk membukanya.</span></div>
       )}
     </div>

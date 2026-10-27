@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Esc benar-benar menutup chat dan panel Lead · 2026-10-27
+- Sebelumnya, Esc (dan tombol kembali) mengubah alamat ke `/chat`, tetapi chat dan panel Lead tetap tampil. Penyebabnya, halaman menyimpan chat terakhir supaya tetap terbuka saat filter diganti, dan chat itu tersimpan lagi sebelum alamat selesai berubah.
+- Sekarang chat yang ditutup tidak disimpan ulang, dan halaman langsung menampilkan "Pilih chat". Dicek di browser: Esc dari kotak balasan dan dari area pesan, Esc pertama membatalkan balasan, chat yang sama bisa dibuka lagi, Back browser, dan chat tetap terbuka saat filter diganti.
+
 ## Fix · Navbar tidak lagi menutupi panel Lead dan header chat · 2026-10-27
 - Saat chat dibuka, navbar atas ("Chat · Pengguna") membentang di atas seluruh halaman dan menutupi header panel Lead dan header percakapan. Keduanya tampak pudar dan tombolnya (telepon, label, zoom, cari, Accurate, muat ulang Lead) tidak bisa diklik.
 - Sekarang navbar hanya menumpang di atas kolom daftar chat, selebar kolom itu (termasuk lebar yang diubah dengan menarik pembatas). Dicek di 1440, 1215, dan 1024 px.
