@@ -204,6 +204,13 @@ func (s *Server) loggedOutNumbers(ctx context.Context) (map[string]bool, error) 
 	return out, rows.Err()
 }
 
+// forReports is the viewer for Report WhatsApp and Analisa WhatsApp: a logged-out number's history stays counted
+// there (Sam 27 Oct) — the lock only hides it from Chat.
+func (v chatViewer) forReports() chatViewer {
+	v.locked = nil
+	return v
+}
+
 // lockedOut reports whether a conversation is hidden because its number is logged out.
 func (v chatViewer) lockedOut(account *string) bool {
 	return account != nil && v.locked[*account]

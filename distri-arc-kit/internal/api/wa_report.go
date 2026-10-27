@@ -48,6 +48,7 @@ func (s *Server) waReport(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	viewer = viewer.forReports() // a logged-out number's chats still count in reports
 	rows, err := s.st.Q.WAWindowMessages(ctx, gen.WAWindowMessagesParams{Since: since, Until: now})
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())

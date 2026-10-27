@@ -93,6 +93,7 @@ func (s *Server) waAnalysis(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	viewer = viewer.forReports() // a logged-out number's chats still count in reports
 	// Penagihan reads only the conversations of the number it holds (ADR 0033)
 	ownNumbers := viewer.accounts != nil
 	ids := make([]uuid.UUID, 0, len(rows))

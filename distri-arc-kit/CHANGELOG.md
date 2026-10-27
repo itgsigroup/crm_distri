@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Laporan tetap menghitung chat dari nomor yang logout · 2026-10-27
+- Kunci riwayat chat untuk nomor WhatsApp yang logout kini hanya berlaku di **Chat** (daftar, isi percakapan, pencarian, label). **Report WhatsApp** dan **Analisa WhatsApp** tetap menghitung chat lama dari nomor itu, dengan batas akses per pengguna yang sama seperti biasa.
+- Test: `TestWAReport` (laporan CEO dan sales tetap lengkap saat nomor logout).
+
 ## Fix · WhatsApp logout: riwayat chat dikunci untuk semua dan pop-up tautkan ulang · 2026-10-27
 - Nomor WhatsApp yang logout dari perangkat tertaut **tidak menampilkan riwayat chat untuk siapa pun**, termasuk CEO/admin. Daftar chat, isi percakapan, pencarian, dan label disembunyikan sampai nomor ditautkan ulang. Nomor yang hanya sedang menyambung ulang tidak dikunci.
 - Begitu sebuah nomor logout, muncul **pop-up** "WhatsApp logout — nomor harus ditautkan ulang" dengan tombol **Tautkan ulang** (scan QR) atau **Nanti**. Pop-up muncul sekali per kejadian logout per sesi browser, sedangkan banner merah tetap tampil sampai nomor tersambung lagi.
