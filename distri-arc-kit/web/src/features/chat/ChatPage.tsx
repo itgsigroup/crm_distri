@@ -1677,6 +1677,13 @@ export function ChatPage() {
   // the chat list's width, dragged like a VS Code panel (Sam 22 Oct); null = the layout's default
   const [listW, setListW] = useState<number | null>(savedListWidth)
   const chatBox = useRef<HTMLDivElement>(null)
+  // the page header over the list column takes the list's width (a dragged width included)
+  useLayoutEffect(() => {
+    const stage = document.querySelector<HTMLElement>('.stage')
+    if (!stage || !listW) return
+    stage.style.setProperty('--list-w', `${listW}px`)
+    return () => { stage.style.removeProperty('--list-w') }
+  }, [listW])
   const [filter, setFilter] = useState<Filter>('all')
   // one number at a time (Sam 19 Oct: "Semua" loaded every number's chats and made Chat slow)
   const { data: wa } = useWAStatus()

@@ -740,6 +740,7 @@ body.map-maximized{overflow:hidden}
 .ibl-search{display:flex;align-items:center;gap:8px;margin:0 12px 8px;padding:0 12px;height:38px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)}
 .ibl-search .i{width:15px;height:15px;color:var(--text-3)}
 .ibl-search input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:13px;color:var(--text);outline:none}
+.ibl-busy{flex:none;font-size:11px;color:var(--text-3);white-space:nowrap}
 .ibl-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px;border-bottom:1px solid var(--line)}
 .ibl-chips::-webkit-scrollbar{display:none}
 .ibl-chips button{flex:none;display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 8px;border-radius:8px;border:1px solid var(--line-strong);font-size:12px;font-weight:600;color:var(--text-2);background:var(--surface)}
@@ -770,7 +771,6 @@ body.map-maximized{overflow:hidden}
 .ibw.bad{color:var(--warn)}
 .ibr-src{align-self:flex-start;display:inline-block;max-width:100%;font-size:10.5px;font-weight:500;color:var(--text-2);padding:1px 7px;border-radius:5px;border:1px solid var(--line-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ibr-lm{font-size:12.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ibl-busy{flex:none;font-size:11px;color:var(--text-3);white-space:nowrap}
 /* Cari chat: the "Chat" and "Pesan" result headings, as in WhatsApp */
 .ibl-sec{padding:10px 16px 4px;font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent)}
 .ibr-hit .ibr-lm .cs-mark{color:var(--text)}
@@ -1794,7 +1794,12 @@ body.map-maximized{overflow:hidden}
   .stage:has(.chat.komo) .topbar{flex:none;padding:8px 32px}
   .stage:has(.chat.komo)>.screen{display:flex;flex:1;min-height:0}
   .stage:has(.chat.komo.show-thread){position:relative}
-  .stage:has(.chat.komo.show-thread)>.topbar{position:absolute;top:0;left:0;right:0;padding:8px 32px}
+  /* the page header sits over the list column only: spanning the page it covered the lead panel's and the
+   * conversation's headers, whose buttons could not be clicked (27 Oct). --list-w is copied onto .stage by ChatPage */
+  .stage:has(.chat.komo.show-thread)>.topbar{position:absolute;top:0;left:0;right:auto;width:var(--list-w,320px);padding:8px 12px}
+  .stage:has(.chat.komo.show-thread)>.topbar .tb-chat{flex:1;min-width:0}
+  .stage:has(.chat.komo.show-thread)>.topbar .wa-picker-trigger{max-width:100%}
+  .stage:has(.chat.komo.show-thread)>.topbar .top-right{display:none}
   .chat.komo.show-thread .list-pane{padding-top:50px}
   .stage:has(.chat.komo) .topbar h1{font-size:20px}
   .stage:has(.chat.komo) .topbar .sub{display:none}
@@ -1813,6 +1818,7 @@ body.map-maximized{overflow:hidden}
   .chat.komo .ibc-c{gap:4px;padding:8px 12px 8px}
   .chat.komo .ibc-c .pol{font-size:10.5px;line-height:1.2}
 }
+@media (min-width:901px) and (max-width:1280px){.stage:has(.chat.komo.show-thread)>.topbar{width:var(--list-w,280px)}}
 
 /* Chat list "Ringkas tampilan" (Alt+R): one line of name + time, one of message; tags, source and labels hidden */
 .ibl-btn.on{background:var(--accent-soft);color:var(--accent)}

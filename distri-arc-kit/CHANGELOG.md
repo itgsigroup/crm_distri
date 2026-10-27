@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Navbar tidak lagi menutupi panel Lead dan header chat · 2026-10-27
+- Saat chat dibuka, navbar atas ("Chat · Pengguna") membentang di atas seluruh halaman dan menutupi header panel Lead dan header percakapan. Keduanya tampak pudar dan tombolnya (telepon, label, zoom, cari, Accurate, muat ulang Lead) tidak bisa diklik.
+- Sekarang navbar hanya menumpang di atas kolom daftar chat, selebar kolom itu (termasuk lebar yang diubah dengan menarik pembatas). Dicek di 1440, 1215, dan 1024 px.
+
 ## Feat · Esc menutup chat yang terbuka (seperti WhatsApp Web) · 2026-10-27
 - Tekan **Esc** untuk menutup percakapan yang sedang dibuka dan kembali ke tampilan "Pilih chat".
 - Urutannya seperti WhatsApp Web. Esc pertama menutup menu, sheet, gambar besar, daftar `/` atau `@`, atau membatalkan balas/edit/file. Esc berikutnya baru menutup chat. Esc di kotak teks lain (Cari chat, catatan) tidak menutup chat.
