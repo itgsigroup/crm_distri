@@ -298,6 +298,48 @@ func TestChatReplyFromAccountWithoutProfile(t *testing.T) {
 	}
 }
 
+// A number logged out of its linked device locks its chat history for the sales holding it until it is linked
+// again (Sam 27 Oct); the CEO keeps reading it.
+func TestChatLockedWhileNumberLoggedOut(t *testing.T) {
+	srv, st := mediaServer(t, nil)
+	ctx := context.Background()
+	th := sinarThread(t, st)
+	setState := func(state string) {
+		t.Helper()
+		if tag, err := st.Pool.Exec(ctx, "update wa_numbers set state = $2 where wa_number = (select account from chat_threads where id = $1)", th, state); err != nil || tag.RowsAffected() != 1 {
+			t.Fatalf("set %s: %v %v", state, err, tag)
+		}
+	}
+	listed := func(user string) bool {
+		t.Helper()
+		_, out := get(t, srv, "/api/chat/threads", user)
+		for _, x := range out["items"].([]any) {
+			if x.(map[string]any)["id"] == th.String() {
+				return true
+			}
+		}
+		return false
+	}
+	path := "/api/chat/threads/" + th.String()
+	if code, _ := get(t, srv, path, "andi@gsi.co.id"); code != http.StatusOK || !listed("andi@gsi.co.id") {
+		t.Fatalf("linked number: %d", code)
+	}
+	setState("logged_out")
+	if code, _ := get(t, srv, path, "andi@gsi.co.id"); code != http.StatusLocked {
+		t.Fatalf("logged out, holder: %d", code)
+	}
+	if listed("andi@gsi.co.id") {
+		t.Fatal("logged out number's chat still listed for its holder")
+	}
+	if code, _ := get(t, srv, path, "sam@gsi.co.id"); code != http.StatusOK || !listed("sam@gsi.co.id") {
+		t.Fatalf("CEO lost the chat: %d", code)
+	}
+	setState("disconnected") // reconnecting by itself: not locked
+	if code, _ := get(t, srv, path, "andi@gsi.co.id"); code != http.StatusOK {
+		t.Fatalf("reconnecting number locked: %d", code)
+	}
+}
+
 func TestChatDeleteForEveryone(t *testing.T) {
 	srv, st := mediaServer(t, nil)
 	ctx := context.Background()

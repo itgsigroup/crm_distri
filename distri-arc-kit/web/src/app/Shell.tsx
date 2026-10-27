@@ -12,6 +12,7 @@ import { TITLES, type ScreenKey } from '../lib/i18n/id'
 import { LoadingPopup } from '../components/LoadingPopup'
 import { todayLine } from '../lib/format'
 import { useHealth, useMe, useNow, useOrbit, useWAStatus } from './queries'
+import { NumberDownBanner } from '../features/chat/NumberDownBanner'
 import { Dock } from './Dock'
 import { OrchPill, useOrchStatus } from './orch'
 import { useSse } from './SseProvider'
@@ -225,6 +226,7 @@ export function Shell() {
               )}
             </div>
           </header>
+          <NumberDownBanner />
           <section className="screen" key={cur}>
             <Outlet context={{ topbarSlot } satisfies ShellContext} />
           </section>

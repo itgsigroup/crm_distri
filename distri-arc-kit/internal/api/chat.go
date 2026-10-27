@@ -133,6 +133,9 @@ type chatViewer struct {
 	sales    *uuid.UUID
 	accounts map[string]bool // Penagihan: the numbers they hold
 	held     map[string]bool // a sales: the numbers they hold (their chats even when a number's sales profile differs)
+	// locked: numbers logged out of their linked device — their chats stay hidden from a viewer of their own numbers
+	// until the number is linked again (Sam 27 Oct); CEO/admin keep reading them
+	locked map[string]bool
 }
 
 // waOwnOnly: the user reads (and manages) only their own WhatsApp numbers — a sales, a Penagihan without the
@@ -163,17 +166,47 @@ func (s *Server) heldNumbers(ctx context.Context, u User) (map[string]bool, erro
 }
 
 func (s *Server) chatViewerOf(ctx context.Context, u User) (chatViewer, error) {
+	var v chatViewer
+	var err error
 	switch {
 	case deref(u.Role) == "sales":
 		// their sales profile's chats, and the chats on the numbers they hold (19 Oct: a number whose sales profile is
 		// another sales still shows its chats to the person holding it)
-		held, err := s.heldNumbers(ctx, u)
-		return chatViewer{sales: u.SalesUserID, held: held}, err
+		v.sales = u.SalesUserID
+		v.held, err = s.heldNumbers(ctx, u)
 	case waOwnOnly(u):
-		acc, err := s.heldNumbers(ctx, u)
-		return chatViewer{accounts: acc}, err
+		v.accounts, err = s.heldNumbers(ctx, u)
+	default:
+		return chatViewer{all: true}, nil
 	}
-	return chatViewer{all: true}, nil
+	if err != nil {
+		return v, err
+	}
+	v.locked, err = s.loggedOutNumbers(ctx)
+	return v, err
+}
+
+// loggedOutNumbers are the numbers WhatsApp removed from their linked device: they need linking again.
+func (s *Server) loggedOutNumbers(ctx context.Context) (map[string]bool, error) {
+	out := map[string]bool{}
+	rows, err := s.st.Pool.Query(ctx, "select wa_number from wa_numbers where state = 'logged_out'")
+	if err != nil {
+		return out, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var n string
+		if err := rows.Scan(&n); err != nil {
+			return out, err
+		}
+		out[n] = true
+	}
+	return out, rows.Err()
+}
+
+// lockedOut reports whether a conversation is hidden because its number is logged out.
+func (v chatViewer) lockedOut(account *string) bool {
+	return !v.all && account != nil && v.locked[*account]
 }
 
 // sees reports whether the viewer reads a conversation held by account (its sales salesID).
@@ -181,6 +214,8 @@ func (v chatViewer) sees(salesID *uuid.UUID, account *string) bool {
 	switch {
 	case v.all:
 		return true
+	case v.lockedOut(account):
+		return false
 	case v.accounts != nil:
 		return account != nil && v.accounts[*account]
 	}
@@ -384,7 +419,12 @@ func (s *Server) threadParam(w http.ResponseWriter, r *http.Request) (gen.GetThr
 		return gen.GetThreadRow{}, false
 	}
 	u, _ := CurrentUser(r.Context())
-	if v, err := s.chatViewerOf(r.Context(), u); err != nil || !v.sees(t.SalesID, t.Account) {
+	v, err := s.chatViewerOf(r.Context(), u)
+	if err == nil && v.lockedOut(t.Account) {
+		httpx.Fail(w, http.StatusLocked, "number_logged_out", "WhatsApp nomor ini keluar dari perangkat tertaut — tautkan ulang untuk membuka riwayat chat")
+		return gen.GetThreadRow{}, false
+	}
+	if err != nil || !v.sees(t.SalesID, t.Account) {
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Percakapan tidak ditemukan") // another number's conversation
 		return gen.GetThreadRow{}, false
 	}

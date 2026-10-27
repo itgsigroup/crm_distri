@@ -8,7 +8,7 @@ import { Icon } from '../../components/Icon'
 import { ActBtn, ProposalSheet } from '../../components/actions'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { fmtRp, hhmm, shortDate, wib, sowText } from '../../lib/format'
-import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
+import { useChatContext, useMe, useNow, useThread, useThreads, useWAStatus } from '../../app/queries'
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, PairSheet, phoneOf, teamName } from './Connect'
 import { countFilters, displayTitle, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, searchKey, waitLabel, type Filter } from './inbox'
 import { AttachMenu, ContactSheet, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
@@ -28,6 +28,7 @@ import { linkParts } from './links'
 import { formatParts, quoteLines, shortcutMark, wrapSelection, type Mark } from './format'
 import { MembersSheet, openMemberChat, useMembers } from './Members'
 import { ListResizer, listWidthStyle, savedListWidth } from './ListResizer'
+import { NumberLocked } from './NumberDownBanner'
 import { getDraft, setDraft, useDrafts } from './drafts'
 import { useSse } from '../../app/SseProvider'
 import { AIOverview } from './AIOverview'
@@ -1609,6 +1610,7 @@ export function ChatPage() {
   const [filter, setFilter] = useState<Filter>('all')
   // one number at a time (Sam 19 Oct: "Semua" loaded every number's chats and made Chat slow)
   const { data: wa } = useWAStatus()
+  const { data: me } = useMe()
   const [picked, setPicked] = useState('')
   const account = picked || defaultAccount(wa?.items ?? [])
   const [kept, setKept] = useState<string | undefined>(undefined)
@@ -1659,6 +1661,16 @@ export function ChatPage() {
       <div className={`chat multi chat-empty ${slot ? 'rail-out' : ''}`}>
         {rail}
         <div className="pane connect-pane"><ConnectPanel /></div>
+      </div>
+    )
+  }
+  // a logged-out number's history stays locked for a viewer of their own numbers until it is linked again
+  const locked = me?.chat_scope === 'own' ? wa?.items.find((x) => x.wa_number === account && x.state === 'logged_out') : undefined
+  if (locked) {
+    return (
+      <div className={`chat multi chat-empty ${slot ? 'rail-out' : ''}`}>
+        {rail}
+        <div className="pane connect-pane"><NumberLocked n={locked} /></div>
       </div>
     )
   }
