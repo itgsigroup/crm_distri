@@ -186,10 +186,14 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
     return () => clearTimeout(h)
   }, [q])
   const deep = dq.length >= 2
+  // each letter typed is a new search: the previous results of this number stay on screen until the new ones arrive,
+  // so the list does not empty and refill (jump up and down) while typing
+  const sameAccount = <T,>(prev: T | undefined, prevQuery?: { queryKey: readonly unknown[] }) => (prevQuery?.queryKey[3] === account ? prev : undefined)
   const { data: found, isFetching: searching } = useQuery({
     queryKey: ['chat', 'search', dq, account],
     enabled: deep,
     staleTime: 30_000,
+    placeholderData: sameAccount,
     queryFn: () => {
       const p = new URLSearchParams({ all: '1', q: dq })
       if (team) p.set('team', team)
@@ -201,6 +205,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
     queryKey: ['chat', 'search-messages', dq, account],
     enabled: deep,
     staleTime: 30_000,
+    placeholderData: sameAccount,
     queryFn: () => {
       const p = new URLSearchParams({ q: dq })
       if (team) p.set('team', team)
@@ -208,8 +213,8 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
       return api.get<Items<MessageHit>>('/chat/messages/search?' + p.toString()).then((r) => r.items)
     },
   })
-  // only a first search shows "Mencari…": a refetch in the background (every new message refreshes the results) keeps
-  // the results on screen, so the list does not jump up and down
+  // "Mencari…" sits in the search box, never above the list, so it cannot push the chats down and back up
+  const busy = deep && (searching || searchingMsgs)
   const firstSearch = deep && ((searching && !found) || (searchingMsgs && !hits))
   const starring = filter === 'starred'
   const starKey = searchKey(q)
@@ -239,7 +244,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
           title={compact ? 'Tampilan lengkap (Alt+R)' : 'Ringkas tampilan (Alt+R)'} aria-label="Ringkas tampilan"><Icon name="kanban" /></button>
         <button type="button" className="ibl-btn" onClick={refresh} title="Muat ulang" aria-label="Muat ulang"><Icon name="refresh" /></button>
       </div>
-      <div className="ibl-search"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari chat" aria-label="Cari chat" /></div>
+      <div className="ibl-search"><Icon name="search" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari chat" aria-label="Cari chat" />{busy && !starring && <span className="ibl-busy" role="status">Mencari…</span>}</div>
       {stale && <div className="ibl-live" role="status"><i />Menyambung ulang ke server… chat tetap diperbarui tiap 10 detik</div>}
       {n && <NumberDown n={n} />}
       <div className="ibl-chips" role="tablist">
@@ -256,7 +261,6 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
         )}
       </div>
       <div className="chat-list ibl-list">
-        {!starring && firstSearch && <div className="chat-none">Mencari di semua chat dan pesan…</div>}
         {starring && msgs.length === 0 && <div className="chat-none">{q ? `Tidak ada pesan berbintang yang cocok dengan "${q}"` : 'Belum ada pesan berbintang. Beri bintang lewat menu ⌄ di bubble pesan — hanya Anda yang melihatnya.'}</div>}
         {msgs.length > 0 && shown.length > 0 && <div className="ibl-sec">Chat</div>}
         {loaded && !starring && shown.length === 0 && msgs.length === 0 && !firstSearch && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"${deep ? ' di semua chat Orbit — chat lama di HP yang belum pernah berbalas pesan sejak nomor ditautkan belum ada di sini' : ''}` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}

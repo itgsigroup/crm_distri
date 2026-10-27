@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Pencarian chat tidak naik-turun saat mengetik · 2026-10-27
+- Setiap huruf yang diketik memulai pencarian baru. Tulisan "Mencari di semua chat dan pesan…" muncul di atas daftar, mendorong chat ke bawah, lalu hilang lagi, sehingga daftar naik-turun.
+- Sekarang hasil pencarian sebelumnya tetap tampil sampai hasil baru datang, dan tanda "Mencari…" pindah ke dalam kotak pencarian. Daftar chat tidak bergeser lagi.
+
 ## Fix · Pencarian chat tidak naik-turun lagi · 2026-10-27
 - Saat mencari di Chat, daftar sebelumnya melompat naik-turun setiap ada pesan baru masuk. Penyebabnya, hasil pencarian dimuat ulang di latar belakang dan tulisan "Mencari di semua chat dan pesan…" muncul lalu hilang lagi, sehingga daftar terdorong.
 - Sekarang tulisan itu hanya tampil saat pencarian pertama. Pembaruan di latar belakang tidak lagi menggeser daftar.
