@@ -443,6 +443,8 @@ export interface WANumber {
   branch: string
   transport: string
   state: 'unpaired' | 'pairing' | 'connected' | 'disconnected' | 'logged_out'
+  /** when the number entered its current state */
+  state_since?: string
   last_seen_at: string | null
   paired_at: string | null
   qr_png?: string

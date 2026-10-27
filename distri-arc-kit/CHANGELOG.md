@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · WhatsApp logout: riwayat chat dikunci untuk semua dan pop-up tautkan ulang · 2026-10-27
+- Nomor WhatsApp yang logout dari perangkat tertaut **tidak menampilkan riwayat chat untuk siapa pun**, termasuk CEO/admin. Daftar chat, isi percakapan, pencarian, dan label disembunyikan sampai nomor ditautkan ulang. Nomor yang hanya sedang menyambung ulang tidak dikunci.
+- Begitu sebuah nomor logout, muncul **pop-up** "WhatsApp logout — nomor harus ditautkan ulang" dengan tombol **Tautkan ulang** (scan QR) atau **Nanti**. Pop-up muncul sekali per kejadian logout per sesi browser, sedangkan banner merah tetap tampil sampai nomor tersambung lagi.
+- Status nomor kini membawa `state_since` (waktu logout yang sebenarnya).
+- Test: `TestChatLockedWhileNumberLoggedOut` (CEO ikut terkunci).
+
 ## Feat · Chat dengan Hermes Agent seperti di Telegram · 2026-10-27
 - Halaman **Hermes Agent** sekarang dibuka di tab **Chat**: gelembung pesan seperti Telegram, "sedang mengetik…" selama Hermes bekerja, jawaban berformat (tabel/daftar), pembatas tanggal, tombol salin, contoh pertanyaan, dan Hapus riwayat. Riwayat chat milik masing-masing pengguna.
 - Tab **Panduan & koneksi** berisi panduan lama, ditambah kartu **Chat Hermes di halaman ini**. Di kartu itu CEO mengisi URL API server Hermes dan `API_SERVER_KEY`. Isian diperiksa ke Hermes lalu disimpan terenkripsi. Selama Hermes belum tersambung, chat berjalan dalam mode demo.

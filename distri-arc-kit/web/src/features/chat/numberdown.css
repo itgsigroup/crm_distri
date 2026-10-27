@@ -1,0 +1,5 @@
+/* WhatsApp logout popup (NumberDownBanner) */
+.wa-logout-swal p b{color:var(--text)}
+.wa-logout-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.wa-logout-actions .btn{height:38px;font-size:14px}
+.wa-logout-actions .btn .i{width:16px;height:16px}

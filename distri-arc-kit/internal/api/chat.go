@@ -133,8 +133,8 @@ type chatViewer struct {
 	sales    *uuid.UUID
 	accounts map[string]bool // Penagihan: the numbers they hold
 	held     map[string]bool // a sales: the numbers they hold (their chats even when a number's sales profile differs)
-	// locked: numbers logged out of their linked device — their chats stay hidden from a viewer of their own numbers
-	// until the number is linked again (Sam 27 Oct); CEO/admin keep reading them
+	// locked: numbers logged out of their linked device — their chat history stays hidden from everyone, CEO/admin
+	// included, until the number is linked again (Sam 27 Oct)
 	locked map[string]bool
 }
 
@@ -177,7 +177,7 @@ func (s *Server) chatViewerOf(ctx context.Context, u User) (chatViewer, error) {
 	case waOwnOnly(u):
 		v.accounts, err = s.heldNumbers(ctx, u)
 	default:
-		return chatViewer{all: true}, nil
+		v.all = true
 	}
 	if err != nil {
 		return v, err
@@ -206,16 +206,16 @@ func (s *Server) loggedOutNumbers(ctx context.Context) (map[string]bool, error) 
 
 // lockedOut reports whether a conversation is hidden because its number is logged out.
 func (v chatViewer) lockedOut(account *string) bool {
-	return !v.all && account != nil && v.locked[*account]
+	return account != nil && v.locked[*account]
 }
 
 // sees reports whether the viewer reads a conversation held by account (its sales salesID).
 func (v chatViewer) sees(salesID *uuid.UUID, account *string) bool {
 	switch {
-	case v.all:
-		return true
 	case v.lockedOut(account):
 		return false
+	case v.all:
+		return true
 	case v.accounts != nil:
 		return account != nil && v.accounts[*account]
 	}
@@ -1787,7 +1787,7 @@ func (s *Server) waStatus(w http.ResponseWriter, r *http.Request) {
 			continue // a sales or Penagihan user sees and pairs only their own number
 		}
 		v := map[string]any{"wa_number": n.WaNumber, "masked": wa.MaskNumber(n.WaNumber), "sales": deref(n.SalesName), "branch": deref(n.SalesBranch), "transport": n.Transport,
-			"state": n.State, "last_seen_at": n.LastSeenAt, "paired_at": n.PairedAt, "backfill_days": n.BackfillDays, "label": deref(n.Label), "sales_id": n.SalesID,
+			"state": n.State, "state_since": n.StateSince, "last_seen_at": n.LastSeenAt, "paired_at": n.PairedAt, "backfill_days": n.BackfillDays, "label": deref(n.Label), "sales_id": n.SalesID,
 			"user_id": n.UserID, "user_name": deref(n.UserName), "user_email": deref(n.UserEmail), "mine": mine,
 			"user_role": deref(n.UserRole), "user_branch": deref(n.UserBranch), "session_id": n.SessionID,
 			"thread_count": n.ThreadCount, "unread_count": n.UnreadCount, "last_message_at": n.LastMessageAt, "team": n.Team}
