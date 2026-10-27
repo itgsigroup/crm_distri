@@ -267,6 +267,38 @@
 .cl-tools h4 span{text-transform:none;letter-spacing:0;font-weight:500}
 .cl-tools ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .cl-tools li{display:grid;grid-template-columns:170px minmax(0,1fr);gap:8px;font-size:12.5px;color:var(--text-2)}
+/* Hermes Agent page (Sam 27 Oct): education, connection, rules */
+.hm-logo{background:#5E5CE6}
+.hm-flow{display:flex;align-items:stretch;gap:10px}
+.hm-flow > div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.hm-flow > div .i{color:#5E5CE6}
+.hm-flow b{font-size:13.5px}
+.hm-flow span{font-size:12.5px;line-height:1.45;color:var(--text-2)}
+.hm-flow > i{align-self:center;font-style:normal;color:var(--text-3);font-size:18px}
+.hm-conns,.hm-tasks,.hm-rules{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column}
+.hm-conns li,.hm-tasks li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.hm-conns li:first-child,.hm-tasks li:first-child{border-top:0}
+.hm-conns li > div,.hm-tasks li > div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.hm-conns b,.hm-tasks b{font-size:13.5px}
+.hm-conns small{font-size:12px;color:var(--text-3)}
+.hm-conns li.is-off{opacity:.55}
+.hm-conns .btn{height:28px;font-size:12px}
+.hm-tasks{margin:0}
+.hm-tasks span{font-size:12.5px;line-height:1.5;color:var(--text-2)}
+.hm-tasks .btn{flex:none}
+.hm-rules{margin:0;gap:12px}
+.hm-rules li{display:flex;gap:10px;align-items:flex-start}
+.hm-rules li > .i{flex:none;margin-top:2px;color:#5E5CE6}
+.hm-rules b{display:block;font-size:13.5px}
+.hm-rules span{font-size:12.5px;line-height:1.5;color:var(--text-2)}
+.hm-faq details{border-top:1px solid var(--line);padding:10px 0}
+.hm-faq details:first-child{border-top:0;padding-top:0}
+.hm-faq summary{cursor:pointer;font-weight:600;font-size:13.5px}
+.hm-faq p{margin:8px 0 0;font-size:13px;line-height:1.55;color:var(--text-2)}
+.hm-terms{margin:0;display:flex;flex-direction:column;gap:10px}
+.hm-terms dt{font-weight:700;font-size:13px}
+.hm-terms dd{margin:2px 0 0;font-size:12.5px;line-height:1.5;color:var(--text-2)}
+@media (max-width:760px){.hm-flow{flex-direction:column}.hm-flow > i{transform:rotate(90deg)}.hm-tasks li{flex-wrap:wrap}.cl-tools li{grid-template-columns:minmax(0,1fr);gap:2px}}
 .cl-prompts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .cl-prompts li{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;color:var(--text-2);padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
 .cl-prompts li span{flex:1}

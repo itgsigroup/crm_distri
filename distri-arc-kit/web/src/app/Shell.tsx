@@ -36,6 +36,7 @@ export const ROUTES: Record<ScreenKey, string> = {
   salesmap: '/mapping-sales',
   mcp: '/claude',
   aiapi: '/pengaturan/api-ai',
+  hermes: '/pengaturan/hermes',
   aitrigger: '/pengaturan/ai-trigger',
   conn: '/pengaturan',
   konsep: '/panduan',
@@ -61,6 +62,7 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/mapping-sales')) return 'salesmap'
   if (path.startsWith('/claude')) return 'mcp'
   if (path.startsWith('/pengaturan/api-ai')) return 'aiapi'
+  if (path.startsWith('/pengaturan/hermes')) return 'hermes'
   if (path.startsWith('/pengaturan/ai-trigger')) return 'aitrigger'
   if (path.startsWith('/pengaturan')) return 'conn'
   if (path.startsWith('/panduan')) return 'konsep'
@@ -73,6 +75,7 @@ export function canSee(screens: string[], key: ScreenKey): boolean {
   if (key === 'manual') return true // the user book is for everyone who logs in
   if (key === 'salesmap') return screens.includes('users') || screens.includes('conn')
   if (key === 'aiapi') return screens.includes('conn') || screens.includes('mcp')
+  if (key === 'hermes') return screens.includes('mcp') // Hermes connects through the MCP server
   if (key === 'aitrigger') return screens.includes('conn') || screens.includes('chat')
   if (key === 'stockcheck') return screens.includes('stock') || screens.includes('chat') // who answers stock questions
   return screens.includes(key === 'dashboard' ? 'today' : key)
@@ -173,8 +176,9 @@ export function Shell() {
             <NavBtn to="roles" cur={cur} icon="shield">Peran &amp; akses</NavBtn>
             <NavBtn to="branches" cur={cur} icon="building">Cabang</NavBtn>
             <NavBtn to="salesmap" cur={cur} icon="net">Mapping sales</NavBtn>
-            {me && (['mcp', 'aiapi', 'aitrigger', 'konsep', 'manual', 'conn'] as ScreenKey[]).some((k) => canSee(me.screens, k)) && <div className="nav-sec">Pengaturan</div>}
+            {me && (['mcp', 'hermes', 'aiapi', 'aitrigger', 'konsep', 'manual', 'conn'] as ScreenKey[]).some((k) => canSee(me.screens, k)) && <div className="nav-sec">Pengaturan</div>}
             <NavBtn to="mcp" cur={cur} icon="spark">MCP Claude</NavBtn>
+            <NavBtn to="hermes" cur={cur} icon="radar">Hermes Agent</NavBtn>
             <NavBtn to="aiapi" cur={cur} icon="plug">API &amp; model AI</NavBtn>
             <NavBtn to="aitrigger" cur={cur} icon="spark">AI Trigger</NavBtn>
             <NavBtn to="konsep" cur={cur} icon="doc">Panduan</NavBtn>
