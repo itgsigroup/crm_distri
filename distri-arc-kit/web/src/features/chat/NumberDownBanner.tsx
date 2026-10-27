@@ -46,7 +46,7 @@ function LoggedOutPopup({ down, own }: { down: WANumber[]; own: boolean }) {
   }
   return (
     <div className="swal-bg" onClick={close}>
-      <div className="swal swal-error wa-logout-swal" role="alertdialog" aria-modal="true" aria-labelledby="wa-logout-title" aria-describedby="wa-logout-text" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') close() }}>
+      <div className="swal swal-error wa-logout-swal" role="alertdialog" aria-modal="true" aria-labelledby="wa-logout-title" aria-describedby="wa-logout-text" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); close() } }}>
         <div className="swal-icon" aria-hidden="true">
           <svg viewBox="0 0 52 52"><circle className="swal-ring" cx="26" cy="26" r="24" /><path className="swal-mark" d="M26 14v16M26 37v1" /></svg>
         </div>

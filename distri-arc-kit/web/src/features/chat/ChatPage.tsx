@@ -367,7 +367,7 @@ function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward, onPin,
   useEffect(() => {
     if (!open) return
     const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); setOpen(false) } }
     document.addEventListener('mousedown', close)
     document.addEventListener('keydown', esc)
     return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc) }
@@ -1012,6 +1012,18 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       qc.invalidateQueries({ queryKey: ['wa'] })
     })
   }, [data, id, qc, picked])
+  // Esc closes the chat, like WhatsApp Web ("Pilih chat") — once nothing else took it first (a menu, a sheet, the
+  // picture viewer, the "/" or "@" list, a reply or edit being cancelled); not from another text box (Cari chat, notes)
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || zoom || e.isComposing) return
+      const t = e.target as HTMLElement | null
+      if (t && t !== input.current && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return
+      onBack()
+    }
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [zoom, onBack])
   // the box grows with the text, up to about six lines, and shrinks back after sending
   useLayoutEffect(() => {
     const el = input.current
@@ -1107,6 +1119,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         return
       }
       if (e.key === 'Escape') {
+        e.preventDefault()
         setSlash(null)
         return
       }
@@ -1124,11 +1137,14 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         return
       }
       if (e.key === 'Escape') {
+        e.preventDefault()
         setTagging(null)
         return
       }
     }
     if (e.key === 'Escape') {
+      // a reply, an edit or a file is cancelled first; with none, Esc goes on to close the chat
+      if (editing || replying || file) e.preventDefault()
       if (editing) cancelEdit()
       setReplying(null)
       setFile(null)

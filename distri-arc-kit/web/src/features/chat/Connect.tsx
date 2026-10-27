@@ -330,12 +330,12 @@ export function NumberRail({ account, setAccount }: { account: string; setAccoun
   useEffect(() => {
     if (!open) return
     const outside = (e: PointerEvent) => { if (!picker.current?.contains(e.target as Node)) setOpen(false) }
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); setOpen(false) } }
     document.addEventListener('pointerdown', outside)
-    window.addEventListener('keydown', key)
+    document.addEventListener('keydown', key)
     return () => {
       document.removeEventListener('pointerdown', outside)
-      window.removeEventListener('keydown', key)
+      document.removeEventListener('keydown', key)
     }
   }, [open])
   return (

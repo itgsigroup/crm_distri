@@ -26,7 +26,7 @@ export function ChatRowMenu({ t, open, setOpen, onLeave }: { t: ThreadView; open
   useEffect(() => {
     if (!open) return
     const out = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); setOpen(false) } }
     document.addEventListener('mousedown', out)
     document.addEventListener('keydown', esc)
     return () => { document.removeEventListener('mousedown', out); document.removeEventListener('keydown', esc) }

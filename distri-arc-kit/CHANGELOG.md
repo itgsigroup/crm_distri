@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Esc menutup chat yang terbuka (seperti WhatsApp Web) · 2026-10-27
+- Tekan **Esc** untuk menutup percakapan yang sedang dibuka dan kembali ke tampilan "Pilih chat".
+- Urutannya seperti WhatsApp Web. Esc pertama menutup menu, sheet, gambar besar, daftar `/` atau `@`, atau membatalkan balas/edit/file. Esc berikutnya baru menutup chat. Esc di kotak teks lain (Cari chat, catatan) tidak menutup chat.
+
 ## Fix · Customer langsung melihat centang biru saat chat dibuka · 2026-10-27
 - Sebelumnya tanda terbaca baru dikirim ke WhatsApp saat sales membalas, dan balasan itu pun antre lewat penjaga anti-blokir. Akibatnya customer lama melihat pesannya "belum dibaca" walau sudah dibaca di Orbit.
 - Sekarang membuka chat di Orbit langsung mengirim centang biru, seperti WhatsApp Web. Pesan yang masuk saat chat sedang terbuka juga ikut terbaca. Tetap tidak ada auto-read saat pesan masuk, dan DM internal tidak dikirimi tanda terbaca (ADR 0069).

@@ -117,7 +117,7 @@ export function Dock({ screen, extra, links, head }: { screen: ScreenKey; extra?
       const n = e.target as Node
       if (!panel.current?.contains(n) && !headBtn.current?.contains(n)) setOpen(false)
     }
-    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); setOpen(false) } }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onEsc)
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onEsc) }

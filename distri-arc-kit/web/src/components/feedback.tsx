@@ -52,16 +52,19 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   }, [])
   const closeSheet = useCallback(() => setSheetOpen(false), [])
 
+  // Esc closes an open sheet or dialog, and is taken (preventDefault): it does not also close the chat behind it
   useEffect(() => {
+    if (!sheetOpen && !dialog) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault()
         setSheetOpen(false)
         setDialog(null)
       }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  }, [sheetOpen, dialog])
 
   return (
     <Ctx.Provider value={{ toast, alert, openSheet, closeSheet }}>
