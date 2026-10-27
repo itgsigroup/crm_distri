@@ -183,6 +183,20 @@ func (q *Queries) DeleteSecret(ctx context.Context, key string) error {
 	return err
 }
 
+const deleteStockRowsNotIn = `-- name: DeleteStockRowsNotIn :execrows
+delete from import_rows where entity = 'stock' and not (key = any($1::text[]))
+`
+
+// A stock batch is the whole stock: rows of every source missing from it go (an older CSV upload no longer adds to
+// the BigQuery stock).
+func (q *Queries) DeleteStockRowsNotIn(ctx context.Context, keys []string) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteStockRowsNotIn, keys)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const finishImportRun = `-- name: FinishImportRun :exec
 update import_runs set status = $2, rows = $3, upserted = $4, skipped = $5, unmapped = $6, error = $7, notes = $8, finished_at = now() where id = $1
 `

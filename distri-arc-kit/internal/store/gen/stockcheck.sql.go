@@ -133,9 +133,13 @@ func (q *Queries) ListStockChecks(ctx context.Context, arg ListStockChecksParams
 }
 
 const listStockProducts = `-- name: ListStockProducts :many
-select sku, max(name)::text as name, max(category)::text as category, sum(qty)::bigint as qty,
+with b as (
+  select lower(sku) as k, min(sku) as sku, max(name) as name, max(category) as category, branch, sum(qty)::bigint as qty
+  from stock_items group by lower(sku), branch
+)
+select min(sku)::text as sku, max(name)::text as name, max(category)::text as category, sum(qty)::bigint as qty,
   jsonb_object_agg(branch, qty) as by_branch
-from stock_items group by sku order by max(name)
+from b group by k order by max(name)
 `
 
 type ListStockProductsRow struct {
@@ -146,7 +150,8 @@ type ListStockProductsRow struct {
 	ByBranch json.RawMessage `json:"by_branch"`
 }
 
-// Every product in the stock (Cek stok's table): total and quantity per branch.
+// Every product in the stock (Cek stok's table): total and quantity per branch, summed the way /stock/check sums one
+// product (SKU without case, every row of a branch) so the table and the product's check show the same numbers.
 func (q *Queries) ListStockProducts(ctx context.Context) ([]ListStockProductsRow, error) {
 	rows, err := q.db.Query(ctx, listStockProducts)
 	if err != nil {

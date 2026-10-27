@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"math"
 	"sort"
 	"strconv"
@@ -53,6 +54,30 @@ func key(e Entity, r Row) string {
 	return ""
 }
 
+// mergeStock adds a second source row of the same SKU × warehouse to the first: quantity, value and units sold add up,
+// the unit cost is the higher one, the age the oldest.
+func mergeStock(a, b Row) Row {
+	out := maps.Clone(a)
+	sum := func(c string) {
+		if a.Get(c) != "" || b.Get(c) != "" {
+			out[c] = strconv.FormatFloat(Number(a.Get(c))+Number(b.Get(c)), 'f', -1, 64)
+		}
+	}
+	sum("qty")
+	sum("value")
+	sum("sold_90d")
+	if Rupiah(b.Get("unit_cost")) > Rupiah(a.Get("unit_cost")) {
+		out["unit_cost"] = b.Get("unit_cost")
+	}
+	if Number(b.Get("age_days")) > Number(a.Get("age_days")) {
+		out["age_days"] = b.Get("age_days")
+	}
+	if db, da := Date(b.Get("received_date")), Date(a.Get("received_date")); db != nil && (da == nil || db.Before(*da)) {
+		out["received_date"] = b.Get("received_date")
+	}
+	return out
+}
+
 // Stage stores rows as delivered. Invoice lines replace the lines of their invoices; a stock batch is a snapshot
 // (rows of the same source missing from it are removed).
 func (im Importer) Stage(ctx context.Context, e Entity, rows []Row, source, by string) (StageReport, error) {
@@ -67,7 +92,13 @@ func (im Importer) Stage(ctx context.Context, e Entity, rows []Row, source, by s
 	err = im.St.Tx(ctx, func(q *gen.Queries, _ pgx.Tx) error {
 		lines := map[string]int{} // invoice → next line number
 		keys := make([]string, 0, len(rows))
+		var stock []Row             // stock rows merged per SKU × warehouse, staged after the loop
+		stockAt := map[string]int{} // key → index in stock
 		for i, r := range rows {
+			if e == Stock && r.Get("product") == "" && r.Get("sku") != "" { // a product without a name still has stock
+				r = maps.Clone(r)
+				r["product"] = r.Get("sku")
+			}
 			if miss := Missing(e, r); len(miss) > 0 {
 				rep.Skipped++
 				if len(rep.Errors) < 20 {
@@ -81,6 +112,24 @@ func (im Importer) Stage(ctx context.Context, e Entity, rows []Row, source, by s
 				lines[inv]++
 				k = fmt.Sprintf("%s#%04d", inv, lines[inv])
 			}
+			if e == Stock { // two rows of one SKU × warehouse add up instead of the last overwriting the first
+				if j, ok := stockAt[k]; ok {
+					stock[j] = mergeStock(stock[j], r)
+				} else {
+					stockAt[k] = len(stock)
+					stock = append(stock, r)
+				}
+				continue
+			}
+			data, _ := json.Marshal(r)
+			if err := q.UpsertImportRow(ctx, gen.UpsertImportRowParams{Entity: string(e), Key: k, Data: data, Source: source}); err != nil {
+				return err
+			}
+			keys = append(keys, k)
+			rep.Staged++
+		}
+		for _, r := range stock {
+			k := key(e, r)
 			data, _ := json.Marshal(r)
 			if err := q.UpsertImportRow(ctx, gen.UpsertImportRowParams{Entity: string(e), Key: k, Data: data, Source: source}); err != nil {
 				return err
@@ -97,8 +146,8 @@ func (im Importer) Stage(ctx context.Context, e Entity, rows []Row, source, by s
 			if _, err := q.DeleteInvoiceLinesNotIn(ctx, gen.DeleteInvoiceLinesNotInParams{Invoices: invs, Keys: keys}); err != nil {
 				return err
 			}
-		case e == Stock && rep.Staged > 0: // a stock batch is a snapshot
-			if _, err := q.DeleteImportRowsNotIn(ctx, gen.DeleteImportRowsNotInParams{Entity: string(e), Source: source, Keys: keys}); err != nil {
+		case e == Stock && rep.Staged > 0: // a stock batch is a snapshot of the whole stock, whatever the source
+			if _, err := q.DeleteStockRowsNotIn(ctx, keys); err != nil {
 				return err
 			}
 		}
@@ -127,6 +176,7 @@ type ApplyReport struct {
 	Skipped   int            `json:"skipped"`
 	Errors    []string       `json:"errors"`
 	DurationS float64        `json:"duration_s"`
+	stockDone bool           // the stock step ran (else a failed Apply still rebuilds the stock alone)
 }
 
 // mapper resolves source values through data_mappings and counts what it saw.
@@ -193,6 +243,11 @@ func (im Importer) Apply(ctx context.Context, full bool, by string) (ApplyReport
 		}
 	}
 	err = im.apply(ctx, since, &rep)
+	if err != nil && !rep.stockDone {
+		if serr := im.applyStockAlone(ctx, &rep); serr != nil {
+			err = errors.Join(err, fmt.Errorf("stok: %w", serr))
+		}
+	}
 	rep.DurationS = math.Round(time.Since(t0).Seconds()*10) / 10
 	status, msg := "done", (*string)(nil)
 	if err != nil {
@@ -231,16 +286,33 @@ func (im Importer) rows(ctx context.Context, e Entity) ([]Row, error) {
 	return out, nil
 }
 
-func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport) error {
+// loadMapper reads every mapping (Pengaturan → Data & master → Mapping).
+func (im Importer) loadMapper(ctx context.Context) (*mapper, error) {
 	m := &mapper{target: map[string]map[string]string{}, seen: map[string]map[string]int{}}
-	maps, err := im.St.Q.ListMappings(ctx, "")
+	rows, err := im.St.Q.ListMappings(ctx, "")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, x := range maps {
+	for _, x := range rows {
 		if x.Target != nil {
 			m.set(x.Kind, x.SourceValue, *x.Target)
 		}
+	}
+	return m, nil
+}
+
+// kat is a source category mapped to one of the 6 KAT ("" when not mapped).
+func (m *mapper) kat(raw string) string {
+	if t, ok := m.get("category", raw); ok && domain.CategoryIndex(t) >= 0 {
+		return t
+	}
+	return ""
+}
+
+func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport) error {
+	m, err := im.loadMapper(ctx)
+	if err != nil {
+		return err
 	}
 	profiles, err := im.St.Q.SalesProfilesForMatch(ctx)
 	if err != nil {
@@ -277,12 +349,7 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 		}
 		return fallback
 	}
-	kat := func(raw string) string {
-		if t, ok := m.get("category", raw); ok && domain.CategoryIndex(t) >= 0 {
-			return t
-		}
-		return ""
-	}
+	kat := m.kat
 
 	// 1. sales profiles
 	sales, err := im.rows(ctx, Sales)
@@ -471,11 +538,6 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 			recentInv[x.Key] = true
 		}
 	}
-	type product struct {
-		name, kat string
-		price     int64
-		at        time.Time
-	}
 	products := map[string]product{}
 	now := im.Clock.Now()
 	for start := 0; start < len(invoices); start += 500 {
@@ -633,93 +695,7 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 	}
 
 	// 4. stock snapshot: warehouses → branches, aggregated per SKU and branch
-	stock := stockRows
-	type agg struct {
-		name, kat  string
-		qty, value int64
-		cost       int64
-		age        int
-		sold90     float64
-		hasSold    bool
-	}
-	byKey := map[[2]string]*agg{}
-	for _, r := range stock {
-		branch, ok := m.get("warehouse", r.Get("warehouse"))
-		if !ok {
-			branch = r.Get("warehouse")
-		}
-		k := [2]string{r.Get("sku"), branch}
-		a := byKey[k]
-		if a == nil {
-			a = &agg{name: r.Get("product"), kat: kat(r.Get("category"))}
-			byKey[k] = a
-		}
-		qty := int64(math.Round(Number(r.Get("qty"))))
-		cost := Rupiah(r.Get("unit_cost"))
-		value := Rupiah(r.Get("value"))
-		if value == 0 {
-			value = qty * cost
-		}
-		a.qty += qty
-		a.value += value
-		if cost > 0 {
-			a.cost = cost
-		}
-		age := int(Number(r.Get("age_days")))
-		if strings.TrimSpace(r.Get("age_days")) == "" {
-			if d := Date(r.Get("received_date")); d != nil {
-				age = max(metrics.DaysBetween(*d, today), 0)
-			}
-		}
-		a.age = max(a.age, age)
-		if strings.TrimSpace(r.Get("sold_90d")) != "" {
-			a.sold90 += Number(r.Get("sold_90d"))
-			a.hasSold = true
-		}
-		sku := r.Get("sku")
-		if p, seen := products[sku]; !seen {
-			products[sku] = product{name: r.Get("product"), kat: a.kat}
-		} else if p.kat == "" {
-			p.kat = a.kat
-			products[sku] = p
-		}
-	}
-	keys := make([][2]string, 0, len(byKey))
-	for k := range byKey {
-		keys = append(keys, k)
-	}
-	sort.Slice(keys, func(i, j int) bool { return keys[i][0]+keys[i][1] < keys[j][0]+keys[j][1] })
-	err = im.St.Tx(ctx, func(q *gen.Queries, _ pgx.Tx) error {
-		if len(keys) == 0 {
-			return nil
-		}
-		if err := q.DeleteImportedStock(ctx); err != nil {
-			return err
-		}
-		for _, k := range keys {
-			a := byKey[k]
-			if !a.hasSold { // no sold_90d from the source: units sold on invoices in the last 90 days
-				a.sold90 = sold90[k]
-			}
-			if a.qty <= 0 && a.sold90 == 0 {
-				continue
-			}
-			unit := a.cost
-			if unit == 0 && a.qty > 0 {
-				unit = a.value / a.qty
-			}
-			src := k[0]
-			if err := q.UpsertStockItem(ctx, gen.UpsertStockItemParams{Branch: k[1], Sku: k[0], Name: a.name, Category: a.kat, Qty: int32(a.qty), UnitCost: unit, Value: a.value,
-				AgeDays: int32(a.age), WeeklyVelocity: math.Round(a.sold90/13*100) / 100, SourceSystem: strp("import"), SourceID: &src, SourceWriteDate: &now}); err != nil {
-				return fmt.Errorf("stok %s: %w", k[0], err)
-			}
-			if err := signal(ctx, q, "stock", "import:stock:"+k[0]+":"+k[1], uuid.Nil, now, fmt.Sprintf("Stok %s %s: %d", a.name, k[1], a.qty)); err != nil {
-				return err
-			}
-			rep.Stock++
-		}
-		return nil
-	})
+	byKey, err := im.applyStock(ctx, m, stockRows, sold90, products, rep)
 	if err != nil {
 		return err
 	}
@@ -770,6 +746,144 @@ func (im Importer) apply(ctx context.Context, since time.Time, rep *ApplyReport)
 		}
 		return nil
 	})
+}
+
+// product is one catalogue entry the import builds (AI Order matches WhatsApp requests against it).
+type product struct {
+	name, kat string
+	price     int64
+	at        time.Time
+}
+
+// stockAgg is one SKU × branch of the stock snapshot.
+type stockAgg struct {
+	name, kat  string
+	qty, value int64
+	cost       int64
+	age        int
+	sold90     float64
+	hasSold    bool
+}
+
+// applyStock replaces the imported stock_items with the staged snapshot, summed per SKU × branch (warehouse mapped
+// to its branch). sold90 is the units sold on invoices for rows without sold_90d; nil keeps the velocity stock_items
+// has (the stock rebuilt alone, when an earlier step failed). products, when given, learns names and categories.
+func (im Importer) applyStock(ctx context.Context, m *mapper, rows []Row, sold90 map[[2]string]float64, products map[string]product, rep *ApplyReport) (map[[2]string]*stockAgg, error) {
+	today := clock.Today(im.Clock.Now())
+	now := im.Clock.Now()
+	byKey := map[[2]string]*stockAgg{}
+	for _, r := range rows {
+		branch, ok := m.get("warehouse", r.Get("warehouse"))
+		if !ok {
+			branch = r.Get("warehouse")
+		}
+		k := [2]string{r.Get("sku"), branch}
+		a := byKey[k]
+		if a == nil {
+			a = &stockAgg{name: r.Get("product"), kat: m.kat(r.Get("category"))}
+			byKey[k] = a
+		}
+		qty := int64(math.Round(Number(r.Get("qty"))))
+		cost := Rupiah(r.Get("unit_cost"))
+		value := Rupiah(r.Get("value"))
+		if value == 0 {
+			value = qty * cost
+		}
+		a.qty += qty
+		a.value += value
+		if cost > 0 {
+			a.cost = cost
+		}
+		age := int(Number(r.Get("age_days")))
+		if strings.TrimSpace(r.Get("age_days")) == "" {
+			if d := Date(r.Get("received_date")); d != nil {
+				age = max(metrics.DaysBetween(*d, today), 0)
+			}
+		}
+		a.age = max(a.age, age)
+		if strings.TrimSpace(r.Get("sold_90d")) != "" {
+			a.sold90 += Number(r.Get("sold_90d"))
+			a.hasSold = true
+		}
+		if products == nil {
+			continue
+		}
+		sku := r.Get("sku")
+		if p, seen := products[sku]; !seen {
+			products[sku] = product{name: r.Get("product"), kat: a.kat}
+		} else if p.kat == "" {
+			p.kat = a.kat
+			products[sku] = p
+		}
+	}
+	if sold90 == nil {
+		sold90 = map[[2]string]float64{}
+		cur, err := im.St.Q.ListStockItems(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, x := range cur {
+			if x.SourceSystem != nil && *x.SourceSystem == "import" {
+				sold90[[2]string{x.Sku, x.Branch}] = x.WeeklyVelocity * 13
+			}
+		}
+	}
+	keys := make([][2]string, 0, len(byKey))
+	for k := range byKey {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i][0]+keys[i][1] < keys[j][0]+keys[j][1] })
+	err := im.St.Tx(ctx, func(q *gen.Queries, _ pgx.Tx) error {
+		if len(keys) == 0 {
+			return nil
+		}
+		if err := q.DeleteImportedStock(ctx); err != nil {
+			return err
+		}
+		for _, k := range keys {
+			a := byKey[k]
+			if !a.hasSold { // no sold_90d from the source: units sold on invoices in the last 90 days
+				a.sold90 = sold90[k]
+			}
+			if a.qty <= 0 && a.sold90 == 0 {
+				continue
+			}
+			unit := a.cost
+			if unit == 0 && a.qty > 0 {
+				unit = a.value / a.qty
+			}
+			src := k[0]
+			if err := q.UpsertStockItem(ctx, gen.UpsertStockItemParams{Branch: k[1], Sku: k[0], Name: a.name, Category: a.kat, Qty: int32(a.qty), UnitCost: unit, Value: a.value,
+				AgeDays: int32(a.age), WeeklyVelocity: math.Round(a.sold90/13*100) / 100, SourceSystem: strp("import"), SourceID: &src, SourceWriteDate: &now}); err != nil {
+				return fmt.Errorf("stok %s: %w", k[0], err)
+			}
+			if err := signal(ctx, q, "stock", "import:stock:"+k[0]+":"+k[1], uuid.Nil, now, fmt.Sprintf("Stok %s %s: %d", a.name, k[1], a.qty)); err != nil {
+				return err
+			}
+			rep.Stock++
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	rep.stockDone = true
+	return byKey, nil
+}
+
+// applyStockAlone rebuilds stock_items from the staged snapshot by itself: an Apply that failed before its stock step
+// (a bad invoice, a customer) no longer leaves Cek stok and the AI on the stock of an older pull.
+func (im Importer) applyStockAlone(ctx context.Context, rep *ApplyReport) error {
+	m, err := im.loadMapper(ctx)
+	if err != nil {
+		return err
+	}
+	rows, err := im.rows(ctx, Stock)
+	if err != nil {
+		return err
+	}
+	_, err = im.applyStock(ctx, m, rows, nil, nil, rep)
+	return err
 }
 
 // signal records an imported fact as a signal (one per source key; the agents cite it as provenance).

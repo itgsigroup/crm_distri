@@ -19,10 +19,15 @@ order by checked_at desc, branch
 limit sqlc.arg(lim);
 
 -- name: ListStockProducts :many
--- Every product in the stock (Cek stok's table): total and quantity per branch.
-select sku, max(name)::text as name, max(category)::text as category, sum(qty)::bigint as qty,
+-- Every product in the stock (Cek stok's table): total and quantity per branch, summed the way /stock/check sums one
+-- product (SKU without case, every row of a branch) so the table and the product's check show the same numbers.
+with b as (
+  select lower(sku) as k, min(sku) as sku, max(name) as name, max(category) as category, branch, sum(qty)::bigint as qty
+  from stock_items group by lower(sku), branch
+)
+select min(sku)::text as sku, max(name)::text as name, max(category)::text as category, sum(qty)::bigint as qty,
   jsonb_object_agg(branch, qty) as by_branch
-from stock_items group by sku order by max(name);
+from b group by k order by max(name);
 
 -- name: LastStockChecks :many
 -- The last saved check per product (one save is one transaction, so its rows share checked_at) and how many of its

@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Cek stok sama dengan data sumber · 2026-10-27
+- **Masalah**: stok di Cek stok kadang berbeda dengan database. Penyebab yang ditemukan di kode: (1) dua baris sumber untuk barang × gudang yang sama saling menimpa — hanya baris terakhir yang terhitung; (2) baris tanpa nama barang dibuang diam-diam sehingga stoknya hilang; (3) baris stok dari unggahan CSV lama tidak pernah terhapus saat stok ditarik dari BigQuery, jadi ikut terjumlah; (4) bila langkah Apply lain gagal (faktur, pelanggan), stok tidak diperbarui padahal baris sumber sudah baru — Cek stok memperlihatkan "Orbit" ≠ "sumber"; (5) tabel Cek stok menjumlah per kode barang dengan huruf besar/kecil berbeda dari detail produk.
+- **Perbaikan**: baris yang sama dijumlah (qty, nilai, terjual 90 hari); barang tanpa nama memakai kodenya; satu tarikan stok mengganti stok dari semua sumber; stok tetap dibangun ulang walau langkah Apply lain gagal (kecepatan jual yang lama dipertahankan); tabel dan detail menjumlah dengan aturan yang sama.
+- Test: `TestStockMatchesSource`.
+
 ## Feat · Balasan cepat di Chat (seperti WhatsApp Business) · 2026-10-24
 - Simpan teks yang sering dikirim dengan pintasan, mis. `/rekening`, `/alamat`, `/salam`. Ketik **/** di kolom chat: daftar yang cocok muncul (paling sering dipakai di atas). Pilih dengan ↑ ↓ + Enter/Tab atau klik, maka teks mengisi kolom dan Anda tetap menekan **Kirim**.
 - Kelola lewat 📎 → **Balasan cepat**, atau *Kelola balasan cepat* di bawah daftar: tambah, ubah, hapus. Milik tim: siapa pun bisa menambah; pembuat atau admin yang bisa mengubah/menghapus. Pintasan unik, maksimal 200 per tim.

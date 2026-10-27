@@ -10,6 +10,11 @@ where import_rows.data is distinct from excluded.data or import_rows.source is d
 -- A snapshot (stock) replaces what the same source delivered before: rows missing from it go.
 delete from import_rows where entity = sqlc.arg(entity) and source = sqlc.arg(source) and not (key = any(sqlc.arg(keys)::text[]));
 
+-- name: DeleteStockRowsNotIn :execrows
+-- A stock batch is the whole stock: rows of every source missing from it go (an older CSV upload no longer adds to
+-- the BigQuery stock).
+delete from import_rows where entity = 'stock' and not (key = any(sqlc.arg(keys)::text[]));
+
 -- name: DeleteInvoiceLinesNotIn :execrows
 -- Lines of the delivered invoices that are no longer in the delivery (an invoice lost a line).
 delete from import_rows where entity = 'invoice_lines' and split_part(key, '#', 1) = any(sqlc.arg(invoices)::text[])
