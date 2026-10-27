@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Mengetik di Chat tidak lagi lambat di laptop yang lebih pelan · 2026-10-27
+- Pengguna laptop ThinkPad melaporkan ketikan terasa lambat di Chat; di MacBook tidak terasa. Penyebabnya, setiap huruf di kotak balasan menggambar ulang semua bubble chat yang terbuka (bisa setahun pesan) dan seluruh daftar chat di kiri (penanda "Draf: …").
+- Sekarang bubble tidak digambar ulang saat mengetik, draf disimpan setelah jeda 400 ms (tetap tersimpan saat pindah chat atau mulai edit), dan kotak "Cari chat" menampilkan huruf seketika sementara daftar menyusul.
+
 ## Fix · Pencarian chat tidak naik-turun saat mengetik · 2026-10-27
 - Setiap huruf yang diketik memulai pencarian baru. Tulisan "Mencari di semua chat dan pesan…" muncul di atas daftar, mendorong chat ke bawah, lalu hilang lagi, sehingga daftar naik-turun.
 - Sekarang hasil pencarian sebelumnya tetap tampil sampai hasil baru datang, dan tanda "Mencari…" pindah ke dalam kotak pencarian. Daftar chat tidak bergeser lagi.

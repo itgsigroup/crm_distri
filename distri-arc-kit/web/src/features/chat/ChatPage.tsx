@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
+import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -217,13 +217,51 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
   const busy = deep && (searching || searchingMsgs)
   const firstSearch = deep && ((searching && !found) || (searchingMsgs && !hits))
   const starring = filter === 'starred'
-  const starKey = searchKey(q)
+  // the list filters on a deferred copy of what is typed: the letters show at once, the (long) list follows
+  const lq = useDeferredValue(q)
+  const starKey = searchKey(lq)
   const msgs = starring
     ? starred.filter((h) => !starKey || searchKey(`${displayTitle(h)} ${h.from_name} ${h.snippet}`).includes(starKey))
-    : deep && q.trim() ? hits ?? [] : []
+    : deep && lq.trim() ? hits ?? [] : []
   const base = deep && found ? found : list
   // the open conversation stays in "Belum dibaca" / "Belum dibalas" after reading or answering it, as in WhatsApp
-  const shown = pinnedFirst(base).filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && (deep && found ? true : matchThread(t, q)) && hasLabel(t, label))
+  const shown = useMemo(() => pinnedFirst(base).filter((t) => (inFilter(t, filter) || ((filter === 'unread' || filter === 'unreplied') && t.id === active)) && (deep && found ? true : matchThread(t, lq)) && hasLabel(t, label)), [base, filter, active, deep, found, lq, label])
+  // the rows are kept while typing in the search box and redrawn only when the (deferred) results change
+  const nowMs = now.getTime()
+  const rows = useMemo(() => {
+    const now = new Date(nowMs)
+    return shown.map((c) => (
+      <div key={c.id} className={`ibr-w${menu === c.id ? ' menu-open' : ''}`} onContextMenu={(e) => { e.preventDefault(); setMenu(c.id) }}>
+      <button className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
+        <span className={`av ${c.kind === 'group' ? 'grp' : ''}`}>{c.kind === 'group' ? <Icon name="people" /> : initials(c)}</span>
+        <div className="ibr-m">
+          <div className="ibr-top">
+            <b>{displayTitle(c)}</b>
+            {c.kind === 'group' && <span className="ibr-tag grp">{c.group_kind === 'external' ? 'GRUP PELANGGAN' : 'GRUP'}</span>}
+            {c.kind === 'internal' && <span className="ibr-tag grp" title="Chat antar karyawan GSI · tidak masuk analisa">INTERNAL</span>}
+            {c.contact_type === 'supplier' && <span className="ibr-tag grp">PEMASOK</span>}
+            <Waiting since={c.waiting_since} now={now} />
+          </div>
+          {c.kind !== 'group' && c.subtitle && <span className="ibr-src">≈ {c.subtitle}</span>}
+          <LabelChips ids={c.labels} className="ibr-lbls" />
+          {drafts[c.id] && c.id !== active
+            ? <span className="ibr-lm"><b className="ibr-draft">Draf:</b> {drafts[c.id].replace(/\s+/g, ' ')}</span>
+            : <span className="ibr-lm">{c.last_direction === 'out' ? 'Anda: ' : c.last_from ? c.last_from + ': ' : ''}{c.last_body}</span>}
+        </div>
+        <div className="ibr-rt">
+          <span>{timeLabel(c.last_message_at, now)}</span>
+          <span className="ibr-marks">
+            {c.pinned_at && <Icon name="pin" className="i ibr-pin" />}
+            {!!c.mentioned && <span className="un at" title="Anda ditandai di chat ini">@</span>}
+            {c.unread > 0 && <span className="un">{c.unread > 99 ? '99+' : c.unread}</span>}
+          </span>
+          {!account && <span className="via">via {(c.account_label || c.sales).replace(/^Nomor\s+/, '')}</span>}
+        </div>
+      </button>
+      <ChatRowMenu t={c} open={menu === c.id} setOpen={(v) => setMenu(v ? c.id : null)} onLeave={() => { if (c.id === active) onLeave() }} />
+      </div>
+    ))
+  }, [shown, menu, active, drafts, nowMs, account, onPick, onLeave])
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['chat'] })
     qc.invalidateQueries({ queryKey: ['wa'] })
@@ -264,37 +302,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
         {starring && msgs.length === 0 && <div className="chat-none">{q ? `Tidak ada pesan berbintang yang cocok dengan "${q}"` : 'Belum ada pesan berbintang. Beri bintang lewat menu ⌄ di bubble pesan — hanya Anda yang melihatnya.'}</div>}
         {msgs.length > 0 && shown.length > 0 && <div className="ibl-sec">Chat</div>}
         {loaded && !starring && shown.length === 0 && msgs.length === 0 && !firstSearch && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"${deep ? ' di semua chat Orbit — chat lama di HP yang belum pernah berbalas pesan sejak nomor ditautkan belum ada di sini' : ''}` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
-        {shown.map((c) => (
-          <div key={c.id} className={`ibr-w${menu === c.id ? ' menu-open' : ''}`} onContextMenu={(e) => { e.preventDefault(); setMenu(c.id) }}>
-          <button className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
-            <span className={`av ${c.kind === 'group' ? 'grp' : ''}`}>{c.kind === 'group' ? <Icon name="people" /> : initials(c)}</span>
-            <div className="ibr-m">
-              <div className="ibr-top">
-                <b>{displayTitle(c)}</b>
-                {c.kind === 'group' && <span className="ibr-tag grp">{c.group_kind === 'external' ? 'GRUP PELANGGAN' : 'GRUP'}</span>}
-                {c.kind === 'internal' && <span className="ibr-tag grp" title="Chat antar karyawan GSI · tidak masuk analisa">INTERNAL</span>}
-                {c.contact_type === 'supplier' && <span className="ibr-tag grp">PEMASOK</span>}
-                <Waiting since={c.waiting_since} now={now} />
-              </div>
-              {c.kind !== 'group' && c.subtitle && <span className="ibr-src">≈ {c.subtitle}</span>}
-              <LabelChips ids={c.labels} className="ibr-lbls" />
-              {drafts[c.id] && c.id !== active
-                ? <span className="ibr-lm"><b className="ibr-draft">Draf:</b> {drafts[c.id].replace(/\s+/g, ' ')}</span>
-                : <span className="ibr-lm">{c.last_direction === 'out' ? 'Anda: ' : c.last_from ? c.last_from + ': ' : ''}{c.last_body}</span>}
-            </div>
-            <div className="ibr-rt">
-              <span>{timeLabel(c.last_message_at, now)}</span>
-              <span className="ibr-marks">
-                {c.pinned_at && <Icon name="pin" className="i ibr-pin" />}
-                {!!c.mentioned && <span className="un at" title="Anda ditandai di chat ini">@</span>}
-                {c.unread > 0 && <span className="un">{c.unread > 99 ? '99+' : c.unread}</span>}
-              </span>
-              {!account && <span className="via">via {(c.account_label || c.sales).replace(/^Nomor\s+/, '')}</span>}
-            </div>
-          </button>
-          <ChatRowMenu t={c} open={menu === c.id} setOpen={(v) => setMenu(v ? c.id : null)} onLeave={() => { if (c.id === active) onLeave() }} />
-          </div>
-        ))}
+        {rows}
         {msgs.length > 0 && <div className="ibl-sec">{starring ? 'Pesan berbintang' : 'Pesan'}</div>}
         {msgs.map((h) => (
           <button key={h.id} className="ibr ibr-hit" onClick={() => onHit(h)} title="Buka chat di pesan ini">
@@ -531,6 +539,25 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
     </div>
   )
 }
+
+type BubbleActs = Pick<Parameters<typeof Bubble>[0], 'onEdit' | 'onReply' | 'onDelete' | 'onJump' | 'onZoom' | 'onUse' | 'onPin' | 'onStar' | 'onLabel' | 'onMember'>
+
+/** The bubbles of a chat. Memoised with stable actions: typing in the reply box does not redraw a long chat (a
+ * year of messages), which made typing lag on slower laptops. */
+const MessageList = memo(function MessageList({ messages, nowMs, via, group, analysis, thread, asOf, mark, acts }: {
+  messages: MessageView[]; nowMs: number; via: string; group: boolean; analysis: boolean; thread: string; asOf?: string | null; mark: string; acts: BubbleActs
+}) {
+  const now = useMemo(() => new Date(nowMs), [nowMs])
+  return messages.map((m, i) => {
+    const sep = i === 0 || dayKey(messages[i - 1].sent_at) !== dayKey(m.sent_at) ? <div className="day">{dayLabel(m.sent_at, now)}</div> : null
+    return (
+      <div key={m.id} style={{ display: 'contents' }}>
+        {sep}
+        <Bubble m={m} via={via} group={group} analysis={analysis} thread={thread} now={now} asOf={asOf} mark={mark} {...acts} />
+      </div>
+    )
+  })
+})
 
 /** A contact card: the person's name and number, with a link to chat with the number on WhatsApp. */
 function ContactBody({ text }: { text: string }) {
@@ -908,6 +935,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   const labelMsg = (m: MessageView) => openSheet(<LabelSheet title="Label pesan" sub={mediaCaption(m.body, m.media).slice(0, 80) || 'Pesan'} selected={m.labels ?? []}
     save={(ids) => api.put(`/chat/threads/${id}/messages/${m.id}/labels`, { label_ids: ids }).then((r) => { setOlder((o) => o.map((x) => (x.id === m.id ? { ...x, labels: ids } : x))); return r })} />)
   const startEdit = (m: MessageView) => {
+    saveDraft() // Batal edit brings this draft back
     setReplying(null)
     setEditing(m)
     setText(m.body)
@@ -917,10 +945,20 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     setEditing(null)
     setText(getDraft(id)) // back to the draft that was there before the edit
   }
-  // keep the draft as it is typed — not while the box holds a message being edited
+  // keep the draft once typing pauses — not on every letter: saving it redraws the chat list ("Draf: …"), which
+  // made typing lag on slower laptops — and not while the box holds a message being edited
+  const unsaved = useRef<string | null>(null)
   useEffect(() => {
-    if (!editing) setDraft(id, text)
+    if (editing) return
+    unsaved.current = text
+    const h = setTimeout(() => { setDraft(id, text); unsaved.current = null }, 400)
+    return () => clearTimeout(h)
   }, [id, text, editing])
+  const saveDraft = useCallback(() => {
+    if (unsaved.current !== null) setDraft(id, unsaved.current)
+    unsaved.current = null
+  }, [id])
+  useEffect(() => saveDraft, [saveDraft]) // leaving the chat keeps what was typed last
   useEffect(() => {
     const el = body.current
     if (!el || !data) return
@@ -981,9 +1019,26 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     el.style.height = 'auto'
     el.style.height = Math.min(el.scrollHeight, 140) + 'px'
   }, [text, data])
+  // the bubbles' actions read the latest handlers through a ref, so the memoised list keeps the same props while typing
+  const handlers = useRef({ startEdit, startReply, deleteMsg, jumpTo, useSuggestion, pin: pin.mutate, star: star.mutate, labelMsg, openMember })
+  useLayoutEffect(() => {
+    handlers.current = { startEdit, startReply, deleteMsg, jumpTo, useSuggestion, pin: pin.mutate, star: star.mutate, labelMsg, openMember }
+  })
+  const acts = useMemo<BubbleActs>(() => ({
+    onEdit: (m) => handlers.current.startEdit(m),
+    onReply: (m) => handlers.current.startReply(m),
+    onDelete: (m) => handlers.current.deleteMsg(m),
+    onJump: (mid) => handlers.current.jumpTo(mid),
+    onZoom: setZoom,
+    onUse: (m, draft) => handlers.current.useSuggestion(m, draft),
+    onPin: (m) => handlers.current.pin(m),
+    onStar: (m) => handlers.current.star(m),
+    onLabel: (m) => handlers.current.labelMsg(m),
+    onMember: (n) => { handlers.current.openMember(n).catch(() => {}) },
+  }), [])
+  const messages = useMemo(() => [...older, ...(data?.messages ?? [])], [older, data?.messages])
   if (!data) return <div className="pane th-pane ibc" />
   const t = data.thread
-  const messages = [...older, ...data.messages]
   // The first page already holds the whole retention window (a year); a very busy chat pages on by itself.
   const more = (older.length ? olderMore : !!data.has_more) && messages.length > 0
   const loadOlder = () => {
@@ -1187,15 +1242,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
               </span>
             )}
         </div>
-        {messages.map((m, i) => {
-          const sep = i === 0 || dayKey(messages[i - 1].sent_at) !== dayKey(m.sent_at) ? <div className="day">{dayLabel(m.sent_at, now)}</div> : null
-          return (
-            <div key={m.id} style={{ display: 'contents' }}>
-              {sep}
-              <Bubble m={m} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} now={now} onEdit={startEdit} onReply={startReply} onDelete={deleteMsg} onJump={jumpTo} onZoom={setZoom} onUse={useSuggestion} asOf={data?.stock_as_of} mark={mark} onPin={(x) => pin.mutate(x)} onStar={(x) => star.mutate(x)} onLabel={labelMsg} onMember={(n) => { openMember(n).catch(() => {}) }} />
-            </div>
-          )
-        })}
+        <MessageList messages={messages} nowMs={now.getTime()} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} asOf={data.stock_as_of} mark={mark} acts={acts} />
       </div>
       <div className="th-c ibc-c">
         {replying && (
