@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Pencarian chat tidak naik-turun lagi · 2026-10-27
+- Saat mencari di Chat, daftar sebelumnya melompat naik-turun setiap ada pesan baru masuk. Penyebabnya, hasil pencarian dimuat ulang di latar belakang dan tulisan "Mencari di semua chat dan pesan…" muncul lalu hilang lagi, sehingga daftar terdorong.
+- Sekarang tulisan itu hanya tampil saat pencarian pertama. Pembaruan di latar belakang tidak lagi menggeser daftar.
+
 ## Fix · Laporan tetap menghitung chat dari nomor yang logout · 2026-10-27
 - Kunci riwayat chat untuk nomor WhatsApp yang logout kini hanya berlaku di **Chat** (daftar, isi percakapan, pencarian, label). **Report WhatsApp** dan **Analisa WhatsApp** tetap menghitung chat lama dari nomor itu, dengan batas akses per pengguna yang sama seperti biasa.
 - Test: `TestWAReport` (laporan CEO dan sales tetap lengkap saat nomor logout).

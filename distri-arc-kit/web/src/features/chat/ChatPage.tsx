@@ -208,6 +208,9 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
       return api.get<Items<MessageHit>>('/chat/messages/search?' + p.toString()).then((r) => r.items)
     },
   })
+  // only a first search shows "Mencari…": a refetch in the background (every new message refreshes the results) keeps
+  // the results on screen, so the list does not jump up and down
+  const firstSearch = deep && ((searching && !found) || (searchingMsgs && !hits))
   const starring = filter === 'starred'
   const starKey = searchKey(q)
   const msgs = starring
@@ -253,10 +256,10 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
         )}
       </div>
       <div className="chat-list ibl-list">
-        {deep && !starring && (searching || searchingMsgs) && <div className="chat-none">Mencari di semua chat dan pesan…</div>}
+        {!starring && firstSearch && <div className="chat-none">Mencari di semua chat dan pesan…</div>}
         {starring && msgs.length === 0 && <div className="chat-none">{q ? `Tidak ada pesan berbintang yang cocok dengan "${q}"` : 'Belum ada pesan berbintang. Beri bintang lewat menu ⌄ di bubble pesan — hanya Anda yang melihatnya.'}</div>}
         {msgs.length > 0 && shown.length > 0 && <div className="ibl-sec">Chat</div>}
-        {loaded && !starring && shown.length === 0 && msgs.length === 0 && !(deep && (searching || searchingMsgs)) && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"${deep ? ' di semua chat Orbit — chat lama di HP yang belum pernah berbalas pesan sejak nomor ditautkan belum ada di sini' : ''}` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
+        {loaded && !starring && shown.length === 0 && msgs.length === 0 && !firstSearch && <div className="chat-none">{q ? `Tidak ada chat yang cocok dengan "${q}"${deep ? ' di semua chat Orbit — chat lama di HP yang belum pernah berbalas pesan sejak nomor ditautkan belum ada di sini' : ''}` : filter === 'unread' ? 'Semua chat sudah dibaca' : filter === 'unreplied' ? 'Semua chat pelanggan sudah dibalas' : 'Belum ada percakapan di sini'}</div>}
         {shown.map((c) => (
           <div key={c.id} className={`ibr-w${menu === c.id ? ' menu-open' : ''}`} onContextMenu={(e) => { e.preventDefault(); setMenu(c.id) }}>
           <button className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
