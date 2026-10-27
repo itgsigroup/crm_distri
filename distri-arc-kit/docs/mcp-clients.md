@@ -49,3 +49,11 @@ menetapkan anggaran harian. Tanpa kunci, laporan berisi angka dari tool MCP (mod
 
 ## Uji cepat
 `go run ./tools/mcpcheck -url https://crm-distri.gsiindo.id/mcp -token <TOKEN>`.
+
+## Chat dengan Hermes dari GSI Orbit (ADR 0067)
+Halaman **Hermes Agent → Chat** dipakai untuk chat dengan Hermes yang sama dengan bot Telegram. Cara menyambungkannya:
+1. Di device Hermes, tambahkan ke `~/.hermes/.env`: `API_SERVER_ENABLED=true`, `API_SERVER_KEY=<rahasia acak panjang>`, dan `API_SERVER_HOST=0.0.0.0`. Lalu restart `hermes gateway`. Telegram tetap berjalan.
+2. Buat jalur dari server GSI Orbit ke device Hermes. Yang disarankan adalah Tailscale (gratis): pasang di kedua mesin, lalu pakai `http://100.x.x.x:8642`. Alternatifnya Cloudflare Tunnel (URL https).
+3. CEO membuka **Hermes Agent → Panduan & koneksi → Chat Hermes di halaman ini**, mengisi URL dan API key, lalu menekan **Periksa & simpan**. GSI Orbit memeriksanya ke `GET /v1/models` sebelum disimpan terenkripsi.
+
+Riwayat chat milik masing-masing pengguna. Selama Hermes belum tersambung, chat berjalan dalam mode demo.

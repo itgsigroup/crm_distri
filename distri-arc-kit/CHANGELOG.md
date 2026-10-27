@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat dengan Hermes Agent seperti di Telegram · 2026-10-27
+- Halaman **Hermes Agent** sekarang dibuka di tab **Chat**: gelembung pesan seperti Telegram, "sedang mengetik…" selama Hermes bekerja, jawaban berformat (tabel/daftar), pembatas tanggal, tombol salin, contoh pertanyaan, dan Hapus riwayat. Riwayat chat milik masing-masing pengguna.
+- Tab **Panduan & koneksi** berisi panduan lama, ditambah kartu **Chat Hermes di halaman ini**. Di kartu itu CEO mengisi URL API server Hermes dan `API_SERVER_KEY`. Isian diperiksa ke Hermes lalu disimpan terenkripsi. Selama Hermes belum tersambung, chat berjalan dalam mode demo.
+- API: `GET/POST/DELETE /api/mcp/hermes/chat`, `PUT/DELETE /api/mcp/hermes/config`. Migrasi 0067 (`hermes_messages`). Migrasi sekarang boleh diterapkan tidak berurutan. Lihat ADR 0067.
+- Test: `TestHermesChat`.
+
 ## Fix · Cek stok sama dengan data sumber · 2026-10-27
 - **Masalah**: stok di Cek stok kadang berbeda dengan database. Penyebab yang ditemukan di kode: (1) dua baris sumber untuk barang × gudang yang sama saling menimpa — hanya baris terakhir yang terhitung; (2) baris tanpa nama barang dibuang diam-diam sehingga stoknya hilang; (3) baris stok dari unggahan CSV lama tidak pernah terhapus saat stok ditarik dari BigQuery, jadi ikut terjumlah; (4) bila langkah Apply lain gagal (faktur, pelanggan), stok tidak diperbarui padahal baris sumber sudah baru — Cek stok memperlihatkan "Orbit" ≠ "sumber"; (5) tabel Cek stok menjumlah per kode barang dengan huruf besar/kecil berbeda dari detail produk.
 - **Perbaikan**: baris yang sama dijumlah (qty, nilai, terjual 90 hari); barang tanpa nama memakai kodenya; satu tarikan stok mengganti stok dari semua sumber; stok tetap dibangun ulang walau langkah Apply lain gagal (kecepatan jual yang lama dipertahankan); tabel dan detail menjumlah dengan aturan yang sama.

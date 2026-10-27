@@ -8,6 +8,7 @@ import { Pill } from '../../components/ui'
 import { hhmm, shortDate } from '../../lib/format'
 import { useMCPClients, useMCPInfo, useMe } from '../../app/queries'
 import { MCPClientEditor } from '../settings/AIConnections'
+import { HermesChat, HermesChatConnect } from './HermesChat'
 import { SCOPE } from '../claude/shared'
 
 function copy(text: string, toast: (m: string) => void, secret = false) {
@@ -109,7 +110,7 @@ function HowItWorks() {
     <div className="card">
       <div className="card-h"><h2>Cara kerjanya</h2><span className="meta">3 langkah, sekali jalan</span></div>
       <div className="hm-flow" aria-label="Alur Hermes ke GSI Orbit">
-        <div><Icon name="people" /><b>Anda bertanya</b><span>Ketik pertanyaan ke Hermes di laptop, terminal, atau Telegram</span></div>
+        <div><Icon name="people" /><b>Anda bertanya</b><span>Ketik pertanyaan ke Hermes di tab Chat halaman ini, Telegram, atau terminal</span></div>
         <i aria-hidden="true">→</i>
         <div><Icon name="spark" /><b>Hermes memanggil tool</b><span>Lewat HTTPS + token ke server MCP GSI Orbit, sesuai izin token</span></div>
         <i aria-hidden="true">→</i>
@@ -269,28 +270,40 @@ function Terms() {
   )
 }
 
-/** Sidebar → Hermes Agent: what Hermes is, connecting it to GSI Orbit's MCP server, and how to use it safely. */
+const TABS = [['chat', 'Chat'], ['setup', 'Panduan & koneksi']] as const
+type Tab = (typeof TABS)[number][0]
+
+/** Sidebar → Hermes Agent: chat with Hermes like in Telegram, and what Hermes is, connecting it to GSI Orbit's MCP
+ * server, and how to use it safely. */
 export function HermesPage() {
   const { data: info } = useMCPInfo()
   const { data: all = [] } = useMCPClients()
   const clients = all.filter(isHermes)
+  const [tab, setTab] = useState<Tab>(() => (window.location.hash === '#panduan' ? 'setup' : 'chat'))
+  const go = (t: Tab) => { setTab(t); window.history.replaceState(null, '', t === 'setup' ? '#panduan' : window.location.pathname) }
   return (
     <div className="stack">
-      <Hero clients={clients} />
-      <HowItWorks />
-      <div className="ai-grid">
-        <div className="stack">
-          <Connect endpoint={info?.endpoint ?? ''} clients={clients} />
-          <Setup endpoint={info?.endpoint ?? ''} />
-          <Tasks />
-        </div>
-        <div className="stack">
-          <Rules />
-          <Faq />
-          <Terms />
-        </div>
+      <div className="seg hc-tabs" role="tablist" aria-label="Hermes Agent">
+        {TABS.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'is-active' : ''} onClick={() => go(k)}>{label}</button>)}
       </div>
-      <Tools />
+      {tab === 'chat' ? <HermesChat onSettings={() => go('setup')} /> : <>
+        <Hero clients={clients} />
+        <HermesChatConnect />
+        <HowItWorks />
+        <div className="ai-grid">
+          <div className="stack">
+            <Connect endpoint={info?.endpoint ?? ''} clients={clients} />
+            <Setup endpoint={info?.endpoint ?? ''} />
+            <Tasks />
+          </div>
+          <div className="stack">
+            <Rules />
+            <Faq />
+            <Terms />
+          </div>
+        </div>
+        <Tools />
+      </>}
     </div>
   )
 }

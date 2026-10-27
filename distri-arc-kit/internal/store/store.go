@@ -67,7 +67,8 @@ func (s *Store) Migrate(ctx context.Context) error {
 	}
 	sqlDB := stdlib.OpenDBFromPool(s.Pool)
 	defer sqlDB.Close()
-	p, err := goose.NewProvider(goose.DialectPostgres, sqlDB, sub)
+	// out of order: a migration numbered below one already applied (work merged in another order) still runs
+	p, err := goose.NewProvider(goose.DialectPostgres, sqlDB, sub, goose.WithAllowOutofOrder(true))
 	if err != nil {
 		return err
 	}

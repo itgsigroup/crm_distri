@@ -38,6 +38,7 @@ func (s *Server) mcpRoutes(r chi.Router) {
 	r.Put("/policies/llm", s.putLLMPolicy)
 	r.Put("/policies/{key}", s.putPolicy)
 	r.Get("/policies/{key}/history", s.policyHistory)
+	s.hermesRoutes(r)
 }
 
 // publicBase is the public URL of the app (PUBLIC_URL, else the request's scheme and host).
