@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
 
@@ -314,6 +315,36 @@ func roleOf(u User) access.Role {
 func decider(u User) proposals.Decider {
 	ro := roleOf(u)
 	return proposals.Decider{SalesUserID: *u.SalesUserID, Name: deref(u.Name), Role: deref(u.Role), Email: deref(u.Email), Decide: ro.Decide, RoleName: ro.Name}
+}
+
+// personOf is the signed-in user with a person profile to record their decisions against (proposals.decided_by).
+// Accounts made before every account got one (createUser) get it here, so replying in Chat or deciding never stops
+// at "not linked to sales data".
+func (s *Server) personOf(w http.ResponseWriter, r *http.Request) (User, bool) {
+	u, _ := CurrentUser(r.Context())
+	if u.SalesUserID != nil {
+		return u, true
+	}
+	name := strings.TrimSpace(deref(u.Name))
+	if name == "" {
+		name = deref(u.Email)
+	}
+	role := deref(u.Role)
+	if !slices.Contains([]string{"ceo", "sales", "admin", "finance", "warehouse"}, role) {
+		role = "admin"
+	}
+	id, err := s.st.Q.CreatePersonProfile(r.Context(), gen.CreatePersonProfileParams{Name: name, Branch: "Semua cabang", Role: role, Email: u.Email})
+	if err == nil {
+		var linked *uuid.UUID
+		if linked, err = s.st.Q.LinkPersonProfile(r.Context(), gen.LinkPersonProfileParams{ID: u.ID, SalesUserID: &id}); err == nil {
+			u.SalesUserID = linked
+		}
+	}
+	if err != nil || u.SalesUserID == nil {
+		httpx.Fail(w, http.StatusInternalServerError, "no_sales_user", "Profil pengguna belum bisa dibuat — coba lagi")
+		return u, false
+	}
+	return u, true
 }
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {

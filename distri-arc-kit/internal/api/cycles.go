@@ -518,9 +518,8 @@ func (s *Server) runPlanStep(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusConflict, "waiting", "Langkah ini menunggu pembayaran masuk")
 		return
 	}
-	u, _ := CurrentUser(r.Context())
-	if u.SalesUserID == nil {
-		httpx.Fail(w, http.StatusForbidden, "no_sales_user", "Pengguna tidak terhubung ke data sales")
+	u, ok := s.personOf(w, r)
+	if !ok {
 		return
 	}
 	who := decider(u)

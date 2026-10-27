@@ -301,6 +301,23 @@ func (q *Queries) LinkNumbersToUsers(ctx context.Context) error {
 	return err
 }
 
+const linkPersonProfile = `-- name: LinkPersonProfile :one
+update users set sales_user_id = coalesce(sales_user_id, $2) where id = $1 returning sales_user_id
+`
+
+type LinkPersonProfileParams struct {
+	ID          uuid.UUID  `json:"id"`
+	SalesUserID *uuid.UUID `json:"sales_user_id"`
+}
+
+// An older account without a person profile gets one linked; a profile linked meanwhile is kept.
+func (q *Queries) LinkPersonProfile(ctx context.Context, arg LinkPersonProfileParams) (*uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, linkPersonProfile, arg.ID, arg.SalesUserID)
+	var sales_user_id *uuid.UUID
+	err := row.Scan(&sales_user_id)
+	return sales_user_id, err
+}
+
 const listBranches = `-- name: ListBranches :many
 select b.id, b.name, b.city, b.address, b.active, b.updated_by, b.created_at, (select count(*) from sales_users s join users u on u.sales_user_id = s.id where s.branch = b.name and u.active) as users,
   (select count(*) from dealers d where d.branch = b.name) as dealers

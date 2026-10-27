@@ -277,6 +277,27 @@ func TestChatReplyQuotesABubble(t *testing.T) {
 
 // Hapus untuk semua orang: a queued reply is cancelled before it goes out; a sent message (≤ 48 hours) is a human
 // decision that leaves through the outbox; the bubble shows as deleted without its text; older ones are refused.
+// An older account made without a person profile (before Mapping sales linked one) still replies: the profile its
+// decision is recorded against is made on the first reply and kept for the next.
+func TestChatReplyFromAccountWithoutProfile(t *testing.T) {
+	srv, st := mediaServer(t, nil)
+	ctx := context.Background()
+	th := sinarThread(t, st)
+	if _, err := st.Pool.Exec(ctx, "insert into users (email, name, role, role_key, active) values ('granike@gsi.co.id', 'Granike Monika', 'admin', 'admin', true)"); err != nil {
+		t.Fatal(err)
+	}
+	url := srv.URL + "/api/chat/threads/" + th.String() + "/messages"
+	for _, body := range []string{"Siap Pak, kami cek dulu.", "Stok ada 12 unit."} {
+		if code, out := sendJSON(t, http.MethodPost, url, "granike@gsi.co.id", map[string]string{"body": body}); code != http.StatusAccepted {
+			t.Fatalf("reply %q: %d %v", body, code, out)
+		}
+	}
+	if count(t, st, "select count(*) from sales_users where email = 'granike@gsi.co.id'") != 1 ||
+		count(t, st, "select count(*) from proposals p join users u on u.sales_user_id = p.decided_by where u.email = 'granike@gsi.co.id' and p.kind = 'reply'") != 2 {
+		t.Fatal("reply not recorded against one profile of the account")
+	}
+}
+
 func TestChatDeleteForEveryone(t *testing.T) {
 	srv, st := mediaServer(t, nil)
 	ctx := context.Background()

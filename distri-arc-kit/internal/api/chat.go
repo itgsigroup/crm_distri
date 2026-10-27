@@ -877,9 +877,8 @@ func (s *Server) humanDecision(ctx context.Context, q *gen.Queries, t gen.GetThr
 
 // chatAllowed: the checks every send or edit from Chat passes (a sales identity, a number, not in pilot shadow).
 func (s *Server) chatAllowed(w http.ResponseWriter, r *http.Request, t gen.GetThreadRow) (User, bool) {
-	u, _ := CurrentUser(r.Context())
-	if u.SalesUserID == nil {
-		httpx.Fail(w, http.StatusForbidden, "no_sales_user", "Pengguna tidak terhubung ke data sales")
+	u, ok := s.personOf(w, r)
+	if !ok {
 		return u, false
 	}
 	if t.SalesWa == nil || t.WaJid == nil {

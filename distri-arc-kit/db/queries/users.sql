@@ -118,6 +118,10 @@ update users set totp_secret = null, totp_enabled_at = null, totp_last_step = nu
 -- Every account gets a person profile (sales_users): decisions are recorded against it (proposals.decided_by).
 insert into sales_users (name, branch, role, email) values ($1, $2, $3, $4) returning id;
 
+-- name: LinkPersonProfile :one
+-- An older account without a person profile gets one linked; a profile linked meanwhile is kept.
+update users set sales_user_id = coalesce(sales_user_id, $2) where id = $1 returning sales_user_id;
+
 -- name: EnsureBranches :exec
 -- Branches in use by people and dealers join the branch master (seed, first install).
 insert into branches (name)
