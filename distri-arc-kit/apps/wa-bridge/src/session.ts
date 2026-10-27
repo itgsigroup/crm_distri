@@ -319,6 +319,20 @@ export class Session implements SendTarget {
   }
 
   /**
+   * A person opened the chat in GSI Orbit: its unread inbound messages are read on WhatsApp now (blue ticks), like
+   * WhatsApp Web — not only just before a reply goes out (ADR 0069). Returns how many were read.
+   */
+  async markRead(chat: string): Promise<number> {
+    const sock = this.sock
+    if (!sock || this.status !== 'connected') throw new HistoryBusy('sesi belum terhubung', 409)
+    const keys = this.unread.get(chat)
+    if (!keys?.length) return 0
+    this.unread.delete(chat)
+    await sock.readMessages(keys)
+    return keys.length
+  }
+
+  /**
    * Asks the linked phone for up to `count` messages of a chat before the given one (on-demand history sync). The
    * answer arrives later through messaging-history.set and is forwarded like any history. A one-to-one chat the
    * phone addresses by LID is asked by its LID.

@@ -668,6 +668,12 @@ func (b *Baileys) FetchHistory(ctx context.Context, account, chatJID string, bef
 	return err
 }
 
+// MarkRead reads a chat's unread inbound messages on WhatsApp (blue ticks): a person opened it in GSI Orbit (ADR 0069).
+func (b *Baileys) MarkRead(ctx context.Context, account, chatJID string) error {
+	_, _, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/read", map[string]any{"chat_id": chatJID}, nil)
+	return err
+}
+
 // Profile reads a contact's public profile through the bridge (cached and rate-limited there).
 func (b *Baileys) Profile(ctx context.Context, account, jid string) (Profile, error) {
 	var p struct {

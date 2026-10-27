@@ -863,6 +863,15 @@ func (s *Server) chatRead(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	// a person opened the chat: the customer sees it read (blue ticks) now, like WhatsApp Web — not only when a reply
+	// goes out through the send queue (ADR 0069). Internal DMs are not read; a failure only leaves the ticks for later.
+	if b := s.bridge(); b != nil && t.Account != nil && t.WaJid != nil && deref(t.Kind) != "internal" {
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		if err := b.MarkRead(ctx, *t.Account, *t.WaJid); err != nil {
+			s.log.Warn("chat read receipt", "thread", t.ID, "err", err)
+		}
+		cancel()
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 

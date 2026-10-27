@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Customer langsung melihat centang biru saat chat dibuka · 2026-10-27
+- Sebelumnya tanda terbaca baru dikirim ke WhatsApp saat sales membalas, dan balasan itu pun antre lewat penjaga anti-blokir. Akibatnya customer lama melihat pesannya "belum dibaca" walau sudah dibaca di Orbit.
+- Sekarang membuka chat di Orbit langsung mengirim centang biru, seperti WhatsApp Web. Pesan yang masuk saat chat sedang terbuka juga ikut terbaca. Tetap tidak ada auto-read saat pesan masuk, dan DM internal tidak dikirimi tanda terbaca (ADR 0069).
+- Bridge: `POST /sessions/{id}/read`. Test: `TestChatReadSendsBlueTicks`, bridge `http.test.ts`.
+
 ## Perf · Chat yang dibuka memuat 1 bulan terakhir · 2026-10-27
 - Membuka chat kini hanya memuat pesan **30 hari terakhir**, bukan seluruh riwayat yang tersimpan. Pesan lebih lama muncul saat digulir ke atas. Chat yang sebulan terakhir sepi tetap terbuka dengan 30 pesan terakhirnya.
 - Daftar chat, Cari chat, Statistik, dan Report tidak berubah. Bisa diatur lewat `CHAT_OPEN_DAYS` (bawaan 30; ADR 0068).

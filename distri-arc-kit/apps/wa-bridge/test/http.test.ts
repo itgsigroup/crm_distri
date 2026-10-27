@@ -39,6 +39,7 @@ describe('bridge HTTP', () => {
     const sent: string[] = []
     const asked: unknown[] = []
     const saved: string[] = []
+    const read: string[] = []
     let paced = false
     const session: BridgeSession = {
       id: 's1', connected: () => true, sendText: async (_c, text) => { sent.push(text); return 'W1' }, editText: async (_c, id, text) => { sent.push(`edit ${id}: ${text}`) }, deleteText: async (_c, id) => { sent.push(`delete ${id}`) }, sendContent: async (_c, content) => { sent.push(`content ${content.kind}`); return { wamid: 'W2' } },
@@ -49,6 +50,7 @@ describe('bridge HTTP', () => {
       },
       snapshot: () => ({ session: 's1', status: 'connected', phone: '628', qr: '' }), listGroups: async () => [], profile: async () => ({}),
       saveContact: async (phone, name) => { saved.push(`${phone}=${name}`) },
+      markRead: async chat => { read.push(chat); return 2 },
       fetchHistory: async (chat, oldest, count) => {
         if (paced) throw new HistoryBusy('permintaan riwayat terlalu cepat', 429)
         asked.push({ chat, oldest, count })
@@ -87,6 +89,13 @@ describe('bridge HTTP', () => {
     expect((await post('/sessions/s1/media', { ref: 'r1', mime: '<script>' })).headers.get('content-type')).toBe('application/octet-stream')
     expect((await post('/sessions/s1/media', { ref: 'gone' })).status).toBe(410)
     expect((await post('/sessions/s1/media', { ref: 'busy' })).status).toBe(429)
+    // a chat opened in GSI Orbit: read on WhatsApp (blue ticks); signed and validated
+    expect((await post('/sessions/s1/read', { chat_id: '6281@s.whatsapp.net' }, 'bad')).status).toBe(401)
+    expect((await post('/sessions/s1/read', {})).status).toBe(400)
+    const rd = await post('/sessions/s1/read', { chat_id: '6281@s.whatsapp.net' })
+    expect(rd.status).toBe(200)
+    expect(await rd.json()).toEqual({ read: 2 })
+    expect(read).toEqual(['6281@s.whatsapp.net'])
     // on-demand history: signed, validated, paced
     expect((await post('/sessions/s1/history', { chat_id: '6281@s.whatsapp.net', id: 'M0', ts: 1 }, 'bad')).status).toBe(401)
     expect((await post('/sessions/s1/history', { chat_id: '6281@s.whatsapp.net' })).status).toBe(400)

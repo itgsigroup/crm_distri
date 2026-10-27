@@ -20,6 +20,8 @@ export interface BridgeSession extends SendTarget {
   listGroups(): Promise<unknown[]>
   profile(jid: string): Promise<unknown>
   fetchHistory(chat: string, oldest: { id: string; fromMe: boolean; ts: number }, count: number): Promise<void>
+  /** Reads a chat's unread inbound messages on WhatsApp (blue ticks): a person opened it in GSI Orbit. */
+  markRead(chat: string): Promise<number>
   downloadMedia(ref: string): Promise<NodeJS.ReadableStream>
   /** Saves a number with a name in this account's WhatsApp contacts (synced to the phone). */
   saveContact(phone: string, fullName: string): Promise<void>
@@ -185,6 +187,16 @@ export function handler(d: Deps) {
         }
         res.end()
         return
+      }
+      if (method === 'POST' && parts[2] === 'read') {
+        const inp = JSON.parse(body || '{}') as { chat_id?: string }
+        if (!inp.chat_id) return json(res, 400, { error: 'chat_id wajib' })
+        try {
+          return json(res, 200, { read: await s.markRead(inp.chat_id) })
+        } catch (e) {
+          if (e instanceof HistoryBusy) return json(res, e.status, { error: e.message })
+          throw e
+        }
       }
       if (method === 'POST' && parts[2] === 'history') {
         const inp = JSON.parse(body || '{}') as { chat_id?: string; id?: string; from_me?: boolean; ts?: number; count?: number }
