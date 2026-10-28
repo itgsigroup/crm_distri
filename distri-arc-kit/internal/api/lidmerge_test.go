@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -18,17 +19,18 @@ import (
 	"distri-arc/internal/wa"
 )
 
-// fakeLIDs is a device's LID mapping: 215030000000001@lid is 6282335180530.
 type fakeLIDs struct{}
 
 func (fakeLIDs) Media(context.Context, string, wa.Media) (io.ReadCloser, error) {
 	return io.NopCloser(strings.NewReader("")), nil
 }
 
-func (fakeLIDs) PhonesForLIDs(_ context.Context, _ string, lids []string) (map[string]string, error) {
+// The device does not know 215030000000001@lid itself: WhatsApp gives it as the LID of 6282335180530 when that number
+// is asked (a candidate: a chat with the same name).
+func (fakeLIDs) PhonesForLIDs(_ context.Context, _ string, lids, pns []string) (map[string]string, error) {
 	out := map[string]string{}
 	for _, l := range lids {
-		if l == "215030000000001@lid" {
+		if l == "215030000000001@lid" && slices.Contains(pns, "6282335180530@s.whatsapp.net") {
 			out[l] = "6282335180530@s.whatsapp.net"
 		}
 	}

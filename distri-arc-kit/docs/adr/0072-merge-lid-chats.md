@@ -22,6 +22,14 @@ disimpan dengan `wa_jid` LID, terpisah dari chat nomor yang dibuat belakangan.
   - Menjalankan ulang tidak mengubah apa-apa (idempoten).
 - Setelah digabung, server mengirim event `chat_message` sehingga daftar chat langsung segar.
 
+## Perubahan 28 Okt (siang) — LID yang belum diketahui perangkat
+Setelah deploy pertama, chat Sam masih dua karena perangkat Granike belum punya pemetaan untuk LID itu. Di Baileys,
+LID→nomor hanya bisa dibaca dari data lokal, sedangkan nomor→LID bisa ditanyakan ke WhatsApp lewat usync (cara yang
+sama dengan sinkron kontak). Karena itu, Orbit sekarang juga mengirim **nomor kandidat**: chat bernomor di nomor GSI
+yang sama yang namanya sama dengan nama simpanan atau nama profil chat LID (maks. 50). Bridge menanyakan LID kandidat
+itu (`getLIDsForPNs`, satu query untuk yang belum diketahui). Chat digabung hanya bila WhatsApp menyebut LID itu milik
+nomor tersebut. Nama hanya dipakai untuk memilih siapa yang ditanyakan.
+
 ## Akibat
 - Duplikat yang sudah ada di produksi tergabung begitu daftar chat nomor itu dibuka. LID yang belum diketahui perangkat
   tetap terpisah sampai pemetaannya masuk.

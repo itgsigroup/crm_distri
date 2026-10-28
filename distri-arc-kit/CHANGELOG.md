@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat ganda LID: juga untuk LID yang belum dikenal perangkat · 2026-10-28
+- Chat "Mas Rizal IT - GSI" masih tampil dua kali karena perangkat belum mengetahui nomor di balik ID tersembunyinya. Sekarang Orbit menanyakan ID kandidat ke WhatsApp. Kandidatnya adalah chat bernomor dengan nama yang sama di nomor GSI yang sama. Chat hanya digabung bila WhatsApp menyatakan ID itu milik nomor tersebut.
+
 ## Fix · Chat ganda satu kontak (LID) digabung · 2026-10-28
 - Satu kontak bisa muncul dua kali di nomor GSI yang sama: satu chat dengan nomor, satu "Nomor baru". Penyebabnya, WhatsApp kadang mengirim pesan memakai ID tersembunyi (LID) sebelum nomornya diketahui.
 - Sekarang, setiap kali daftar chat dibuka, chat LID diterjemahkan ke nomor (dari data perangkat, tanpa bertanya ke WhatsApp). Isinya digabung ke chat bernomor: pesan, bintang, label, pin, analisis, dan jumlah belum dibaca. Setelah itu chat duplikatnya dihapus.

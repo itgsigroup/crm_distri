@@ -48,7 +48,7 @@ describe('bridge HTTP', () => {
         if (ref === 'busy') throw new MediaBusy('terlalu banyak media dibuka bersamaan', 429)
         return Readable.from([Buffer.from('JPEG'), Buffer.from('DATA')])
       },
-      snapshot: () => ({ session: 's1', status: 'connected', phone: '628', qr: '' }), listGroups: async () => [], profile: async () => ({}), phonesForLids: async (lids: string[]) => Object.fromEntries(lids.filter((l) => l === '111@lid').map((l) => [l, '6281@s.whatsapp.net'])), photo: async (jid: string) => (jid.startsWith('628') ? { data: Buffer.from('JPEG'), mime: 'image/jpeg' } : undefined),
+      snapshot: () => ({ session: 's1', status: 'connected', phone: '628', qr: '' }), listGroups: async () => [], profile: async () => ({}), phonesForLids: async (lids: string[], pns: string[] = []) => Object.fromEntries(lids.filter((l) => l === '111@lid' || (l === '333@lid' && pns.includes('6283@s.whatsapp.net'))).map((l) => [l, l === '111@lid' ? '6281@s.whatsapp.net' : '6283@s.whatsapp.net'])), photo: async (jid: string) => (jid.startsWith('628') ? { data: Buffer.from('JPEG'), mime: 'image/jpeg' } : undefined),
       saveContact: async (phone, name) => { saved.push(`${phone}=${name}`) },
       markRead: async chat => { read.push(chat); return 2 },
       fetchHistory: async (chat, oldest, count) => {
@@ -68,6 +68,7 @@ describe('bridge HTTP', () => {
     expect((await post('/sessions/s1/send', { chat_id: '6281@s.whatsapp.net', text: 'Halo', action_id: 'ok-1' }, 'bad')).status).toBe(401)
     // LIDs to phone numbers (local mapping): unknown ones are left out
     expect(await (await post('/sessions/s1/lids', { lids: ['111@lid', '222@lid'] })).json()).toEqual({ map: { '111@lid': '6281@s.whatsapp.net' } })
+    expect(await (await post('/sessions/s1/lids', { lids: ['333@lid'], pns: ['6283@s.whatsapp.net'] })).json()).toEqual({ map: { '333@lid': '6283@s.whatsapp.net' } })
     // profile photo: the image, or 404 when the contact has none (or hides it); signed like every request
     const photo = await fetch(bridge + '/sessions/s1/photo/6281%40s.whatsapp.net?size=preview', { headers: { 'X-ARC-Signature': sign(SECRET, '') } })
     expect(photo.status).toBe(200)

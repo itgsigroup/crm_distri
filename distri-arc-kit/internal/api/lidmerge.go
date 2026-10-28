@@ -23,6 +23,34 @@ var lidTried = struct {
 	m map[uuid.UUID]time.Time
 }{m: map[uuid.UUID]time.Time{}}
 
+// lidCandidates are the numbers whose LIDs are worth asking: one-to-one chats under a phone number on the same GSI
+// number that carry the name of a LID chat (the saved name or the profile name). The name only picks whom to ask;
+// a chat is merged only when WhatsApp maps the LID to that number.
+func (s *Server) lidCandidates(ctx context.Context, account string, chats map[string]uuid.UUID) []string {
+	ids := make([]uuid.UUID, 0, len(chats))
+	for _, id := range chats {
+		ids = append(ids, id)
+	}
+	rows, err := s.st.Pool.Query(ctx, `select distinct p.wa_jid from chat_threads l join chat_threads p on p.account = l.account and p.id <> l.id
+		where l.id = any($1) and p.account = $2 and p.wa_jid like '%@s.whatsapp.net' and coalesce(p.kind, '') <> 'group'
+		  and (lower(nullif(trim(p.phone_name), '')) in (lower(trim(l.phone_name)), lower(trim(l.title)))
+		    or lower(nullif(trim(p.title), '')) in (lower(trim(l.phone_name)), lower(trim(l.title))))
+		limit 50`, ids, account)
+	if err != nil {
+		s.log.Warn("lid merge: candidates", "err", err)
+		return nil
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var jid string
+		if rows.Scan(&jid) == nil {
+			out = append(out, jid)
+		}
+	}
+	return out
+}
+
 // mergeLIDChats starts merging the LID chats of a list (each tried at most once per lidRetry).
 func (s *Server) mergeLIDChats(rows []gen.ListThreadsRow) {
 	res, _ := s.mediaFetcher().(wa.LIDResolver)
@@ -55,7 +83,7 @@ func (s *Server) mergeLIDChats(rows []gen.ListThreadsRow) {
 			for l := range chats {
 				lids = append(lids, l)
 			}
-			phones, err := res.PhonesForLIDs(ctx, acct, lids)
+			phones, err := res.PhonesForLIDs(ctx, acct, lids, s.lidCandidates(ctx, acct, chats))
 			if err != nil {
 				s.log.Warn("lid merge: resolve", "account", wa.MaskNumber(acct), "err", err)
 				continue

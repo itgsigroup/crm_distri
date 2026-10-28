@@ -18,20 +18,21 @@ import (
 // the linked device knows their number, so the chat is stored apart from the number's chat ("Nomor baru" next to
 // "+62 823…"). Once the device's LID mapping knows the number, the LID chat is merged into the number's chat.
 
-// LIDResolver turns LIDs into phone JIDs through a GSI number's device (its local LID mapping: no WhatsApp query).
+// LIDResolver turns LIDs into phone JIDs through a GSI number's device: its local LID mapping, then the LIDs of the
+// candidate numbers given (pns), asked of WhatsApp like a contact sync. A LID maps only when WhatsApp says so.
 type LIDResolver interface {
-	PhonesForLIDs(ctx context.Context, account string, lids []string) (map[string]string, error)
+	PhonesForLIDs(ctx context.Context, account string, lids, pns []string) (map[string]string, error)
 }
 
 // IsLID reports whether a JID is a LID ("123456789@lid").
 func IsLID(jid string) bool { return strings.HasSuffix(jid, "@lid") }
 
-// PhonesForLIDs asks the bridge for the phone JIDs of LIDs the number's device knows.
-func (b *Baileys) PhonesForLIDs(ctx context.Context, account string, lids []string) (map[string]string, error) {
+// PhonesForLIDs asks the bridge for the phone JIDs of LIDs (pns: candidate numbers whose LIDs may be asked).
+func (b *Baileys) PhonesForLIDs(ctx context.Context, account string, lids, pns []string) (map[string]string, error) {
 	var out struct {
 		Map map[string]string `json:"map"`
 	}
-	if _, _, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/lids", map[string]any{"lids": lids}, &out); err != nil {
+	if _, _, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/lids", map[string]any{"lids": lids, "pns": pns}, &out); err != nil {
 		return nil, err
 	}
 	return out.Map, nil

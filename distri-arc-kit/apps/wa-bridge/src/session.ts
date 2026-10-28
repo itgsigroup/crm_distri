@@ -410,17 +410,27 @@ export class Session implements SendTarget {
   }
 
   /**
-   * The phone JIDs of these LIDs from this device's LID mapping (stored locally: no query to WhatsApp). A chat that
-   * came in by LID before its number was known is merged into the number's chat by GSI Orbit. Unknown LIDs are left out.
+   * The phone JIDs of these LIDs. First from this device's LID mapping (local, no query); then, for the candidate
+   * phone numbers given (chats with the same name, at most 50), their LIDs asked of WhatsApp the way it syncs contacts
+   * (one usync query for those unknown) — a LID matches only when WhatsApp says it is that number's. Unknown LIDs are
+   * left out. GSI Orbit merges a chat that came in by LID into the number's chat (ADR 0072).
    */
-  async phonesForLids(lids: string[]): Promise<Record<string, string>> {
+  async phonesForLids(lids: string[], pns: string[] = []): Promise<Record<string, string>> {
     const sock = this.sock
     if (!sock) throw new MediaBusy('sesi belum terhubung', 409)
     const out: Record<string, string> = {}
-    for (const lid of lids.slice(0, 500)) {
-      if (!isLidUser(lid)) continue
+    const want = new Set(lids.filter(l => isLidUser(l)).slice(0, 500).map(l => jidNormalizedUser(l)))
+    for (const lid of want) {
       const pn = await sock.signalRepository.lidMapping.getPNForLID(lid).catch(() => null)
       if (pn && !isLidUser(pn)) out[lid] = jidNormalizedUser(pn)
+    }
+    const ask = [...new Set(pns.map(p => p.includes('@') ? jidNormalizedUser(p) : p.replace(/\D/g, '') + '@s.whatsapp.net'))].filter(p => !isLidUser(p)).slice(0, 50)
+    if (ask.length && Object.keys(out).length < want.size) {
+      const pairs = await sock.signalRepository.lidMapping.getLIDsForPNs(ask).catch(() => null)
+      for (const { lid, pn } of pairs ?? []) {
+        const l = jidNormalizedUser(lid)
+        if (want.has(l) && !out[l]) out[l] = jidNormalizedUser(pn)
+      }
     }
     return out
   }
