@@ -131,5 +131,5 @@ function LyraSendSheet({ m, thread, text }: { m: MessageView; thread: string; te
   )
 }
 
-/** Whether a bubble can be given to Lyra: a customer's text or photo. */
-export const lyraAskable = (m: MessageView) => m.direction === 'in' && !m.internal && !m.deleted && (!m.media || m.media.kind === 'image')
+/** Whether a bubble can be given to Lyra: a customer's or a colleague's text or photo (internal chats too, 28 Oct). */
+export const lyraAskable = (m: MessageView) => m.direction === 'in' && !m.deleted && (!m.media || m.media.kind === 'image')

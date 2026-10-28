@@ -56,6 +56,15 @@ kata kuncinya masih memicu pembacaan Lyra, dan simulatornya masih memakai kartu 
 `suggest` dan masih bisa mengantrekan draf AI. Selama kunci ChatGPT/Claude belum diisi, draf itu tidak memakan biaya.
 Bila kunci diisi, penghitungan saran untuk thread dan draf saat pesan masuk sebaiknya dimatikan di server.
 
+## Perubahan 28 Okt (3) — Lyra juga membaca chat internal
+Sam: "perbaiki agar lyra juga bisa membaca dan analisa internal". Catarina bertanya "cek stok 76d0t-exlpf" ke Granike di
+chat antar nomor GSI, tetapi Lyra tidak membacanya karena chat internal dilewati. Keputusan Sam sebagai pemilik data: Lyra
+membaca semua chat, yaitu DM internal (`kind = internal`), grup internal, dan pesan dari nomor internal, dengan pemicu yang
+sama (kata kunci stok, harga, produk) dan menu **Tanya Lyra**. Keputusan ini menggantikan aturan "chat internal tidak pernah
+dibaca" di atas, hanya untuk Lyra. Teks dan riwayat tetap dimasking sebelum dikirim, tetapi isi chat antar karyawan kini
+ikut terkirim ke Lyra dan ke provider model yang dipakai Lyra. Fitur lain (Analisa WhatsApp, AI Trigger) tetap tidak
+membaca DM internal.
+
 ## Akibat
 - Sales langsung melihat stok per kota/gudang dan harga DPP di bawah pertanyaan pelanggan, lalu bisa memberi diskon dan
   mengirim penawaran dalam beberapa klik.

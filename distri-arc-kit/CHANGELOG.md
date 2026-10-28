@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Lyra juga membaca chat internal · 2026-10-28
+- Pertanyaan stok, harga, atau produk di chat antar karyawan (DM antar nomor GSI) dan di grup internal sekarang juga mendapat kartu Lyra, sama seperti chat pelanggan. Contoh: "cek stok 76d0t-exlpf" dari Catarina ke Granike.
+- Menu bubble **Tanya Lyra** juga muncul di pesan internal. Teks tetap dimasking sebelum dikirim ke Lyra. Harga memakai harga list (tier A) karena chat internal tidak tertaut ke dealer.
+- ADR 0070 (perubahan 28 Okt (3)) · test: `TestLyraProductCard`.
+
 ## Change · Di bawah bubble Chat hanya kartu Lyra · 2026-10-28
 - Kartu **AI Trigger** (stok/harga dengan draf ChatGPT/Claude) tidak lagi muncul di bawah pesan pelanggan. Yang tersisa hanya kartu **Lyra**: stok per kota, harga DPP, diskon, dan kirim ke pelanggan.
 - Halaman AI Trigger tetap ada. Kata kuncinya masih menjadi pemicu kartu Lyra, dan simulator "Coba kalimat" tetap jalan.

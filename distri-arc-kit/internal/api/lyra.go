@@ -37,14 +37,10 @@ func (s *Server) lyraRoutes(r chi.Router) {
 	r.Post("/chat/threads/{id}/messages/{mid}/lyra", s.lyraRead)
 }
 
-// lyraCustomerChat: a chat with a customer (one-to-one or an external group), not an internal one.
-func lyraCustomerChat(t gen.GetThreadRow) bool {
-	k := deref(t.Kind)
-	return k == "dealer" || k == "new" || (k == "group" && deref(t.GroupKind) == "external")
-}
-
+// lyraAsks: a message Lyra may read — a customer's or a colleague's (Sam 28 Oct: internal chats and groups too, so a
+// stock question between staff gets the card as well).
 func lyraAsks(m MessageView) bool {
-	return m.Direction == "in" && !m.Internal && !m.Deleted && !m.AutoReply && (m.Media == nil || m.Media.Kind == "image")
+	return m.Direction == "in" && !m.Deleted && !m.AutoReply && (m.Media == nil || m.Media.Kind == "image")
 }
 
 func lyraQuestion(t gen.GetThreadRow, m MessageView) hermes.Question {
@@ -80,9 +76,6 @@ func (s *Server) lyraImage(thread uuid.UUID) hermes.ImageFunc {
 // attachLyra adds Lyra's cards to a customer chat's messages, and has Lyra read the recent ones that ask about
 // products and were not read yet.
 func (s *Server) attachLyra(ctx context.Context, t gen.GetThreadRow, msgs []MessageView, now time.Time) error {
-	if !lyraCustomerChat(t) {
-		return nil
-	}
 	var idx []int
 	for i, m := range msgs {
 		if lyraAsks(m) && now.Sub(m.SentAt) <= suggestWindow {
@@ -206,14 +199,10 @@ func (s *Server) lyraWarehouses(ctx context.Context, skus []string) ([]hermes.Wa
 	return out, nil
 }
 
-// lyraRead has Lyra read (or read again) one customer message: the "Tanya Lyra" / "Baca ulang" button.
+// lyraRead has Lyra read (or read again) one message: the "Tanya Lyra" / "Baca ulang" button.
 func (s *Server) lyraRead(w http.ResponseWriter, r *http.Request) {
 	t, ok := s.threadParam(w, r)
 	if !ok {
-		return
-	}
-	if !lyraCustomerChat(t) {
-		httpx.Fail(w, http.StatusBadRequest, "invalid", hermes.AgentName+" hanya membaca chat pelanggan")
 		return
 	}
 	mid, err := uuid.Parse(chi.URLParam(r, "mid"))
@@ -228,7 +217,7 @@ func (s *Server) lyraRead(w http.ResponseWriter, r *http.Request) {
 	}
 	v := MessageView{ID: m.ID, Direction: deref(m.Direction), Body: deref(m.Body), SentAt: m.SentAt, Media: mediaView(m.Media), Deleted: m.DeletedAt != nil}
 	if v.Direction != "in" || v.Deleted || (v.Media != nil && v.Media.Kind != "image") {
-		httpx.Fail(w, http.StatusBadRequest, "invalid", hermes.AgentName+" hanya membaca pesan teks atau foto dari pelanggan")
+		httpx.Fail(w, http.StatusBadRequest, "invalid", hermes.AgentName+" hanya membaca pesan teks atau foto yang masuk")
 		return
 	}
 	started, err := s.hermes().ReadProducts(r.Context(), lyraQuestion(t, v), s.lyraImage(t.ID), true)

@@ -72,7 +72,7 @@ func lyraCards(t *testing.T, srv *httptest.Server, tid, user string) map[string]
 // ADR 0070: a customer message asking about a product gets Lyra's card under its bubble — stock per city and
 // warehouse and the DPP price computed by GSI Orbit — read once; a message that asks nothing gets none. In demo mode
 // the product is picked by words; once Hermes is connected, "Baca ulang" has Lyra name the products among the
-// catalog candidates, with the customer's number masked.
+// catalog candidates, with the customer's number masked. Internal chats are read as well.
 func TestLyraProductCard(t *testing.T) {
 	srv, st := chatServer(t)
 	ctx := context.Background()
@@ -144,6 +144,18 @@ func TestLyraProductCard(t *testing.T) {
 	}
 	if cards := lyraCards(t, srv, tid, ceo); cards[photo] == nil {
 		t.Fatal("a reading asked from the bubble is shown")
+	}
+
+	// an internal chat between staff is read too (Sam 28 Oct): a stock question there gets the card
+	var itid, imsg string
+	if err := st.Pool.QueryRow(ctx, "insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('internal', '6281234504472@s.whatsapp.net', 'Catarina', '6281234504471', now()) returning id").Scan(&itid); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Pool.QueryRow(ctx, "insert into chat_messages (thread_id, wa_msg_id, direction, body, sent_at, status) values ($1, 'LY4', 'in', 'kak.. x5s 8w ready?', now() - interval '10 minutes', 'received') returning id", itid).Scan(&imsg); err != nil {
+		t.Fatal(err)
+	}
+	if c := lyraCards(t, srv, itid, ceo)[imsg]; c == nil || c["status"] != "done" {
+		t.Fatalf("internal chat not read: %v", c)
 	}
 
 	// Hermes connected: read again → Lyra's products
