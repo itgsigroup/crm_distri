@@ -20,6 +20,19 @@ const INVALIDATES: Record<string, string[][]> = {
   data_synced: [['stock'], ['dealers'], ['dealer'], ['orbit'], ['segmen'], ['kpi'], ['credit'], ['trend'], ['agenda']], // the Claude routine started (or could not) for a waiting cycle — the analysis pop-up shows it
 }
 
+/**
+ * The queries an event refreshes. A new message names its chat (thread_id): only that chat and its context refetch,
+ * with the chat list, search and unread counts — not the chat each tab has open whatever it is (Sam 28 Oct "lemot":
+ * every message of 9 numbers refetched every open chat, ~6,000 chat loads an hour).
+ */
+export function keysFor(name: string, data: unknown): string[][] {
+  const thread = name === 'chat_message' && data && typeof data === 'object' ? (data as { thread_id?: unknown }).thread_id : undefined
+  if (typeof thread === 'string' && thread) {
+    return [['chat', 'threads'], ['chat', 'thread', thread], ['chat', 'context', thread], ['chat', 'search'], ['wa', 'status']]
+  }
+  return INVALIDATES[name] ?? []
+}
+
 /** Collects query keys and invalidates each distinct one once per `wait` ms (leading edge immediate, then trailing). */
 export class InvalidationQueue {
   private keys = new Map<string, string[]>()
@@ -101,7 +114,7 @@ export function SseProvider({ children }: { children: ReactNode }) {
       } catch {
         data = e.data
       }
-      INVALIDATES[name].forEach((queryKey) => queue.add(queryKey))
+      keysFor(name, data).forEach((queryKey) => queue.add(queryKey))
       listeners.forEach((l) => l(name, data))
     }] as const)
     const onHello = () => {

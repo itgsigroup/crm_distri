@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { POLL_MS, SILENT_MS, SseProvider } from './SseProvider'
+import { keysFor, POLL_MS, SILENT_MS, SseProvider } from './SseProvider'
 
 // A stand-in EventSource: the test plays the server.
 class FakeES {
@@ -44,6 +44,16 @@ describe('realtime stream', () => {
     act(() => { second.emit('hello'); vi.advanceTimersByTime(2000) })
     expect(invalidated).toContain(JSON.stringify(['chat', 'threads'])) // caught up
     expect(invalidated).toContain(JSON.stringify(['chat', 'thread']))
+  })
+
+  it('refetches only the chat a new message is in, with the list and unread counts', () => {
+    const keys = keysFor('chat_message', { thread_id: 't1' }).map((k) => JSON.stringify(k))
+    expect(keys).toContain(JSON.stringify(['chat', 'thread', 't1']))
+    expect(keys).toContain(JSON.stringify(['chat', 'context', 't1']))
+    expect(keys).toContain(JSON.stringify(['chat', 'threads']))
+    expect(keys).not.toContain(JSON.stringify(['chat', 'thread'])) // not every open chat
+    // an event without a chat still refreshes them all
+    expect(keysFor('chat_message', {}).map((k) => JSON.stringify(k))).toContain(JSON.stringify(['chat', 'thread']))
   })
 
   it('stays connected while heartbeats come, and polls the chats while down', () => {

@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Sistem lebih ringan: pesan baru hanya memuat ulang chat-nya sendiri · 2026-10-28
+- Penyebab lambat (dari log API produksi, 1 jam): setiap pesan baru dari 9 nomor membuat setiap tab memuat ulang chat yang sedang dibuka beserta konteksnya, apa pun chat-nya. Hasilnya sekitar 6.100 kali buka chat per jam (rata-rata 509 ms, p95 1,3 detik) dan 6.100 kali muat konteks.
+- Sekarang pesan baru hanya memuat ulang chat yang menerima pesan itu dan konteksnya. Daftar chat, pencarian, dan badge belum-dibaca tetap diperbarui realtime.
+- Popup swal tidak memperlambat apa pun: popup itu hanya muncul setelah aksi (sukses/gagal) atau saat nomor WA logout, bukan saat data dimuat. Jadi popup itu tetap ada.
+- Test: `SseProvider.test.tsx`.
+
 ## Change · Sesi login tidak pernah berakhir, kecuali Logout · 2026-10-28
 - Login sekarang berlaku tanpa batas waktu dan tanpa batas idle. Pengguna tidak perlu login lagi kecuali menekan **Keluar**. Cookie diperbarui otomatis selama aplikasi dipakai.
 - **Keluar** benar-benar mengakhiri sesi di server. Token sesi itu, termasuk salinannya, langsung tidak berlaku. Perangkat lain tetap login.
