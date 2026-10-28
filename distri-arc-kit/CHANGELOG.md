@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Chat Hermes Agent = jendela ke Lyra · 2026-10-28
+- Pertanyaan di halaman Hermes Agent dikirim apa adanya ke Lyra, lalu jawabannya tampil di GSI Orbit. Lyra sendiri yang menyimpan percakapan, memori, tool, dan model, sama seperti di Telegram. GSI Orbit tidak lagi menambahkan prompt atau riwayatnya sendiri.
+- Tidak ada lagi mode demo di chat. Selama Lyra belum tersambung, kolom ketik dimatikan. **Hapus riwayat** memulai percakapan baru di Lyra.
+- Tab Sambungan: Lyra berjalan di server yang sama, jadi URL-nya `http://127.0.0.1:8642`. Langkah Tailscale dihapus.
+- ADR 0067 (perubahan 28 Okt (2)) · test: `TestHermesChat`.
+
 ## Fix · Halaman Hermes Agent hanya untuk chat dengan Lyra · 2026-10-28
 - Halaman Hermes Agent sekarang hanya untuk berinteraksi dengan Lyra. Isinya tab **Chat** dan tab **Sambungan** (URL dan API key API server Hermes di device Lyra). Teks chat menyebut Lyra.
 - Panduan token MCP, YAML, daftar tool, aturan main, dan FAQ dihapus dari halaman ini. Materi itu sudah ada di **MCP Claude → Hermes Agent**. Kartu Sambungan menjelaskan bedanya: token MCP dipakai Lyra untuk membaca GSI Orbit, sedangkan API server dipakai GSI Orbit untuk bertanya ke Lyra.

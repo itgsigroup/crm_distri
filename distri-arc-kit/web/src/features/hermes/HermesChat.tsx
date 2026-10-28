@@ -15,7 +15,7 @@ interface HermesChatData { config: HermesConfig; messages: HermesMessage[] }
 
 const KEY = ['mcp', 'hermes', 'chat']
 
-/** The conversation; polls while Hermes is still answering. */
+/** The conversation; polls while Lyra is still answering. */
 export const useHermesChat = () => useQuery({
   queryKey: KEY,
   queryFn: () => api.get<HermesChatData>('/mcp/hermes/chat'),
@@ -45,14 +45,15 @@ function Bubble({ m }: { m: HermesMessage }) {
         {mine ? <p>{m.content}</p> : m.status === 'error' ? <p>{m.content.charAt(0).toUpperCase() + m.content.slice(1)}</p> : <Markdown text={m.content} />}
         <span className="hc-meta">
           {!mine && m.status === 'done' && <button onClick={copy} title="Salin jawaban"><Icon name="doc" /></button>}
-          {m.demo && !mine && 'demo · '}{hhmm(m.finished_at ?? m.created_at)}{mine && <Icon name="check" />}
+          {m.demo && !mine && 'demo lama · '}{hhmm(m.finished_at ?? m.created_at)}{mine && <Icon name="check" />}
         </span>
       </div>
     </div>
   )
 }
 
-/** Hermes Agent → Chat: talk to Lyra, the company's Hermes Agent, like in Telegram (ADR 0067). */
+/** Hermes Agent → Chat: a window to Lyra, the company's Hermes Agent (ADR 0067). Each question goes to Lyra as is;
+ * Lyra keeps the conversation, memory and tools, like in Telegram. Without a connected Lyra nothing can be asked. */
 export function HermesChat({ onSettings }: { onSettings: () => void }) {
   const { data, isLoading } = useHermesChat()
   const { data: me } = useMe()
@@ -64,6 +65,7 @@ export function HermesChat({ onSettings }: { onSettings: () => void }) {
   const msgs = data?.messages ?? []
   const pending = msgs.some((m) => m.status === 'pending')
   const cfg = data?.config
+  const off = !isLoading && !cfg?.configured
 
   const ask = useMutation({
     mutationFn: (t: string) => api.post('/mcp/hermes/chat', { text: t }),
@@ -90,12 +92,12 @@ export function HermesChat({ onSettings }: { onSettings: () => void }) {
 
   const send = (t = text) => {
     const v = t.trim()
-    if (!v || pending || ask.isPending) return
+    if (!v || off || pending || ask.isPending) return
     setText('')
     ask.mutate(v)
   }
 
-  const status = pending ? 'sedang mengetik…' : cfg?.configured ? 'online · Hermes Agent' : 'mode demo · belum disambungkan'
+  const status = pending ? 'sedang mengetik…' : cfg?.configured ? 'online · Hermes Agent' : 'belum disambungkan'
   return (
     <div className="card hc">
       <header className="hc-head">
@@ -104,14 +106,14 @@ export function HermesChat({ onSettings }: { onSettings: () => void }) {
           <b>Lyra</b>
           <span className={pending ? 'is-typing' : ''}>{status}</span>
         </div>
-        {!cfg?.configured && <Pill tone="warn">Demo</Pill>}
+        {off && <Pill tone="warn">Belum tersambung</Pill>}
         <button className="btn ghost" disabled={!msgs.length || clear.isPending} onClick={() => { if (window.confirm('Hapus semua riwayat chat Anda dengan Lyra?')) clear.mutate() }}><Icon name="x" />Hapus riwayat</button>
       </header>
 
       <div className="hc-list" ref={list} aria-live="polite">
-        {!cfg?.configured && !isLoading && (
+        {off && (
           <div className="hc-note">
-            Lyra belum disambungkan ke halaman ini, jadi jawaban masih <b>mode demo</b>.{' '}
+            Lyra belum disambungkan ke GSI Orbit, jadi pertanyaan belum bisa dikirim.{' '}
             {me?.role === 'ceo' ? <button className="link" onClick={onSettings}>Sambungkan Lyra</button> : 'Minta CEO menyambungkan Lyra di tab Sambungan.'}
           </div>
         )}
@@ -119,9 +121,9 @@ export function HermesChat({ onSettings }: { onSettings: () => void }) {
           <div className="hc-empty">
             <span className="hc-avatar is-big"><Icon name="spark" /></span>
             <b>Mulai chat dengan Lyra</b>
-            <span>Tanya apa saja tentang dealer, penjualan, piutang, dan stok. Lyra menjawab di sini, sama seperti di Telegram.</span>
+            <span>Pertanyaan Anda dikirim apa adanya ke Lyra, dan jawabannya tampil di sini, sama seperti di Telegram.</span>
             <div className="hc-starters">
-              {STARTERS.map((s) => <button key={s} className="chip" onClick={() => send(s)}>{s}</button>)}
+              {STARTERS.map((s) => <button key={s} className="chip" disabled={off} onClick={() => send(s)}>{s}</button>)}
             </div>
           </div>
         )}
@@ -140,13 +142,14 @@ export function HermesChat({ onSettings }: { onSettings: () => void }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send() } }}
-          placeholder={pending ? 'Lyra sedang menjawab…' : 'Tulis pesan ke Lyra'}
+          disabled={off}
+          placeholder={off ? 'Lyra belum tersambung' : pending ? 'Lyra sedang menjawab…' : 'Tulis pesan ke Lyra'}
           aria-label="Pesan ke Lyra"
           maxLength={8000}
         />
-        <button type="submit" className="hc-send" disabled={!text.trim() || pending || ask.isPending} aria-label="Kirim"><Icon name="send" /></button>
+        <button type="submit" className="hc-send" disabled={off || !text.trim() || pending || ask.isPending} aria-label="Kirim"><Icon name="send" /></button>
       </form>
-      <p className="hc-foot">Lyra hanya membaca dan mengusulkan. Keputusan dan pengiriman ke dealer tetap dilakukan manusia di GSI Orbit. Riwayat chat hanya terlihat oleh Anda.</p>
+      <p className="hc-foot">Lyra menyimpan percakapannya sendiri, sama seperti di Telegram. Lyra hanya membaca dan mengusulkan. Keputusan dan pengiriman ke dealer tetap dilakukan manusia di GSI Orbit. Riwayat chat hanya terlihat oleh Anda.</p>
     </div>
   )
 }
@@ -163,7 +166,7 @@ export function HermesChatConnect() {
   const ceo = me?.role === 'ceo'
   const save = useMutation({
     mutationFn: () => api.put<HermesConfig>('/mcp/hermes/config', { url: url || cfg?.url, api_key: key }),
-    onSuccess: () => { toast('Lyra tersambung. Chat sekarang memakai Lyra sungguhan'); setKey(''); setUrl(''); qc.invalidateQueries({ queryKey: KEY }) },
+    onSuccess: () => { toast('Lyra tersambung'); setKey(''); setUrl(''); qc.invalidateQueries({ queryKey: KEY }) },
     onError: (e: Error) => toast(e.message),
   })
   const drop = useMutation({
@@ -173,21 +176,20 @@ export function HermesChatConnect() {
   })
   return (
     <div className="card">
-      <div className="card-h"><h2>Sambungan ke Lyra</h2><Pill tone={cfg?.configured ? 'good' : 'warn'} icon={cfg?.configured ? 'check' : 'alert'}>{cfg?.configured ? 'Tersambung' : 'Mode demo'}</Pill></div>
+      <div className="card-h"><h2>Sambungan ke Lyra</h2><Pill tone={cfg?.configured ? 'good' : 'warn'} icon={cfg?.configured ? 'check' : 'alert'}>{cfg?.configured ? 'Tersambung' : 'Belum tersambung'}</Pill></div>
       <p className="hc-cfg">Sambungan ini supaya GSI Orbit bisa bertanya ke Lyra (chat di halaman ini dan kartu Lyra di Chat WhatsApp). Token MCP yang dipakai Lyra untuk membaca data GSI Orbit adalah hal terpisah, diatur di <b>MCP Claude → Hermes Agent</b>.</p>
       {cfg?.configured && <p className="hc-cfg">Server: <code>{cfg.url}</code> · API key <code>{cfg.key_hint}</code></p>}
       <ol className="cl-steps">
-        <li><b>Nyalakan API server Hermes</b> di device Lyra: tambahkan ke <code>~/.hermes/.env</code>, lalu restart <code>hermes gateway</code> (Telegram tetap jalan):
-          <pre className="hc-pre">{'API_SERVER_ENABLED=true\nAPI_SERVER_KEY=<rahasia panjang acak>\nAPI_SERVER_HOST=0.0.0.0'}</pre></li>
-        <li><b>Buka jalur dari server GSI Orbit ke device Lyra</b>. Disarankan <b>Tailscale</b> (gratis, jaringan privat): pasang di server dan device Lyra, lalu pakai alamat <code>http://100.x.x.x:8642</code>. Alternatif: Cloudflare Tunnel (URL https).</li>
-        <li><b>Isi URL dan API key</b> di bawah. GSI Orbit memeriksanya ke Lyra sebelum disimpan (terenkripsi).</li>
+        <li><b>Nyalakan API server Hermes</b> di tempat Lyra berjalan: tambahkan ke <code>~/.hermes/.env</code>, lalu restart <code>hermes gateway</code> (Telegram tetap jalan):
+          <pre className="hc-pre">{'API_SERVER_ENABLED=true\nAPI_SERVER_KEY=<rahasia panjang acak>\nAPI_SERVER_HOST=127.0.0.1'}</pre></li>
+        <li><b>Isi URL dan API key</b> di bawah. Bila Lyra berjalan di server yang sama dengan GSI Orbit, URL-nya <code>http://127.0.0.1:8642</code>. GSI Orbit memeriksanya ke Lyra sebelum disimpan (terenkripsi).</li>
       </ol>
       {ceo ? (
         <form className="hc-form" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
-          <input className="cl-input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder={cfg?.url || 'http://100.64.0.5:8642'} aria-label="URL API server Lyra" />
+          <input className="cl-input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder={cfg?.url || 'http://127.0.0.1:8642'} aria-label="URL API server Lyra" />
           <input className="cl-input" type="password" autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} placeholder={cfg?.configured ? `API key (kosongkan = tetap ${cfg.key_hint})` : 'API_SERVER_KEY'} aria-label="API key Lyra" />
           <button className="btn primary" disabled={save.isPending || !(url || cfg?.url) || (!key && !cfg?.configured)}><Icon name="plug" />{save.isPending ? 'Memeriksa…' : 'Periksa & simpan'}</button>
-          {cfg?.configured && <button type="button" className="btn ghost" onClick={() => { if (window.confirm('Putuskan sambungan ke Lyra? Chat dan kartu Lyra kembali ke mode demo.')) drop.mutate() }}>Putuskan</button>}
+          {cfg?.configured && <button type="button" className="btn ghost" onClick={() => { if (window.confirm('Putuskan sambungan ke Lyra? Chat tidak bisa dipakai, dan kartu Lyra kembali ke mode demo.')) drop.mutate() }}>Putuskan</button>}
         </form>
       ) : <p className="hc-cfg">Hanya CEO yang bisa menyambungkan Lyra.</p>}
     </div>

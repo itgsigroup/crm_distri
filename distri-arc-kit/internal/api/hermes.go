@@ -58,9 +58,12 @@ func (s *Server) hermesAsk(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusBadRequest, "invalid", "Tulis pertanyaan (maks. 8.000 karakter)")
 		return
 	}
-	m, err := s.hermes().Ask(r.Context(), u.ID, deref(u.Name), text)
+	m, err := s.hermes().Ask(r.Context(), u.ID, text)
 	if errors.Is(err, hermes.ErrBusy) {
 		httpx.Fail(w, http.StatusConflict, "busy", err.Error())
+		return
+	} else if errors.Is(err, hermes.ErrNotConnected) {
+		httpx.Fail(w, http.StatusConflict, "not_connected", err.Error())
 		return
 	} else if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())

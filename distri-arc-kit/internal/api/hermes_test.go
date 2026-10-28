@@ -2,17 +2,22 @@ package api_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"sync/atomic"
+	"sync"
 	"testing"
 	"time"
 )
 
-// fakeHermes is a Hermes API server: /v1/models and /v1/chat/completions behind the key.
-func fakeHermes(t *testing.T, key string, turns *atomic.Int32) *httptest.Server {
+// fakeHermes is a Hermes API server: /v1/models and /v1/responses behind the key. Like Hermes it keeps each named
+// conversation itself; seen records what Orbit sent.
+type hermesTurn struct{ Conversation, SessionKey, Input string }
+
+func fakeHermes(t *testing.T, key string, seen *[]hermesTurn) *httptest.Server {
 	t.Helper()
+	var mu sync.Mutex
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer "+key {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -21,18 +26,25 @@ func fakeHermes(t *testing.T, key string, turns *atomic.Int32) *httptest.Server 
 		switch r.URL.Path {
 		case "/v1/models":
 			_, _ = w.Write([]byte(`{"data":[{"id":"hermes-agent"}]}`))
-		case "/v1/chat/completions":
+		case "/v1/responses":
 			var body struct {
-				Messages []struct{ Role, Content string } `json:"messages"`
+				Input        any    `json:"input"`
+				Conversation string `json:"conversation"`
+				Store        bool   `json:"store"`
 			}
 			_ = json.NewDecoder(r.Body).Decode(&body)
-			turns.Store(int32(len(body.Messages)))
-			if !strings.HasPrefix(r.Header.Get("X-Hermes-Session-Key"), "orbit-user-") || body.Messages[0].Role != "system" {
+			in, ok := body.Input.(string)
+			if !ok || body.Conversation == "" || !body.Store {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			last := body.Messages[len(body.Messages)-1].Content
-			_ = json.NewEncoder(w).Encode(map[string]any{"choices": []any{map[string]any{"message": map[string]any{"role": "assistant", "content": "Jawaban untuk: " + last}}}})
+			mu.Lock()
+			*seen = append(*seen, hermesTurn{body.Conversation, r.Header.Get("X-Hermes-Session-Key"), in})
+			mu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]any{"object": "response", "status": "completed", "output": []any{
+				map[string]any{"type": "function_call", "name": "dealer_list"},
+				map[string]any{"type": "message", "role": "assistant", "content": []any{map[string]any{"type": "output_text", "text": "Jawaban untuk: " + in}}},
+			}})
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -62,22 +74,22 @@ func waitReply(t *testing.T, srv *httptest.Server, user string) []any {
 	return nil
 }
 
-// Without a configured Hermes the chat answers in demo mode; the CEO connects Hermes (key checked), then each user
-// gets Hermes' answers with their own earlier turns as context; only the CEO configures; history is per user.
+// The Hermes page is a window to Lyra: without a saved Hermes nothing is asked (no demo); the CEO connects Hermes
+// (key checked); each question goes to Lyra alone (no Orbit prompt or history) in a conversation Lyra keeps, one per
+// user, and Hapus riwayat starts a new one; only the CEO configures; history is per user.
 func TestHermesChat(t *testing.T) {
 	srv, _ := chatServer(t)
 	const ceo, sales, admin = "sam@gsi.co.id", "andi@gsi.co.id", "admin@gsi.co.id"
 
-	if code, _ := post(t, srv.URL+"/api/mcp/hermes/chat", ceo, map[string]any{"text": "Halo"}); code != http.StatusAccepted {
-		t.Fatalf("ask: %d", code)
+	if code, out := post(t, srv.URL+"/api/mcp/hermes/chat", ceo, map[string]any{"text": "Halo"}); code != http.StatusConflict || !strings.Contains(fmt.Sprint(out), "not_connected") {
+		t.Fatalf("ask without Lyra: %d %v", code, out)
 	}
-	msgs := waitReply(t, srv, ceo)
-	if len(msgs) != 2 || msgs[1].(map[string]any)["demo"] != true || !strings.Contains(msgs[1].(map[string]any)["content"].(string), "Mode demo") {
-		t.Fatalf("demo: %v", msgs)
+	if _, out := get(t, srv, "/api/mcp/hermes/chat", ceo); len(out["messages"].([]any)) != 0 {
+		t.Fatalf("stored a question nobody answers: %v", out["messages"])
 	}
 
-	var turns atomic.Int32
-	h := fakeHermes(t, "rahasia-hermes", &turns)
+	var seen []hermesTurn
+	h := fakeHermes(t, "rahasia-hermes", &seen)
 	if code, _ := put(t, srv.URL+"/api/mcp/hermes/config", ceo, map[string]any{"url": h.URL + "/v1/", "api_key": "salah"}); code != http.StatusBadRequest {
 		t.Fatalf("wrong key accepted: %d", code)
 	}
@@ -92,14 +104,14 @@ func TestHermesChat(t *testing.T) {
 	post(t, srv.URL+"/api/mcp/hermes/chat", ceo, map[string]any{"text": "Dealer mana yang lewat jadwal?"})
 	waitReply(t, srv, ceo)
 	post(t, srv.URL+"/api/mcp/hermes/chat", ceo, map[string]any{"text": "Urutkan per cabang"})
-	msgs = waitReply(t, srv, ceo)
+	msgs := waitReply(t, srv, ceo)
 	last := msgs[len(msgs)-1].(map[string]any)
-	if last["status"] != "done" || last["content"] != "Jawaban untuk: Urutkan per cabang" {
-		t.Fatalf("reply: %v", last)
+	if len(msgs) != 4 || last["status"] != "done" || last["content"] != "Jawaban untuk: Urutkan per cabang" {
+		t.Fatalf("reply: %v", msgs)
 	}
-	// system + earlier real turn (question + answer; the demo turn is left out) + the new question
-	if turns.Load() != 4 {
-		t.Fatalf("turns sent: %d", turns.Load())
+	if len(seen) != 2 || seen[1].Input != "Urutkan per cabang" || seen[0].Conversation != seen[1].Conversation ||
+		!strings.HasPrefix(seen[0].Conversation, "orbit-") || !strings.HasPrefix(seen[0].SessionKey, "orbit-user-") {
+		t.Fatalf("sent to Lyra: %+v", seen)
 	}
 
 	// the chat follows the MCP screen; a role without it gets 403, another user with it sees only their own chat
@@ -114,5 +126,10 @@ func TestHermesChat(t *testing.T) {
 	}
 	if _, out := get(t, srv, "/api/mcp/hermes/chat", ceo); len(out["messages"].([]any)) != 0 {
 		t.Fatal("history not cleared")
+	}
+	post(t, srv.URL+"/api/mcp/hermes/chat", ceo, map[string]any{"text": "Halo lagi"})
+	waitReply(t, srv, ceo)
+	if len(seen) != 3 || seen[2].Conversation == seen[0].Conversation || seen[2].SessionKey != seen[0].SessionKey {
+		t.Fatalf("after clearing, a new conversation: %+v", seen)
 	}
 }

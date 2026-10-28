@@ -48,3 +48,17 @@ Agent** dan **Token manual**. Kedua sambungan berbeda: token MCP dipakai Lyra un
 server dipakai GSI Orbit untuk bertanya ke Lyra. Rute API tetap di bawah `/api/mcp/hermes/…` dan hak bukanya tetap
 mengikuti menu MCP. Alasannya, Lyra membaca semua data lewat tokennya, jadi pengguna yang hanya boleh melihat dealernya
 sendiri tidak boleh bertanya lewat Lyra.
+
+## Perubahan 28 Okt (2) — GSI Orbit hanya jendela ke Lyra
+Sam: "saya tetep tanya di lyra tapi tampilan uinya di orbit". Lyra berjalan di server yang sama dengan GSI Orbit
+(user `hermes`, `hermes gateway run`).
+- Chat memakai Responses API Hermes (`POST /v1/responses`, `store: true`) dengan percakapan bernama
+  `orbit-<id pesan pertama pengguna>` dan header `X-Hermes-Session-Key: orbit-user-<id>`. Pertanyaan dikirim apa adanya.
+  GSI Orbit tidak lagi menambah system prompt dan tidak mengirim 30 giliran riwayat. Riwayat, memori, tool, dan model
+  diatur oleh Lyra. Tabel `hermes_messages` hanya menyimpan tampilan per pengguna. **Hapus riwayat** membuat nama
+  percakapan baru, jadi Lyra mulai dari awal.
+- Mode demo untuk chat dihapus (`hermes.Fake`). Tanpa URL dan key, `POST /mcp/hermes/chat` menjawab 409
+  `not_connected` dan kolom ketik dimatikan. Kartu Lyra di Chat WhatsApp (ADR 0070) tetap memakai Chat Completions dan
+  tetap punya mode demo.
+- Karena Lyra satu server dengan GSI Orbit, API server cukup didengarkan di `127.0.0.1:8642`
+  (`API_SERVER_HOST=127.0.0.1`). Tailscale atau tunnel tidak diperlukan.

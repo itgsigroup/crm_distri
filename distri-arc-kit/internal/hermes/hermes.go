@@ -1,8 +1,8 @@
-// Package hermes lets GSI Orbit users chat with the company's Hermes Agent from the Hermes page (ADR 0067), like
-// they do in Telegram: Orbit keeps each user's conversation, sends it to Hermes' OpenAI-compatible API server
-// (POST /v1/chat/completions on the device running `hermes gateway`) and stores the reply. Hermes reads GSI Orbit
-// through its own MCP token, so the same rules hold here: it reads and proposes, it never decides or sends.
-// Without a configured Hermes the chat answers in demo mode (Fake) so the page can be tried.
+// Package hermes connects GSI Orbit to Lyra, the company's Hermes Agent, through Hermes' OpenAI-compatible API
+// server (`hermes gateway`). The Hermes page is a window to Lyra (ADR 0067): Orbit passes each question to a
+// conversation Lyra keeps itself (POST /v1/responses) and shows the answer. The Lyra card under a chat bubble asks
+// Lyra which products a message is about (POST /v1/chat/completions, ADR 0070). Lyra reads GSI Orbit through its own
+// MCP token, so the same rules hold: it reads and proposes, it never decides or sends.
 package hermes
 
 import (
@@ -46,6 +46,12 @@ func (m Msg) MarshalJSON() ([]byte, error) {
 		parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]string{"url": u}})
 	}
 	return json.Marshal(map[string]any{"role": m.Role, "content": parts})
+}
+
+// Window is Lyra seen from the Hermes page: Orbit passes one question of a conversation Lyra keeps itself and shows
+// the answer. Lyra holds the history, memory, tools and model, like in Telegram.
+type Window interface {
+	Respond(ctx context.Context, sessionKey, conversation, text string) (string, error)
 }
 
 // Agent answers a conversation. sessionKey scopes Hermes' long-term memory to one Orbit user.
@@ -164,19 +170,41 @@ func (c Client) Chat(ctx context.Context, sessionKey string, msgs []Msg) (string
 	return strings.TrimSpace(out.Choices[0].Message.Content), nil
 }
 
-// Fake answers in demo mode: no Hermes is configured yet.
-type Fake struct{}
-
-// Chat explains demo mode and echoes the question so the page can be tried end to end.
-func (Fake) Chat(_ context.Context, _ string, msgs []Msg) (string, error) {
-	q := ""
-	if len(msgs) > 0 {
-		q = msgs[len(msgs)-1].Content
+// Respond sends one question to a named conversation on Hermes' Responses API (POST /v1/responses, store = true):
+// Hermes keeps the conversation, so only the new question goes over the wire.
+func (c Client) Respond(ctx context.Context, sessionKey, conversation, text string) (string, error) {
+	var out struct {
+		Output []struct {
+			Type    string `json:"type"`
+			Content []struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"output"`
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error"`
 	}
-	if len(q) > 160 {
-		q = q[:160] + "…"
+	body := map[string]any{"model": "hermes-agent", "input": text, "conversation": conversation, "store": true}
+	if err := c.do(ctx, http.MethodPost, "/v1/responses", body, sessionKey, &out); err != nil {
+		return "", err
 	}
-	return "Mode demo — Lyra belum disambungkan ke halaman ini.\n\nPertanyaan Anda: “" + q + "”\n\n" +
-		"Untuk chat dengan Lyra sungguhan: di device Lyra isi API_SERVER_ENABLED=true dan API_SERVER_KEY di ~/.hermes/.env, " +
-		"jalankan `hermes gateway`, lalu CEO mengisi URL dan API key di tab Sambungan halaman ini.", nil
+	var parts []string
+	for _, o := range out.Output {
+		if o.Type != "message" {
+			continue
+		}
+		for _, p := range o.Content {
+			if t := strings.TrimSpace(p.Text); p.Type == "output_text" && t != "" {
+				parts = append(parts, t)
+			}
+		}
+	}
+	if len(parts) == 0 {
+		if out.Error != nil && out.Error.Message != "" {
+			return "", errors.New("hermes gagal menjawab: " + out.Error.Message)
+		}
+		return "", errors.New("hermes tidak memberi jawaban")
+	}
+	return strings.Join(parts, "\n\n"), nil
 }
