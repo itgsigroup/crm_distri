@@ -84,7 +84,7 @@ export function ProfileSheet({ id, title, group, fallback }: { id: string; title
             <ul className="wa-prof-groups">
               {groups.map((g) => (
                 <li key={g.jid}>
-                  <button type="button" disabled={!g.thread_id} onClick={() => { if (g.thread_id) { closeSheet(); navigate(`/chat/${g.thread_id}`) } }}
+                  <button type="button" disabled={!g.thread_id} onClick={() => { if (g.thread_id) { closeSheet(); navigate(`/chat/${g.thread_id}`, { state: { follow: true } }) } }}
                     title={g.thread_id ? 'Buka chat grup ini' : 'Chat grup ini belum tersimpan di GSI Orbit'}>
                     <span className="av grp"><Icon name="people" /></span>
                     <span className="wa-prof-g">

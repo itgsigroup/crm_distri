@@ -24,6 +24,17 @@ seperti di aplikasi WhatsApp, termasuk grup mana saja yang diikuti kontak itu.
 - **UI**: `ChatAvatar` menampilkan foto (lazy) atau inisial di daftar chat, header chat, dan panel Lead. Klik avatar
   membuka `ProfileSheet` tanpa membuka chat-nya.
 
+## Perubahan 28 Okt — grup bersama yang stabil
+Grup bersama sempat hilang-muncul. Sebabnya, anggota grup dengan alamat LID tidak punya nomor, dan daftar grup yang gagal
+diambil ulang dianggap kosong. Perbaikannya:
+- Bridge menerjemahkan LID ke nomor lewat `lidMapping.getPNForLID`, dan memakai daftar terakhir bila
+  `groupFetchAllParticipating` gagal.
+- API menyimpan daftar grup per nomor (10 menit, daftar lama tetap dipakai bila gagal) dan menanyakan semua nomor
+  bersamaan.
+- Grup tempat kontak pernah menulis di chat grup GSI Orbit (`chat_messages.from_number`) ikut ditampilkan.
+- Grup memakai label nomor yang memegang chat grupnya. Klik grup membuka chat itu dan memindahkan pilihan nomor di halaman
+  Chat (`state.follow`).
+
 ## Akibat
 - Saat daftar chat pertama kali dibuka, satu nomor GSI bisa mengirim sampai 120 permintaan foto per jam ke WhatsApp.
   Setelah itu foto dilayani dari cache. Avatar yang belum sempat diambil tetap menampilkan inisial sampai giliran

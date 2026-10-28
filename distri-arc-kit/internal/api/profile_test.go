@@ -112,15 +112,23 @@ func TestChatPhotoAndProfile(t *testing.T) {
 		t.Fatalf("WhatsApp asked %d times", n)
 	}
 
+	// a group WhatsApp lists the contact in only by LID: found from the contact's own message in its chat
+	var lidGroup string
+	if err := st.Pool.QueryRow(ctx, `insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('group', '120363000000003@g.us', 'Grup LID', $1, now()) returning id`, account).Scan(&lidGroup); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into chat_messages (thread_id, wa_msg_id, direction, from_number, body, sent_at, status) values ($1, 'LID1', 'in', '6281900300102', 'stok ada?', now(), 'received')`, lidGroup); err != nil {
+		t.Fatal(err)
+	}
 	_, p := get(t, srv, "/api/chat/threads/"+sinar.String()+"/profile", ceo)
 	if p["number"] != "6281900300102" || p["about"] != "Ready stock CCTV" || p["name"] != "Toko Sinar Elektronik" || p["business"] != true {
 		t.Fatalf("profile: %v", p)
 	}
 	gs, _ := p["groups"].([]any)
-	if len(gs) != 1 {
+	if len(gs) != 2 || gs[0].(map[string]any)["name"] != "Grup LID" || gs[0].(map[string]any)["thread_id"] != lidGroup {
 		t.Fatalf("groups: %v", p["groups"])
 	}
-	g := gs[0].(map[string]any)
+	g := gs[1].(map[string]any)
 	if g["name"] != "Proyek Sinar x GSI" || g["thread_id"] != group || g["members"] != float64(3) || g["admin"] != true || g["via"] != "Andi - Sales" {
 		t.Fatalf("group: %v", g)
 	}

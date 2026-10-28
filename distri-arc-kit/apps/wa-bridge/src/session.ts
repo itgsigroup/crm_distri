@@ -368,12 +368,30 @@ export class Session implements SendTarget {
 
   async listGroups(): Promise<{ jid: string; meta: GroupMeta }[]> {
     if (this.groupList && Date.now() - this.groupList.at < GROUP_LIST_TTL) return this.groupList.items
-    if (!this.sock) throw new Error('sesi belum terhubung')
-    const all = await this.sock.groupFetchAllParticipating()
-    const items = Object.values(all).map(g => {
+    const sock = this.sock
+    if (!sock) {
+      if (this.groupList) return this.groupList.items // reconnecting: the last list is better than none
+      throw new Error('sesi belum terhubung')
+    }
+    let all: Awaited<ReturnType<typeof sock.groupFetchAllParticipating>>
+    try {
+      all = await sock.groupFetchAllParticipating()
+    } catch (err) {
+      if (this.groupList) return this.groupList.items // WhatsApp refused (rate-overlimit): keep the last list
+      throw err
+    }
+    const items = []
+    for (const g of Object.values(all)) {
       this.groups.set(g.id, { meta: g, at: Date.now() })
-      return { jid: g.id, meta: toGroupMeta(g.subject, g.participants, (jid, phone) => this.contactName(jid, phone)) }
-    })
+      // a member of a LID-addressed group without its phone number: the number from the LID mapping, so the
+      // profile's "grup bersama" can find the contact by number
+      const participants = await Promise.all(g.participants.map(async p => {
+        if (p.phoneNumber || !isLidUser(p.id)) return p
+        const pn = await sock.signalRepository.lidMapping.getPNForLID(p.id).catch(() => null)
+        return pn ? { ...p, phoneNumber: pn } : p
+      }))
+      items.push({ jid: g.id, meta: toGroupMeta(g.subject, participants, (jid, phone) => this.contactName(jid, phone)) })
+    }
     this.groupList = { at: Date.now(), items }
     return items
   }

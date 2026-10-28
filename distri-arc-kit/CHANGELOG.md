@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Grup bersama di profil tidak lagi hilang-muncul, klik grup membuka chat grupnya · 2026-10-28
+- Grup bersama sebelumnya kadang kosong. Penyebabnya, anggota grup WhatsApp sering tercatat dengan ID tersembunyi (LID), dan daftar grup kadang gagal diambil ulang. Sekarang LID diterjemahkan ke nomor, daftar grup terakhir tetap dipakai bila WhatsApp tidak menjawab, semua nomor GSI ditanya bersamaan, dan grup tempat kontak pernah menulis di GSI Orbit ikut ditampilkan.
+- Klik grup di profil langsung membuka chat grupnya, juga bila grup itu ada di nomor GSI lain: pilihan nomor ikut pindah. Grup dicatat lewat nomor yang memegang chat grupnya.
+- Test: `TestChatPhotoAndProfile`.
+
 ## Feat · Foto profil WhatsApp dan profil kontak dengan grup bersama · 2026-10-28
 - Avatar di daftar chat, header chat, dan panel Lead memakai **foto profil WhatsApp**, termasuk foto grup. Bila tidak ada foto atau foto disembunyikan, inisial tetap tampil.
 - **Klik foto**: profil seperti di WhatsApp tampil. Isinya foto besar, nama, nomor, nama WhatsApp, Info, status akun bisnis, dan **grup bersama** (grup nomor GSI yang Anda pegang yang juga diikuti kontak itu). Klik grup untuk membuka chat grupnya.

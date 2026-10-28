@@ -1,6 +1,6 @@
 import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router'
+import { useLocation, useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Items } from '../../api/client'
 import type { MediaView, Mention, MessageView, QuickReply, ThreadDetail, ThreadView, WANumber, WATeam } from '../../api/types'
@@ -1736,12 +1736,21 @@ export function ChatPage() {
     ? !!selectedThread.thread.account_team && selectedThread.thread.account_team !== selectedTeam
     : !!selectedThread.thread.account && selectedThread.thread.account !== account)
   const active = accountChanged.current || accountMismatch ? undefined : candidate
+  // a chat opened on purpose on another number (a group from a contact's profile): switch to that number
+  const follow = !!(useLocation().state as { follow?: boolean } | null)?.follow
+  const followTo = follow && threadId === candidate ? selectedThread?.thread.account : undefined
   useEffect(() => {
     if (!candidate || !accountMismatch) return
+    if (followTo && (wa?.items ?? []).some((n) => n.wa_number === followTo)) {
+      accountChanged.current = false
+      setPicked(followTo)
+      try { localStorage.setItem(ACCOUNT_KEY, followTo) } catch { /* not remembered */ }
+      return
+    }
     accountChanged.current = true
     setKept(undefined)
     if (threadId) nav('/chat', { replace: true })
-  }, [accountMismatch, candidate, nav, threadId])
+  }, [accountMismatch, candidate, nav, threadId, followTo, wa])
   // closing the chat (Esc, the back arrow) forgets the kept one too, or it would stay open at /chat
   const leave = () => {
     setClosing(threadId)

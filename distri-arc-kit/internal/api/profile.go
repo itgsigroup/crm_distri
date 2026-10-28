@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -159,7 +160,7 @@ func (s *Server) chatProfile(w http.ResponseWriter, r *http.Request) {
 		cancel()
 	}
 	groups := []ProfileGroup{}
-	if number != "" {
+	if number != "" && number != wa.Digits(threadAccount(t)) {
 		var err error
 		if groups, err = s.sharedGroups(r, number); err != nil {
 			s.log.Warn("profile groups", "err", err) // the profile shows without them
@@ -169,13 +170,44 @@ func (s *Server) chatProfile(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, out)
 }
 
-// sharedGroups are the groups of the GSI numbers the viewer reads that number is a member of, one per group.
+// groupLists keeps each GSI number's group list a while, and the last good one when WhatsApp does not answer: the
+// profile's groups do not come and go with a slow or refused list (28 Oct bug).
+var groupLists = struct {
+	sync.Mutex
+	m map[string]groupList
+}{m: map[string]groupList{}}
+
+type groupList struct {
+	gs []wa.Group
+	at time.Time
+}
+
+const groupListFresh = 10 * time.Minute
+
+// groupsOf is a number's groups: the cached list while fresh, else the bridge's (kept), else the stale one.
+func groupsOf(ctx context.Context, lister wa.GroupLister, account string) []wa.Group {
+	groupLists.Lock()
+	c, ok := groupLists.m[account]
+	groupLists.Unlock()
+	if ok && time.Since(c.at) < groupListFresh {
+		return c.gs
+	}
+	gctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	gs, err := lister.Groups(gctx, account)
+	if err != nil {
+		return c.gs
+	}
+	groupLists.Lock()
+	groupLists.m[account] = groupList{gs: gs, at: time.Now()}
+	groupLists.Unlock()
+	return gs
+}
+
+// sharedGroups are the groups of the GSI numbers the viewer reads that number is in: a member on WhatsApp's list
+// (asked of every number at once), or someone who wrote in the group's chat in GSI Orbit. One row per group.
 func (s *Server) sharedGroups(r *http.Request, number string) ([]ProfileGroup, error) {
 	ctx := r.Context()
-	lister, _ := s.groupRoster().(wa.GroupLister)
-	if lister == nil {
-		return []ProfileGroup{}, nil
-	}
 	u, _ := CurrentUser(ctx)
 	v, err := s.chatViewerOf(ctx, u)
 	if err != nil {
@@ -186,62 +218,95 @@ func (s *Server) sharedGroups(r *http.Request, number string) ([]ProfileGroup, e
 		return nil, err
 	}
 	byJID := map[string]*ProfileGroup{}
-	for _, n := range nums {
-		acct := n.WaNumber
-		if n.State != "connected" || !v.sees(n.SalesID, &acct) {
-			continue
-		}
-		gctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		gs, err := lister.Groups(gctx, acct)
-		cancel()
-		if err != nil {
-			continue // a number that does not answer: its groups are left out
-		}
-		for _, g := range gs {
-			for _, m := range g.Members {
-				if m.Number != number || byJID[g.JID] != nil {
-					continue
-				}
-				via := deref(n.Label)
-				if via == "" {
-					via = wa.MaskNumber(acct)
-				}
-				byJID[g.JID] = &ProfileGroup{JID: g.JID, Name: g.Name, Members: len(g.Members), Admin: m.Admin, Via: via}
-			}
-		}
-	}
-	out := make([]ProfileGroup, 0, len(byJID))
-	if len(byJID) == 0 {
-		return out, nil
-	}
-	jids := make([]string, 0, len(byJID))
-	for j := range byJID {
-		jids = append(jids, j)
-	}
-	rows, err := s.st.Pool.Query(ctx, `select t.id::text, t.wa_jid, t.account, t.sales_id, coalesce(g.kind, '') from chat_threads t
-		left join wa_groups g on g.id = t.group_id where t.wa_jid = any($1)`, jids)
-	if err == nil {
-		for rows.Next() {
-			var id, jid, kind string
-			var acct *string
-			var sales *uuid.UUID
-			if rows.Scan(&id, &jid, &acct, &sales, &kind) != nil {
+	var mu sync.Mutex
+	if lister, _ := s.groupRoster().(wa.GroupLister); lister != nil {
+		var wg sync.WaitGroup
+		for _, n := range nums {
+			acct := n.WaNumber
+			if n.State != "connected" || !v.sees(n.SalesID, &acct) {
 				continue
 			}
-			if g := byJID[jid]; g != nil {
-				if g.Kind == "" {
-					g.Kind = kind
+			via := deref(n.Label)
+			if via == "" {
+				via = wa.MaskNumber(acct)
+			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for _, g := range groupsOf(ctx, lister, acct) {
+					for _, m := range g.Members {
+						if m.Number != number {
+							continue
+						}
+						mu.Lock()
+						if byJID[g.JID] == nil {
+							byJID[g.JID] = &ProfileGroup{JID: g.JID, Name: g.Name, Members: len(g.Members), Admin: m.Admin, Via: via}
+						}
+						mu.Unlock()
+					}
 				}
-				if g.ThreadID == "" && v.sees(sales, acct) {
-					g.ThreadID = id
-				}
+			}()
+		}
+		wg.Wait()
+	}
+	// the group chats the viewer reads, the contact's own messages included (a member WhatsApp lists only by LID)
+	rows, err := s.st.Pool.Query(ctx, `with wrote as (select distinct thread_id from chat_messages where from_number = $2 and direction = 'in')
+		select t.id::text, t.wa_jid, t.account, t.sales_id, coalesce(g.kind, ''), coalesce(t.title, ''), coalesce(n.label, ''),
+			t.id in (select thread_id from wrote) as wrote
+		from chat_threads t left join wa_groups g on g.id = t.group_id left join wa_numbers n on n.wa_number = t.account
+		where t.kind = 'group' and (t.wa_jid = any($1) or t.id in (select thread_id from wrote))`,
+		jidsOf(byJID), number)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var id, jid, kind, title, label string
+		var acct *string
+		var sales *uuid.UUID
+		var wrote bool
+		if err := rows.Scan(&id, &jid, &acct, &sales, &kind, &title, &label, &wrote); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		sees := v.sees(sales, acct)
+		g := byJID[jid]
+		if g == nil {
+			if !wrote || !sees {
+				continue
+			}
+			via := label
+			if via == "" {
+				via = wa.MaskNumber(deref(acct))
+			}
+			g = &ProfileGroup{JID: jid, Name: title, Via: via}
+			byJID[jid] = g
+		}
+		if g.Kind == "" {
+			g.Kind = kind
+		}
+		if g.Name == "" {
+			g.Name = title
+		}
+		if g.ThreadID == "" && sees { // the chat opens on its number: that is the one named
+			g.ThreadID = id
+			if g.Via = label; g.Via == "" {
+				g.Via = wa.MaskNumber(deref(acct))
 			}
 		}
-		rows.Close()
 	}
+	rows.Close()
+	out := make([]ProfileGroup, 0, len(byJID))
 	for _, g := range byJID {
 		out = append(out, *g)
 	}
 	sort.Slice(out, func(i, j int) bool { return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name) })
 	return out, nil
+}
+
+func jidsOf(m map[string]*ProfileGroup) []string {
+	out := make([]string, 0, len(m))
+	for j := range m {
+		out = append(out, j)
+	}
+	return out
 }
