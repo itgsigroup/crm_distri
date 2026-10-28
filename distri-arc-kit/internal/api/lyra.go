@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"distri-arc/internal/domain"
 	"distri-arc/internal/hermes"
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/importer"
@@ -100,11 +101,21 @@ func (s *Server) attachLyra(ctx context.Context, t gen.GetThreadRow, msgs []Mess
 	if err != nil {
 		return err
 	}
-	st, err := s.st.Q.ListStockItems(ctx)
+	rules, err := s.replyAI.Rules(ctx)
 	if err != nil {
 		return err
 	}
-	stock := views.StockItems(st)
+	// a reading the trigger started shows only while its message asks about stock, price or a product (a reading
+	// of an earlier, wider trigger — any photo — is hidden); one asked from the bubble always shows
+	for id, r := range reads {
+		if !r.Manual && r.Status != "pending" {
+			for _, i := range idx {
+				if msgs[i].ID == id && !hermes.Asks(lyraQuestion(t, msgs[i]), rules) {
+					delete(reads, id)
+				}
+			}
+		}
+	}
 	started := 0
 	for j := len(idx) - 1; j >= 0 && started < lyraAutoPerLoad; j-- {
 		m := msgs[idx[j]]
@@ -112,7 +123,7 @@ func (s *Server) attachLyra(ctx context.Context, t gen.GetThreadRow, msgs []Mess
 			continue
 		}
 		q := lyraQuestion(t, m)
-		if !hermes.Asks(q, stock) {
+		if !hermes.Asks(q, rules) {
 			continue
 		}
 		if ok, err := h.ReadProducts(ctx, q, s.lyraImage(t.ID), false); err != nil {
@@ -139,7 +150,13 @@ func (s *Server) attachLyra(ctx context.Context, t gen.GetThreadRow, msgs []Mess
 	var products []replyrule.Product
 	var wh []hermes.WarehouseQty
 	tier := ""
+	var stock []domain.StockItem
 	if len(skus) > 0 {
+		st, err := s.st.Q.ListStockItems(ctx)
+		if err != nil {
+			return err
+		}
+		stock = views.StockItems(st)
 		if products, err = s.replyAI.Products(ctx); err != nil {
 			return err
 		}

@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Lyra hanya muncul untuk pertanyaan stok, harga, produk · 2026-10-28
+- Kartu Lyra tidak lagi muncul di bawah setiap foto, misalnya screenshot yang dikirim ke rekan. Pesan atau caption foto baru dibaca otomatis bila memuat kata kunci trigger AI Trigger **stok** atau **harga**, atau kata produk (`produk`, `barang`, `stok`, `harga`, `ready`, `pricelist`).
+- Kartu lama yang muncul karena aturan sebelumnya disembunyikan. Pesan lain tetap bisa dikirim ke Lyra lewat menu bubble **Tanya Lyra (stok & harga)**.
+- Migrasi 0069 · test: `TestAsks`, `TestLyraProductCard`.
+
 ## Fix · Label waktu balas di bawah bubble dihapus · 2026-10-28
 - Label "dibalas N menit kemudian", "belum dianalisa", dan "jawaban sementara · waktu respon tetap berjalan" tidak lagi tampil di bawah bubble chat. Waktu balas cukup dilihat di kartu **Statistik** chat (Median balasan, Dibalas < 1 jam, Belum dibalas).
 - Catatan Claude dari analisis WhatsApp tetap tampil di bawah bubble bila ada.

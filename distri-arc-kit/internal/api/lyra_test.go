@@ -126,6 +126,26 @@ func TestLyraProductCard(t *testing.T) {
 		t.Fatalf("reads stored: %d", n)
 	}
 
+	// a photo without a stock/price/product word is not read, and a reading the earlier trigger stored for it
+	// (any photo) is hidden; asked from the bubble, it shows
+	var photo string
+	if err := st.Pool.QueryRow(ctx, `insert into chat_messages (thread_id, wa_msg_id, direction, body, media, sent_at, status)
+		values ($1, 'LY3', 'in', '[Foto] disini bisa mbak gran', '{"kind":"image"}', now() - interval '40 minutes', 'received') returning id`, tid).Scan(&photo); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into hermes_product_reads (message_id, thread_id, status, items, demo, finished_at) values ($1, $2, 'done', '[{"sku":"X5S_8W","qty":0}]', true, now())`, photo, tid); err != nil {
+		t.Fatal(err)
+	}
+	if cards := lyraCards(t, srv, tid, ceo); cards[photo] != nil {
+		t.Fatalf("photo without a trigger word: %v", cards[photo])
+	}
+	if code, _ := post(t, srv.URL+"/api/chat/threads/"+tid+"/messages/"+photo+"/lyra", ceo, nil); code != http.StatusAccepted {
+		t.Fatalf("ask lyra on the photo: %d", code)
+	}
+	if cards := lyraCards(t, srv, tid, ceo); cards[photo] == nil {
+		t.Fatal("a reading asked from the bubble is shown")
+	}
+
 	// Hermes connected: read again → Lyra's products
 	var input atomic.Value
 	h := fakeLyra(t, "rahasia-lyra", `Siap.`+"\n```json\n"+`{"tanya_produk":true,"items":[{"sku":"x5s_8w","qty":5}],"catatan":"NVR 8 channel"}`+"\n```", &input)

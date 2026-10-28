@@ -16,20 +16,29 @@ var stock = []domain.StockItem{
 	{Branch: "Semarang", SKU: "H8c 2MP", Name: "Ezviz Camera H8c 2mp", Qty: 5},
 }
 
-// A photo is always read; a text only when it names a stock product with a question/order word or a model code.
+// Lyra follows the stock, price and product trigger (Sam 28 Oct): a text or a photo's caption with one of their
+// words; a photo without one (a screenshot to a colleague) and a text without one are not read.
 func TestAsks(t *testing.T) {
+	rules := []replyrule.Rule{
+		{Action: replyrule.ActionStock, Keywords: []string{"stok", "ada barang"}},
+		{Action: replyrule.ActionPrice, Keywords: []string{"hrg"}},
+		{Action: replyrule.ActionCredit, Keywords: []string{"tagihan"}},
+	}
 	for _, c := range []struct {
 		q    Question
 		want bool
 	}{
-		{Question{Image: true}, true},
-		{Question{Text: "stok nvr ezviz ada?"}, true},
-		{Question{Text: "H8c 2mp : 8"}, true},
-		{Question{Text: "nvr ezviz"}, false}, // a product, but no question and no model code
-		{Question{Text: "terima kasih pak, sudah transfer ya"}, false},
-		{Question{Text: "ok"}, false},
+		{Question{Text: "stoknya nvr ezviz ada?"}, true},
+		{Question{Text: "hrg H8c 2mp brp"}, true},                // the price rule's own word
+		{Question{Text: "produk ini ready?", Image: true}, true}, // ProductRule, on a photo's caption
+		{Question{Text: "harga kamera 4MP"}, true},               // ProductRule
+		{Question{Image: true}, false},                           // a photo without words
+		{Question{Text: "disini bisa mbak gran", Image: true}, false},
+		{Question{Text: "H8c 2mp : 8"}, false},
+		{Question{Text: "tagihan bulan ini berapa"}, false}, // credit, not a product
+		{Question{Text: "terima kasih pak"}, false},
 	} {
-		if got := Asks(c.q, stock); got != c.want {
+		if got := Asks(c.q, rules); got != c.want {
 			t.Errorf("Asks(%+v) = %v, want %v", c.q, got, c.want)
 		}
 	}

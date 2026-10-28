@@ -41,6 +41,14 @@ total. Bagian ini bisa diklik untuk dikirim ke pelanggan, tetapi pesannya bisa d
   `sent_by` tercatat, lewat penjaga anti-blokir) setelah tombol **Kirim** ditekan. Tidak ada yang terkirim otomatis.
 - Tanpa Hermes yang tersambung, kartu berjalan dalam **mode demo**: barang dipilih dari kata di pesan, dan foto tidak bisa dibaca.
 
+## Perubahan 28 Okt — Lyra mengikuti trigger stok, harga, produk
+Sam: kartu Lyra muncul di bawah screenshot yang dikirim ke rekan ("disini bisa mbak gran"), padahal isinya bukan
+pertanyaan produk. Karena itu, foto tidak lagi otomatis dibaca. Pesan dibaca otomatis hanya bila teksnya, atau caption
+fotonya, memuat kata kunci aturan AI Trigger **stok** atau **harga**, atau kata kunci trigger produk (`produk`, `barang`,
+`stok`, `harga`, `ready`, `pricelist`, `hermes.ProductRule`). Syarat lama (kata tanya umum atau kode model) dihapus.
+Kartu yang dulu dibuat otomatis untuk pesan yang kini tidak memenuhi syarat disembunyikan. Bacaan yang diminta dari bubble
+(**Tanya Lyra**, **Baca ulang**) tetap tampil (`hermes_product_reads.manual`, migrasi 0069).
+
 ## Akibat
 - Sales langsung melihat stok per kota/gudang dan harga DPP di bawah pertanyaan pelanggan, lalu bisa memberi diskon dan
   mengirim penawaran dalam beberapa klik.

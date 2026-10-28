@@ -52,6 +52,7 @@ type ProductRead struct {
 	Items      []ProductItem
 	Note       string
 	Demo       bool
+	Manual     bool // asked from the bubble (Tanya Lyra / Baca ulang), not by the trigger
 	CreatedAt  time.Time
 	FinishedAt *time.Time
 }
@@ -68,13 +69,6 @@ type Question struct {
 // ImageFunc fetches a message's photo (from WhatsApp).
 type ImageFunc func(ctx context.Context, messageID uuid.UUID) (mime string, data []byte, err error)
 
-var askWords = map[string]bool{
-	"stok": true, "stock": true, "ready": true, "redy": true, "ada": true, "tersedia": true, "harga": true, "hrg": true,
-	"price": true, "pricelist": true, "berapa": true, "brp": true, "brapa": true, "spek": true, "spesifikasi": true,
-	"spec": true, "tipe": true, "type": true, "seri": true, "unit": true, "pcs": true, "order": true, "pesan": true,
-	"pesen": true, "butuh": true, "cari": true, "minta": true, "inden": true, "kosong": true, "mau": true, "ambil": true,
-}
-
 var reTok = regexp.MustCompile(`[\pL\d]+`)
 
 func toks(s string) []string { return reTok.FindAllString(strings.ToLower(s), -1) }
@@ -84,36 +78,20 @@ var reMediaTag = regexp.MustCompile(`^\[[^\]]*\]\s*`)
 // Caption is a message's text without the "[Foto]" placeholder a media message is stored with.
 func Caption(body string) string { return strings.TrimSpace(reMediaTag.ReplaceAllString(body, "")) }
 
-// Asks reports whether a message is worth asking Lyra about: a photo, or a text that names a product of the stock
-// together with a question or order word, or with a model code of it ("x5s", "2mp").
-func Asks(q Question, stock []domain.StockItem) bool {
-	if q.Image {
-		return true
-	}
+// ProductRule is the product trigger Lyra adds to AI Trigger's stock and price rules (Sam 28 Oct: "stok, harga,
+// produk"): its words also count when those rules are switched off.
+var ProductRule = replyrule.Rule{Name: "Tanya produk", Action: "product", Keywords: []string{"produk", "barang", "stok", "harga", "ready", "pricelist"}}
+
+// Asks reports whether a message is read by Lyra without a click: its text (a photo's caption) has a word of the
+// AI Trigger stock or price rules, or of ProductRule. A photo without such a word is not read (a screenshot sent to
+// a colleague is no product question); the sales can still ask Lyra from the bubble's menu.
+func Asks(q Question, rules []replyrule.Rule) bool {
 	text := strings.TrimSpace(q.Text)
-	if len([]rune(text)) < 3 {
+	if text == "" {
 		return false
 	}
-	cands := replyrule.Candidates(text, nil, stock, 5)
-	if len(cands) == 0 {
-		return false
-	}
-	ws := toks(text)
-	for _, w := range ws {
-		if askWords[w] {
-			return true
-		}
-	}
-	codes := map[string]bool{}
-	for _, c := range cands {
-		for _, t := range append(toks(c.Name), toks(c.SKU)...) {
-			if strings.ContainsAny(t, "0123456789") && strings.IndexFunc(t, func(r rune) bool { return r < '0' || r > '9' }) >= 0 {
-				codes[t] = true
-			}
-		}
-	}
-	for _, w := range ws {
-		if codes[w] {
+	for _, r := range append(rules, ProductRule) {
+		if (r.Action == replyrule.ActionStock || r.Action == replyrule.ActionPrice || r.Action == ProductRule.Action) && replyrule.Matches(r, text) != "" {
 			return true
 		}
 	}
@@ -126,14 +104,14 @@ func (s Service) Reads(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]Prod
 	if len(ids) == 0 {
 		return out, nil
 	}
-	rows, err := s.Pool.Query(ctx, `select message_id, status, items, note, demo, created_at, finished_at from hermes_product_reads where message_id = any($1)`, ids)
+	rows, err := s.Pool.Query(ctx, `select message_id, status, items, note, demo, manual, created_at, finished_at from hermes_product_reads where message_id = any($1)`, ids)
 	if err != nil {
 		return nil, err
 	}
 	reads, err := pgx.CollectRows(rows, func(r pgx.CollectableRow) (ProductRead, error) {
 		var p ProductRead
 		var items []byte
-		err := r.Scan(&p.MessageID, &p.Status, &items, &p.Note, &p.Demo, &p.CreatedAt, &p.FinishedAt)
+		err := r.Scan(&p.MessageID, &p.Status, &items, &p.Note, &p.Demo, &p.Manual, &p.CreatedAt, &p.FinishedAt)
 		_ = json.Unmarshal(items, &p.Items)
 		return p, err
 	})
@@ -154,8 +132,8 @@ func (s Service) Reads(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]Prod
 func (s Service) ReadProducts(ctx context.Context, q Question, image ImageFunc, force bool) (bool, error) {
 	sql := `insert into hermes_product_reads (message_id, thread_id) values ($1, $2) on conflict do nothing`
 	if force {
-		sql = `insert into hermes_product_reads (message_id, thread_id) values ($1, $2) on conflict (message_id) do update
-			set status = 'pending', items = '[]', note = '', demo = false, created_at = now(), finished_at = null
+		sql = `insert into hermes_product_reads (message_id, thread_id, manual) values ($1, $2, true) on conflict (message_id) do update
+			set status = 'pending', items = '[]', note = '', demo = false, manual = true, created_at = now(), finished_at = null
 			where hermes_product_reads.status <> 'pending' or hermes_product_reads.created_at < now() - $3::interval`
 	}
 	args := []any{q.MessageID, q.ThreadID}
