@@ -6,9 +6,9 @@ import (
 )
 
 func TestNormalizeAndDerive(t *testing.T) {
-	// own data: pages with everyone's data and credit release are dropped; base sales
+	// own data: management pages and credit release are dropped; dealer credit is scoped to the user's dealers.
 	r := Normalize(Role{Screens: []string{"chat", "ar", "users", "dealer", "nope"}, Decide: []string{"reply", "credit_release", "x"}, Scope: "own"})
-	if !slices.Equal(r.Screens, []string{"chat", "dealer"}) || !slices.Equal(r.Decide, []string{"reply"}) || r.Base != "sales" {
+	if !slices.Equal(r.Screens, []string{"chat", "dealer", "ar"}) || !slices.Equal(r.Decide, []string{"reply"}) || r.Base != "sales" {
 		t.Fatalf("own: %+v", r)
 	}
 	// policy rights: all data, credit release allowed, base ceo
@@ -22,7 +22,8 @@ func TestNormalizeAndDerive(t *testing.T) {
 	if o := Resolve("", "", "sales", nil, nil, "", false, false); o.Scope != "own" || !slices.Equal(o.Screens, LegacyScreens("sales")) || !o.WAAllowed {
 		t.Fatalf("no role row: %+v", o)
 	}
-	if ScreenForPath("/api/chat/threads") != "chat" || ScreenForPath("/api/stock/push") != "" || ScreenForPath("/api/users/x") != "users" || ScreenForPath("/api/branches") != "" {
+	if ScreenForPath("/api/chat/threads") != "chat" || ScreenForPath("/api/stock/push") != "" || ScreenForPath("/api/stock/products") != "stockcheck" ||
+		ScreenForPath("/api/dashboard/trend") != "dashboard" || ScreenForPath("/api/segmen") != "kuad" || ScreenForPath("/api/users/x") != "users" || ScreenForPath("/api/branches") != "" {
 		t.Fatal("ScreenForPath")
 	}
 	if !ValidKey("sales-tele") || ValidKey("Sales Tele") || ValidKey("x") {

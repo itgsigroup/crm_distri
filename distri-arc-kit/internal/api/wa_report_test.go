@@ -20,6 +20,13 @@ func TestWAReport(t *testing.T) {
 	if !names["Dewi"] || !names["Fajar"] {
 		t.Fatalf("ceo sees %v", names)
 	}
+	// sales do not get Report WhatsApp (migration 0065) until a role gives it; then only their own numbers
+	if code, _ := get(t, srv, "/api/wa/report?days=30", "dewi@gsi.co.id"); code != http.StatusForbidden {
+		t.Fatalf("sales opens Report WhatsApp: %d", code)
+	}
+	if _, err := st.Pool.Exec(context.Background(), "update roles set screens = array_append(screens, 'reportwa') where key = 'sales'"); err != nil {
+		t.Fatal(err)
+	}
 	code, own := get(t, srv, "/api/wa/report?days=30", "dewi@gsi.co.id")
 	rows, _ := own["sales"].([]any)
 	if code != http.StatusOK || len(rows) != 1 || rows[0].(map[string]any)["name"] != "Dewi" {

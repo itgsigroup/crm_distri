@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Access · Menu Sales, Admin, dan Super Admin · 2026-10-28
+- **Sales** dan **Admin** hanya mendapat halaman operasional: Pusat kendali, Orchestrator, Chat, Orbit, Dealer, Push stok, Cek stok, dan Kredit · kas. Sales melihat dealer, piutang, dan chat miliknya sendiri. Admin melihat data semua sales dan semua chat. Pembatasan menu juga berlaku di API halaman yang dilindungi.
+- **CEO/Super Admin** mendapat semua halaman dan semua data.
+- Dashboard, Cek stok, AI Trigger, dan Buku manual sekarang menjadi halaman tersendiri di Peran & akses. **Peran lain** (mis. Penagihan, Gudang, dan peran buatan sendiri) tetap mendapat halaman yang mereka lihat sebelumnya.
+- Pengaturan peran sebelum perubahan disimpan di `roles_backup_0065`, dan rollback migrasi mengembalikannya persis.
+- Migrasi 0065 · test: `TestNormalizeAndDerive`, `TestRoleMaster`, e2e menu per peran.
+
 ## Chore · Balas otomatis: sisi server terpasang, masih mati · 2026-10-28
 - Mesin "Balas otomatis saat sales istirahat" (ADR 0066) sudah terpasang di server: tabel `auto_replies` (migrasi 0066), job worker, dan API pengaturan. **Bawaannya mati.** Belum ada halaman untuk menyalakannya, jadi tidak ada pesan otomatis ke pelanggan dan tidak ada yang berubah bagi tim sales.
 - Perubahan menu Sales/Admin (migrasi 0065) ditahan dulu, karena mengubah halaman yang dipakai tim sales dan menimpa pengaturan peran.

@@ -72,13 +72,10 @@ export function screenOf(path: string): ScreenKey {
 
 /** A screen the user may open: Mapping sales goes with the Pengguna or Pengaturan menu (no role setting of its own). */
 export function canSee(screens: string[], key: ScreenKey): boolean {
-  if (key === 'manual') return true // the user book is for everyone who logs in
   if (key === 'salesmap') return screens.includes('users') || screens.includes('conn')
   if (key === 'aiapi') return screens.includes('conn') || screens.includes('mcp')
   if (key === 'hermes') return screens.includes('mcp') // Hermes connects through the MCP server
-  if (key === 'aitrigger') return screens.includes('conn') || screens.includes('chat')
-  if (key === 'stockcheck') return screens.includes('stock') || screens.includes('chat') // who answers stock questions
-  return screens.includes(key === 'dashboard' ? 'today' : key)
+  return screens.includes(key)
 }
 
 function NavBtn({ to, cur, icon, children, badge }: { to: ScreenKey; cur: ScreenKey; icon: string; children: ReactNode; badge?: ReactNode }) {
@@ -145,6 +142,7 @@ export function Shell() {
   const [title, sub] = TITLES[cur]
   const subline = cur === 'today' ? todayLine(now) : sub
   const isOrbit = cur === 'orbit' || cur === 'net' || cur === 'kuad'
+  const hasOrbitViews = !!me?.screens.some((k) => k === 'kuad' || k === 'net')
   // the menu scrolls on short screens: keep the open page's item in view
   useEffect(() => { document.querySelector('.rail .nav-btn.is-active')?.scrollIntoView?.({ block: 'nearest' }) }, [cur, me])
 
@@ -209,11 +207,11 @@ export function Shell() {
             <div className="tb-left">
               <h1>{title}</h1>
               <div className="sub">{subline}</div>
-              {isOrbit && me?.screens.includes('net') !== false && (
+              {isOrbit && hasOrbitViews && (
                 <div className="vtabs">
-                  <button className={cur === 'orbit' ? 'is-active' : ''} onClick={() => nav(ROUTES.orbit)}><Icon name="target" />Orbit</button>
-                  <button className={cur === 'kuad' ? 'is-active' : ''} onClick={() => nav(ROUTES.kuad)}><Icon name="chart" />Segmen</button>
-                  <button className={cur === 'net' ? 'is-active' : ''} onClick={() => nav(ROUTES.net)}><Icon name="net" />Peta relasi 3D</button>
+                  {me?.screens.includes('orbit') && <button className={cur === 'orbit' ? 'is-active' : ''} onClick={() => nav(ROUTES.orbit)}><Icon name="target" />Orbit</button>}
+                  {me?.screens.includes('kuad') && <button className={cur === 'kuad' ? 'is-active' : ''} onClick={() => nav(ROUTES.kuad)}><Icon name="chart" />Segmen</button>}
+                  {me?.screens.includes('net') && <button className={cur === 'net' ? 'is-active' : ''} onClick={() => nav(ROUTES.net)}><Icon name="net" />Peta relasi 3D</button>}
                 </div>
               )}
             </div>
@@ -237,7 +235,7 @@ export function Shell() {
         </main>
 
         <nav className="tabbar" aria-label="Navigasi">
-          {([['dashboard', 'chart', 'Dashboard'], ['today', 'sun', 'Kendali'], ['orch', 'spark', 'Orchestrator'], ['orbit', 'target', 'Orbit'], ['dealer', 'building', 'Dealer'], ['chat', 'chat', 'Chat']] as const).filter(([k]) => !me || me.screens.includes(k === 'dashboard' ? 'today' : k)).map(([k, ic, label]) => (
+          {([['dashboard', 'chart', 'Dashboard'], ['today', 'sun', 'Kendali'], ['orch', 'spark', 'Orchestrator'], ['orbit', 'target', 'Orbit'], ['dealer', 'building', 'Dealer'], ['chat', 'chat', 'Chat']] as const).filter(([k]) => !me || me.screens.includes(k)).map(([k, ic, label]) => (
             <button key={k} className={(isOrbit ? 'orbit' : cur) === k ? 'is-active' : ''} onClick={() => nav(ROUTES[k])}>
               <Icon name={ic} />
               {label}

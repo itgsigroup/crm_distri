@@ -21,8 +21,12 @@ func TestRoleMaster(t *testing.T) {
 	if code, _ := get(t, srv, "/api/roles", "andi@gsi.co.id"); code != http.StatusForbidden {
 		t.Fatalf("sales reads roles: %d", code)
 	}
-	code, list := get(t, srv, "/api/roles", "admin@gsi.co.id")
-	if code != 200 || len(list["items"].([]any)) != 6 || len(list["screens"].([]any)) != 16 { // 16: Report WhatsApp (ADR 0050)
+	// Admin uses the operating pages only (migration 0065): Peran & akses is the CEO's
+	if code, _ := get(t, srv, "/api/roles", "admin@gsi.co.id"); code != http.StatusForbidden {
+		t.Fatalf("admin reads roles: %d", code)
+	}
+	code, list := get(t, srv, "/api/roles", "sam@gsi.co.id")
+	if code != 200 || len(list["items"].([]any)) != 6 || len(list["screens"].([]any)) != 20 { // Dashboard, Cek stok and admin pages are configurable
 		t.Fatalf("roles %d %v", code, list)
 	}
 	role := map[string]any{"name": "Sales Telemarketing", "scope": "own", "screens": []string{"today", "chat", "dealer", "ar", "users"}, "decide": []string{"followup", "reply", "credit_limit", "credit_release"}, "wa_allowed": true}
@@ -40,7 +44,7 @@ func TestRoleMaster(t *testing.T) {
 		t.Fatalf("create user: %d", code)
 	}
 	_, me := get(t, srv, "/api/me", "tele@gsi.co.id")
-	if s := strs(me["screens"]); !slices.Equal(s, []string{"today", "chat", "dealer"}) { // own data: no Kredit, no Pengguna
+	if s := strs(me["screens"]); !slices.Equal(s, []string{"today", "chat", "dealer", "ar"}) { // own credit data; no Pengguna
 		t.Fatalf("screens %v", s)
 	}
 	if d := strs(me["decide"]); !slices.Equal(d, []string{"followup", "credit_limit", "reply"}) { // credit release needs policy rights

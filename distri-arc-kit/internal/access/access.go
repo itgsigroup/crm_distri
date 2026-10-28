@@ -17,17 +17,18 @@ type Screen struct {
 	Key     string `json:"key"`
 	Label   string `json:"label"`
 	Group   string `json:"group"`
-	AllData bool   `json:"all_data"` // only for roles that see all data (management pages, credit across dealers)
+	AllData bool   `json:"all_data"` // pages whose data cannot be narrowed to a user's own dealers
 }
 
 // Screens in menu order.
 var Screens = []Screen{
-	{"today", "Pusat kendali", "Kendali", false}, {"orch", "Orchestrator", "Kendali", false}, {"chat", "Chat WhatsApp", "Kendali", false},
+	{"dashboard", "Dashboard", "Kendali", false}, {"today", "Pusat kendali", "Kendali", false}, {"orch", "Orchestrator", "Kendali", false}, {"chat", "Chat WhatsApp", "Kendali", false},
 	{"reportwa", "Report WhatsApp", "Kendali", false},
 	{"orbit", "Orbit", "Dealer", false}, {"kuad", "Segmen", "Dealer", false}, {"net", "Peta relasi", "Dealer", false}, {"dealer", "Dealer", "Dealer", false},
-	{"stock", "Push stok", "Operasi", false}, {"ar", "Kredit · kas", "Operasi", true},
+	{"stock", "Push stok", "Operasi", false}, {"stockcheck", "Cek stok", "Operasi", false}, {"ar", "Kredit · kas", "Operasi", false},
 	{"users", "Pengguna", "Master data", true}, {"roles", "Peran & akses", "Master data", true}, {"branches", "Cabang", "Master data", true},
-	{"mcp", "MCP Claude", "Sistem", true}, {"conn", "Pengaturan", "Sistem", true}, {"konsep", "Panduan", "Sistem", false},
+	{"mcp", "MCP Claude", "Sistem", true}, {"aitrigger", "AI Trigger", "Sistem", true},
+	{"conn", "Pengaturan", "Sistem", true}, {"konsep", "Panduan", "Sistem", false}, {"manual", "Buku manual", "Sistem", false},
 }
 
 // Kind is a proposal kind a role may decide.
@@ -67,8 +68,8 @@ type Role struct {
 	WAAllowed bool
 }
 
-// Normalize keeps known pages and kinds and applies the safety rules: policy rights imply all data; a role limited
-// to its own data cannot open pages that show everyone's data; only policy holders release credit above the limit.
+// Normalize keeps known pages and kinds and applies the safety rules: policy rights imply all data; pages that show
+// dealer data are filtered to the user's own dealers when scope is own; only policy holders release credit above the limit.
 func Normalize(r Role) Role {
 	if r.Policies {
 		r.Scope = "all"
@@ -93,15 +94,15 @@ func Normalize(r Role) Role {
 	return r
 }
 
-// DeriveBase is the base the server's data checks use: policy rights → ceo; own data → sales; management pages
-// (Pengguna, Pengaturan) → admin; otherwise finance (all data, no management).
+// DeriveBase is the base the server's data checks use: policy rights → ceo; own data → sales; the predefined Admin
+// role or management pages (Pengguna, Pengaturan) → admin; otherwise finance (all data, no management).
 func DeriveBase(r Role) string {
 	switch {
 	case r.Policies:
 		return "ceo"
 	case r.Scope == "own":
 		return "sales"
-	case slices.Contains(r.Screens, "users") || slices.Contains(r.Screens, "conn"):
+	case r.Key == "admin" || slices.Contains(r.Screens, "users") || slices.Contains(r.Screens, "conn"):
 		return "admin"
 	}
 	return "finance"
@@ -111,13 +112,15 @@ func DeriveBase(r Role) string {
 func LegacyScreens(base string) []string {
 	switch base {
 	case "sales":
-		return []string{"today", "orch", "chat", "reportwa", "orbit", "kuad", "net", "dealer", "stock", "konsep"}
+		return []string{"today", "orch", "chat", "orbit", "dealer", "stock", "stockcheck", "ar"}
+	case "admin":
+		return []string{"today", "orch", "chat", "orbit", "dealer", "stock", "stockcheck", "ar"}
 	case "finance":
 		return []string{"today", "orch", "chat", "reportwa", "orbit", "kuad", "dealer", "ar", "konsep"}
 	case "warehouse":
 		return []string{"today", "chat", "stock", "dealer", "konsep"}
 	}
-	return []string{"today", "orch", "chat", "reportwa", "orbit", "kuad", "net", "dealer", "stock", "ar", "users", "roles", "branches", "mcp", "conn", "konsep"}
+	return []string{"dashboard", "today", "orch", "chat", "reportwa", "orbit", "kuad", "net", "dealer", "stock", "stockcheck", "ar", "users", "roles", "branches", "mcp", "aitrigger", "conn", "konsep", "manual"}
 }
 
 // LegacyKinds is what an account without a role row decides, by its base.
@@ -151,9 +154,13 @@ var BaseLabel = map[string]string{"ceo": "CEO", "admin": "Admin", "finance": "Fi
 // /dealers/credit-tight used on Pusat kendali, the branch list) stay open to every signed-in user.
 var guarded = []struct{ prefix, screen string }{
 	{"/api/chat/", "chat"}, {"/api/wa/analysis", "chat"}, {"/api/wa/report", "reportwa"}, {"/api/wa/groups", "chat"}, {"/api/wa/pair", "chat"}, {"/api/wa/links", "chat"},
+	{"/api/dashboard/", "dashboard"},
+	{"/api/reply-rules", "aitrigger"},
 	{"/api/credit/", "ar"},
 	{"/api/relasi", "net"},
+	{"/api/segmen", "kuad"},
 	{"/api/stock/aging", "stock"}, {"/api/stock/critical", "stock"}, {"/api/stock/sales-by-product", "stock"},
+	{"/api/stock/products", "stockcheck"}, {"/api/stock/check", "stockcheck"}, {"/api/stock/analysis", "stockcheck"},
 	{"/api/users", "users"},
 	{"/api/roles", "roles"},
 	{"/api/mcp/", "mcp"},
@@ -161,6 +168,20 @@ var guarded = []struct{ prefix, screen string }{
 
 // ScreenForPath is the page an API path needs, or "" when any signed-in user may call it.
 func ScreenForPath(path string) string {
+	if strings.HasPrefix(path, "/api/screen-analysis/") {
+		switch strings.TrimPrefix(path, "/api/screen-analysis/") {
+		case "stock":
+			return "stock"
+		case "credit":
+			return "ar"
+		case "orbit":
+			return "orbit"
+		case "segmen":
+			return "kuad"
+		case "relasi":
+			return "net"
+		}
+	}
 	for _, g := range guarded {
 		if strings.HasPrefix(path, g.prefix) {
 			return g.screen

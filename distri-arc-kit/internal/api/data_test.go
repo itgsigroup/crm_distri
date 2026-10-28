@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"strings"
@@ -24,11 +25,19 @@ func send(t *testing.T, method, url, user, ctype string, body []byte) (int, stri
 	return res.StatusCode, string(b)
 }
 
-// Data & master: sales cannot see it; admin imports and maps; only the CEO sets the source and its key.
+// Data & master: sales cannot see it, nor the predefined Admin (operating pages only, migration 0065); a role given
+// Pengaturan imports and maps; only the CEO sets the source and its key.
 func TestDataMasterAccess(t *testing.T) {
-	srv, _ := chatServer(t)
+	srv, stor := chatServer(t)
 	if code, _ := get(t, srv, "/api/data/status", "andi@gsi.co.id"); code != http.StatusForbidden {
 		t.Fatalf("sales sees data status: %d", code)
+	}
+	if code, _ := get(t, srv, "/api/data/status", "admin@gsi.co.id"); code != http.StatusForbidden {
+		t.Fatalf("admin sees data status: %d", code)
+	}
+	// the CEO gives the Admin role Pengaturan in Peran & akses
+	if _, err := stor.Pool.Exec(context.Background(), "update roles set screens = array_append(screens, 'conn') where key = 'admin'"); err != nil {
+		t.Fatal(err)
 	}
 	code, st := get(t, srv, "/api/data/status", "admin@gsi.co.id")
 	if code != 200 || st["contract"] == nil || len(st["categories"].([]any)) != 6 {
