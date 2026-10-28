@@ -366,6 +366,24 @@ export class Session implements SendTarget {
     }
   }
 
+  /** Whether a participant is this number (its phone JID or its LID). */
+  private isMe(p: { id: string; phoneNumber?: string }): boolean {
+    const me = [this.sock?.user?.id, (this.sock?.user as { lid?: string } | undefined)?.lid].filter((x): x is string => !!x).map(x => jidNormalizedUser(x))
+    return me.includes(jidNormalizedUser(p.id)) || (!!p.phoneNumber && me.includes(jidNormalizedUser(p.phoneNumber)))
+  }
+
+  /** Only admins may write in the group (WhatsApp "announce") and this number is not one of them. */
+  private adminOnlyOf(meta: GroupMetadata): boolean {
+    if (!meta.announce) return false
+    return !meta.participants.some(p => this.isMe(p) && !!p.admin)
+  }
+
+  async adminOnly(chat: string): Promise<boolean> {
+    if (!isJidGroup(chat)) return false
+    const meta = await this.cachedGroup(chat)
+    return !!meta && this.adminOnlyOf(meta)
+  }
+
   async listGroups(): Promise<{ jid: string; meta: GroupMeta }[]> {
     if (this.groupList && Date.now() - this.groupList.at < GROUP_LIST_TTL) return this.groupList.items
     const sock = this.sock
@@ -390,7 +408,9 @@ export class Session implements SendTarget {
         const pn = await sock.signalRepository.lidMapping.getPNForLID(p.id).catch(() => null)
         return pn ? { ...p, phoneNumber: pn } : p
       }))
-      items.push({ jid: g.id, meta: toGroupMeta(g.subject, participants, (jid, phone) => this.contactName(jid, phone)) })
+      const meta = toGroupMeta(g.subject, participants, (jid, phone) => this.contactName(jid, phone))
+      if (this.adminOnlyOf(g)) meta.admin_only = true
+      items.push({ jid: g.id, meta })
     }
     this.groupList = { at: Date.now(), items }
     return items

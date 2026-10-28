@@ -338,6 +338,8 @@ type Group struct {
 	JID     string
 	Name    string
 	Members []RosterMember
+	// AdminOnly: only admins may write and this number is no admin (WhatsApp refuses its messages there)
+	AdminOnly bool
 }
 
 // GroupLister lists the groups a GSI number is in (the profile sheet's "grup bersama").

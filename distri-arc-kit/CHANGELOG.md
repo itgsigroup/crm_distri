@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Grup "hanya admin yang bisa kirim pesan" · 2026-10-28
+- Di grup WhatsApp yang hanya mengizinkan admin mengirim pesan, kolom ketik di Orbit sekarang tertutup dengan tulisan "Hanya admin yang dapat mengirim pesan ke grup ini" bila nomor GSI itu bukan admin, seperti di WhatsApp.
+- Sebelumnya pesan tampak terkirim di Orbit tetapi ditolak WhatsApp. Sekarang pengiriman ditolak lebih dulu, dan bila tetap ada yang masuk antrean, pesannya ditandai **gagal** dengan alasan dari WhatsApp.
+- ADR 0073 · test: `TestAdminOnlyGroup`, wa-bridge `sender.test.ts`.
+
 ## Fix · Chat ganda LID: juga untuk LID yang belum dikenal perangkat · 2026-10-28
 - Chat "Mas Rizal IT - GSI" masih tampil dua kali karena perangkat belum mengetahui nomor di balik ID tersembunyinya. Sekarang Orbit menanyakan ID kandidat ke WhatsApp. Kandidatnya adalah chat bernomor dengan nama yang sama di nomor GSI yang sama. Chat hanya digabung bila WhatsApp menyatakan ID itu milik nomor tersebut.
 

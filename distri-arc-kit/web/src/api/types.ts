@@ -411,7 +411,9 @@ export interface ThreadDetail {
     contact_type?: '' | 'supplier'
     /** a group: its id and kind (external = a customer group, read by Analisa WhatsApp) */
     group_id?: string | null; group_kind?: string
-    labels?: string[] }
+    labels?: string[]
+    /** a group where only admins may write and this number is none: the composer is closed, like WhatsApp */
+    admin_only?: boolean }
   messages: MessageView[]
   pins?: ChatPin[]
   /** older messages exist before this page (only a very busy chat: the first page holds the whole retention window) */

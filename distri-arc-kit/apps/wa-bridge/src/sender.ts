@@ -16,10 +16,12 @@ export interface SendTarget {
   sendContent(chat: string, content: Content, text: string, typingMs: number, quote?: Quote, mentions?: string[]): Promise<{ wamid: string; ref?: string }>
   editText(chat: string, wamid: string, text: string): Promise<void>
   deleteText(chat: string, wamid: string): Promise<void>
+  /** A group where only admins may write and this number is no admin: WhatsApp refuses what it sends there. */
+  adminOnly?(chat: string): Promise<boolean>
 }
 
 export class SendError extends Error {
-  constructor(readonly status: number, readonly code: GuardCode | 'not_approved' | 'not_linked' | 'bad_request', message: string, readonly retryAfterSec?: number) {
+  constructor(readonly status: number, readonly code: GuardCode | 'not_approved' | 'not_linked' | 'bad_request' | 'admin_only', message: string, readonly retryAfterSec?: number) {
     super(message)
   }
 }
@@ -52,6 +54,7 @@ export class Sender {
     if (prior) return { wamid: prior.wamid, duplicate: true } // retried request: never send twice
     if (!(await this.approvals.actionApproved(actionId))) throw new SendError(403, 'not_approved', 'kirim ditolak — action belum disetujui manusia')
     if (!target.connected()) throw new SendError(409, 'not_linked', 'sesi belum terhubung')
+    if (await target.adminOnly?.(chat)) throw new SendError(403, 'admin_only', 'Hanya admin yang dapat mengirim pesan ke grup ini')
 
     const run = async () => {
       const again = await this.store.sentForAction(target.id, actionId)

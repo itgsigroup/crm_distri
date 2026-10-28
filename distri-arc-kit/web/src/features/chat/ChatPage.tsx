@@ -1287,7 +1287,10 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
           </div>
         )}
         {file && <FilePreview file={file} onRemove={() => setFile(null)} />}
-        {voice.recording ? (
+        {t.admin_only ? (
+          // like WhatsApp: a group where only admins may write, and this number is none — nothing can be sent
+          <div className="ibc-adminonly" role="note"><Icon name="lock" />Hanya admin yang dapat mengirim pesan ke grup ini</div>
+        ) : voice.recording ? (
           <RecordingBar secs={voice.secs} onCancel={voice.cancel} onSend={voice.send} />
         ) : (
           <form onSubmit={submit}>

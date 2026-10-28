@@ -189,6 +189,9 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	var refused *wa.SendRefused
 	if errors.As(sendErr, &refused) {
 		e := "Penjaga anti-blokir: " + refused.Reason
+		if refused.Code == "admin_only" { // WhatsApp's own rule, not the guard's
+			e = "WhatsApp: " + refused.Reason
+		}
 		if refused.Temporary() { // pacing: the same message goes out later
 			_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: id, Status: "pending", Error: &e})
 			return refused.RetryAfter, nil

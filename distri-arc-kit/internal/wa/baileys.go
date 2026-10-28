@@ -603,6 +603,7 @@ func (b *Baileys) Groups(ctx context.Context, account string) ([]Group, error) {
 				Name  string `json:"name"`
 				Admin bool   `json:"admin"`
 			} `json:"members"`
+			AdminOnly bool `json:"admin_only"`
 		} `json:"meta"`
 	}
 	if _, _, err := b.call(ctx, http.MethodGet, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/groups", nil, &out); err != nil {
@@ -610,7 +611,7 @@ func (b *Baileys) Groups(ctx context.Context, account string) ([]Group, error) {
 	}
 	gs := make([]Group, 0, len(out))
 	for _, g := range out {
-		x := Group{JID: g.JID, Name: g.Meta.Name, Members: make([]RosterMember, 0, len(g.Meta.Members))}
+		x := Group{JID: g.JID, Name: g.Meta.Name, Members: make([]RosterMember, 0, len(g.Meta.Members)), AdminOnly: g.Meta.AdminOnly}
 		for _, m := range g.Meta.Members {
 			x.Members = append(x.Members, RosterMember{Number: Digits(m.Phone), Name: strings.TrimSpace(m.Name), Admin: m.Admin})
 		}

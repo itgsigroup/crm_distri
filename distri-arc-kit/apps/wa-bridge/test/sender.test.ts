@@ -87,6 +87,14 @@ describe('sender', () => {
     expect(store.sent).toHaveLength(1)
     expect(await code(sender.edit(target(false).t, '6281@s.whatsapp.net', 'W9', 'x', 'a2'))).toBe('403:not_approved')
   })
+  it('refuses a group where only admins may write and this number is no admin', async () => {
+    const { sender } = await setup(['a1', 'a2'])
+    const { t, sent } = target()
+    t.adminOnly = async (chat) => chat === '120363001@g.us'
+    expect(await code(sender.send(t, '120363001@g.us', 'Halo semua', 'a1', undefined, undefined, undefined, true))).toBe('403:admin_only')
+    expect(sent).toHaveLength(0)
+    expect(await code(sender.send(t, '120363002@g.us', 'Halo semua', 'a2', undefined, undefined, undefined, true))).toBe('ok')
+  })
   it('never sends the same action twice (retried request)', async () => {
     const { sender } = await setup()
     const { t, sent } = target()

@@ -204,6 +204,28 @@ func groupsOf(ctx context.Context, lister wa.GroupLister, account string) []wa.G
 	return gs
 }
 
+// groupAdminOnly reports whether only admins may write in a group and the GSI number is no admin, from the cached
+// group list. It never waits on WhatsApp: without a fresh list it answers from the stale one (false when none) and
+// refreshes in the background. The bridge refuses such a send anyway.
+func (s *Server) groupAdminOnly(account, jid string) bool {
+	lister, _ := s.groupRoster().(wa.GroupLister)
+	if lister == nil || account == "" || jid == "" {
+		return false
+	}
+	groupLists.Lock()
+	c, ok := groupLists.m[account]
+	groupLists.Unlock()
+	if !ok || time.Since(c.at) >= groupListFresh {
+		go groupsOf(context.Background(), lister, account)
+	}
+	for _, g := range c.gs {
+		if g.JID == jid {
+			return g.AdminOnly
+		}
+	}
+	return false
+}
+
 // sharedGroups are the groups of the GSI numbers the viewer reads that number is in: a member on WhatsApp's list
 // (asked of every number at once), or someone who wrote in the group's chat in GSI Orbit. One row per group.
 func (s *Server) sharedGroups(r *http.Request, number string) ([]ProfileGroup, error) {

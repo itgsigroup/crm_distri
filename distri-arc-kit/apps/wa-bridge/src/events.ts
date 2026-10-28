@@ -2,7 +2,8 @@ import { isJidBroadcast, isJidGroup, isJidNewsletter, isJidStatusBroadcast, isLi
 
 // WaEvent is the bridge → worker contract; Go side: internal/wa/baileys.go (bridgeEvent).
 export interface GroupMember { jid: string; phone: string; name: string; admin?: boolean }
-export interface GroupMeta { name: string; members: GroupMember[] }
+/** admin_only: only admins may write (WhatsApp "announce") and this number is no admin — a send would be refused. */
+export interface GroupMeta { name: string; members: GroupMember[]; admin_only?: boolean }
 /**
  * Media of a message. The content is never downloaded on arrival; `ref` is what WhatsApp needs to fetch it later on
  * request (POST /sessions/{id}/media): the message key and the media's CDN path and decryption key, no thumbnail.
