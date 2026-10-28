@@ -83,6 +83,8 @@ async function readBody(req: IncomingMessage, limit = 1 << 20): Promise<string> 
  *                                          live?: a person typing in Chat — skips the volume caps (ADR 0064)
  *   POST   /sessions/{id}/edit            {chat_id, wamid, text, action_id} → {wamid}: edit a sent text (approved action)
  *   POST   /sessions/{id}/delete          {chat_id, wamid, action_id} → {wamid}: delete a sent message for everyone (approved action)
+ *   POST   /sessions/{id}/react           {chat_id, wamid, from_me, participant?, emoji, action_id} → {wamid}: react to a
+ *                                          message ("" takes it back; approved action, no anti-ban caps)
  *   POST   /sessions/{id}/media           {ref, mime} → the file (streamed, never stored); 409 not connected,
  *                                         429 too many at once, 410 gone from WhatsApp and the phone
  *   POST   /sessions/{id}/history         {chat_id, id, from_me, ts (ms), count ≤ 50} → 202; the phone's answer
@@ -194,6 +196,16 @@ export function handler(d: Deps) {
         const inp = JSON.parse(body || '{}') as { chat_id?: string; wamid?: string; action_id?: string }
         try {
           return json(res, 200, await d.sender.revoke(s, inp.chat_id ?? '', inp.wamid ?? '', inp.action_id ?? ''))
+        } catch (e) {
+          if (e instanceof SendError) return json(res, e.status, { error: e.message, code: e.code })
+          throw e
+        }
+      }
+      if (method === 'POST' && parts[2] === 'react') {
+        const inp = JSON.parse(body || '{}') as { chat_id?: string; wamid?: string; from_me?: boolean; participant?: string; emoji?: string; action_id?: string }
+        try {
+          const to = { id: inp.wamid ?? '', from_me: !!inp.from_me, participant: inp.participant || undefined, text: '' }
+          return json(res, 200, await d.sender.react(s, inp.chat_id ?? '', to, inp.emoji ?? '', inp.action_id ?? ''))
         } catch (e) {
           if (e instanceof SendError) return json(res, e.status, { error: e.message, code: e.code })
           throw e

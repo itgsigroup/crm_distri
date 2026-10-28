@@ -338,6 +338,8 @@ export interface MessageView {
   suggest?: ReplySuggestion[]
   /** Lyra (Hermes Agent): stock per city and DPP price of the products the message asks about (ADR 0070) */
   lyra?: LyraCard
+  /** Reaksi (like WhatsApp): one entry per emoji; mine = the conversation's number reacted with it */
+  reactions?: { emoji: string; count: number; mine?: boolean }[]
   annotation: Annotation | null
   signal_id: string | null
   proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }

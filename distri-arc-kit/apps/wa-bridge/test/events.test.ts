@@ -95,6 +95,17 @@ describe('Baileys → WaEvent', () => {
     }), r, false)
     expect(ev).toMatchObject({ wamid: 'D1', revoke_of: 'ORIG2', text: '' })
   })
+  it('maps a reaction to the reacted message id and its emoji, "" when taken back', async () => {
+    const ev = await toWaEvent('s', msg({ id: 'R1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, {
+      reactionMessage: { text: '👍', key: { id: 'ORIG3', remoteJid: '6281299887766@s.whatsapp.net', fromMe: true } },
+    }), r, false)
+    expect(ev).toMatchObject({ wamid: 'R1', react_to: 'ORIG3', text: '👍', from: '6281299887766' })
+    expect(ev?.mentions).toBeUndefined()
+    const off = await toWaEvent('s', msg({ id: 'R2', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, {
+      reactionMessage: { text: '', key: { id: 'ORIG3', remoteJid: '6281299887766@s.whatsapp.net', fromMe: true } },
+    }), r, false)
+    expect(off).toMatchObject({ react_to: 'ORIG3', text: '' })
+  })
   it('maps an edit to the edited message id and its new text', async () => {
     const ev = await toWaEvent('s', msg({ id: 'E1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, {
       protocolMessage: { type: 14, key: { id: 'ORIG1', remoteJid: '6281299887766@s.whatsapp.net', fromMe: false }, editedMessage: { conversation: 'Minta 20 kamera, bukan 16' } },

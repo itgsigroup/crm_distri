@@ -50,6 +50,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Post("/chat/threads/{id}/messages", s.chatSend)
 	r.Patch("/chat/threads/{id}/messages/{mid}", s.chatEdit)
 	r.Delete("/chat/threads/{id}/messages/{mid}", s.chatDelete)
+	r.Put("/chat/threads/{id}/messages/{mid}/reaction", s.chatReact)
 	r.Put("/chat/threads/{id}/contact-type", s.setContactType)
 	r.Put("/chat/threads/{id}/alias", s.setThreadAlias)
 	r.Get("/chat/threads/{id}/messages/{mid}/media", s.chatMedia)
@@ -499,6 +500,8 @@ type MessageView struct {
 	Pinned bool         `json:"pinned,omitempty"`
 	// Starred: the person viewing starred it (Pesan berbintang — each person's own, Sam 22 Oct)
 	Starred bool `json:"starred,omitempty"`
+	// Reactions: the emoji under the bubble, like WhatsApp (who reacted with what, counted per emoji)
+	Reactions []ReactionView `json:"reactions,omitempty"`
 	// Mentions: the members the text tags — "@<token>" in Body is shown as "@<name>"
 	Mentions json.RawMessage `json:"mentions,omitempty"`
 	// Held: why a queued message has not gone out yet (the anti-ban guard's reason), shown instead of a bare
@@ -775,6 +778,9 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.attachStars(r, out); err != nil {
 		s.log.Warn("message stars", "err", err) // a star never stops the chat from loading
+	}
+	if err := s.attachReactions(r.Context(), out, deref(t.SalesWa)); err != nil {
+		s.log.Warn("message reactions", "err", err) // nor a reaction
 	}
 	if err := s.attachSuggestions(r.Context(), out, t.ThreadBranch, t.DealerID, now); err != nil {
 		s.log.Warn("reply suggestions", "err", err) // a suggestion never stops the chat from loading

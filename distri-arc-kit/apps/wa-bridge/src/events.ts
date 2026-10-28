@@ -35,6 +35,7 @@ export interface WaEvent {
   mentions?: Mention[] // members tagged in the text (WhatsApp "@")
   edit_of?: string // the message this one edits (its text replaces the original's)
   revoke_of?: string // the message this one deletes for everyone ("Pesan ini dihapus")
+  react_to?: string // the message this one reacts to (text = the emoji, "" when taken back)
   from_me: boolean
   is_history: boolean
   chat_name?: string // saved contact / business / push name of a direct chat
@@ -137,6 +138,13 @@ export function revokeOf(message: proto.IMessage | null | undefined): string | n
   const p = normalizeMessageContent(message)?.protocolMessage
   if (!p || p.type !== proto.Message.ProtocolMessage.Type.REVOKE || !p.key?.id) return null
   return p.key.id
+}
+
+/** A reaction (WhatsApp "Reaksi"): the reacted message's id and the emoji, "" when the reaction is taken back. */
+export function reactionOf(message: proto.IMessage | null | undefined): { id: string; emoji: string } | null {
+  const r = normalizeMessageContent(message)?.reactionMessage
+  if (!r?.key?.id) return null
+  return { id: r.key.id, emoji: r.text ?? '' }
 }
 
 /** An edit of an earlier message (WhatsApp "Edit"): the edited message's id and its new text. */
@@ -250,7 +258,7 @@ async function groupStub(session: string, msg: WAMessage, r: Resolver): Promise<
   }
 }
 
-/** Maps a Baileys message to a WaEvent, or null for protocol messages, reactions and status updates. */
+/** Maps a Baileys message to a WaEvent (a reaction too: react_to), or null for protocol messages and status updates. */
 export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, history: boolean): Promise<WaEvent | null> {
   const key = msg.key
   if (!key?.id || !isConversation(key.remoteJid)) return null
@@ -262,8 +270,12 @@ export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, hi
   }
   const edit = editOf(msg.message)
   const revoke = revokeOf(msg.message)
-  const { text, media, quoted } = edit ? { text: edit.text, media: undefined, quoted: undefined } : revoke ? { text: '', media: undefined, quoted: undefined } : messageText(msg.message)
-  if (!text && !media && !revoke) return null
+  const reaction = reactionOf(msg.message)
+  const { text, media, quoted } = edit ? { text: edit.text, media: undefined, quoted: undefined }
+    : revoke ? { text: '', media: undefined, quoted: undefined }
+    : reaction ? { text: reaction.emoji, media: undefined, quoted: undefined }
+    : messageText(msg.message)
+  if (!text && !media && !revoke && !reaction) return null
   const group = !!isJidGroup(key.remoteJid)
   const chat = group ? key.remoteJid : await toPhoneJid(r, key.remoteJid, key.remoteJidAlt)
   const fromMe = !!key.fromMe
@@ -293,9 +305,10 @@ export async function toWaEvent(session: string, msg: WAMessage, r: Resolver, hi
   }
   if (edit) ev.edit_of = edit.id
   if (revoke) ev.revoke_of = revoke
+  if (reaction) ev.react_to = reaction.id
   if (quoted) ev.quoted = quoted
   if (group) ev.group_meta = (await r.groupMeta(chat)) ?? { name: '', members: [] }
-  const tagged = edit || revoke ? [] : mentionedJids(msg.message)
+  const tagged = edit || revoke || reaction ? [] : mentionedJids(msg.message)
   if (tagged.length) {
     const members = ev.group_meta?.members ?? []
     ev.mentions = await Promise.all(tagged.map(async (jid) => {

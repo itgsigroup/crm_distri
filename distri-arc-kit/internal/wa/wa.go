@@ -40,6 +40,8 @@ type Message struct {
 	QuotedID string `json:"quoted_id,omitempty"`
 	// RevokeOf: this message deletes the message with that id for everyone ("Pesan ini dihapus").
 	RevokeOf string `json:"revoke_of,omitempty"`
+	// ReactTo: this message is a reaction to the message with that id; Text is the emoji ("" takes it back).
+	ReactTo string `json:"react_to,omitempty"`
 	// Mentions: the group members the text tags ("@Budi").
 	Mentions []Mention `json:"mentions,omitempty"`
 	// mirror: the other linked GSI number's copy of a 1:1 message, made by GSI Orbit (never mirrored again)
@@ -313,6 +315,13 @@ type ContentSender interface {
 // the approved delete travels in ctx (WithAction).
 type Deleter interface {
 	Delete(ctx context.Context, account, chatJID, waMsgID string) error
+}
+
+// Reactor is implemented by transports that can react to a message with an emoji (WhatsApp "Reaksi"); an empty emoji
+// takes the reaction back. target is the message's key (as a reply quotes it). The outbox id of the approved reaction
+// travels in ctx (WithAction).
+type Reactor interface {
+	React(ctx context.Context, account, chatJID string, target Quote, emoji string) error
 }
 
 // DeleteWindow is how long after sending GSI Orbit offers "Hapus untuk semua orang" (WhatsApp allows about 2 days).

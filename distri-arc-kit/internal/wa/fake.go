@@ -137,6 +137,17 @@ func (f *Fake) Delete(_ context.Context, account, chatJID, waMsgID string) error
 	return nil
 }
 
+// React records a reaction as a sent message with ReactTo set (Text = the emoji, "" = taken back).
+func (f *Fake) React(_ context.Context, account, chatJID string, target Quote, emoji string) error {
+	if target.ID == "" {
+		return fmt.Errorf("empty reaction target")
+	}
+	f.mu.Lock()
+	f.sent = append(f.sent, Message{ID: fmt.Sprintf("FAKE%06d", f.seq.Add(1)), Account: Digits(account), ChatJID: chatJID, FromNumber: Digits(account), FromMe: true, ReactTo: target.ID, Text: emoji})
+	f.mu.Unlock()
+	return nil
+}
+
 // SetProfile registers a WhatsApp Business profile the fake returns for a number (tests, seed demo).
 func (f *Fake) SetProfile(number string, p Profile) {
 	f.mu.Lock()

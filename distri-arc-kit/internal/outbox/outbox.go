@@ -32,8 +32,10 @@ type WAPayload struct {
 	// an edit: the WhatsApp id of the message edited and when it was sent (WhatsApp accepts edits for 15 minutes)
 	EditOf     string     `json:"edit_of,omitempty"`
 	EditSentAt *time.Time `json:"edit_sent_at,omitempty"`
-	// a reply to one bubble (WhatsApp "Balas"): the quoted message
+	// a reply to one bubble (WhatsApp "Balas"): the quoted message; a reaction (kind "react"): the message reacted to
 	Quote *wa.Quote `json:"quote,omitempty"`
+	// a reaction: the emoji ("" takes it back)
+	Emoji string `json:"emoji,omitempty"`
 	// the members a group send tags ("@<number>" in Text)
 	Mentions []string `json:"mentions,omitempty"`
 	// a file, voice note or poll sent from Chat (Text is the caption); the file waits in chat_outgoing_files
@@ -140,7 +142,7 @@ func (s *Sender) Send(ctx context.Context, id uuid.UUID) (time.Duration, error) 
 	if err := json.Unmarshal(ob.Payload, &p); err != nil {
 		return 0, err
 	}
-	if p.Kind == "edit" || p.Kind == "delete" {
+	if p.Kind == "edit" || p.Kind == "delete" || p.Kind == "react" {
 		return s.sendEdit(ctx, ob, p)
 	}
 	now := s.clock.Now()
@@ -308,8 +310,9 @@ func (s *Sender) sendSystem(ctx context.Context, ob gen.Outbox) (time.Duration, 
 	return 0, ErrNoAutoMessage
 }
 
-// sendEdit carries out a human's edit (or delete for everyone) of a message the number sent: no pacing (nothing new
-// lands in the chat), but the same approval check by the bridge, and never after WhatsApp's window.
+// sendEdit carries out a human's edit (or delete for everyone) of a message the number sent, or a reaction to a
+// message: no pacing (nothing new lands in the chat), but the same approval check by the bridge, and never after
+// WhatsApp's window.
 func (s *Sender) sendEdit(ctx context.Context, ob gen.Outbox, p WAPayload) (time.Duration, error) {
 	fail := func(e string) (time.Duration, error) {
 		_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "failed", Error: &e})
@@ -318,7 +321,17 @@ func (s *Sender) sendEdit(ctx context.Context, ob gen.Outbox, p WAPayload) (time
 	}
 	now := s.clock.Now()
 	var err error
-	if p.Kind == "delete" {
+	switch p.Kind {
+	case "react":
+		re, ok := s.t.(wa.Reactor)
+		if !ok {
+			return fail("Transport WhatsApp ini tidak bisa memberi reaksi")
+		}
+		if p.Quote == nil || p.Quote.ID == "" {
+			return fail("Pesan yang diberi reaksi tidak ditemukan")
+		}
+		err = re.React(wa.WithAction(ctx, ob.ID.String()), p.From, p.To, *p.Quote, p.Emoji)
+	case "delete":
 		del, ok := s.t.(wa.Deleter)
 		if !ok {
 			return fail("Transport WhatsApp ini tidak bisa menghapus pesan")
@@ -327,7 +340,7 @@ func (s *Sender) sendEdit(ctx context.Context, ob gen.Outbox, p WAPayload) (time
 			return fail("Lewat 48 jam sejak dikirim — hapus untuk semua orang tidak tersedia lagi")
 		}
 		err = del.Delete(wa.WithAction(ctx, ob.ID.String()), p.From, p.To, p.EditOf)
-	} else {
+	default:
 		ed, ok := s.t.(wa.Editor)
 		if !ok {
 			return fail("Transport WhatsApp ini tidak bisa mengedit pesan")
@@ -344,7 +357,7 @@ func (s *Sender) sendEdit(ctx context.Context, ob gen.Outbox, p WAPayload) (time
 			_ = s.st.Q.SetOutboxError(ctx, gen.SetOutboxErrorParams{ID: ob.ID, Status: "pending", Error: &e})
 			return refused.RetryAfter, nil
 		}
-		return fail("Edit ditolak: " + refused.Reason)
+		return fail(map[string]string{"edit": "Edit", "delete": "Hapus", "react": "Reaksi"}[p.Kind] + " ditolak: " + refused.Reason)
 	}
 	if err != nil {
 		e := err.Error()
@@ -355,7 +368,12 @@ func (s *Sender) sendEdit(ctx context.Context, ob gen.Outbox, p WAPayload) (time
 	if err := s.st.Q.SetOutboxResult(ctx, gen.SetOutboxResultParams{ID: ob.ID, Status: "sent", SentAt: &at}); err != nil {
 		return 0, err
 	}
-	if mid, err := uuid.Parse(p.MessageID); err == nil {
+	if p.Kind == "react" {
+		// the bridge also reports the reaction back; storing it now shows it at once (same row, idempotent)
+		if _, err := wa.SetReaction(ctx, s.st.Pool, p.Quote.ID, wa.Digits(p.From), p.Emoji, at); err != nil {
+			return 0, err
+		}
+	} else if mid, err := uuid.Parse(p.MessageID); err == nil {
 		if p.Kind == "delete" {
 			err = s.st.Q.SetChatMessageDeleted(ctx, gen.SetChatMessageDeletedParams{ID: mid, DeletedAt: at})
 		} else {
@@ -368,8 +386,8 @@ func (s *Sender) sendEdit(ctx context.Context, ob gen.Outbox, p WAPayload) (time
 	if err := s.st.Q.SetProposalExecuted(ctx, pidOf(ob)); err != nil {
 		return 0, err
 	}
-	actor, kind, action, entity := "worker", "system", "outbox."+map[bool]string{true: "deleted", false: "edited"}[p.Kind == "delete"], "outbox"
-	after, _ := json.Marshal(map[string]any{"edit_of": p.EditOf, "from": p.From, "to": p.To, "proposal_id": ob.ProposalID})
+	actor, kind, action, entity := "worker", "system", "outbox."+map[string]string{"edit": "edited", "delete": "deleted", "react": "reacted"}[p.Kind], "outbox"
+	after, _ := json.Marshal(map[string]any{"edit_of": p.EditOf, "emoji": p.Emoji, "from": p.From, "to": p.To, "proposal_id": ob.ProposalID})
 	_ = s.st.Q.InsertAudit(ctx, gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &ob.ID, After: after})
 	_ = events.Notify(ctx, s.st.Pool, "chat_message", map[string]string{"thread_id": p.ThreadID})
 	_ = events.Notify(ctx, s.st.Pool, "proposal_changed", map[string]string{"id": pidOf(ob).String(), "status": "executed"})

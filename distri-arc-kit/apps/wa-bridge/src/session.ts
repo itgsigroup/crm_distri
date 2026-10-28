@@ -290,8 +290,9 @@ export class Session implements SendTarget {
         const name = contactName(this.contacts.get(ev.chat_id)) || contactName(this.contacts.get(m.key.remoteJid ?? ''))
         if (name) ev.chat_name = name
       }
-      if (!history) this.trackUnread(ev.chat_id, m.key, ev.from_me)
-      if (!ev.from_me) {
+      // a reaction is no message: it neither leaves the chat unread nor counts as the customer writing (STOP stays)
+      if (!history && !ev.react_to) this.trackUnread(ev.chat_id, m.key, ev.from_me)
+      if (!ev.from_me && !ev.react_to) {
         // Inbound marks the chat as "known" (replies allowed) — even beyond history_days, without
         // keeping content. STOP opts out; any later live message opts back in.
         await this.store.markInbound(this.id, ev.chat_id, new Date(ev.timestamp), history ? (isOptOut(ev.text) ? true : null) : isOptOut(ev.text))
@@ -519,6 +520,13 @@ export class Session implements SendTarget {
     const sock = this.sock
     if (!sock) throw new Error('sesi belum terhubung')
     await sock.sendMessage(chat, { text, edit: { remoteJid: chat, fromMe: true, id: wamid } })
+  }
+
+  /** Reacts to a message with an emoji ("" takes the reaction back); target is the message's key, as a reply quotes it. */
+  async react(chat: string, target: Quote, emoji: string): Promise<void> {
+    const sock = this.sock
+    if (!sock) throw new Error('sesi belum terhubung')
+    await sock.sendMessage(chat, { react: { text: emoji, key: { remoteJid: chat, fromMe: target.from_me, id: target.id, participant: target.participant || undefined } } })
   }
 
   /** Deletes a message this number sent, for everyone (WhatsApp: "Pesan ini dihapus"). */

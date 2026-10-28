@@ -16,6 +16,8 @@ export interface SendTarget {
   sendContent(chat: string, content: Content, text: string, typingMs: number, quote?: Quote, mentions?: string[]): Promise<{ wamid: string; ref?: string }>
   editText(chat: string, wamid: string, text: string): Promise<void>
   deleteText(chat: string, wamid: string): Promise<void>
+  /** Reacts to a message with an emoji ("" takes it back). */
+  react(chat: string, target: Quote, emoji: string): Promise<void>
   /** A group where only admins may write and this number is no admin: WhatsApp refuses what it sends there. */
   adminOnly?(chat: string): Promise<boolean>
 }
@@ -93,6 +95,14 @@ export class Sender {
   /** Deletes a message this number sent, for everyone, for an approved delete action (same checks as an edit). */
   async revoke(target: SendTarget, chat: string, wamid: string, actionId: string): Promise<{ wamid: string; duplicate: boolean }> {
     return this.change(target, chat, wamid, actionId, () => target.deleteText(chat, wamid), textHash('revoke:' + wamid))
+  }
+
+  /**
+   * Reacts to a message (or takes the reaction back: emoji ""), for an approved react action. Same checks as an edit;
+   * no anti-ban caps — a reaction adds no message to the chat.
+   */
+  async react(target: SendTarget, chat: string, to: Quote, emoji: string, actionId: string): Promise<{ wamid: string; duplicate: boolean }> {
+    return this.change(target, chat, to.id, actionId, () => target.react(chat, to, emoji), textHash('react:' + to.id + ':' + emoji))
   }
 
   private async change(target: SendTarget, chat: string, wamid: string, actionId: string, apply: () => Promise<void>, hash: string): Promise<{ wamid: string; duplicate: boolean }> {

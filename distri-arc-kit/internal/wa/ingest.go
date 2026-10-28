@@ -71,6 +71,9 @@ func MaskNumber(n string) string {
 
 // Process stores one message (or drops it by the privacy rules).
 func (in *Ingestor) Process(ctx context.Context, m Message) (Result, error) {
+	if m.ReactTo != "" {
+		return in.react(ctx, m)
+	}
 	if m.RevokeOf != "" {
 		return in.revoke(ctx, m)
 	}
@@ -600,6 +603,49 @@ func (in *Ingestor) revoke(ctx context.Context, m Message) (Result, error) {
 		threads[i] = r.ThreadID
 	}
 	return in.touched(ctx, threads)
+}
+
+// react applies a WhatsApp reaction (or its removal: an empty emoji) to every stored copy of the message: one per
+// person, the newest wins (a synced history may bring an older one later). Not a message: nothing else runs. Idempotent.
+func (in *Ingestor) react(ctx context.Context, m Message) (Result, error) {
+	reactor := Digits(m.FromNumber)
+	if m.FromMe {
+		reactor = Digits(m.Account)
+	}
+	if reactor == "" {
+		return Result{Reason: DropEmpty}, nil
+	}
+	threads, err := SetReaction(ctx, in.st.Pool, m.ReactTo, reactor, strings.TrimSpace(m.Text), m.Time)
+	if err != nil {
+		return Result{}, err
+	}
+	return in.touched(ctx, threads)
+}
+
+// SetReaction stores reactor's emoji on every stored copy of the WhatsApp message waMsgID ("" removes it), unless a
+// newer reaction of theirs is there. It returns the conversations touched.
+func SetReaction(ctx context.Context, db interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}, waMsgID, reactor, emoji string, at time.Time) ([]*uuid.UUID, error) {
+	sql := `with m as (select id, thread_id from chat_messages where wa_msg_id = $1),
+		up as (insert into chat_message_reactions (message_id, reactor, emoji, reacted_at) select id, $2, $3, $4 from m
+			on conflict (message_id, reactor) do update set emoji = excluded.emoji, reacted_at = excluded.reacted_at
+			where chat_message_reactions.reacted_at <= excluded.reacted_at)
+		select thread_id from m`
+	if emoji == "" {
+		sql = `with m as (select id, thread_id from chat_messages where wa_msg_id = $1),
+			del as (delete from chat_message_reactions r using m where r.message_id = m.id and r.reactor = $2 and r.reacted_at <= $4 and $3 = '')
+			select thread_id from m`
+	}
+	rows, err := db.Query(ctx, sql, waMsgID, reactor, emoji, at)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (*uuid.UUID, error) {
+		var t *uuid.UUID
+		err := r.Scan(&t)
+		return t, err
+	})
 }
 
 // ProcessStatus records a number's connection state and tells the browsers. A new link (Chat → + Nomor) is pending

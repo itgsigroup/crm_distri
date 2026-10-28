@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Reaksi per pesan seperti WhatsApp · 2026-10-28
+- Arahkan kursor ke bubble, klik 🙂 di samping tombol Balas, lalu pilih 👍 ❤️ 😂 😮 😢 🙏 atau **+** untuk emoji lain. Reaksi terkirim ke WhatsApp atas nama nomor GSI chat itu dan tercatat sebagai keputusan manusia (proposal, outbox, audit). Memilih emoji yang sama membatalkannya.
+- Reaksi pelanggan dan rekan dari WhatsApp sekarang tampil sebagai chip di bawah bubble (emoji dan jumlah). Reaksi Anda ditandai, dan bisa dibatalkan atau diikuti dengan klik.
+- Reaksi tidak dihitung sebagai pesan: tidak memicu AI, tidak membuat chat belum dibaca, dan tidak membuka opt-out STOP.
+- ADR 0074 · migrasi 0071 · test: `TestChatReactions`, bridge `events.test.ts`/`sender.test.ts`, web `reactions.test.ts`.
+
 ## Change · Lyra juga membaca chat internal · 2026-10-28
 - Pertanyaan stok, harga, atau produk di chat antar karyawan (DM antar nomor GSI) dan di grup internal sekarang juga mendapat kartu Lyra, sama seperti chat pelanggan. Contoh: "cek stok 76d0t-exlpf" dari Catarina ke Granike.
 - Menu bubble **Tanya Lyra** juga muncul di pesan internal. Teks tetap dimasking sebelum dikirim ke Lyra. Harga memakai harga list (tier A) karena chat internal tidak tertaut ke dealer.

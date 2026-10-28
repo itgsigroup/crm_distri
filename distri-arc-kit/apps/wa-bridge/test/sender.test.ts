@@ -14,6 +14,7 @@ function target(connected = true) {
     sendText: async (chat, text, _typing, quote) => { sent.push({ chat, text, ...(quote ? { edit: 'quote:' + quote.id } : {}) }); return 'WAMID' + sent.length },
     editText: async (chat, wamid, text) => { sent.push({ chat, text, edit: wamid }) },
     deleteText: async (chat, wamid) => { sent.push({ chat, text: '', edit: 'delete:' + wamid }) },
+    react: async (chat, to, emoji) => { sent.push({ chat, text: emoji, edit: 'react:' + to.id }) },
     sendContent: async (chat, content, text) => { sent.push({ chat, text, edit: 'content:' + content.kind }); return { wamid: 'WAMID' + sent.length, ref: 'REF' } },
   }
   return { t, sent }
@@ -46,6 +47,16 @@ describe('sender', () => {
     await sender.revoke(t, '6281@s.whatsapp.net', 'W9', 'a1')
     expect(await sender.revoke(t, '6281@s.whatsapp.net', 'W9', 'a1')).toEqual({ wamid: 'W9', duplicate: true })
     expect(sent).toEqual([{ chat: '6281@s.whatsapp.net', text: '', edit: 'delete:W9' }])
+  })
+  it('reacts only for an approved action, once, outside the anti-ban caps', async () => {
+    const { sender, sleeps } = await setup(['a1'])
+    const { t, sent } = target()
+    const to = { id: 'W7', from_me: false, text: '' }
+    expect(await code(sender.react(t, '6281@s.whatsapp.net', to, '👍', 'nope'))).toBe('403:not_approved')
+    await sender.react(t, '6281@s.whatsapp.net', to, '👍', 'a1')
+    expect(await sender.react(t, '6281@s.whatsapp.net', to, '👍', 'a1')).toEqual({ wamid: 'W7', duplicate: true })
+    expect(sent).toEqual([{ chat: '6281@s.whatsapp.net', text: '👍', edit: 'react:W7' }])
+    expect(sleeps).toEqual([])
   })
   it('counts live replies only against the live ceiling, not the follow-up caps (ADR 0064)', async () => {
     const ids = Array.from({ length: 25 }, (_, i) => 'l' + i)

@@ -96,6 +96,7 @@ type bridgeEvent struct {
 	EditOf     string `json:"edit_of"`
 	Quoted     string `json:"quoted"`
 	RevokeOf   string `json:"revoke_of"`
+	ReactTo    string `json:"react_to"`
 	GroupMeta  *struct {
 		Name    string `json:"name"`
 		Members []struct {
@@ -154,7 +155,7 @@ func (e bridgeEvent) message() Message {
 	}
 	m := Message{ID: e.WAMID, Account: acc, ChatJID: e.ChatID, FromNumber: Digits(e.From), FromName: e.SenderName,
 		IsGroup: e.IsGroup, FromMe: e.FromMe, Text: text, Time: t, ChatName: strings.TrimSpace(e.ChatName), History: e.IsHistory,
-		Media: e.MediaMeta, EditOf: e.EditOf, QuotedID: e.Quoted, RevokeOf: e.RevokeOf}
+		Media: e.MediaMeta, EditOf: e.EditOf, QuotedID: e.Quoted, RevokeOf: e.RevokeOf, ReactTo: e.ReactTo}
 	for _, x := range e.Mentions {
 		if tok := Digits(x.Token); tok != "" {
 			m.Mentions = append(m.Mentions, Mention{Token: tok, Number: Digits(x.Phone), Name: strings.TrimSpace(x.Name)})
@@ -563,6 +564,26 @@ func (b *Baileys) Delete(ctx context.Context, account, chatJID, waMsgID string) 
 	}
 	_, _, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/delete",
 		map[string]string{"chat_id": chatJID, "wamid": waMsgID, "action_id": action}, nil)
+	var be *bridgeError
+	if errors.As(err, &be) && (be.Status == http.StatusForbidden || be.Status == http.StatusConflict) {
+		r := &SendRefused{Code: be.Code, Reason: be.Msg}
+		if be.Code == "not_linked" {
+			r.RetryAfter = time.Minute
+		}
+		return r
+	}
+	return err
+}
+
+// React asks the bridge to react to a message with an emoji ("" takes it back), for an approved action in ctx (like
+// Edit). A reaction adds no message to the chat, so the anti-ban caps do not count it.
+func (b *Baileys) React(ctx context.Context, account, chatJID string, target Quote, emoji string) error {
+	action := ActionFrom(ctx)
+	if action == "" {
+		return &SendRefused{Code: "not_approved", Reason: "reaksi tanpa outbox yang disetujui ditolak"}
+	}
+	_, _, err := b.call(ctx, http.MethodPost, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/react",
+		map[string]any{"chat_id": chatJID, "wamid": target.ID, "from_me": target.FromMe, "participant": target.Participant, "emoji": emoji, "action_id": action}, nil)
 	var be *bridgeError
 	if errors.As(err, &be) && (be.Status == http.StatusForbidden || be.Status == http.StatusConflict) {
 		r := &SendRefused{Code: be.Code, Reason: be.Msg}

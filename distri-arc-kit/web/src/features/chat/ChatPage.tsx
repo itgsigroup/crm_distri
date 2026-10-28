@@ -20,6 +20,7 @@ import { hasLabel, pinnedFirst } from './chatLabels'
 import { ChatRowMenu } from './ChatRowMenu'
 import { pastedImage } from './paste'
 import { LyraCard, lyraAskable } from './LyraCard'
+import { ReactIcon, ReactionChips, ReactionPicker, withMine } from './Reactions'
 import { ChatAvatar, ProfileSheet } from './Profile'
 import type { ChatHit } from './findInChat'
 import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type Member } from './mentions'
@@ -467,11 +468,13 @@ function BubbleMedia({ md, url, pending, onZoom }: { md: MediaView; url: string;
 /** The first letter of the admin who sent a message: the small round chip on the label. */
 export const senderInitial = (name: string) => (name.trim().replace(/^(Pak|Bu|Mbak|Mas)\s+/i, '')[0] ?? '?').toUpperCase()
 
-function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, mark, onPin, onStar, onLabel, onMember, onLyra }: {
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, mark, onPin, onStar, onLabel, onMember, onLyra, onReact }: {
   m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date; mark?: string
   onPin?: (m: MessageView) => void; onStar?: (m: MessageView) => void; onLabel?: (m: MessageView) => void; onMember?: (number: string) => void
   /** Lyra (Hermes Agent) reads the bubble's products: stock per city and DPP price (ADR 0070) */
   onLyra?: (m: MessageView) => void
+  /** Reaksi like WhatsApp: this number reacts with emoji ("" takes it back) */
+  onReact?: (m: MessageView, emoji: string) => void
   onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
 }) {
   const { openSheet } = useFeedback()
@@ -479,6 +482,10 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
   const edit = editableNow(m, now)
   const del = deletableNow(m, now)
   const forward = forwardable(m)
+  const [picking, setPicking] = useState(false)
+  const closePicker = useCallback(() => setPicking(false), [])
+  const reactable = !!onReact && m.can_reply && m.media?.kind !== 'call'
+  const mine = m.reactions?.find((r) => r.mine)?.emoji
   if (m.media?.kind === 'system') {
     // a group's own line (ADR 0063): centred like WhatsApp, nobody's bubble, nothing to answer
     return <div className="m sys" data-mid={m.id}><div className="bub-sys">{m.body}<span className="tm">{hhmm(m.sent_at)}</span></div></div>
@@ -515,8 +522,15 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
         <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined}
           onPin={onPin && m.status !== 'pending' && m.status !== 'failed' ? () => onPin(m) : undefined} onStar={onStar ? () => onStar(m) : undefined} onLabel={onLabel ? () => onLabel(m) : undefined}
           onLyra={onLyra && lyraAskable(m) && m.lyra?.status !== 'pending' ? () => onLyra(m) : undefined} />
-        {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
+        {m.can_reply && (
+          <span className="bub-acts">
+            {reactable && <button type="button" onClick={() => setPicking((v) => !v)} title="Beri reaksi" aria-label="Beri reaksi" aria-expanded={picking}><ReactIcon /></button>}
+            <button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button>
+          </span>
+        )}
+        {picking && <ReactionPicker mine={mine} side={m.direction === 'out' ? 'out' : 'in'} onPick={(e) => onReact?.(m, e)} onClose={closePicker} />}
       </div>
+      {!!m.reactions?.length && <ReactionChips rs={m.reactions} onPick={reactable ? (e) => onReact?.(m, e) : undefined} />}
       <LabelChips ids={m.labels} className="bub-lbls" />
       {m.auto_reply && <span className="bub-hold" title="Pesan otomatis WhatsApp Business — bukan jawaban dan bukan permintaan">balasan otomatis · tidak dihitung</span>}
       {m.lyra && <LyraCard m={m} thread={thread} onAsk={() => onLyra?.(m)} />}
@@ -526,7 +540,7 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
   )
 }
 
-type BubbleActs = Pick<Parameters<typeof Bubble>[0], 'onEdit' | 'onReply' | 'onDelete' | 'onJump' | 'onZoom' | 'onPin' | 'onStar' | 'onLabel' | 'onMember' | 'onLyra'>
+type BubbleActs = Pick<Parameters<typeof Bubble>[0], 'onEdit' | 'onReply' | 'onDelete' | 'onJump' | 'onZoom' | 'onPin' | 'onStar' | 'onLabel' | 'onMember' | 'onLyra' | 'onReact'>
 
 /** The bubbles of a chat. Memoised with stable actions: typing in the reply box does not redraw a long chat (a
  * year of messages), which made typing lag on slower laptops. */
@@ -912,6 +926,16 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     },
     onError: (e: Error) => toast(e.message),
   })
+  // Reaksi (Sam 28 Oct): shown at once; the reaction goes out like a reply (a human decision through the outbox)
+  const react = useMutation({
+    mutationFn: (v: { m: MessageView; emoji: string }) => api.put(`/chat/threads/${id}/messages/${v.m.id}/reaction`, { emoji: v.emoji }),
+    onMutate: ({ m, emoji }) => {
+      const set = (x: MessageView) => (x.id === m.id ? { ...x, reactions: withMine(x.reactions, emoji) } : x)
+      setOlder((o) => o.map(set))
+      qc.setQueryData<ThreadDetail>(['chat', 'thread', id], (d) => (d ? { ...d, messages: d.messages.map(set) } : d))
+    },
+    onError: (e: Error) => { toast(e.message); qc.invalidateQueries({ queryKey: ['chat', 'thread', id] }) },
+  })
   const unpin = (mid: string) => api.put(`/chat/threads/${id}/messages/${mid}/pin`, { pinned: false }).then(() => {
     setOlder((o) => o.map((x) => (x.id === mid ? { ...x, pinned: false } : x)))
     qc.invalidateQueries({ queryKey: ['chat', 'thread', id] })
@@ -1017,9 +1041,9 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     el.style.height = Math.min(el.scrollHeight, 140) + 'px'
   }, [text, data])
   // the bubbles' actions read the latest handlers through a ref, so the memoised list keeps the same props while typing
-  const handlers = useRef({ startEdit, startReply, deleteMsg, jumpTo, pin: pin.mutate, star: star.mutate, labelMsg, openMember, lyra: askLyra.mutate })
+  const handlers = useRef({ startEdit, startReply, deleteMsg, jumpTo, pin: pin.mutate, star: star.mutate, labelMsg, openMember, lyra: askLyra.mutate, react: react.mutate })
   useLayoutEffect(() => {
-    handlers.current = { startEdit, startReply, deleteMsg, jumpTo, pin: pin.mutate, star: star.mutate, labelMsg, openMember, lyra: askLyra.mutate }
+    handlers.current = { startEdit, startReply, deleteMsg, jumpTo, pin: pin.mutate, star: star.mutate, labelMsg, openMember, lyra: askLyra.mutate, react: react.mutate }
   })
   const acts = useMemo<BubbleActs>(() => ({
     onEdit: (m) => handlers.current.startEdit(m),
@@ -1032,6 +1056,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     onLabel: (m) => handlers.current.labelMsg(m),
     onMember: (n) => { handlers.current.openMember(n).catch(() => {}) },
     onLyra: (m) => handlers.current.lyra(m),
+    onReact: (m, emoji) => handlers.current.react({ m, emoji }),
   }), [])
   const messages = useMemo(() => [...older, ...(data?.messages ?? [])], [older, data?.messages])
   if (!data) return <div className="pane th-pane ibc" />
