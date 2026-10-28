@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Nama chat memakai nama yang disimpan di kontak WhatsApp · 2026-10-28
+- Daftar chat, header, panel Lead, dan profil sekarang hanya menampilkan **nama yang disimpan di kontak WhatsApp** (mis. "Mas Rizal IT - GSI"). Sebelumnya tampil gabungan dengan nama profil WhatsApp orangnya ("Mas Rizal IT - GSI - rizal fachrezi").
+- Nama profil atau nama dari master data hanya dipakai bila nomor itu belum disimpan. Pencarian chat tetap menemukan semua nama.
+
 ## Fix · Grup bersama di profil tidak lagi hilang-muncul, klik grup membuka chat grupnya · 2026-10-28
 - Grup bersama sebelumnya kadang kosong. Penyebabnya, anggota grup WhatsApp sering tercatat dengan ID tersembunyi (LID), dan daftar grup kadang gagal diambil ulang. Sekarang LID diterjemahkan ke nomor, daftar grup terakhir tetap dipakai bila WhatsApp tidak menjawab, semua nomor GSI ditanya bersamaan, dan grup tempat kontak pernah menulis di GSI Orbit ikut ditampilkan.
 - Klik grup di profil langsung membuka chat grupnya, juga bila grup itu ada di nomor GSI lain: pilihan nomor ikut pindah. Grup dicatat lewat nomor yang memegang chat grupnya.

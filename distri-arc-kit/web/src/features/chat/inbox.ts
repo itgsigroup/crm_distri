@@ -64,15 +64,14 @@ export function matchThread(t: Pick<ThreadView, 'title' | 'subtitle' | 'last_bod
   return !s || searchKey(`${t.phone_name ?? ''} ${t.title} ${t.subtitle} ${t.last_body}`).includes(s)
 }
 
-/** The conversation's name as the phone knows it, then the master name, matched on the number: "Pak Yohanes -
- * JOHANNES YUDHAYANTO". Only the master name when the phone saved none, or the same name. */
+/** The conversation's name: the one saved in the phone's WhatsApp contacts ("Pak Yohanes"), else the profile or
+ * master name ("JOHANNES YUDHAYANTO"). */
 export function displayTitle(t: { title: string; phone_name?: string; kind?: string }): string {
   // a group whose name WhatsApp did not give yet (it is asked again every hour): never a blank row
   const title = t.title?.trim() || (t.kind === 'group' ? 'Grup (nama belum terbaca)' : 'Tanpa nama')
-  const p = t.phone_name?.trim()
-  if (!p) return title
-  if (title.toLocaleLowerCase('id-ID').includes(p.toLocaleLowerCase('id-ID'))) return title // the same name
-  return `${p} - ${title}`
+  // the name saved in the phone's WhatsApp contacts wins, like WhatsApp: the profile (push) name or the master data's
+  // name only when the number is not saved (Sam 28 Oct; search still finds every name)
+  return t.phone_name?.trim() || title
 }
 
 /** "12 mnt", "21 jam 44 mnt", "3 hr 2 jam" since the customer's unanswered message; tone grows with the wait. */
