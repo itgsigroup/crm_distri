@@ -14,6 +14,7 @@ import (
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 
 	"distri-arc/internal/analyst"
+	"distri-arc/internal/autoreply"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/domain"
@@ -293,17 +294,18 @@ type Deps struct {
 	Orchestrator *orchestrator.Orchestrator
 	Identify     *identify.Service
 	Ops          ops.Env
-	AlertFrom    string           // ALERT_WA_FROM
-	SessionKey   []byte           // opens sealed secrets (BigQuery key, Claude API key)
-	AlertGroup   string           // ALERT_WA_GROUP
-	AnalystKey   string           // ANTHROPIC_API_KEY for scheduled analysis when no key was saved in the app
-	OpenAIKey    string           // OPENAI_API_KEY for the ChatGPT API when no key was saved in the app
-	Fallback     *Fallback        // the API second option (ADR 0040); nil: off
-	MCPWait      time.Duration    // how long a cycle waits for Claude through MCP (prompt text)
-	BackfillDays int              // WA_BACKFILL_DAYS: chat history asked from the phones (capped by retention.chat_days)
-	ChatBackup   string           // CHAT_BACKUP_DIR: Cadangan chat (ADR 0061); "" = off
-	ChatKeep     int              // CHAT_BACKUP_KEEP_MONTHS
-	ReplyAI      *replyai.Service // AI Trigger drafts (ADR 0041); nil: off
+	AlertFrom    string             // ALERT_WA_FROM
+	SessionKey   []byte             // opens sealed secrets (BigQuery key, Claude API key)
+	AlertGroup   string             // ALERT_WA_GROUP
+	AnalystKey   string             // ANTHROPIC_API_KEY for scheduled analysis when no key was saved in the app
+	OpenAIKey    string             // OPENAI_API_KEY for the ChatGPT API when no key was saved in the app
+	Fallback     *Fallback          // the API second option (ADR 0040); nil: off
+	MCPWait      time.Duration      // how long a cycle waits for Claude through MCP (prompt text)
+	BackfillDays int                // WA_BACKFILL_DAYS: chat history asked from the phones (capped by retention.chat_days)
+	ChatBackup   string             // CHAT_BACKUP_DIR: Cadangan chat (ADR 0061); "" = off
+	ChatKeep     int                // CHAT_BACKUP_KEEP_MONTHS
+	ReplyAI      *replyai.Service   // AI Trigger drafts (ADR 0041); nil: off
+	AutoReply    *autoreply.Service // Balas otomatis saat istirahat (ADR 0066); nil: off
 }
 
 // New builds the river client with all workers and periodic jobs registered.
@@ -327,6 +329,9 @@ func New(st *store.Store, c clock.Clock, log *slog.Logger, deps Deps) (*river.Cl
 	river.AddWorker(workers, &CycleMCPWorker{runner: anRunner, wait: deps.MCPWait})
 	if deps.ReplyAI != nil {
 		river.AddWorker(workers, &ReplyAIWorker{svc: deps.ReplyAI, log: log})
+	}
+	if deps.AutoReply != nil {
+		river.AddWorker(workers, &AutoReplyWorker{svc: deps.AutoReply, log: log})
 	}
 	var periodic []*river.PeriodicJob
 	if gn, ok := deps.Transport.(wa.GroupNames); ok && deps.Ingest != nil {

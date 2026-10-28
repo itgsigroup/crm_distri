@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Chore · Balas otomatis: sisi server terpasang, masih mati · 2026-10-28
+- Mesin "Balas otomatis saat sales istirahat" (ADR 0066) sudah terpasang di server: tabel `auto_replies` (migrasi 0066), job worker, dan API pengaturan. **Bawaannya mati.** Belum ada halaman untuk menyalakannya, jadi tidak ada pesan otomatis ke pelanggan dan tidak ada yang berubah bagi tim sales.
+- Perubahan menu Sales/Admin (migrasi 0065) ditahan dulu, karena mengubah halaman yang dipakai tim sales dan menimpa pengaturan peran.
+- Test: `autoreply_test.go`.
+
 ## Feat · Kartu Lyra: harga per unit bisa diedit · 2026-10-28
 - Harga DPP per unit di kartu Lyra sekarang berupa kolom isian. Sales bisa mengubah harga untuk penawaran itu, lalu diskon, subtotal, total, dan pesan untuk pelanggan langsung mengikuti harga baru.
 - Harga yang diedit diberi warna, dan di sebelahnya tampil "harga sistem Rp … · kembalikan" untuk kembali ke harga dari GSI Orbit. Barang yang belum punya harga di data juga bisa diisi harganya.

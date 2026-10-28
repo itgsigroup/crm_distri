@@ -94,6 +94,16 @@ type AuditLog struct {
 	CreatedAt time.Time       `json:"created_at"`
 }
 
+type AutoReply struct {
+	MessageID  uuid.UUID  `json:"message_id"`
+	ThreadID   uuid.UUID  `json:"thread_id"`
+	Kind       string     `json:"kind"`
+	BreakStart time.Time  `json:"break_start"`
+	ProposalID *uuid.UUID `json:"proposal_id"`
+	ReplyID    *uuid.UUID `json:"reply_id"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
 type Branch struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`

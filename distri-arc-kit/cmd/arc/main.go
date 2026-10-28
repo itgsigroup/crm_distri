@@ -19,6 +19,7 @@ import (
 	"distri-arc/db"
 	"distri-arc/internal/api"
 	"distri-arc/internal/ask"
+	"distri-arc/internal/autoreply"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
 	"distri-arc/internal/dealersvc"
@@ -192,14 +193,16 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	fb := &worker.Fallback{St: st, Clock: c, Secret: cfg.SessionKey(), EnvClaude: cfg.AnthropicKey, EnvOpenAI: cfg.OpenAIKey}
 	replyAI := &replyai.Service{St: st, Views: views.NewBuilder(st, c), Log: log, SessionKey: cfg.SessionKey(), EnvClaude: cfg.AnthropicKey,
 		EnvOpenAI: cfg.OpenAIKey, Env: orch.Router}
+	autoReply := &autoreply.Service{St: st, Reply: replyAI, Clock: c, Log: log}
 	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch, Identify: idf,
 		Ops: ops.EnvFrom(cfg), AlertFrom: cfg.AlertWAFrom, AlertGroup: cfg.AlertWAGroup, SessionKey: cfg.SessionKey(), AnalystKey: cfg.AnthropicKey,
 		OpenAIKey: cfg.OpenAIKey, Fallback: fb, MCPWait: cfg.MCPWait, BackfillDays: cfg.WABackfillDays, ReplyAI: replyAI,
-		ChatBackup: cfg.ChatBackupDir, ChatKeep: cfg.ChatBackupKeepMonths})
+		ChatBackup: cfg.ChatBackupDir, ChatKeep: cfg.ChatBackupKeepMonths, AutoReply: autoReply})
 	if err != nil {
 		return err
 	}
 	orch.Jobs = client
+	autoReply.Jobs = client
 	orch.OnMCPWait = fb.Hook(client, log) // Claude through MCP first, the chosen API when it has not answered (ADR 0040)
 	// one recompute job per burst of messages, not per message (a freshly linked number's history is thousands)
 	recompute := worker.NewDealerBatcher(20*time.Second, func(ctx context.Context, ids []uuid.UUID) {
@@ -217,6 +220,9 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	ingest.OnInbound = func(ctx context.Context, id uuid.UUID, text string) {
 		if replyAI.Wants(ctx, text) {
 			_, _ = client.Insert(ctx, jobs.ReplyAIArgs{MessageID: id.String()}, nil)
+		}
+		if autoReply.Wants(ctx) { // Balas otomatis saat istirahat (ADR 0066)
+			_, _ = client.Insert(ctx, jobs.AutoReplyArgs{MessageID: id.String()}, nil)
 		}
 	}
 	if err := t.Start(ctx); err != nil {

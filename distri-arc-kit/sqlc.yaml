@@ -66,6 +66,7 @@ sql:
       - db/migrations/0062_chat_retention_90.sql
       - db/migrations/0063_quick_replies.sql
       - db/migrations/0064_chat_list_waiting_indexes.sql
+      - db/migrations/0066_auto_reply.sql
     queries: db/queries
     gen:
       go:

@@ -89,6 +89,20 @@ func (ReplyAIArgs) InsertOpts() river.InsertOpts {
 		rivertype.JobStatePending, rivertype.JobStateRetryable, rivertype.JobStateRunning, rivertype.JobStateScheduled}}}
 }
 
+// AutoReplyArgs: a customer message that came in while its sales is on a break is answered automatically (ADR 0066).
+type AutoReplyArgs struct {
+	MessageID string `json:"message_id"`
+}
+
+func (AutoReplyArgs) Kind() string { return "chat.auto_reply" }
+
+// InsertOpts: one job per message in any state (the answer is claimed per message too); two attempts.
+func (AutoReplyArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{MaxAttempts: 2, UniqueOpts: river.UniqueOpts{ByArgs: true, ByState: []rivertype.JobState{
+		rivertype.JobStateAvailable, rivertype.JobStateCancelled, rivertype.JobStateCompleted, rivertype.JobStateDiscarded,
+		rivertype.JobStatePending, rivertype.JobStateRetryable, rivertype.JobStateRunning, rivertype.JobStateScheduled}}}
+}
+
 // IdentifyArgs identifies an inbound unknown number (AI Prospek): the worker can read its WhatsApp Business profile.
 type IdentifyArgs struct {
 	WANumber string `json:"wa_number"`

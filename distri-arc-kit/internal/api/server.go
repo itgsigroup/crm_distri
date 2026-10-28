@@ -152,6 +152,7 @@ func (s *Server) Handler() http.Handler {
 			s.mcpRoutes(r)
 			s.analystRoutes(r)
 			s.aiAPIRoutes(r)
+			s.autoReplyRoutes(r)
 			s.relasiRoutes(r)
 			s.identifyRoutes(r)
 			s.pilotRoutes(r)
