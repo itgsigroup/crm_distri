@@ -83,11 +83,13 @@ func (s *Server) mergeLIDChats(rows []gen.ListThreadsRow) {
 			for l := range chats {
 				lids = append(lids, l)
 			}
-			phones, err := res.PhonesForLIDs(ctx, acct, lids, s.lidCandidates(ctx, acct, chats))
+			cands := s.lidCandidates(ctx, acct, chats)
+			phones, err := res.PhonesForLIDs(ctx, acct, lids, cands)
 			if err != nil {
 				s.log.Warn("lid merge: resolve", "account", wa.MaskNumber(acct), "err", err)
 				continue
 			}
+			s.log.Info("lid merge: resolve", "account", wa.MaskNumber(acct), "lids", len(lids), "candidates", len(cands), "found", len(phones))
 			for lid, pn := range phones {
 				id, ok := chats[lid]
 				if !ok {
