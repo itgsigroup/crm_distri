@@ -1328,8 +1328,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
               onBlur={() => { setTagging(null); setSlash(null); setSel([0, 0]) }}
               onSelect={(e) => setSel([e.currentTarget.selectionStart, e.currentTarget.selectionEnd])}
               onPaste={(e) => {
-                // a copied screenshot or picture: it becomes the file to send, the box takes its caption (WhatsApp Web)
-                const img = !editing && pastedImage(e.clipboardData.files, e.clipboardData.getData('text/plain'))
+                // a copied screenshot, picture or Excel cells: the picture becomes the file to send, the box takes its caption (WhatsApp Web)
+                const img = !editing && pastedImage(e.clipboardData.files, e.clipboardData.getData('text/plain'), new Date(), e.clipboardData.getData('text/html'))
                 if (img) { e.preventDefault(); pickFile(img) }
               }}
               placeholder={editing ? 'Ubah pesan…' : file ? 'Tambahkan keterangan…' : group ? 'Tulis balasan… (@ menandai, / balasan cepat, Shift+Enter: baris baru)' : 'Tulis balasan… (/ balasan cepat, Shift+Enter: baris baru)'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : file ? 'Keterangan file' : 'Tulis balasan'} />

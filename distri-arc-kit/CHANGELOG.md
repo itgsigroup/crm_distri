@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Tempel sel Excel di Chat terkirim sebagai gambar tabel · 2026-10-28
+- Menyalin sel dari Excel lalu menempelkannya di kolom chat sekarang menghasilkan **gambar tabel**, seperti di WhatsApp Web. Gambar tampil sebagai pratinjau lampiran, dan kolom ketik menjadi keterangannya. Sebelumnya yang masuk hanya teks selnya.
+- Teks biasa, halaman web, dan dokumen Word tetap ditempel sebagai teks. Bila browser tidak menyertakan gambar dari Excel, teks sel tetap dipakai seperti sebelumnya.
+- Test: `paste.test.ts`.
+
 ## Fix · Kolom ketik chat tidak bisa diklik di layar laptop kecil · 2026-10-28
 - Di lebar layar 901–1100 px (laptop kecil, atau jendela browser yang tidak penuh) dengan panel Lead ringkas, panel percakapan menyempit menjadi 0 px, sehingga kolom ketik tidak bisa diklik. Penyebabnya, aturan grid untuk lebar 1280 px lebih spesifik dan menimpa aturan untuk lebar 1100 px. Masalah ini sudah ada sebelum 28 Okt.
 - Panel Lead yang dibuka penuh dan melayang di atas percakapan (≤1100 px) sekarang berhenti di atas kolom ketik, jadi kolom ketik tidak lagi tertutup.
