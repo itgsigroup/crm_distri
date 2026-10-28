@@ -19,7 +19,6 @@ import { LabelChips, LabelSheet, PinnedBar, useChatLabels } from './Labels'
 import { hasLabel, pinnedFirst } from './chatLabels'
 import { ChatRowMenu } from './ChatRowMenu'
 import { pastedImage } from './paste'
-import { TriggerCard, type DraftAI } from '../aitrigger/TriggerCard'
 import { LyraCard, lyraAskable } from './LyraCard'
 import { ChatAvatar, ProfileSheet } from './Profile'
 import type { ChatHit } from './findInChat'
@@ -465,30 +464,15 @@ function BubbleMedia({ md, url, pending, onZoom }: { md: MediaView; url: string;
   )
 }
 
-/** The AI Trigger cards under a customer's bubble (ADR 0038, 0041, 0051): the draft written (or rewritten) with ChatGPT or Claude. */
-function TriggerCards({ m, thread, asOf, onUse }: { m: MessageView; thread: string; asOf?: string | null; onUse: (m: MessageView, text: string) => void }) {
-  const qc = useQueryClient()
-  const { toast } = useFeedback()
-  const write = useMutation({
-    mutationFn: (v: { rule: string; ai: DraftAI }) => api.post(`/chat/threads/${thread}/messages/${m.id}/ai-draft`, { rule_id: v.rule, provider: v.ai }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['chat', 'thread', thread] }),
-    onError: (e: Error) => toast(e.message),
-  })
-  return <>{m.suggest!.map((s) => (
-    <TriggerCard key={s.rule_id} s={s} asOf={asOf} onUse={(text) => onUse(m, text)} onAI={(ai) => write.mutate({ rule: s.rule_id, ai })} aiBusy={write.isPending && write.variables?.rule === s.rule_id ? write.variables.ai : null} />
-  ))}</>
-}
-
 /** The first letter of the admin who sent a message: the small round chip on the label. */
 export const senderInitial = (name: string) => (name.trim().replace(/^(Pak|Bu|Mbak|Mas)\s+/i, '')[0] ?? '?').toUpperCase()
 
-function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark, onPin, onStar, onLabel, onMember, onLyra }: {
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, mark, onPin, onStar, onLabel, onMember, onLyra }: {
   m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date; mark?: string
   onPin?: (m: MessageView) => void; onStar?: (m: MessageView) => void; onLabel?: (m: MessageView) => void; onMember?: (number: string) => void
   /** Lyra (Hermes Agent) reads the bubble's products: stock per city and DPP price (ADR 0070) */
   onLyra?: (m: MessageView) => void
   onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
-  onUse?: (m: MessageView, text: string) => void; asOf?: string | null
 }) {
   const { openSheet } = useFeedback()
   const caption = mediaCaption(m.body, m.media)
@@ -535,7 +519,6 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       </div>
       <LabelChips ids={m.labels} className="bub-lbls" />
       {m.auto_reply && <span className="bub-hold" title="Pesan otomatis WhatsApp Business — bukan jawaban dan bukan permintaan">balasan otomatis · tidak dihitung</span>}
-      {m.suggest && m.suggest.length > 0 && onUse && <TriggerCards m={m} thread={thread} asOf={asOf} onUse={onUse} />}
       {m.lyra && <LyraCard m={m} thread={thread} onAsk={() => onLyra?.(m)} />}
       {m.proposal && <span className="ann"><span className="ai" />Usulan Claude · <AnnProposal p={m.proposal} /></span>}
       {analysis && m.analysis && <BubbleAnalysis a={m.analysis} dir={m.direction} />}
@@ -543,12 +526,12 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
   )
 }
 
-type BubbleActs = Pick<Parameters<typeof Bubble>[0], 'onEdit' | 'onReply' | 'onDelete' | 'onJump' | 'onZoom' | 'onUse' | 'onPin' | 'onStar' | 'onLabel' | 'onMember' | 'onLyra'>
+type BubbleActs = Pick<Parameters<typeof Bubble>[0], 'onEdit' | 'onReply' | 'onDelete' | 'onJump' | 'onZoom' | 'onPin' | 'onStar' | 'onLabel' | 'onMember' | 'onLyra'>
 
 /** The bubbles of a chat. Memoised with stable actions: typing in the reply box does not redraw a long chat (a
  * year of messages), which made typing lag on slower laptops. */
-const MessageList = memo(function MessageList({ messages, nowMs, via, group, analysis, thread, asOf, mark, acts }: {
-  messages: MessageView[]; nowMs: number; via: string; group: boolean; analysis: boolean; thread: string; asOf?: string | null; mark: string; acts: BubbleActs
+const MessageList = memo(function MessageList({ messages, nowMs, via, group, analysis, thread, mark, acts }: {
+  messages: MessageView[]; nowMs: number; via: string; group: boolean; analysis: boolean; thread: string; mark: string; acts: BubbleActs
 }) {
   const now = useMemo(() => new Date(nowMs), [nowMs])
   return messages.map((m, i) => {
@@ -556,7 +539,7 @@ const MessageList = memo(function MessageList({ messages, nowMs, via, group, ana
     return (
       <div key={m.id} style={{ display: 'contents' }}>
         {sep}
-        <Bubble m={m} via={via} group={group} analysis={analysis} thread={thread} now={now} asOf={asOf} mark={mark} {...acts} />
+        <Bubble m={m} via={via} group={group} analysis={analysis} thread={thread} now={now} mark={mark} {...acts} />
       </div>
     )
   })
@@ -882,13 +865,6 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['chat', 'thread', id] }),
     onError: (e: Error) => toast(e.message),
   })
-  // Rekomendasi balasan: the draft goes into the box as a reply to that message, for the sales to edit and send
-  const useSuggestion = (m: MessageView, draft: string) => {
-    setEditing(null)
-    if (m.can_reply) setReplying(m)
-    setText(draft)
-    requestAnimationFrame(() => input.current?.focus())
-  }
   const flash = (mid: string) => {
     const el = body.current?.querySelector<HTMLElement>(`[data-mid="${mid}"]`)
     if (!el) return false
@@ -1041,9 +1017,9 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     el.style.height = Math.min(el.scrollHeight, 140) + 'px'
   }, [text, data])
   // the bubbles' actions read the latest handlers through a ref, so the memoised list keeps the same props while typing
-  const handlers = useRef({ startEdit, startReply, deleteMsg, jumpTo, useSuggestion, pin: pin.mutate, star: star.mutate, labelMsg, openMember, lyra: askLyra.mutate })
+  const handlers = useRef({ startEdit, startReply, deleteMsg, jumpTo, pin: pin.mutate, star: star.mutate, labelMsg, openMember, lyra: askLyra.mutate })
   useLayoutEffect(() => {
-    handlers.current = { startEdit, startReply, deleteMsg, jumpTo, useSuggestion, pin: pin.mutate, star: star.mutate, labelMsg, openMember, lyra: askLyra.mutate }
+    handlers.current = { startEdit, startReply, deleteMsg, jumpTo, pin: pin.mutate, star: star.mutate, labelMsg, openMember, lyra: askLyra.mutate }
   })
   const acts = useMemo<BubbleActs>(() => ({
     onEdit: (m) => handlers.current.startEdit(m),
@@ -1051,7 +1027,6 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     onDelete: (m) => handlers.current.deleteMsg(m),
     onJump: (mid) => handlers.current.jumpTo(mid),
     onZoom: setZoom,
-    onUse: (m, draft) => handlers.current.useSuggestion(m, draft),
     onPin: (m) => handlers.current.pin(m),
     onStar: (m) => handlers.current.star(m),
     onLabel: (m) => handlers.current.labelMsg(m),
@@ -1269,7 +1244,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
               </span>
             )}
         </div>
-        <MessageList messages={messages} nowMs={now.getTime()} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} asOf={data.stock_as_of} mark={mark} acts={acts} />
+        <MessageList messages={messages} nowMs={now.getTime()} via={from} group={t.kind === 'group'} analysis={perMsg} thread={id} mark={mark} acts={acts} />
       </div>
       <div className="th-c ibc-c">
         {replying && (

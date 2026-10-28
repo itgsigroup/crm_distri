@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Di bawah bubble Chat hanya kartu Lyra · 2026-10-28
+- Kartu **AI Trigger** (stok/harga dengan draf ChatGPT/Claude) tidak lagi muncul di bawah pesan pelanggan. Yang tersisa hanya kartu **Lyra**: stok per kota, harga DPP, diskon, dan kirim ke pelanggan.
+- Halaman AI Trigger tetap ada. Kata kuncinya masih menjadi pemicu kartu Lyra, dan simulator "Coba kalimat" tetap jalan.
+- ADR 0070 (perubahan 28 Okt (2)).
+
 ## Change · Chat Hermes Agent = jendela ke Lyra · 2026-10-28
 - Pertanyaan di halaman Hermes Agent dikirim apa adanya ke Lyra, lalu jawabannya tampil di GSI Orbit. Lyra sendiri yang menyimpan percakapan, memori, tool, dan model, sama seperti di Telegram. GSI Orbit tidak lagi menambahkan prompt atau riwayatnya sendiri.
 - Tidak ada lagi mode demo di chat. Selama Lyra belum tersambung, kolom ketik dimatikan. **Hapus riwayat** memulai percakapan baru di Lyra.

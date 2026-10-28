@@ -49,6 +49,13 @@ fotonya, memuat kata kunci aturan AI Trigger **stok** atau **harga**, atau kata 
 Kartu yang dulu dibuat otomatis untuk pesan yang kini tidak memenuhi syarat disembunyikan. Bacaan yang diminta dari bubble
 (**Tanya Lyra**, **Baca ulang**) tetap tampil (`hermes_product_reads.manual`, migrasi 0069).
 
+## Perubahan 28 Okt (2) — di bawah bubble hanya Lyra
+Sam: "pada halaman pesan hapus ai trigger sisakan lyra". Kartu AI Trigger (stok/harga dengan draf ChatGPT/Claude, ADR 0038
+dan 0041) tidak lagi ditampilkan di bawah bubble Chat. Yang tersisa hanya kartu Lyra. Halaman AI Trigger tetap ada:
+kata kuncinya masih memicu pembacaan Lyra, dan simulatornya masih memakai kartu yang sama. API thread masih mengirim
+`suggest` dan masih bisa mengantrekan draf AI. Selama kunci ChatGPT/Claude belum diisi, draf itu tidak memakan biaya.
+Bila kunci diisi, penghitungan saran untuk thread dan draf saat pesan masuk sebaiknya dimatikan di server.
+
 ## Akibat
 - Sales langsung melihat stok per kota/gudang dan harga DPP di bawah pertanyaan pelanggan, lalu bisa memberi diskon dan
   mengirim penawaran dalam beberapa klik.
