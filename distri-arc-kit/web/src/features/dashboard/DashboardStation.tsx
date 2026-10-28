@@ -45,6 +45,8 @@ export function DashboardStation({ crew, kpi, can }: { crew: Crew; kpi: KPI | un
   const card = useRef<HTMLDivElement>(null)
   const [big, setBig] = useState(false)
   const [full, setFull] = useState(false)
+  // the relay show (Sam 28 Oct, like a 3D office of AI agents): astronaut 1 → 10 hand their results on, nothing analysed
+  const [replaying, setReplaying] = useState(false)
   const toggleFull = () => {
     if (full) {
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
@@ -100,6 +102,7 @@ export function DashboardStation({ crew, kpi, can }: { crew: Crew; kpi: KPI | un
         else if (ok(CREW_OF[t.key].screen)) go(CREW_OF[t.key].to)
       },
       onHover: (t, x, y) => setTip(t ? { t, x, y } : null),
+      onReplay: setReplaying,
     })
     if (!v.ok) {
       setNo3d(true)
@@ -165,6 +168,9 @@ export function DashboardStation({ crew, kpi, can }: { crew: Crew; kpi: KPI | un
             <button type="button" role="radio" aria-checked={eng.engine === 'mcp'} className={eng.engine === 'mcp' ? 'on' : ''} disabled={running} onClick={() => eng.choose('mcp')} title="Claude menganalisa lewat MCP (routine claude.ai)">MCP Claude</button>
             <button type="button" role="radio" aria-checked={eng.engine === 'chatgpt'} className={eng.engine === 'chatgpt' ? 'on' : ''} disabled={running} onClick={() => eng.choose('chatgpt')} title="ChatGPT API menganalisa di server — langsung jalan">ChatGPT</button>
           </span>
+          <button type="button" className="btn ghost station-replay" disabled={running || replaying || no3d} onClick={() => view.current?.replay()} title="Tayangan alur kerja: astronot 1 menganalisa lalu berjalan menyerahkan hasilnya ke astronot 2, dan seterusnya sampai 10. Tidak menjalankan analisis.">
+            {replaying ? 'Memutar alur…' : '▶ Putar alur kerja'}
+          </button>
           <button type="button" className="btn primary station-run" disabled={running} onClick={run} title="Jalankan Orchestrator: kesepuluh astronot bekerja berurutan sampai data siap, hasilnya jadi usulan untuk diputuskan">
             {running ? 'AI agent bekerja…' : '🚀 AI Agent bekerja'}
           </button>
@@ -172,7 +178,7 @@ export function DashboardStation({ crew, kpi, can }: { crew: Crew; kpi: KPI | un
         </div>
       </div>
       <div className="mine-stage station-stage" ref={stageEl} style={stageH ? { height: stageH } : undefined}>
-        <canvas ref={canvas} aria-label="Stasiun Orbit: Inti AI (Orchestrator) di tengah dan sepuluh ruangan kru AI — analisa sales, WhatsApp, dealer, eksekusi order, follow-up, cek stok, kredit, penagihan, prospek, sampai data siap" role="img" />
+        <canvas ref={canvas} aria-label="Stasiun Orbit: kantor kru AI di dalam stasiun — Inti AI (Orchestrator) di tengah dan sepuluh meja astronot yang saling menyerahkan hasil: analisa sales, WhatsApp, dealer, eksekusi order, follow-up, cek stok, kredit, penagihan, prospek, sampai data siap" role="img" />
         <div className="station-stages" aria-label="Tahap siklus Orchestrator">
           {STAGES.map((k, i) => (
             <span key={k} className={running ? (i < stage ? 'done' : i === stage ? 'run' : '') : lastDone ? 'done' : ''}>{STAGE_LABEL[k]}</span>
@@ -225,11 +231,11 @@ export function DashboardStation({ crew, kpi, can }: { crew: Crew; kpi: KPI | un
         )}
       </div>
       <div className="mine-legend">
-        <span><i style={{ background: 'radial-gradient(#e6fbff,#36b8ff)' }} />Inti AI = Orchestrator: data dari setiap ruangan mengalir ke sini; 6 busur menyala per tahap siklus</span>
+        <span><i style={{ background: 'radial-gradient(#e6fbff,#36b8ff)' }} />Inti AI = Orchestrator di tengah kantor; 6 busur menyala per tahap siklus. Astronot yang selesai berjalan membawa kapsul hasil ke meja berikutnya</span>
         {CREW.map((m) => (
           <span key={m.key}><i style={{ background: m.color, boxShadow: m.key === 'prospect' ? 'inset 0 0 0 1px #8a94a6' : undefined }} />{m.n}. {m.title}: {m.does.toLowerCase()}</span>
         ))}
-        <span className="mine-hint">Seret untuk memutar · pinch / Ctrl+scroll untuk zoom · klik ruangan untuk detail · klik dua kali untuk kembali</span>
+        <span className="mine-hint">Seret untuk memutar · pinch / Ctrl+scroll untuk zoom · klik meja untuk detail · klik dua kali untuk kembali</span>
       </div>
     </div>
   )

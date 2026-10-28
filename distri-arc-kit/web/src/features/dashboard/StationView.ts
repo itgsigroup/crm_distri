@@ -6,12 +6,14 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { CREW, CREW_OF, type CrewKey, type CrewMember, type CrewState, type CrewStatus } from './station'
 
-// Stasiun Orbit: a space station in three.js, rendered HD (MSAA, ACES tone mapping, bloom, PBR with an environment
-// map). The AI core (the Orchestrator) burns in the middle inside the station ring; corridors lead out to ten rooms
-// under glass domes, one astronaut each at a console with a hologram of its work: 1 Analisa sales, 2 Analisa
-// WhatsApp, 3 Analisa dealer, 4 Eksekusi order, 5 Follow-up, 6 Cek stok, 7 Cek kredit, 8 Cek penagihan, 9 Prospek,
-// 10 Data siap. Data runs from the rooms to the core and from the core to Data siap. No customer is ever drawn —
-// the rooms say what the astronaut does and counts only. Clicking a room opens its screen.
+// Stasiun Orbit: an office deck inside a space station in three.js, rendered HD (MSAA, ACES tone mapping, bloom, PBR
+// with an environment map) — a 3D office of AI agents, with astronauts (Sam 28 Oct). The AI core (the Orchestrator)
+// floats in the middle of a round deck with panorama windows on space; ten desks stand round it, one astronaut each
+// at a console with a hologram of its work: 1 Analisa sales, 2 Analisa WhatsApp, 3 Analisa dealer, 4 Eksekusi order,
+// 5 Follow-up, 6 Cek stok, 7 Cek kredit, 8 Cek penagihan, 9 Prospek, 10 Data siap. The work is a relay: an astronaut
+// that finishes takes its result capsule, walks the deck to the next desk, hands it over and walks back. A real cycle
+// drives it; "Putar alur kerja" plays the relay 1→10 as a show (no analysis runs). No customer is ever drawn — the
+// desks say what the astronaut does and counts only. Clicking a desk opens its screen.
 
 export type StationTarget = { kind: 'core' } | { kind: 'room'; key: CrewKey }
 
@@ -22,6 +24,8 @@ export interface StationOptions {
   canvas: HTMLCanvasElement
   onPick: (t: StationTarget) => void
   onHover: (t: StationTarget | null, x: number, y: number) => void
+  /** the relay show started (true) or ended (false) */
+  onReplay?: (on: boolean) => void
 }
 
 export const STATION_H = 540
@@ -29,14 +33,19 @@ export const STATION_H = 540
 // world layout (units)
 const CORE_R = 1.3
 const ARC_R = 2.05 // the six stage arcs
-const RING_R = 3.7 // the station ring around the core
-const ROOM_R = 6.7 // the ring of rooms
-const DOME = 1.18 // room (dome) radius
-const FLOOR = 0.1 // top of a room's floor
+const DECK_Y = -1.45 // the office floor, under the floating core
+const DECK_R = 7.5 // the round deck, to the panorama windows
+const ROOM_R = 5.3 // the ring of desks
+const WALK_R = 4.15 // the walkway in front of the desks, where the astronauts walk
+const DOME = 1.0 // a desk's floor pad
+const FLOOR = 0.06 // top of a desk's floor pad
 const ASTRO_S = 1.4
+const WALK_SPEED = 1.35 // units per second
+const GIVE_S = 1.1 // the hand-over at the next desk
+const READ_S = 2.4 // a desk's analysis in the relay show
 const BELT_IN = 13.6
 const BELT_OUT = 14.8
-const PITCH0 = 0.62
+const PITCH0 = 0.66
 
 const onRing = (a: number, r: number, y = 0) => new THREE.Vector3(r * Math.cos(a), y, r * Math.sin(a))
 /** Room i: 1 at the back left, round the front, 10 (Data siap) at the back in the middle. */
@@ -157,7 +166,13 @@ interface Room {
   carry: THREE.Object3D | null
   work: { state: CrewState; text: string }
   was: CrewState
+  walk: Walk | null
+  /** the hand-over reached this desk (the relay show waits for it) */
+  gave: boolean
+  home: THREE.Vector3
 }
+/** An astronaut walking the deck: out to the next desk with the result, the hand-over, back home. */
+interface Walk { to: Room; pts: THREE.Vector3[]; at: number[]; d: number; phase: 'go' | 'give' | 'back'; wait: number }
 interface Pulse { s: THREE.Sprite; from: () => THREE.Vector3; to: () => THREE.Vector3; t: number; dur: number; lift: number }
 interface Bit { m: THREE.Object3D; v: THREE.Vector3; life: number; max: number }
 
@@ -180,7 +195,7 @@ export class StationView {
   private scene = new THREE.Scene()
   private overlay = new THREE.Scene() // labels: drawn after bloom, always readable
   private camera = new THREE.PerspectiveCamera(32, 2, 0.3, 900)
-  private target = new THREE.Vector3(0, 0.2, 0.9)
+  private target = new THREE.Vector3(0, -0.75, 0.5)
   private yaw = 0
   private pitch = PITCH0
   private zoom = 1
@@ -202,6 +217,9 @@ export class StationView {
   private belt: THREE.InstancedMesh | null = null
   private stars: THREE.Points[] = []
   private cycle: CycleState = { running: false, stage: 0, hasCycle: false }
+  /** the work from the data (setCrew); the relay show plays over it and gives it back at the end */
+  private live: CrewStatus | null = null
+  private show: { i: number; t: number; phase: 'read' | 'walk' | 'end' } | null = null
   private t = 0
   private last = 0
   private raf = 0
@@ -244,7 +262,7 @@ export class StationView {
     this.composer.addPass(new OutputPass())
     this.buildSky()
     this.buildCore()
-    this.buildStation()
+    this.buildOffice()
     CREW.forEach((m, i) => this.buildRoom(m, i))
     this.buildBelt()
     this.bind()
@@ -519,76 +537,74 @@ export class StationView {
     this.core.wave = wave
   }
 
-  // ---------- the station ring, corridors and the ring of rooms ----------
+  // ---------- the office deck ----------
 
-  private buildStation() {
+  private buildOffice() {
     const sc = this.scene
     const hull = this.std('#c7cfdc', 0.32, 0.85, 1)
     const dark = this.std('#2c3445', 0.45, 0.7, 0.8)
-    const ring = this.mesh(this.torusG(RING_R, 0.2, Math.PI * 2, 160), hull)
-    ring.rotation.x = Math.PI / 2
-    sc.add(ring)
-    const inner = this.mesh(this.torusG(RING_R, 0.08, Math.PI * 2, 160), dark)
-    inner.rotation.x = Math.PI / 2
-    inner.position.y = 0.17
-    sc.add(inner)
-    // window lights around the ring
-    const winGeo = this.boxG(0.12, 0.06, 0.03)
-    const winMat = this.glow(0.9, 1.15, 1.5)
-    for (let i = 0; i < 64; i++) {
-      const a = (i / 64) * Math.PI * 2
-      const w = this.mesh(winGeo, winMat)
-      w.position.copy(onRing(a, RING_R + 0.2, 0.02))
-      w.lookAt(onRing(a, RING_R + 3, 0.02))
-      sc.add(w)
+    // the deck: a round floor of dark metal panels, its rim and the underside
+    sc.add(this.mesh(this.cylG(DECK_R, DECK_R + 0.25, 0.3, 160), hull, 0, DECK_Y - 0.15, 0))
+    sc.add(this.mesh(this.cylG(DECK_R - 0.05, DECK_R - 0.05, 0.02, 160), this.std('#161d2b', 0.5, 0.65, 0.7), 0, DECK_Y + 0.005, 0))
+    const seam = this.glow(0.12, 0.2, 0.32)
+    for (const r of [2.7, 6.3]) {
+      const t = this.mesh(this.torusG(r, 0.012, Math.PI * 2, 160), seam, 0, DECK_Y + 0.02, 0)
+      t.rotation.x = Math.PI / 2
+      sc.add(t)
     }
-    // energy conduits from the core to the ring
+    for (let k = 0; k < 20; k++) { // radial panel seams
+      const a = (k / 20) * Math.PI * 2
+      const l = this.mesh(this.boxG(DECK_R - 2.8, 0.004, 0.02), seam)
+      l.position.copy(onRing(a, 2.8 + (DECK_R - 2.8) / 2, DECK_Y + 0.02))
+      l.rotation.y = -a
+      sc.add(l)
+    }
+    // the walkway: a lit lane in front of the desks
+    const lane = this.mesh(this.torusG(WALK_R, 0.32, Math.PI * 2, 160), this.std('#222b3d', 0.35, 0.8, 0.9))
+    lane.rotation.x = Math.PI / 2
+    lane.scale.z = 0.04
+    lane.position.y = DECK_Y + 0.01
+    sc.add(lane)
+    for (const r of [WALK_R - 0.34, WALK_R + 0.34]) {
+      const edge = this.mesh(this.torusG(r, 0.018, Math.PI * 2, 160), this.glow(0.45, 1.25, 1.9), 0, DECK_Y + 0.03, 0)
+      edge.rotation.x = Math.PI / 2
+      sc.add(edge)
+    }
+    // the core's pedestal and four light conduits to the walkway
+    sc.add(this.mesh(this.cylG(1.15, 1.45, 0.16, 64), dark, 0, DECK_Y + 0.08, 0))
+    const ped = this.mesh(this.torusG(1.3, 0.035, Math.PI * 2, 96), this.glow(0.5, 1.4, 2), 0, DECK_Y + 0.17, 0)
+    ped.rotation.x = Math.PI / 2
+    sc.add(ped)
     for (let i = 0; i < 4; i++) {
       const a = Math.PI / 4 + (i * Math.PI) / 2
-      const len = RING_R - CORE_R - 0.35
-      const c = this.mesh(this.cylG(0.05, 0.05, len, 12), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.4, 1.1, 1.5), toneMapped: false }))
-      c.position.copy(onRing(a, CORE_R + 0.2 + len / 2, 0))
-      c.rotation.z = Math.PI / 2
+      const len = WALK_R - 0.4 - 1.45
+      const c = this.mesh(this.boxG(len, 0.01, 0.06), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.4, 1.1, 1.5), toneMapped: false }))
+      c.position.copy(onRing(a, 1.45 + len / 2, DECK_Y + 0.02))
       c.rotation.y = -a
       sc.add(c)
       this.core.conduits.push(c)
-      const strut = this.mesh(this.cylG(0.09, 0.09, len, 12), dark)
-      strut.position.copy(c.position).setY(-0.12)
-      strut.rotation.copy(c.rotation)
-      sc.add(strut)
     }
-    // the outer ring that links the rooms to each other, with running lights
-    const outer = this.mesh(this.torusG(ROOM_R, 0.09, Math.PI * 2, 200), hull)
-    outer.rotation.x = Math.PI / 2
-    outer.position.y = -0.04
-    sc.add(outer)
-    const lights = this.mesh(this.torusG(ROOM_R, 0.022, Math.PI * 2, 200), this.glow(0.5, 1.2, 1.8))
-    lights.rotation.x = Math.PI / 2
-    lights.position.y = 0.05
-    sc.add(lights)
-    // a corridor from the station ring to every room
-    const len = ROOM_R - DOME - RING_R - 0.1
-    for (let i = 0; i < CREW.length; i++) {
-      const a = roomAngle(i)
-      const mid = RING_R + 0.15 + len / 2
-      const tube = this.mesh(this.cylG(0.15, 0.15, len, 16), hull)
-      tube.position.copy(onRing(a, mid, 0.06))
-      tube.rotation.z = Math.PI / 2
-      tube.rotation.y = -a
-      sc.add(tube)
-      const strip = this.mesh(this.boxG(len, 0.03, 0.05), this.glow(0.5, 1.3, 1.9))
-      strip.position.copy(onRing(a, mid, 0.22))
-      strip.rotation.y = -a
-      sc.add(strip)
-      for (const k of [-0.42, 0, 0.42]) { // ribs
-        const rib = this.mesh(this.cylG(0.18, 0.18, 0.06, 16), dark)
-        rib.position.copy(onRing(a, mid + k * len, 0.06))
-        rib.rotation.z = Math.PI / 2
-        rib.rotation.y = -a
-        sc.add(rib)
-      }
+    // the outer wall: a low panel, panorama glass on space and its frame
+    const wallMat = this.mats.get('wall') ?? (() => { const w = new THREE.MeshStandardMaterial({ color: '#3a4458', roughness: 0.4, metalness: 0.75, envMapIntensity: 0.9, side: THREE.DoubleSide }); this.mats.set('wall', w); return w })()
+    sc.add(this.mesh(this.cylG(DECK_R, DECK_R, 0.42, 160, true), wallMat, 0, DECK_Y + 0.21, 0))
+    const glass = this.mats.get('glass') ?? (() => { const gm = new THREE.MeshStandardMaterial({ color: '#a8d4ff', roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.06, depthWrite: false, envMapIntensity: 0.7, side: THREE.DoubleSide }); this.mats.set('glass', gm); return gm })()
+    sc.add(this.mesh(this.cylG(DECK_R, DECK_R, 1.5, 160, true), glass, 0, DECK_Y + 1.17, 0))
+    for (const y of [0.42, 1.92]) {
+      const rim = this.mesh(this.torusG(DECK_R, 0.05, Math.PI * 2, 160), hull, 0, DECK_Y + y, 0)
+      rim.rotation.x = Math.PI / 2
+      sc.add(rim)
+    }
+    const run = this.mesh(this.torusG(DECK_R - 0.06, 0.016, Math.PI * 2, 160), this.glow(0.5, 1.2, 1.8), 0, DECK_Y + 0.38, 0)
+    run.rotation.x = Math.PI / 2
+    sc.add(run)
+    for (let k = 0; k < 24; k++) { // mullions
+      const a = (k / 24) * Math.PI * 2
+      sc.add(this.mesh(this.cylG(0.035, 0.035, 1.5, 8), hull, DECK_R * Math.cos(a), DECK_Y + 1.17, DECK_R * Math.sin(a)))
     }
   }
+
+  /** The point on the walkway at angle a. */
+  private lanePoint(a: number) { return onRing(a, WALK_R, DECK_Y) }
 
   // ---------- rooms and astronauts ----------
 
@@ -712,79 +728,55 @@ export class StationView {
     const sc = this.scene
     const a = roomAngle(i)
     const g = new THREE.Group()
-    g.position.copy(onRing(a, ROOM_R, 0))
-    g.lookAt(0, 0, 0) // local +z faces the core
+    g.position.copy(onRing(a, ROOM_R, DECK_Y))
+    g.lookAt(0, DECK_Y, 0) // local +z faces the core and the walkway
     sc.add(g)
     g.updateMatrixWorld()
     const hull = this.std('#c7cfdc', 0.32, 0.85, 1)
     const dark = this.std('#2c3445', 0.45, 0.7, 0.8)
-    const big = m.key === 'ready' ? 1.12 : 1
-    g.scale.setScalar(big)
-    // floor, deck plate and wall
-    g.add(this.mesh(this.cylG(DOME, DOME + 0.08, 0.2, 48), hull, 0, 0, 0))
-    g.add(this.mesh(this.cylG(DOME - 0.12, DOME - 0.12, 0.02, 48), this.std('#1a2232', 0.55, 0.6, 0.6), 0, FLOOR, 0))
-    const wallMat = this.mats.get('wall') ?? (() => { const w = new THREE.MeshStandardMaterial({ color: '#3a4458', roughness: 0.4, metalness: 0.75, envMapIntensity: 0.9, side: THREE.DoubleSide }); this.mats.set('wall', w); return w })()
-    g.add(this.mesh(this.cylG(DOME, DOME, 0.32, 48, true), wallMat, 0, FLOOR + 0.16, 0))
-    // windows round the wall
-    const win = this.glow(0.9, 1.15, 1.5)
-    for (let k = 0; k < 12; k++) {
-      const wa = (k / 12) * Math.PI * 2
-      const w = this.mesh(this.boxG(0.16, 0.05, 0.02), win, (DOME + 0.005) * Math.cos(wa), FLOOR + 0.2, (DOME + 0.005) * Math.sin(wa))
-      w.rotation.y = Math.PI / 2 - wa // faces out
-      g.add(w)
-    }
-    // status light round the floor: its colour is the astronaut's state
+    // the desk's floor pad with the status light round it (its colour is the astronaut's state)
+    g.add(this.mesh(this.cylG(DOME, DOME + 0.04, 0.06, 48), this.std('#1a2232', 0.55, 0.6, 0.6), 0, FLOOR / 2, 0))
     const status = this.own('status' + m.key)
-    const ringM = this.mesh(this.torusG(DOME + 0.02, 0.035, Math.PI * 2, 72), status, 0, 0.1, 0)
+    const ringM = this.mesh(this.torusG(DOME + 0.02, 0.03, Math.PI * 2, 72), status, 0, FLOOR, 0)
     ringM.rotation.x = Math.PI / 2
     g.add(ringM)
-    // the glass dome with its frame and a rim glow in the room colour
-    const domeGeo = this.geo('dome', () => new THREE.SphereGeometry(DOME, 48, 20, 0, Math.PI * 2, 0, Math.PI / 2))
-    const glass = this.mats.get('glass') ?? (() => { const gm = new THREE.MeshStandardMaterial({ color: '#a8d4ff', roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.05, depthWrite: false, envMapIntensity: 0.7 }); this.mats.set('glass', gm); return gm })()
-    g.add(this.mesh(domeGeo, glass, 0, FLOOR + 0.32, 0))
-    const rimMat = this.fresnel(m.color, 3.2, 0.32)
-    this.mats.set('rim' + m.key, rimMat)
-    g.add(this.mesh(domeGeo, rimMat, 0, FLOOR + 0.32, 0))
-    for (let k = 0; k < 3; k++) {
-      const rib = this.mesh(this.torusG(DOME, 0.018, Math.PI, 48), hull, 0, FLOOR + 0.32, 0)
-      rib.rotation.y = (k * Math.PI) / 3
-      g.add(rib)
-    }
-    const cap = this.mesh(this.cylG(0.14, 0.18, 0.08, 20), hull, 0, FLOOR + 0.32 + DOME, 0)
-    g.add(cap)
-    g.add(this.mesh(this.sphere(0.04, 12), this.hdr(m.color, 3), 0, FLOOR + 0.4 + DOME, 0))
-    // console towards the core, a screen and the hologram over it
-    g.add(this.mesh(this.boxG(0.66, 0.36, 0.22), dark, 0, FLOOR + 0.18, 0.62))
+    // the desk, a side cabinet, the screen and the hologram over it
+    g.add(this.mesh(this.boxG(0.78, 0.36, 0.3), dark, 0, FLOOR + 0.18, 0.5))
+    g.add(this.mesh(this.boxG(0.84, 0.03, 0.36), hull, 0, FLOOR + 0.375, 0.5))
+    g.add(this.mesh(this.boxG(0.2, 0.32, 0.26), dark, 0.52, FLOOR + 0.16, 0.1))
     const screen = this.own('screen' + m.key)
-    const scr = this.mesh(this.boxG(0.58, 0.02, 0.26), screen, 0, FLOOR + 0.38, 0.6)
+    const scr = this.mesh(this.boxG(0.62, 0.02, 0.28), screen, 0, FLOOR + 0.42, 0.5)
     scr.rotation.x = -0.55
     g.add(scr)
     const holo = this.hologram(m.key, m.color)
-    holo.position.set(0, FLOOR + 0.92, 0.6)
+    holo.position.set(0, FLOOR + 1.05, 0.5)
     g.add(holo)
-    const cone = this.mesh(this.geo('holoCone', () => new THREE.ConeGeometry(0.22, 0.42, 24, 1, true)), this.fresnel(m.color, 1.2, 0.35), 0, FLOOR + 0.62, 0.6)
+    const cone = this.mesh(this.geo('holoCone', () => new THREE.ConeGeometry(0.22, 0.42, 24, 1, true)), this.fresnel(m.color, 1.2, 0.35), 0, FLOOR + 0.66, 0.5)
     cone.rotation.x = Math.PI
     g.add(cone)
-    // the room's light
-    const lamp = this.glowSprite(m.color, 1.8, 0.1)
+    // a light pole with the desk's colour
+    g.add(this.mesh(this.cylG(0.02, 0.02, 1.2, 8), hull, -0.62, FLOOR + 0.6, -0.15))
+    g.add(this.mesh(this.sphere(0.05, 12), this.hdr(m.color, 3), -0.62, FLOOR + 1.22, -0.15))
+    const lamp = this.glowSprite(m.color, 1.6, 0.1)
     lamp.position.set(0, FLOOR + 0.9, 0)
     g.add(lamp)
-    // the astronaut, at the console
+    // the astronaut, at the desk
     const astro = this.astronaut(m.color, m.key === 'ready' ? '#e3b04b' : '#1c2a48', m.key === 'ready' ? '#ffffff' : '#eef1f6')
-    astro.root.position.set(0, FLOOR + 0.3 * ASTRO_S, -0.16)
+    const home = new THREE.Vector3(0, FLOOR + 0.3 * ASTRO_S, -0.12)
+    astro.root.position.copy(home)
     g.add(astro.root)
     // hit area and hover ring
-    const hitM = this.mesh(this.cylG(DOME + 0.1, DOME + 0.1, 1.7, 12), new THREE.MeshBasicMaterial({ visible: false }), 0, 0.75, 0)
+    const hitM = this.mesh(this.cylG(DOME + 0.1, DOME + 0.1, 1.7, 12), new THREE.MeshBasicMaterial({ visible: false }), 0, 0.85, 0)
     g.add(hitM)
     this.hit(hitM, { kind: 'room', key: m.key })
-    const ring = this.hoverRing(DOME + 0.22)
+    const ring = this.hoverRing(DOME + 0.18)
     ring.position.y = 0.04
     g.add(ring)
-    if (m.key === 'ready') { this.caps.position.set(0.55, FLOOR + 0.05, -0.35); g.add(this.caps) }
+    if (m.key === 'ready') { this.caps.position.set(0.55, FLOOR + 0.05, -0.45); g.add(this.caps) }
     const beam = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: new THREE.Color(0.6, 1.8, 2.4), transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }))
     beam.visible = false
     sc.add(beam)
-    const room: Room = { m, i, g, a: astro, holo, screen, status, lamp, ring, label: null, labelText: '', beam, carry: null, work: { state: 'idle', text: m.does }, was: 'idle' }
+    const room: Room = { m, i, g, a: astro, holo, screen, status, lamp, ring, label: null, labelText: '', beam, carry: null, work: { state: 'idle', text: m.does }, was: 'idle', walk: null, gave: false, home }
     this.rooms.push(room)
     this.roomBy.set(m.key, room)
   }
@@ -819,7 +811,52 @@ export class StationView {
 
   /** What every astronaut is doing (station.ts crewStatus). */
   setCrew(s: CrewStatus) {
+    this.live = s
+    if (this.show) return // the relay show gives the data back when it ends
     for (const r of this.rooms) r.work = s[r.m.key] ?? r.work
+  }
+
+  /** Plays the relay 1 → 10 as a show: each astronaut analyses, then walks its result to the next desk. Nothing is
+   * analysed; the desks show what the data says (their lines). Not while a real cycle runs. */
+  replay() {
+    if (!this.renderer || this.show || this.cycle.running) return
+    for (const r of this.rooms) {
+      r.gave = false
+      r.work = { state: 'waiting', text: 'antri' }
+      r.was = 'waiting' // no relay from the state the show replaces
+    }
+    this.show = { i: 0, t: 0, phase: 'read' }
+    this.o.onReplay?.(true)
+  }
+
+  get replaying() { return !!this.show }
+
+  private endShow() {
+    this.show = null
+    for (const r of this.rooms) {
+      r.work = this.live?.[r.m.key] ?? { state: 'idle', text: r.m.does }
+      r.was = r.work.state
+    }
+    this.o.onReplay?.(false)
+  }
+
+  private stepShow(dt: number) {
+    const sh = this.show
+    if (!sh) return
+    const r = this.rooms[sh.i]
+    const line = (k: CrewKey) => { const w = this.live?.[k]; return w && w.state === 'idle' ? w.text : CREW_OF[k].does }
+    sh.t += dt
+    if (sh.phase === 'read') {
+      if (r.work.state !== 'reading') r.work = { state: 'reading', text: 'menganalisa…' }
+      if (sh.t >= READ_S) {
+        r.work = { state: 'done', text: line(r.m.key) }
+        sh.t = 0
+        sh.phase = r.m.key === 'ready' ? 'end' : 'walk'
+      }
+    } else if (sh.phase === 'walk') {
+      const next = this.rooms[sh.i + 1]
+      if (next.gave || sh.t > 30) { sh.i++; sh.t = 0; sh.phase = 'read' }
+    } else if (sh.t > 3.2) this.endShow()
   }
 
   /** The proposals waiting for a decision → a capsule each on the Data siap floor (max 12), in the colour of the
@@ -845,6 +882,7 @@ export class StationView {
     const stageWas = this.cycle.stage
     this.cycle = c
     if (!this.renderer) return
+    if (c.running && this.show) this.endShow() // a real cycle takes over from the show
     if (!c.running && was) this.core.waveT = 0 // learn: a shock wave from the core
     if (c.running && c.stage === 5 && stageWas !== 5) this.core.waveT = 0
   }
@@ -854,9 +892,14 @@ export class StationView {
   private holoPos(r: Room, out = new THREE.Vector3()) { return r.holo.getWorldPosition(out) }
 
   private setCarry(r: Room, on: boolean) {
-    if (r.carry) { r.carry.removeFromParent(); r.carry = null }
+    if (r.carry) {
+      r.carry.traverse((o) => { if (o instanceof THREE.Sprite) o.material.dispose() }) // its glow (the capsule's are shared)
+      r.carry.removeFromParent()
+      r.carry = null
+    }
     if (!on) return
-    const m = this.mesh(this.capsule(0.045, 0.08), this.hdr(r.m.color, 1.8))
+    const m = this.mesh(this.capsule(0.05, 0.09), this.hdr(r.m.color, 2.4))
+    m.add(this.glowSprite(r.m.color, 0.5, 0.55)) // seen from across the deck
     r.a.hand.add(m)
     r.carry = m
   }
@@ -880,34 +923,34 @@ export class StationView {
     // hologram
     const fast = state === 'reading'
     r.holo.rotation.y += dt * (fast ? 2.6 : state === 'waiting' ? 0.2 : 0.7)
-    r.holo.position.y = FLOOR + 0.92 + Math.sin(t * 1.8 + i) * 0.03
+    r.holo.position.y = FLOOR + 1.05 + Math.sin(t * 1.8 + i) * 0.03
     r.holo.scale.setScalar(fast ? 1.15 + Math.sin(t * 6) * 0.06 : state === 'waiting' ? 0.8 : 1)
-    // the astronaut floats a little in the room and works the console
-    A.root.position.y = FLOOR + 0.3 * ASTRO_S + 0.03 + Math.sin(t * 1.4 + i) * 0.025
-    A.body.rotation.y = state === 'waiting' ? Math.sin(t * 0.7 + i) * 0.6 : state === 'done' ? Math.PI * 0.85 : Math.sin(t * 0.5 + i) * 0.12
-    A.body.rotation.x = lerp(A.body.rotation.x, state === 'failed' ? 0.25 : state === 'reading' ? 0.12 : 0.04, 1 - Math.exp(-dt * 4))
-    if (state === 'done') { // turns to the room door holding the result up
-      A.arms[1].rotation.x = -2.7 + Math.sin(t * 2 + i) * 0.1
-      A.arms[0].rotation.x = Math.sin(t * 2) * 0.1
-    } else if (state === 'failed') A.arms[0].rotation.x = A.arms[1].rotation.x = 0.15
-    else if (state === 'waiting') A.arms[0].rotation.x = A.arms[1].rotation.x = Math.sin(t * 1.2 + i) * 0.15
-    else { // typing: fast while reading
-      const sp = fast ? 14 : 5
-      A.arms[0].rotation.x = -1.15 + Math.sin(t * sp + i) * (fast ? 0.12 : 0.06)
-      A.arms[1].rotation.x = -1.15 + Math.sin(t * sp + i + 1.7) * (fast ? 0.12 : 0.06)
+    if (r.walk) this.stepWalk(r, dt)
+    else { // at the desk: stands at the console and works it
+      A.root.position.y = r.home.y + Math.sin(t * 1.4 + i) * 0.012
+      A.body.rotation.y = state === 'waiting' ? Math.sin(t * 0.7 + i) * 0.6 : Math.sin(t * 0.5 + i) * 0.12
+      A.body.rotation.x = lerp(A.body.rotation.x, state === 'failed' ? 0.25 : state === 'reading' ? 0.12 : 0.04, 1 - Math.exp(-dt * 4))
+      if (state === 'done') { // finished: a thumbs-up over the desk, then rests
+        A.arms[1].rotation.x = -1.6 + Math.sin(t * 2 + i) * 0.08
+        A.arms[0].rotation.x = Math.sin(t * 2) * 0.06
+      } else if (state === 'failed') A.arms[0].rotation.x = A.arms[1].rotation.x = 0.15
+      else if (state === 'waiting') A.arms[0].rotation.x = A.arms[1].rotation.x = Math.sin(t * 1.2 + i) * 0.15
+      else { // typing: fast while reading
+        const sp = fast ? 14 : 5
+        A.arms[0].rotation.x = -1.15 + Math.sin(t * sp + i) * (fast ? 0.12 : 0.06)
+        A.arms[1].rotation.x = -1.15 + Math.sin(t * sp + i + 1.7) * (fast ? 0.12 : 0.06)
+      }
+      A.legs[0].rotation.x = lerp(A.legs[0].rotation.x, 0, 1 - Math.exp(-dt * 6))
+      A.legs[1].rotation.x = lerp(A.legs[1].rotation.x, 0, 1 - Math.exp(-dt * 6))
     }
-    A.legs[0].rotation.x = Math.sin(t * 1.6 + i) * 0.08
-    A.legs[1].rotation.x = -Math.sin(t * 1.6 + i) * 0.08
-    if (state === 'done' && !r.carry) this.setCarry(r, true)
-    if (state !== 'done' && r.carry) this.setCarry(r, false)
-    // a room that just finished: sparks, and its result flies to Data siap
+    // a desk that just finished: sparks, and the astronaut walks its result to the next desk (the last one: a burst)
     if (state !== r.was) {
+      const at = r.g.localToWorld(new THREE.Vector3(0, 1.3, 0.3))
       if (state === 'done' && r.m.key !== 'ready') {
-        const at = r.g.localToWorld(new THREE.Vector3(0, 1.2, 0))
         this.spawnBits(at, 10, r.m.color, 0.3)
-        const ready = this.roomBy.get('ready')!
-        this.spawnPulse(() => this.holoPos(r), () => this.holoPos(ready), r.m.color, 1.6, 0.55, 2.2)
-      } else if (state === 'done') this.spawnBits(r.g.localToWorld(new THREE.Vector3(0, 1.2, 0)), 24, '#ffcf5a', 0.5)
+        this.startWalk(r, this.rooms[r.i + 1])
+      } else if (state === 'done') this.spawnBits(at, 28, '#ffcf5a', 0.6)
+      if (state === 'reading') r.gave = false
       r.was = state
     }
     // the reading beam to the core
@@ -929,7 +972,105 @@ export class StationView {
       r.label = this.sign(r.m, state, text)
       this.overlay.add(r.label)
     }
-    if (r.label) r.label.position.copy(r.g.localToWorld(new THREE.Vector3(0, FLOOR + 0.5 + DOME, 0)))
+    if (r.label) r.label.position.copy(r.g.localToWorld(new THREE.Vector3(0, FLOOR + 1.75, 0.15)))
+  }
+
+  // ---------- the relay: walking a result to the next desk ----------
+
+  /** The way from a desk to the next one: round its desk to the walkway, along it, to the front of the next desk. */
+  private route(from: Room, to: Room): THREE.Vector3[] {
+    const y = from.home.y
+    const w = (r: Room, x: number, z: number) => r.g.localToWorld(new THREE.Vector3(x, y, z)).setY(DECK_Y + y)
+    const goal = w(to, 0, ROOM_R - WALK_R - 0.05)
+    const sides = [0.85, -0.85].map((x) => [w(from, x, -0.12), w(from, x, ROOM_R - WALK_R)])
+    const [side, out] = sides.sort((p, q) => p[1].distanceTo(goal) - q[1].distanceTo(goal))[0]
+    const pts = [w(from, 0, -0.12), side, out]
+    let a0 = Math.atan2(out.z, out.x)
+    const a1 = Math.atan2(goal.z, goal.x)
+    let da = a1 - a0
+    while (da > Math.PI) da -= Math.PI * 2
+    while (da < -Math.PI) da += Math.PI * 2
+    const n = Math.max(2, Math.ceil(Math.abs(da) / 0.12))
+    for (let k = 1; k < n; k++) { a0 += da / n; pts.push(this.lanePoint(a0).setY(DECK_Y + y)) }
+    pts.push(goal)
+    return pts
+  }
+
+  private startWalk(r: Room, to: Room | undefined) {
+    if (!to || r.walk || this.reduced) { if (to) this.handOver(r, to); return }
+    const pts = this.route(r, to)
+    const at = [0]
+    for (let k = 1; k < pts.length; k++) at.push(at[k - 1] + pts[k].distanceTo(pts[k - 1]))
+    this.scene.attach(r.a.root) // walks in the deck's frame, turned by its heading alone
+    const ahead = new THREE.Vector3(0, 0, 1).applyQuaternion(r.a.root.quaternion)
+    r.a.root.rotation.set(0, Math.atan2(ahead.x, ahead.z), 0)
+    this.setCarry(r, true)
+    r.walk = { to, pts, at, d: 0, phase: 'go', wait: 0 }
+  }
+
+  /** The result reaches the next desk: it flies from the hand into that desk's hologram. */
+  private handOver(r: Room, to: Room) {
+    const from = r.carry ? r.carry.getWorldPosition(new THREE.Vector3()) : this.holoPos(r)
+    this.setCarry(r, false)
+    this.spawnPulse(() => from.clone(), () => this.holoPos(to), r.m.color, 0.7, 0.5, 0.4)
+    this.spawnBits(this.holoPos(to), 12, r.m.color, 0.25)
+    to.gave = true
+  }
+
+  private stepWalk(r: Room, dt: number) {
+    const w = r.walk!
+    const A = r.a
+    const t = this.t
+    const total = w.at[w.at.length - 1]
+    if (w.phase === 'give') {
+      w.wait += dt
+      A.arms[1].rotation.x = -1.5
+      A.legs[0].rotation.x = A.legs[1].rotation.x = 0
+      if (w.wait > GIVE_S * 0.45 && r.carry) this.handOver(r, w.to)
+      if (w.wait > GIVE_S) w.phase = 'back'
+      return
+    }
+    w.d += dt * WALK_SPEED * (w.phase === 'go' ? 1 : -1)
+    const done = w.phase === 'go' ? w.d >= total : w.d <= 0
+    w.d = Math.max(0, Math.min(total, w.d))
+    let k = 1
+    while (k < w.at.length - 1 && w.at[k] < w.d) k++
+    const a = w.pts[k - 1]
+    const b = w.pts[k]
+    const seg = Math.max(1e-6, w.at[k] - w.at[k - 1])
+    const pos = a.clone().lerp(b, (w.d - w.at[k - 1]) / seg)
+    A.root.position.copy(pos)
+    A.root.position.y += Math.abs(Math.sin(t * 9)) * 0.03 // a step's bounce
+    const dir = (w.phase === 'go' ? b.clone().sub(a) : a.clone().sub(b))
+    if (dir.lengthSq() > 1e-6) {
+      const want = Math.atan2(dir.x, dir.z)
+      let diff = want - A.root.rotation.y
+      while (diff > Math.PI) diff -= Math.PI * 2
+      while (diff < -Math.PI) diff += Math.PI * 2
+      A.root.rotation.y += diff * (1 - Math.exp(-dt * 12))
+    }
+    A.body.rotation.y = 0
+    A.body.rotation.x = 0.08
+    const swing = Math.sin(t * 9) * 0.55
+    A.legs[0].rotation.x = swing
+    A.legs[1].rotation.x = -swing
+    A.arms[0].rotation.x = -swing * 0.7
+    A.arms[1].rotation.x = r.carry ? -1.2 : swing * 0.7 // carries the capsule in front
+    // a trail of sparks in the desk's colour shows the way the result goes
+    w.wait -= dt
+    if (w.phase === 'go' && w.wait <= 0) { w.wait = 0.14; this.spawnBits(pos.clone().setY(DECK_Y + 0.08), 1, r.m.color, 0.04) }
+    if (!done) return
+    if (w.phase === 'go') { // face the next desk and hand over
+      const face = this.holoPos(w.to).sub(A.root.position)
+      A.root.rotation.y = Math.atan2(face.x, face.z)
+      w.phase = 'give'
+      w.wait = 0
+      return
+    }
+    r.walk = null // home: back at its own desk
+    r.g.attach(A.root)
+    A.root.position.copy(r.home)
+    A.root.rotation.set(0, 0, 0)
   }
 
   private spawnBits(at: THREE.Vector3, n: number, color: string, r: number) {
@@ -1030,6 +1171,7 @@ export class StationView {
     if (this.giant) this.giant.rotation.y += dt * 0.01
     if (this.belt) this.belt.rotation.y -= dt * 0.008
     this.stars[0].rotation.y += dt * 0.002
+    this.stepShow(dt)
     for (const r of this.rooms) this.stepRoom(r, dt)
     this.caps.children.forEach((m) => { m.position.y = 0.12 + Math.sin(this.t * 2 + (m.userData.phase as number)) * 0.03; m.rotation.y += dt })
     this.stepCycle(dt)
@@ -1113,7 +1255,7 @@ export class StationView {
     const aspect = w / h
     this.camera.aspect = aspect
     const tan = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2))
-    this.dist = Math.min(80, Math.max(6.6 / tan, 9.4 / (tan * aspect)))
+    this.dist = Math.min(80, Math.max(6.4 / tan, 9.0 / (tan * aspect)))
     this.camera.updateProjectionMatrix()
   }
 

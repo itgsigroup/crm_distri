@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Stasiun Orbit: kantor kru AI dengan estafet hasil · 2026-10-28
+- Dashboard astronot sekarang berupa **kantor di dalam stasiun**, seperti kantor virtual 3D untuk AI agent: dek bundar dengan jendela panorama ke luar angkasa, inti AI (Orchestrator) di tengah, dan 10 meja astronot di sekelilingnya.
+- **Estafet**: astronot yang selesai menganalisa mengambil kapsul hasil, berjalan menyusuri jalur ke meja astronot berikutnya, menyerahkan hasilnya, lalu kembali ke mejanya. Urutannya dari 1 Analisa sales sampai 10 Data siap. Ini terjadi saat siklus sungguhan berjalan (🚀 AI Agent bekerja).
+- Tombol baru **▶ Putar alur kerja** memutar estafet 1 → 10 sebagai tayangan, tanpa menjalankan analisis dan tanpa biaya AI. Setiap meja menampilkan hasil dari data terakhir.
+- ADR 0076.
+
 ## Fix · Sistem lebih ringan: pesan baru hanya memuat ulang chat-nya sendiri · 2026-10-28
 - Penyebab lambat (dari log API produksi, 1 jam): setiap pesan baru dari 9 nomor membuat setiap tab memuat ulang chat yang sedang dibuka beserta konteksnya, apa pun chat-nya. Hasilnya sekitar 6.100 kali buka chat per jam (rata-rata 509 ms, p95 1,3 detik) dan 6.100 kali muat konteks.
 - Sekarang pesan baru hanya memuat ulang chat yang menerima pesan itu dan konteksnya. Daftar chat, pencarian, dan badge belum-dibaca tetap diperbarui realtime.
