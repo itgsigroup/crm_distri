@@ -18,6 +18,7 @@ export interface Policy {
   typingMinMs: number
   typingMaxMs: number
   profileLookupsPerHour: number // contact/profile queries per session per hour
+  photoLookupsPerHour: number   // profile photo queries per session per hour (chat list avatars, cached by the API)
 }
 
 export interface Config {
@@ -57,6 +58,7 @@ export const defaultPolicy: Policy = {
   typingMinMs: 1_500,
   typingMaxMs: 8_000,
   profileLookupsPerHour: 30,
+  photoLookupsPerHour: 120,
 }
 
 export function loadConfig(): Config {
@@ -88,6 +90,7 @@ export function loadConfig(): Config {
       typingMinMs: defaultPolicy.typingMinMs,
       typingMaxMs: defaultPolicy.typingMaxMs,
       profileLookupsPerHour: num('BRIDGE_PROFILE_LOOKUPS_PER_HOUR', defaultPolicy.profileLookupsPerHour),
+      photoLookupsPerHour: num('BRIDGE_PHOTO_LOOKUPS_PER_HOUR', defaultPolicy.photoLookupsPerHour),
     },
   }
 }

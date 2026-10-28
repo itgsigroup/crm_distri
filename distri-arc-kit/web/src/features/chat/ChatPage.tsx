@@ -21,6 +21,7 @@ import { ChatRowMenu } from './ChatRowMenu'
 import { pastedImage } from './paste'
 import { TriggerCard, type DraftAI } from '../aitrigger/TriggerCard'
 import { LyraCard, lyraAskable } from './LyraCard'
+import { ChatAvatar, ProfileSheet } from './Profile'
 import type { ChatHit } from './findInChat'
 import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type Member } from './mentions'
 import { insertQuick, matchQuick, slashQuery } from './quickReplyText'
@@ -234,7 +235,8 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
     return shown.map((c) => (
       <div key={c.id} className={`ibr-w${menu === c.id ? ' menu-open' : ''}`} onContextMenu={(e) => { e.preventDefault(); setMenu(c.id) }}>
       <button className={`ibr ${c.id === active ? 'is-active' : ''}`} onClick={() => onPick(c.id)}>
-        <span className={`av ${c.kind === 'group' ? 'grp' : ''}`}>{c.kind === 'group' ? <Icon name="people" /> : initials(c)}</span>
+        <ChatAvatar id={c.id} group={c.kind === 'group'} fallback={c.kind === 'group' ? <Icon name="people" /> : initials(c)}
+          onOpen={() => openSheet(<ProfileSheet id={c.id} title={displayTitle(c)} group={c.kind === 'group'} fallback={c.kind === 'group' ? <Icon name="people" /> : initials(c)} />)} />
         <div className="ibr-m">
           <div className="ibr-top">
             <b>{displayTitle(c)}</b>
@@ -262,7 +264,7 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
       <ChatRowMenu t={c} open={menu === c.id} setOpen={(v) => setMenu(v ? c.id : null)} onLeave={() => { if (c.id === active) onLeave() }} />
       </div>
     ))
-  }, [shown, menu, active, drafts, nowMs, account, onPick, onLeave])
+  }, [shown, menu, active, drafts, nowMs, account, onPick, onLeave, openSheet])
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['chat'] })
     qc.invalidateQueries({ queryKey: ['wa'] })
@@ -1204,7 +1206,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     <div className="pane th-pane ibc">
       <div className={`ibc-h${slim ? ' slim' : ''}`}>
         <button className="back" onClick={onBack} aria-label="Kembali"><Icon name="arrow" /></button>
-        <span className={`av ${t.kind === 'group' ? 'grp' : ''}`}>{t.kind === 'group' ? <Icon name="people" /> : initials(t)}</span>
+        <ChatAvatar id={t.id} group={t.kind === 'group'} fallback={t.kind === 'group' ? <Icon name="people" /> : initials(t)}
+          onOpen={() => openSheet(<ProfileSheet id={t.id} title={displayTitle(t)} group={t.kind === 'group'} fallback={t.kind === 'group' ? <Icon name="people" /> : initials(t)} />)} />
         <div className="ibc-who">
           <div className="ibc-name">
             <b>{displayTitle(t)}</b>
@@ -1502,7 +1505,8 @@ function LeadPane({ id, mini, setMini, onAccurate }: { id: string; mini: boolean
         {tab === 'main' && (
           <>
             <div className="ibp-who">
-              <span className={`av ${group ? 'grp' : ''}`}>{group ? <Icon name="people" /> : initials(t)}</span>
+              <ChatAvatar id={t.id} group={group} fallback={group ? <Icon name="people" /> : initials(t)}
+                onOpen={() => openSheet(<ProfileSheet id={t.id} title={displayTitle(t)} group={group} fallback={group ? <Icon name="people" /> : initials(t)} />)} />
               <div><b>{displayTitle(t)}</b><span>{d ? `Dealer tier ${d.tier} · ${d.city}` : group ? groupLabel : 'Pelanggan WhatsApp'}</span></div>
             </div>
             <Kv rows={[

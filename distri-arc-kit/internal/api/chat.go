@@ -59,6 +59,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	s.chatLabelRoutes(r)
 	s.quickReplyRoutes(r)
 	s.lyraRoutes(r)
+	s.profileRoutes(r)
 	s.chatListRoutes(r)
 	s.chatBackupRoutes(r)
 	r.Get("/wa/groups", s.waGroups)

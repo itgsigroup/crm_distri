@@ -1,0 +1,31 @@
+/* Foto & profil WhatsApp (ADR 0071). */
+.av{overflow:hidden}
+.av.has-photo{background:var(--surface-3)}
+.av img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.av-click{cursor:pointer}
+.av-click:hover{box-shadow:0 0 0 2px var(--accent-line)}
+.av-click:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wa-prof{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.wa-prof-photo{width:168px;height:168px;border-radius:50%;overflow:hidden;background:var(--surface-3);margin-bottom:8px}
+.wa-prof-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.wa-prof-ph{width:100%;height:100%;display:grid;place-items:center;font-family:var(--font-display);font-size:48px;font-weight:700;color:var(--text-2)}
+.wa-prof-ph.grp{background:var(--accent-soft);color:var(--accent)}
+.wa-prof-ph .i{width:64px;height:64px}
+.wa-prof-name{margin:0;font-size:20px}
+.wa-prof-num{color:var(--text-2);font-variant-numeric:tabular-nums}
+.wa-prof-wa{color:var(--text-3);font-size:13px;display:flex;gap:6px;align-items:center}
+.wa-prof .wa-prof-note,.wa-prof .wa-prof-muted{color:var(--text-3);font-size:12.5px}
+.wa-prof-sec{align-self:stretch;text-align:left;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.wa-prof-sec h4{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--text-3)}
+.wa-prof-sec p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.wa-prof-groups{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.wa-prof-groups button{width:100%;display:flex;align-items:center;gap:10px;padding:8px 4px;border:0;background:none;border-radius:var(--r-sm);text-align:left;font:inherit;color:inherit;cursor:pointer}
+.wa-prof-groups button:hover:not(:disabled){background:var(--surface-2)}
+.wa-prof-groups button:disabled{cursor:default}
+.wa-prof-groups .av{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent)}
+.wa-prof-groups .av .i{width:18px;height:18px}
+.wa-prof-groups > li > button > .i{width:14px;height:14px;color:var(--text-3);transform:rotate(-90deg)}
+.wa-prof-g{flex:1;min-width:0;display:flex;flex-direction:column}
+.wa-prof-g b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wa-prof-g em{margin-left:6px;font-style:normal;font-size:10.5px;color:var(--good);border:1px solid var(--good);border-radius:999px;padding:0 5px}
+.wa-prof-g small{color:var(--text-3);font-size:11.5px}

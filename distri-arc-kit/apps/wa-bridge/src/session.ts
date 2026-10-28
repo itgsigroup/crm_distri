@@ -85,6 +85,7 @@ export class Session implements SendTarget {
   private groupList?: { at: number; items: { jid: string; meta: GroupMeta }[] }
   private profiles = new Map<string, { at: number; p: Profile }>()
   private lookups: number[] = []
+  private photoLookups: number[] = []
   private historyAsks: number[] = []
   private downloads = 0
   private contacts = new Map<string, Partial<Contact>>()
@@ -407,6 +408,28 @@ export class Session implements SendTarget {
     p.has_photo = !!(await this.sock.profilePictureUrl(norm, 'preview').catch(() => undefined))
     this.profiles.set(norm, { at: Date.now(), p })
     return p
+  }
+
+  /**
+   * A contact's or group's WhatsApp profile photo (preview: the small one for the chat list; image: the full one for
+   * the profile sheet). Rate-limited per hour; the API caches the result, so a chat list does not ask again.
+   * Undefined: no photo, or hidden by the contact's privacy settings.
+   */
+  async photo(jid: string, size: 'preview' | 'image'): Promise<{ data: Buffer; mime: string } | undefined> {
+    const sock = this.sock
+    if (!sock || this.status !== 'connected') throw new MediaBusy('sesi belum terhubung', 409)
+    const hourAgo = Date.now() - 3_600_000
+    this.photoLookups = this.photoLookups.filter(t => t > hourAgo)
+    if (this.photoLookups.length >= this.policy.photoLookupsPerHour) throw new MediaBusy('batas foto profil per jam tercapai', 429)
+    this.photoLookups.push(Date.now())
+    const norm = jid.includes('@') ? jidNormalizedUser(jid) : jid.replace(/\D/g, '') + '@s.whatsapp.net'
+    const url = await sock.profilePictureUrl(norm, size).catch(() => undefined)
+    if (!url) return undefined
+    const r = await fetch(url, { signal: AbortSignal.timeout(15_000) })
+    if (!r.ok) return undefined
+    const data = Buffer.from(await r.arrayBuffer())
+    if (data.length > 2 << 20) return undefined
+    return { data, mime: (r.headers.get('content-type') ?? 'image/jpeg').split(';')[0] }
   }
 
   /**

@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Foto profil WhatsApp dan profil kontak dengan grup bersama · 2026-10-28
+- Avatar di daftar chat, header chat, dan panel Lead memakai **foto profil WhatsApp**, termasuk foto grup. Bila tidak ada foto atau foto disembunyikan, inisial tetap tampil.
+- **Klik foto**: profil seperti di WhatsApp tampil. Isinya foto besar, nama, nomor, nama WhatsApp, Info, status akun bisnis, dan **grup bersama** (grup nomor GSI yang Anda pegang yang juga diikuti kontak itu). Klik grup untuk membuka chat grupnya.
+- Foto disimpan sebagai cache 3 hari, dan permintaan ke WhatsApp dibatasi 120 per nomor per jam (anti-blokir).
+- ADR 0071 · migrasi 0070 · test: `TestChatPhotoAndProfile`, wa-bridge `http.test.ts`.
+
 ## Fix · Lyra hanya muncul untuk pertanyaan stok, harga, produk · 2026-10-28
 - Kartu Lyra tidak lagi muncul di bawah setiap foto, misalnya screenshot yang dikirim ke rekan. Pesan atau caption foto baru dibaca otomatis bila memuat kata kunci trigger AI Trigger **stok** atau **harga**, atau kata produk (`produk`, `barang`, `stok`, `harga`, `ready`, `pricelist`).
 - Kartu lama yang muncul karena aturan sebelumnya disembunyikan. Pesan lain tetap bisa dikirim ke Lyra lewat menu bubble **Tanya Lyra (stok & harga)**.

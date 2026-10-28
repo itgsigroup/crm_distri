@@ -19,6 +19,8 @@ export interface BridgeSession extends SendTarget {
   snapshot(): { session: string; status: string; phone: string; qr: string; reason?: string }
   listGroups(): Promise<unknown[]>
   profile(jid: string): Promise<unknown>
+  /** A contact's or group's profile photo; undefined: none or hidden. */
+  photo(jid: string, size: 'preview' | 'image'): Promise<{ data: Buffer; mime: string } | undefined>
   fetchHistory(chat: string, oldest: { id: string; fromMe: boolean; ts: number }, count: number): Promise<void>
   /** Reads a chat's unread inbound messages on WhatsApp (blue ticks): a person opened it in GSI Orbit. */
   markRead(chat: string): Promise<number>
@@ -69,6 +71,8 @@ async function readBody(req: IncomingMessage, limit = 1 << 20): Promise<string> 
  *   GET    /sessions/{id}/qr              current QR / status
  *   GET    /sessions/{id}/groups          joined groups with members
  *   GET    /sessions/{id}/contacts/{jid}  profile (name, about, has_photo, business)
+ *   GET    /sessions/{id}/photo/{jid}     profile photo (?size=preview|image) → the image; 404 none or hidden,
+ *                                         409 not connected, 429 hourly cap
  *   POST   /sessions/{id}/send            {chat_id, text, action_id, quote?: {id, from_me, participant?, text}, mentions?: [jid],
  *                                          content?: {kind: image|video|document|audio|poll, mime, file_name, data (base64),
  *                                          ptt, seconds, poll: {name, options, multi}}} → {wamid, ref?}
@@ -128,6 +132,18 @@ export function handler(d: Deps) {
         return json(res, 200, await s.listGroups())
       }
       if (method === 'GET' && parts[2] === 'contacts' && parts[3]) return json(res, 200, await s.profile(parts[3]))
+      if (method === 'GET' && parts[2] === 'photo' && parts[3]) {
+        try {
+          const p = await s.photo(parts[3], url.searchParams.get('size') === 'image' ? 'image' : 'preview')
+          if (!p) return json(res, 404, { error: 'tidak ada foto profil', code: 'no_photo' })
+          res.writeHead(200, { 'Content-Type': /^image\/[\w.+-]+$/.test(p.mime) ? p.mime : 'image/jpeg', 'Content-Length': String(p.data.length) })
+          res.end(p.data)
+          return
+        } catch (e) {
+          if (e instanceof MediaBusy) return json(res, e.status, { error: e.message, code: e.status === 409 ? 'not_linked' : 'busy' })
+          throw e
+        }
+      }
       if (method === 'POST' && parts[2] === 'contacts') {
         // a person saved a name for a number in GSI Orbit: it goes to this account's WhatsApp contacts (and the phone)
         const inp = JSON.parse(body || '{}') as { phone?: string; name?: string }

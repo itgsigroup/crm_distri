@@ -48,7 +48,7 @@ describe('bridge HTTP', () => {
         if (ref === 'busy') throw new MediaBusy('terlalu banyak media dibuka bersamaan', 429)
         return Readable.from([Buffer.from('JPEG'), Buffer.from('DATA')])
       },
-      snapshot: () => ({ session: 's1', status: 'connected', phone: '628', qr: '' }), listGroups: async () => [], profile: async () => ({}),
+      snapshot: () => ({ session: 's1', status: 'connected', phone: '628', qr: '' }), listGroups: async () => [], profile: async () => ({}), photo: async (jid: string) => (jid.startsWith('628') ? { data: Buffer.from('JPEG'), mime: 'image/jpeg' } : undefined),
       saveContact: async (phone, name) => { saved.push(`${phone}=${name}`) },
       markRead: async chat => { read.push(chat); return 2 },
       fetchHistory: async (chat, oldest, count) => {
@@ -66,6 +66,13 @@ describe('bridge HTTP', () => {
       return fetch(bridge + path, { method: 'POST', body: raw, headers: { 'X-ARC-Signature': sig ?? sign(SECRET, raw) } })
     }
     expect((await post('/sessions/s1/send', { chat_id: '6281@s.whatsapp.net', text: 'Halo', action_id: 'ok-1' }, 'bad')).status).toBe(401)
+    // profile photo: the image, or 404 when the contact has none (or hides it); signed like every request
+    const photo = await fetch(bridge + '/sessions/s1/photo/6281%40s.whatsapp.net?size=preview', { headers: { 'X-ARC-Signature': sign(SECRET, '') } })
+    expect(photo.status).toBe(200)
+    expect(photo.headers.get('content-type')).toBe('image/jpeg')
+    expect(Buffer.from(await photo.arrayBuffer()).toString()).toBe('JPEG')
+    expect((await fetch(bridge + '/sessions/s1/photo/12345%40g.us', { headers: { 'X-ARC-Signature': sign(SECRET, '') } })).status).toBe(404)
+    expect((await fetch(bridge + '/sessions/s1/photo/6281%40s.whatsapp.net')).status).toBe(401)
     expect((await post('/sessions/s1/send', { chat_id: '6281@s.whatsapp.net', text: 'Halo', action_id: 'proposed-2' })).status).toBe(403)
     expect((await post('/sessions/zz/send', { chat_id: '6281@s.whatsapp.net', text: 'Halo', action_id: 'ok-1' })).status).toBe(404)
     expect(sent).toHaveLength(0)

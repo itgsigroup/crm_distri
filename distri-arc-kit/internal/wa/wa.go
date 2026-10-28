@@ -203,6 +203,7 @@ type Profile struct {
 	Category string `json:"category"`
 	Address  string `json:"address"`
 	Business bool   `json:"business"`
+	About    string `json:"about"` // the WhatsApp "Info" line
 }
 
 // ProfileReader is implemented by transports that can read a number's WhatsApp Business profile (AI Prospek
@@ -325,6 +326,30 @@ const EditWindow = 15 * time.Minute
 type MediaFetcher interface {
 	Media(ctx context.Context, account string, m Media) (io.ReadCloser, error)
 }
+
+// PhotoFetcher reads a contact's or group's WhatsApp profile photo through a GSI number (full: the large one for the
+// profile sheet, else the small one for the chat list).
+type PhotoFetcher interface {
+	Photo(ctx context.Context, account, jid string, full bool) (data []byte, mime string, err error)
+}
+
+// Group is a WhatsApp group a GSI number is in, with its members.
+type Group struct {
+	JID     string
+	Name    string
+	Members []RosterMember
+}
+
+// GroupLister lists the groups a GSI number is in (the profile sheet's "grup bersama").
+type GroupLister interface {
+	Groups(ctx context.Context, account string) ([]Group, error)
+}
+
+// ErrNoPhoto: the contact has no profile photo or hides it from this number.
+var ErrNoPhoto = errors.New("tidak ada foto profil")
+
+// ErrPhotoBusy: the number is not connected or reached its hourly photo cap (asked again later).
+var ErrPhotoBusy = errors.New("foto profil belum bisa diambil sekarang")
 
 // RosterMember is a member of a WhatsApp group as the linked phone sees it. Number is empty for a member whose number
 // WhatsApp hides (only a LID).

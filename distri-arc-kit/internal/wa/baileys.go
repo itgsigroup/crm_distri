@@ -592,6 +592,33 @@ func (b *Baileys) GroupNames(ctx context.Context, account string) (map[string]st
 	return names, nil
 }
 
+// Groups lists every group the number is in with its members (the bridge caches the list for ten minutes).
+func (b *Baileys) Groups(ctx context.Context, account string) ([]Group, error) {
+	var out []struct {
+		JID  string `json:"jid"`
+		Meta struct {
+			Name    string `json:"name"`
+			Members []struct {
+				Phone string `json:"phone"`
+				Name  string `json:"name"`
+				Admin bool   `json:"admin"`
+			} `json:"members"`
+		} `json:"meta"`
+	}
+	if _, _, err := b.call(ctx, http.MethodGet, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/groups", nil, &out); err != nil {
+		return nil, err
+	}
+	gs := make([]Group, 0, len(out))
+	for _, g := range out {
+		x := Group{JID: g.JID, Name: g.Meta.Name, Members: make([]RosterMember, 0, len(g.Meta.Members))}
+		for _, m := range g.Meta.Members {
+			x.Members = append(x.Members, RosterMember{Number: Digits(m.Phone), Name: strings.TrimSpace(m.Name), Admin: m.Admin})
+		}
+		gs = append(gs, x)
+	}
+	return gs, nil
+}
+
 // GroupMembers lists a group's members from the bridge's group list (cached there for ten minutes).
 func (b *Baileys) GroupMembers(ctx context.Context, account, groupJID string) ([]RosterMember, error) {
 	var out []struct {
@@ -679,6 +706,7 @@ func (b *Baileys) Profile(ctx context.Context, account, jid string) (Profile, er
 	var p struct {
 		Name     string `json:"name"`
 		Business string `json:"business"`
+		About    string `json:"about"`
 	}
 	if _, _, err := b.call(ctx, http.MethodGet, "/sessions/"+url.PathEscape(b.session(ctx, account))+"/contacts/"+url.PathEscape(jid), nil, &p); err != nil {
 		return Profile{}, err
@@ -687,7 +715,40 @@ func (b *Baileys) Profile(ctx context.Context, account, jid string) (Profile, er
 	if name == "" {
 		name = p.Name
 	}
-	return Profile{Name: name, Business: p.Business != ""}, nil
+	return Profile{Name: name, Business: p.Business != "", About: strings.TrimSpace(p.About)}, nil
+}
+
+// Photo reads a profile photo through the bridge (rate-limited there; the API caches it).
+func (b *Baileys) Photo(ctx context.Context, account, jid string, full bool) ([]byte, string, error) {
+	b.init()
+	size := "preview"
+	if full {
+		size = "image"
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(b.BridgeURL, "/")+"/sessions/"+url.PathEscape(b.session(ctx, account))+"/photo/"+url.PathEscape(jid)+"?size="+size, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	req.Header.Set("X-ARC-Signature", sign(b.Secret, nil))
+	res, err := b.client.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("%w: wa-bridge tidak terjangkau", ErrPhotoBusy)
+	}
+	defer res.Body.Close()
+	switch res.StatusCode {
+	case http.StatusOK:
+		data, err := io.ReadAll(io.LimitReader(res.Body, 2<<20))
+		return data, res.Header.Get("Content-Type"), err
+	case http.StatusNotFound:
+		var e struct {
+			Code string `json:"code"`
+		}
+		_ = json.NewDecoder(res.Body).Decode(&e)
+		if e.Code == "no_photo" {
+			return nil, "", ErrNoPhoto
+		}
+	}
+	return nil, "", ErrPhotoBusy
 }
 
 // Unpair logs the linked device out and forgets it.
