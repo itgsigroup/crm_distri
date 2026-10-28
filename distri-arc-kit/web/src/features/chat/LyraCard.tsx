@@ -5,18 +5,21 @@ import type { MessageView } from '../../api/types'
 import { Icon } from '../../components/Icon'
 import { SheetHead, useFeedback } from '../../components/feedback'
 import { hhmm, shortDate } from '../../lib/format'
-import { discounted, fmtPct, parsePct, quoteText, rupiah, sendable, startQty, totals } from './lyra'
+import { discounted, fmtPct, groupRupiah, parsePct, parseRupiah, quoteText, rupiah, sendable, startQty, totals } from './lyra'
 import './lyra.css'
 
 /** Lyra di bawah bubble (ADR 0070): the products a customer asks about — in words or with a photo — read by the
  * company's Hermes Agent, with the stock per city and warehouse and the DPP price from GSI Orbit. The sales sets a
- * discount (prices and total follow), then sends the message after editing and confirming it. */
+ * price per unit of their own and a discount (prices and total follow), then sends the message after editing and
+ * confirming it. */
 export function LyraCard({ m, thread, onAsk }: { m: MessageView; thread: string; onAsk: () => void }) {
   const c = m.lyra!
   const qc = useQueryClient()
   const { openSheet } = useFeedback()
   const [pctText, setPctText] = useState('')
   const [qty, setQty] = useState<Record<string, number>>({})
+  // Edit harga (Sam 28 Oct): the sales' own unit price per product, in place of GSI Orbit's DPP
+  const [price, setPrice] = useState<Record<string, number>>({})
   const pct = parsePct(pctText)
   // the card refreshes on the chat's live events; a slow poll covers a missed one while Lyra reads
   useEffect(() => {
@@ -33,7 +36,7 @@ export function LyraCard({ m, thread, onAsk }: { m: MessageView; thread: string;
       </div>
     )
   }
-  const rows = c.items.map((line) => ({ line, qty: qty[line.sku] ?? startQty(line) }))
+  const rows = c.items.map((l) => ({ line: price[l.sku] != null ? { ...l, price: price[l.sku] } : l, qty: qty[l.sku] ?? startQty(l), base: l.price }))
   const sum = totals(rows, pct)
   const send = () => openSheet(<LyraSendSheet m={m} thread={thread} text={quoteText(rows, pct)} />)
   return (
@@ -56,16 +59,25 @@ export function LyraCard({ m, thread, onAsk }: { m: MessageView; thread: string;
             ))}
           </div>
           <div className="lyra-price">
+            <label className={`lyra-unit${price[r.line.sku] != null && r.line.price !== r.base ? ' is-edited' : ''}`} title="Ubah harga per unit untuk penawaran ini">
+              DPP Rp <input inputMode="numeric" value={groupRupiah(r.line.price)} placeholder="isi harga" aria-label={`Harga per unit ${r.line.product}`}
+                onChange={(e) => setPrice({ ...price, [r.line.sku]: parseRupiah(e.target.value) })} />/unit
+            </label>
+            {price[r.line.sku] != null && r.line.price !== r.base && (
+              <button type="button" className="lyra-reset" onClick={() => { const { [r.line.sku]: _, ...rest } = price; setPrice(rest) }} title="Kembalikan ke harga dari GSI Orbit">
+                {r.base > 0 ? `harga sistem ${rupiah(r.base)}` : 'tanpa harga sistem'} · kembalikan
+              </button>
+            )}
             {r.line.price > 0 ? (
               <>
-                <span>DPP {pct > 0 && <s>{rupiah(r.line.price)}</s>} <b>{rupiah(discounted(r.line.price, pct))}</b>/unit</span>
+                {pct > 0 && <span>diskon → <b>{rupiah(discounted(r.line.price, pct))}</b>/unit</span>}
                 <span className="lyra-calc">
                   <label className="lyra-qty">× <input type="number" min={1} max={100000} value={r.qty} aria-label={`Jumlah ${r.line.product}`}
                     onChange={(e) => setQty({ ...qty, [r.line.sku]: Math.max(1, Math.min(100000, Math.round(Number(e.target.value) || 1))) })} /> unit</label>
                   <span className="lyra-sub">= <b>{rupiah(sum.lines[i])}</b></span>
                 </span>
               </>
-            ) : <span className="lyra-n">Harga belum ada di data</span>}
+            ) : <span className="lyra-n">{r.base > 0 ? 'Isi harga per unit' : 'Harga belum ada di data — isi harganya'}</span>}
           </div>
           {r.line.asked > 0 && <small className="lyra-asked">Diminta pelanggan: {r.line.asked.toLocaleString('id-ID')} unit</small>}
         </div>

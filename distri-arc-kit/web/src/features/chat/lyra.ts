@@ -13,6 +13,15 @@ export function parsePct(s: string): number {
   return Math.min(100, Math.round(v * 100) / 100)
 }
 
+/** A typed price ("711.712", "Rp 711712", "711,712") in whole rupiah; 0 when empty. */
+export function parseRupiah(s: string): number {
+  const v = Number.parseInt(s.replace(/\D/g, ''), 10)
+  return Number.isFinite(v) && v > 0 ? Math.min(v, 999_999_999_999) : 0
+}
+
+/** "711.712" as the price box shows it while typing. */
+export const groupRupiah = (v: number) => (v > 0 ? v.toLocaleString('id-ID') : '')
+
 /** The unit price after the discount, rounded to the rupiah. */
 export const discounted = (price: number, pct: number) => Math.round((price * (100 - pct)) / 100)
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LyraLine } from '../../api/types'
-import { discounted, parsePct, quoteText, rupiah, startQty, totals } from './lyra'
+import { discounted, groupRupiah, parsePct, parseRupiah, quoteText, rupiah, startQty, totals } from './lyra'
 
 const nvr: LyraLine = { sku: 'X5S_8W', product: 'Ezviz NVR 8Ch X5S 8W', asked: 2, price: 865000, stock: 42, cities: [{ city: 'Surabaya', qty: 30 }, { city: 'Semarang', qty: 12 }] }
 const cam: LyraLine = { sku: 'H8C', product: 'Ezviz H8C 2MP', asked: 0, price: 0, stock: 0, cities: [] }
@@ -37,5 +37,20 @@ describe('Lyra card maths (ADR 0070)', () => {
     expect(one).toContain('*Ezviz NVR 8Ch X5S 8W*')
     expect(one).toContain('Harga: *Rp 865.000*/unit')
     expect(one).not.toContain('Total')
+  })
+})
+
+describe('edit harga (the sales sets the unit price)', () => {
+  it('reads a typed price in whole rupiah and groups it back', () => {
+    expect(parseRupiah('711.712')).toBe(711712)
+    expect(parseRupiah('Rp 650.000')).toBe(650000)
+    expect(parseRupiah('')).toBe(0)
+    expect(groupRupiah(650000)).toBe('650.000')
+    expect(groupRupiah(0)).toBe('')
+  })
+  it('quotes the edited price, with the discount on it', () => {
+    const text = quoteText([{ line: { ...nvr, price: 800000 }, qty: 2 }], 10)
+    expect(text).toContain('~Rp 800.000~ diskon 10% → *Rp 720.000*/unit')
+    expect(text).toContain('2 unit × Rp 720.000 = *Rp 1.440.000*')
   })
 })

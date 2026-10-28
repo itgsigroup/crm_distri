@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Kartu Lyra: harga per unit bisa diedit · 2026-10-28
+- Harga DPP per unit di kartu Lyra sekarang berupa kolom isian. Sales bisa mengubah harga untuk penawaran itu, lalu diskon, subtotal, total, dan pesan untuk pelanggan langsung mengikuti harga baru.
+- Harga yang diedit diberi warna, dan di sebelahnya tampil "harga sistem Rp … · kembalikan" untuk kembali ke harga dari GSI Orbit. Barang yang belum punya harga di data juga bisa diisi harganya.
+- Harga editan hanya berlaku untuk penawaran itu dan tidak mengubah harga di data. Pesan tetap terkirim hanya setelah dikonfirmasi.
+- Test: `lyra.test.ts`.
+
 ## Feat · Stasiun Orbit: kantor kru AI dengan estafet hasil · 2026-10-28
 - Dashboard astronot sekarang berupa **kantor di dalam stasiun**, seperti kantor virtual 3D untuk AI agent: dek bundar dengan jendela panorama ke luar angkasa, inti AI (Orchestrator) di tengah, dan 10 meja astronot di sekelilingnya.
 - **Estafet**: astronot yang selesai menganalisa mengambil kapsul hasil, berjalan menyusuri jalur ke meja astronot berikutnya, menyerahkan hasilnya, lalu kembali ke mejanya. Urutannya dari 1 Analisa sales sampai 10 Data siap. Ini terjadi saat siklus sungguhan berjalan (🚀 AI Agent bekerja).

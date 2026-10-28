@@ -37,3 +37,10 @@
 .lyra-sheet textarea{width:100%;min-height:240px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--text);font:inherit;font-size:13.5px;line-height:1.5;resize:vertical}
 .lyra-sheet small{display:block;margin-top:6px;color:var(--text-3)}
 @media (max-width:560px){.lyra-send{margin-left:0;width:100%;justify-content:center}}
+/* Edit harga: the unit price is the sales' to set */
+.lyra-unit{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.lyra-unit input{width:9.5ch;height:30px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--text);font:inherit;font-weight:700;text-align:right}
+.lyra-unit input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.lyra-unit.is-edited input{border-color:var(--warn, #c98a00);background:color-mix(in srgb, var(--warn, #c98a00) 8%, var(--surface))}
+.lyra-reset{border:0;background:none;padding:0;color:var(--text-3);font-size:11.5px;cursor:pointer;text-decoration:underline dotted}
+.lyra-reset:hover{color:var(--accent)}
