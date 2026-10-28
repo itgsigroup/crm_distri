@@ -59,8 +59,9 @@ type Claims struct {
 	Sub   string `json:"sub"` // users.id
 	Email string `json:"email"`
 	Role  string `json:"role"`
-	Exp   int64  `json:"exp"`
+	Exp   int64  `json:"exp"` // 0 = no expiry (a login session: it ends when its session row is revoked)
 	Iat   int64  `json:"iat"`
+	Sid   string `json:"sid,omitempty"` // user_sessions.id of a login session
 }
 
 // Errors of Verify.
@@ -85,7 +86,7 @@ func Sign(c Claims, secret []byte) string {
 	return msg + "." + mac(secret, msg)
 }
 
-// Verify checks the signature and expiry of a token.
+// Verify checks the signature and expiry of a token (a token without exp does not expire).
 func Verify(token string, secret []byte, now time.Time) (Claims, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
@@ -106,7 +107,7 @@ func Verify(token string, secret []byte, now time.Time) (Claims, error) {
 	if err != nil || json.Unmarshal(bb, &c) != nil || c.Sub == "" {
 		return Claims{}, ErrToken
 	}
-	if now.Unix() >= c.Exp {
+	if c.Exp != 0 && now.Unix() >= c.Exp {
 		return Claims{}, ErrExpired
 	}
 	return c, nil

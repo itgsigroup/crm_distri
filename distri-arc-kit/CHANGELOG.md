@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Change · Sesi login tidak pernah berakhir, kecuali Logout · 2026-10-28
+- Login sekarang berlaku tanpa batas waktu dan tanpa batas idle. Pengguna tidak perlu login lagi kecuali menekan **Keluar**. Cookie diperbarui otomatis selama aplikasi dipakai.
+- **Keluar** benar-benar mengakhiri sesi di server. Token sesi itu, termasuk salinannya, langsung tidak berlaku. Perangkat lain tetap login.
+- Gangguan server sesaat tidak lagi melempar pengguna ke halaman login. Halaman login juga langsung meneruskan ke aplikasi bila sesi masih aktif.
+- Pengguna yang sedang login tidak terputus oleh perubahan ini. Sesi lamanya otomatis dipindah ke sesi baru.
+- ADR 0075 · migrasi 0072 · test: `TestSessionUnlimited`, `TestHashAndToken`.
+
 ## Feat · Reaksi per pesan seperti WhatsApp · 2026-10-28
 - Arahkan kursor ke bubble, klik 🙂 di samping tombol Balas, lalu pilih 👍 ❤️ 😂 😮 😢 🙏 atau **+** untuk emoji lain. Reaksi terkirim ke WhatsApp atas nama nomor GSI chat itu dan tercatat sebagai keputusan manusia (proposal, outbox, audit). Memilih emoji yang sama membatalkannya.
 - Reaksi pelanggan dan rekan dari WhatsApp sekarang tampil sebagai chip di bawah bubble (emoji dan jumlah). Reaksi Anda ditandai, dan bisa dibatalkan atau diikuti dengan klik.

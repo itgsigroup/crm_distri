@@ -28,4 +28,9 @@ func TestHashAndToken(t *testing.T) {
 	if _, err := auth.Verify(tok[:len(tok)-2]+"xx", secret, now); !errors.Is(err, auth.ErrToken) {
 		t.Fatal("tampered accepted")
 	}
+	// a login session has no expiry (Sam 28 Oct): it ends at logout, not with time
+	forever := auth.Sign(auth.Claims{Sub: "u1", Email: "a@b", Role: "sales", Sid: "s1", Iat: now.Unix()}, secret)
+	if c, err := auth.Verify(forever, secret, now.Add(10*365*24*time.Hour)); err != nil || c.Sid != "s1" {
+		t.Fatalf("session token expired: %v", err)
+	}
 }

@@ -6,12 +6,12 @@ import (
 	"distri-arc/internal/access"
 	"distri-arc/internal/analyst"
 	"distri-arc/internal/oauth"
+	"errors"
 	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,7 +20,6 @@ import (
 	"github.com/riverqueue/river"
 
 	"distri-arc/internal/ask"
-	"distri-arc/internal/auth"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
 	"distri-arc/internal/events"
@@ -213,16 +212,6 @@ const userKey ctxKey = 1
 // User is the authenticated human user of a request.
 type User = gen.GetUserByEmailRow
 
-// sessionCookie carries the signed session token (HttpOnly, SameSite=Strict).
-const sessionCookie = "arc_session"
-
-// sessionTTL is how long a login lasts without use: every request renews it (renewAfter), so a user who keeps using
-// the app stays logged in until they log out (Sam 17 Oct); 30 days away and they log in again.
-const sessionTTL = 30 * 24 * time.Hour
-
-// renewAfter: a session token older than this is re-issued with a fresh expiry on the next request.
-const renewAfter = time.Hour
-
 // secret is the session signing key: SESSION_SECRET, or a fixed development key when APP_ENV=dev.
 func (s *Server) secret() []byte { return s.cfg.SessionKey() }
 
@@ -230,17 +219,25 @@ func (s *Server) secret() []byte { return s.cfg.SessionKey() }
 // the web dev server works without logging in while the login flow stays testable.
 func (s *Server) auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		email := s.sessionEmail(r)
+		email, cl, err := s.sessionEmail(r)
+		if err != nil {
+			// a database hiccup is no logout: 503, so the page retries instead of sending the person to log in
+			httpx.Fail(w, http.StatusServiceUnavailable, "unavailable", "Server sedang sibuk, coba lagi sebentar")
+			return
+		}
 		if email == "" {
 			httpx.Fail(w, http.StatusUnauthorized, "unauthenticated", "Login diperlukan")
 			return
 		}
 		u, err := s.st.Q.GetUserByEmail(r.Context(), email)
-		if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
 			httpx.Fail(w, http.StatusUnauthorized, "unknown_user", "Pengguna tidak dikenal")
 			return
+		} else if err != nil {
+			httpx.Fail(w, http.StatusServiceUnavailable, "unavailable", "Server sedang sibuk, coba lagi sebentar")
+			return
 		}
-		s.renewSession(w, r, u)
+		s.renewSession(w, r, u, cl)
 		// a role without a screen cannot call that screen's API either (not only a hidden menu)
 		if sc := access.ScreenForPath(r.URL.Path); sc != "" && !slices.Contains(roleOf(u).Screens, sc) {
 			httpx.Fail(w, http.StatusForbidden, "forbidden", "Peran Anda tidak membuka menu ini — atur di Pengaturan → Peran & akses")
@@ -248,35 +245,6 @@ func (s *Server) auth(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), userKey, u)))
 	})
-}
-
-// renewSession re-issues the session cookie with a fresh expiry when the token is older than renewAfter (sliding
-// session); the dev header and an expired or foreign token are left alone.
-func (s *Server) renewSession(w http.ResponseWriter, r *http.Request, u User) {
-	c, err := r.Cookie(sessionCookie)
-	if err != nil || s.secret() == nil {
-		return
-	}
-	now := time.Now()
-	cl, err := auth.Verify(c.Value, s.secret(), now)
-	if err != nil || cl.Sub != u.ID.String() || now.Sub(time.Unix(cl.Iat, 0)) < renewAfter {
-		return
-	}
-	tok := auth.Sign(auth.Claims{Sub: cl.Sub, Email: cl.Email, Role: deref(u.Role), Iat: now.Unix(), Exp: now.Add(sessionTTL).Unix()}, s.secret())
-	s.setSession(w, r, tok, int(sessionTTL.Seconds()))
-}
-
-func (s *Server) sessionEmail(r *http.Request) string {
-	email := ""
-	if c, err := r.Cookie(sessionCookie); err == nil && s.secret() != nil {
-		if cl, err := auth.Verify(c.Value, s.secret(), time.Now()); err == nil {
-			email = cl.Email
-		}
-	}
-	if email == "" && s.cfg.IsDev() {
-		email = strings.TrimSpace(r.Header.Get("X-Dev-User"))
-	}
-	return email
 }
 
 // freshAfterWrite drops the cached dealer board after any change made through the API (a policy, a dealer's
@@ -292,7 +260,7 @@ func (s *Server) freshAfterWrite(next http.Handler) http.Handler {
 
 // userFrom resolves the user on a public route (no 401 when there is none).
 func (s *Server) userFrom(r *http.Request) (User, bool) {
-	email := s.sessionEmail(r)
+	email, _, _ := s.sessionEmail(r)
 	if email == "" {
 		return User{}, false
 	}

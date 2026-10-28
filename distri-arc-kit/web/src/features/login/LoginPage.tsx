@@ -1,7 +1,7 @@
 import { PasswordInput } from '../../components/PasswordInput'
 import { Icon } from '../../components/Icon'
 import sprite from '../../icons/sprite.svg?raw'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
 import { Galaxy } from './Galaxy'
 
@@ -21,9 +21,18 @@ const FEATURES: [string, string, string][] = [
 
 const YEAR = new Date().getFullYear()
 
+/** Where to go after login: the page asked for (same site only), else the start page. */
+const target = (next: string | null) => (next && next.startsWith('/') && !next.startsWith('//') && next !== '/login' ? next : '/')
+
 /** Login: one screen with the system's features and the sign-in card. */
 export function LoginPage() {
   const [params] = useSearchParams()
+  // a login lasts until logout (Sam 28 Oct): still signed in here, so go straight back
+  useEffect(() => {
+    let live = true
+    fetch('/api/me', { credentials: 'same-origin' }).then((r) => { if (live && r.ok) window.location.replace(target(params.get('next'))) }, () => {})
+    return () => { live = false }
+  }, [params])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
@@ -46,8 +55,7 @@ export function LoginPage() {
       setError(d?.error?.message ?? 'Login gagal')
       return
     }
-    const next = params.get('next')
-    window.location.assign(next && next.startsWith('/') && !next.startsWith('//') && next !== '/login' ? next : '/')
+    window.location.assign(target(params.get('next')))
   }
   return (
     <div className="lp">

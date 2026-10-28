@@ -75,14 +75,28 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	loginLimiter.Reset(key)
-	tok := auth.Sign(auth.Claims{Sub: u.ID.String(), Email: deref(u.Email), Role: deref(u.Role), Iat: now.Unix(), Exp: now.Add(sessionTTL).Unix()}, s.secret())
-	s.setSession(w, r, tok, int(sessionTTL.Seconds()))
+	if err := s.startSession(r.Context(), w, r, u.ID, deref(u.Email), deref(u.Role)); err != nil {
+		s.log.Error("login: start session", "err", err)
+		httpx.Fail(w, http.StatusServiceUnavailable, "unavailable", "Server sedang sibuk, coba lagi sebentar")
+		return
+	}
 	actor, kind, action, entity := deref(u.Email), "user", "auth.login", "user"
 	_ = s.st.Q.InsertAudit(r.Context(), gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &u.ID})
 	httpx.JSON(w, http.StatusOK, map[string]any{"id": u.ID, "email": u.Email, "name": u.Name, "role": u.Role})
 }
 
+// logout ends this login for good: its session row is revoked (the token stops working, a copy too) and the cookie
+// is cleared.
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
+	if cl, ok, _ := s.sessionClaims(r); ok {
+		if cl.Sid != "" {
+			_, _ = s.st.Pool.Exec(r.Context(), "update user_sessions set revoked_at = now() where id = $1 and revoked_at is null", cl.Sid)
+		}
+		if id, err := uuid.Parse(cl.Sub); err == nil {
+			actor, kind, action, entity := cl.Email, "user", "auth.logout", "user"
+			_ = s.st.Q.InsertAudit(r.Context(), gen.InsertAuditParams{Actor: &actor, ActorKind: &kind, Action: &action, Entity: &entity, EntityID: &id})
+		}
+	}
 	s.setSession(w, r, "", -1)
 	w.WriteHeader(http.StatusNoContent)
 }
