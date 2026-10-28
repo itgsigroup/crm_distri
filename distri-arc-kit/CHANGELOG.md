@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Kolom ketik chat tidak bisa diklik di layar laptop kecil · 2026-10-28
+- Di lebar layar 901–1100 px (laptop kecil, atau jendela browser yang tidak penuh) dengan panel Lead ringkas, panel percakapan menyempit menjadi 0 px, sehingga kolom ketik tidak bisa diklik. Penyebabnya, aturan grid untuk lebar 1280 px lebih spesifik dan menimpa aturan untuk lebar 1100 px. Masalah ini sudah ada sebelum 28 Okt.
+- Panel Lead yang dibuka penuh dan melayang di atas percakapan (≤1100 px) sekarang berhenti di atas kolom ketik, jadi kolom ketik tidak lagi tertutup.
+- Dicek di browser pada lebar 390, 901, 960, 1024, 1100, 1101, 1215, dan 1440 px, dengan panel Lead ringkas maupun penuh.
+
 ## Fix · Grup "hanya admin yang bisa kirim pesan" · 2026-10-28
 - Di grup WhatsApp yang hanya mengizinkan admin mengirim pesan, kolom ketik di Orbit sekarang tertutup dengan tulisan "Hanya admin yang dapat mengirim pesan ke grup ini" bila nomor GSI itu bukan admin, seperti di WhatsApp.
 - Sebelumnya pesan tampak terkirim di Orbit tetapi ditolak WhatsApp. Sekarang pengiriman ditolak lebih dulu, dan bila tetap ada yang masuk antrean, pesannya ditandai **gagal** dengan alasan dari WhatsApp.
