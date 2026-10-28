@@ -285,6 +285,7 @@ func (s *Server) chatThreads(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
+	s.mergeLIDChats(rows) // a contact's chat stored under a LID joins their number's chat (ADR 0072)
 	tab := r.URL.Query().Get("tab")
 	// Account/team already narrowed the database query; these checks remain as defense in depth.
 	match := threadMatcher(term)

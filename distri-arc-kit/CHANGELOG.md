@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat ganda satu kontak (LID) digabung · 2026-10-28
+- Satu kontak bisa muncul dua kali di nomor GSI yang sama: satu chat dengan nomor, satu "Nomor baru". Penyebabnya, WhatsApp kadang mengirim pesan memakai ID tersembunyi (LID) sebelum nomornya diketahui.
+- Sekarang, setiap kali daftar chat dibuka, chat LID diterjemahkan ke nomor (dari data perangkat, tanpa bertanya ke WhatsApp). Isinya digabung ke chat bernomor: pesan, bintang, label, pin, analisis, dan jumlah belum dibaca. Setelah itu chat duplikatnya dihapus.
+- ADR 0072 · test: `TestMergeLIDThread`, `TestChatListMergesLIDChats`, wa-bridge `http.test.ts`.
+
 ## Fix · Nama chat memakai nama yang disimpan di kontak WhatsApp · 2026-10-28
 - Daftar chat, header, panel Lead, dan profil sekarang hanya menampilkan **nama yang disimpan di kontak WhatsApp** (mis. "Mas Rizal IT - GSI"). Sebelumnya tampil gabungan dengan nama profil WhatsApp orangnya ("Mas Rizal IT - GSI - rizal fachrezi").
 - Nama profil atau nama dari master data hanya dipakai bila nomor itu belum disimpan. Pencarian chat tetap menemukan semua nama.

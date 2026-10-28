@@ -409,6 +409,22 @@ export class Session implements SendTarget {
     this.contacts.set(jid, { ...c, name: fullName })
   }
 
+  /**
+   * The phone JIDs of these LIDs from this device's LID mapping (stored locally: no query to WhatsApp). A chat that
+   * came in by LID before its number was known is merged into the number's chat by GSI Orbit. Unknown LIDs are left out.
+   */
+  async phonesForLids(lids: string[]): Promise<Record<string, string>> {
+    const sock = this.sock
+    if (!sock) throw new MediaBusy('sesi belum terhubung', 409)
+    const out: Record<string, string> = {}
+    for (const lid of lids.slice(0, 500)) {
+      if (!isLidUser(lid)) continue
+      const pn = await sock.signalRepository.lidMapping.getPNForLID(lid).catch(() => null)
+      if (pn && !isLidUser(pn)) out[lid] = jidNormalizedUser(pn)
+    }
+    return out
+  }
+
   /** Profile lookup for the Identity agent: cached 7 days and rate-limited per hour. */
   async profile(jid: string): Promise<Profile> {
     const norm = jid.includes('@') ? jidNormalizedUser(jid) : jid.replace(/\D/g, '') + '@s.whatsapp.net'
