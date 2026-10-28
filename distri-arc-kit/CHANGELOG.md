@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Halaman Hermes Agent hanya untuk chat dengan Lyra · 2026-10-28
+- Halaman Hermes Agent sekarang hanya untuk berinteraksi dengan Lyra. Isinya tab **Chat** dan tab **Sambungan** (URL dan API key API server Hermes di device Lyra). Teks chat menyebut Lyra.
+- Panduan token MCP, YAML, daftar tool, aturan main, dan FAQ dihapus dari halaman ini. Materi itu sudah ada di **MCP Claude → Hermes Agent**. Kartu Sambungan menjelaskan bedanya: token MCP dipakai Lyra untuk membaca GSI Orbit, sedangkan API server dipakai GSI Orbit untuk bertanya ke Lyra.
+- ADR 0067 (perubahan 28 Okt).
+
 ## Fix · Tempel sel Excel di Chat terkirim sebagai gambar tabel · 2026-10-28
 - Menyalin sel dari Excel lalu menempelkannya di kolom chat sekarang menghasilkan **gambar tabel**, seperti di WhatsApp Web. Gambar tampil sebagai pratinjau lampiran, dan kolom ketik menjadi keterangannya. Sebelumnya yang masuk hanya teks selnya.
 - Teks biasa, halaman web, dan dokumen Word tetap ditempel sebagai teks. Bila browser tidak menyertakan gambar dari Excel, teks sel tetap dipakai seperti sebelumnya.

@@ -39,3 +39,12 @@ diaktifkan dengan `API_SERVER_ENABLED=true` + `API_SERVER_KEY` lalu dijalankan d
 - Pengguna di Orbit dan pemilik device Hermes sama-sama bisa melihat isi percakapan, karena transkrip juga tersimpan di
   sisi Hermes. Isi pertanyaan dikirim apa adanya ke Hermes, termasuk ke provider model yang dipakai Hermes.
 - Jawaban belum di-stream per kata. Indikator "sedang mengetik…" muncul sampai jawaban lengkap tiba.
+
+## Perubahan 28 Okt — halaman Hermes Agent hanya untuk Lyra
+Sam: "hermes sama mcp itu beda". Halaman Hermes Agent sekarang hanya untuk berinteraksi dengan Lyra (Hermes Agent
+perusahaan). Isinya tab **Chat** dan tab **Sambungan** (URL dan API key API server Hermes). Materi MCP (token, YAML
+`mcp_servers`, daftar tool, aturan main, FAQ) dihapus dari halaman ini. Materi itu sudah ada di **MCP Claude → Hermes
+Agent** dan **Token manual**. Kedua sambungan berbeda: token MCP dipakai Lyra untuk membaca GSI Orbit, sedangkan API
+server dipakai GSI Orbit untuk bertanya ke Lyra. Rute API tetap di bawah `/api/mcp/hermes/…` dan hak bukanya tetap
+mengikuti menu MCP. Alasannya, Lyra membaca semua data lewat tokennya, jadi pengguna yang hanya boleh melihat dealernya
+sendiri tidak boleh bertanya lewat Lyra.

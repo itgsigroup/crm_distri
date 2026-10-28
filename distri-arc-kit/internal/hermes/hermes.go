@@ -176,7 +176,7 @@ func (Fake) Chat(_ context.Context, _ string, msgs []Msg) (string, error) {
 	if len(q) > 160 {
 		q = q[:160] + "…"
 	}
-	return "Mode demo — Hermes belum disambungkan ke halaman ini.\n\nPertanyaan Anda: “" + q + "”\n\n" +
-		"Untuk chat dengan Hermes sungguhan: di device Hermes isi API_SERVER_ENABLED=true dan API_SERVER_KEY di ~/.hermes/.env, " +
-		"jalankan `hermes gateway`, lalu CEO mengisi URL dan API key di tab Pengaturan halaman ini.", nil
+	return "Mode demo — Lyra belum disambungkan ke halaman ini.\n\nPertanyaan Anda: “" + q + "”\n\n" +
+		"Untuk chat dengan Lyra sungguhan: di device Lyra isi API_SERVER_ENABLED=true dan API_SERVER_KEY di ~/.hermes/.env, " +
+		"jalankan `hermes gateway`, lalu CEO mengisi URL dan API key di tab Sambungan halaman ini.", nil
 }
