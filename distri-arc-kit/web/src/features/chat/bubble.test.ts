@@ -1,26 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bubbleLine, callLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
-
-describe('bubbleLine', () => {
-  it('a customer order waiting too long', () => {
-    // no rule-based request reading in the bubble (ADR 0032): only the measured wait
-    const l = bubbleLine({ state: 'needs_reply', wait_min: 300, analyzed: true, intent: 'order', items: [{ name: 'Kamera IP 4MP', qty: 10 }] })
-    expect(l).toEqual({ state: 'menunggu 5 jam — perlu dibalas', tone: 'bad' })
-  })
-  it('answered quickly, answered late, and the sales side', () => {
-    expect(bubbleLine({ state: 'replied', wait_min: 25, analyzed: true, intent: 'ask_price' }).tone).toBe('good')
-    expect(bubbleLine({ state: 'replied', wait_min: 200, analyzed: true }).state).toBe('dibalas 3 jam kemudian')
-    expect(bubbleLine({ state: 'reply', wait_min: 45, analyzed: true, intent: 'none' })).toEqual({ state: 'membalas setelah pelanggan menunggu 45 menit', tone: 'good' })
-    expect(bubbleLine({ state: 'follow_up', wait_min: null, analyzed: true }).state).toBe('sales menyapa lebih dulu')
-  })
-  it('a holding reply ("tunggu sebentar") is not an answer (ADR 0034)', () => {
-    expect(bubbleLine({ state: 'holding', wait_min: 10, analyzed: true })).toEqual({ state: 'jawaban sementara setelah 10 menit — belum menjawab, waktu respon tetap berjalan', tone: 'warn' })
-  })
-  it('a closing message and a bubble not analysed yet carry no request', () => {
-    expect(bubbleLine({ state: 'closing', wait_min: null, analyzed: true, intent: 'other' })).toEqual({ state: '', tone: 'neutral' })
-    expect(bubbleLine({ state: 'waiting', wait_min: 10, analyzed: false }).request).toBeUndefined()
-  })
-})
+import { callLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 
 describe('bubble media and edits', () => {
   it('shows the caption without the media label', () => {

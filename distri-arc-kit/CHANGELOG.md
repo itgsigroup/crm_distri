@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Label waktu balas di bawah bubble dihapus · 2026-10-28
+- Label "dibalas N menit kemudian", "belum dianalisa", dan "jawaban sementara · waktu respon tetap berjalan" tidak lagi tampil di bawah bubble chat. Waktu balas cukup dilihat di kartu **Statistik** chat (Median balasan, Dibalas < 1 jam, Belum dibalas).
+- Catatan Claude dari analisis WhatsApp tetap tampil di bawah bubble bila ada.
+
 ## Feat · Lyra di bawah bubble: stok per kota dan harga DPP, diskon, kirim ke pelanggan · 2026-10-28
 - Pesan pelanggan yang menanyakan barang, baik tulisan maupun **foto**, dibaca oleh Hermes Agent **Lyra**. Di bawah bubble muncul kartu berisi barang yang dimaksud, stok per kota (dengan rincian gudang bila ada), dan **harga DPP** per barang sesuai tier dealer (atau harga list).
 - Isi **Diskon %** di kartu: harga per barang dan total langsung dihitung ulang. Qty per barang bisa diubah (awalnya jumlah yang diminta pelanggan).

@@ -12,7 +12,7 @@ import { useChatContext, useNow, useThread, useThreads, useWAStatus } from '../.
 import { ConnectPanel, holderOf, labelOf, NumberRail, NumberSheet, PairSheet, phoneOf, teamName } from './Connect'
 import { countFilters, displayTitle, FILTERS, fmtPhone, inFilter, lookupLinks, matchThread, searchKey, waitLabel, type Filter } from './inbox'
 import { AttachMenu, ContactSheet, FilePreview, MAX_FILE, Mic, PollSheet, RecordingBar, useVoiceRecorder } from './Composer'
-import { bubbleLine, callLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
+import { callLine, contactCard, deletableNow, editableNow, fmtDuration, fmtSize, forwardable, mediaCaption, mediaName } from './bubble'
 import { ForwardSheet } from './Forward'
 import { ChatSearch, Marked } from './ChatSearch'
 import { LabelChips, LabelSheet, PinnedBar, useChatLabels } from './Labels'
@@ -322,15 +322,13 @@ function ThreadList({ list, loaded, filter, setFilter, account, active, onPick, 
 }
 
 /** Analisa WhatsApp under one bubble: the request, the reply state, the AI note (ADR 0027). */
+/** Claude's note on a bubble from the last analysis (MCP). The reply state and waiting time are not repeated under
+ * each bubble — they live in the chat's Statistik card (Sam 28 Oct). */
 function BubbleAnalysis({ a, dir }: { a: NonNullable<MessageView['analysis']>; dir: MessageView['direction'] }) {
-  const l = bubbleLine(a)
+  if (!a.note) return null
   return (
     <div className={`bub-an ${dir}`}>
-      <div className="bub-an-row">
-        {l.state && <span className={`bub-an-st ${l.tone}`}>{l.state}</span>}
-        {!a.analyzed && <span className="bub-an-new">belum dianalisa</span>}
-      </div>
-      {a.note && <div className="bub-an-note" title="ditulis Claude lewat MCP"><span className="ai" />{a.note}</div>}
+      <div className="bub-an-note" title="ditulis Claude lewat MCP"><span className="ai" />{a.note}</div>
     </div>
   )
 }
@@ -535,9 +533,6 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
       </div>
       <LabelChips ids={m.labels} className="bub-lbls" />
       {m.auto_reply && <span className="bub-hold" title="Pesan otomatis WhatsApp Business — bukan jawaban dan bukan permintaan">balasan otomatis · tidak dihitung</span>}
-      {m.holding && !m.auto_reply && m.direction === 'out' && !(analysis && m.analysis) && (
-        <span className="bub-hold" title="Pesan ini hanya meminta pelanggan menunggu — waktu respon tetap dihitung sampai pelanggan mendapat jawaban">jawaban sementara · waktu respon tetap berjalan</span>
-      )}
       {m.suggest && m.suggest.length > 0 && onUse && <TriggerCards m={m} thread={thread} asOf={asOf} onUse={onUse} />}
       {m.lyra && <LyraCard m={m} thread={thread} onAsk={() => onLyra?.(m)} />}
       {m.proposal && <span className="ann"><span className="ai" />Usulan Claude · <AnnProposal p={m.proposal} /></span>}
