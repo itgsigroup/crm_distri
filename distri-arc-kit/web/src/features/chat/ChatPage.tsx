@@ -524,11 +524,15 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
           onLyra={onLyra && lyraAskable(m) && m.lyra?.status !== 'pending' ? () => onLyra(m) : undefined} />
         {m.can_reply && (
           <span className="bub-acts">
-            {reactable && <button type="button" onClick={() => setPicking((v) => !v)} title="Beri reaksi" aria-label="Beri reaksi" aria-expanded={picking}><ReactIcon /></button>}
+            {reactable && (
+              <span className="rx-anchor">
+                <button type="button" onClick={() => setPicking((v) => !v)} title="Beri reaksi" aria-label="Beri reaksi" aria-expanded={picking}><ReactIcon /></button>
+                {picking && <ReactionPicker mine={mine} side={m.direction === 'out' ? 'out' : 'in'} onPick={(e) => onReact?.(m, e)} onClose={closePicker} />}
+              </span>
+            )}
             <button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button>
           </span>
         )}
-        {picking && <ReactionPicker mine={mine} side={m.direction === 'out' ? 'out' : 'in'} onPick={(e) => onReact?.(m, e)} onClose={closePicker} />}
       </div>
       {!!m.reactions?.length && <ReactionChips rs={m.reactions} onPick={reactable ? (e) => onReact?.(m, e) : undefined} />}
       <LabelChips ids={m.labels} className="bub-lbls" />

@@ -1,10 +1,13 @@
-/* Reaksi per pesan (like WhatsApp): the picker over a bubble and the chips under it */
+/* Reaksi per pesan (like WhatsApp): the picker right over the 🙂 button and the chips under the bubble */
+.rx-anchor{position:relative;display:flex}
+.bub-acts:has(.rx-pick){opacity:1}
 .rx-pick{position:absolute;bottom:calc(100% + 6px);z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-lg, var(--shadow));padding:4px 6px}
-.rx-pick.rx-in{left:0}.rx-pick.rx-out{right:0}
+/* over the button, opening toward the bubble: never past the chat's edge */
+.rx-pick.rx-in{right:0}.rx-pick.rx-out{left:0}
 .rx-quick{display:flex;align-items:center;gap:2px}
-.rx-pick button{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:transparent;font-size:21px;line-height:1;cursor:pointer;box-shadow:none;color:var(--text)}
-.rx-pick button:hover{background:var(--surface-2);transform:scale(1.15)}
-.rx-pick button.is-mine{background:var(--surface-2)}
+.rx-pick.rx-pick button{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:50%;background:transparent;font-size:21px;line-height:1;cursor:pointer;box-shadow:none;color:var(--text)}
+.rx-pick.rx-pick button:hover{background:var(--surface-2);transform:scale(1.15)}
+.rx-pick.rx-pick button.is-mine{background:var(--surface-2)}
 .rx-pick .rx-plus{font-size:20px;font-weight:500;color:var(--text-2)}
 .rx-more{display:grid;grid-template-columns:repeat(8,34px);gap:2px;max-height:150px;overflow-y:auto;border-top:1px solid var(--line);margin-top:4px;padding-top:4px}
 .rx-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:-6px;position:relative;z-index:1;max-width:min(560px,80%)}
