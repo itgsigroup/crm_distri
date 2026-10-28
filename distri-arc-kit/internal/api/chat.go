@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	qrcode "github.com/skip2/go-qrcode"
 
+	"distri-arc/internal/hermes"
 	"distri-arc/internal/httpx"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/llm"
@@ -57,6 +58,7 @@ func (s *Server) chatRoutes(r chi.Router) {
 	r.Delete("/internal-numbers/{wa}", s.deleteInternalNumber)
 	s.chatLabelRoutes(r)
 	s.quickReplyRoutes(r)
+	s.lyraRoutes(r)
 	s.chatListRoutes(r)
 	s.chatBackupRoutes(r)
 	r.Get("/wa/groups", s.waGroups)
@@ -489,8 +491,10 @@ type MessageView struct {
 	CanDelete bool `json:"can_delete,omitempty"`
 	// Suggest: the AI Trigger cards from the data for a customer message (ADR 0038, 0041); the sales decides
 	Suggest []*replyrule.Suggestion `json:"suggest,omitempty"`
-	Labels  []uuid.UUID             `json:"labels,omitempty"`
-	Pinned  bool                    `json:"pinned,omitempty"`
+	// Lyra: the Hermes Agent's card — stock per city and DPP price of the products the message asks about (ADR 0070)
+	Lyra   *hermes.Card `json:"lyra,omitempty"`
+	Labels []uuid.UUID  `json:"labels,omitempty"`
+	Pinned bool         `json:"pinned,omitempty"`
 	// Starred: the person viewing starred it (Pesan berbintang — each person's own, Sam 22 Oct)
 	Starred bool `json:"starred,omitempty"`
 	// Mentions: the members the text tags — "@<token>" in Body is shown as "@<name>"
@@ -772,6 +776,9 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.attachSuggestions(r.Context(), out, t.ThreadBranch, t.DealerID, now); err != nil {
 		s.log.Warn("reply suggestions", "err", err) // a suggestion never stops the chat from loading
+	}
+	if err := s.attachLyra(r.Context(), t, out, now); err != nil {
+		s.log.Warn("lyra cards", "err", err) // nor does Lyra's card
 	}
 	var lastAnalysis *time.Time
 	if k := deref(t.Kind); k == "dealer" || k == "new" || (k == "group" && deref(t.GroupKind) == "external") {

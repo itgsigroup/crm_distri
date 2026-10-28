@@ -28,6 +28,24 @@ const (
 type Msg struct {
 	Role    string `json:"role"` // system | user | assistant
 	Content string `json:"content"`
+	// Images: photos sent with the turn as data URLs (a customer's product photo, ADR 0070)
+	Images []string `json:"-"`
+}
+
+// MarshalJSON writes a turn with photos as OpenAI content parts (text first, then each image_url).
+func (m Msg) MarshalJSON() ([]byte, error) {
+	type plain struct {
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
+	if len(m.Images) == 0 {
+		return json.Marshal(plain{m.Role, m.Content})
+	}
+	parts := []map[string]any{{"type": "text", "text": m.Content}}
+	for _, u := range m.Images {
+		parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]string{"url": u}})
+	}
+	return json.Marshal(map[string]any{"role": m.Role, "content": parts})
 }
 
 // Agent answers a conversation. sessionKey scopes Hermes' long-term memory to one Orbit user.

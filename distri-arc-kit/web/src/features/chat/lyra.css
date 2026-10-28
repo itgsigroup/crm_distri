@@ -1,0 +1,39 @@
+/* Lyra di bawah bubble (ADR 0070): the Hermes Agent's product card under a customer's bubble. */
+.lyra{--ly:var(--indigo);align-self:flex-start;max-width:min(520px,94%);margin-top:4px;padding:8px 10px 8px 11px;border-radius:10px;font-size:12.5px;background:color-mix(in srgb,var(--ly) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--ly) 28%,transparent);border-left:3px solid var(--ly);display:flex;flex-direction:column;gap:6px}
+.lyra.is-err{--ly:var(--bad)}
+.lyra-tag{display:flex;align-items:center;flex-wrap:wrap;gap:2px 4px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ly)}
+.lyra-tag .i{width:11px;height:11px}
+.lyra-tag span{font-weight:500;letter-spacing:0;text-transform:none;color:var(--text-3)}
+.lyra-again{margin-left:auto;display:inline-flex;align-items:center;gap:3px;border:0;background:none;padding:0 2px;font:inherit;font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text-3);cursor:pointer}
+.lyra-again:hover{color:var(--ly)}
+.lyra-wait{display:flex;align-items:center;gap:6px;color:var(--ly)}
+.lyra-wait .i{width:13px;height:13px;animation:lyra-pulse 1.2s ease-in-out infinite}
+@keyframes lyra-pulse{50%{opacity:.35}}
+.lyra-n{color:var(--text-2);display:flex;align-items:center;gap:5px}
+.lyra-n.bad{color:var(--bad)}
+.lyra-n .i{width:13px;height:13px;flex:none}
+.lyra-it{display:flex;flex-direction:column;gap:3px;padding:6px 8px;border-radius:8px;background:var(--surface);border:1px solid var(--line)}
+.lyra-it-h{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.lyra-it-h small,.lyra-asked,.lyra-meta{color:var(--text-3);font-size:11px}
+.lyra-stock{display:flex;flex-wrap:wrap;gap:3px 10px;align-items:baseline;font-variant-numeric:tabular-nums}
+.lyra-tot{font-weight:700}
+.lyra-tot.good{color:var(--good)}.lyra-tot.warn{color:var(--warn)}.lyra-tot.bad{color:var(--bad)}
+.lyra-city b{font-weight:600}
+.lyra-city small{color:var(--text-3)}
+.lyra-price{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-variant-numeric:tabular-nums}
+.lyra-price s,.lyra-total s{color:var(--text-3);font-weight:400}
+.lyra-calc{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.lyra-qty{display:inline-flex;align-items:center;gap:4px;color:var(--text-2)}
+.lyra-qty input{width:64px;height:26px;padding:0 6px;border:1px solid var(--line-strong);border-radius:var(--r-xs);background:var(--surface);color:var(--text);font:inherit;font-variant-numeric:tabular-nums}
+.lyra-sub b{color:var(--text)}
+.lyra-ft{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding-top:6px;border-top:1px dashed color-mix(in srgb,var(--ly) 35%,transparent)}
+.lyra-disc{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--text-2)}
+.lyra-disc input{width:58px;height:28px;padding:0 6px;text-align:right;border:1px solid color-mix(in srgb,var(--ly) 45%,var(--line-strong));border-radius:var(--r-xs);background:var(--surface);color:var(--text);font:inherit;font-weight:700;font-variant-numeric:tabular-nums}
+.lyra-disc input:focus{outline:2px solid color-mix(in srgb,var(--ly) 45%,transparent);outline-offset:1px}
+.lyra-total{display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:2px 6px;font-variant-numeric:tabular-nums}
+.lyra-total b{font-size:14px}
+.lyra-total small{color:var(--good);font-size:11px;font-weight:600}
+.lyra-send{margin-left:auto;height:30px;font-size:12.5px}
+.lyra-sheet textarea{width:100%;min-height:240px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--text);font:inherit;font-size:13.5px;line-height:1.5;resize:vertical}
+.lyra-sheet small{display:block;margin-top:6px;color:var(--text-3)}
+@media (max-width:560px){.lyra-send{margin-left:0;width:100%;justify-content:center}}

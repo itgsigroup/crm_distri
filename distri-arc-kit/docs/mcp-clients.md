@@ -57,3 +57,9 @@ Halaman **Hermes Agent → Chat** dipakai untuk chat dengan Hermes yang sama den
 3. CEO membuka **Hermes Agent → Panduan & koneksi → Chat Hermes di halaman ini**, mengisi URL dan API key, lalu menekan **Periksa & simpan**. GSI Orbit memeriksanya ke `GET /v1/models` sebelum disimpan terenkripsi.
 
 Riwayat chat milik masing-masing pengguna. Selama Hermes belum tersambung, chat berjalan dalam mode demo.
+
+## Lyra di bawah bubble chat (ADR 0070)
+Setelah chat Hermes tersambung (bagian di atas), Hermes yang sama (Lyra) juga membaca pesan pelanggan yang menanyakan
+barang, baik teks maupun foto, langsung di halaman **Chat**. Di bawah bubble muncul stok per kota/gudang dan harga DPP.
+Sales mengisi diskon %, menekan **Kirim ke pelanggan**, mengedit pesan, lalu menekan **Kirim**. Supaya foto bisa dibaca,
+model yang dipakai Hermes harus mendukung gambar (vision). Bila tidak, Lyra membaca teksnya saja.

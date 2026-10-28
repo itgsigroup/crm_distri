@@ -20,6 +20,7 @@ import { hasLabel, pinnedFirst } from './chatLabels'
 import { ChatRowMenu } from './ChatRowMenu'
 import { pastedImage } from './paste'
 import { TriggerCard, type DraftAI } from '../aitrigger/TriggerCard'
+import { LyraCard, lyraAskable } from './LyraCard'
 import type { ChatHit } from './findInChat'
 import { insertMention, matchMembers, mentionParts, mentionQuery, toWire, type Member } from './mentions'
 import { insertQuick, matchQuick, slashQuery } from './quickReplyText'
@@ -357,9 +358,9 @@ function ReplyIcon() {
 }
 
 /** WhatsApp-style menu of one bubble (⌄ in its corner): Balas, Salin, Edit, Hapus untuk semua orang. */
-function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward, onPin, onStar, onLabel }: {
+function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward, onPin, onStar, onLabel, onLyra }: {
   m: MessageView; edit: boolean; del: boolean; onReply: () => void; onEdit: () => void; onDelete: () => void; onForward?: () => void
-  onPin?: () => void; onStar?: () => void; onLabel?: () => void
+  onPin?: () => void; onStar?: () => void; onLabel?: () => void; onLyra?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
@@ -386,6 +387,7 @@ function BubbleMenu({ m, edit, del, onReply, onEdit, onDelete, onForward, onPin,
           {onStar && <button type="button" role="menuitem" onClick={pick(onStar)}><Icon name="star" />{m.starred ? 'Hapus bintang' : 'Beri bintang'}</button>}
           {onPin && <button type="button" role="menuitem" onClick={pick(onPin)}><Icon name="pin" />{m.pinned ? 'Lepas sematan' : 'Sematkan'}</button>}
           {onLabel && <button type="button" role="menuitem" onClick={pick(onLabel)}><Icon name="tag" />Label</button>}
+          {onLyra && <button type="button" role="menuitem" onClick={pick(onLyra)}><Icon name="spark" />Tanya Lyra (stok & harga)</button>}
           {edit && <button type="button" role="menuitem" onClick={pick(onEdit)}><Icon name="edit" />Edit</button>}
           {del && <button type="button" role="menuitem" className="bad" onClick={pick(onDelete)}><Icon name="x" />Hapus untuk semua orang</button>}
         </span>
@@ -480,9 +482,11 @@ function TriggerCards({ m, thread, asOf, onUse }: { m: MessageView; thread: stri
 /** The first letter of the admin who sent a message: the small round chip on the label. */
 export const senderInitial = (name: string) => (name.trim().replace(/^(Pak|Bu|Mbak|Mas)\s+/i, '')[0] ?? '?').toUpperCase()
 
-function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark, onPin, onStar, onLabel, onMember }: {
+function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelete, onJump, onZoom, onUse, asOf, mark, onPin, onStar, onLabel, onMember, onLyra }: {
   m: MessageView; via: string; group: boolean; analysis: boolean; thread: string; now: Date; mark?: string
   onPin?: (m: MessageView) => void; onStar?: (m: MessageView) => void; onLabel?: (m: MessageView) => void; onMember?: (number: string) => void
+  /** Lyra (Hermes Agent) reads the bubble's products: stock per city and DPP price (ADR 0070) */
+  onLyra?: (m: MessageView) => void
   onEdit: (m: MessageView) => void; onReply: (m: MessageView) => void; onDelete: (m: MessageView) => void; onJump: (id: string) => void; onZoom: (url: string) => void
   onUse?: (m: MessageView, text: string) => void; asOf?: string | null
 }) {
@@ -525,7 +529,8 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
         <span className="tm">{m.starred && <Icon name="star" className="i tm-star" />}{m.pinned && <Icon name="pin" className="i tm-pin" />}{m.edited_at ? 'diedit · ' : ''}{m.direction === 'out' ? `${via}${m.status === 'sent' && m.signal_id == null ? ' · terkirim' : m.status === 'pending' ? (m.held ? ' · tertahan' : ' · mengirim…') : m.status === 'failed' ? ' · gagal' : ''} · ` : ''}{hhmm(m.sent_at)}</span>
         {m.status === 'pending' && m.held && <span className="bub-held" role="note"><Icon name="shield" />{m.held} · terkirim otomatis begitu diizinkan</span>}
         <BubbleMenu m={m} edit={edit} del={del} onReply={() => onReply(m)} onEdit={() => onEdit(m)} onDelete={() => onDelete(m)} onForward={forward ? () => openSheet(<ForwardSheet m={m} from={thread} />) : undefined}
-          onPin={onPin && m.status !== 'pending' && m.status !== 'failed' ? () => onPin(m) : undefined} onStar={onStar ? () => onStar(m) : undefined} onLabel={onLabel ? () => onLabel(m) : undefined} />
+          onPin={onPin && m.status !== 'pending' && m.status !== 'failed' ? () => onPin(m) : undefined} onStar={onStar ? () => onStar(m) : undefined} onLabel={onLabel ? () => onLabel(m) : undefined}
+          onLyra={onLyra && lyraAskable(m) && m.lyra?.status !== 'pending' ? () => onLyra(m) : undefined} />
         {m.can_reply && <span className="bub-acts"><button type="button" onClick={() => onReply(m)} title="Balas pesan ini" aria-label="Balas"><ReplyIcon /></button></span>}
       </div>
       <LabelChips ids={m.labels} className="bub-lbls" />
@@ -534,13 +539,14 @@ function Bubble({ m, via, group, analysis, thread, now, onEdit, onReply, onDelet
         <span className="bub-hold" title="Pesan ini hanya meminta pelanggan menunggu — waktu respon tetap dihitung sampai pelanggan mendapat jawaban">jawaban sementara · waktu respon tetap berjalan</span>
       )}
       {m.suggest && m.suggest.length > 0 && onUse && <TriggerCards m={m} thread={thread} asOf={asOf} onUse={onUse} />}
+      {m.lyra && <LyraCard m={m} thread={thread} onAsk={() => onLyra?.(m)} />}
       {m.proposal && <span className="ann"><span className="ai" />Usulan Claude · <AnnProposal p={m.proposal} /></span>}
       {analysis && m.analysis && <BubbleAnalysis a={m.analysis} dir={m.direction} />}
     </div>
   )
 }
 
-type BubbleActs = Pick<Parameters<typeof Bubble>[0], 'onEdit' | 'onReply' | 'onDelete' | 'onJump' | 'onZoom' | 'onUse' | 'onPin' | 'onStar' | 'onLabel' | 'onMember'>
+type BubbleActs = Pick<Parameters<typeof Bubble>[0], 'onEdit' | 'onReply' | 'onDelete' | 'onJump' | 'onZoom' | 'onUse' | 'onPin' | 'onStar' | 'onLabel' | 'onMember' | 'onLyra'>
 
 /** The bubbles of a chat. Memoised with stable actions: typing in the reply box does not redraw a long chat (a
  * year of messages), which made typing lag on slower laptops. */
@@ -873,6 +879,12 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     setReplying(m)
     requestAnimationFrame(() => input.current?.focus())
   }
+  // Lyra di bawah bubble (ADR 0070): the Hermes Agent reads (again) the products a customer's bubble asks about
+  const askLyra = useMutation({
+    mutationFn: (m: MessageView) => api.post(`/chat/threads/${id}/messages/${m.id}/lyra`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['chat', 'thread', id] }),
+    onError: (e: Error) => toast(e.message),
+  })
   // Rekomendasi balasan: the draft goes into the box as a reply to that message, for the sales to edit and send
   const useSuggestion = (m: MessageView, draft: string) => {
     setEditing(null)
@@ -1032,9 +1044,9 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     el.style.height = Math.min(el.scrollHeight, 140) + 'px'
   }, [text, data])
   // the bubbles' actions read the latest handlers through a ref, so the memoised list keeps the same props while typing
-  const handlers = useRef({ startEdit, startReply, deleteMsg, jumpTo, useSuggestion, pin: pin.mutate, star: star.mutate, labelMsg, openMember })
+  const handlers = useRef({ startEdit, startReply, deleteMsg, jumpTo, useSuggestion, pin: pin.mutate, star: star.mutate, labelMsg, openMember, lyra: askLyra.mutate })
   useLayoutEffect(() => {
-    handlers.current = { startEdit, startReply, deleteMsg, jumpTo, useSuggestion, pin: pin.mutate, star: star.mutate, labelMsg, openMember }
+    handlers.current = { startEdit, startReply, deleteMsg, jumpTo, useSuggestion, pin: pin.mutate, star: star.mutate, labelMsg, openMember, lyra: askLyra.mutate }
   })
   const acts = useMemo<BubbleActs>(() => ({
     onEdit: (m) => handlers.current.startEdit(m),
@@ -1047,6 +1059,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     onStar: (m) => handlers.current.star(m),
     onLabel: (m) => handlers.current.labelMsg(m),
     onMember: (n) => { handlers.current.openMember(n).catch(() => {}) },
+    onLyra: (m) => handlers.current.lyra(m),
   }), [])
   const messages = useMemo(() => [...older, ...(data?.messages ?? [])], [older, data?.messages])
   if (!data) return <div className="pane th-pane ibc" />

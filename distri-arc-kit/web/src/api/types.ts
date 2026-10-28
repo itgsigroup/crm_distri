@@ -336,6 +336,8 @@ export interface MessageView {
   auto_reply?: boolean
   /** AI Trigger cards from the data (ADR 0038, 0041) */
   suggest?: ReplySuggestion[]
+  /** Lyra (Hermes Agent): stock per city and DPP price of the products the message asks about (ADR 0070) */
+  lyra?: LyraCard
   annotation: Annotation | null
   signal_id: string | null
   proposal?: { id: string; button: string; status: ProposalStatus; executed_at: string | null; decided_at: string | null }
@@ -695,6 +697,29 @@ export interface ScreenAnalysis {
 
 // ---------- AI Trigger (ADR 0038, ADR 0041) ----------
 export type ReplyAction = 'stock' | 'price' | 'credit' | 'order'
+/** Lyra di bawah bubble (ADR 0070): the products Lyra found, with stock and price computed by GSI Orbit. */
+export interface LyraCard {
+  status: 'pending' | 'done' | 'error'
+  items: LyraLine[]
+  note?: string
+  demo?: boolean
+  /** the dealer tier the prices are for; '' = list price (tier A) */
+  tier: string
+  read_at?: string | null
+}
+
+export interface LyraLine {
+  sku: string
+  product: string
+  /** quantity the customer asked; 0 = not said */
+  asked: number
+  /** DPP (before PPN) per unit; 0 = no price yet */
+  price: number
+  /** every city */
+  stock: number
+  cities: { city: string; qty: number; warehouses?: { name: string; qty: number }[] }[]
+}
+
 export interface ReplySuggestion {
   rule_id: string; rule: string; action: ReplyAction; keyword: string; headline: string; tone: 'good' | 'warn' | 'bad' | 'neutral'
   facts: { label: string; value: string }[]; product?: string; sku?: string; branch?: string; qty: number

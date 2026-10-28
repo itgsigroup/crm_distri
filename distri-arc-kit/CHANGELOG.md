@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Lyra di bawah bubble: stok per kota dan harga DPP, diskon, kirim ke pelanggan · 2026-10-28
+- Pesan pelanggan yang menanyakan barang, baik tulisan maupun **foto**, dibaca oleh Hermes Agent **Lyra**. Di bawah bubble muncul kartu berisi barang yang dimaksud, stok per kota (dengan rincian gudang bila ada), dan **harga DPP** per barang sesuai tier dealer (atau harga list).
+- Isi **Diskon %** di kartu: harga per barang dan total langsung dihitung ulang. Qty per barang bisa diubah (awalnya jumlah yang diminta pelanggan).
+- **Kirim ke pelanggan** membuka pesan siap kirim yang bisa diedit. Pesan baru terkirim setelah Anda menekan **Kirim**, sebagai balasan bubble itu, lewat antrean anti-blokir.
+- Lyra hanya memilih barang dari katalog. Stok dan harga dihitung GSI Orbit. Pesan lain bisa dikirim ke Lyra lewat menu bubble **Tanya Lyra (stok & harga)**, dan kartu bisa diminta **Baca ulang**. Tanpa Hermes tersambung, kartu berjalan dalam mode demo.
+- ADR 0070 · migrasi 0068 (`hermes_product_reads`) · test: `TestLyraProductCard`, `internal/hermes` (`TestAsks`, `TestResolve`, `TestBuildCard`), `lyra.test.ts`.
+
 ## Fix · Esc benar-benar menutup chat dan panel Lead · 2026-10-27
 - Sebelumnya, Esc (dan tombol kembali) mengubah alamat ke `/chat`, tetapi chat dan panel Lead tetap tampil. Penyebabnya, halaman menyimpan chat terakhir supaya tetap terbuka saat filter diganti, dan chat itu tersimpan lagi sebelum alamat selesai berubah.
 - Sekarang chat yang ditutup tidak disimpan ulang, dan halaman langsung menampilkan "Pilih chat". Dicek di browser: Esc dari kotak balasan dan dari area pesan, Esc pertama membatalkan balasan, chat yang sama bisa dibuka lagi, Back browser, dan chat tetap terbuka saat filter diganti.
