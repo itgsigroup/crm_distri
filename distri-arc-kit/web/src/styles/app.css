@@ -2532,8 +2532,10 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;user-select:no
 .arx-row>.i{width:18px;height:18px;color:var(--text-3)}
 .arx-lbl{width:40px;font-size:13px;font-weight:700;color:var(--text-3)}
 .arx-chips{display:flex;flex-wrap:wrap;gap:6px}
-.arx-chips button{height:36px;min-width:48px;padding:0 12px;border-radius:10px;border:2px solid var(--line);background:var(--surface);font-size:14px;font-weight:600;color:var(--text-2)}
-.arx-chips button.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.arx-chips button{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:36px;min-width:48px;padding:0 12px;border-radius:10px;border:2px solid var(--line);background:var(--surface);font-size:14px;font-weight:600;color:var(--text-3)}
+/* chosen = green with a check, like the Lyra tile; not chosen = plain white (Sam 29 Oct: blue said nothing) */
+.arx-chips button.on{border-color:var(--good);background:var(--good);color:#fff}
+.arx-chips button .i{width:15px;height:15px;stroke-width:3}
 .arx-chips.big button{height:44px;padding:0 18px;font-size:15px}
 .arx-chips button:disabled{cursor:default}
 .arx-clock{height:44px;min-width:110px;border-radius:10px;border:2px solid var(--line);padding:0 12px;font:inherit;font-size:20px;font-weight:700;background:var(--surface);color:var(--text);cursor:pointer}

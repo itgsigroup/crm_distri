@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## UI · Chat otomatis: pilihan yang aktif hijau dengan centang · 2026-10-29
+- Tombol hari, fakta cadangan AI Trigger, dan pilihan nomor yang dipilih sekarang **hijau dengan tanda ✓** (sebelumnya biru, tanpa arti yang jelas). Yang tidak dipilih tetap putih polos.
+
 ## Fix · Chat: mengetik tidak perlu refresh lagi · 2026-10-29
 - Membuka chat langsung menaruh kursor di kotak ketik, seperti WhatsApp Web (di HP tidak, supaya keyboard tidak tiba-tiba muncul). Sebelumnya fokus tertinggal di daftar chat, jadi ketikan tidak masuk.
 - Setelah menekan tombol **Kirim** dengan mouse, kursor tetap di kotak ketik. Sebelumnya fokus pindah ke tombol yang berubah menjadi tombol rekam suara, jadi ketikan berikutnya hilang.

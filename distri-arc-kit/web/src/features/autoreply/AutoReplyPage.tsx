@@ -60,7 +60,7 @@ function Hours({ breaks, set, edit, from, to }: { breaks: HourWindow[]; set: (b:
               <span className="arx-lbl">Hari</span>
               <div className="arx-chips" role="group" aria-label="Hari">
                 {DAYS.map(([d, name]) => (
-                  <button key={d} type="button" aria-pressed={w.days.includes(d)} className={w.days.includes(d) ? 'on' : ''} disabled={!edit} onClick={() => toggleDay(i, d)}>{name}</button>
+                  <button key={d} type="button" aria-pressed={w.days.includes(d)} className={w.days.includes(d) ? 'on' : ''} disabled={!edit} onClick={() => toggleDay(i, d)}>{w.days.includes(d) && <Icon name="check" />}{name}</button>
                 ))}
               </div>
             </div>
@@ -168,7 +168,7 @@ export function AutoReplyPage() {
         <div className="arx-chips" role="group" aria-label="Cadangan AI Trigger">
           {FACTS.map(([k, label]) => (
             <button key={k} type="button" aria-pressed={s.facts.includes(k)} className={s.facts.includes(k) ? 'on' : ''} disabled={!edit}
-              onClick={() => set({ facts: s.facts.includes(k) ? s.facts.filter((x) => x !== k) : [...s.facts, k] })}>{label}</button>
+              onClick={() => set({ facts: s.facts.includes(k) ? s.facts.filter((x) => x !== k) : [...s.facts, k] })}>{s.facts.includes(k) && <Icon name="check" />}{label}</button>
           ))}
         </div>
       </Step>
@@ -185,8 +185,8 @@ export function AutoReplyPage() {
 
       <Step n={4} title="Nomor sales mana?" mark={<Mark ok={allNums || s.numbers.length > 0}>{allNums ? 'Semua nomor' : `${s.numbers.length} nomor`}</Mark>}>
         <div className="arx-chips big" role="radiogroup" aria-label="Nomor">
-          <button type="button" role="radio" aria-checked={allNums} className={allNums ? 'on' : ''} disabled={!edit} onClick={() => set({ numbers: [] })}>Semua nomor</button>
-          <button type="button" role="radio" aria-checked={!allNums} className={!allNums ? 'on' : ''} disabled={!edit || sales.length === 0} onClick={() => allNums && set({ numbers: [sales[0].wa_number] })}>Pilih sendiri</button>
+          <button type="button" role="radio" aria-checked={allNums} className={allNums ? 'on' : ''} disabled={!edit} onClick={() => set({ numbers: [] })}>{allNums && <Icon name="check" />}Semua nomor</button>
+          <button type="button" role="radio" aria-checked={!allNums} className={!allNums ? 'on' : ''} disabled={!edit || sales.length === 0} onClick={() => allNums && set({ numbers: [sales[0].wa_number] })}>{!allNums && <Icon name="check" />}Pilih sendiri</button>
         </div>
         {!allNums && (
           <ul className="ar-nums arx-nums">
