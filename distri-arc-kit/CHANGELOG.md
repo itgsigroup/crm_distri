@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Perbaikan · Chat otomatis: popup konfirmasi di tengah layar · 2026-10-29
+- Popup "Nyalakan/Matikan chat otomatis?" sekarang selalu muncul di tengah layar (desktop dan HP), tidak lagi tertinggal di bawah halaman yang panjang.
+
 ## UI · Chat otomatis: sakelar abu-abu/hijau dan popup konfirmasi · 2026-10-29
 - Tombol **Nyalakan/Matikan** menjadi sakelar: **abu-abu, bulatan di kiri, tulisan MATI** saat mati; **hijau, bulatan di kanan, tulisan NYALA** saat nyala. Kotak status juga hijau setiap kali nyala.
 - Konfirmasi sebelum menyalakan atau mematikan sekarang popup bergaya SweetAlert (ikon, tombol "Ya, nyalakan" hijau / "Ya, matikan" merah, dan Batal), bukan kotak bawaan browser.

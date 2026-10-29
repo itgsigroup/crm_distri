@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
@@ -84,9 +85,10 @@ function Hours({ breaks, set, edit, from, to }: { breaks: HourWindow[]; set: (b:
   )
 }
 
-/** The SweetAlert-style question before the switch flips (Sam 29 Oct: not the browser's confirm box). */
+/** The SweetAlert-style question before the switch flips (Sam 29 Oct: not the browser's confirm box). Portaled to <body>
+ *  so the fixed overlay centres on the screen, not inside the page's transformed container. */
 function ConfirmSwal({ on, busy, onOk, onCancel }: { on: boolean; busy: boolean; onOk: () => void; onCancel: () => void }) {
-  return (
+  return createPortal(
     <div className="swal-bg" onClick={onCancel}>
       <div className={`swal ${on ? 'swal-success' : 'swal-warning'}`} role="alertdialog" aria-modal="true" aria-labelledby="arx-swal-t" aria-describedby="arx-swal-p"
         onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); onCancel() } }}>
@@ -106,7 +108,8 @@ function ConfirmSwal({ on, busy, onOk, onCancel }: { on: boolean; busy: boolean;
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
