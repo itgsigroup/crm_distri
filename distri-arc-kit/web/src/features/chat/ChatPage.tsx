@@ -687,7 +687,7 @@ function usePerMessageAnalysis(): [boolean, (v: boolean) => void] {
 function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
   id: string; onBack: () => void; picked: boolean; lead: boolean; setLead: (v: boolean) => void; onAccurate: () => void
 }) {
-  const { data } = useThread(id)
+  const { data, isError, isFetching, refetch } = useThread(id)
   const now = useNow()
   const qc = useQueryClient()
   const { toast } = useFeedback()
@@ -1063,7 +1063,19 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     onReact: (m, emoji) => handlers.current.react({ m, emoji }),
   }), [])
   const messages = useMemo(() => [...older, ...(data?.messages ?? [])], [older, data?.messages])
-  if (!data) return <div className="pane th-pane ibc" />
+  if (!data) {
+    return (
+      <div className="pane th-pane ibc">
+        {isError && (
+          <div className="ibc-loadfail" role="alert">
+            <Icon name="alert" />
+            <span>Chat gagal dimuat — mencoba lagi otomatis…</span>
+            <button type="button" className="btn ghost" disabled={isFetching} onClick={() => refetch()}><Icon name="refresh" />Coba lagi</button>
+          </div>
+        )}
+      </div>
+    )
+  }
   const t = data.thread
   // The first page holds the last month (CHAT_OPEN_DAYS); older messages come in pages on scrolling up.
   const more = (older.length ? olderMore : !!data.has_more) && messages.length > 0

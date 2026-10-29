@@ -3,3 +3,7 @@
 .wa-logout-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
 .wa-logout-actions .btn{height:38px;font-size:14px}
 .wa-logout-actions .btn .i{width:16px;height:16px}
+
+/* a chat that failed to load: said, with a retry, instead of a blank pane */
+.ibc-loadfail{margin:auto;display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;background:var(--surface-2);color:var(--text-2);font-size:13px}
+.ibc-loadfail>.i{width:16px;height:16px;color:var(--warn,#c78a00);flex:none}

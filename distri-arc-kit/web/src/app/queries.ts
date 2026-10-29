@@ -80,7 +80,11 @@ export const useThreads = (tab = 'all', account = '', enabled = true) =>
     },
   })
 export const useThread = (id?: string) =>
-  useQuery({ queryKey: ['chat', 'thread', id], enabled: !!id, queryFn: () => api.get<ThreadDetail>(`/chat/threads/${id}`) })
+  useQuery({
+    queryKey: ['chat', 'thread', id], enabled: !!id, queryFn: () => api.get<ThreadDetail>(`/chat/threads/${id}`),
+    // a chat that failed to load (a dropped connection, a deploy) keeps trying instead of waiting for a manual reload
+    retry: 3, refetchInterval: (q) => (q.state.status === 'error' ? 5000 : false),
+  })
 export const useChatContext = (id?: string) =>
   useQuery({ queryKey: ['chat', 'context', id], enabled: !!id, queryFn: () => api.get<ChatContext>(`/chat/threads/${id}/context`) })
 export const useWAStatus = () =>
