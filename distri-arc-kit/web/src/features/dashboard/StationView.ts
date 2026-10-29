@@ -7,11 +7,13 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { CREW, CREW_OF, type CrewKey, type CrewMember, type CrewState, type CrewStatus } from './station'
 
 // Stasiun Orbit: an office deck inside a space station in three.js, rendered HD (MSAA, ACES tone mapping, bloom, PBR
-// with an environment map) — a 3D office of AI agents, with astronauts (Sam 28 Oct). The AI core (the Orchestrator)
-// floats in the middle of a round deck with panorama windows on space; ten desks stand round it, one astronaut each
-// at a console with a hologram of its work: 1 Analisa sales, 2 Analisa WhatsApp, 3 Analisa dealer, 4 Eksekusi order,
+// with an environment map) — a virtual 3D office of AI agents, with astronauts (Sam 28 Oct). The AI core (the
+// Orchestrator) floats in the atrium of a round deck with panorama windows on space; round it are ten offices, one per
+// agent (Sam 29 Oct: "setiap agent di ruangannya sendiri") — glass partitions, a glass front with a door on the
+// walkway, a floor in the agent's colour — each with one astronaut at a console with a hologram of its work: 1 Analisa sales, 2 Analisa WhatsApp, 3 Analisa dealer, 4 Eksekusi order,
 // 5 Follow-up, 6 Cek stok, 7 Cek kredit, 8 Cek penagihan, 9 Prospek, 10 Data siap. The work is a relay: an astronaut
-// that finishes takes its result capsule, walks the deck to the next desk, hands it over and walks back. A real cycle
+// that finishes takes its result capsule, leaves its office by the door, walks the corridor into the next office,
+// hands it over across the desk and walks back. A real cycle
 // drives it; "Putar alur kerja" plays the relay 1→10 as a show (no analysis runs). No customer is ever drawn — the
 // desks say what the astronaut does and counts only. Clicking a desk opens its screen.
 
@@ -35,7 +37,11 @@ const CORE_R = 1.3
 const ARC_R = 2.05 // the six stage arcs
 const DECK_Y = -1.45 // the office floor, under the floating core
 const DECK_R = 7.5 // the round deck, to the panorama windows
-const ROOM_R = 5.3 // the ring of desks
+const ROOM_R = 5.9 // the ring of desks, one in the middle of each office
+const ROOM_IN = 4.6 // the offices' glass front on the walkway
+const ROOM_H = 1.5 // office walls
+const DOOR_HW = 0.42 // half the door's width
+const ROOM_HALF = Math.PI / 10 // half an office's angle (ten offices)
 const WALK_R = 4.15 // the walkway in front of the desks, where the astronauts walk
 const DOME = 1.0 // a desk's floor pad
 const FLOOR = 0.06 // top of a desk's floor pad
@@ -601,6 +607,48 @@ export class StationView {
       const a = (k / 24) * Math.PI * 2
       sc.add(this.mesh(this.cylG(0.035, 0.035, 1.5, 8), hull, DECK_R * Math.cos(a), DECK_Y + 1.17, DECK_R * Math.sin(a)))
     }
+    // the offices' partitions: a low wall, frosted glass over it, a rail and a light strip on top
+    const len = DECK_R - ROOM_IN - 0.04
+    const mid = ROOM_IN + len / 2
+    for (let i = 0; i < CREW.length; i++) {
+      const a = roomAngle(i) + ROOM_HALF
+      const part = (geo: THREE.BufferGeometry, mat: THREE.Material, y: number) => {
+        const m = this.mesh(geo, mat)
+        m.position.copy(onRing(a, mid, DECK_Y + y))
+        m.rotation.y = -a
+        sc.add(m)
+      }
+      part(this.boxG(len, 0.35, 0.07), wallMat, 0.175)
+      part(this.boxG(len, ROOM_H - 0.35, 0.03), this.partitionGlass(), 0.35 + (ROOM_H - 0.35) / 2)
+      part(this.boxG(len, 0.04, 0.08), hull, ROOM_H)
+      part(this.boxG(len, 0.012, 0.03), this.glow(0.45, 1.1, 1.7), ROOM_H + 0.026)
+    }
+  }
+
+  /** The frosted glass of the offices' walls: the astronauts stay in sight. */
+  private partitionGlass() {
+    let m = this.mats.get('partition')
+    if (!m) { m = new THREE.MeshStandardMaterial({ color: '#b9d6ff', roughness: 0.18, metalness: 0.2, transparent: true, opacity: 0.13, depthWrite: false, envMapIntensity: 0.8, side: THREE.DoubleSide }); this.mats.set('partition', m) }
+    return m
+  }
+
+  /** An office's front on the walkway: glass from angle a1 to a2 at ROOM_IN, a low wall and a rail. */
+  private frontWall(a1: number, a2: number) {
+    const sc = this.scene
+    const arc = a2 - a1
+    const seg = (h: number, y: number, mat: THREE.Material) => {
+      const geo = this.geo(`front${a1.toFixed(4)},${arc.toFixed(4)},${h}`, () => new THREE.CylinderGeometry(ROOM_IN, ROOM_IN, h, 24, 1, true, Math.PI / 2 - a2, arc))
+      sc.add(this.mesh(geo, mat, 0, DECK_Y + y, 0))
+    }
+    seg(0.35, 0.175, this.mats.get('wall')!)
+    seg(ROOM_H - 0.35, 0.35 + (ROOM_H - 0.35) / 2, this.partitionGlass())
+    const rail = new THREE.Group()
+    const t = this.mesh(this.torusG(ROOM_IN, 0.03, arc, 24), this.std('#c7cfdc', 0.32, 0.85, 1))
+    t.rotation.x = Math.PI / 2
+    rail.add(t)
+    rail.rotation.y = -a1
+    rail.position.y = DECK_Y + ROOM_H
+    sc.add(rail)
   }
 
   /** The point on the walkway at angle a. */
@@ -734,9 +782,27 @@ export class StationView {
     g.updateMatrixWorld()
     const hull = this.std('#c7cfdc', 0.32, 0.85, 1)
     const dark = this.std('#2c3445', 0.45, 0.7, 0.8)
+    // the office: a floor in the agent's colour, the glass front with a door, the door's frame and status light
+    const floorM = this.std('#' + new THREE.Color('#141b29').lerp(new THREE.Color(m.color), 0.32).getHexString(), 0.7, 0.3, 0.5)
+    const floor = this.mesh(this.geo(`floor${i}`, () => new THREE.RingGeometry(ROOM_IN + 0.04, DECK_R - 0.06, 32, 1, -(a + ROOM_HALF), ROOM_HALF * 2)), floorM, 0, DECK_Y + 0.012, 0)
+    floor.rotation.x = -Math.PI / 2
+    sc.add(floor)
+    this.hit(floor, { kind: 'room', key: m.key })
+    const door = DOOR_HW / ROOM_IN
+    this.frontWall(a - ROOM_HALF + 0.004, a - door)
+    this.frontWall(a + door, a + ROOM_HALF - 0.004)
+    const dz = ROOM_R - ROOM_IN // the door, in the office's frame
+    for (const x of [-DOOR_HW, DOOR_HW]) g.add(this.mesh(this.boxG(0.07, ROOM_H + 0.2, 0.09), hull, x, (ROOM_H + 0.2) / 2, dz))
+    g.add(this.mesh(this.boxG(DOOR_HW * 2 + 0.07, 0.12, 0.09), hull, 0, ROOM_H + 0.2, dz))
+    const status = this.own('status' + m.key)
+    g.add(this.mesh(this.boxG(DOOR_HW * 2 - 0.06, 0.04, 0.02), status, 0, ROOM_H + 0.2, dz + 0.05))
+    g.add(this.mesh(this.boxG(DOOR_HW * 2, 0.008, 0.07), this.hdr(m.color, 1.6), 0, 0.01, dz))
+    // a plant in the corner
+    g.add(this.mesh(this.cylG(0.13, 0.1, 0.26, 16), this.std('#e8e2d6', 0.6, 0, 0.5), -1.45, 0.13, -0.85))
+    const leaves = this.std('#3f8f5a', 0.75, 0, 0.5)
+    ;[[0, 0.42, 0, 0.17], [0.07, 0.56, 0.04, 0.12], [-0.06, 0.52, -0.05, 0.11]].forEach(([x, y, z, r]) => g.add(this.mesh(this.sphere(r, 14), leaves, -1.45 + x, y, -0.85 + z)))
     // the desk's floor pad with the status light round it (its colour is the astronaut's state)
     g.add(this.mesh(this.cylG(DOME, DOME + 0.04, 0.06, 48), this.std('#1a2232', 0.55, 0.6, 0.6), 0, FLOOR / 2, 0))
-    const status = this.own('status' + m.key)
     const ringM = this.mesh(this.torusG(DOME + 0.02, 0.03, Math.PI * 2, 72), status, 0, FLOOR, 0)
     ringM.rotation.x = Math.PI / 2
     g.add(ringM)
@@ -977,14 +1043,18 @@ export class StationView {
 
   // ---------- the relay: walking a result to the next desk ----------
 
-  /** The way from a desk to the next one: round its desk to the walkway, along it, to the front of the next desk. */
+  /** The way from a desk to the next one: round its desk, out of the office's door to the walkway, along it, in by
+   * the next office's door to the front of its desk. */
   private route(from: Room, to: Room): THREE.Vector3[] {
     const y = from.home.y
     const w = (r: Room, x: number, z: number) => r.g.localToWorld(new THREE.Vector3(x, y, z)).setY(DECK_Y + y)
-    const goal = w(to, 0, ROOM_R - WALK_R - 0.05)
-    const sides = [0.85, -0.85].map((x) => [w(from, x, -0.12), w(from, x, ROOM_R - WALK_R)])
-    const [side, out] = sides.sort((p, q) => p[1].distanceTo(goal) - q[1].distanceTo(goal))[0]
-    const pts = [w(from, 0, -0.12), side, out]
+    const dz = ROOM_R - ROOM_IN
+    const lane = ROOM_R - WALK_R
+    const goal = w(to, 0, lane)
+    const sides = [0.85, -0.85].map((x) => [w(from, x, -0.12), w(from, x, 0.95)])
+    const [side, past] = sides.sort((p, q) => p[1].distanceTo(goal) - q[1].distanceTo(goal))[0]
+    const out = w(from, 0, lane)
+    const pts = [w(from, 0, -0.12), side, past, w(from, 0, dz - 0.2), w(from, 0, dz + 0.15), out]
     let a0 = Math.atan2(out.z, out.x)
     const a1 = Math.atan2(goal.z, goal.x)
     let da = a1 - a0
@@ -992,7 +1062,7 @@ export class StationView {
     while (da < -Math.PI) da += Math.PI * 2
     const n = Math.max(2, Math.ceil(Math.abs(da) / 0.12))
     for (let k = 1; k < n; k++) { a0 += da / n; pts.push(this.lanePoint(a0).setY(DECK_Y + y)) }
-    pts.push(goal)
+    pts.push(goal, w(to, 0, dz + 0.15), w(to, 0, dz - 0.2), w(to, 0, 0.98))
     return pts
   }
 

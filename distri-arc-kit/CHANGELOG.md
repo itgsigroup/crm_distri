@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## UI · Dashboard: kantor virtual 3D, setiap agent di ruangannya sendiri · 2026-10-29
+- Stasiun Orbit di dashboard sekarang berupa kantor virtual: sepuluh ruangan kaca mengelilingi Orchestrator di tengah, satu ruangan per agent, dengan lantai berwarna agent, pintu ke lorong, dan lampu status di atas pintu.
+- Klik di mana saja dalam ruangan membuka layar agent itu. Saat menyerahkan hasil, astronaut keluar lewat pintu, berjalan di lorong, lalu masuk ke ruangan agent berikutnya.
+
 ## Perbaikan · Chat otomatis: Lyra menjawab stok sendiri, tidak melempar ke sales · 2026-10-29
 - Pertanyaan yang hanya menyebut merek/jenis (mis. "cek stok cctv hilook semarang") sekarang dijawab dengan pilihan barang merek itu yang ada stoknya di kota yang ditanya, beserta stok dan harga DPP dari sistem (maks. 6 barang).
 - Lyra tidak lagi menjawab "sales akan mengabari": bila datanya kurang, Lyra bertanya balik (tipe, jumlah) atau menawarkan barang yang mendekati (ADR 0079).
