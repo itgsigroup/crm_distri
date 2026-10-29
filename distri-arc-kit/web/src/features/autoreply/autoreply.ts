@@ -40,8 +40,16 @@ export interface AutoReplyInfo {
 /** 1 = Senin … 7 = Minggu, as the server counts. */
 export const DAYS: [number, string][] = [[1, 'Sen'], [2, 'Sel'], [3, 'Rab'], [4, 'Kam'], [5, 'Jum'], [6, 'Sab'], [7, 'Min']]
 
-/** The AI Trigger facts a fallback answer may give. */
+/** The topics an automatic reply may give, by Lyra and AI Trigger alike (ADR 0080). */
 export const FACTS: [string, string][] = [['stock', 'Stok'], ['price', 'Harga'], ['order', 'Status order'], ['credit', 'Limit & tagihan']]
+
+/** What a topic does when ticked, and when not. */
+export const TOPIC_HINT: Record<string, [string, string]> = {
+  stock: ['Jumlah stok per kota dari sistem.', 'Tidak menyebut jumlah stok — “akan kami cek ketersediaannya”.'],
+  price: ['Harga DPP sesuai tier dealer dari sistem.', 'Tidak menyebut harga — “harganya akan kami konfirmasi”.'],
+  order: ['Status pesanan pelanggan dari sistem.', 'Tidak menjawab status order.'],
+  credit: ['Sisa limit dan tagihan pelanggan.', 'Tidak menjawab limit & tagihan.'],
+}
 
 export const KIND_LABEL: Record<AutoReplyLog['kind'], string> = { lyra: 'Lyra', fact: 'AI Trigger', template: 'Template' }
 

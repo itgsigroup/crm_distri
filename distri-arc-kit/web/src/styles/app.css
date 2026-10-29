@@ -2566,6 +2566,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;user-select:no
 .arx-tile>span:last-child{display:flex;flex-direction:column;gap:3px}
 .arx-tile b{font-size:16px;color:var(--text)}
 .arx-tile small{font-size:13px;color:var(--text-2)}
+.arx-topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:8px}
 .arx-box{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none;border:2px solid var(--line);background:var(--surface);color:var(--text-3)}
 .arx-tile.on .arx-box{border-color:var(--good);background:var(--good);color:#fff}
 .arx-box .i{width:20px;height:20px}

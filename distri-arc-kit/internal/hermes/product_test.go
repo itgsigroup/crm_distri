@@ -111,3 +111,19 @@ func TestCaption(t *testing.T) {
 		t.Fatal("caption")
 	}
 }
+
+// Chat otomatis with price or stock turned off (ADR 0080): the quote leaves them out.
+func TestQuoteTextOf(t *testing.T) {
+	c := &Card{Items: []Line{{SKU: "NVR-32", Product: "NVR 32ch", Price: 2500000, Stock: 9, Cities: []City{{City: "Semarang", Qty: 9}}}}}
+	full := QuoteText(c)
+	if !strings.Contains(full, "Rp 2.500.000") || !strings.Contains(full, "Semarang 9") {
+		t.Fatalf("full quote: %s", full)
+	}
+	noPrice := QuoteTextOf(c, true, false)
+	if strings.Contains(noPrice, "Rp") || strings.Contains(noPrice, "2.500.000") || strings.Contains(noPrice, "DPP") || !strings.Contains(noPrice, "Semarang 9") {
+		t.Fatalf("without price: %s", noPrice)
+	}
+	if noStock := QuoteTextOf(c, false, true); strings.Contains(noStock, "Stok") || !strings.Contains(noStock, "Rp 2.500.000") {
+		t.Fatalf("without stock: %s", noStock)
+	}
+}

@@ -75,8 +75,10 @@ type Settings struct {
 	Breaks   []Window `json:"breaks"`
 	Numbers  []string `json:"numbers"` // the sales numbers it answers for; empty: every number
 	Template string   `json:"template"`
-	Facts    []string `json:"facts"`
-	Lyra     bool     `json:"lyra"` // product questions answered by Lyra (Hermes Agent), stock and price from the system
+	// Facts are the topics an automatic reply may give, by Lyra and by AI Trigger alike (ADR 0080): without "price"
+	// no price reaches the customer, without "stock" no stock quantity
+	Facts []string `json:"facts"`
+	Lyra  bool     `json:"lyra"` // product questions answered by Lyra (Hermes Agent), stock and price from the system
 	// SalesStyle: Lyra answers every message like a sales, from the facts the system computed (ADR 0078)
 	SalesStyle bool `json:"sales_style"`
 	// the person whose approval sends the messages, set on every save
@@ -260,7 +262,7 @@ func (s *Service) Handle(ctx context.Context, messageID uuid.UUID) (Outcome, err
 	// the facts the system computes for this message: Lyra's product card, the AI Trigger answers
 	quote, facts := "", ""
 	if set.Lyra && s.Lyra != nil && s.Reply != nil {
-		if quote, err = s.lyraAnswer(ctx, m, t); err != nil && s.Log != nil {
+		if quote, err = s.lyraAnswer(ctx, m, t, set.Facts); err != nil && s.Log != nil {
 			s.Log.Warn("auto reply: no Lyra answer", "message", messageID, "err", err)
 		}
 	}
@@ -271,7 +273,7 @@ func (s *Service) Handle(ctx context.Context, messageID uuid.UUID) (Outcome, err
 	}
 	answer, out := "", Template
 	if set.SalesStyle && s.Lyra != nil {
-		if answer, err = s.salesAnswer(ctx, m, t, []string{quote, facts}, end, now); err != nil && s.Log != nil {
+		if answer, err = s.salesAnswer(ctx, m, t, []string{quote, facts}, set.Facts, end, now); err != nil && s.Log != nil {
 			s.Log.Warn("auto reply: no sales-style answer", "message", messageID, "err", err)
 		}
 		if answer != "" {
@@ -322,7 +324,11 @@ func (s *Service) Handle(ctx context.Context, messageID uuid.UUID) (Outcome, err
 // lyraAnswer is Lyra's reading of a product question as the message the sales would send from its card: the products
 // Lyra named, with the stock per city and the DPP price at the dealer's tier from the system. "" when the message asks
 // no product, Lyra found none or is not connected.
-func (s *Service) lyraAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, t gen.GetThreadRow) (string, error) {
+func (s *Service) lyraAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, t gen.GetThreadRow, topics []string) (string, error) {
+	stockOK, priceOK := slices.Contains(topics, replyrule.ActionStock), slices.Contains(topics, replyrule.ActionPrice)
+	if !stockOK && !priceOK {
+		return "", nil
+	}
 	rules, err := s.Reply.Rules(ctx)
 	if err != nil {
 		return "", err
@@ -375,7 +381,7 @@ func (s *Service) lyraAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, 
 	if t.DealerID != nil {
 		_ = s.St.Pool.QueryRow(ctx, "select coalesce(tier, '') from dealers where id = $1", *t.DealerID).Scan(&tier)
 	}
-	return hermes.QuoteText(hermes.BuildCard(r, stock, wh, products, tier)), nil
+	return hermes.QuoteTextOf(hermes.BuildCard(r, stock, wh, products, tier), stockOK, priceOK), nil
 }
 
 // MaxBrowse is how many products a question naming only a brand or kind is answered with.
@@ -431,8 +437,9 @@ func Browse(text string, stock []domain.StockItem) []string {
 
 // salesAnswer is Lyra's reply to the message as a sales would write it, from the facts; "" when Lyra is not connected,
 // the reply is empty or too long, or it has a number that is neither in the facts nor in the conversation.
-func (s *Service) salesAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, t gen.GetThreadRow, facts []string, end, now time.Time) (string, error) {
-	in := hermes.SalesInput{Name: nameOf(t), Message: hermes.Caption(m.Body), Back: end.Format("15.04"), PartOfDay: partOfDay(now)}
+func (s *Service) salesAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, t gen.GetThreadRow, facts, topics []string, end, now time.Time) (string, error) {
+	in := hermes.SalesInput{Name: nameOf(t), Message: hermes.Caption(m.Body), Back: end.Format("15.04"), PartOfDay: partOfDay(now),
+		NoPrice: !slices.Contains(topics, replyrule.ActionPrice), NoStock: !slices.Contains(topics, replyrule.ActionStock)}
 	for _, f := range facts {
 		if strings.TrimSpace(f) != "" {
 			in.Facts = append(in.Facts, f)
@@ -462,6 +469,9 @@ func (s *Service) salesAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow,
 	}
 	if err := replyai.CheckDraft("", strings.Join(allowed, "\n"), a.Reply); err != nil {
 		return "", fmt.Errorf("balasan %s tidak dikirim: %w", hermes.AgentName, err)
+	}
+	if in.NoPrice && HasPrice(a.Reply) {
+		return "", fmt.Errorf("balasan %s menyebut harga, padahal harga tidak boleh dijawab otomatis", hermes.AgentName)
 	}
 	if a.NeedSales && s.Log != nil {
 		s.Log.Info("auto reply: needs the sales", "message", m.ID, "note", a.Note)
@@ -575,7 +585,11 @@ func (s *Service) queue(ctx context.Context, q *gen.Queries, tx pgx.Tx, t gen.Ge
 	return p.ID, mid, nil
 }
 
+// HasPrice reports whether a reply names a rupiah amount ("Rp 2.500.000", "2,5 jt", "250rb").
+func HasPrice(text string) bool { return rePrice.MatchString(text) }
+
 var (
+	rePrice   = regexp.MustCompile(`(?i)\brp\.?\s*\d|\d\s*(rb|ribu|jt|juta)\b|\brupiah\b`)
 	rePhone   = regexp.MustCompile(`^[+\d\s()-]+$`)
 	reNonWord = regexp.MustCompile(`[^\pL\pN]+`)
 )

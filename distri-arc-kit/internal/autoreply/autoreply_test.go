@@ -33,3 +33,17 @@ func TestBrowse(t *testing.T) {
 		t.Fatalf("no product word: %v", got)
 	}
 }
+
+// Harga dimatikan (Sam 29 Oct: "sales tidak mau memberikan harga"): a reply with a rupiah amount is not sent.
+func TestHasPrice(t *testing.T) {
+	for _, s := range []string{"Harganya Rp 2.500.000/unit", "rp2500000", "cuma 250rb kak", "2,5 jt saja", "dalam rupiah"} {
+		if !HasPrice(s) {
+			t.Errorf("%q: no price found", s)
+		}
+	}
+	for _, s := range []string{"Stok di Semarang ada 9 unit", "Harganya akan kami konfirmasi ya Pak", "NVR 32ch ready", "kirim ke jl. rpx 12"} {
+		if HasPrice(s) {
+			t.Errorf("%q: price found", s)
+		}
+	}
+}

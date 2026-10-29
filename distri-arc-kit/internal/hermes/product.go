@@ -564,7 +564,11 @@ func (s Service) Warehouses(ctx context.Context, skus []string) ([]WarehouseQty,
 
 // QuoteText is a card as the message for the customer without a discount — what the sales would send from the card
 // untouched (web/src/features/chat/lyra.ts quoteText) — marked as an automatic message.
-func QuoteText(c *Card) string {
+func QuoteText(c *Card) string { return QuoteTextOf(c, true, true) }
+
+// QuoteTextOf is QuoteText with only the topics the CEO lets the automatic reply give (ADR 0080): without stock no
+// stock line, without price "Harga: kami konfirmasi" and no total.
+func QuoteTextOf(c *Card, stock, price bool) string {
 	out := []string{"Berikut info produk yang ditanyakan:", ""}
 	total := int64(0)
 	for i, l := range c.Items {
@@ -574,16 +578,20 @@ func QuoteText(c *Card) string {
 			num = fmt.Sprintf("%d. ", i+1)
 		}
 		out = append(out, "*"+num+l.Product+"*")
-		if len(l.Cities) > 0 {
+		switch {
+		case !stock:
+		case len(l.Cities) > 0:
 			cities := make([]string, len(l.Cities))
 			for j, ct := range l.Cities {
 				cities[j] = ct.City + " " + thousands(int64(ct.Qty))
 			}
 			out = append(out, "Stok: "+strings.Join(cities, " · "))
-		} else {
+		default:
 			out = append(out, "Stok: kosong (bisa inden)")
 		}
-		if l.Price > 0 {
+		if !price {
+			out = append(out, "Harga: kami konfirmasi")
+		} else if l.Price > 0 {
 			out = append(out, "Harga: *"+rupiah(l.Price)+"*/unit", thousands(qty)+" unit × "+rupiah(l.Price)+" = *"+rupiah(l.Price*qty)+"*")
 			total += l.Price * qty
 		} else {
@@ -594,7 +602,10 @@ func QuoteText(c *Card) string {
 	if len(c.Items) > 1 && total > 0 {
 		out = append(out, "*Total: "+rupiah(total)+"*")
 	}
-	out = append(out, "Harga DPP, belum termasuk PPN.", "(Pesan otomatis dari "+AgentName+" — sales kami akan menindaklanjuti.)")
+	if price {
+		out = append(out, "Harga DPP, belum termasuk PPN.")
+	}
+	out = append(out, "(Pesan otomatis dari "+AgentName+" — sales kami akan menindaklanjuti.)")
 	return strings.Join(out, "\n")
 }
 

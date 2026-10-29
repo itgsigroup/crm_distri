@@ -6,12 +6,13 @@ import { api } from '../../api/client'
 import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
 import { fmtPhone } from '../chat/inbox'
-import { DAYS, FACTS, KIND_LABEL, daysText, dotted, fill, halfHours, windowsError, type AutoReplyInfo, type AutoReplySettings, type HourWindow } from './autoreply'
+import { DAYS, FACTS, TOPIC_HINT, KIND_LABEL, daysText, dotted, fill, halfHours, windowsError, type AutoReplyInfo, type AutoReplySettings, type HourWindow } from './autoreply'
 
 // Pengaturan → Chat otomatis (ADR 0066, ADR 0077): during the hours set here a customer's message is answered without
 // the sales — a product question by Lyra (Hermes Agent) with the stock and DPP price from the system, another fact
 // question by AI Trigger, anything else by the template once. Saving is the CEO's approval: every automatic message
-// is recorded as decided by them. The page reads in plain steps with one big on/off state (Sam 29 Oct).
+// is recorded as decided by them. The page reads in plain steps with one big on/off state (Sam 29 Oct). Step 2 sets what
+// may be answered at all — Lyra and AI Trigger alike; without "Harga" no price reaches the customer (ADR 0080).
 
 const useAutoReply = () => useQuery({ queryKey: ['auto-reply'], queryFn: () => api.get<AutoReplyInfo>('/auto-reply') })
 
@@ -145,6 +146,8 @@ export function AutoReplyPage() {
   const sales = info.numbers.filter((n) => n.state === 'connected' || s.numbers.includes(n.wa_number))
   const allNums = s.numbers.length === 0
   const flip = () => setAsking(!on)
+  const noPrice = !s.facts.includes('price')
+  const productHint = [s.facts.includes('stock') && 'Stok', !noPrice && 'harga', 'barang'].filter(Boolean).join(', ')
   return (
     <div className="stack arx">
       {/* the one thing to see first: on, waiting, or off */}
@@ -172,7 +175,7 @@ export function AutoReplyPage() {
       <div className="card arx-flow">
         <div><Icon name="chat" /><b>Pelanggan chat</b><span>“Stok kamera 4MP ada?” · “Order saya sampai mana?”</span></div>
         <Icon name="arrow" className="i arx-to" />
-        <div><Icon name="radar" /><b>{s.sales_style ? 'Lyra membalas seperti sales' : 'Lyra cari barangnya'}</b><span>Angka stok, harga, order dari sistem</span></div>
+        <div><Icon name="radar" /><b>{s.sales_style ? 'Lyra membalas seperti sales' : 'Lyra cari barangnya'}</b><span>{noPrice ? 'Angka dari sistem · harga TIDAK diberikan' : 'Angka stok, harga, order dari sistem'}</span></div>
         <Icon name="arrow" className="i arx-to" />
         <div><Icon name="send" /><b>Balasan terkirim</b><span>Sales tetap bisa lanjut</span></div>
       </div>
@@ -182,12 +185,31 @@ export function AutoReplyPage() {
         {hoursErr && <p className="arx-err"><Icon name="x" />{hoursErr}</p>}
       </Step>
 
-      <Step n={2} title="Siapa yang menjawab?" mark={<Mark ok={!s.lyra || info.lyra_ready}>{s.lyra ? (info.lyra_ready ? 'Lyra siap' : 'Lyra belum tersambung') : 'Tanpa Lyra'}</Mark>}>
+      <Step n={2} title="Apa yang boleh dijawab?" mark={<Mark ok={s.facts.length > 0}>{s.facts.length ? `${s.facts.length} topik` : 'Hanya salam & template'}</Mark>}>
+        <p className="arx-sub">Pilih topik yang boleh dijawab otomatis. Yang tidak dicentang <b>tidak pernah</b> disebut ke pelanggan — oleh Lyra maupun AI Trigger.</p>
+        <div className="arx-topics" role="group" aria-label="Topik yang boleh dijawab">
+          {FACTS.map(([k, label]) => {
+            const on = s.facts.includes(k)
+            return (
+              <button key={k} type="button" aria-pressed={on} className={`arx-tile ${on ? 'on' : ''}`} disabled={!edit}
+                onClick={() => set({ facts: on ? s.facts.filter((x) => x !== k) : [...s.facts, k] })}>
+                <span className="arx-box"><Icon name={on ? 'check' : 'x'} /></span>
+                <span><b>{label}</b><small>{on ? TOPIC_HINT[k][0] : TOPIC_HINT[k][1]}</small></span>
+              </button>
+            )
+          })}
+        </div>
+        {noPrice && (
+          <p className="arx-hint"><Icon name="lock" /><span>Harga <b>tidak</b> diberikan. Pelanggan yang menanyakan harga dijawab “harganya akan kami konfirmasi”, dan balasan yang menyebut nominal rupiah tidak dikirim.</span></p>
+        )}
+      </Step>
+
+      <Step n={3} title="Siapa yang menjawab?" mark={<Mark ok={!s.lyra || info.lyra_ready}>{s.lyra ? (info.lyra_ready ? 'Lyra siap' : 'Lyra belum tersambung') : 'Tanpa Lyra'}</Mark>}>
         <button type="button" className={`arx-tile ${s.lyra ? 'on' : ''}`} aria-pressed={s.lyra} disabled={!edit} onClick={() => set({ lyra: !s.lyra })}>
           <span className="arx-box"><Icon name={s.lyra ? 'check' : 'x'} /></span>
           <span>
             <b>Lyra menjawab pertanyaan produk</b>
-            <small>Stok, harga, barang — Lyra cari barangnya, angka dari sistem.</small>
+            <small>{productHint} — Lyra cari barangnya, angka dari sistem.</small>
           </span>
         </button>
         <button type="button" className={`arx-tile ${s.sales_style ? 'on' : ''}`} aria-pressed={s.sales_style} disabled={!edit} onClick={() => set({ sales_style: !s.sales_style })} style={{ marginTop: 10 }}>
@@ -200,22 +222,18 @@ export function AutoReplyPage() {
         {s.sales_style && (
           <div className="arx-wa" style={{ marginTop: 10 }}>
             <small>Contoh balasan Lyra</small>
-            Selamat siang Pak Budi, untuk <b>NVR 32ch</b> stok di Semarang ada 9 unit. Harganya <b>Rp 2.500.000</b>/unit (harga DPP, belum termasuk PPN). Mau saya bantu siapkan penawarannya, Pak?{'\n\n'}<i>— Lyra, asisten GSI (pesan otomatis)</i>
+            {noPrice
+              ? <>Selamat siang Pak Budi, untuk <b>NVR 32ch</b> stok di Semarang ada 9 unit. Untuk harganya akan kami konfirmasi ya, Pak. Butuh berapa unit?</>
+              : <>Selamat siang Pak Budi, untuk <b>NVR 32ch</b> stok di Semarang ada 9 unit. Harganya <b>Rp 2.500.000</b>/unit (harga DPP, belum termasuk PPN). Mau saya bantu siapkan penawarannya, Pak?</>}{'\n\n'}<i>— Lyra, asisten GSI (pesan otomatis)</i>
           </div>
         )}
         {(s.lyra || s.sales_style) && !info.lyra_ready && (
           <p className="arx-err"><Icon name="alert" />Lyra belum tersambung. <Link to="/pengaturan/hermes#sambungan">Sambungkan Lyra di sini →</Link></p>
         )}
-        <p className="arx-sub">Kalau Lyra tidak menemukan barangnya, AI Trigger menjawab soal:</p>
-        <div className="arx-chips" role="group" aria-label="Cadangan AI Trigger">
-          {FACTS.map(([k, label]) => (
-            <button key={k} type="button" aria-pressed={s.facts.includes(k)} className={s.facts.includes(k) ? 'on' : ''} disabled={!edit}
-              onClick={() => set({ facts: s.facts.includes(k) ? s.facts.filter((x) => x !== k) : [...s.facts, k] })}>{s.facts.includes(k) && <Icon name="check" />}{label}</button>
-          ))}
-        </div>
+        <p className="arx-sub">Kalau Lyra tidak menemukan barangnya, AI Trigger menjawab topik yang dicentang di langkah 2.</p>
       </Step>
 
-      <Step n={3} title={s.sales_style ? 'Pesan cadangan' : 'Pesan untuk chat lainnya'} mark={<Mark ok={!tplErr}>{tplErr ? 'Perlu dibetulkan' : 'Beres'}</Mark>}>
+      <Step n={4} title={s.sales_style ? 'Pesan cadangan' : 'Pesan untuk chat lainnya'} mark={<Mark ok={!tplErr}>{tplErr ? 'Perlu dibetulkan' : 'Beres'}</Mark>}>
         <p className="arx-sub">{s.sales_style
           ? 'Dipakai hanya bila Lyra tidak bisa membalas (belum tersambung, terlalu lama, atau balasannya tidak lolos cek angka), sekali saja.'
           : 'Chat yang bukan soal produk mendapat pesan ini, sekali saja.'}</p>
@@ -227,7 +245,7 @@ export function AutoReplyPage() {
         <p className="arx-hint"><span>Kata <code>{'{nama}'}</code> diganti nama pelanggan, <code>{'{kembali}'}</code> jam sales kembali, <code>{'{salam}'}</code> Selamat pagi/siang/sore.</span></p>
       </Step>
 
-      <Step n={4} title="Nomor mana?" mark={<Mark ok={allNums || s.numbers.length > 0}>{allNums ? 'Semua nomor' : `${s.numbers.length} nomor`}</Mark>}>
+      <Step n={5} title="Nomor mana?" mark={<Mark ok={allNums || s.numbers.length > 0}>{allNums ? 'Semua nomor' : `${s.numbers.length} nomor`}</Mark>}>
         <div className="arx-chips big" role="radiogroup" aria-label="Nomor">
           <button type="button" role="radio" aria-checked={allNums} className={allNums ? 'on' : ''} disabled={!edit} onClick={() => set({ numbers: [] })}>{allNums && <Icon name="check" />}Semua nomor</button>
           <button type="button" role="radio" aria-checked={!allNums} className={!allNums ? 'on' : ''} disabled={!edit || sales.length === 0} onClick={() => allNums && set({ numbers: [sales[0].wa_number] })}>{!allNums && <Icon name="check" />}Pilih sendiri</button>

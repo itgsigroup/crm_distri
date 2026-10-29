@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fitur · Chat otomatis: atur topik yang boleh dijawab, harga bisa dimatikan · 2026-10-29
+- Langkah baru **2. Apa yang boleh dijawab?** di Pengaturan → Chat otomatis: centang Stok, Harga, Status order, Limit & tagihan. Berlaku untuk Lyra dan AI Trigger.
+- **Harga tidak dicentang** → harga tidak pernah dikirim otomatis: kartu produk tanpa harga, Lyra menjawab "harganya akan kami konfirmasi", dan balasan yang tetap menyebut rupiah tidak dikirim (ADR 0080).
+
 ## UI · Dashboard: kantor virtual 3D, setiap agent di ruangannya sendiri · 2026-10-29
 - Stasiun Orbit di dashboard sekarang berupa kantor virtual: sepuluh ruangan kaca mengelilingi Orchestrator di tengah, satu ruangan per agent, dengan lantai berwarna agent, pintu ke lorong, dan lampu status di atas pintu.
 - Klik di mana saja dalam ruangan membuka layar agent itu. Saat menyerahkan hasil, astronaut keluar lewat pintu, berjalan di lorong, lalu masuk ke ruangan agent berikutnya.
