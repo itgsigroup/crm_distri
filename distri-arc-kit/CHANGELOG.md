@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## UI · Chat otomatis: semua nomor yang tersambung bisa dipilih · 2026-10-29
+- Langkah 4 sekarang "Nomor mana?" dan menampilkan **semua nomor WhatsApp yang tersambung** (Sales, Admin, Penagihan), bukan hanya nomor sales. Tiap nomor diberi keterangan timnya.
+
 ## UI · Push stok: kotak pencarian di kanan · 2026-10-29
 - Di tabel stok menua, kotak **Cari produk, SKU, cabang, dealer** pindah ke kanan; jumlah dan nilai stok menua di kiri. Halaman lain tidak berubah.
 

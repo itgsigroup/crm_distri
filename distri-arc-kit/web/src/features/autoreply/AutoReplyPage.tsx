@@ -14,6 +14,8 @@ import { DAYS, FACTS, KIND_LABEL, daysText, dotted, fill, halfHours, windowsErro
 
 const useAutoReply = () => useQuery({ queryKey: ['auto-reply'], queryFn: () => api.get<AutoReplyInfo>('/auto-reply') })
 
+const TEAM: Record<string, string> = { sales: 'Sales', admin: 'Admin', billing: 'Penagihan' }
+
 const STATUS: Record<string, string> = { pending: 'mengirim', sent: 'terkirim', delivered: 'diterima', read: 'dibaca', failed: 'gagal', skipped: 'tidak dikirim' }
 
 const editable = (s: AutoReplySettings): AutoReplySettings => ({
@@ -109,7 +111,8 @@ export function AutoReplyPage() {
   const preview = fill(s.template, 'Toko Sinar Jaya', dotted(s.breaks[0]?.end ?? '13:00'), 'siang')
   const on = info.settings.enabled
   const when = info.settings.breaks.map((w) => `${daysText(w.days)} ${dotted(w.start)}–${dotted(w.end)}`).join(' · ')
-  const sales = info.numbers.filter((n) => n.team === 'sales')
+  // every connected number of any team (Sam 29 Oct); a chosen number that dropped stays listed so it can be unticked
+  const sales = info.numbers.filter((n) => n.state === 'connected' || s.numbers.includes(n.wa_number))
   const allNums = s.numbers.length === 0
   const flip = () => {
     const next = !on
@@ -198,7 +201,7 @@ export function AutoReplyPage() {
         <p className="arx-hint"><span>Kata <code>{'{nama}'}</code> diganti nama pelanggan, <code>{'{kembali}'}</code> jam sales kembali, <code>{'{salam}'}</code> Selamat pagi/siang/sore.</span></p>
       </Step>
 
-      <Step n={4} title="Nomor sales mana?" mark={<Mark ok={allNums || s.numbers.length > 0}>{allNums ? 'Semua nomor' : `${s.numbers.length} nomor`}</Mark>}>
+      <Step n={4} title="Nomor mana?" mark={<Mark ok={allNums || s.numbers.length > 0}>{allNums ? 'Semua nomor' : `${s.numbers.length} nomor`}</Mark>}>
         <div className="arx-chips big" role="radiogroup" aria-label="Nomor">
           <button type="button" role="radio" aria-checked={allNums} className={allNums ? 'on' : ''} disabled={!edit} onClick={() => set({ numbers: [] })}>{allNums && <Icon name="check" />}Semua nomor</button>
           <button type="button" role="radio" aria-checked={!allNums} className={!allNums ? 'on' : ''} disabled={!edit || sales.length === 0} onClick={() => allNums && set({ numbers: [sales[0].wa_number] })}>{!allNums && <Icon name="check" />}Pilih sendiri</button>
@@ -210,7 +213,7 @@ export function AutoReplyPage() {
                 <label>
                   <input type="checkbox" checked={s.numbers.includes(n.wa_number)} disabled={!edit}
                     onChange={(e) => set({ numbers: e.target.checked ? [...s.numbers, n.wa_number] : s.numbers.filter((x) => x !== n.wa_number) })} />
-                  <span><b>{n.holder || n.label || fmtPhone(n.wa_number)}</b><small>{fmtPhone(n.wa_number)}{n.state !== 'connected' ? ' · tidak tersambung' : ''}</small></span>
+                  <span><b>{n.holder || n.label || fmtPhone(n.wa_number)}</b><small>{fmtPhone(n.wa_number)} · {TEAM[n.team] ?? n.team}{n.state !== 'connected' ? ' · tidak tersambung' : ''}</small></span>
                 </label>
               </li>
             ))}
