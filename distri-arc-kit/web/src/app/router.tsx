@@ -34,6 +34,7 @@ const PAGES: Record<string, Loader> = {
   aiapi: () => import('../features/aiapi/AIAPIPage').then((m) => m.AIAPIPage),
   hermes: () => import('../features/hermes/HermesPage').then((m) => m.HermesPage),
   aitrigger: () => import('../features/aitrigger/AITriggerPage').then((m) => m.AITriggerPage),
+  autoreply: () => import('../features/autoreply/AutoReplyPage').then((m) => m.AutoReplyPage),
   guide: () => import('../features/guide/GuidePage').then((m) => m.GuidePage),
   manual: () => import('../features/manual/ManualPage').then((m) => m.ManualPage),
 }
@@ -103,6 +104,7 @@ export const router = createBrowserRouter([
       { path: 'pengaturan/api-ai', ...page('aiapi') },
       { path: 'pengaturan/hermes', ...page('hermes') },
       { path: 'pengaturan/ai-trigger', ...page('aitrigger') },
+      { path: 'pengaturan/balas-otomatis', ...page('autoreply') },
       { path: 'panduan', ...page('guide') },
       { path: 'manual', ...page('manual') },
     ],

@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"math"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
@@ -17,7 +15,6 @@ import (
 	"distri-arc/internal/domain"
 	"distri-arc/internal/hermes"
 	"distri-arc/internal/httpx"
-	"distri-arc/internal/importer"
 	"distri-arc/internal/replyrule"
 	"distri-arc/internal/store/gen"
 	"distri-arc/internal/views"
@@ -153,7 +150,7 @@ func (s *Server) attachLyra(ctx context.Context, t gen.GetThreadRow, msgs []Mess
 		if products, err = s.replyAI.Products(ctx); err != nil {
 			return err
 		}
-		if wh, err = s.lyraWarehouses(ctx, skus); err != nil {
+		if wh, err = h.Warehouses(ctx, skus); err != nil {
 			return err
 		}
 		if t.DealerID != nil {
@@ -168,35 +165,6 @@ func (s *Server) attachLyra(ctx context.Context, t gen.GetThreadRow, msgs []Mess
 		msgs[i].Lyra = hermes.BuildCard(r, stock, wh, products, tier)
 	}
 	return nil
-}
-
-// lyraWarehouses is the staged stock import of these SKUs per warehouse, each mapped to its city (branch) the same
-// way the import maps it: the warehouse mapping, else the warehouse name itself.
-func (s *Server) lyraWarehouses(ctx context.Context, skus []string) ([]hermes.WarehouseQty, error) {
-	rows, err := s.st.Pool.Query(ctx, `select r.data->>'sku', coalesce(r.data->>'warehouse', ''), coalesce(nullif(m.target, ''), trim(r.data->>'warehouse')), coalesce(r.data->>'qty', '')
-		from import_rows r left join data_mappings m on m.kind = 'warehouse' and m.source_value = trim(r.data->>'warehouse')
-		where r.entity = 'stock' and r.data->>'sku' = any($1)`, skus)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	sum := map[[3]string]int{}
-	for rows.Next() {
-		var sku, w, city, qty string
-		if err := rows.Scan(&sku, &w, &city, &qty); err != nil {
-			return nil, err
-		}
-		sum[[3]string{sku, strings.TrimSpace(w), city}] += int(math.Round(importer.Number(qty)))
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	out := make([]hermes.WarehouseQty, 0, len(sum))
-	for k, q := range sum {
-		out = append(out, hermes.WarehouseQty{SKU: k[0], Warehouse: k[1], City: k[2], Qty: q})
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Warehouse < out[j].Warehouse })
-	return out, nil
 }
 
 // lyraRead has Lyra read (or read again) one message: the "Tanya Lyra" / "Baca ulang" button.

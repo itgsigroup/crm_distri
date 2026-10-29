@@ -61,7 +61,7 @@ func (s *Server) autoReplyInfo(w http.ResponseWriter, r *http.Request) {
 	every := set
 	every.Numbers = nil
 	_, end, active := every.Active(now, "")
-	res := map[string]any{"settings": set, "numbers": nums, "recent": nonNil(recent), "ai_ready": s.replyAI.HasModel(ctx),
+	res := map[string]any{"settings": set, "numbers": nums, "recent": nonNil(recent), "ai_ready": s.replyAI.HasModel(ctx), "lyra_ready": s.hermes().LoadConfig(ctx).Configured,
 		"active_now": active, "can_edit": deref(u.Role) == "ceo", "send_from": autoreply.SendFrom, "send_to": autoreply.SendTo,
 		"max_facts": autoreply.MaxFactsPer, "human_quiet_min": int(autoreply.HumanQuiet.Minutes()),
 		"preview": autoreply.Fill(set.Template, "Toko Sinar Jaya", "13.00", "siang")}
@@ -97,7 +97,7 @@ func (s *Server) autoReplySave(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	s.auditUser(r, "auto_reply.save", "policy:"+autoreply.PolicyKey, map[string]any{"enabled": in.Enabled, "breaks": in.Breaks,
+	s.auditUser(r, "auto_reply.save", "policy:"+autoreply.PolicyKey, map[string]any{"enabled": in.Enabled, "lyra": in.Lyra, "breaks": in.Breaks,
 		"numbers": in.Numbers, "facts": in.Facts, "template": in.Template, "by": deref(u.Email)})
 	s.autoReplyInfo(w, r)
 }

@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +18,7 @@ import (
 
 	"distri-arc/internal/domain"
 	"distri-arc/internal/events"
+	"distri-arc/internal/importer"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/replyrule"
 	"distri-arc/internal/store/gen"
@@ -148,9 +151,43 @@ func (s Service) ReadProducts(ctx context.Context, q Question, image ImageFunc, 
 	return true, nil
 }
 
+// ReadNow has Lyra read a message and waits for the reading (Balas otomatis, ADR 0066): a reading the chat already
+// started is waited for, not started twice. ErrNotConnected when no Hermes is saved (no demo answer goes to a customer).
+func (s Service) ReadNow(ctx context.Context, q Question, image ImageFunc) (ProductRead, error) {
+	if _, demo := s.agent(ctx); demo {
+		return ProductRead{}, ErrNotConnected
+	}
+	tag, err := s.Pool.Exec(ctx, `insert into hermes_product_reads (message_id, thread_id) values ($1, $2) on conflict do nothing`, q.MessageID, q.ThreadID)
+	if err != nil {
+		return ProductRead{}, err
+	}
+	if tag.RowsAffected() == 1 {
+		s.read(ctx, q, image)
+	}
+	for {
+		reads, err := s.Reads(ctx, []uuid.UUID{q.MessageID})
+		if err != nil {
+			return ProductRead{}, err
+		}
+		if r := reads[q.MessageID]; r.Status != "pending" {
+			return r, nil
+		}
+		select {
+		case <-ctx.Done():
+			return ProductRead{}, ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
+	}
+}
+
 func (s Service) readProducts(q Question, image ImageFunc) {
 	ctx, cancel := context.WithTimeout(context.Background(), staleAfter)
 	defer cancel()
+	s.read(ctx, q, image)
+}
+
+// read runs one claimed reading and stores it.
+func (s Service) read(ctx context.Context, q Question, image ImageFunc) {
 	select {
 	case readSlots <- struct{}{}:
 		defer func() { <-readSlots }()
@@ -494,4 +531,90 @@ func BuildCard(r ProductRead, stock []domain.StockItem, wh []WarehouseQty, produ
 		c.Items = append(c.Items, l)
 	}
 	return c
+}
+
+// Warehouses is the staged stock import of these SKUs per warehouse, each mapped to its city (branch) the same way
+// the import maps it: the warehouse mapping, else the warehouse name itself.
+func (s Service) Warehouses(ctx context.Context, skus []string) ([]WarehouseQty, error) {
+	rows, err := s.Pool.Query(ctx, `select r.data->>'sku', coalesce(r.data->>'warehouse', ''), coalesce(nullif(m.target, ''), trim(r.data->>'warehouse')), coalesce(r.data->>'qty', '')
+		from import_rows r left join data_mappings m on m.kind = 'warehouse' and m.source_value = trim(r.data->>'warehouse')
+		where r.entity = 'stock' and r.data->>'sku' = any($1)`, skus)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	sum := map[[3]string]int{}
+	for rows.Next() {
+		var sku, w, city, qty string
+		if err := rows.Scan(&sku, &w, &city, &qty); err != nil {
+			return nil, err
+		}
+		sum[[3]string{sku, strings.TrimSpace(w), city}] += int(math.Round(importer.Number(qty)))
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	out := make([]WarehouseQty, 0, len(sum))
+	for k, q := range sum {
+		out = append(out, WarehouseQty{SKU: k[0], Warehouse: k[1], City: k[2], Qty: q})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Warehouse < out[j].Warehouse })
+	return out, nil
+}
+
+// QuoteText is a card as the message for the customer without a discount — what the sales would send from the card
+// untouched (web/src/features/chat/lyra.ts quoteText) — marked as an automatic message.
+func QuoteText(c *Card) string {
+	out := []string{"Berikut info produk yang ditanyakan:", ""}
+	total := int64(0)
+	for i, l := range c.Items {
+		qty := int64(max(l.Asked, 1))
+		num := ""
+		if len(c.Items) > 1 {
+			num = fmt.Sprintf("%d. ", i+1)
+		}
+		out = append(out, "*"+num+l.Product+"*")
+		if len(l.Cities) > 0 {
+			cities := make([]string, len(l.Cities))
+			for j, ct := range l.Cities {
+				cities[j] = ct.City + " " + thousands(int64(ct.Qty))
+			}
+			out = append(out, "Stok: "+strings.Join(cities, " · "))
+		} else {
+			out = append(out, "Stok: kosong (bisa inden)")
+		}
+		if l.Price > 0 {
+			out = append(out, "Harga: *"+rupiah(l.Price)+"*/unit", thousands(qty)+" unit × "+rupiah(l.Price)+" = *"+rupiah(l.Price*qty)+"*")
+			total += l.Price * qty
+		} else {
+			out = append(out, "Harga: kami konfirmasi segera")
+		}
+		out = append(out, "")
+	}
+	if len(c.Items) > 1 && total > 0 {
+		out = append(out, "*Total: "+rupiah(total)+"*")
+	}
+	out = append(out, "Harga DPP, belum termasuk PPN.", "(Pesan otomatis dari "+AgentName+" — sales kami akan menindaklanjuti.)")
+	return strings.Join(out, "\n")
+}
+
+// rupiah: "Rp 1.643.500".
+func rupiah(v int64) string { return "Rp " + thousands(v) }
+
+// thousands groups digits with dots, as id-ID does.
+func thousands(v int64) string {
+	s := strconv.FormatInt(v, 10)
+	neg := strings.HasPrefix(s, "-")
+	s = strings.TrimPrefix(s, "-")
+	var b strings.Builder
+	for i, r := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			b.WriteByte('.')
+		}
+		b.WriteRune(r)
+	}
+	if neg {
+		return "-" + b.String()
+	}
+	return b.String()
 }

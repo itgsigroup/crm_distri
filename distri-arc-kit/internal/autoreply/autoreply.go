@@ -1,6 +1,7 @@
-// Package autoreply answers customers while their sales is on a break (ADR 0066): a question about a fact the system
-// computes (stock, price, order status) gets the AI Trigger draft — numbers from the system, checked by CheckDraft —
-// and anything else gets the template a person approved once. The approval of the setting is the recorded human
+// Package autoreply answers customers while their sales is on a break (ADR 0066): a product question is read by Lyra,
+// the company's Hermes Agent, and answered with the stock and DPP price from the system (ADR 0077); another question
+// about a fact the system computes (stock, price, order status) gets the AI Trigger draft — numbers from the system,
+// checked by CheckDraft — and anything else gets the template a person approved once. The approval of the setting is the recorded human
 // decision (proposals.decided_by); every message still goes through the outbox and the anti-ban guard.
 package autoreply
 
@@ -21,6 +22,8 @@ import (
 	"github.com/riverqueue/river/rivertype"
 
 	"distri-arc/internal/clock"
+	"distri-arc/internal/domain"
+	"distri-arc/internal/hermes"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/outbox"
 	"distri-arc/internal/replyai"
@@ -40,6 +43,8 @@ const (
 	HumanQuiet  = 10 * time.Minute
 	MaxAge      = 15 * time.Minute
 	MaxFactsPer = 5 // fact answers per conversation per break
+	// LyraWait is how long a product question waits for Lyra (one agent loop) before the other answers are tried.
+	LyraWait = 4 * time.Minute
 )
 
 // Send window of the outbox for automatic messages (outbox.DefaultRules SendFrom–SendTo): a break outside it would
@@ -66,6 +71,7 @@ type Settings struct {
 	Numbers  []string `json:"numbers"` // the sales numbers it answers for; empty: every number
 	Template string   `json:"template"`
 	Facts    []string `json:"facts"`
+	Lyra     bool     `json:"lyra"` // product questions answered by Lyra (Hermes Agent), stock and price from the system
 	// the person whose approval sends the messages, set on every save
 	ApprovedBy      *uuid.UUID `json:"approved_by,omitempty"`
 	ApprovedProfile *uuid.UUID `json:"approved_profile,omitempty"`
@@ -76,10 +82,10 @@ type Settings struct {
 // DefaultTemplate reads as an automatic message (chat_messages.auto_reply), so the chat stays "Belum dibalas".
 const DefaultTemplate = "{salam} {nama}, terima kasih sudah menghubungi kami. Sales kami sedang istirahat dan akan membalas pesan Anda sekitar pukul {kembali} WIB. (Pesan otomatis)"
 
-// Default is off, Senin–Sabtu 12.00–13.00, stock / price / order answered by AI.
+// Default is off, Senin–Sabtu 12.00–13.00, products answered by Lyra, stock / price / order by AI.
 func Default() Settings {
 	return Settings{Breaks: []Window{{Days: []int{1, 2, 3, 4, 5, 6}, Start: "12:00", End: "13:00"}}, Template: DefaultTemplate,
-		Facts: []string{replyrule.ActionStock, replyrule.ActionPrice, replyrule.ActionOrder}}
+		Facts: []string{replyrule.ActionStock, replyrule.ActionPrice, replyrule.ActionOrder}, Lyra: true}
 }
 
 // Load reads the setting; the default when none is saved.
@@ -186,6 +192,7 @@ type Inserter interface {
 type Service struct {
 	St    *store.Store
 	Reply *replyai.Service
+	Lyra  *hermes.Service // nil: product questions go to AI Trigger
 	Clock clock.Clock
 	Jobs  Inserter
 	Log   *slog.Logger
@@ -207,6 +214,7 @@ const (
 	Skipped  Outcome = ""
 	Fact     Outcome = "fact"
 	Template Outcome = "template"
+	Lyra     Outcome = "lyra"
 )
 
 // Handle answers a customer message when every guard allows it; re-running it never sends twice.
@@ -242,16 +250,28 @@ func (s *Service) Handle(ctx context.Context, messageID uuid.UUID) (Outcome, err
 	if busy, err := s.St.Q.HumanRepliedSince(ctx, gen.HumanRepliedSinceParams{ThreadID: &t.ID, SentAt: now.Add(-HumanQuiet)}); err != nil || busy {
 		return Skipped, err
 	}
-	answer := ""
-	if len(set.Facts) > 0 && s.Reply != nil {
+	answer, out := "", Template
+	if set.Lyra && s.Lyra != nil && s.Reply != nil {
+		if answer, err = s.lyraAnswer(ctx, m, t); err != nil && s.Log != nil {
+			s.Log.Warn("auto reply: no Lyra answer", "message", messageID, "err", err)
+		}
+		if answer != "" {
+			out = Lyra
+			// Lyra took a while: a person who answered meanwhile is at work
+			if busy, err := s.St.Q.HumanRepliedSince(ctx, gen.HumanRepliedSinceParams{ThreadID: &t.ID, SentAt: now.Add(-HumanQuiet)}); err != nil || busy {
+				return Skipped, err
+			}
+		}
+	}
+	if answer == "" && len(set.Facts) > 0 && s.Reply != nil {
 		if answer, err = s.factAnswer(ctx, m, set.Facts); err != nil && s.Log != nil {
 			s.Log.Warn("auto reply: no fact answer", "message", messageID, "err", err)
 		}
+		if answer != "" {
+			out = Fact
+		}
 	}
-	out := Template
-	if answer != "" {
-		out = Fact
-	} else {
+	if answer == "" {
 		answer = Fill(set.Template, nameOf(t), end.Format("15.04"), partOfDay(now))
 	}
 	sent := false
@@ -261,7 +281,7 @@ func (s *Service) Handle(ctx context.Context, messageID uuid.UUID) (Outcome, err
 			return err
 		}
 		limit := int64(1)
-		if out == Fact {
+		if out != Template {
 			limit = MaxFactsPer
 		}
 		n, err := q.CountAutoReplies(ctx, gen.CountAutoRepliesParams{ThreadID: t.ID, BreakStart: start, Kind: string(out)})
@@ -282,6 +302,57 @@ func (s *Service) Handle(ctx context.Context, messageID uuid.UUID) (Outcome, err
 		return Skipped, err
 	}
 	return out, nil
+}
+
+// lyraAnswer is Lyra's reading of a product question as the message the sales would send from its card: the products
+// Lyra named, with the stock per city and the DPP price at the dealer's tier from the system. "" when the message asks
+// no product, Lyra found none or is not connected.
+func (s *Service) lyraAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, t gen.GetThreadRow) (string, error) {
+	rules, err := s.Reply.Rules(ctx)
+	if err != nil {
+		return "", err
+	}
+	q := hermes.Question{MessageID: m.ID, ThreadID: t.ID, Text: hermes.Caption(m.Body), SentAt: m.SentAt}
+	if !hermes.Asks(q, rules) {
+		return "", nil
+	}
+	wait, cancel := context.WithTimeout(ctx, LyraWait)
+	defer cancel()
+	r, err := s.Lyra.ReadNow(wait, q, nil)
+	if errors.Is(err, hermes.ErrNotConnected) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if r.Status != "done" || r.Demo || len(r.Items) == 0 {
+		return "", nil
+	}
+	rows, err := s.St.Q.ListStockItems(ctx)
+	if err != nil {
+		return "", err
+	}
+	stock := make([]domain.StockItem, 0, len(rows))
+	for _, x := range rows {
+		stock = append(stock, domain.StockItem{Branch: x.Branch, SKU: x.Sku, Name: x.Name, Qty: int(x.Qty)})
+	}
+	products, err := s.Reply.Products(ctx)
+	if err != nil {
+		return "", err
+	}
+	skus := make([]string, len(r.Items))
+	for i, it := range r.Items {
+		skus[i] = it.SKU
+	}
+	wh, err := s.Lyra.Warehouses(ctx, skus)
+	if err != nil {
+		return "", err
+	}
+	tier := ""
+	if t.DealerID != nil {
+		_ = s.St.Pool.QueryRow(ctx, "select coalesce(tier, '') from dealers where id = $1", *t.DealerID).Scan(&tier)
+	}
+	return hermes.QuoteText(hermes.BuildCard(r, stock, wh, products, tier)), nil
 }
 
 // factAnswer is the AI Trigger draft of the message for the allowed facts: written now from the current numbers
@@ -336,14 +407,15 @@ func (s *Service) queue(ctx context.Context, q *gen.Queries, tx pgx.Tx, t gen.Ge
 		}
 		sig = &id
 	}
-	what := map[Outcome]string{Fact: "jawaban fakta dari sistem, ditulis AI", Template: "pesan template"}[out]
+	what := map[Outcome]string{Fact: "jawaban fakta dari sistem, ditulis AI", Template: "pesan template",
+		Lyra: "produk dibaca " + hermes.AgentName + ", stok dan harga dari sistem"}[out]
 	approved := ""
 	if set.ApprovedAt != nil {
 		approved = " " + set.ApprovedAt.In(clock.WIB).Format("02/01/2006 15.04")
 	}
 	reason := fmt.Sprintf("Balas otomatis saat sales istirahat (%s) — aturan disetujui %s%s (ADR 0066)", what, set.ApprovedName, approved)
 	conf := 1.0
-	if out == Fact {
+	if out != Template {
 		conf = 0.9
 	}
 	p, err := q.InsertProposal(ctx, gen.InsertProposalParams{Agent: Agent, DealerID: t.DealerID, Kind: "reply", Title: "Balas otomatis ke " + deref(t.Title),

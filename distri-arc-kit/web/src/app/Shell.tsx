@@ -38,6 +38,7 @@ export const ROUTES: Record<ScreenKey, string> = {
   aiapi: '/pengaturan/api-ai',
   hermes: '/pengaturan/hermes',
   aitrigger: '/pengaturan/ai-trigger',
+  autoreply: '/pengaturan/balas-otomatis',
   conn: '/pengaturan',
   konsep: '/panduan',
   manual: '/manual',
@@ -64,6 +65,7 @@ export function screenOf(path: string): ScreenKey {
   if (path.startsWith('/pengaturan/api-ai')) return 'aiapi'
   if (path.startsWith('/pengaturan/hermes')) return 'hermes'
   if (path.startsWith('/pengaturan/ai-trigger')) return 'aitrigger'
+  if (path.startsWith('/pengaturan/balas-otomatis')) return 'autoreply'
   if (path.startsWith('/pengaturan')) return 'conn'
   if (path.startsWith('/panduan')) return 'konsep'
   if (path.startsWith('/manual')) return 'manual'
@@ -75,6 +77,7 @@ export function canSee(screens: string[], key: ScreenKey): boolean {
   if (key === 'salesmap') return screens.includes('users') || screens.includes('conn')
   if (key === 'aiapi') return screens.includes('conn') || screens.includes('mcp')
   if (key === 'hermes') return screens.includes('mcp') // Hermes connects through the MCP server
+  if (key === 'autoreply') return screens.includes('conn') // a setting of Pengaturan
   return screens.includes(key)
 }
 
@@ -174,11 +177,12 @@ export function Shell() {
             <NavBtn to="roles" cur={cur} icon="shield">Peran &amp; akses</NavBtn>
             <NavBtn to="branches" cur={cur} icon="building">Cabang</NavBtn>
             <NavBtn to="salesmap" cur={cur} icon="net">Mapping sales</NavBtn>
-            {me && (['mcp', 'hermes', 'aiapi', 'aitrigger', 'konsep', 'manual', 'conn'] as ScreenKey[]).some((k) => canSee(me.screens, k)) && <div className="nav-sec">Pengaturan</div>}
+            {me && (['mcp', 'hermes', 'aiapi', 'aitrigger', 'autoreply', 'konsep', 'manual', 'conn'] as ScreenKey[]).some((k) => canSee(me.screens, k)) && <div className="nav-sec">Pengaturan</div>}
             <NavBtn to="mcp" cur={cur} icon="spark">MCP Claude</NavBtn>
             <NavBtn to="hermes" cur={cur} icon="radar">Hermes Agent</NavBtn>
             <NavBtn to="aiapi" cur={cur} icon="plug">API &amp; model AI</NavBtn>
             <NavBtn to="aitrigger" cur={cur} icon="spark">AI Trigger</NavBtn>
+            <NavBtn to="autoreply" cur={cur} icon="chat">Chat otomatis</NavBtn>
             <NavBtn to="konsep" cur={cur} icon="doc">Panduan</NavBtn>
             <NavBtn to="manual" cur={cur} icon="form">Buku manual</NavBtn>
             <NavBtn to="conn" cur={cur} icon="gear">Pengaturan</NavBtn>

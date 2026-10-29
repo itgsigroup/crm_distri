@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat otomatis dijawab Lyra, dengan halaman pengaturan · 2026-10-29
+- Halaman baru **Pengaturan → Chat otomatis**: nyalakan/matikan, atur **jam aktif** per hari (dari jam berapa sampai jam berapa, 08.00–18.00 WIB), pilih nomor yang ikut, ubah pesan template, dan lihat riwayat pesan otomatis. Hanya CEO yang bisa menyimpan, dan menyimpan berarti menyetujui aturannya.
+- Pada jam aktif, pertanyaan produk dijawab **Lyra** (Hermes Agent): Lyra menyebut barangnya, stok per kota dan harga DPP diambil dari sistem, sama seperti kartu Lyra di Chat. Bila Lyra tidak menemukan produk atau belum tersambung, AI Trigger menjawab; pesan lain mendapat template.
+- Masih mati sampai CEO menyalakannya. Sales yang membalas dalam 10 menit terakhir tetap memegang chat.
+- ADR 0077 · migrasi 0073 · test: `TestAutoReplyByLyra`, `autoreply.test.ts`.
+
 ## Access · Menu Sales, Admin, dan Super Admin · 2026-10-28
 - **Sales** dan **Admin** hanya mendapat halaman operasional: Pusat kendali, Orchestrator, Chat, Orbit, Dealer, Push stok, Cek stok, dan Kredit · kas. Sales melihat dealer, piutang, dan chat miliknya sendiri. Admin melihat data semua sales dan semua chat. Pembatasan menu juga berlaku di API halaman yang dilindungi.
 - **CEO/Super Admin** mendapat semua halaman dan semua data.

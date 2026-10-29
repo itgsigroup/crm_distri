@@ -15,8 +15,8 @@ ditentukan, pertanyaan stok, harga, atau status order dijawab dari data sistem, 
 - Saat pesan pelanggan masuk dan aturannya aktif, worker menjalankan job `chat.auto_reply`. Setiap pesan dijawab paling
   banyak sekali (tabel `auto_replies`, migrasi 0066). Kirimannya tercatat sebagai keputusan manusia yang menyetujui aturan
   (proposal, `decided_by` = penyetuju) dan lewat outbox serta penjaga anti-blokir biasa.
-- 28 Okt: hanya sisi server yang di-deploy. Halaman pengaturan (Pengaturan → Balas otomatis) belum dibuat, jadi belum
-  ada yang bisa menyalakannya dari aplikasi. Sebelum dinyalakan, aturan dan template harus disetujui Sam.
+- 28 Okt: hanya sisi server yang di-deploy. 29 Okt: halaman Pengaturan → Chat otomatis dan jawaban Lyra (ADR 0077).
+  Sebelum dinyalakan, aturan dan template harus disetujui Sam (Simpan & setujui di halaman itu).
 
 ## Akibat
 - Deploy ini tidak mengubah apa pun bagi pelanggan dan tim sales. Tidak ada pesan otomatis sampai fitur diaktifkan.

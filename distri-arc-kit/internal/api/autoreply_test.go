@@ -18,6 +18,7 @@ import (
 	"distri-arc/internal/autoreply"
 	"distri-arc/internal/clock"
 	"distri-arc/internal/config"
+	"distri-arc/internal/hermes"
 	"distri-arc/internal/llm"
 	"distri-arc/internal/outbox"
 	"distri-arc/internal/replyai"
@@ -142,5 +143,73 @@ func TestAutoReplyDuringBreak(t *testing.T) {
 	q6 := addMessage(t, st, th, "WA-AR6", "in", "received", "Pak?", now.Add(time.Hour-time.Minute), nil)
 	if got, err := after.Handle(ctx, q6); err != nil || got != autoreply.Skipped {
 		t.Fatalf("after the break: %q %v", got, err)
+	}
+}
+
+// lyraAgent is a Hermes Agent that names one product in every message.
+type lyraAgent struct {
+	sku   string
+	calls int
+}
+
+func (a *lyraAgent) Chat(context.Context, string, []hermes.Msg) (string, error) {
+	a.calls++
+	return `{"tanya_produk": true, "items": [{"sku": "` + a.sku + `", "nama": "", "qty": 2}], "catatan": ""}`, nil
+}
+
+// ADR 0077: during a break a product question is answered by Lyra — the products she named, with the stock and DPP
+// price from the system — and recorded as her answer; without Lyra connected it falls back to AI Trigger.
+func TestAutoReplyByLyra(t *testing.T) {
+	st := testdb.New(t)
+	ctx := context.Background()
+	if _, err := seed.Run(ctx, st, db.Seed); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 10, 27, 12, 20, 0, 0, clock.WIB) // Selasa, jam istirahat
+	c := clock.Fixed(now)
+	srv := httptest.NewServer(api.New(config.Config{Env: "dev"}, st, c, slog.New(slog.NewTextHandler(io.Discard, nil))).Handler())
+	t.Cleanup(srv.Close)
+	on := map[string]any{"enabled": true, "lyra": true, "breaks": []map[string]any{{"days": []int{2}, "start": "12:00", "end": "13:00"}},
+		"template": autoreply.DefaultTemplate, "facts": []string{"stock", "price", "order"}}
+	code, out := sendJSON(t, http.MethodPut, srv.URL+"/api/auto-reply", "sam@gsi.co.id", on)
+	if code != http.StatusOK || out["settings"].(map[string]any)["lyra"] != true {
+		t.Fatalf("CEO turns Lyra on: %d %v", code, out)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into stock_items (branch, sku, name, category, qty, unit_cost, value) values ('Semarang', 'TST-NVR', 'NVR Uji 32ch', 'Kamera & NVR', 9, 1000000, 9000000);
+		insert into products (sku, name, list_price, prices) values ('TST-NVR', 'NVR Uji 32ch', 2500000, '{"A":2500000,"B":2625000,"C":2750000}')`); err != nil {
+		t.Fatal(err)
+	}
+	agent := &lyraAgent{sku: "TST-NVR"}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	reply := &replyai.Service{St: st, Views: views.NewBuilder(st, c), Provider: &echoModel{}}
+	svc := &autoreply.Service{St: st, Clock: c, Log: log, Reply: reply, Lyra: &hermes.Service{Pool: st.Pool, Log: log, Agent: agent}}
+	th := sinarThread(t, st)
+
+	q1 := addMessage(t, st, th, "WA-LY1", "in", "received", "harga nvr 32 channel berapa? stok ada?", now.Add(-time.Minute), nil)
+	if got, err := svc.Handle(ctx, q1); err != nil || got != autoreply.Lyra {
+		t.Fatalf("product question: %q %v", got, err)
+	}
+	var body string
+	var auto bool
+	if err := st.Pool.QueryRow(ctx, `select m.body, m.auto_reply from auto_replies a join chat_messages m on m.id = a.reply_id where a.message_id = $1 and a.kind = 'lyra'`, q1).Scan(&body, &auto); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"NVR Uji 32ch", "Semarang 9", "/unit", "2 unit ×", "Pesan otomatis dari Lyra"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("Lyra's answer lacks %q:\n%s", want, body)
+		}
+	}
+	if !auto || agent.calls != 1 {
+		t.Fatalf("auto=%v calls=%d", auto, agent.calls)
+	}
+	if count(t, st, "select count(*) from hermes_product_reads where message_id = $1 and status = 'done'", q1) != 1 {
+		t.Fatal("the reading is not kept for the chat's card")
+	}
+
+	// Lyra not connected: the AI Trigger answer
+	off := &autoreply.Service{St: st, Clock: c, Log: log, Reply: reply, Lyra: &hermes.Service{Pool: st.Pool, Log: log}}
+	q2 := addMessage(t, st, th, "WA-LY2", "in", "received", "stok NVR uji 32ch ada?", now.Add(-20*time.Second), nil)
+	if got, err := off.Handle(ctx, q2); err != nil || got != autoreply.Fact {
+		t.Fatalf("without Lyra: %q %v", got, err)
 	}
 }

@@ -24,6 +24,7 @@ import (
 	"distri-arc/internal/config"
 	"distri-arc/internal/dealersvc"
 	"distri-arc/internal/events"
+	"distri-arc/internal/hermes"
 	"distri-arc/internal/identify"
 	"distri-arc/internal/jobs"
 	"distri-arc/internal/mcp"
@@ -193,7 +194,7 @@ func runWorker(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	fb := &worker.Fallback{St: st, Clock: c, Secret: cfg.SessionKey(), EnvClaude: cfg.AnthropicKey, EnvOpenAI: cfg.OpenAIKey}
 	replyAI := &replyai.Service{St: st, Views: views.NewBuilder(st, c), Log: log, SessionKey: cfg.SessionKey(), EnvClaude: cfg.AnthropicKey,
 		EnvOpenAI: cfg.OpenAIKey, Env: orch.Router}
-	autoReply := &autoreply.Service{St: st, Reply: replyAI, Clock: c, Log: log}
+	autoReply := &autoreply.Service{St: st, Reply: replyAI, Clock: c, Log: log, Lyra: &hermes.Service{Pool: st.Pool, SessionKey: cfg.SessionKey(), Log: log}}
 	client, err := worker.New(st, c, log, worker.Deps{Transport: t, Ingest: ingest, Rules: sendRules(cfg), Odoo: src, Orchestrator: orch, Identify: idf,
 		Ops: ops.EnvFrom(cfg), AlertFrom: cfg.AlertWAFrom, AlertGroup: cfg.AlertWAGroup, SessionKey: cfg.SessionKey(), AnalystKey: cfg.AnthropicKey,
 		OpenAIKey: cfg.OpenAIKey, Fallback: fb, MCPWait: cfg.MCPWait, BackfillDays: cfg.WABackfillDays, ReplyAI: replyAI,

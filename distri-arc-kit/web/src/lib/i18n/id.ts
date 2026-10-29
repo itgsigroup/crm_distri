@@ -2,7 +2,7 @@
 // Terms follow docs/design/01-glossary.md exactly.
 import type { RootCause, Segment } from '../../api/types'
 
-export type ScreenKey = 'today' | 'dashboard' | 'orch' | 'chat' | 'reportwa' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'stockcheck' | 'ar' | 'users' | 'roles' | 'branches' | 'salesmap' | 'mcp' | 'hermes' | 'aiapi' | 'aitrigger' | 'conn' | 'konsep' | 'manual'
+export type ScreenKey = 'today' | 'dashboard' | 'orch' | 'chat' | 'reportwa' | 'orbit' | 'net' | 'kuad' | 'dealer' | 'stock' | 'stockcheck' | 'ar' | 'users' | 'roles' | 'branches' | 'salesmap' | 'mcp' | 'hermes' | 'aiapi' | 'aitrigger' | 'autoreply' | 'conn' | 'konsep' | 'manual'
 
 export const TITLES: Record<ScreenKey, [string, string]> = {
   today: ['Pusat kendali', ''],
@@ -25,6 +25,7 @@ export const TITLES: Record<ScreenKey, [string, string]> = {
   hermes: ['Hermes Agent', 'Chat dengan Lyra, Hermes Agent perusahaan, langsung dari GSI Orbit seperti di Telegram'],
   aiapi: ['API & model AI', 'Claude lewat MCP utama; Claude API atau ChatGPT API sebagai opsi kedua untuk analisis, dengan total pembayaran token'],
   aitrigger: ['AI Trigger', 'Kata kunci di pesan pelanggan memunculkan data stok, harga, limit & tagihan, atau status order di Chat — dengan draf jawaban dari template atau AI'],
+  autoreply: ['Chat otomatis', 'Pada jam yang Anda tentukan, pertanyaan produk dijawab Lyra (Hermes Agent) dengan stok dan harga dari sistem; pesan lain mendapat template'],
   conn: ['Pengaturan', 'Kebijakan orbit, sumber sinyal, koneksi AI (API & MCP), kalibrasi agen'],
   konsep: ['Konsep orbit', 'Panduan Orbit: satu gambar, 14 istilah, cara baca papan'],
   manual: ['Buku manual', 'Cara kerja sistem, tutorial tiap menu, rutinitas per peran, dan tanya-jawab'],
