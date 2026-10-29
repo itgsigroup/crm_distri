@@ -84,11 +84,38 @@ function Hours({ breaks, set, edit, from, to }: { breaks: HourWindow[]; set: (b:
   )
 }
 
+/** The SweetAlert-style question before the switch flips (Sam 29 Oct: not the browser's confirm box). */
+function ConfirmSwal({ on, busy, onOk, onCancel }: { on: boolean; busy: boolean; onOk: () => void; onCancel: () => void }) {
+  return (
+    <div className="swal-bg" onClick={onCancel}>
+      <div className={`swal ${on ? 'swal-success' : 'swal-warning'}`} role="alertdialog" aria-modal="true" aria-labelledby="arx-swal-t" aria-describedby="arx-swal-p"
+        onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); onCancel() } }}>
+        <div className="swal-icon" aria-hidden="true">
+          <svg viewBox="0 0 52 52"><circle className="swal-ring" cx="26" cy="26" r="24" />{on
+            ? <path className="swal-mark" d="M15 27l7 7 15-16" />
+            : <path className="swal-mark" d="M26 14v16M26 37v1" />}</svg>
+        </div>
+        <h3 id="arx-swal-t">{on ? 'Nyalakan chat otomatis?' : 'Matikan chat otomatis?'}</h3>
+        <p id="arx-swal-p">{on
+          ? 'Pelanggan akan menerima balasan otomatis pada jam yang dipilih, tercatat atas nama Anda.'
+          : 'Tidak ada lagi balasan otomatis ke pelanggan sampai dinyalakan lagi.'}</p>
+        <div className="arx-swal-actions">
+          <button type="button" className="btn ghost" onClick={onCancel} disabled={busy}>Batal</button>
+          <button type="button" className={`btn primary ${on ? 'arx-go' : 'arx-stop'}`} onClick={onOk} disabled={busy} ref={(el) => { if (el && document.activeElement !== el) el.focus({ preventScroll: true }) }}>
+            {busy ? 'Menyimpan…' : on ? 'Ya, nyalakan' : 'Ya, matikan'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function AutoReplyPage() {
   const { data: info, isLoading, error } = useAutoReply()
   const qc = useQueryClient()
   const { toast } = useFeedback()
   const [draft, setDraft] = useState<AutoReplySettings | null>(null)
+  const [asking, setAsking] = useState<boolean | null>(null) // the switch's confirmation: turning on (true) or off
   const save = useMutation({
     mutationFn: (s: AutoReplySettings) => api.put<AutoReplyInfo>('/auto-reply', s),
     onSuccess: (res) => {
@@ -114,13 +141,7 @@ export function AutoReplyPage() {
   // every connected number of any team (Sam 29 Oct); a chosen number that dropped stays listed so it can be unticked
   const sales = info.numbers.filter((n) => n.state === 'connected' || s.numbers.includes(n.wa_number))
   const allNums = s.numbers.length === 0
-  const flip = () => {
-    const next = !on
-    const ask = next
-      ? 'Nyalakan chat otomatis?\n\nPelanggan akan menerima balasan otomatis pada jam yang dipilih, tercatat atas nama Anda.'
-      : 'Matikan chat otomatis?\n\nTidak ada lagi balasan otomatis ke pelanggan.'
-    if (window.confirm(ask)) save.mutate({ ...s, enabled: next })
-  }
+  const flip = () => setAsking(!on)
   return (
     <div className="stack arx">
       {/* the one thing to see first: on, waiting, or off */}
@@ -135,8 +156,10 @@ export function AutoReplyPage() {
           </span>
         </div>
         {edit && (
-          <button type="button" className={`arx-switch ${on ? 'is-on' : ''}`} role="switch" aria-checked={on} disabled={save.isPending || (!on && !!err)} onClick={flip}>
-            <span className="knob" />{on ? 'Matikan' : 'Nyalakan'}
+          // a switch that shows its state: grey with the knob left = MATI, green with the knob right = NYALA
+          <button type="button" className={`arx-switch ${on ? 'is-on' : ''}`} role="switch" aria-checked={on} aria-label="Chat otomatis"
+            title={on ? 'Klik untuk mematikan' : 'Klik untuk menyalakan'} disabled={save.isPending || (!on && !!err)} onClick={flip}>
+            <span className="knob" /><span className="arx-switch-t">{on ? 'NYALA' : 'MATI'}</span>
           </button>
         )}
       </div>
@@ -241,6 +264,11 @@ export function AutoReplyPage() {
           </ul>
         )}
       </details>
+
+      {asking !== null && (
+        <ConfirmSwal on={asking} busy={save.isPending} onCancel={() => setAsking(null)}
+          onOk={() => save.mutate({ ...s, enabled: asking }, { onSettled: () => setAsking(null) })} />
+      )}
 
       {edit && dirty && (
         <div className={`arx-save ${err ? 'bad' : ''}`}>

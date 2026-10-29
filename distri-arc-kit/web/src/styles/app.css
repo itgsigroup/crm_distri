@@ -2495,23 +2495,31 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;user-select:no
 .arx{gap:14px}
 .arx-hero{display:flex;align-items:center;gap:16px;padding:20px 22px;border-radius:16px;border:2px solid var(--line);background:var(--surface)}
 .arx-hero.live{border-color:var(--good);background:var(--good-soft)}
-.arx-hero.wait{border-color:var(--accent);background:var(--accent-soft)}
+.arx-hero.wait{border-color:var(--good);background:var(--good-soft)}
 .arx-hero.off{border-color:var(--line);background:var(--surface-2)}
 .arx-dot{width:22px;height:22px;border-radius:50%;flex:none;background:var(--text-3)}
 .arx-hero.live .arx-dot{background:var(--good);box-shadow:0 0 0 6px var(--good-soft);animation:arx-pulse 1.6s ease-in-out infinite}
-.arx-hero.wait .arx-dot{background:var(--accent)}
+.arx-hero.wait .arx-dot{background:var(--good)}
 @keyframes arx-pulse{50%{box-shadow:0 0 0 12px transparent}}
 @media (prefers-reduced-motion:reduce){.arx-hero.live .arx-dot{animation:none}}
 .arx-hero-t{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
 .arx-hero-t b{font-size:24px;font-weight:800;letter-spacing:-.01em;color:var(--text)}
 .arx-hero.live .arx-hero-t b{color:var(--good)}
-.arx-hero.wait .arx-hero-t b{color:var(--accent)}
+.arx-hero.wait .arx-hero-t b{color:var(--good)}
 .arx-hero-t span{font-size:14.5px;color:var(--text-2);line-height:1.45}
-.arx-switch{display:flex;align-items:center;gap:10px;height:48px;padding:0 20px 0 8px;border-radius:999px;font-size:15px;font-weight:700;background:var(--good);color:#fff;flex:none}
-.arx-switch .knob{width:34px;height:34px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.arx-switch.is-on{background:var(--surface);color:var(--bad);border:2px solid var(--bad)}
-.arx-switch.is-on .knob{background:var(--bad)}
+/* the on/off switch: grey with the knob left = MATI, green with the knob right = NYALA (Sam 29 Oct) */
+.arx-switch{position:relative;display:flex;align-items:center;width:132px;height:48px;padding:0 8px;border-radius:999px;background:var(--text-3);color:#fff;flex:none;transition:background .2s}
+.arx-switch .knob{position:absolute;left:7px;top:7px;width:34px;height:34px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+.arx-switch-t{width:100%;padding-left:40px;text-align:center;font-size:15px;font-weight:800;letter-spacing:.04em;transition:padding .2s}
+.arx-switch.is-on{background:var(--good)}
+.arx-switch.is-on .knob{left:calc(100% - 41px)}
+.arx-switch.is-on .arx-switch-t{padding:0 40px 0 0}
 .arx-switch:disabled{opacity:.5;cursor:not-allowed}
+@media (prefers-reduced-motion:reduce){.arx-switch,.arx-switch .knob,.arx-switch-t{transition:none}}
+.arx-swal-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.arx-swal-actions .btn{height:40px;min-width:120px;font-size:14px}
+.arx-swal-actions .arx-go{background:var(--good);border-color:var(--good)}
+.arx-swal-actions .arx-stop{background:var(--bad);border-color:var(--bad)}
 .arx-lock{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;color:var(--text-2)}
 .arx-lock .i{width:16px;height:16px}
 .arx-flow{display:flex;align-items:center;gap:10px}
@@ -2579,7 +2587,6 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;user-select:no
 @media (max-width:640px){
   .arx-hero{flex-wrap:wrap;padding:16px}
   .arx-hero-t b{font-size:20px}
-  .arx-switch{width:100%;justify-content:center}
   .arx-flow{flex-direction:column}
   .arx-flow .arx-to{transform:rotate(90deg)}
   .arx-save{flex-wrap:wrap}

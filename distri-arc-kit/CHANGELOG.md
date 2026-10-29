@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## UI · Chat otomatis: sakelar abu-abu/hijau dan popup konfirmasi · 2026-10-29
+- Tombol **Nyalakan/Matikan** menjadi sakelar: **abu-abu, bulatan di kiri, tulisan MATI** saat mati; **hijau, bulatan di kanan, tulisan NYALA** saat nyala. Kotak status juga hijau setiap kali nyala.
+- Konfirmasi sebelum menyalakan atau mematikan sekarang popup bergaya SweetAlert (ikon, tombol "Ya, nyalakan" hijau / "Ya, matikan" merah, dan Batal), bukan kotak bawaan browser.
+
 ## UI · Chat otomatis: semua nomor yang tersambung bisa dipilih · 2026-10-29
 - Langkah 4 sekarang "Nomor mana?" dan menampilkan **semua nomor WhatsApp yang tersambung** (Sales, Admin, Penagihan), bukan hanya nomor sales. Tiap nomor diberi keterangan timnya.
 
