@@ -20,9 +20,9 @@ type AutoReplyWorker struct {
 	log *slog.Logger
 }
 
-// Timeout: Lyra's reading (autoreply.LyraWait), then the AI draft (45 s per model).
+// Timeout: Lyra's product reading and her reply (autoreply.LyraWait each), then the AI draft (45 s per model).
 func (w *AutoReplyWorker) Timeout(*river.Job[jobs.AutoReplyArgs]) time.Duration {
-	return autoreply.LyraWait + 2*time.Minute
+	return 2*autoreply.LyraWait + 2*time.Minute
 }
 
 func (w *AutoReplyWorker) Work(ctx context.Context, job *river.Job[jobs.AutoReplyArgs]) error {

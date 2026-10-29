@@ -17,7 +17,7 @@ const useAutoReply = () => useQuery({ queryKey: ['auto-reply'], queryFn: () => a
 const STATUS: Record<string, string> = { pending: 'mengirim', sent: 'terkirim', delivered: 'diterima', read: 'dibaca', failed: 'gagal', skipped: 'tidak dikirim' }
 
 const editable = (s: AutoReplySettings): AutoReplySettings => ({
-  enabled: s.enabled, lyra: s.lyra, breaks: s.breaks, numbers: s.numbers ?? [], template: s.template, facts: s.facts ?? [],
+  enabled: s.enabled, lyra: s.lyra, sales_style: !!s.sales_style, breaks: s.breaks, numbers: s.numbers ?? [], template: s.template, facts: s.facts ?? [],
 })
 
 /** A green ✓ or red ✗ with a word: whether a step is fine. */
@@ -141,9 +141,9 @@ export function AutoReplyPage() {
 
       {/* what happens, in three pictures */}
       <div className="card arx-flow">
-        <div><Icon name="chat" /><b>Pelanggan chat</b><span>“Stok kamera 4MP ada?”</span></div>
+        <div><Icon name="chat" /><b>Pelanggan chat</b><span>“Stok kamera 4MP ada?” · “Order saya sampai mana?”</span></div>
         <Icon name="arrow" className="i arx-to" />
-        <div><Icon name="radar" /><b>Lyra cari barangnya</b><span>Stok &amp; harga dari sistem</span></div>
+        <div><Icon name="radar" /><b>{s.sales_style ? 'Lyra membalas seperti sales' : 'Lyra cari barangnya'}</b><span>Angka stok, harga, order dari sistem</span></div>
         <Icon name="arrow" className="i arx-to" />
         <div><Icon name="send" /><b>Balasan terkirim</b><span>Sales tetap bisa lanjut</span></div>
       </div>
@@ -161,7 +161,20 @@ export function AutoReplyPage() {
             <small>Stok, harga, barang — Lyra cari barangnya, angka dari sistem.</small>
           </span>
         </button>
-        {s.lyra && !info.lyra_ready && (
+        <button type="button" className={`arx-tile ${s.sales_style ? 'on' : ''}`} aria-pressed={s.sales_style} disabled={!edit} onClick={() => set({ sales_style: !s.sales_style })} style={{ marginTop: 10 }}>
+          <span className="arx-box"><Icon name={s.sales_style ? 'check' : 'x'} /></span>
+          <span>
+            <b>Lyra membalas SEMUA chat seperti sales</b>
+            <small>Menyapa dengan nama pelanggan dan menjawab sesuai pertanyaan — stok, harga, status order, salam, atau janji temu. Angka selalu dari sistem; balasan yang angkanya tidak cocok tidak dikirim. Diskon, kredit, dan pesanan tetap diserahkan ke sales.</small>
+          </span>
+        </button>
+        {s.sales_style && (
+          <div className="arx-wa" style={{ marginTop: 10 }}>
+            <small>Contoh balasan Lyra</small>
+            Selamat siang Pak Budi, untuk <b>NVR 32ch</b> stok di Semarang ada 9 unit. Harganya <b>Rp 2.500.000</b>/unit (harga DPP, belum termasuk PPN). Mau saya bantu siapkan penawarannya, Pak?{'\n\n'}<i>— Lyra, asisten GSI (pesan otomatis)</i>
+          </div>
+        )}
+        {(s.lyra || s.sales_style) && !info.lyra_ready && (
           <p className="arx-err"><Icon name="alert" />Lyra belum tersambung. <Link to="/pengaturan/hermes#sambungan">Sambungkan Lyra di sini →</Link></p>
         )}
         <p className="arx-sub">Kalau Lyra tidak menemukan barangnya, AI Trigger menjawab soal:</p>
@@ -173,8 +186,10 @@ export function AutoReplyPage() {
         </div>
       </Step>
 
-      <Step n={3} title="Pesan untuk chat lainnya" mark={<Mark ok={!tplErr}>{tplErr ? 'Perlu dibetulkan' : 'Beres'}</Mark>}>
-        <p className="arx-sub">Chat yang bukan soal produk mendapat pesan ini, sekali saja.</p>
+      <Step n={3} title={s.sales_style ? 'Pesan cadangan' : 'Pesan untuk chat lainnya'} mark={<Mark ok={!tplErr}>{tplErr ? 'Perlu dibetulkan' : 'Beres'}</Mark>}>
+        <p className="arx-sub">{s.sales_style
+          ? 'Dipakai hanya bila Lyra tidak bisa membalas (belum tersambung, terlalu lama, atau balasannya tidak lolos cek angka), sekali saja.'
+          : 'Chat yang bukan soal produk mendapat pesan ini, sekali saja.'}</p>
         <textarea className="ar-text" rows={3} value={s.template} disabled={!edit} onChange={(e) => set({ template: e.target.value })} aria-label="Pesan template" />
         <div className="arx-count">{tplLen}/500</div>
         {tplErr && <p className="arx-err"><Icon name="x" />{tplErr}</p>}

@@ -97,7 +97,7 @@ func (s *Server) autoReplySave(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
 		return
 	}
-	s.auditUser(r, "auto_reply.save", "policy:"+autoreply.PolicyKey, map[string]any{"enabled": in.Enabled, "lyra": in.Lyra, "breaks": in.Breaks,
+	s.auditUser(r, "auto_reply.save", "policy:"+autoreply.PolicyKey, map[string]any{"enabled": in.Enabled, "lyra": in.Lyra, "sales_style": in.SalesStyle, "breaks": in.Breaks,
 		"numbers": in.Numbers, "facts": in.Facts, "template": in.Template, "by": deref(u.Email)})
 	s.autoReplyInfo(w, r)
 }

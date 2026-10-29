@@ -1,6 +1,13 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Feat · Chat otomatis: Lyra membalas semua chat seperti sales · 2026-10-29
+- Pilihan baru di **Chat otomatis → langkah 2**: **"Lyra membalas SEMUA chat seperti sales"**. Pada jam aktif, Lyra menyapa pelanggan dengan namanya dan menjawab sesuai isi pesan: stok, harga, status order, limit/tagihan, salam, atau janji temu.
+- Angka selalu dari sistem. Balasan yang memuat angka di luar data sistem (misalnya diskon karangan) **tidak dikirim**, dan sebagai gantinya terkirim kartu produk atau template.
+- Lyra tidak menjanjikan diskon, kredit, tanggal kirim, atau menerima pesanan. Untuk itu Lyra bilang sales akan menindaklanjuti.
+- Balasan ditandai "— Lyra, asisten GSI (pesan otomatis)" dan chat tetap "Belum dibalas" untuk sales.
+- ADR 0078 · test: `TestAutoReplyLikeSales`.
+
 ## UI · Chat otomatis: pilihan yang aktif hijau dengan centang · 2026-10-29
 - Tombol hari, fakta cadangan AI Trigger, dan pilihan nomor yang dipilih sekarang **hijau dengan tanda ✓** (sebelumnya biru, tanpa arti yang jelas). Yang tidak dipilih tetap putih polos.
 

@@ -1,5 +1,7 @@
-// Package autoreply answers customers while their sales is on a break (ADR 0066): a product question is read by Lyra,
-// the company's Hermes Agent, and answered with the stock and DPP price from the system (ADR 0077); another question
+// Package autoreply answers customers while their sales is on a break (ADR 0066). With "seperti sales" on, Lyra, the
+// company's Hermes Agent, answers any message the way a sales would, from the facts below; a reply whose numbers are
+// not in them is not sent (ADR 0078). Otherwise, or when that fails: a product question is read by Lyra
+// and answered with the stock and DPP price from the system (ADR 0077); another question
 // about a fact the system computes (stock, price, order status) gets the AI Trigger draft — numbers from the system,
 // checked by CheckDraft — and anything else gets the template a person approved once. The approval of the setting is the recorded human
 // decision (proposals.decided_by); every message still goes through the outbox and the anti-ban guard.
@@ -42,7 +44,10 @@ const Agent = "Balas otomatis"
 const (
 	HumanQuiet  = 10 * time.Minute
 	MaxAge      = 15 * time.Minute
-	MaxFactsPer = 5 // fact answers per conversation per break
+	MaxFactsPer = 5  // fact answers per conversation per break
+	MaxLyraPer  = 10 // Lyra's answers per conversation per break: she keeps up the conversation
+	// MaxSalesReply keeps Lyra's reply with its footer short enough to read as an automatic message (is_auto_reply ≤ 700)
+	MaxSalesReply = 640
 	// LyraWait is how long a product question waits for Lyra (one agent loop) before the other answers are tried.
 	LyraWait = 4 * time.Minute
 )
@@ -72,6 +77,8 @@ type Settings struct {
 	Template string   `json:"template"`
 	Facts    []string `json:"facts"`
 	Lyra     bool     `json:"lyra"` // product questions answered by Lyra (Hermes Agent), stock and price from the system
+	// SalesStyle: Lyra answers every message like a sales, from the facts the system computed (ADR 0078)
+	SalesStyle bool `json:"sales_style"`
 	// the person whose approval sends the messages, set on every save
 	ApprovedBy      *uuid.UUID `json:"approved_by,omitempty"`
 	ApprovedProfile *uuid.UUID `json:"approved_profile,omitempty"`
@@ -85,7 +92,7 @@ const DefaultTemplate = "{salam} {nama}, terima kasih sudah menghubungi kami. Sa
 // Default is off, Senin–Sabtu 12.00–13.00, products answered by Lyra, stock / price / order by AI.
 func Default() Settings {
 	return Settings{Breaks: []Window{{Days: []int{1, 2, 3, 4, 5, 6}, Start: "12:00", End: "13:00"}}, Template: DefaultTemplate,
-		Facts: []string{replyrule.ActionStock, replyrule.ActionPrice, replyrule.ActionOrder}, Lyra: true}
+		Facts: []string{replyrule.ActionStock, replyrule.ActionPrice, replyrule.ActionOrder}, Lyra: true, SalesStyle: true}
 }
 
 // Load reads the setting; the default when none is saved.
@@ -250,29 +257,40 @@ func (s *Service) Handle(ctx context.Context, messageID uuid.UUID) (Outcome, err
 	if busy, err := s.St.Q.HumanRepliedSince(ctx, gen.HumanRepliedSinceParams{ThreadID: &t.ID, SentAt: now.Add(-HumanQuiet)}); err != nil || busy {
 		return Skipped, err
 	}
-	answer, out := "", Template
+	// the facts the system computes for this message: Lyra's product card, the AI Trigger answers
+	quote, facts := "", ""
 	if set.Lyra && s.Lyra != nil && s.Reply != nil {
-		if answer, err = s.lyraAnswer(ctx, m, t); err != nil && s.Log != nil {
+		if quote, err = s.lyraAnswer(ctx, m, t); err != nil && s.Log != nil {
 			s.Log.Warn("auto reply: no Lyra answer", "message", messageID, "err", err)
+		}
+	}
+	if len(set.Facts) > 0 && s.Reply != nil && (quote == "" || set.SalesStyle) {
+		if facts, err = s.factAnswer(ctx, m, set.Facts); err != nil && s.Log != nil {
+			s.Log.Warn("auto reply: no fact answer", "message", messageID, "err", err)
+		}
+	}
+	answer, out := "", Template
+	if set.SalesStyle && s.Lyra != nil {
+		if answer, err = s.salesAnswer(ctx, m, t, []string{quote, facts}, end, now); err != nil && s.Log != nil {
+			s.Log.Warn("auto reply: no sales-style answer", "message", messageID, "err", err)
 		}
 		if answer != "" {
 			out = Lyra
-			// Lyra took a while: a person who answered meanwhile is at work
-			if busy, err := s.St.Q.HumanRepliedSince(ctx, gen.HumanRepliedSinceParams{ThreadID: &t.ID, SentAt: now.Add(-HumanQuiet)}); err != nil || busy {
-				return Skipped, err
-			}
 		}
 	}
-	if answer == "" && len(set.Facts) > 0 && s.Reply != nil {
-		if answer, err = s.factAnswer(ctx, m, set.Facts); err != nil && s.Log != nil {
-			s.Log.Warn("auto reply: no fact answer", "message", messageID, "err", err)
-		}
-		if answer != "" {
-			out = Fact
-		}
-	}
-	if answer == "" {
+	switch {
+	case answer != "":
+	case quote != "":
+		answer, out = quote, Lyra
+	case facts != "":
+		answer, out = facts, Fact
+	default:
 		answer = Fill(set.Template, nameOf(t), end.Format("15.04"), partOfDay(now))
+	}
+	if out == Lyra { // Lyra took a while: a person who answered meanwhile is at work
+		if busy, err := s.St.Q.HumanRepliedSince(ctx, gen.HumanRepliedSinceParams{ThreadID: &t.ID, SentAt: now.Add(-HumanQuiet)}); err != nil || busy {
+			return Skipped, err
+		}
 	}
 	sent := false
 	err = s.St.Tx(ctx, func(q *gen.Queries, tx pgx.Tx) error {
@@ -280,10 +298,7 @@ func (s *Service) Handle(ctx context.Context, messageID uuid.UUID) (Outcome, err
 		if _, err := tx.Exec(ctx, "select pg_advisory_xact_lock(hashtext($1))", "auto_reply:"+t.ID.String()); err != nil {
 			return err
 		}
-		limit := int64(1)
-		if out != Template {
-			limit = MaxFactsPer
-		}
+		limit := map[Outcome]int64{Template: 1, Fact: MaxFactsPer, Lyra: MaxLyraPer}[out]
 		n, err := q.CountAutoReplies(ctx, gen.CountAutoRepliesParams{ThreadID: t.ID, BreakStart: start, Kind: string(out)})
 		if err != nil || n >= limit {
 			return err
@@ -355,6 +370,46 @@ func (s *Service) lyraAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, 
 	return hermes.QuoteText(hermes.BuildCard(r, stock, wh, products, tier)), nil
 }
 
+// salesAnswer is Lyra's reply to the message as a sales would write it, from the facts; "" when Lyra is not connected,
+// the reply is empty or too long, or it has a number that is neither in the facts nor in the conversation.
+func (s *Service) salesAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, t gen.GetThreadRow, facts []string, end, now time.Time) (string, error) {
+	in := hermes.SalesInput{Name: nameOf(t), Message: hermes.Caption(m.Body), Back: end.Format("15.04"), PartOfDay: partOfDay(now)}
+	for _, f := range facts {
+		if strings.TrimSpace(f) != "" {
+			in.Facts = append(in.Facts, f)
+		}
+	}
+	allowed := []string{in.Message, in.Back, strings.Join(in.Facts, "\n")}
+	hist, err := s.St.Q.ReplyTriggerHistory(ctx, gen.ReplyTriggerHistoryParams{ThreadID: t.ID, Before: m.SentAt})
+	if err != nil {
+		return "", err
+	}
+	for i := min(len(hist), replyrule.HistoryLines) - 1; i >= 0; i-- { // oldest first
+		line := hermes.ChatLine{In: hist[i].Direction == "in", Text: hermes.Caption(hist[i].Body)}
+		in.History = append(in.History, line)
+		allowed = append(allowed, line.Text)
+	}
+	wait, cancel := context.WithTimeout(ctx, LyraWait)
+	defer cancel()
+	a, err := s.Lyra.SalesReply(wait, in)
+	if errors.Is(err, hermes.ErrNotConnected) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if n := len([]rune(a.Reply)); n == 0 || n > MaxSalesReply {
+		return "", fmt.Errorf("balasan %s kosong atau terlalu panjang (%d karakter)", hermes.AgentName, n)
+	}
+	if err := replyai.CheckDraft("", strings.Join(allowed, "\n"), a.Reply); err != nil {
+		return "", fmt.Errorf("balasan %s tidak dikirim: %w", hermes.AgentName, err)
+	}
+	if a.NeedSales && s.Log != nil {
+		s.Log.Info("auto reply: needs the sales", "message", m.ID, "note", a.Note)
+	}
+	return a.Reply + "\n\n" + hermes.SalesFooter, nil
+}
+
 // factAnswer is the AI Trigger draft of the message for the allowed facts: written now from the current numbers
 // (Write keeps drafts of unchanged facts), "" when no allowed trigger matched or no AI kept to the facts.
 func (s *Service) factAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, allowed []string) (string, error) {
@@ -408,7 +463,7 @@ func (s *Service) queue(ctx context.Context, q *gen.Queries, tx pgx.Tx, t gen.Ge
 		sig = &id
 	}
 	what := map[Outcome]string{Fact: "jawaban fakta dari sistem, ditulis AI", Template: "pesan template",
-		Lyra: "produk dibaca " + hermes.AgentName + ", stok dan harga dari sistem"}[out]
+		Lyra: "dibalas " + hermes.AgentName + ", angka dari sistem"}[out]
 	approved := ""
 	if set.ApprovedAt != nil {
 		approved = " " + set.ApprovedAt.In(clock.WIB).Format("02/01/2006 15.04")

@@ -213,3 +213,97 @@ func TestAutoReplyByLyra(t *testing.T) {
 		t.Fatalf("without Lyra: %q %v", got, err)
 	}
 }
+
+// salesAgent is a Hermes Agent that reads every message as a question about TST-NVR and answers as a sales with the
+// reply it is given.
+type salesAgent struct {
+	reply string
+	sales int
+}
+
+func (a *salesAgent) Chat(_ context.Context, session string, _ []hermes.Msg) (string, error) {
+	if session == "orbit-lyra-sales" {
+		a.sales++
+		b, _ := json.Marshal(map[string]any{"balasan": a.reply, "perlu_sales": false, "catatan": ""})
+		return string(b), nil
+	}
+	return `{"tanya_produk": true, "items": [{"sku": "TST-NVR", "nama": "", "qty": 2}], "catatan": ""}`, nil
+}
+
+// ADR 0078: with "seperti sales" on, Lyra answers any message as a sales would — the customer's name put back, the
+// numbers from the system — and a reply with a number the facts do not have is not sent (the product card goes out).
+func TestAutoReplyLikeSales(t *testing.T) {
+	st := testdb.New(t)
+	ctx := context.Background()
+	if _, err := seed.Run(ctx, st, db.Seed); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 10, 27, 12, 20, 0, 0, clock.WIB) // Selasa, jam istirahat
+	c := clock.Fixed(now)
+	srv := httptest.NewServer(api.New(config.Config{Env: "dev"}, st, c, slog.New(slog.NewTextHandler(io.Discard, nil))).Handler())
+	t.Cleanup(srv.Close)
+	on := map[string]any{"enabled": true, "lyra": true, "sales_style": true, "breaks": []map[string]any{{"days": []int{2}, "start": "12:00", "end": "13:00"}},
+		"template": autoreply.DefaultTemplate, "facts": []string{"stock", "price", "order"}}
+	if code, out := sendJSON(t, http.MethodPut, srv.URL+"/api/auto-reply", "sam@gsi.co.id", on); code != http.StatusOK || out["settings"].(map[string]any)["sales_style"] != true {
+		t.Fatalf("CEO turns on sales style: %d %v", code, out)
+	}
+	if _, err := st.Pool.Exec(ctx, `insert into stock_items (branch, sku, name, category, qty, unit_cost, value) values ('Semarang', 'TST-NVR', 'NVR Uji 32ch', 'Kamera & NVR', 9, 1000000, 9000000);
+		insert into products (sku, name, list_price, prices) values ('TST-NVR', 'NVR Uji 32ch', 2500000, '{"A":2500000,"B":2625000,"C":2750000}')`); err != nil {
+		t.Fatal(err)
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	reply := &replyai.Service{St: st, Views: views.NewBuilder(st, c), Provider: &echoModel{}}
+	agent := &salesAgent{}
+	svc := &autoreply.Service{St: st, Clock: c, Log: log, Reply: reply, Lyra: &hermes.Service{Pool: st.Pool, Log: log, Agent: agent}}
+	th := sinarThread(t, st)
+	var title string
+	if err := st.Pool.QueryRow(ctx, "select title from chat_threads where id = $1", th).Scan(&title); err != nil {
+		t.Fatal(err)
+	}
+	body := func(q uuid.UUID) (string, string) {
+		t.Helper()
+		var b, kind string
+		var auto bool
+		if err := st.Pool.QueryRow(ctx, `select m.body, a.kind, m.auto_reply from auto_replies a join chat_messages m on m.id = a.reply_id where a.message_id = $1`, q).Scan(&b, &kind, &auto); err != nil {
+			t.Fatal(err)
+		}
+		if !auto {
+			t.Fatalf("not marked automatic, the chat would read as answered: %q", b)
+		}
+		return b, kind
+	}
+
+	// a product question: Lyra's own words, the name put back, the numbers from the system
+	agent.reply = "Selamat siang {nama}, untuk *NVR Uji 32ch* stok di Semarang ada 9 unit. Harganya *Rp 2.500.000*/unit (harga DPP, belum termasuk PPN), jadi 2 unit Rp 5.000.000. Mau saya bantu siapkan, Pak?"
+	q1 := addMessage(t, st, th, "WA-LS1", "in", "received", "pak nvr 32 channel stok ada? harga 2 unit berapa?", now.Add(-time.Minute), nil)
+	if got, err := svc.Handle(ctx, q1); err != nil || got != autoreply.Lyra {
+		t.Fatalf("product question: %q %v", got, err)
+	}
+	b, _ := body(q1)
+	if !strings.HasPrefix(b, "Selamat siang "+title+",") || !strings.Contains(b, "Rp 5.000.000") || !strings.Contains(b, hermes.SalesFooter) {
+		t.Fatalf("sales-style reply:\n%s", b)
+	}
+
+	// any other message: answered by Lyra, not the template
+	agent.reply = "Baik {nama}, terima kasih kabarnya. Sales kami kembali jam 13.00 dan akan langsung menghubungi Bapak untuk jadwal mampir besok ya."
+	q2 := addMessage(t, st, th, "WA-LS2", "in", "received", "Pak, besok bisa mampir ke toko?", now.Add(-50*time.Second), nil)
+	if got, err := svc.Handle(ctx, q2); err != nil || got != autoreply.Lyra {
+		t.Fatalf("other message: %q %v", got, err)
+	}
+	if b, _ := body(q2); !strings.Contains(b, "jam 13.00") || strings.Contains(b, "Sales kami sedang istirahat") {
+		t.Fatalf("other message got:\n%s", b)
+	}
+
+	// a made-up number (a discount): not sent — the product card from the system goes out instead
+	agent.reply = "Siap {nama}, NVR Uji 32ch ready 9 unit, khusus hari ini diskon 15% jadi Rp 2.125.000."
+	q3 := addMessage(t, st, th, "WA-LS3", "in", "received", "harga nvr 32ch ada diskon?", now.Add(-40*time.Second), nil)
+	if got, err := svc.Handle(ctx, q3); err != nil || got != autoreply.Lyra {
+		t.Fatalf("made-up number: %q %v", got, err)
+	}
+	if b, _ := body(q3); strings.Contains(b, "15%") || strings.Contains(b, "2.125.000") || !strings.Contains(b, "Berikut info produk") {
+		t.Fatalf("a reply with a made-up number went out:\n%s", b)
+	}
+	if agent.sales != 3 {
+		t.Fatalf("Lyra asked %d times", agent.sales)
+	}
+}

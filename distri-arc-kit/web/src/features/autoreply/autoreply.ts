@@ -5,6 +5,8 @@ export interface HourWindow { days: number[]; start: string; end: string }
 export interface AutoReplySettings {
   enabled: boolean
   lyra: boolean
+  /** Lyra answers every message like a sales, numbers from the system (ADR 0078) */
+  sales_style: boolean
   breaks: HourWindow[]
   numbers: string[]
   template: string
