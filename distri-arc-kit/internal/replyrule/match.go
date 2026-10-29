@@ -31,6 +31,8 @@ type Candidate struct {
 	SKU  string `json:"sku"`
 	Name string `json:"nama"`
 	Qty  int    `json:"stok"`
+	// Score is how strongly it matched the words (not sent to an AI): candidates of the top score are what was named
+	Score int `json:"-"`
 }
 
 // Candidates are up to n products of the stock that share a word with the message or, less, with the chat before it
@@ -78,7 +80,7 @@ func Candidates(text string, history []Line, stock []domain.StockItem, n int) []
 		for _, q := range p.byBranch {
 			total += max(q, 0)
 		}
-		out = append(out, scored{Candidate{SKU: p.sku, Name: p.name, Qty: total}, score})
+		out = append(out, scored{Candidate{SKU: p.sku, Name: p.name, Qty: total, Score: score}, score})
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		if out[i].score != out[j].score {

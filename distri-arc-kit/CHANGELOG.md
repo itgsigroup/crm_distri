@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Perbaikan · Chat otomatis: Lyra menjawab stok sendiri, tidak melempar ke sales · 2026-10-29
+- Pertanyaan yang hanya menyebut merek/jenis (mis. "cek stok cctv hilook semarang") sekarang dijawab dengan pilihan barang merek itu yang ada stoknya di kota yang ditanya, beserta stok dan harga DPP dari sistem (maks. 6 barang).
+- Lyra tidak lagi menjawab "sales akan mengabari": bila datanya kurang, Lyra bertanya balik (tipe, jumlah) atau menawarkan barang yang mendekati (ADR 0079).
+
 ## Perbaikan · Chat otomatis: popup konfirmasi di tengah layar · 2026-10-29
 - Popup "Nyalakan/Matikan chat otomatis?" sekarang selalu muncul di tengah layar (desktop dan HP), tidak lagi tertinggal di bawah halaman yang panjang.
 

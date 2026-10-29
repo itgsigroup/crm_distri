@@ -340,7 +340,7 @@ func (s *Service) lyraAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, 
 	if err != nil {
 		return "", err
 	}
-	if r.Status != "done" || r.Demo || len(r.Items) == 0 {
+	if r.Status != "done" || r.Demo {
 		return "", nil
 	}
 	rows, err := s.St.Q.ListStockItems(ctx)
@@ -350,6 +350,14 @@ func (s *Service) lyraAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, 
 	stock := make([]domain.StockItem, 0, len(rows))
 	for _, x := range rows {
 		stock = append(stock, domain.StockItem{Branch: x.Branch, SKU: x.Sku, Name: x.Name, Qty: int(x.Qty)})
+	}
+	if len(r.Items) == 0 { // a brand or kind without a type ("cek stok cctv hilook semarang"): the products in stock
+		for _, sku := range Browse(q.Text, stock) {
+			r.Items = append(r.Items, hermes.ProductItem{SKU: sku})
+		}
+	}
+	if len(r.Items) == 0 {
+		return "", nil
 	}
 	products, err := s.Reply.Products(ctx)
 	if err != nil {
@@ -368,6 +376,57 @@ func (s *Service) lyraAnswer(ctx context.Context, m gen.ReplyTriggerMessageRow, 
 		_ = s.St.Pool.QueryRow(ctx, "select coalesce(tier, '') from dealers where id = $1", *t.DealerID).Scan(&tier)
 	}
 	return hermes.QuoteText(hermes.BuildCard(r, stock, wh, products, tier)), nil
+}
+
+// MaxBrowse is how many products a question naming only a brand or kind is answered with.
+const MaxBrowse = 6
+
+// Browse is the products a message names without a type: those of the best word match with stock, the city the
+// message names first (most stock first), else any city. Nothing when no product word matched.
+func Browse(text string, stock []domain.StockItem) []string {
+	cands := replyrule.Candidates(text, nil, stock, 200)
+	if len(cands) == 0 {
+		return nil
+	}
+	words := " " + strings.ToLower(strings.Join(strings.Fields(reNonWord.ReplaceAllString(text, " ")), " ")) + " "
+	city := ""
+	inCity := map[string]int{} // SKU → stock in the named city
+	for _, x := range stock {
+		if b := strings.ToLower(strings.TrimSpace(x.Branch)); b != "" && strings.Contains(words, " "+b+" ") {
+			city = b
+		}
+	}
+	for _, x := range stock {
+		if city != "" && strings.EqualFold(strings.TrimSpace(x.Branch), city) && x.Qty > 0 {
+			inCity[x.SKU] += x.Qty
+		}
+	}
+	top := cands[0].Score
+	var best []replyrule.Candidate
+	for _, c := range cands {
+		if c.Score == top && c.Qty > 0 {
+			best = append(best, c)
+		}
+	}
+	if len(inCity) > 0 {
+		var here []replyrule.Candidate
+		for _, c := range best {
+			if inCity[c.SKU] > 0 {
+				here = append(here, c)
+			}
+		}
+		if len(here) > 0 {
+			best = here
+			slices.SortStableFunc(best, func(a, b replyrule.Candidate) int { return inCity[b.SKU] - inCity[a.SKU] })
+		}
+	} else {
+		slices.SortStableFunc(best, func(a, b replyrule.Candidate) int { return b.Qty - a.Qty })
+	}
+	out := make([]string, 0, MaxBrowse)
+	for _, c := range best[:min(len(best), MaxBrowse)] {
+		out = append(out, c.SKU)
+	}
+	return out
 }
 
 // salesAnswer is Lyra's reply to the message as a sales would write it, from the facts; "" when Lyra is not connected,
@@ -516,7 +575,10 @@ func (s *Service) queue(ctx context.Context, q *gen.Queries, tx pgx.Tx, t gen.Ge
 	return p.ID, mid, nil
 }
 
-var rePhone = regexp.MustCompile(`^[+\d\s()-]+$`)
+var (
+	rePhone   = regexp.MustCompile(`^[+\d\s()-]+$`)
+	reNonWord = regexp.MustCompile(`[^\pL\pN]+`)
+)
 
 // nameOf is how the template greets: the contact's or dealer's name, "Kak" for a number without one.
 func nameOf(t gen.GetThreadRow) string {
