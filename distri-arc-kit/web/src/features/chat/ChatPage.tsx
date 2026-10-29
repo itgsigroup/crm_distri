@@ -1037,6 +1037,26 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
   }, [zoom, onBack])
+  // WhatsApp Web (Sam 29 Oct: typing needed a reload): opening a chat puts the cursor in the reply box — not on a
+  // phone, where it would pop the keyboard up — and a letter typed while no other box takes text goes into it, so a
+  // click on the chat list or a button never leaves the typing nowhere
+  const loaded = !!data
+  useEffect(() => {
+    if (loaded && window.matchMedia('(pointer: fine)').matches) input.current?.focus({ preventScroll: true })
+  }, [loaded, id])
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey || e.isComposing || e.defaultPrevented) return
+      const t = e.target as HTMLElement | null
+      const box = input.current
+      if (!t || !box || t === box || box.disabled) return
+      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable) return
+      if (t.closest('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]') || document.querySelector('.sheet.show, .swal-bg')) return
+      box.focus() // the key itself lands in the box
+    }
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [])
   // the box grows with the text, up to about six lines, and shrinks back after sending
   useLayoutEffect(() => {
     const el = input.current
@@ -1202,6 +1222,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
     setText('')
     send.mutate(replying ? { body: v, reply_to: replying.id } : { body: v })
     setReplying(null)
+    input.current?.focus() // the next message can be typed straight away (a tap on a phone keeps its keyboard)
   }
   // Nama panggilan: what the team calls this number ("Pak Yohanes"), kept with the number and shown with the master name
   const rename = () => {
@@ -1350,7 +1371,8 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
               }}
               placeholder={editing ? 'Ubah pesan…' : file ? 'Tambahkan keterangan…' : group ? 'Tulis balasan… (@ menandai, / balasan cepat, Shift+Enter: baris baru)' : 'Tulis balasan… (/ balasan cepat, Shift+Enter: baris baru)'} autoComplete="off" aria-label={editing ? 'Ubah pesan' : file ? 'Keterangan file' : 'Tulis balasan'} />
             {text.trim() || file || editing
-              ? <button type="submit" className="send" aria-label={editing ? 'Simpan edit' : 'Kirim'} disabled={send.isPending || edit.isPending || upload.isPending}><Icon name={editing ? 'check' : 'send'} /></button>
+              // the press keeps the cursor in the box (WhatsApp): focus on the button would sit on the mic it turns into
+              ? <button type="submit" className="send" aria-label={editing ? 'Simpan edit' : 'Kirim'} disabled={send.isPending || edit.isPending || upload.isPending} onMouseDown={(e) => e.preventDefault()}><Icon name={editing ? 'check' : 'send'} /></button>
               : <button type="button" className="send" onClick={voice.start} aria-label="Rekam pesan suara" title="Rekam pesan suara"><Mic /></button>}
           </form>
         )}

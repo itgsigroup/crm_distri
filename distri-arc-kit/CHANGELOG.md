@@ -1,6 +1,12 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fix · Chat: mengetik tidak perlu refresh lagi · 2026-10-29
+- Membuka chat langsung menaruh kursor di kotak ketik, seperti WhatsApp Web (di HP tidak, supaya keyboard tidak tiba-tiba muncul). Sebelumnya fokus tertinggal di daftar chat, jadi ketikan tidak masuk.
+- Setelah menekan tombol **Kirim** dengan mouse, kursor tetap di kotak ketik. Sebelumnya fokus pindah ke tombol yang berubah menjadi tombol rekam suara, jadi ketikan berikutnya hilang.
+- Mengetik huruf setelah mengklik di area pesan atau tombol lain langsung masuk ke kotak ketik (kecuali saat jendela/menu lain terbuka).
+- Diuji di browser: buka chat → ketik → Enter → ketik lagi → klik Kirim → ketik lagi.
+
 ## UI · Chat otomatis: tampilan dibuat sangat sederhana · 2026-10-29
 - Status besar berwarna di paling atas: **NYALA — sedang menjawab** (hijau), **NYALA — menunggu jamnya** (biru), atau **MATI** (abu-abu), dengan satu tombol besar **Nyalakan/Matikan** (minta konfirmasi dulu).
 - Gambar alur 3 langkah: pelanggan chat → Lyra cari barangnya → balasan terkirim.
