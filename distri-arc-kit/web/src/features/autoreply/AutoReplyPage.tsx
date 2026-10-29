@@ -1,17 +1,16 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../api/client'
 import { Icon } from '../../components/Icon'
 import { useFeedback } from '../../components/feedback'
-import { Pill } from '../../components/ui'
 import { fmtPhone } from '../chat/inbox'
-import { DAYS, FACTS, KIND_LABEL, dotted, fill, windowsError, type AutoReplyInfo, type AutoReplySettings, type HourWindow } from './autoreply'
+import { DAYS, FACTS, KIND_LABEL, daysText, dotted, fill, halfHours, windowsError, type AutoReplyInfo, type AutoReplySettings, type HourWindow } from './autoreply'
 
 // Pengaturan → Chat otomatis (ADR 0066, ADR 0077): during the hours set here a customer's message is answered without
 // the sales — a product question by Lyra (Hermes Agent) with the stock and DPP price from the system, another fact
 // question by AI Trigger, anything else by the template once. Saving is the CEO's approval: every automatic message
-// is recorded as decided by them.
+// is recorded as decided by them. The page reads in plain steps with one big on/off state (Sam 29 Oct).
 
 const useAutoReply = () => useQuery({ queryKey: ['auto-reply'], queryFn: () => api.get<AutoReplyInfo>('/auto-reply') })
 
@@ -21,92 +20,65 @@ const editable = (s: AutoReplySettings): AutoReplySettings => ({
   enabled: s.enabled, lyra: s.lyra, breaks: s.breaks, numbers: s.numbers ?? [], template: s.template, facts: s.facts ?? [],
 })
 
+/** A green ✓ or red ✗ with a word: whether a step is fine. */
+function Mark({ ok, children }: { ok: boolean; children: ReactNode }) {
+  return <span className={`arx-mark ${ok ? 'ok' : 'no'}`}><Icon name={ok ? 'check' : 'x'} />{children}</span>
+}
+
+/** One numbered step: a big number, a question as title, its mark. */
+function Step({ n, title, mark, children }: { n: number; title: string; mark?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="card arx-step">
+      <header><span className="arx-n">{n}</span><h2>{title}</h2>{mark}</header>
+      {children}
+    </section>
+  )
+}
+
+/** A time as a plain list of half hours ("12.00"), not the browser's clock that may show 01:00 PM. */
+function Clock({ value, from, to, edit, label, onChange }: { value: string; from: string; to: string; edit: boolean; label: string; onChange: (v: string) => void }) {
+  const opts = halfHours(from, to)
+  if (!opts.includes(value)) opts.push(value)
+  opts.sort()
+  return (
+    <select className="arx-clock" value={value} disabled={!edit} onChange={(e) => onChange(e.target.value)} aria-label={label}>
+      {opts.map((o) => <option key={o} value={o}>{dotted(o)}</option>)}
+    </select>
+  )
+}
+
 function Hours({ breaks, set, edit, from, to }: { breaks: HourWindow[]; set: (b: HourWindow[]) => void; edit: boolean; from: string; to: string }) {
   const change = (i: number, w: Partial<HourWindow>) => set(breaks.map((x, j) => (j === i ? { ...x, ...w } : x)))
-  const toggleDay = (i: number, d: number) => {
-    const days = breaks[i].days.includes(d) ? breaks[i].days.filter((x) => x !== d) : [...breaks[i].days, d].sort()
-    change(i, { days })
-  }
+  const toggleDay = (i: number, d: number) => change(i, { days: breaks[i].days.includes(d) ? breaks[i].days.filter((x) => x !== d) : [...breaks[i].days, d].sort() })
   return (
-    <div className="card">
-      <div className="card-h">
-        <h2>Jam aktif</h2>
-        <span className="meta">WIB · di antara {dotted(from)}–{dotted(to)}</span>
-      </div>
-      <ul className="ar-breaks">
+    <>
+      <ul className="arx-hours">
         {breaks.map((w, i) => (
           <li key={i}>
-            <div className="ar-time">
-              <label>Dari <input type="time" value={w.start} min={from} max={to} step={300} disabled={!edit} onChange={(e) => change(i, { start: e.target.value })} aria-label="Jam mulai" /></label>
-              <label>sampai <input type="time" value={w.end} min={from} max={to} step={300} disabled={!edit} onChange={(e) => change(i, { end: e.target.value })} aria-label="Jam selesai" /></label>
-              {edit && breaks.length > 1 && <button type="button" className="btn quiet" onClick={() => set(breaks.filter((_, j) => j !== i))}><Icon name="x" />Hapus</button>}
+            <p className="arx-say"><b>{w.days.length ? daysText(w.days) : 'Belum pilih hari'}</b>, jam <b>{dotted(w.start)}</b> sampai <b>{dotted(w.end)}</b></p>
+            <div className="arx-row">
+              <span className="arx-lbl">Hari</span>
+              <div className="arx-chips" role="group" aria-label="Hari">
+                {DAYS.map(([d, name]) => (
+                  <button key={d} type="button" aria-pressed={w.days.includes(d)} className={w.days.includes(d) ? 'on' : ''} disabled={!edit} onClick={() => toggleDay(i, d)}>{name}</button>
+                ))}
+              </div>
             </div>
-            <div className="seg ar-days" role="group" aria-label="Hari">
-              {DAYS.map(([d, name]) => (
-                <button key={d} type="button" aria-pressed={w.days.includes(d)} className={w.days.includes(d) ? 'is-active' : ''} disabled={!edit} onClick={() => toggleDay(i, d)}>{name}</button>
-              ))}
+            <div className="arx-row">
+              <span className="arx-lbl">Jam</span>
+              <Clock value={w.start} from={from} to={to} edit={edit} label="Mulai" onChange={(start) => change(i, { start })} />
+              <Icon name="arrow" />
+              <Clock value={w.end} from={from} to={to} edit={edit} label="Selesai" onChange={(end) => change(i, { end })} />
+              {edit && breaks.length > 1 && <button type="button" className="btn quiet arx-del" onClick={() => set(breaks.filter((_, j) => j !== i))}><Icon name="x" />Hapus</button>}
             </div>
           </li>
         ))}
       </ul>
       {edit && breaks.length < 7 && (
-        <button type="button" className="btn ghost ar-add" onClick={() => set([...breaks, { days: [1, 2, 3, 4, 5, 6], start: '12:00', end: '13:00' }])}><Icon name="check" />Tambah jam aktif</button>
+        <button type="button" className="btn ghost arx-add" onClick={() => set([...breaks, { days: [1, 2, 3, 4, 5, 6], start: '12:00', end: '13:00' }])}>+ Tambah jadwal lain</button>
       )}
-      <p className="ar-help">Di luar jam ini tidak ada pesan otomatis. Batas {dotted(from)}–{dotted(to)} WIB adalah jendela kirim WhatsApp otomatis (penjaga anti-blokir): pesan di luarnya baru terkirim besok pagi.</p>
-    </div>
-  )
-}
-
-function Numbers({ info, s, set, edit }: { info: AutoReplyInfo; s: AutoReplySettings; set: (n: string[]) => void; edit: boolean }) {
-  const sales = info.numbers.filter((n) => n.team === 'sales')
-  const all = s.numbers.length === 0
-  return (
-    <div className="card">
-      <div className="card-h">
-        <h2>Nomor yang ikut</h2>
-        <span className="meta">{all ? 'semua nomor' : `${s.numbers.length} nomor`}</span>
-      </div>
-      <div className="seg" role="radiogroup" aria-label="Nomor">
-        <button type="button" role="radio" aria-checked={all} className={all ? 'is-active' : ''} disabled={!edit} onClick={() => set([])}>Semua nomor</button>
-        <button type="button" role="radio" aria-checked={!all} className={!all ? 'is-active' : ''} disabled={!edit || sales.length === 0} onClick={() => all && set([sales[0].wa_number])}>Pilih nomor</button>
-      </div>
-      {!all && (
-        <ul className="ar-nums" style={{ marginTop: 12 }}>
-          {sales.map((n) => (
-            <li key={n.wa_number}>
-              <label>
-                <input type="checkbox" checked={s.numbers.includes(n.wa_number)} disabled={!edit}
-                  onChange={(e) => set(e.target.checked ? [...s.numbers, n.wa_number] : s.numbers.filter((x) => x !== n.wa_number))} />
-                <span><b>{n.holder || n.label || fmtPhone(n.wa_number)}</b><small>{fmtPhone(n.wa_number)}{n.label && n.holder ? ` · ${n.label}` : ''}{n.state !== 'connected' ? ' · tidak tersambung' : ''}</small></span>
-              </label>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
-
-function Log({ info }: { info: AutoReplyInfo }) {
-  return (
-    <div className="card">
-      <div className="card-h"><h2>Riwayat chat otomatis</h2><span className="meta">30 terakhir</span></div>
-      {info.recent.length === 0 ? <p className="cl-empty">Belum ada pesan otomatis.</p> : (
-        <ul className="ar-log">
-          {info.recent.map((r) => (
-            <li key={r.message_id}>
-              <div className="ar-log-h">
-                <Pill tone={r.kind === 'lyra' ? 'indigo' : r.kind === 'fact' ? 'accent' : 'neutral'}>{KIND_LABEL[r.kind]}</Pill>
-                <Link to={`/chat/${r.thread_id}`}>{r.title || fmtPhone(r.account)}</Link>
-                <span>{new Date(r.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} · {STATUS[r.status] ?? r.status}</span>
-              </div>
-              <p className="ar-q">“{r.question}”</p>
-              {r.answer && <p className="ar-a">{r.answer}</p>}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+      <p className="arx-hint"><Icon name="alert" /><span>Jam bisa dipilih dari <b>{dotted(from)}</b> sampai <b>{dotted(to)}</b> WIB (batas aman WhatsApp).</span></p>
+    </>
   )
 }
 
@@ -117,7 +89,11 @@ export function AutoReplyPage() {
   const [draft, setDraft] = useState<AutoReplySettings | null>(null)
   const save = useMutation({
     mutationFn: (s: AutoReplySettings) => api.put<AutoReplyInfo>('/auto-reply', s),
-    onSuccess: (res) => { qc.setQueryData(['auto-reply'], res); setDraft(null); toast('Chat otomatis disimpan') },
+    onSuccess: (res) => {
+      qc.setQueryData(['auto-reply'], res)
+      setDraft(null)
+      toast(res.settings.enabled ? 'Tersimpan — chat otomatis NYALA' : 'Tersimpan — chat otomatis MATI')
+    },
     onError: (e: Error) => toast(e.message),
   })
   if (error) return <div className="card"><p className="cl-empty">{(error as Error).message}</p></div>
@@ -128,73 +104,132 @@ export function AutoReplyPage() {
   const dirty = JSON.stringify(s) !== JSON.stringify(editable(info.settings))
   const hoursErr = windowsError(s.breaks, info.send_from, info.send_to)
   const tplLen = s.template.trim().length
-  const tplErr = tplLen < 20 || tplLen > 500 ? 'Pesan template 20–500 karakter' : ''
+  const tplErr = tplLen < 20 ? 'Pesan terlalu pendek (minimal 20 huruf)' : tplLen > 500 ? 'Pesan terlalu panjang (maksimal 500 huruf)' : ''
+  const err = hoursErr || tplErr
   const preview = fill(s.template, 'Toko Sinar Jaya', dotted(s.breaks[0]?.end ?? '13:00'), 'siang')
-  const status = !info.settings.enabled
-    ? <Pill tone="neutral">Mati</Pill>
-    : info.active_now ? <Pill tone="good" icon="check">Menjawab sekarang · sampai {info.active_until}</Pill> : <Pill tone="accent">Aktif · menunggu jam aktif</Pill>
+  const on = info.settings.enabled
+  const when = info.settings.breaks.map((w) => `${daysText(w.days)} ${dotted(w.start)}–${dotted(w.end)}`).join(' · ')
+  const sales = info.numbers.filter((n) => n.team === 'sales')
+  const allNums = s.numbers.length === 0
+  const flip = () => {
+    const next = !on
+    const ask = next
+      ? 'Nyalakan chat otomatis?\n\nPelanggan akan menerima balasan otomatis pada jam yang dipilih, tercatat atas nama Anda.'
+      : 'Matikan chat otomatis?\n\nTidak ada lagi balasan otomatis ke pelanggan.'
+    if (window.confirm(ask)) save.mutate({ ...s, enabled: next })
+  }
   return (
-    <div className="stack ar">
-      <div className="card">
-        <div className="card-h">
-          <h2>Cara kerja</h2>
-          {status}
+    <div className="stack arx">
+      {/* the one thing to see first: on, waiting, or off */}
+      <div className={`arx-hero ${on ? (info.active_now ? 'live' : 'wait') : 'off'}`}>
+        <span className="arx-dot" aria-hidden="true" />
+        <div className="arx-hero-t">
+          <b>{on ? (info.active_now ? 'NYALA — sedang menjawab' : 'NYALA — menunggu jamnya') : 'MATI'}</b>
+          <span>
+            {!on ? 'Tidak ada balasan otomatis ke pelanggan.'
+              : info.active_now ? `Chat pelanggan dijawab otomatis sampai jam ${info.active_until}.`
+                : `Akan menjawab pada: ${when}.`}
+          </span>
         </div>
-        <ol className="at-steps">
-          <li><b>Pelanggan chat</b> pada jam aktif di bawah, di nomor yang ikut. Hanya chat pribadi pelanggan — bukan grup, nomor internal, atau pemasok.</li>
-          <li><b>Pertanyaan produk dijawab Lyra</b> (Hermes Agent): Lyra membaca barang yang ditanyakan, lalu stok per kota dan harga DPP sesuai tier dealer diambil dari sistem (data Accurate), sama seperti kartu Lyra di Chat tanpa diskon.</li>
-          <li><b>Pertanyaan fakta lain</b> (status order, limit) dijawab AI Trigger dari data sistem, paling banyak {info.max_facts}× per chat per jam aktif.</li>
-          <li><b>Pesan lainnya</b> mendapat pesan template, sekali per chat per jam aktif.</li>
-          <li><b>Sales tetap memegang chat</b>: bila sales membalas dalam {info.human_quiet_min} menit terakhir, tidak ada jawaban otomatis. Chat tetap “Belum dibalas” supaya sales menindaklanjuti.</li>
-        </ol>
+        {edit && (
+          <button type="button" className={`arx-switch ${on ? 'is-on' : ''}`} role="switch" aria-checked={on} disabled={save.isPending || (!on && !!err)} onClick={flip}>
+            <span className="knob" />{on ? 'Matikan' : 'Nyalakan'}
+          </button>
+        )}
+      </div>
+      {!edit && <p className="arx-lock"><Icon name="lock" />Hanya CEO yang bisa mengubah halaman ini.</p>}
+
+      {/* what happens, in three pictures */}
+      <div className="card arx-flow">
+        <div><Icon name="chat" /><b>Pelanggan chat</b><span>“Stok kamera 4MP ada?”</span></div>
+        <Icon name="arrow" className="i arx-to" />
+        <div><Icon name="radar" /><b>Lyra cari barangnya</b><span>Stok &amp; harga dari sistem</span></div>
+        <Icon name="arrow" className="i arx-to" />
+        <div><Icon name="send" /><b>Balasan terkirim</b><span>Sales tetap bisa lanjut</span></div>
       </div>
 
-      <div className="card">
-        <div className="card-h"><h2>Penjawab</h2></div>
-        <ul className="ar-nums">
-          <li>
-            <label>
-              <input type="checkbox" checked={s.enabled} disabled={!edit} onChange={(e) => set({ enabled: e.target.checked })} />
-              <span><b>Chat otomatis aktif</b><small>Mati: tidak ada pesan otomatis sama sekali.</small></span>
-            </label>
-          </li>
-          <li>
-            <label>
-              <input type="checkbox" checked={s.lyra} disabled={!edit} onChange={(e) => set({ lyra: e.target.checked })} />
-              <span>
-                <b>Pertanyaan produk dijawab Lyra (Hermes Agent)</b>
-                <small>{info.lyra_ready ? 'Lyra tersambung.' : <>Lyra belum tersambung — sambungkan di <Link to="/pengaturan/hermes#sambungan">Hermes Agent → Sambungan</Link>. Sampai itu, pertanyaan produk dijawab AI Trigger.</>}</small>
-              </span>
-            </label>
-          </li>
-        </ul>
-        <p className="ar-help">Cadangan AI Trigger — fakta yang boleh dijawab bila Lyra tidak menemukan produk{info.ai_ready ? '' : ' (AI belum aktif: isi kunci di API & model AI)'}:</p>
-        <div className="seg ar-days" role="group" aria-label="Fakta AI Trigger" style={{ marginTop: 8 }}>
+      <Step n={1} title="Kapan menjawab?" mark={<Mark ok={!hoursErr}>{hoursErr ? 'Perlu dibetulkan' : 'Beres'}</Mark>}>
+        <Hours breaks={s.breaks} set={(breaks) => set({ breaks })} edit={edit} from={info.send_from} to={info.send_to} />
+        {hoursErr && <p className="arx-err"><Icon name="x" />{hoursErr}</p>}
+      </Step>
+
+      <Step n={2} title="Siapa yang menjawab?" mark={<Mark ok={!s.lyra || info.lyra_ready}>{s.lyra ? (info.lyra_ready ? 'Lyra siap' : 'Lyra belum tersambung') : 'Tanpa Lyra'}</Mark>}>
+        <button type="button" className={`arx-tile ${s.lyra ? 'on' : ''}`} aria-pressed={s.lyra} disabled={!edit} onClick={() => set({ lyra: !s.lyra })}>
+          <span className="arx-box"><Icon name={s.lyra ? 'check' : 'x'} /></span>
+          <span>
+            <b>Lyra menjawab pertanyaan produk</b>
+            <small>Stok, harga, barang — Lyra cari barangnya, angka dari sistem.</small>
+          </span>
+        </button>
+        {s.lyra && !info.lyra_ready && (
+          <p className="arx-err"><Icon name="alert" />Lyra belum tersambung. <Link to="/pengaturan/hermes#sambungan">Sambungkan Lyra di sini →</Link></p>
+        )}
+        <p className="arx-sub">Kalau Lyra tidak menemukan barangnya, AI Trigger menjawab soal:</p>
+        <div className="arx-chips" role="group" aria-label="Cadangan AI Trigger">
           {FACTS.map(([k, label]) => (
-            <button key={k} type="button" aria-pressed={s.facts.includes(k)} className={s.facts.includes(k) ? 'is-active' : ''} disabled={!edit}
+            <button key={k} type="button" aria-pressed={s.facts.includes(k)} className={s.facts.includes(k) ? 'on' : ''} disabled={!edit}
               onClick={() => set({ facts: s.facts.includes(k) ? s.facts.filter((x) => x !== k) : [...s.facts, k] })}>{label}</button>
           ))}
         </div>
-      </div>
+      </Step>
 
-      <Hours breaks={s.breaks} set={(breaks) => set({ breaks })} edit={edit} from={info.send_from} to={info.send_to} />
-
-      <div className="card">
-        <div className="card-h"><h2>Pesan template</h2><span className="meta">{tplLen}/500</span></div>
+      <Step n={3} title="Pesan untuk chat lainnya" mark={<Mark ok={!tplErr}>{tplErr ? 'Perlu dibetulkan' : 'Beres'}</Mark>}>
+        <p className="arx-sub">Chat yang bukan soal produk mendapat pesan ini, sekali saja.</p>
         <textarea className="ar-text" rows={3} value={s.template} disabled={!edit} onChange={(e) => set({ template: e.target.value })} aria-label="Pesan template" />
-        <p className="ar-help"><code>{'{salam}'}</code> Selamat pagi/siang/sore · <code>{'{nama}'}</code> nama pelanggan · <code>{'{kembali}'}</code> jam aktif selesai. Sertakan “(Pesan otomatis)” atau “terima kasih sudah menghubungi” supaya chat tetap “Belum dibalas”.</p>
-        <div className="ar-bubble"><small>Contoh yang diterima pelanggan</small>{preview}</div>
-      </div>
+        <div className="arx-count">{tplLen}/500</div>
+        {tplErr && <p className="arx-err"><Icon name="x" />{tplErr}</p>}
+        <p className="arx-sub">Yang dilihat pelanggan:</p>
+        <div className="arx-wa">{preview}</div>
+        <p className="arx-hint"><span>Kata <code>{'{nama}'}</code> diganti nama pelanggan, <code>{'{kembali}'}</code> jam sales kembali, <code>{'{salam}'}</code> Selamat pagi/siang/sore.</span></p>
+      </Step>
 
-      <Numbers info={info} s={s} set={(numbers) => set({ numbers })} edit={edit} />
-      <Log info={info} />
+      <Step n={4} title="Nomor sales mana?" mark={<Mark ok={allNums || s.numbers.length > 0}>{allNums ? 'Semua nomor' : `${s.numbers.length} nomor`}</Mark>}>
+        <div className="arx-chips big" role="radiogroup" aria-label="Nomor">
+          <button type="button" role="radio" aria-checked={allNums} className={allNums ? 'on' : ''} disabled={!edit} onClick={() => set({ numbers: [] })}>Semua nomor</button>
+          <button type="button" role="radio" aria-checked={!allNums} className={!allNums ? 'on' : ''} disabled={!edit || sales.length === 0} onClick={() => allNums && set({ numbers: [sales[0].wa_number] })}>Pilih sendiri</button>
+        </div>
+        {!allNums && (
+          <ul className="ar-nums arx-nums">
+            {sales.map((n) => (
+              <li key={n.wa_number}>
+                <label>
+                  <input type="checkbox" checked={s.numbers.includes(n.wa_number)} disabled={!edit}
+                    onChange={(e) => set({ numbers: e.target.checked ? [...s.numbers, n.wa_number] : s.numbers.filter((x) => x !== n.wa_number) })} />
+                  <span><b>{n.holder || n.label || fmtPhone(n.wa_number)}</b><small>{fmtPhone(n.wa_number)}{n.state !== 'connected' ? ' · tidak tersambung' : ''}</small></span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Step>
 
-      {!edit && <small className="muted"><Icon name="lock" /> Hanya CEO yang bisa mengubah dan menyetujui chat otomatis.</small>}
-      {edit && (dirty || !info.settings.approved_name) && (
-        <div className="ar-save">
-          <span>{hoursErr || tplErr || `Menyimpan = menyetujui aturan ini; setiap pesan otomatis tercatat atas nama Anda.${info.settings.approved_name ? ` Terakhir disetujui ${info.settings.approved_name}.` : ''}`}</span>
-          {dirty && <button type="button" className="btn quiet" onClick={() => setDraft(null)}>Batal</button>}
-          <button type="button" className="btn primary" disabled={!!hoursErr || !!tplErr || save.isPending} onClick={() => save.mutate(s)}><Icon name="check" />{save.isPending ? 'Menyimpan…' : 'Simpan & setujui'}</button>
+      <p className="arx-hint arx-rule"><Icon name="shield" /><span>Aman: hanya chat pribadi pelanggan (bukan grup). Kalau sales baru membalas dalam {info.human_quiet_min} menit terakhir, tidak ada balasan otomatis. Chat tetap “Belum dibalas” supaya sales menindaklanjuti.</span></p>
+
+      <details className="card arx-log">
+        <summary><Icon name="doc" />Riwayat balasan otomatis ({info.recent.length})</summary>
+        {info.recent.length === 0 ? <p className="cl-empty">Belum ada balasan otomatis.</p> : (
+          <ul className="ar-log">
+            {info.recent.map((r) => (
+              <li key={r.message_id}>
+                <div className="ar-log-h">
+                  <span className={`arx-kind ${r.kind}`}>{KIND_LABEL[r.kind]}</span>
+                  <Link to={`/chat/${r.thread_id}`}>{r.title || fmtPhone(r.account)}</Link>
+                  <span>{new Date(r.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} · {STATUS[r.status] ?? r.status}</span>
+                </div>
+                <p className="ar-q">“{r.question}”</p>
+                {r.answer && <p className="ar-a">{r.answer}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </details>
+
+      {edit && dirty && (
+        <div className={`arx-save ${err ? 'bad' : ''}`}>
+          <Icon name={err ? 'x' : 'alert'} />
+          <span>{err ? `Belum bisa disimpan: ${err}` : 'Ada perubahan yang BELUM DISIMPAN'}</span>
+          <button type="button" className="btn quiet" onClick={() => setDraft(null)}>Batal</button>
+          <button type="button" className="btn primary" disabled={!!err || save.isPending} onClick={() => save.mutate(s)}><Icon name="check" />{save.isPending ? 'Menyimpan…' : 'Simpan'}</button>
         </div>
       )}
     </div>

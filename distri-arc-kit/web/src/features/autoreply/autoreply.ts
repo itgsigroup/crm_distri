@@ -73,3 +73,13 @@ export function daysText(days: number[]): string {
 
 /** "12.00" from "12:00", as WIB times are written to customers. */
 export const dotted = (hm: string) => hm.replace(':', '.')
+
+/** Every half hour from "08:00" to "18:00", both included. */
+export function halfHours(from: string, to: string): string[] {
+  const min = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5))
+  const out: string[] = []
+  for (let m = Math.ceil(min(from) / 30) * 30; m <= min(to); m += 30) {
+    out.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`)
+  }
+  return out
+}

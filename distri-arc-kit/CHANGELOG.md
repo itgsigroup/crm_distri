@@ -1,6 +1,14 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## UI · Chat otomatis: tampilan dibuat sangat sederhana · 2026-10-29
+- Status besar berwarna di paling atas: **NYALA — sedang menjawab** (hijau), **NYALA — menunggu jamnya** (biru), atau **MATI** (abu-abu), dengan satu tombol besar **Nyalakan/Matikan** (minta konfirmasi dulu).
+- Gambar alur 3 langkah: pelanggan chat → Lyra cari barangnya → balasan terkirim.
+- Pengaturan jadi 4 langkah bernomor (Kapan? Siapa yang menjawab? Pesan untuk chat lainnya, Nomor mana?), masing-masing dengan tanda ✓ hijau atau ✗ merah.
+- Jam dipilih dari daftar 08.00–18.00 per setengah jam (sebelumnya kotak jam browser bisa menampilkan 13.00 sebagai "01:00").
+- Bila ada perubahan, muncul bar kuning "BELUM DISIMPAN" (merah bila ada yang salah) dengan tombol Simpan.
+- Test: `autoreply.test.ts`.
+
 ## Feat · Chat otomatis dijawab Lyra, dengan halaman pengaturan · 2026-10-29
 - Halaman baru **Pengaturan → Chat otomatis**: nyalakan/matikan, atur **jam aktif** per hari (dari jam berapa sampai jam berapa, 08.00–18.00 WIB), pilih nomor yang ikut, ubah pesan template, dan lihat riwayat pesan otomatis. Hanya CEO yang bisa menyimpan, dan menyimpan berarti menyetujui aturannya.
 - Pada jam aktif, pertanyaan produk dijawab **Lyra** (Hermes Agent): Lyra menyebut barangnya, stok per kota dan harga DPP diambil dari sistem, sama seperti kartu Lyra di Chat. Bila Lyra tidak menemukan produk atau belum tersambung, AI Trigger menjawab; pesan lain mendapat template.

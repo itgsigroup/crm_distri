@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { daysText, fill, windowsError } from './autoreply'
+import { daysText, fill, halfHours, windowsError } from './autoreply'
 
 describe('chat otomatis', () => {
   it('fills the template as the server does', () => {
@@ -14,6 +14,14 @@ describe('chat otomatis', () => {
     expect(windowsError([{ ...ok, start: '13:00', end: '12:00' }], '08:00', '18:00')).toMatch(/setelah mulai/)
     expect(windowsError([{ ...ok, end: '19:00' }], '08:00', '18:00')).toMatch(/08:00–18:00/)
     expect(windowsError([{ ...ok, days: [] }], '08:00', '18:00')).toMatch(/hari/)
+  })
+
+  it('lists the half hours of the send window', () => {
+    const h = halfHours('08:00', '18:00')
+    expect(h[0]).toBe('08:00')
+    expect(h.at(-1)).toBe('18:00')
+    expect(h).toContain('12:30')
+    expect(h).toHaveLength(21)
   })
 
   it('names the days', () => {
