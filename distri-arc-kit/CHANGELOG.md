@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## UI · Push stok: kotak pencarian di kanan · 2026-10-29
+- Di tabel stok menua, kotak **Cari produk, SKU, cabang, dealer** pindah ke kanan; jumlah dan nilai stok menua di kiri. Halaman lain tidak berubah.
+
 ## Feat · Chat otomatis: Lyra membalas semua chat seperti sales · 2026-10-29
 - Pilihan baru di **Chat otomatis → langkah 2**: **"Lyra membalas SEMUA chat seperti sales"**. Pada jam aktif, Lyra menyapa pelanggan dengan namanya dan menjawab sesuai isi pesan: stok, harga, status order, limit/tagihan, salam, atau janji temu.
 - Angka selalu dari sistem. Balasan yang memuat angka di luar data sistem (misalnya diskon karangan) **tidak dikirim**, dan sebagai gantinya terkirim kartu produk atau template.

@@ -70,9 +70,10 @@ export function SortTh<C extends string>({ t, c, children, right = false }: { t:
 }
 
 /** Search box with a result count on the right. */
-export function TableSearch({ value, onChange, placeholder, label, meta }: { value: string; onChange: (v: string) => void; placeholder: string; label: string; meta: ReactNode }) {
+/** end: the box on the right, the count on the left (Push stok, Sam 29 Oct). */
+export function TableSearch({ value, onChange, placeholder, label, meta, end }: { value: string; onChange: (v: string) => void; placeholder: string; label: string; meta: ReactNode; end?: boolean }) {
   return (
-    <div className="odl-tools">
+    <div className={`odl-tools${end ? ' end' : ''}`}>
       <div className="search of-q odl-q"><Icon name="search" /><input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={label} /></div>
       <span className="meta">{meta}</span>
     </div>

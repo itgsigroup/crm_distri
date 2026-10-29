@@ -136,7 +136,7 @@ function PushStockTable({ list, total, branches, branch, setBranch, pushOf, ai, 
           {['', ...branches].map((b) => <button key={b || 'all'} className={`chip ${branch === b ? 'is-active' : ''}`} onClick={() => setBranch(b)}>{b || 'Semua cabang'}</button>)}
         </div>
       )}
-      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari produk, SKU, cabang, dealer…" label="Cari stok menua" meta={`${matches.length.toLocaleString('id-ID')} stok menua · ${fmtRp(totalValue)}${matches.length !== total ? ` · dari ${total.toLocaleString('id-ID')}` : ''}`} />
+      <TableSearch value={t.query} onChange={t.setQuery} placeholder="Cari produk, SKU, cabang, dealer…" label="Cari stok menua" end meta={`${matches.length.toLocaleString('id-ID')} stok menua · ${fmtRp(totalValue)}${matches.length !== total ? ` · dari ${total.toLocaleString('id-ID')}` : ''}`} />
       {matches.length === 0 ? (
         <p className="sg-hint">{list.length ? 'Tidak ada stok yang cocok dengan pencarian ini.' : 'Tidak ada stok menua.'}</p>
       ) : (
