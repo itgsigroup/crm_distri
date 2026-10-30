@@ -1,6 +1,11 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## UI · Pengaturan: kartu dirapikan · 2026-10-30
+- Saklar, tombol "Ubah", pill status, dan pilihan (24 jam / Dibuka) sekarang rata kanan di setiap baris dan tidak terpotong ke baris baru.
+- Kartu Chat WhatsApp dan Cadangan chat pindah ke kolom kiri di bawah Matriks otonomi, sehingga dua kolom seimbang.
+- Di HP halaman tidak lagi melebar ke samping, dan keterangan kartu turun ke bawah judul.
+
 ## Fitur · Pengaturan: aturan 24 jam Chat bisa dibuka · 2026-10-30
 - Kartu baru **Chat WhatsApp** di Pengaturan → "Batas balas 24 jam": pilih **24 jam** (bawaan, aman dari blokir) atau **Dibuka** (pelanggan bisa dikirimi dari Chat kapan saja). Hanya CEO yang bisa mengubah; tiap perubahan menjadi versi kebijakan baru (ADR 0082).
 

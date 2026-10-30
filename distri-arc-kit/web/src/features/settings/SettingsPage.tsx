@@ -49,7 +49,7 @@ export function SettingsPage() {
   const connected = wa?.items.filter((n) => n.state === 'connected').length ?? 0
   const internalGroups = groups.filter((g) => g.kind === 'internal').length
   return (
-    <div className="ai-grid">
+    <div className="ai-grid settings-page">
       <div className="stack">
       <div className="card">
         <div className="card-h"><h2>Kebijakan orbit</h2><span className="meta">Dibaca semua agen</span></div>
@@ -84,6 +84,8 @@ export function SettingsPage() {
         </ul>
       </div>
       <AutonomyCard />
+      <ChatWindowCard />
+      <ChatBackupCard />
       {me?.manage_users && (
         <div className="card">
           <div className="card-h"><h2>Master data</h2><span className="meta">Pengguna, Peran &amp; akses, Cabang — di sidebar</span></div>
@@ -110,8 +112,6 @@ export function SettingsPage() {
         <AIConnectionsCard />
         {me?.manage_users && <PilotCard />}
         {me?.manage_users && <SystemCard />}
-        <ChatWindowCard />
-        <ChatBackupCard />
         <div className="card">
           <div className="card-h"><h2>Kalibrasi agen</h2><Pill tone="good" icon="check">Belajar dari keputusan Anda</Pill></div>
           <ul className="cal">

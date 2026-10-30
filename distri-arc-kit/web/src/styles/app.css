@@ -2597,3 +2597,15 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;user-select:no
   .arx-err{flex-wrap:wrap}
 }
 .arx-wa small{display:block;font-size:11px;color:var(--text-3);margin-bottom:4px;white-space:normal}
+
+/* Pengaturan: in every rule row the text takes the width, so switches, "Ubah", pills and segments sit flush right
+ * and never wrap; a pill in a card head sits on the right like .meta */
+.settings-page .rules li>div:first-child{flex:1;min-width:0}
+.settings-page .rules li>div:first-child~*{flex:none}
+.settings-page .seg button{white-space:nowrap}
+.settings-page .card-h>.pill{margin-left:auto}
+.settings-page .card-h>.pill~.meta{margin-left:0}
+.settings-page>.stack{min-width:0}
+.settings-page .card-h{flex-wrap:wrap;row-gap:2px}
+.settings-page .card-h h2{white-space:nowrap}
+@media (max-width:640px){.settings-page .card-h .meta{flex-basis:100%;margin-left:0}}
