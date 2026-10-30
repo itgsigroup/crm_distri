@@ -525,6 +525,7 @@ func TestChatForward(t *testing.T) {
 		select 'new', '6281300000301@s.whatsapp.net', 'Toko Tujuan', sales_id, account, now() from chat_threads where id = $1 returning id`, src).Scan(&dst); err != nil {
 		t.Fatal(err)
 	}
+	addMessage(t, st, dst, "FW0", "in", "received", "Halo", chatNow.Add(-time.Hour), nil) // inside WhatsApp's 24-hour window
 	text := addMessage(t, st, src, "FW1", "in", "received", "Mohon kirim 10 unit IPC ke gudang Bekasi", chatNow.Add(-time.Hour), nil)
 	photo := addMessage(t, st, src, "FW2", "in", "received", "[gambar] Lokasi pasang", chatNow.Add(-2*time.Hour), &wa.Media{Kind: "image", Mime: "image/jpeg", Size: 8, Ref: "REF1"})
 	url := srv.URL + "/api/chat/threads/" + dst.String() + "/messages"
@@ -620,6 +621,7 @@ func TestReplyNamedAfterTheNumbersHolder(t *testing.T) {
 		values ('dealer', '6281300000302@s.whatsapp.net', 'Toko Dewi', (select id from sales_users where name = 'Dewi'), $1, now()) returning id`, account).Scan(&dst); err != nil {
 		t.Fatal(err)
 	}
+	addMessage(t, st, dst, "FW8", "in", "received", "Halo", chatNow.Add(-time.Hour), nil) // inside WhatsApp's 24-hour window
 	text := addMessage(t, st, src, "FW9", "in", "received", "Nomor mba Elisa: 0812 0000 9999", chatNow.Add(-time.Hour), nil)
 	code, out := sendJSON(t, http.MethodPost, srv.URL+"/api/chat/threads/"+dst.String()+"/messages", "sam@gsi.co.id",
 		map[string]any{"forward": map[string]string{"thread_id": src.String(), "message_id": text.String()}})

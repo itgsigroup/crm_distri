@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fitur · Chat: aturan 24 jam WhatsApp — Orbit tidak memulai chat · 2026-10-30
+- Chat pelanggan hanya bisa dibalas dari GSI Orbit dalam **24 jam** setelah pelanggan terakhir menulis, seperti aturan WhatsApp, agar nomor tidak diblokir.
+- Lewat 24 jam (atau pelanggan belum pernah menulis), kotak ketik diganti banner: **Buka WhatsApp Web** atau mulai chat dari HP. Begitu pelanggan membalas, chat terbuka lagi. Grup dan chat internal tidak terpengaruh (ADR 0081).
+
 ## Fitur · Chat otomatis: atur topik yang boleh dijawab, harga bisa dimatikan · 2026-10-29
 - Langkah baru **2. Apa yang boleh dijawab?** di Pengaturan → Chat otomatis: centang Stok, Harga, Status order, Limit & tagihan. Berlaku untuk Lyra dan AI Trigger.
 - **Harga tidak dicentang** → harga tidak pernah dikirim otomatis: kartu produk tanpa harga, Lyra menjawab "harganya akan kami konfirmasi", dan balasan yang tetap menyebut rupiah tidak dikirim (ADR 0080).

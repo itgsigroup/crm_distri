@@ -415,7 +415,12 @@ export interface ThreadDetail {
     group_id?: string | null; group_kind?: string
     labels?: string[]
     /** a group where only admins may write and this number is none: the composer is closed, like WhatsApp */
-    admin_only?: boolean }
+    admin_only?: boolean
+    /** a customer chat outside WhatsApp's 24-hour window (no message from them in 24 hours): Orbit does not send,
+     * the composer becomes a banner pointing to WhatsApp Web or the phone */
+    reply_closed?: boolean
+    /** the customer's last message (null: they never wrote) */
+    last_in_at?: string | null }
   messages: MessageView[]
   pins?: ChatPin[]
   /** older messages exist before this page (only a very busy chat: the first page holds the whole retention window) */

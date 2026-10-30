@@ -1327,6 +1327,20 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
         {t.admin_only ? (
           // like WhatsApp: a group where only admins may write, and this number is none — nothing can be sent
           <div className="ibc-adminonly" role="note"><Icon name="lock" />Hanya admin yang dapat mengirim pesan ke grup ini</div>
+        ) : t.reply_closed ? (
+          // WhatsApp's 24-hour rule (ADR 0081): Orbit never starts or revives a chat, so the number is not banned
+          <div className="ibc-window" role="note">
+            <Icon name="alert" />
+            <span>
+              <b>{t.last_in_at ? 'Lebih dari 24 jam sejak pesan terakhir pelanggan' : 'Pelanggan belum pernah mengirim pesan'}</b>
+              <small>
+                {t.last_in_at && <>Pesan terakhir {shortDate(t.last_in_at)} {hhmm(t.last_in_at)}. </>}
+                Agar nomor tidak diblokir, GSI Orbit hanya membalas dalam 24 jam setelah pelanggan menulis, seperti aturan WhatsApp.
+                Mulai chat dari WhatsApp Web atau HP {from}; begitu pelanggan membalas, chat di sini terbuka lagi.
+              </small>
+            </span>
+            {t.phone && <a className="btn primary" href={`https://web.whatsapp.com/send?phone=${t.phone}`} target="_blank" rel="noreferrer"><Icon name="chat" />Buka WhatsApp Web</a>}
+          </div>
         ) : voice.recording ? (
           <RecordingBar secs={voice.secs} onCancel={voice.cancel} onSend={voice.send} />
         ) : (

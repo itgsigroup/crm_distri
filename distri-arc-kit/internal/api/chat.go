@@ -800,12 +800,14 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	replyClosed, lastIn := s.replyClosed(r.Context(), t)
 	httpx.JSON(w, http.StatusOK, map[string]any{"thread": map[string]any{
 		"id": t.ID, "kind": deref(t.Kind), "title": deref(t.Title), "subtitle": deref(t.Subtitle), "phone_name": deref(t.PhoneName), "dealer_id": deref(t.DealerSlug),
 		"sales": deref(t.SalesName), "sales_wa": deref(t.SalesWa), "account_label": t.AccountLabel, "sender_name": t.SenderName, "account_masked": wa.MaskNumber(deref(t.SalesWa)), "suggestions": t.Suggestions, "tag": t.Tag, "unread": t.Unread, "mentioned": t.Mentioned,
 		"phone": phoneOfJID(t.WaJid), "account": deref(t.Account), "dealer_code": deref(t.DealerCode), "dealer_city": deref(t.DealerCity), "waiting_since": timeOrNil(t.WaitingSince),
 		"analyzed_at": lastAnalysis, "account_team": t.AccountTeam, "branch": t.ThreadBranch, "contact_type": t.ContactType, "group_id": t.GroupID, "group_kind": deref(t.GroupKind),
 		"labels": convLabels, "admin_only": deref(t.Kind) == "group" && s.groupAdminOnly(threadAccount(t), deref(t.WaJid)),
+		"reply_closed": replyClosed, "last_in_at": lastIn,
 	}, "messages": out, "pins": pins, "stock_as_of": stockAsOf(r.Context(), s, out), "has_more": hasMore, "history_from": historyFrom, "history_days": keepDays})
 }
 
@@ -985,6 +987,10 @@ func (s *Server) chatSend(w http.ResponseWriter, r *http.Request) {
 	}
 	if deref(t.Kind) == "group" && s.groupAdminOnly(threadAccount(t), deref(t.WaJid)) {
 		httpx.Fail(w, http.StatusConflict, "admin_only", "Hanya admin yang dapat mengirim pesan ke grup ini — nomor ini bukan admin")
+		return
+	}
+	if closed, _ := s.replyClosed(r.Context(), t); closed {
+		httpx.Fail(w, http.StatusConflict, "reply_window_closed", "Pelanggan belum mengirim pesan dalam 24 jam terakhir — agar nomor tidak diblokir WhatsApp, mulai chat dari WhatsApp Web atau HP")
 		return
 	}
 	in, file, why := readChatSend(r)

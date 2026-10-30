@@ -33,3 +33,12 @@
 /* A group where only admins may write (WhatsApp "announce") and this number is none: no composer. */
 .ibc-adminonly{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 16px;border-radius:var(--r-sm);background:var(--surface-2);color:var(--text-2);font-size:13px;text-align:center}
 .ibc-adminonly .i{width:14px;height:14px;flex:none}
+
+/* WhatsApp's 24-hour window closed (ADR 0081): the composer becomes this banner. */
+.ibc-window{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--warn);background:var(--warn-soft);font-size:13px}
+.ibc-window>.i{width:18px;height:18px;flex:none;color:var(--warn)}
+.ibc-window>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.45}
+.ibc-window b{color:var(--warn);font-weight:700}
+.ibc-window small{color:var(--text-2);font-size:12.5px}
+.ibc-window .btn{flex:none;white-space:nowrap}
+@media (max-width:640px){.ibc-window{flex-wrap:wrap}.ibc-window .btn{width:100%;justify-content:center}}
