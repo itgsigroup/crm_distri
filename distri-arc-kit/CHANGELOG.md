@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Perbaikan · Chat: reaksi emoji juga ikut aturan 24 jam · 2026-10-30
+- Reaksi emoji ke chat pelanggan yang sudah lewat 24 jam sekarang ditolak juga (sebelumnya lolos dan bisa "menghidupkan" chat lama). Muncul pesan alasannya dan emoji dibatalkan; bila Chat dibuka di Pengaturan, reaksi tetap bisa.
+
 ## UI · Pengaturan: kartu dirapikan · 2026-10-30
 - Saklar, tombol "Ubah", pill status, dan pilihan (24 jam / Dibuka) sekarang rata kanan di setiap baris dan tidak terpotong ke baris baru.
 - Kartu Chat WhatsApp dan Cadangan chat pindah ke kolom kiri di bawah Matriks otonomi, sehingga dua kolom seimbang.

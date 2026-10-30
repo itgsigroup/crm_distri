@@ -37,9 +37,13 @@ func TestReplyWindow24h(t *testing.T) {
 	if !closed(fresh) || send(fresh) != http.StatusConflict {
 		t.Fatal("a chat the customer never wrote in is open to a send")
 	}
-	addMessage(t, st, fresh, "RW1", "in", "received", "Halo, ada stok?", chatNow.Add(-25*time.Hour), nil)
+	old := addMessage(t, st, fresh, "RW1", "in", "received", "Halo, ada stok?", chatNow.Add(-25*time.Hour), nil)
 	if !closed(fresh) || send(fresh) != http.StatusConflict {
 		t.Fatal("a chat whose last customer message is 25 hours old is open to a send")
+	}
+	// a reaction revives a chat too
+	if code, out := sendJSON(t, http.MethodPut, srv.URL+"/api/chat/threads/"+fresh.String()+"/messages/"+old.String()+"/reaction", "andi@gsi.co.id", map[string]string{"emoji": "👍"}); code != http.StatusConflict {
+		t.Fatalf("reaction outside 24h: %d %v", code, out)
 	}
 	if n := count(t, st, "select count(*) from chat_messages where thread_id = $1 and direction = 'out'", fresh); n != 0 {
 		t.Fatalf("%d messages stored for refused sends", n)

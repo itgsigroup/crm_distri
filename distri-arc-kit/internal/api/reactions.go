@@ -101,6 +101,10 @@ func (s *Server) chatReact(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusConflict, "no_number", "Chat ini belum punya nomor GSI untuk memberi reaksi")
 		return
 	}
+	if closed, _ := s.replyClosed(r.Context(), t); closed { // a reaction revives a chat too (ADR 0081)
+		httpx.Fail(w, http.StatusConflict, "reply_window_closed", "Pelanggan belum mengirim pesan dalam 24 jam terakhir — reaksi juga tidak dikirim agar nomor tidak diblokir WhatsApp")
+		return
+	}
 	m, err := s.st.Q.GetThreadMessage(r.Context(), gen.GetThreadMessageParams{ThreadID: t.ID, ID: mid})
 	if err != nil {
 		httpx.Fail(w, http.StatusNotFound, "not_found", "Pesan tidak ditemukan")
