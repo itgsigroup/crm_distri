@@ -1831,24 +1831,28 @@ func (q *Queries) ListReplyRules(ctx context.Context) ([]ReplyRule, error) {
 const listThreadMessages = `-- name: ListThreadMessages :many
 select id, thread_id, wa_msg_id, direction, from_number, from_name, body, media, sent_at, annotation, signal_id, status, proposal_id, internal, edited_at, quoted_wa_id, deleted_at, holding, closing, auto_reply, mentions, sent_by, sent_by_name from (
   select m.id, m.thread_id, m.wa_msg_id, m.direction, m.from_number, m.from_name, m.body, m.media, m.sent_at, m.annotation, m.signal_id, m.status, m.proposal_id, m.internal, m.edited_at, m.quoted_wa_id, m.deleted_at, m.holding, m.closing, m.auto_reply, m.mentions, m.sent_by, m.sent_by_name from chat_messages m
-  where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
+  where (m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = $1::uuid
                         where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
-    and m.sent_at < $2 and m.sent_at >= $3::timestamptz order by m.sent_at desc limit $4
+         or m.thread_id = any($2::uuid[]))
+    and m.sent_at < $3 and m.sent_at >= $4::timestamptz order by m.sent_at desc limit $5
 ) x order by sent_at
 `
 
 type ListThreadMessagesParams struct {
-	ThreadID *uuid.UUID `json:"thread_id"`
-	SentAt   time.Time  `json:"sent_at"`
-	Since    time.Time  `json:"since"`
-	Lim      int32      `json:"lim"`
+	ThreadID *uuid.UUID  `json:"thread_id"`
+	Twins    []uuid.UUID `json:"twins"`
+	SentAt   time.Time   `json:"sent_at"`
+	Since    time.Time   `json:"since"`
+	Lim      int32       `json:"lim"`
 }
 
 // A group is one conversation for every GSI number in it: each message is stored once (under the number that
-// received it first), so a group thread shows the messages of all threads of that group.
+// received it first), so a group thread shows the messages of all threads of that group. Twins are one-to-one chats
+// of the same person kept apart (a LID chat and the number's chat, ADR 0083): their messages show here too.
 func (q *Queries) ListThreadMessages(ctx context.Context, arg ListThreadMessagesParams) ([]ChatMessage, error) {
 	rows, err := q.db.Query(ctx, listThreadMessages,
 		arg.ThreadID,
+		arg.Twins,
 		arg.SentAt,
 		arg.Since,
 		arg.Lim,

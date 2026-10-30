@@ -262,11 +262,13 @@ where t.id = $1;
 
 -- name: ListThreadMessages :many
 -- A group is one conversation for every GSI number in it: each message is stored once (under the number that
--- received it first), so a group thread shows the messages of all threads of that group.
+-- received it first), so a group thread shows the messages of all threads of that group. Twins are one-to-one chats
+-- of the same person kept apart (a LID chat and the number's chat, ADR 0083): their messages show here too.
 select * from (
   select m.* from chat_messages m
-  where m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = sqlc.narg(thread_id)::uuid
+  where (m.thread_id in (select x.id from chat_threads x join chat_threads t on t.id = sqlc.narg(thread_id)::uuid
                         where x.id = t.id or (t.kind = 'group' and x.wa_jid = t.wa_jid))
+         or m.thread_id = any(sqlc.narg(twins)::uuid[]))
     and m.sent_at < sqlc.arg(sent_at) and m.sent_at >= sqlc.arg(since)::timestamptz order by m.sent_at desc limit sqlc.arg(lim)
 ) x order by sent_at;
 

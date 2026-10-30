@@ -980,6 +980,25 @@ body.map-maximized{overflow:hidden}
 .ibc-an-tg .i{width:13px;height:13px}
 .ibc-an-tg.on{border-color:var(--indigo);color:var(--indigo);background:var(--indigo-soft)}
 @media (max-width:1500px){.ibc-an-l{display:none}.ibc-an-tg{padding:0 10px}}
+/* the header's buttons follow the chat pane's width (it narrows with the lead panel, not only with the screen):
+   labels go first, then the buttons shrink — they stay on the name's line instead of wrapping (Sam 30 Oct) */
+.ibc-h{container-type:inline-size;container-name:ibch}
+.ibc-who{flex:1 1 auto;min-width:0}
+@container ibch (max-width:980px){
+  .ibc-acts{flex-wrap:nowrap;gap:4px;flex-shrink:0}
+  .ibc-an-l,.ibc-acc-l{display:none}
+  .ibc-acts .btn.ibc-acc,.ibc-an-tg{padding:0 9px}
+  .ibc-acts .ibl-btn{width:30px;height:30px}
+  .ibc-acts .btn,.ibc-an-tg{height:30px}
+  .ibc-zoom button{height:24px;min-width:24px;font-size:15px}
+  .ibc-zoom .ibc-zoom-pct{min-width:38px;font-size:11px}
+}
+@container ibch (max-width:640px){
+  .ibc-acts{gap:2px}
+  .ibc-acts .ibl-btn{width:28px;height:28px}
+  .ibc-acts .btn,.ibc-an-tg{height:28px;padding:0 7px}
+  .ibc-zoom .ibc-zoom-pct{display:none}
+}
 /* Analisa WhatsApp per bubble (ADR 0027) */
 .bub-an{display:flex;flex-direction:column;gap:4px;max-width:min(520px,100%);margin-top:4px;padding:6px 9px 6px 10px;border-radius:9px;background:color-mix(in srgb,var(--ai-c) 7%,var(--surface));border:1px dashed color-mix(in srgb,var(--ai-c) 35%,transparent);border-left:3px solid var(--ai-c);font-size:11.5px;line-height:1.45;color:var(--text-2)}
 .bub-an.out{align-self:flex-end}

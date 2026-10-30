@@ -653,11 +653,12 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 			lim, since = jumpPageSize, x
 		}
 	}
-	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Since: since, Lim: lim})
+	twins := s.chatTwins(r.Context(), t.ID, t.Kind, t.Account, t.WaJid)
+	msgs, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, Twins: twins, SentAt: before, Since: since, Lim: lim})
 	if err == nil && len(msgs) == 0 && !since.IsZero() {
 		// nothing in the window (a chat opened from a link): its last messages, not an empty page
 		since, lim = time.Time{}, quietChatPage
-		msgs, err = s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: before, Lim: lim})
+		msgs, err = s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, Twins: twins, SentAt: before, Lim: lim})
 	}
 	if err != nil {
 		httpx.Fail(w, http.StatusInternalServerError, "internal", err.Error())
@@ -666,7 +667,7 @@ func (s *Server) chatThread(w http.ResponseWriter, r *http.Request) {
 	hasMore := len(msgs) == int(lim)
 	if !hasMore && !since.IsZero() && len(msgs) > 0 {
 		// the window ended the page: say whether anything older is stored, so scrolling up can load it
-		older, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, SentAt: msgs[0].SentAt, Lim: 1})
+		older, err := s.st.Q.ListThreadMessages(r.Context(), gen.ListThreadMessagesParams{ThreadID: &t.ID, Twins: twins, SentAt: msgs[0].SentAt, Lim: 1})
 		hasMore = err == nil && len(older) > 0
 	}
 	keepDays := 0
@@ -1989,7 +1990,19 @@ func (s *Server) chatHistory(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, http.StatusConflict, "no_history", "Pesan lama hanya bisa dimuat dari HP untuk nomor yang ditautkan ke GSI Orbit")
 		return
 	}
+	// the oldest message of this chat or of its twin (ADR 0083): the phone is asked for what came before it
 	o, err := s.st.Q.OldestThreadMessage(r.Context(), t.ID)
+	jid := *t.WaJid
+	for _, tw := range s.chatTwins(r.Context(), t.ID, t.Kind, t.Account, t.WaJid) {
+		x, xerr := s.st.Q.OldestThreadMessage(r.Context(), tw)
+		if xerr != nil || (err == nil && !x.SentAt.Before(o.SentAt)) {
+			continue
+		}
+		var tj string
+		if s.st.Pool.QueryRow(r.Context(), "select coalesce(wa_jid, '') from chat_threads where id = $1", tw).Scan(&tj) == nil && tj != "" {
+			o, err, jid = x, nil, tj
+		}
+	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.Fail(w, http.StatusConflict, "no_history", "Belum ada pesan WhatsApp di chat ini untuk dijadikan titik awal")
 		return
@@ -1998,7 +2011,7 @@ func (s *Server) chatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	anchor := wa.HistoryAnchor{ID: o.WaMsgID, FromMe: o.Direction == "out", At: o.SentAt}
-	if err := b.FetchHistory(r.Context(), *t.Account, *t.WaJid, anchor, wa.HistoryBatch); err != nil {
+	if err := b.FetchHistory(r.Context(), *t.Account, jid, anchor, wa.HistoryBatch); err != nil {
 		if errors.Is(err, wa.ErrHistoryUnavailable) {
 			httpx.Fail(w, http.StatusTooManyRequests, "history_busy", "HP pemegang nomor belum bisa dimintai riwayat (belum terhubung atau terlalu cepat) — coba lagi sebentar")
 			return

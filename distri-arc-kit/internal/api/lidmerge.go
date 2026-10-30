@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -107,4 +108,49 @@ func (s *Server) mergeLIDChats(rows []gen.ListThreadsRow) {
 			}
 		}
 	}()
+}
+
+// chatTwins are the one-to-one chats of the same person on the same GSI number kept apart from this one (ADR 0083):
+// a LID chat and the number's chat that WhatsApp has not linked yet, recognised by the same saved or profile name.
+// Exactly one twin counts — two or more chats of that name could be different people. Its messages show in this
+// chat, so "Muat pesan lama" reads them from GSI Orbit before asking the phone; the LID is also asked of the device
+// (in the background, at most once per lidRetry) so the two merge for good once WhatsApp links them (ADR 0072).
+func (s *Server) chatTwins(ctx context.Context, id uuid.UUID, kind, account, jid *string) []uuid.UUID {
+	j, acct := deref(jid), deref(account)
+	lid := wa.IsLID(j)
+	if deref(kind) == "group" || acct == "" || (!lid && !strings.HasSuffix(j, "@s.whatsapp.net")) {
+		return nil
+	}
+	other := "%@lid"
+	if lid {
+		other = "%@s.whatsapp.net"
+	}
+	rows, err := s.st.Pool.Query(ctx, `select p.id, p.wa_jid from chat_threads l join chat_threads p on p.account = l.account and p.id <> l.id
+		where l.id = $1 and p.wa_jid like $2 and coalesce(p.kind, '') <> 'group'
+		  and exists (select 1 from unnest(array[lower(trim(p.phone_name)), lower(trim(p.title))]) a(n)
+		              join unnest(array[lower(trim(l.phone_name)), lower(trim(l.title))]) b(n) on a.n = b.n
+		              where a.n ~ '[a-z]' and a.n not like 'nomor%')
+		limit 2`, id, other)
+	if err != nil {
+		s.log.Warn("chat twins", "thread", id, "err", err)
+		return nil
+	}
+	defer rows.Close()
+	var twins []uuid.UUID
+	var twinJID string
+	for rows.Next() {
+		var tid uuid.UUID
+		if rows.Scan(&tid, &twinJID) == nil {
+			twins = append(twins, tid)
+		}
+	}
+	if rows.Err() != nil || len(twins) != 1 {
+		return nil
+	}
+	lidChat := gen.ListThreadsRow{ID: twins[0], Kind: kind, Account: account, WaJid: &twinJID}
+	if lid {
+		lidChat = gen.ListThreadsRow{ID: id, Kind: kind, Account: account, WaJid: jid}
+	}
+	s.mergeLIDChats([]gen.ListThreadsRow{lidChat})
+	return twins
 }

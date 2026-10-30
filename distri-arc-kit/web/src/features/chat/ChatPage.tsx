@@ -1284,7 +1284,7 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
               <Icon name="spark" /><span className="ibc-an-l">Per pesan</span>
             </button>
           )}
-          {t.kind !== 'group' && <button className="btn ibc-acc" onClick={onAccurate}><Icon name="send" />Accurate</button>}
+          {t.kind !== 'group' && <button className="btn ibc-acc" onClick={onAccurate} title="Accurate" aria-label="Accurate"><Icon name="send" /><span className="ibc-acc-l">Accurate</span></button>}
           <button type="button" className={`ibl-btn ibc-find ibc-slim${slim ? ' on' : ''}`} onClick={toggleSlim} aria-pressed={slim}
             title={slim ? 'Tampilkan header lengkap' : 'Ringkas header'} aria-label="Ringkas header"><Icon name="chev" /></button>
           {!lead && <button className="ibl-btn ibc-lead-btn" onClick={() => setLead(true)} title="Tampilkan panel lead" aria-label="Tampilkan panel lead"><Icon name="doc" /></button>}
@@ -1296,7 +1296,11 @@ function ThreadPane({ id, onBack, picked, lead, setLead, onAccurate }: {
       <div className="th-body ibc-body" ref={body} onScroll={onScroll} style={zoom2 !== 1 ? { zoom: zoom2 } : undefined}>
         <div className="ibc-start">
           {more
-            ? <span className="ibc-pill dark"><Icon name="refresh" />{loading ? 'Memuat pesan sebelumnya…' : 'Gulir ke atas untuk pesan sebelumnya'}</span>
+            ? (
+              <button type="button" className="ibc-pill dark ibc-fromphone" disabled={loading} onClick={loadOlder} title="Pesan sebelumnya yang tersimpan di GSI Orbit — atau gulir ke atas">
+                <Icon name="refresh" />{loading ? 'Memuat pesan sebelumnya…' : 'Muat pesan lama'}
+              </button>
+            )
             : (
               <span className="ibc-start-old">
                 <span className="ibc-pill" title="GSI Orbit menyimpan chat selama masa simpan; yang lebih lama masih ada di HP pemegang nomor">{data.history_from ? `Riwayat sejak ${shortDate(data.history_from)}` : 'Awal percakapan'} · chat disimpan {data.history_days || 90} hari</span>

@@ -1,6 +1,10 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Perbaikan · Chat: pesan lama dimuat dari GSI Orbit; tombol header mengikuti lebar · 2026-10-30
+- Chat yang terpisah dari kembarannya (chat LID dan chat nomor dengan nama yang sama di nomor GSI yang sama) sekarang ikut menampilkan pesan kembarannya. Pesan lama dimuat dari Orbit lewat tombol **Muat pesan lama** atau dengan menggulir ke atas. "Muat pesan lama dari HP" hanya muncul di awal riwayat Orbit (ADR 0083).
+- Tombol di header chat mengikuti lebar panel chat: label "Accurate" dan "Per pesan" disembunyikan lebih dulu, lalu tombol mengecil. Semua tombol tetap satu baris dengan nama.
+
 ## Perbaikan · Chat: reaksi emoji juga ikut aturan 24 jam · 2026-10-30
 - Reaksi emoji ke chat pelanggan yang sudah lewat 24 jam sekarang ditolak juga (sebelumnya lolos dan bisa "menghidupkan" chat lama). Muncul pesan alasannya dan emoji dibatalkan; bila Chat dibuka di Pengaturan, reaksi tetap bisa.
 

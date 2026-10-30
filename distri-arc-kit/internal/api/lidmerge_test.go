@@ -72,3 +72,47 @@ func TestChatListMergesLIDChats(t *testing.T) {
 		t.Fatalf("after merge: %d messages on the number's chat, unknown LID chat %d", msgs, count("215030000000009@lid"))
 	}
 }
+
+// ADR 0083: a chat kept apart from its LID twin (WhatsApp has not linked them yet) shows the twin's messages, so
+// older messages load from GSI Orbit; a name shared by two other chats links none (they could be different people).
+func TestChatShowsLIDTwinMessages(t *testing.T) {
+	st := testdb.New(t)
+	ctx := context.Background()
+	if _, err := seed.Run(ctx, st, db.Seed); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(api.New(config.Config{Env: "dev"}, st, clock.Fixed(time.Now()), slog.New(slog.NewTextHandler(io.Discard, nil))).Handler())
+	t.Cleanup(srv.Close)
+	const nurul = "6281234504471"
+	add := func(jid, title, body, ago string) string {
+		var id string
+		if err := st.Pool.QueryRow(ctx, `with t as (insert into chat_threads (kind, wa_jid, title, account, last_message_at) values ('new', $1, $2, $3, now()) returning id)
+			insert into chat_messages (thread_id, wa_msg_id, direction, body, sent_at, status) select id, $1 || $4, 'in', $4, now() - $5::interval, 'received' from t
+			returning thread_id`, jid, title, nurul, body, ago).Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	phone := add("6281100000001@s.whatsapp.net", "Sukma Abadi", "hari ini", "1 hour")
+	add("215030000000077@lid", "sukma abadi", "minggu lalu", "7 days")
+	bodies := func(id string) []string {
+		var out struct {
+			Messages []struct {
+				Body string `json:"body"`
+			} `json:"messages"`
+		}
+		getJSON(t, srv, "/api/chat/threads/"+id, "sam@gsi.co.id", &out)
+		var b []string
+		for _, m := range out.Messages {
+			b = append(b, m.Body)
+		}
+		return b
+	}
+	if got := bodies(phone); !slices.Equal(got, []string{"minggu lalu", "hari ini"}) {
+		t.Fatalf("twin messages: %v", got)
+	}
+	add("215030000000078@lid", "Sukma Abadi", "orang lain", "3 days")
+	if got := bodies(phone); !slices.Equal(got, []string{"hari ini"}) {
+		t.Fatalf("ambiguous name must link no twin: %v", got)
+	}
+}
