@@ -139,6 +139,9 @@ type ChatPolicy struct {
 	WorkEnd       string `json:"work_end"`   // "17:00" WIB
 	ReplySLAMin   int    `json:"reply_sla_min"`
 	EscalateHours int    `json:"escalate_hours"`
+	// ReplyWindowOpen lifts WhatsApp's 24-hour rule in Chat: a customer can be written to any time (ADR 0082).
+	// Off (the default) keeps the rule, Orbit then never starts or revives a chat (ADR 0081).
+	ReplyWindowOpen bool `json:"reply_window_open,omitempty"`
 }
 
 type Retention struct {

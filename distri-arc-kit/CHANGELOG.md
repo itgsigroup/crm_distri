@@ -1,6 +1,9 @@
 # Changelog
 Semua perubahan per tahap dicatat di sini oleh Claude Code (`feat(stage-NN): ...`).
 
+## Fitur · Pengaturan: aturan 24 jam Chat bisa dibuka · 2026-10-30
+- Kartu baru **Chat WhatsApp** di Pengaturan → "Batas balas 24 jam": pilih **24 jam** (bawaan, aman dari blokir) atau **Dibuka** (pelanggan bisa dikirimi dari Chat kapan saja). Hanya CEO yang bisa mengubah; tiap perubahan menjadi versi kebijakan baru (ADR 0082).
+
 ## Fitur · Chat: aturan 24 jam WhatsApp — Orbit tidak memulai chat · 2026-10-30
 - Chat pelanggan hanya bisa dibalas dari GSI Orbit dalam **24 jam** setelah pelanggan terakhir menulis, seperti aturan WhatsApp, agar nomor tidak diblokir.
 - Lewat 24 jam (atau pelanggan belum pernah menulis), kotak ketik diganti banner: **Buka WhatsApp Web** atau mulai chat dari HP. Begitu pelanggan membalas, chat terbuka lagi. Grup dan chat internal tidak terpengaruh (ADR 0081).

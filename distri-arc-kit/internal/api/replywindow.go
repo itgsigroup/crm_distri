@@ -4,18 +4,23 @@ import (
 	"context"
 	"time"
 
+	"distri-arc/internal/policy"
 	"distri-arc/internal/store/gen"
 )
 
 // replyWindow is WhatsApp's customer-service window: a business number may write to a person only within 24 hours
 // of that person's last message. Starting or reviving a chat from GSI Orbit outside it is what gets numbers banned,
-// so Chat refuses it and the person starts the chat from WhatsApp Web or the phone (ADR 0081).
+// so Chat refuses it and the person starts the chat from WhatsApp Web or the phone (ADR 0081) — unless the CEO opened
+// Chat in Pengaturan (policy chat.rules.reply_window_open, ADR 0082).
 const replyWindow = 24 * time.Hour
 
 // replyClosed reports whether a one-to-one chat with a customer is outside the window, with the contact's last
 // message (nil: they never wrote). Groups and chats with colleagues are not bound by it.
 func (s *Server) replyClosed(ctx context.Context, t gen.GetThreadRow) (bool, *time.Time) {
 	if k := deref(t.Kind); k != "dealer" && k != "new" {
+		return false, nil
+	}
+	if pol, err := policy.Load(ctx, s.st.Q); err == nil && pol.Chat.ReplyWindowOpen {
 		return false, nil
 	}
 	var last *time.Time

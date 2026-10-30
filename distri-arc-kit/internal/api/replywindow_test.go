@@ -52,4 +52,23 @@ func TestReplyWindow24h(t *testing.T) {
 	if closed(group) || send(group) != http.StatusAccepted {
 		t.Fatal("a group is bound by the 24-hour window")
 	}
+	// Pengaturan → Chat WhatsApp → Dibuka (CEO, ADR 0082): a customer who never wrote can be written to.
+	quiet := thread("dealer", "6281300000402@s.whatsapp.net")
+	rules := map[string]any{"work_days": []int{1, 2, 3, 4, 5, 6}, "work_start": "08:00", "work_end": "17:00", "reply_sla_min": 30, "escalate_hours": 24, "reply_window_open": true}
+	if code, out := sendJSON(t, http.MethodPut, srv.URL+"/api/policies/chat.rules", "andi@gsi.co.id", rules); code != http.StatusForbidden {
+		t.Fatalf("a sales opened Chat: %d %v", code, out)
+	}
+	if code, out := sendJSON(t, http.MethodPut, srv.URL+"/api/policies/chat.rules", "sam@gsi.co.id", rules); code != http.StatusOK {
+		t.Fatalf("open Chat: %d %v", code, out)
+	}
+	if closed(quiet) || send(quiet) != http.StatusAccepted {
+		t.Fatal("Chat opened in Pengaturan still refuses a quiet customer")
+	}
+	rules["reply_window_open"] = false
+	if code, out := sendJSON(t, http.MethodPut, srv.URL+"/api/policies/chat.rules", "sam@gsi.co.id", rules); code != http.StatusOK {
+		t.Fatalf("back to 24 hours: %d %v", code, out)
+	}
+	if !closed(quiet) {
+		t.Fatal("back to 24 hours, a quiet customer is still open")
+	}
 }

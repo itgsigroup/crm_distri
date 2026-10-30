@@ -12,6 +12,7 @@ import { IdentifyPanel } from './IdentifyPanel'
 import { OdooPanel } from './OdooPanel'
 import { SecurityCard, SystemCard } from './SystemCard'
 import { ChatBackupCard } from './ChatBackupCard'
+import { ChatWindowCard } from './ChatWindowCard'
 import { PilotCard } from '../pilot/PilotPage'
 import { BigQueryCard } from '../data/BigQueryCard'
 import { AppearancePicker } from '../../components/AppearancePicker'
@@ -109,6 +110,7 @@ export function SettingsPage() {
         <AIConnectionsCard />
         {me?.manage_users && <PilotCard />}
         {me?.manage_users && <SystemCard />}
+        <ChatWindowCard />
         <ChatBackupCard />
         <div className="card">
           <div className="card-h"><h2>Kalibrasi agen</h2><Pill tone="good" icon="check">Belajar dari keputusan Anda</Pill></div>
